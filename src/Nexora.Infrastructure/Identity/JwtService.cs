@@ -34,15 +34,20 @@ public sealed class JwtService : IJwtService
             Encoding.UTF8.GetBytes(_config["Jwt:Secret"] ?? throw new InvalidOperationException("JWT Secret not configured")));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new Claim("firebase_uid", user.FirebaseUid),
-            new Claim(ClaimTypes.Email, user.Email),
-            new Claim("tenant_id", tenantId),
-            new Claim(ClaimTypes.Role, role.Name.ToString()),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new("firebase_uid", user.FirebaseUid),
+            new(ClaimTypes.Email, user.Email),
+            new("tenant_id", tenantId),
+            new(ClaimTypes.Role, role.Name.ToString()),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         };
+
+        foreach (var permission in role.RolePermissions)
+        {
+            claims.Add(new Claim("permission", permission.PermissionCode));
+        }
 
         var token = new JwtSecurityToken(
             issuer: "nexora",

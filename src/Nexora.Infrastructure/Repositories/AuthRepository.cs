@@ -19,6 +19,7 @@ public sealed class AuthRepository : IAuthRepository
         return await _db.Users
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
+                .ThenInclude(r => r.RolePermissions)
             .FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid);
     }
 
@@ -27,6 +28,7 @@ public sealed class AuthRepository : IAuthRepository
         return await _db.Users
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
+                .ThenInclude(r => r.RolePermissions)
             .FirstOrDefaultAsync(u => u.Id == userId);
     }
 
