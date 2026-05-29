@@ -21,4 +21,10 @@ public sealed class Employee : BaseEntity
     public string? SalaryType { get; set; } = "monthly";
     public string Status { get; set; } = "active";
     public string? PhotoUrl { get; set; }
+
+    public ICollection<EmployeeSupervisor> SupervisedBy { get; set; } = [];
+    public ICollection<EmployeeSupervisor> Supervisors { get; set; } = [];
+    public ICollection<EmployeeDocument> Documents { get; set; } = [];
+    public ICollection<LeaveBalances> LeaveBalances { get; set; } = [];
+    public ICollection<EmployeeHistory> History { get; set; } = [];
 }

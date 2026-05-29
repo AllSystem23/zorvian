@@ -22,6 +22,10 @@ public sealed class NexoraDbContext : DbContext
     public DbSet<Department> Departments => Set<Department>();
     public DbSet<Employee> Employees => Set<Employee>();
     public DbSet<CompanySettings> CompanySettings => Set<CompanySettings>();
+    public DbSet<EmployeeSupervisor> EmployeeSupervisors => Set<EmployeeSupervisor>();
+    public DbSet<EmployeeDocument> EmployeeDocuments => Set<EmployeeDocument>();
+    public DbSet<LeaveBalances> LeaveBalances => Set<LeaveBalances>();
+    public DbSet<EmployeeHistory> EmployeeHistories => Set<EmployeeHistory>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -130,6 +134,59 @@ public sealed class NexoraDbContext : DbContext
                 .HasForeignKey(em => em.DepartmentId)
                 .OnDelete(DeleteBehavior.SetNull);
             e.HasQueryFilter(em => em.TenantId == _tenantContext.TenantId);
+        });
+
+        builder.Entity<EmployeeSupervisor>(e =>
+        {
+            e.HasKey(es => es.Id);
+            e.HasOne(es => es.Employee)
+                .WithMany(emp => emp.SupervisedBy)
+                .HasForeignKey(es => es.EmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(es => es.Supervisor)
+                .WithMany(emp => emp.Supervisors)
+                .HasForeignKey(es => es.SupervisorId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(es => new { es.EmployeeId, es.SupervisorId }).IsUnique();
+            e.HasQueryFilter(es => es.TenantId == _tenantContext.TenantId);
+        });
+
+        builder.Entity<EmployeeDocument>(e =>
+        {
+            e.HasKey(ed => ed.Id);
+            e.Property(ed => ed.DocumentType).HasMaxLength(100).IsRequired();
+            e.Property(ed => ed.FileName).HasMaxLength(255).IsRequired();
+            e.Property(ed => ed.StoragePath).HasMaxLength(500).IsRequired();
+            e.Property(ed => ed.Description).HasMaxLength(500);
+            e.Property(ed => ed.ContentType).HasMaxLength(100).IsRequired();
+            e.HasOne(ed => ed.Employee)
+                .WithMany(emp => emp.Documents)
+                .HasForeignKey(ed => ed.EmployeeId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(ed => ed.TenantId == _tenantContext.TenantId);
+        });
+
+        builder.Entity<LeaveBalances>(e =>
+        {
+            e.HasKey(lb => lb.Id);
+            e.HasOne(lb => lb.Employee)
+                .WithMany(emp => emp.LeaveBalances)
+                .HasForeignKey(lb => lb.EmployeeId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(lb => new { lb.EmployeeId, lb.Year }).IsUnique();
+            e.HasQueryFilter(lb => lb.TenantId == _tenantContext.TenantId);
+        });
+
+        builder.Entity<EmployeeHistory>(e =>
+        {
+            e.HasKey(eh => eh.Id);
+            e.Property(eh => eh.FieldName).HasMaxLength(100).IsRequired();
+            e.Property(eh => eh.ChangeType).HasMaxLength(50).IsRequired();
+            e.HasOne(eh => eh.Employee)
+                .WithMany(emp => emp.History)
+                .HasForeignKey(eh => eh.EmployeeId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(eh => eh.TenantId == _tenantContext.TenantId);
         });
 
         builder.Entity<RefreshToken>(e =>

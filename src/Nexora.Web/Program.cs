@@ -47,9 +47,13 @@ builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 // DI - Application
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<CompanyService>();
+builder.Services.AddScoped<EmployeeService>();
+builder.Services.AddScoped<DepartmentService>();
 
 // DI - Repositories
 builder.Services.AddScoped<ICompanyRepository, CompanyRepository>();
+builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
+builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
 
 // JWT Authentication
 var jwtSecret = builder.Configuration["Jwt:Secret"]
