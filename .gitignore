@@ -1,0 +1,46 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.sln.docstates
+.vs/
+*.log
+
+# Flutter/Dart
+.dart_tool/
+.packages
+build/
+*.js.dart
+*.js.map
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+.idea/
+.metadata
+
+# Firebase
+.firebase/
+firebase-debug.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+*.env.local
+appsettings.Local.json
+appsettings.Development.json
+
+# Secrets
+*.key
+*.pem
+serviceAccountKey.json
