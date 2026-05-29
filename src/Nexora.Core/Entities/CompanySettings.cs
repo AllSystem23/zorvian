@@ -1,0 +1,17 @@
+namespace Nexora.Core.Entities;
+
+public sealed class CompanySettings : BaseEntity
+{
+    public int VacationDaysPerYear { get; set; } = 15;
+    public string VacationAccrualMethod { get; set; } = "monthly";
+    public int LateToleranceMinutes { get; set; } = 15;
+    public decimal WorkingHoursPerDay { get; set; } = 8;
+    public string WorkingDays { get; set; } = "MON,TUE,WED,THU,FRI";
+    public bool OvertimeEnabled { get; set; }
+    public string? Timezone { get; set; } = "America/Managua";
+    public string Currency { get; set; } = "NIO";
+    public string? DateFormat { get; set; } = "DD/MM/YYYY";
+
+    public Guid CompanyId { get; set; }
+    public Company Company { get; set; } = null!;
+}

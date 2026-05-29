@@ -1,0 +1,25 @@
+using FirebaseAdmin.Auth;
+using Nexora.Application.Interfaces;
+
+namespace Nexora.Infrastructure.Identity;
+
+public sealed class FirebaseAuthService : IFirebaseAuthService
+{
+    public async Task<FirebaseUser?> VerifyIdTokenAsync(string idToken)
+    {
+        try
+        {
+            var decoded = await FirebaseAuth.DefaultInstance.VerifyIdTokenAsync(idToken);
+            var uid = decoded.Uid;
+            var email = decoded.Claims.TryGetValue("email", out var e) ? e?.ToString() : null;
+            var name = decoded.Claims.TryGetValue("name", out var n) ? n?.ToString() : null;
+            var picture = decoded.Claims.TryGetValue("picture", out var p) ? p?.ToString() : null;
+
+            return new FirebaseUser(uid, email ?? "", name ?? "", picture);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+}
