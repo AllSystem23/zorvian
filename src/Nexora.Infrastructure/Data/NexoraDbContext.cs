@@ -19,6 +19,9 @@ public sealed class NexoraDbContext : DbContext
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+    public DbSet<Department> Departments => Set<Department>();
+    public DbSet<Employee> Employees => Set<Employee>();
+    public DbSet<CompanySettings> CompanySettings => Set<CompanySettings>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder builder)
@@ -77,6 +80,56 @@ public sealed class NexoraDbContext : DbContext
             e.HasOne(rp => rp.Role)
                 .WithMany(r => r.RolePermissions)
                 .HasForeignKey(rp => rp.RoleId);
+        });
+
+        builder.Entity<CompanySettings>(e =>
+        {
+            e.HasKey(cs => cs.Id);
+            e.HasOne(cs => cs.Company)
+                .WithOne(c => c.Settings)
+                .HasForeignKey<CompanySettings>(cs => cs.CompanyId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(cs => cs.TenantId == _tenantContext.TenantId);
+        });
+
+        builder.Entity<Department>(e =>
+        {
+            e.HasKey(d => d.Id);
+            e.Property(d => d.Name).HasMaxLength(255).IsRequired();
+            e.Property(d => d.Code).HasMaxLength(50);
+            e.Property(d => d.Description).HasMaxLength(500);
+            e.HasOne(d => d.Manager)
+                .WithMany()
+                .HasForeignKey(d => d.ManagerId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(d => d.ParentDepartment)
+                .WithMany(d => d.ChildDepartments)
+                .HasForeignKey(d => d.ParentDepartmentId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasQueryFilter(d => d.TenantId == _tenantContext.TenantId);
+        });
+
+        builder.Entity<Employee>(e =>
+        {
+            e.HasKey(em => em.Id);
+            e.Property(em => em.EmployeeCode).HasMaxLength(50);
+            e.Property(em => em.FirstName).HasMaxLength(100).IsRequired();
+            e.Property(em => em.LastName).HasMaxLength(100).IsRequired();
+            e.Property(em => em.Email).HasMaxLength(255).IsRequired();
+            e.Property(em => em.Phone).HasMaxLength(20);
+            e.Property(em => em.Gender).HasMaxLength(20);
+            e.Property(em => em.IdentificationType).HasMaxLength(50);
+            e.Property(em => em.IdentificationNumber).HasMaxLength(50);
+            e.Property(em => em.Position).HasMaxLength(255);
+            e.Property(em => em.TerminationReason).HasMaxLength(500);
+            e.Property(em => em.SalaryType).HasMaxLength(20);
+            e.Property(em => em.Status).HasMaxLength(20).IsRequired();
+            e.Property(em => em.PhotoUrl).HasMaxLength(500);
+            e.HasOne(em => em.Department)
+                .WithMany(d => d.Employees)
+                .HasForeignKey(em => em.DepartmentId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasQueryFilter(em => em.TenantId == _tenantContext.TenantId);
         });
 
         builder.Entity<RefreshToken>(e =>

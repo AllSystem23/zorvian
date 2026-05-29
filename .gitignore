@@ -44,3 +44,4 @@ appsettings.Development.json
 *.key
 *.pem
 serviceAccountKey.json
+*-firebase-admin.json

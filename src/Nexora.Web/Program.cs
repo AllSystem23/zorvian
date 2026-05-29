@@ -1,4 +1,6 @@
 using System.Text;
+using FirebaseAdmin;
+using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -12,6 +14,21 @@ using Nexora.Infrastructure.Repositories;
 using Nexora.Web.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Firebase Admin SDK
+var credPath = builder.Configuration["Firebase:CredentialsFilePath"];
+if (!string.IsNullOrEmpty(credPath))
+{
+    var fullPath = Path.Combine(builder.Environment.ContentRootPath, credPath);
+    if (File.Exists(fullPath))
+    {
+        FirebaseApp.Create(new AppOptions
+        {
+            Credential = GoogleCredential.FromFile(fullPath),
+            ProjectId = builder.Configuration["Firebase:ProjectId"],
+        });
+    }
+}
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
