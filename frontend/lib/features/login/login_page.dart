@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
+import '../../auth/auth_provider.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -12,7 +14,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  String? _error;
   bool _loading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -24,14 +28,32 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _loading = true);
+    setState(() { _loading = true; _error = null; });
 
-    // TODO: Replace with actual Firebase Auth sign-in
-    // This is a placeholder for Sprint 1.9 integration
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      final cred = await fb.FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+      final idToken = await cred.user!.getIdToken();
+      if (idToken == null) throw Exception('No idToken');
 
-    if (mounted) {
-      setState(() => _loading = false);
+      final success = await ref.read(authProvider.notifier).loginWithFirebase(idToken);
+      if (!success && mounted) {
+        setState(() => _error = 'Error al conectar con el servidor');
+      }
+    } on fb.FirebaseAuthException catch (e) {
+      setState(() {
+        _error = switch (e.code) {
+          'user-not-found' || 'invalid-credential' => 'Correo o contraseña incorrectos',
+          'too-many-requests' => 'Demasiados intentos. Intente más tarde',
+          _ => 'Error de autenticación: ${e.message}',
+        };
+      });
+    } catch (e) {
+      if (mounted) setState(() => _error = 'Error de conexión');
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -69,6 +91,24 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     ),
                   ),
                   const SizedBox(height: 48),
+                  if (_error != null)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.errorContainer,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.error_outline, size: 20, color: theme.colorScheme.error),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
+                          ),
+                        ],
+                      ),
+                    ),
                   TextFormField(
                     controller: _emailController,
                     decoration: const InputDecoration(
@@ -82,13 +122,18 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _passwordController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Contraseña',
-                      prefixIcon: Icon(Icons.lock_outlined),
+                      prefixIcon: const Icon(Icons.lock_outlined),
+                      suffixIcon: IconButton(
+                        icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                      ),
                     ),
-                    obscureText: true,
+                    obscureText: _obscurePassword,
                     validator: (v) =>
                         v == null || v.isEmpty ? 'Ingrese su contraseña' : null,
+                    onFieldSubmitted: (_) => _login(),
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton(

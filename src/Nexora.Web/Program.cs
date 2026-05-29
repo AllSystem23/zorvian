@@ -46,6 +46,10 @@ builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 
 // DI - Application
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<CompanyService>();
+
+// DI - Repositories
+builder.Services.AddScoped<ICompanyRepository, CompanyRepository>();
 
 // JWT Authentication
 var jwtSecret = builder.Configuration["Jwt:Secret"]

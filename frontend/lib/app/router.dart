@@ -5,6 +5,19 @@ import 'package:go_router/go_router.dart';
 import '../auth/auth_provider.dart';
 import '../features/dashboard/dashboard_page.dart';
 import '../features/login/login_page.dart';
+import '../features/onboarding/onboarding_page.dart';
+
+class AppRoute {
+  final String path;
+  final String name;
+  final List<String> allowedRoles;
+
+  const AppRoute({
+    required this.path,
+    required this.name,
+    this.allowedRoles = const [],
+  });
+}
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -14,7 +27,9 @@ final routerProvider = Provider<GoRouter>((ref) {
     debugLogDiagnostics: !kIsWeb && Platform.isWindows,
     redirect: (context, state) {
       final status = authState.status;
-      final isLoginRoute = state.matchedLocation == '/login';
+      final location = state.matchedLocation;
+      final isLoginRoute = location == '/login';
+      final isOnboardingRoute = location == '/onboarding';
 
       if (status == AuthStatus.unknown) return null;
 
@@ -23,7 +38,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       if (status == AuthStatus.authenticated && isLoginRoute) {
-        return '/dashboard';
+        final hasCompany = authState.tenantId != null && authState.tenantId!.isNotEmpty;
+        return hasCompany ? '/dashboard' : '/onboarding';
       }
 
       return null;
@@ -33,6 +49,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/login',
         name: 'login',
         builder: (_, _) => const LoginPage(),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        name: 'onboarding',
+        builder: (_, _) => const OnboardingPage(),
       ),
       GoRoute(
         path: '/dashboard',
