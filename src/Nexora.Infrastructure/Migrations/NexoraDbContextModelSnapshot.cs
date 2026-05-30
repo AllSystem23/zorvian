@@ -22,6 +22,61 @@ namespace Nexora.Infrastructure.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Nexora.Core.Entities.ApiKey", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("KeyHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<DateTime?>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Prefix")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ApiKeys");
+                });
+
             modelBuilder.Entity("Nexora.Core.Entities.ApprovalFlow", b =>
                 {
                     b.Property<Guid>("Id")
@@ -95,6 +150,9 @@ namespace Nexora.Infrastructure.Migrations
                     b.Property<double?>("CheckInLongitude")
                         .HasColumnType("double precision");
 
+                    b.Property<string>("CheckInPhotoUrl")
+                        .HasColumnType("text");
+
                     b.Property<DateTime?>("CheckInTime")
                         .HasColumnType("timestamp with time zone");
 
@@ -103,6 +161,9 @@ namespace Nexora.Infrastructure.Migrations
 
                     b.Property<double?>("CheckOutLongitude")
                         .HasColumnType("double precision");
+
+                    b.Property<string>("CheckOutPhotoUrl")
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("CheckOutTime")
                         .HasColumnType("timestamp with time zone");
@@ -127,6 +188,9 @@ namespace Nexora.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<bool?>("SafetyConfirmed")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -143,6 +207,9 @@ namespace Nexora.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("WellbeingResponse")
                         .HasColumnType("text");
 
                     b.HasKey("Id");
@@ -225,6 +292,59 @@ namespace Nexora.Infrastructure.Migrations
                     b.HasIndex("EntityName", "Action");
 
                     b.ToTable("AuditLogs");
+                });
+
+            modelBuilder.Entity("Nexora.Core.Entities.BiometricRegistration", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("DeviceId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("DeviceName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastVerifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "DeviceId")
+                        .IsUnique();
+
+                    b.ToTable("BiometricRegistrations");
                 });
 
             modelBuilder.Entity("Nexora.Core.Entities.Company", b =>
@@ -570,6 +690,15 @@ namespace Nexora.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("BankAccountNumber")
+                        .HasColumnType("text");
+
+                    b.Property<string>("BankAccountType")
+                        .HasColumnType("text");
+
+                    b.Property<string>("BankName")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -660,6 +789,9 @@ namespace Nexora.Infrastructure.Migrations
 
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -898,6 +1030,52 @@ namespace Nexora.Infrastructure.Migrations
                     b.ToTable("EmployeeSupervisors");
                 });
 
+            modelBuilder.Entity("Nexora.Core.Entities.KeyResult", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("CurrentValue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ObjectiveId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("TargetValue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ObjectiveId");
+
+                    b.ToTable("KeyResults");
+                });
+
             modelBuilder.Entity("Nexora.Core.Entities.LeaveBalances", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1032,6 +1210,60 @@ namespace Nexora.Infrastructure.Migrations
                     b.HasIndex("CompanyId");
 
                     b.ToTable("LeaveTypes");
+                });
+
+            modelBuilder.Entity("Nexora.Core.Entities.Objective", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.ToTable("Objectives");
                 });
 
             modelBuilder.Entity("Nexora.Core.Entities.PayrollDetail", b =>
@@ -1263,6 +1495,9 @@ namespace Nexora.Infrastructure.Migrations
                     b.Property<Guid>("LeaveTypeId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("OcrResult")
+                        .HasColumnType("text");
+
                     b.Property<string>("Reason")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
@@ -1311,6 +1546,90 @@ namespace Nexora.Infrastructure.Migrations
                     b.HasIndex("StartDate", "EndDate");
 
                     b.ToTable("PermissionRequests");
+                });
+
+            modelBuilder.Entity("Nexora.Core.Entities.PolicyChunk", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.PrimitiveCollection<float[]>("Embedding")
+                        .IsRequired()
+                        .HasColumnType("real[]");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("PolicyDocumentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PolicyDocumentId");
+
+                    b.ToTable("PolicyChunks");
+                });
+
+            modelBuilder.Entity("Nexora.Core.Entities.PolicyDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PolicyDocuments");
                 });
 
             modelBuilder.Entity("Nexora.Core.Entities.RefreshToken", b =>
@@ -1596,6 +1915,59 @@ namespace Nexora.Infrastructure.Migrations
                     b.ToTable("VacationRequests");
                 });
 
+            modelBuilder.Entity("Nexora.Core.Entities.WebhookSubscription", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Secret")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("TargetUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("WebhookSubscriptions");
+                });
+
             modelBuilder.Entity("Nexora.Core.Entities.ApprovalFlow", b =>
                 {
                     b.HasOne("Nexora.Core.Entities.Employee", "Approver")
@@ -1623,6 +1995,17 @@ namespace Nexora.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("Nexora.Core.Entities.BiometricRegistration", b =>
+                {
+                    b.HasOne("Nexora.Core.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Nexora.Core.Entities.CompanySettings", b =>
@@ -1737,6 +2120,17 @@ namespace Nexora.Infrastructure.Migrations
                     b.Navigation("Supervisor");
                 });
 
+            modelBuilder.Entity("Nexora.Core.Entities.KeyResult", b =>
+                {
+                    b.HasOne("Nexora.Core.Entities.Objective", "Objective")
+                        .WithMany("KeyResults")
+                        .HasForeignKey("ObjectiveId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Objective");
+                });
+
             modelBuilder.Entity("Nexora.Core.Entities.LeaveBalances", b =>
                 {
                     b.HasOne("Nexora.Core.Entities.Employee", "Employee")
@@ -1756,6 +2150,17 @@ namespace Nexora.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Company");
+                });
+
+            modelBuilder.Entity("Nexora.Core.Entities.Objective", b =>
+                {
+                    b.HasOne("Nexora.Core.Entities.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
                 });
 
             modelBuilder.Entity("Nexora.Core.Entities.PayrollDetail", b =>
@@ -1812,6 +2217,17 @@ namespace Nexora.Infrastructure.Migrations
                     b.Navigation("Employee");
 
                     b.Navigation("LeaveType");
+                });
+
+            modelBuilder.Entity("Nexora.Core.Entities.PolicyChunk", b =>
+                {
+                    b.HasOne("Nexora.Core.Entities.PolicyDocument", "PolicyDocument")
+                        .WithMany()
+                        .HasForeignKey("PolicyDocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PolicyDocument");
                 });
 
             modelBuilder.Entity("Nexora.Core.Entities.RefreshToken", b =>
@@ -1927,6 +2343,11 @@ namespace Nexora.Infrastructure.Migrations
             modelBuilder.Entity("Nexora.Core.Entities.LeaveType", b =>
                 {
                     b.Navigation("PermissionRequests");
+                });
+
+            modelBuilder.Entity("Nexora.Core.Entities.Objective", b =>
+                {
+                    b.Navigation("KeyResults");
                 });
 
             modelBuilder.Entity("Nexora.Core.Entities.PayrollRun", b =>

@@ -141,7 +141,7 @@ public sealed class PermissionsController : ControllerBase
             return BadRequest(new { error = "Only PDF, JPG, and PNG files are allowed" });
 
         await using var stream = file.OpenReadStream();
-        var relativePath = await _storage.SaveFileAsync(file.FileName, stream);
+        var relativePath = await _storage.UploadFileAsync(stream, $"permissions/{Guid.NewGuid()}{ext}", file.ContentType);
 
         return Ok(new
         {

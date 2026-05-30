@@ -13,19 +13,30 @@ public sealed class LocalFileStorageService : IDocumentStorageService
             Directory.CreateDirectory(_basePath);
     }
 
-    public async Task<string> SaveFileAsync(string fileName, Stream content)
+    public async Task<string> UploadFileAsync(Stream stream, string path, string contentType)
     {
-        var uniqueName = $"{Guid.NewGuid():N}_{fileName}";
-        var filePath = Path.Combine(_basePath, uniqueName);
+        var fullPath = Path.Combine(_basePath, path);
+        var directory = Path.GetDirectoryName(fullPath);
+        if (!string.IsNullOrEmpty(directory))
+            Directory.CreateDirectory(directory);
 
-        await using var stream = new FileStream(filePath, FileMode.Create);
-        await content.CopyToAsync(stream);
+        await using var fileStream = new FileStream(fullPath, FileMode.Create);
+        await stream.CopyToAsync(fileStream);
 
-        return Path.Combine("uploads", uniqueName);
+        return GetFileUrl(path);
     }
 
-    public string GetFileUrl(string relativePath)
+    public Task DeleteFileAsync(string path)
     {
-        return $"/{relativePath.Replace("\\", "/")}";
+        var fullPath = Path.Combine(_basePath, path);
+        if (File.Exists(fullPath))
+            File.Delete(fullPath);
+        
+        return Task.CompletedTask;
+    }
+
+    public string GetFileUrl(string path)
+    {
+        return $"/{path.Replace("\\", "/")}";
     }
 }

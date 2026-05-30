@@ -14,6 +14,7 @@ public sealed class PermissionRequest : BaseEntity
     public string Status { get; set; } = "pending";
     public string? SupportingDocumentUrl { get; set; }
     public string? SupportingDocumentFileName { get; set; }
+    public string? OcrResult { get; set; }
     public Guid? ApprovedBy { get; set; }
     public Employee? Approver { get; set; }
     public DateTime? ApprovedAt { get; set; }

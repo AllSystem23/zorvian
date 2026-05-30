@@ -14,6 +14,7 @@ public sealed class PermissionServiceTests
     private readonly Mock<IEmployeeRepository> _employeeRepo = new();
     private readonly Mock<ITenantContext> _tenant = new();
     private readonly Mock<INotificationService> _notification = new();
+    private readonly Mock<IJobScheduler> _jobScheduler = new();
     private readonly PermissionService _sut;
     private readonly Guid _employeeId = Guid.NewGuid();
 
@@ -21,7 +22,7 @@ public sealed class PermissionServiceTests
     {
         _tenant.Setup(t => t.TenantId).Returns("tenant-123");
         _tenant.Setup(t => t.CurrentEmployeeId).Returns(_employeeId);
-        _sut = new PermissionService(_repo.Object, _employeeRepo.Object, _tenant.Object, _notification.Object);
+        _sut = new PermissionService(_repo.Object, _employeeRepo.Object, _tenant.Object, _notification.Object, _jobScheduler.Object);
     }
 
     private Employee MakeEmployee() => new()
@@ -60,7 +61,7 @@ public sealed class PermissionServiceTests
     public async Task CreateAsync_WithValidRequest_CreatesPermission()
     {
         var emp = MakeEmployee();
-        var leaveType = MakeLeaveType();
+        var leaveType = MakeLeaveType(reqAttachment: true);
         _employeeRepo.Setup(r => r.GetByIdAsync(_employeeId)).ReturnsAsync(emp);
         _repo.Setup(r => r.GetLeaveTypeByIdAsync(leaveType.Id)).ReturnsAsync(leaveType);
 
@@ -69,7 +70,7 @@ public sealed class PermissionServiceTests
             new DateOnly(2026, 7, 1),
             new DateOnly(2026, 7, 1),
             "Asunto personal",
-            null, null
+            "http://doc.url/file.pdf", "file.pdf"
         );
 
         var result = await _sut.CreateAsync(request);
@@ -79,6 +80,7 @@ public sealed class PermissionServiceTests
         Assert.Equal("Permiso personal", result.LeaveTypeName);
         _repo.Verify(r => r.AddAsync(It.IsAny<PermissionRequest>()), Times.Once);
         _repo.Verify(r => r.SaveChangesAsync(), Times.Once);
+        _jobScheduler.Verify(j => j.EnqueueOcrJob(It.IsAny<Guid>()), Times.Once);
     }
 
     [Fact]

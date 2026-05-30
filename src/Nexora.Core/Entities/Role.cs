@@ -12,3 +12,6 @@ public sealed class Role : BaseEntity
     public ICollection<UserRole> UserRoles { get; set; } = [];
     public ICollection<RolePermission> RolePermissions { get; set; } = [];
 }
+// Note: Role already inherits from BaseEntity, which has TenantId.
+// The issue is likely that Role is treated as global in some places and tenant-specific in others.
+// To fix the CS10622 warning, I need to add the filter to the DbContext definition for Role.

@@ -1,6 +1,7 @@
 using Nexora.Application.DTOs.Attendance;
 using Nexora.Application.Interfaces;
 using Nexora.Core.Entities;
+using Nexora.Core.Interfaces;
 
 namespace Nexora.Application.Services;
 
@@ -12,11 +13,16 @@ public sealed class AttendanceService
 
     private readonly IAttendanceRepository _repo;
     private readonly IEmployeeRepository _employeeRepo;
+    private readonly IDocumentStorageService _storage;
 
-    public AttendanceService(IAttendanceRepository repo, IEmployeeRepository employeeRepo)
+    public AttendanceService(
+        IAttendanceRepository repo, 
+        IEmployeeRepository employeeRepo,
+        IDocumentStorageService storage)
     {
         _repo = repo;
         _employeeRepo = employeeRepo;
+        _storage = storage;
     }
 
     public async Task<AttendanceResponse> CheckInAsync(Guid employeeId, CheckInRequest request)
@@ -28,6 +34,14 @@ public sealed class AttendanceService
         var existing = await _repo.GetTodayRecordAsync(employeeId);
         if (existing is not null)
             throw new InvalidOperationException("Ya existe un registro de asistencia para hoy");
+
+        string? photoUrl = null;
+        if (!string.IsNullOrEmpty(request.PhotoBase64))
+        {
+            var bytes = Convert.FromBase64String(request.PhotoBase64);
+            var path = $"attendance/photos/{employeeId}/{DateTime.UtcNow:yyyyMMdd_HHmmss}_in.jpg";
+            photoUrl = await _storage.UploadFileAsync(new MemoryStream(bytes), path, "image/jpeg");
+        }
 
         var now = DateTime.UtcNow;
         var timeOnly = TimeOnly.FromDateTime(now);
@@ -41,6 +55,9 @@ public sealed class AttendanceService
             CheckInLatitude = request.Latitude,
             CheckInLongitude = request.Longitude,
             Status = status,
+            CheckInPhotoUrl = photoUrl,
+            WellbeingResponse = request.WellbeingResponse,
+            SafetyConfirmed = request.SafetyConfirmed
         };
 
         await _repo.AddAsync(record);
@@ -58,10 +75,19 @@ public sealed class AttendanceService
         if (record.CheckOutTime is not null)
             throw new InvalidOperationException("Ya realizó el check-out hoy");
 
+        string? photoUrl = null;
+        if (!string.IsNullOrEmpty(request.PhotoBase64))
+        {
+            var bytes = Convert.FromBase64String(request.PhotoBase64);
+            var path = $"attendance/photos/{employeeId}/{DateTime.UtcNow:yyyyMMdd_HHmmss}_out.jpg";
+            photoUrl = await _storage.UploadFileAsync(new MemoryStream(bytes), path, "image/jpeg");
+        }
+
         var now = DateTime.UtcNow;
         record.CheckOutTime = now;
         record.CheckOutLatitude = request.Latitude;
         record.CheckOutLongitude = request.Longitude;
+        record.CheckOutPhotoUrl = photoUrl;
 
         if (record.CheckInTime.HasValue)
         {
@@ -124,7 +150,45 @@ public sealed class AttendanceService
         if ((DateTime.UtcNow - qrTime).TotalSeconds > 60)
             throw new InvalidOperationException("Código QR expirado (válido por 60 segundos)");
 
-        return await CheckInAsync(employeeId, new CheckInRequest(request.Latitude, request.Longitude));
+        return await CheckInAsync(employeeId, new CheckInRequest(request.Latitude, request.Longitude, null, null, null));
+    }
+
+    public async Task<AttendanceResponse> KioskCheckInAsync(string employeeCode, KioskCheckInRequest request)
+    {
+        var employee = await _employeeRepo.GetByEmployeeCodeAsync(employeeCode);
+        if (employee is null)
+            throw new InvalidOperationException("Empleado no encontrado o inactivo");
+
+        return await CheckInAsync(employee.Id, new CheckInRequest(
+            request.Latitude, 
+            request.Longitude, 
+            request.PhotoBase64, 
+            request.WellbeingResponse, 
+            request.SafetyConfirmed));
+    }
+
+    public async Task<AttendanceResponse> KioskCheckOutAsync(string employeeCode, KioskCheckOutRequest request)
+    {
+        var employee = await _employeeRepo.GetByEmployeeCodeAsync(employeeCode);
+        if (employee is null)
+            throw new InvalidOperationException("Empleado no encontrado o inactivo");
+
+        return await CheckOutAsync(employee.Id, new CheckOutRequest(
+            request.Latitude, 
+            request.Longitude, 
+            request.PhotoBase64));
+    }
+
+    public async Task<List<EmployeeLookupItem>> KioskLookupAsync(string partialCode, int maxResults)
+    {
+        var results = await _employeeRepo.SearchByCodeAsync(partialCode, maxResults);
+        return results.Select(e => new EmployeeLookupItem(
+            e.Id,
+            e.EmployeeCode ?? "",
+            $"{e.FirstName} {e.LastName}",
+            e.Department?.Name,
+            e.Position
+        )).ToList();
     }
 
     private static AttendanceResponse MapToResponse(AttendanceRecord r) => new(
@@ -138,6 +202,10 @@ public sealed class AttendanceService
         r.CheckOutLongitude,
         r.Status,
         r.Notes,
-        r.TotalHours
+        r.TotalHours,
+        r.CheckInPhotoUrl,
+        r.CheckOutPhotoUrl,
+        r.WellbeingResponse,
+        r.SafetyConfirmed
     );
 }

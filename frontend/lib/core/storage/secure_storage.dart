@@ -6,6 +6,7 @@ class SecureStorage {
   static const _accessTokenKey = 'access_token';
   static const _refreshTokenKey = 'refresh_token';
   static const _themeModeKey = 'theme_mode';
+  static const _biometricEnabledKey = 'biometric_enabled';
 
   Future<void> saveTokens(String access, String refresh) async {
     await Future.wait([
@@ -32,4 +33,12 @@ class SecureStorage {
 
   Future<String?> getThemeMode() =>
       _storage.read(key: _themeModeKey);
+
+  Future<void> setBiometricEnabled(bool enabled) =>
+      _storage.write(key: _biometricEnabledKey, value: enabled.toString());
+
+  Future<bool> isBiometricEnabled() async {
+    final val = await _storage.read(key: _biometricEnabledKey);
+    return val == 'true';
+  }
 }

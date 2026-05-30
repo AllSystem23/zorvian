@@ -1,8 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Nexora.Application.DTOs.Attendance;
+using Nexora.Application.DTOs.ML;
 using Nexora.Application.Services;
 using Nexora.Core.Interfaces;
+using Nexora.Infrastructure.Data;
+using Nexora.Infrastructure.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace Nexora.Web.Controllers;
 
@@ -16,11 +20,48 @@ public sealed class AttendanceController : ControllerBase
 {
     private readonly AttendanceService _service;
     private readonly ITenantContext _tenant;
+    private readonly AbsenteeismPredictionService _mlService;
+    private readonly NexoraDbContext _db;
 
-    public AttendanceController(AttendanceService service, ITenantContext tenant)
+    public AttendanceController(AttendanceService service, ITenantContext tenant, AbsenteeismPredictionService mlService, NexoraDbContext db)
     {
         _service = service;
         _tenant = tenant;
+        _mlService = mlService;
+        _db = db;
+    }
+
+    /// <summary>
+    /// Obtiene las predicciones de riesgo de ausentismo para los empleados (Solo Admin).
+    /// </summary>
+    [HttpGet("predictions")]
+    [Authorize(Roles = "SuperAdmin,CompanyAdmin")]
+    public async Task<IActionResult> GetAbsenteeismPredictions()
+    {
+        var employees = await _db.Employees.Where(e => e.TenantId == _tenant.TenantId).ToListAsync();
+        var predictions = new List<object>();
+
+        foreach (var emp in employees)
+        {
+            var data = new AttendanceData
+            {
+                DayOfWeek = (float)DateTime.UtcNow.DayOfWeek,
+                Month = (float)DateTime.UtcNow.Month,
+                IsHoliday = 0,
+                PreviousAbsenceCount = await _db.AttendanceRecords.CountAsync(ar => ar.EmployeeId == emp.Id && ar.Status != "present")
+            };
+
+            var prediction = _mlService.Predict(data);
+            predictions.Add(new
+            {
+                EmployeeId = emp.Id,
+                FullName = $"{emp.FirstName} {emp.LastName}",
+                Risk = prediction.Prediction ? "Alto" : "Bajo",
+                Probability = prediction.Probability
+            });
+        }
+
+        return Ok(predictions);
     }
 
     /// <summary>

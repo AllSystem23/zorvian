@@ -20,11 +20,16 @@ public sealed class ExcelImportService : IExcelImportService
     {
         using var workbook = new XLWorkbook(excelStream);
         var sheet = workbook.Worksheet(1);
-        var rows = sheet.RangeUsed().RowsUsed().Skip(1);
+        var rangeUsed = sheet.RangeUsed();
+        if (rangeUsed == null) return new ExcelImportResult(0, 0, new List<string>());
+        var rows = rangeUsed.RowsUsed().Skip(1);
 
         var errors = new List<string>();
         var employees = new List<Employee>();
-        var departments = await _db.Departments.ToDictionaryAsync(d => d.Code, d => d.Id);
+        // Ensure Code is not null for dictionary key
+        var departments = await _db.Departments
+            .Where(d => d.Code != null)
+            .ToDictionaryAsync(d => d.Code!, d => d.Id);
 
         int rowNum = 1;
         foreach (var row in rows)

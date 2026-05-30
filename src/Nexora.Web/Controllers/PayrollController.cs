@@ -86,4 +86,13 @@ public sealed class PayrollController : ControllerBase
         var result = await _service.ApproveRunAsync(id);
         return result is null ? NotFound() : Ok(result);
     }
+
+    [HttpGet("runs/{id:guid}/export-ach")]
+    public async Task<IActionResult> ExportAch(Guid id)
+    {
+        var result = await _service.ExportAchFileAsync(id);
+        if (result is null) return NotFound(new { message = "Payroll run not found or not approved" });
+
+        return File(result.Value.Content, "text/csv", result.Value.FileName);
+    }
 }

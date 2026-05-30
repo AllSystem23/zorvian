@@ -80,6 +80,22 @@ public sealed class EmployeeRepository : IEmployeeRepository
             .Where(es => es.EmployeeId == employeeId)
             .ToListAsync();
 
+    public async Task<Employee?> GetByEmployeeCodeAsync(string code) =>
+        await _db.Employees
+            .Include(e => e.Department)
+            .FirstOrDefaultAsync(e => e.EmployeeCode == code && e.Status == "active");
+
+    public async Task<List<Employee>> SearchByCodeAsync(string partialCode, int maxResults)
+    {
+        var s = partialCode.ToLower();
+        return await _db.Employees
+            .Include(e => e.Department)
+            .Where(e => e.EmployeeCode != null && e.EmployeeCode.ToLower().Contains(s) && e.Status == "active")
+            .OrderBy(e => e.EmployeeCode)
+            .Take(maxResults)
+            .ToListAsync();
+    }
+
     public async Task AddAsync(Employee employee) =>
         await _db.Employees.AddAsync(employee);
 

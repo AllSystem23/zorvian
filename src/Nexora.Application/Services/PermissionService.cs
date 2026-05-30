@@ -12,17 +12,20 @@ public sealed class PermissionService
     private readonly IEmployeeRepository _employeeRepo;
     private readonly ITenantContext _tenant;
     private readonly INotificationService _notification;
+    private readonly IJobScheduler _jobScheduler;
 
     public PermissionService(
         IPermissionRepository repo,
         IEmployeeRepository employeeRepo,
         ITenantContext tenant,
-        INotificationService notification)
+        INotificationService notification,
+        IJobScheduler jobScheduler)
     {
         _repo = repo;
         _employeeRepo = employeeRepo;
         _tenant = tenant;
         _notification = notification;
+        _jobScheduler = jobScheduler;
     }
 
     public async Task<List<PermissionTypeResponse>> GetTypesAsync()
@@ -115,6 +118,12 @@ public sealed class PermissionService
 
         await _repo.AddAsync(permission);
         await _repo.SaveChangesAsync();
+
+        // Trigger OCR if document exists
+        if (!string.IsNullOrEmpty(permission.SupportingDocumentUrl))
+        {
+            _jobScheduler.EnqueueOcrJob(permission.Id);
+        }
 
         await _notification.NotifyTenantAsync(
             _tenant.TenantId!,

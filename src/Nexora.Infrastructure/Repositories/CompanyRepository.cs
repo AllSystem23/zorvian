@@ -29,11 +29,17 @@ public sealed class CompanyRepository : ICompanyRepository
     public async Task<CompanySettings?> GetSettingsAsync(Guid companyId) =>
         await _db.CompanySettings.FirstOrDefaultAsync(s => s.CompanyId == companyId);
 
-    public async Task UpdateAsync(Company company) =>
+    public async Task UpdateAsync(Company company)
+    {
         _db.Companies.Update(company);
+        await Task.CompletedTask;
+    }
 
-    public async Task UpdateSettingsAsync(CompanySettings settings) =>
+    public async Task UpdateSettingsAsync(CompanySettings settings)
+    {
         _db.CompanySettings.Update(settings);
+        await Task.CompletedTask;
+    }
 
     public async Task<bool> ExistsByTenantIdAsync(string tenantId) =>
         await _db.Companies.AnyAsync(c => c.TenantId == tenantId);

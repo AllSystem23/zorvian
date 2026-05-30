@@ -8,12 +8,32 @@ public sealed record QRCheckInRequest(
 
 public sealed record CheckInRequest(
     double? Latitude,
-    double? Longitude
+    double? Longitude,
+    string? PhotoBase64 = null,
+    string? WellbeingResponse = null,
+    bool? SafetyConfirmed = null
 );
 
 public sealed record CheckOutRequest(
     double? Latitude,
-    double? Longitude
+    double? Longitude,
+    string? PhotoBase64 = null
+);
+
+public sealed record KioskCheckInRequest(
+    string EmployeeCode,
+    double? Latitude,
+    double? Longitude,
+    string? PhotoBase64 = null,
+    string? WellbeingResponse = null,
+    bool? SafetyConfirmed = null
+);
+
+public sealed record KioskCheckOutRequest(
+    string EmployeeCode,
+    double? Latitude,
+    double? Longitude,
+    string? PhotoBase64 = null
 );
 
 public sealed record AttendanceResponse(
@@ -27,7 +47,11 @@ public sealed record AttendanceResponse(
     double? CheckOutLongitude,
     string Status,
     string? Notes,
-    decimal? TotalHours
+    decimal? TotalHours,
+    string? CheckInPhotoUrl = null,
+    string? CheckOutPhotoUrl = null,
+    string? WellbeingResponse = null,
+    bool? SafetyConfirmed = null
 );
 
 public sealed record AttendanceSummaryResponse(
@@ -37,4 +61,12 @@ public sealed record AttendanceSummaryResponse(
     decimal TotalHours,
     decimal AverageHoursPerDay,
     List<AttendanceResponse> Records
+);
+
+public sealed record EmployeeLookupItem(
+    Guid Id,
+    string EmployeeCode,
+    string FullName,
+    string? Department,
+    string? Position
 );

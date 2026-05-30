@@ -17,6 +17,7 @@ using Nexora.Infrastructure.Repositories;
 using Nexora.Infrastructure.Services;
 using Nexora.Web.Hubs;
 using Nexora.Web.Jobs;
+using Nexora.Application.Jobs;
 using Nexora.Web.Middleware;
 using Nexora.Web.Services;
 
@@ -31,7 +32,7 @@ if (!string.IsNullOrEmpty(credPath))
     {
         FirebaseApp.Create(new AppOptions
         {
-            Credential = GoogleCredential.FromFile(fullPath),
+            Credential = CredentialFactory.FromFile<ServiceAccountCredential>(fullPath).ToGoogleCredential().CreateScoped(),
             ProjectId = builder.Configuration["Firebase:ProjectId"],
         });
     }
@@ -79,6 +80,26 @@ builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 builder.Services.AddScoped<AttendanceService>();
 builder.Services.AddScoped<IPayrollRepository, PayrollRepository>();
 builder.Services.AddScoped<PayrollService>();
+builder.Services.AddScoped<IWebhookService, WebhookService>();
+builder.Services.AddScoped<ApiKeyService>();
+builder.Services.AddScoped<IJobScheduler, HangfireJobScheduler>();
+builder.Services.AddScoped<IOcrService, OcrService>();
+builder.Services.AddScoped<IEmbeddingService>(sp => new EmbeddingService(
+    builder.Configuration["GoogleAi:ProjectId"]!,
+    builder.Configuration["GoogleAi:Location"]!,
+    "text-embedding-004"));
+builder.Services.AddScoped<IPolicyRepository, PolicyRepository>();
+builder.Services.AddScoped<IPolicyService, PolicyService>();
+builder.Services.AddScoped<PerformanceService>();
+builder.Services.AddScoped<IVacationRecommendationService, VacationRecommendationService>();
+builder.Services.AddScoped<IChatService>(sp => new ChatService(
+    sp.GetRequiredService<NexoraDbContext>(),
+    sp.GetRequiredService<IEmbeddingService>(),
+    builder.Configuration["GoogleAi:ProjectId"]!,
+    builder.Configuration["GoogleAi:Location"]!));
+builder.Services.AddSingleton<AbsenteeismPredictionService>();
+builder.Services.AddScoped<OcrProcessingJob>();
+builder.Services.AddHttpClient(); // For fetching document streams
 
 // JWT Authentication
 var jwtSecret = builder.Configuration["Jwt:Secret"]
@@ -127,6 +148,9 @@ builder.Services.AddScoped<INotificationService, CombinedNotificationService>();
 builder.Services.AddHangfire(c => c.UseMemoryStorage());
 builder.Services.AddHangfireServer();
 builder.Services.AddScoped<CheckInReminderJob>();
+builder.Services.AddScoped<DocumentExpirationJob>();
+builder.Services.AddScoped<AttendancePhotoCleanupJob>();
+builder.Services.AddScoped<AbsenteeismTrainingJob>();
 
 // CORS
 builder.Services.AddCors(options =>
@@ -193,6 +217,7 @@ if (app.Environment.IsDevelopment())
 app.UseCors("NexoraCors");
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+app.UseMiddleware<ApiKeyMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseTenantMiddleware();
@@ -210,6 +235,21 @@ RecurringJob.AddOrUpdate<CheckInReminderJob>(
     "check-in-reminder",
     j => j.RunAsync(),
     "0 9 * * *"); // Every day at 09:00
+
+RecurringJob.AddOrUpdate<DocumentExpirationJob>(
+    "document-expiration-check",
+    j => j.RunAsync(),
+    "0 8 * * *"); // Every day at 08:00
+
+RecurringJob.AddOrUpdate<AttendancePhotoCleanupJob>(
+    "attendance-photo-cleanup",
+    j => j.RunAsync(),
+    "0 3 1 * *"); // 1st day of every month at 03:00
+
+RecurringJob.AddOrUpdate<AbsenteeismTrainingJob>(
+    "absenteeism-model-training",
+    j => j.RunAsync(),
+    "0 2 * * 0"); // Every Sunday at 02:00
 
 // Health check
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", version = "1.0.0" }));

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../auth/auth_provider.dart';
+import '../biometrics/providers/biometric_provider.dart';
 
 final profileProvider = FutureProvider.autoDispose<Map<String, dynamic>?>((ref) async {
   final dio = ref.read(dioClientProvider);
@@ -138,6 +139,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   },
                 ),
               ]),
+              const SizedBox(height: 16),
+              _BiometricSection(),
             ],
           );
         },
@@ -167,6 +170,22 @@ class _Section extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _BiometricSection extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final bioState = ref.watch(biometricProvider);
+    if (!bioState.isAvailable) return const SizedBox.shrink();
+    return _Section(title: 'Seguridad', children: [
+      SwitchListTile(
+        title: const Text('Acceso biométrico'),
+        subtitle: Text(bioState.isEnabled ? 'Usa huella/FaceID para desbloquear' : 'Activar para desbloquear con huella/FaceID'),
+        value: bioState.isEnabled && !bioState.loading,
+        onChanged: bioState.loading ? null : (_) => ref.read(biometricProvider.notifier).toggleEnabled(),
+      ),
+    ]);
   }
 }
 

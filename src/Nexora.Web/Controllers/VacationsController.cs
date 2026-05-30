@@ -2,7 +2,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Nexora.Application.DTOs.Common;
 using Nexora.Application.DTOs.Vacation;
+using Nexora.Application.Interfaces;
 using Nexora.Application.Services;
+using Nexora.Core.Interfaces;
 using Nexora.Web.Filters;
 
 namespace Nexora.Web.Controllers;
@@ -16,10 +18,27 @@ namespace Nexora.Web.Controllers;
 public sealed class VacationsController : ControllerBase
 {
     private readonly VacationService _service;
+    private readonly IVacationRecommendationService _recommendationService;
+    private readonly ITenantContext _tenant;
 
-    public VacationsController(VacationService service)
+    public VacationsController(VacationService service, IVacationRecommendationService recommendationService, ITenantContext tenant)
     {
         _service = service;
+        _recommendationService = recommendationService;
+        _tenant = tenant;
+    }
+
+    /// <summary>
+    /// Recomienda fechas para vacaciones basadas en disponibilidad del equipo.
+    /// </summary>
+    [HttpGet("recommend")]
+    public async Task<IActionResult> Recommend([FromQuery] int days, [FromQuery] int month, [FromQuery] int year)
+    {
+        if (_tenant.CurrentEmployeeId is null)
+            return Unauthorized();
+            
+        var result = await _recommendationService.RecommendDatesAsync(_tenant.CurrentEmployeeId.Value, days, month, year);
+        return Ok(result);
     }
 
     /// <summary>

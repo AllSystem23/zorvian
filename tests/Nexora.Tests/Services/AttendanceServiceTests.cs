@@ -10,12 +10,13 @@ public sealed class AttendanceServiceTests
 {
     private readonly Mock<IAttendanceRepository> _repo = new();
     private readonly Mock<IEmployeeRepository> _employeeRepo = new();
+    private readonly Mock<IDocumentStorageService> _storage = new();
     private readonly AttendanceService _sut;
     private readonly Guid _employeeId = Guid.NewGuid();
 
     public AttendanceServiceTests()
     {
-        _sut = new AttendanceService(_repo.Object, _employeeRepo.Object);
+        _sut = new AttendanceService(_repo.Object, _employeeRepo.Object, _storage.Object);
     }
 
     private static Employee MakeEmployee() => new()
@@ -43,6 +44,30 @@ public sealed class AttendanceServiceTests
         Assert.NotNull(result.CheckInTime);
         _repo.Verify(r => r.AddAsync(It.IsAny<AttendanceRecord>()), Times.Once);
         _repo.Verify(r => r.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task KioskCheckInAsync_Should_Handle_Photos_And_Surveys()
+    {
+        var employee = MakeEmployee();
+        var request = new KioskCheckInRequest(
+            employee.EmployeeCode!,
+            12.123, -86.123,
+            "YmFzZTY0LWltYWdl", // "base64-image"
+            "Feliz", true
+        );
+        _employeeRepo.Setup(r => r.GetByEmployeeCodeAsync(employee.EmployeeCode!)).ReturnsAsync(employee);
+        _employeeRepo.Setup(r => r.GetByIdAsync(employee.Id)).ReturnsAsync(employee);
+        _repo.Setup(r => r.GetTodayRecordAsync(employee.Id)).ReturnsAsync((AttendanceRecord?)null);
+        _storage.Setup(s => s.UploadFileAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync("http://storage/photo.jpg");
+
+        var result = await _sut.KioskCheckInAsync(employee.EmployeeCode!, request);
+
+        Assert.Equal("Feliz", result.WellbeingResponse);
+        Assert.True(result.SafetyConfirmed);
+        Assert.Equal("http://storage/photo.jpg", result.CheckInPhotoUrl);
+        _storage.Verify(s => s.UploadFileAsync(It.IsAny<Stream>(), It.IsAny<string>(), "image/jpeg"), Times.Once);
     }
 
     [Fact]
@@ -89,6 +114,24 @@ public sealed class AttendanceServiceTests
         Assert.NotNull(result.TotalHours);
         Assert.True(result.TotalHours > 0);
         _repo.Verify(r => r.UpdateAsync(It.IsAny<AttendanceRecord>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task KioskCheckOutAsync_Should_Handle_Photos()
+    {
+        var employee = MakeEmployee();
+        var record = new AttendanceRecord { EmployeeId = employee.Id, CheckInTime = DateTime.UtcNow.AddHours(-8) };
+        var request = new KioskCheckOutRequest(employee.EmployeeCode!, null, null, "YmFzZTY0LWltYWdl");
+        
+        _employeeRepo.Setup(r => r.GetByEmployeeCodeAsync(employee.EmployeeCode!)).ReturnsAsync(employee);
+        _repo.Setup(r => r.GetTodayRecordAsync(employee.Id)).ReturnsAsync(record);
+        _storage.Setup(s => s.UploadFileAsync(It.IsAny<Stream>(), It.IsAny<string>(), "image/jpeg"))
+            .ReturnsAsync("http://storage/photo_out.jpg");
+
+        var result = await _sut.KioskCheckOutAsync(employee.EmployeeCode!, request);
+
+        Assert.Equal("http://storage/photo_out.jpg", result.CheckOutPhotoUrl);
+        _storage.Verify(s => s.UploadFileAsync(It.IsAny<Stream>(), It.IsAny<string>(), "image/jpeg"), Times.Once);
     }
 
     [Fact]

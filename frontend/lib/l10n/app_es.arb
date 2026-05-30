@@ -1,0 +1,13 @@
+{
+  "@@locale": "es",
+  "appTitle": "Nexora",
+  "login": "Iniciar Sesión",
+  "email": "Correo Electrónico",
+  "password": "Contraseña",
+  "welcome": "Bienvenido a Nexora",
+  "employees": "Empleados",
+  "payroll": "Nómina",
+  "vacations": "Vacaciones",
+  "attendance": "Asistencia",
+  "settings": "Configuración"
+}

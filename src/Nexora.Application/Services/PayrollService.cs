@@ -10,15 +10,18 @@ public sealed class PayrollService
     private readonly IPayrollRepository _repo;
     private readonly IEmployeeRepository _employeeRepo;
     private readonly ITenantContext _tenant;
+    private readonly IWebhookService _webhookService;
 
     public PayrollService(
         IPayrollRepository repo,
         IEmployeeRepository employeeRepo,
-        ITenantContext tenant)
+        ITenantContext tenant,
+        IWebhookService webhookService)
     {
         _repo = repo;
         _employeeRepo = employeeRepo;
         _tenant = tenant;
+        _webhookService = webhookService;
     }
 
     // --- Deduction Types ---
@@ -220,7 +223,31 @@ public sealed class PayrollService
 
         await _repo.UpdateRunAsync(run);
         await _repo.SaveChangesAsync();
+
+        // Notify via Webhook
+        await _webhookService.PublishAsync(run.TenantId, "payroll.approved", new { RunId = run.Id, TotalNetPay = run.TotalNetPay });
+
         return MapRun(run);
+    }
+
+    public async Task<(byte[] Content, string FileName)?> ExportAchFileAsync(Guid runId)
+    {
+        var run = await _repo.GetRunByIdAsync(runId);
+        if (run is null || run.Status != "approved") return null;
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("Nombre,Cuenta,Banco,TipoCuenta,Monto,Moneda,Referencia");
+
+        foreach (var detail in run.Details ?? [])
+        {
+            var emp = detail.Employee;
+            if (emp is null) continue;
+
+            sb.AppendLine($"\"{emp.FirstName} {emp.LastName}\",\"{emp.BankAccountNumber}\",\"{emp.BankName}\",\"{emp.BankAccountType}\",{detail.NetPay},NIO,\"Pago Nomina {run.PayrollPeriod?.Name}\"");
+        }
+
+        var fileName = $"ACH_Nomina_{run.PayrollPeriod?.Name ?? runId.ToString()}.csv";
+        return (System.Text.Encoding.UTF8.GetBytes(sb.ToString()), fileName);
     }
 
     // --- Calculation Helpers ---

@@ -8,7 +8,7 @@ public sealed class TenantContext : ITenantContext
     public Guid? CurrentUserId { get; private set; }
     public Guid? CurrentEmployeeId { get; private set; }
 
-    public void SetTenant(string tenantId)
+    public void SetTenantId(string tenantId)
     {
         TenantId = tenantId;
     }

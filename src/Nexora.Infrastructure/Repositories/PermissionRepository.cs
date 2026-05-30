@@ -128,6 +128,7 @@ public sealed class PermissionRepository : IPermissionRepository
     public async Task UpdateLeaveTypeAsync(LeaveType leaveType)
     {
         _db.LeaveTypes.Update(leaveType);
+        await Task.CompletedTask;
     }
 
     public async Task SaveChangesAsync()

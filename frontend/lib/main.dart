@@ -6,6 +6,7 @@ import 'app/app.dart';
 import 'core/firebase_options.dart';
 import 'core/services/local_notification_service.dart';
 import 'core/theme/theme_provider.dart';
+import 'features/biometrics/providers/biometric_provider.dart';
 
 final localNotificationServiceProvider = Provider<LocalNotificationService>((_) => LocalNotificationService());
 
@@ -60,7 +61,10 @@ class _AppLoaderState extends ConsumerState<_AppLoader> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => ref.read(themeModeProvider.notifier).loadPreference());
+    Future.microtask(() async {
+      await ref.read(themeModeProvider.notifier).loadPreference();
+      await ref.read(biometricProvider.notifier).init();
+    });
   }
 
   @override

@@ -34,11 +34,18 @@ public sealed class NexoraDbContext : DbContext
     public DbSet<AttendanceRecord> AttendanceRecords => Set<AttendanceRecord>();
     public DbSet<DeviceToken> DeviceTokens => Set<DeviceToken>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<BiometricRegistration> BiometricRegistrations => Set<BiometricRegistration>();
     public DbSet<DeductionType> DeductionTypes => Set<DeductionType>();
     public DbSet<EmployeeSalary> EmployeeSalaries => Set<EmployeeSalary>();
     public DbSet<PayrollPeriod> PayrollPeriods => Set<PayrollPeriod>();
     public DbSet<PayrollRun> PayrollRuns => Set<PayrollRun>();
     public DbSet<PayrollDetail> PayrollDetails => Set<PayrollDetail>();
+    public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
+    public DbSet<WebhookSubscription> WebhookSubscriptions => Set<WebhookSubscription>();
+    public DbSet<PolicyDocument> PolicyDocuments => Set<PolicyDocument>();
+    public DbSet<PolicyChunk> PolicyChunks => Set<PolicyChunk>();
+    public DbSet<Objective> Objectives => Set<Objective>();
+    public DbSet<KeyResult> KeyResults => Set<KeyResult>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -75,7 +82,7 @@ public sealed class NexoraDbContext : DbContext
             e.HasKey(r => r.Id);
             e.Property(r => r.DisplayName).HasMaxLength(100).IsRequired();
             e.Property(r => r.Name).HasConversion<string>().HasMaxLength(50).IsRequired();
-            e.HasQueryFilter(r => r.TenantId == _tenantContext.TenantId);
+            e.HasQueryFilter(r => r.TenantId == _tenantContext.TenantId || r.IsSystem);
         });
 
         builder.Entity<UserRole>(e =>
@@ -303,6 +310,19 @@ public sealed class NexoraDbContext : DbContext
             e.HasQueryFilter(d => d.TenantId == _tenantContext.TenantId);
         });
 
+        builder.Entity<BiometricRegistration>(e =>
+        {
+            e.HasKey(b => b.Id);
+            e.Property(b => b.DeviceId).HasMaxLength(255).IsRequired();
+            e.Property(b => b.DeviceName).HasMaxLength(255).IsRequired();
+            e.HasOne(b => b.User)
+                .WithMany()
+                .HasForeignKey(b => b.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(b => new { b.UserId, b.DeviceId }).IsUnique();
+            e.HasQueryFilter(b => b.TenantId == _tenantContext.TenantId);
+        });
+
         builder.Entity<RefreshToken>(e =>
         {
             e.HasKey(rt => rt.Id);
@@ -405,6 +425,55 @@ public sealed class NexoraDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(d => d.PayrollRunId);
             e.HasQueryFilter(d => d.TenantId == _tenantContext.TenantId);
+        });
+
+        builder.Entity<ApiKey>(e =>
+        {
+            e.HasKey(k => k.Id);
+            e.Property(k => k.Name).HasMaxLength(100).IsRequired();
+            e.Property(k => k.Prefix).HasMaxLength(8).IsRequired();
+            e.Property(k => k.KeyHash).HasMaxLength(128).IsRequired();
+            e.HasQueryFilter(k => k.TenantId == _tenantContext.TenantId);
+        });
+
+        builder.Entity<WebhookSubscription>(e =>
+        {
+            e.HasKey(w => w.Id);
+            e.Property(w => w.EventType).HasMaxLength(100).IsRequired();
+            e.Property(w => w.TargetUrl).HasMaxLength(500).IsRequired();
+            e.Property(w => w.Secret).HasMaxLength(100).IsRequired();
+            e.Property(w => w.Description).HasMaxLength(500);
+            e.HasQueryFilter(w => w.TenantId == _tenantContext.TenantId);
+        });
+
+        builder.Entity<PolicyDocument>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.Property(p => p.Title).HasMaxLength(200).IsRequired();
+            e.Property(p => p.Content).IsRequired();
+            e.HasQueryFilter(p => p.TenantId == _tenantContext.TenantId);
+        });
+
+        builder.Entity<PolicyChunk>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.Property(c => c.Content).IsRequired();
+            e.HasQueryFilter(c => c.TenantId == _tenantContext.TenantId);
+        });
+
+        builder.Entity<Objective>(e =>
+        {
+            e.HasKey(o => o.Id);
+            e.Property(o => o.Title).HasMaxLength(200).IsRequired();
+            e.HasQueryFilter(o => o.TenantId == _tenantContext.TenantId);
+        });
+
+        builder.Entity<KeyResult>(e =>
+        {
+            e.HasKey(k => k.Id);
+            e.Property(k => k.TargetValue).HasColumnType("decimal(18,2)");
+            e.Property(k => k.CurrentValue).HasColumnType("decimal(18,2)");
+            e.HasQueryFilter(k => k.TenantId == _tenantContext.TenantId);
         });
     }
 

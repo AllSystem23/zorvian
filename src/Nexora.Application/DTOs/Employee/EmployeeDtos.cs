@@ -14,7 +14,10 @@ public sealed record CreateEmployeeRequest(
     string? Position,
     DateOnly? HireDate,
     decimal? Salary,
-    string? SalaryType = "monthly"
+    string? SalaryType,
+    string? BankName,
+    string? BankAccountNumber,
+    string? BankAccountType
 );
 
 public sealed record UpdateEmployeeRequest(
@@ -31,7 +34,10 @@ public sealed record UpdateEmployeeRequest(
     string? Position,
     decimal? Salary,
     string? SalaryType,
-    string? Status
+    string? Status,
+    string? BankName,
+    string? BankAccountNumber,
+    string? BankAccountType
 );
 
 public sealed record EmployeeResponse(
@@ -51,7 +57,10 @@ public sealed record EmployeeResponse(
     DateOnly HireDate,
     string Status,
     decimal? Salary,
-    string SalaryType
+    string SalaryType,
+    string? BankName,
+    string? BankAccountNumber,
+    string? BankAccountType
 );
 
 public sealed record EmployeeListResponse(

@@ -1,0 +1,13 @@
+{
+  "@@locale": "en",
+  "appTitle": "Nexora",
+  "login": "Login",
+  "email": "Email",
+  "password": "Password",
+  "welcome": "Welcome to Nexora",
+  "employees": "Employees",
+  "payroll": "Payroll",
+  "vacations": "Vacations",
+  "attendance": "Attendance",
+  "settings": "Settings"
+}

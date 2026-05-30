@@ -8,6 +8,7 @@ import '../features/dashboard/pages/absence_calendar_page.dart';
 import '../features/profile/profile_page.dart';
 import '../features/attendance/pages/attendance_page.dart';
 import '../features/attendance/pages/attendance_history_page.dart';
+import '../features/attendance/pages/kiosk_page.dart';
 import '../features/attendance/pages/qr_checkin_page.dart';
 import '../features/reports/pages/reports_page.dart';
 import '../features/reports/pages/audit_logs_page.dart';
@@ -120,6 +121,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'history',
             name: 'attendance-history',
             builder: (_, _) => const AttendanceHistoryPage(),
+          ),
+          GoRoute(
+            path: 'kiosk',
+            name: 'attendance-kiosk',
+            builder: (_, _) => const KioskPage(),
           ),
           GoRoute(
             path: 'qr',

@@ -14,4 +14,8 @@ public sealed class AttendanceRecord : BaseEntity
     public string Status { get; set; } = "present";
     public string? Notes { get; set; }
     public decimal? TotalHours { get; set; }
+    public string? CheckInPhotoUrl { get; set; }
+    public string? CheckOutPhotoUrl { get; set; }
+    public string? WellbeingResponse { get; set; }
+    public bool? SafetyConfirmed { get; set; }
 }

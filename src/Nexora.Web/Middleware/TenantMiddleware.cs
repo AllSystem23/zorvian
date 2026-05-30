@@ -14,10 +14,14 @@ public sealed class TenantMiddleware
 
     public async Task InvokeAsync(HttpContext context, ITenantContext tenantContext)
     {
-        var tenantId = context.User?.FindFirst("tenant_id")?.Value;
-        if (!string.IsNullOrEmpty(tenantId))
+        // Only try to set from JWT if not already set by another middleware (like ApiKey)
+        if (string.IsNullOrEmpty(tenantContext.TenantId))
         {
-            tenantContext.SetTenant(tenantId);
+            var tenantId = context.User?.FindFirst("tenant_id")?.Value;
+            if (!string.IsNullOrEmpty(tenantId))
+            {
+                tenantContext.SetTenantId(tenantId);
+            }
         }
 
         var userIdClaim = context.User?.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;

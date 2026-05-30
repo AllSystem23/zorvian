@@ -31,6 +31,9 @@ public sealed class EmployeeService
             HireDate = request.HireDate ?? DateOnly.FromDateTime(DateTime.UtcNow),
             Salary = request.Salary,
             SalaryType = request.SalaryType ?? "monthly",
+            BankName = request.BankName,
+            BankAccountNumber = request.BankAccountNumber,
+            BankAccountType = request.BankAccountType,
         };
 
         await _repo.AddAsync(employee);
@@ -58,6 +61,9 @@ public sealed class EmployeeService
         if (request.Salary.HasValue) employee.Salary = request.Salary;
         if (request.SalaryType != null) employee.SalaryType = request.SalaryType;
         if (request.Status != null) employee.Status = request.Status;
+        if (request.BankName != null) employee.BankName = request.BankName;
+        if (request.BankAccountNumber != null) employee.BankAccountNumber = request.BankAccountNumber;
+        if (request.BankAccountType != null) employee.BankAccountType = request.BankAccountType;
 
         await _repo.SaveChangesAsync();
         return MapToResponse(employee);
@@ -131,7 +137,10 @@ public sealed class EmployeeService
         e.HireDate,
         e.Status,
         e.Salary,
-        e.SalaryType ?? ""
+        e.SalaryType ?? "",
+        e.BankName,
+        e.BankAccountNumber,
+        e.BankAccountType
     );
 
     private static EmployeeListResponse MapToListResponse(Employee e) => new(
