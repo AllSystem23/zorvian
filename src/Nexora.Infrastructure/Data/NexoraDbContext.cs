@@ -27,6 +27,18 @@ public sealed class NexoraDbContext : DbContext
     public DbSet<LeaveBalances> LeaveBalances => Set<LeaveBalances>();
     public DbSet<EmployeeHistory> EmployeeHistories => Set<EmployeeHistory>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<VacationRequest> VacationRequests => Set<VacationRequest>();
+    public DbSet<ApprovalFlow> ApprovalFlows => Set<ApprovalFlow>();
+    public DbSet<LeaveType> LeaveTypes => Set<LeaveType>();
+    public DbSet<PermissionRequest> PermissionRequests => Set<PermissionRequest>();
+    public DbSet<AttendanceRecord> AttendanceRecords => Set<AttendanceRecord>();
+    public DbSet<DeviceToken> DeviceTokens => Set<DeviceToken>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<DeductionType> DeductionTypes => Set<DeductionType>();
+    public DbSet<EmployeeSalary> EmployeeSalaries => Set<EmployeeSalary>();
+    public DbSet<PayrollPeriod> PayrollPeriods => Set<PayrollPeriod>();
+    public DbSet<PayrollRun> PayrollRuns => Set<PayrollRun>();
+    public DbSet<PayrollDetail> PayrollDetails => Set<PayrollDetail>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -133,6 +145,7 @@ public sealed class NexoraDbContext : DbContext
                 .WithMany(d => d.Employees)
                 .HasForeignKey(em => em.DepartmentId)
                 .OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(em => new { em.Status, em.DepartmentId });
             e.HasQueryFilter(em => em.TenantId == _tenantContext.TenantId);
         });
 
@@ -186,19 +199,212 @@ public sealed class NexoraDbContext : DbContext
                 .WithMany(emp => emp.History)
                 .HasForeignKey(eh => eh.EmployeeId)
                 .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(eh => new { eh.EmployeeId, eh.CreatedAt });
             e.HasQueryFilter(eh => eh.TenantId == _tenantContext.TenantId);
+        });
+
+        builder.Entity<VacationRequest>(e =>
+        {
+            e.HasKey(v => v.Id);
+            e.Property(v => v.Status).HasMaxLength(30).IsRequired();
+            e.Property(v => v.Comments).HasMaxLength(500);
+            e.Property(v => v.RejectionReason).HasMaxLength(500);
+            e.HasOne(v => v.Employee)
+                .WithMany(emp => emp.VacationRequests)
+                .HasForeignKey(v => v.EmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(v => new { v.EmployeeId, v.Status });
+            e.HasIndex(v => new { v.StartDate, v.EndDate });
+            e.HasQueryFilter(v => v.TenantId == _tenantContext.TenantId);
+        });
+
+        builder.Entity<ApprovalFlow>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.Property(a => a.RequestType).HasMaxLength(50).IsRequired();
+            e.Property(a => a.Status).HasMaxLength(30).IsRequired();
+            e.Property(a => a.Comments).HasMaxLength(500);
+            e.HasOne(a => a.Request)
+                .WithMany(v => v.ApprovalSteps)
+                .HasForeignKey(a => a.RequestId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(a => a.Approver)
+                .WithMany()
+                .HasForeignKey(a => a.ApproverId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(a => new { a.ApproverId, a.Status });
+            e.HasIndex(a => new { a.RequestId, a.RequestType });
+            e.HasQueryFilter(a => a.TenantId == _tenantContext.TenantId);
+        });
+
+        builder.Entity<LeaveType>(e =>
+        {
+            e.HasKey(lt => lt.Id);
+            e.Property(lt => lt.Code).HasMaxLength(50).IsRequired();
+            e.Property(lt => lt.Name).HasMaxLength(100).IsRequired();
+            e.Property(lt => lt.Description).HasMaxLength(500);
+            e.Property(lt => lt.Country).HasMaxLength(100);
+            e.HasOne(lt => lt.Company)
+                .WithMany()
+                .HasForeignKey(lt => lt.CompanyId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(lt => lt.Code).IsUnique();
+        });
+
+        builder.Entity<PermissionRequest>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.Property(p => p.Status).HasMaxLength(30).IsRequired();
+            e.Property(p => p.Reason).HasMaxLength(1000);
+            e.Property(p => p.SupportingDocumentUrl).HasMaxLength(500);
+            e.Property(p => p.SupportingDocumentFileName).HasMaxLength(255);
+            e.Property(p => p.RejectionReason).HasMaxLength(500);
+            e.HasOne(p => p.Employee)
+                .WithMany(emp => emp.PermissionRequests)
+                .HasForeignKey(p => p.EmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(p => p.LeaveType)
+                .WithMany(lt => lt.PermissionRequests)
+                .HasForeignKey(p => p.LeaveTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(p => p.Approver)
+                .WithMany()
+                .HasForeignKey(p => p.ApprovedBy)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(p => new { p.EmployeeId, p.Status });
+            e.HasIndex(p => p.LeaveTypeId);
+            e.HasIndex(p => new { p.StartDate, p.EndDate });
+            e.HasQueryFilter(p => p.TenantId == _tenantContext.TenantId);
+        });
+
+        builder.Entity<AttendanceRecord>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.Property(a => a.Status).HasMaxLength(30).IsRequired();
+            e.Property(a => a.Notes).HasMaxLength(500);
+            e.HasOne(a => a.Employee)
+                .WithMany(emp => emp.AttendanceRecords)
+                .HasForeignKey(a => a.EmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(a => new { a.EmployeeId, a.Date }).IsUnique();
+            e.HasQueryFilter(a => a.TenantId == _tenantContext.TenantId);
+        });
+
+        builder.Entity<DeviceToken>(e =>
+        {
+            e.HasKey(d => d.Id);
+            e.Property(d => d.Token).HasMaxLength(500).IsRequired();
+            e.Property(d => d.Platform).HasMaxLength(20).IsRequired();
+            e.HasOne(d => d.User)
+                .WithMany()
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(d => d.Token).IsUnique();
+            e.HasQueryFilter(d => d.TenantId == _tenantContext.TenantId);
         });
 
         builder.Entity<RefreshToken>(e =>
         {
             e.HasKey(rt => rt.Id);
             e.HasIndex(rt => rt.Token).IsUnique();
+            e.HasIndex(rt => new { rt.UserId, rt.ExpiresAt });
             e.Property(rt => rt.Token).HasMaxLength(500).IsRequired();
             e.HasOne(rt => rt.User)
                 .WithMany()
                 .HasForeignKey(rt => rt.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
             e.HasQueryFilter(rt => rt.TenantId == _tenantContext.TenantId);
+        });
+
+        builder.Entity<AuditLog>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.Property(a => a.EntityName).HasMaxLength(100).IsRequired();
+            e.Property(a => a.EntityId).HasMaxLength(100).IsRequired();
+            e.Property(a => a.Action).HasMaxLength(50).IsRequired();
+            e.Property(a => a.IpAddress).HasMaxLength(50);
+            e.Property(a => a.UserAgent).HasMaxLength(500);
+            e.Property(a => a.RequestPath).HasMaxLength(500);
+            e.HasIndex(a => new { a.EntityName, a.Action });
+            e.HasIndex(a => a.CreatedAt);
+            e.HasQueryFilter(a => a.TenantId == _tenantContext.TenantId);
+        });
+
+        builder.Entity<DeductionType>(e =>
+        {
+            e.HasKey(d => d.Id);
+            e.HasIndex(d => d.Code).IsUnique();
+            e.Property(d => d.Code).HasMaxLength(50).IsRequired();
+            e.Property(d => d.Name).HasMaxLength(100).IsRequired();
+            e.Property(d => d.CalculationMethod).HasMaxLength(20).IsRequired();
+            e.Property(d => d.Rate).HasColumnType("decimal(5,2)");
+            e.Property(d => d.FixedAmount).HasColumnType("decimal(18,2)");
+        });
+
+        builder.Entity<EmployeeSalary>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.Property(s => s.BaseSalary).HasColumnType("decimal(18,2)").IsRequired();
+            e.Property(s => s.SalaryType).HasMaxLength(20).IsRequired();
+            e.Property(s => s.Notes).HasMaxLength(500);
+            e.HasOne(s => s.Employee)
+                .WithMany()
+                .HasForeignKey(s => s.EmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(s => s.DeductionType)
+                .WithMany()
+                .HasForeignKey(s => s.DeductionTypeId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(s => new { s.EmployeeId, s.IsActive });
+            e.HasQueryFilter(s => s.TenantId == _tenantContext.TenantId);
+        });
+
+        builder.Entity<PayrollPeriod>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.Property(p => p.Name).HasMaxLength(100).IsRequired();
+            e.Property(p => p.Status).HasMaxLength(20).IsRequired();
+            e.HasIndex(p => new { p.Year, p.Month, p.PeriodNumber }).IsUnique();
+            e.HasQueryFilter(p => p.TenantId == _tenantContext.TenantId);
+        });
+
+        builder.Entity<PayrollRun>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.Property(r => r.Status).HasMaxLength(20).IsRequired();
+            e.Property(r => r.TotalSalaries).HasColumnType("decimal(18,2)");
+            e.Property(r => r.TotalDeductions).HasColumnType("decimal(18,2)");
+            e.Property(r => r.TotalNetPay).HasColumnType("decimal(18,2)");
+            e.Property(r => r.Notes).HasMaxLength(500);
+            e.HasOne(r => r.PayrollPeriod)
+                .WithMany()
+                .HasForeignKey(r => r.PayrollPeriodId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(r => r.TenantId == _tenantContext.TenantId);
+        });
+
+        builder.Entity<PayrollDetail>(e =>
+        {
+            e.HasKey(d => d.Id);
+            e.Property(d => d.BaseSalary).HasColumnType("decimal(18,2)");
+            e.Property(d => d.GrossPay).HasColumnType("decimal(18,2)");
+            e.Property(d => d.TotalDeductions).HasColumnType("decimal(18,2)");
+            e.Property(d => d.NetPay).HasColumnType("decimal(18,2)");
+            e.Property(d => d.InssDeduction).HasColumnType("decimal(18,2)");
+            e.Property(d => d.IrDeduction).HasColumnType("decimal(18,2)");
+            e.Property(d => d.OtherDeductions).HasColumnType("decimal(18,2)");
+            e.Property(d => d.InssCode).HasMaxLength(50);
+            e.Property(d => d.Details).HasMaxLength(2000);
+            e.HasOne(d => d.PayrollRun)
+                .WithMany(r => r.Details)
+                .HasForeignKey(d => d.PayrollRunId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(d => d.Employee)
+                .WithMany()
+                .HasForeignKey(d => d.EmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(d => d.PayrollRunId);
+            e.HasQueryFilter(d => d.TenantId == _tenantContext.TenantId);
         });
     }
 

@@ -12,5 +12,6 @@ public sealed record UserInfo(
     string Email,
     string DisplayName,
     string Role,
-    string TenantId
+    string TenantId,
+    string? EmployeeId = null
 );

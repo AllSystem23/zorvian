@@ -5,6 +5,7 @@ class SecureStorage {
 
   static const _accessTokenKey = 'access_token';
   static const _refreshTokenKey = 'refresh_token';
+  static const _themeModeKey = 'theme_mode';
 
   Future<void> saveTokens(String access, String refresh) async {
     await Future.wait([
@@ -25,4 +26,10 @@ class SecureStorage {
       _storage.delete(key: _refreshTokenKey),
     ]);
   }
+
+  Future<void> saveThemeMode(String mode) =>
+      _storage.write(key: _themeModeKey, value: mode);
+
+  Future<String?> getThemeMode() =>
+      _storage.read(key: _themeModeKey);
 }

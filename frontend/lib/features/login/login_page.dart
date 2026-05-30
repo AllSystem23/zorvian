@@ -72,7 +72,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(Icons.workspace_premium, size: 64, color: theme.colorScheme.primary),
+                  Image.asset(
+                    'assets/logo.jpeg',
+                    height: 80,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => Icon(Icons.workspace_premium, size: 64, color: theme.colorScheme.primary),
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     'Nexora',

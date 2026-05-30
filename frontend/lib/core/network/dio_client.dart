@@ -1,11 +1,14 @@
 import 'package:dio/dio.dart';
 import '../storage/secure_storage.dart';
 
+typedef OnErrorCallback = void Function(int? statusCode, String message);
+
 class DioClient {
   late final Dio _dio;
   final SecureStorage _storage;
+  final OnErrorCallback? onError;
 
-  DioClient(this._storage) {
+  DioClient(this._storage, {this.onError}) {
     _dio = Dio(BaseOptions(
       baseUrl: const String.fromEnvironment(
         'API_URL',
@@ -33,6 +36,11 @@ class DioClient {
             return;
           }
         }
+        final msg = error.response?.data?['message'] as String? ??
+            error.response?.data?['title'] as String? ??
+            error.message ??
+            'Error de conexión';
+        onError?.call(error.response?.statusCode, msg);
         handler.next(error);
       },
     ));
@@ -62,8 +70,8 @@ class DioClient {
   Future<Response<T>> get<T>(String path, {Map<String, dynamic>? params}) =>
       _dio.get<T>(path, queryParameters: params);
 
-  Future<Response<T>> post<T>(String path, {dynamic data}) =>
-      _dio.post<T>(path, data: data);
+  Future<Response<T>> post<T>(String path, {dynamic data, Options? options}) =>
+      _dio.post<T>(path, data: data, options: options);
 
   Future<Response<T>> put<T>(String path, {dynamic data}) =>
       _dio.put<T>(path, data: data);

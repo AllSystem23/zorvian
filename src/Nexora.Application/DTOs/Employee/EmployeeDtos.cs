@@ -73,6 +73,11 @@ public sealed record EmployeeFilterRequest(
     int? PageSize = 20
 );
 
+public sealed record UpdateMyProfileRequest(
+    string? Phone,
+    string? PhotoUrl
+);
+
 public sealed record PagedResult<T>(
     List<T> Items,
     int Total,

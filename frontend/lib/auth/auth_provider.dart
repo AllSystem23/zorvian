@@ -1,4 +1,6 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../core/error/error_notifier.dart';
 import '../core/network/dio_client.dart';
 import '../core/storage/secure_storage.dart';
 
@@ -6,7 +8,11 @@ final secureStorageProvider = Provider<SecureStorage>((_) => SecureStorage());
 
 final dioClientProvider = Provider<DioClient>((ref) {
   final storage = ref.watch(secureStorageProvider);
-  return DioClient(storage);
+  return DioClient(storage, onError: (statusCode, message) {
+    final notifier = ref.read(errorNotifierProvider.notifier);
+    final friendly = notifier.friendlyHttpError(statusCode);
+    notifier.showError(friendly, detail: message);
+  });
 });
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
@@ -18,6 +24,7 @@ class AuthState {
   final String? displayName;
   final String? role;
   final String? tenantId;
+  final String? employeeId;
 
   const AuthState({
     this.status = AuthStatus.unknown,
@@ -26,6 +33,7 @@ class AuthState {
     this.displayName,
     this.role,
     this.tenantId,
+    this.employeeId,
   });
 
   AuthState copyWith({
@@ -35,6 +43,7 @@ class AuthState {
     String? displayName,
     String? role,
     String? tenantId,
+    String? employeeId,
   }) => AuthState(
     status: status ?? this.status,
     userId: userId ?? this.userId,
@@ -42,6 +51,7 @@ class AuthState {
     displayName: displayName ?? this.displayName,
     role: role ?? this.role,
     tenantId: tenantId ?? this.tenantId,
+    employeeId: employeeId ?? this.employeeId,
   );
 }
 
@@ -78,7 +88,12 @@ class AuthNotifier extends Notifier<AuthState> {
         displayName: user['displayName'],
         role: user['role'],
         tenantId: user['tenantId'],
+        employeeId: user['employeeId'],
       );
+
+      // Register FCM token in background
+      _registerFCMToken(user['id'] as String?);
+
       return true;
     } catch (_) {
       return false;
@@ -94,8 +109,21 @@ class AuthNotifier extends Notifier<AuthState> {
         await dio.post('/auth/logout', data: {'refreshToken': refresh});
       } catch (_) {}
     }
-    await storage.clearTokens();
+      await storage.clearTokens();
     state = const AuthState(status: AuthStatus.unauthenticated);
+  }
+
+  Future<void> _registerFCMToken(String? userId) async {
+    if (userId == null) return;
+    try {
+      final fcmToken = await FirebaseMessaging.instance.getToken();
+      if (fcmToken == null) return;
+      final dio = ref.read(dioClientProvider);
+      await dio.post('/notifications/register-device', data: {
+        'token': fcmToken,
+        'platform': 'web', // Change to 'android' or 'ios' for mobile
+      });
+    } catch (_) {}
   }
 }
 

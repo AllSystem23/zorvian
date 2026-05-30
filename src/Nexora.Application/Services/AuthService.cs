@@ -67,7 +67,8 @@ public sealed class AuthService
                 user.Email,
                 user.DisplayName,
                 primaryRole.Name.ToString(),
-                tenantId
+                tenantId,
+                user.EmployeeId?.ToString()
             )
         );
     }
@@ -109,7 +110,8 @@ public sealed class AuthService
                 user.Email,
                 user.DisplayName,
                 primaryRole.Name.ToString(),
-                tenantId
+                tenantId,
+                user.EmployeeId?.ToString()
             )
         );
     }

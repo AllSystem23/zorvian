@@ -74,6 +74,12 @@ public sealed class EmployeeRepository : IEmployeeRepository
         return await query.CountAsync();
     }
 
+    public async Task<List<EmployeeSupervisor>> GetSupervisorsAsync(Guid employeeId) =>
+        await _db.EmployeeSupervisors
+            .Include(es => es.Supervisor)
+            .Where(es => es.EmployeeId == employeeId)
+            .ToListAsync();
+
     public async Task AddAsync(Employee employee) =>
         await _db.Employees.AddAsync(employee);
 

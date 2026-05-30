@@ -11,6 +11,7 @@ public sealed class CompanySettings : BaseEntity
     public string? Timezone { get; set; } = "America/Managua";
     public string Currency { get; set; } = "NIO";
     public string? DateFormat { get; set; } = "DD/MM/YYYY";
+    public string? ApprovalFlowConfig { get; set; } // JSON: [{"step":1,"role":"Supervisor"},{"step":2,"role":"Rrhh"}]
 
     public Guid CompanyId { get; set; }
     public Company Company { get; set; } = null!;

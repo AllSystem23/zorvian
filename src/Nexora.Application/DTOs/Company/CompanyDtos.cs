@@ -21,3 +21,40 @@ public sealed record CompanyResponse(
     string Timezone,
     int MaxEmployees
 );
+
+public sealed record UpdateCompanyRequest(
+    string? Name,
+    string? LegalName,
+    string? TaxId,
+    string? Phone,
+    string? Address,
+    string? Currency,
+    string? Timezone,
+    string? LogoUrl
+);
+
+public sealed record CompanySettingsResponse(
+    int VacationDaysPerYear,
+    string VacationAccrualMethod,
+    int LateToleranceMinutes,
+    decimal WorkingHoursPerDay,
+    string WorkingDays,
+    bool OvertimeEnabled,
+    string? Timezone,
+    string Currency,
+    string? DateFormat,
+    string? ApprovalFlowConfig
+);
+
+public sealed record UpdateCompanySettingsRequest(
+    int? VacationDaysPerYear,
+    string? VacationAccrualMethod,
+    int? LateToleranceMinutes,
+    decimal? WorkingHoursPerDay,
+    string? WorkingDays,
+    bool? OvertimeEnabled,
+    string? Timezone,
+    string? Currency,
+    string? DateFormat,
+    string? ApprovalFlowConfig
+);

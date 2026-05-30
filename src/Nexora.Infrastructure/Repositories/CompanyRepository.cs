@@ -26,6 +26,15 @@ public sealed class CompanyRepository : ICompanyRepository
     public async Task AddSettingsAsync(CompanySettings settings) =>
         await _db.CompanySettings.AddAsync(settings);
 
+    public async Task<CompanySettings?> GetSettingsAsync(Guid companyId) =>
+        await _db.CompanySettings.FirstOrDefaultAsync(s => s.CompanyId == companyId);
+
+    public async Task UpdateAsync(Company company) =>
+        _db.Companies.Update(company);
+
+    public async Task UpdateSettingsAsync(CompanySettings settings) =>
+        _db.CompanySettings.Update(settings);
+
     public async Task<bool> ExistsByTenantIdAsync(string tenantId) =>
         await _db.Companies.AnyAsync(c => c.TenantId == tenantId);
 

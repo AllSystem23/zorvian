@@ -40,6 +40,7 @@ public sealed class JwtService : IJwtService
             new("firebase_uid", user.FirebaseUid),
             new(ClaimTypes.Email, user.Email),
             new("tenant_id", tenantId),
+            new("employee_id", user.EmployeeId?.ToString() ?? ""),
             new(ClaimTypes.Role, role.Name.ToString()),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         };

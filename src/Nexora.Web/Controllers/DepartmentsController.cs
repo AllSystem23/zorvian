@@ -5,6 +5,9 @@ using Nexora.Application.Services;
 
 namespace Nexora.Web.Controllers;
 
+/// <summary>
+/// Controlador de departamentos. Administra la creación, consulta, actualización y eliminación de departamentos.
+/// </summary>
 [ApiController]
 [Authorize]
 [Route("api/v1/departments")]
@@ -17,6 +20,9 @@ public sealed class DepartmentsController : ControllerBase
         _service = service;
     }
 
+    /// <summary>
+    /// Crea un nuevo departamento.
+    /// </summary>
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateDepartmentRequest request)
     {
@@ -24,6 +30,9 @@ public sealed class DepartmentsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = department.Id }, department);
     }
 
+    /// <summary>
+    /// Obtiene un departamento por su identificador único.
+    /// </summary>
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -33,6 +42,9 @@ public sealed class DepartmentsController : ControllerBase
         return Ok(dept);
     }
 
+    /// <summary>
+    /// Obtiene todos los departamentos registrados.
+    /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -40,6 +52,9 @@ public sealed class DepartmentsController : ControllerBase
         return Ok(departments);
     }
 
+    /// <summary>
+    /// Actualiza los datos de un departamento existente.
+    /// </summary>
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateDepartmentRequest request)
     {
@@ -49,6 +64,9 @@ public sealed class DepartmentsController : ControllerBase
         return Ok(dept);
     }
 
+    /// <summary>
+    /// Elimina un departamento. Devuelve conflicto si tiene empleados asociados.
+    /// </summary>
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

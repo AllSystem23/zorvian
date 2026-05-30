@@ -1,5 +1,9 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:file_picker/file_picker.dart';
+import '../../../auth/auth_provider.dart';
 import '../providers/employee_provider.dart';
 
 class EmployeeListPage extends ConsumerStatefulWidget {
@@ -24,13 +28,55 @@ class _EmployeeListPageState extends ConsumerState<EmployeeListPage> {
     super.dispose();
   }
 
+  Future<void> _importExcel() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['xlsx'],
+    );
+    if (result == null || result.files.single.path == null) return;
+
+    try {
+      final dio = ref.read(dioClientProvider);
+      final file = await MultipartFile.fromFile(
+        result.files.single.path!,
+        filename: result.files.single.name,
+      );
+      final form = FormData.fromMap({'file': file});
+      final r = await dio.post('/employees/import', data: form);
+      final data = r.data;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${data['imported']} importados, ${data['failed']} fallaron'),
+          ),
+        );
+        ref.read(employeeProvider.notifier).load();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al importar Excel')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(employeeProvider);
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Empleados')),
+      appBar: AppBar(
+        title: const Text('Empleados'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.upload_file),
+            tooltip: 'Importar Excel',
+            onPressed: _importExcel,
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Padding(
@@ -71,7 +117,7 @@ class _EmployeeListPageState extends ConsumerState<EmployeeListPage> {
                       title: Text(e.fullName, style: const TextStyle(fontWeight: FontWeight.w600)),
                       subtitle: Text('${e.position} · ${e.departmentName}'),
                       trailing: _StatusBadge(e.status),
-                      onTap: () {},
+                      onTap: () => context.push('/employees/${e.id}'),
                     );
                   },
                 ),
@@ -80,7 +126,10 @@ class _EmployeeListPageState extends ConsumerState<EmployeeListPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: () async {
+          final result = await context.push<bool>('/employees/new');
+          if (result == true) ref.read(employeeProvider.notifier).load();
+        },
         child: const Icon(Icons.add),
       ),
     );

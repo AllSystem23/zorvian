@@ -1,6 +1,9 @@
+using System.Reflection;
 using System.Text;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
+using Hangfire;
+using Hangfire.MemoryStorage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -11,7 +14,11 @@ using Nexora.Core.Interfaces;
 using Nexora.Infrastructure.Data;
 using Nexora.Infrastructure.Identity;
 using Nexora.Infrastructure.Repositories;
+using Nexora.Infrastructure.Services;
+using Nexora.Web.Hubs;
+using Nexora.Web.Jobs;
 using Nexora.Web.Middleware;
+using Nexora.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -49,11 +56,29 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<CompanyService>();
 builder.Services.AddScoped<EmployeeService>();
 builder.Services.AddScoped<DepartmentService>();
+builder.Services.AddScoped<VacationService>();
+builder.Services.AddScoped<PermissionService>();
+builder.Services.AddScoped<IVacationRepository, VacationRepository>();
+builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
+builder.Services.AddScoped<SeedService>();
+builder.Services.AddScoped<IExcelImportService, ExcelImportService>();
+builder.Services.AddScoped<IReportService, ReportService>();
+var storageBucket = builder.Configuration["Firebase:StorageBucket"]
+    ?? "nexora-hr.firebasestorage.app";
+builder.Services.AddScoped<IDocumentStorageService>(_ =>
+    new FirebaseStorageService(storageBucket));
 
 // DI - Repositories
 builder.Services.AddScoped<ICompanyRepository, CompanyRepository>();
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<IDepartmentRepository, DepartmentRepository>();
+builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
+builder.Services.AddScoped<DashboardService>();
+builder.Services.AddScoped<IAttendanceRepository, AttendanceRepository>();
+builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+builder.Services.AddScoped<AttendanceService>();
+builder.Services.AddScoped<IPayrollRepository, PayrollRepository>();
+builder.Services.AddScoped<PayrollService>();
 
 // JWT Authentication
 var jwtSecret = builder.Configuration["Jwt:Secret"]
@@ -90,6 +115,19 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+// SignalR
+builder.Services.AddSignalR();
+
+// Notifications
+builder.Services.AddScoped<SignalRNotificationService>();
+builder.Services.AddScoped<IFCMNotificationService, FCMNotificationService>();
+builder.Services.AddScoped<INotificationService, CombinedNotificationService>();
+
+// Hangfire
+builder.Services.AddHangfire(c => c.UseMemoryStorage());
+builder.Services.AddHangfireServer();
+builder.Services.AddScoped<CheckInReminderJob>();
+
 // CORS
 builder.Services.AddCors(options =>
 {
@@ -105,15 +143,42 @@ builder.Services.AddCors(options =>
 // Swagger
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new() { Title = "Nexora API", Version = "v1" });
+    c.SwaggerDoc("v1", new()
+    {
+        Title = "Nexora HR API",
+        Version = "v1",
+        Description = "API REST para el sistema de gestión de recursos humanos Nexora. Multi-tenant, con autenticación JWT + Firebase.",
+        Contact = new OpenApiContact
+        {
+            Name = "Soporte Nexora",
+            Email = "soporte@nexora.app",
+        },
+        License = new OpenApiLicense
+        {
+            Name = "Uso interno",
+        },
+    });
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header using the Bearer scheme",
+        Description = "JWT Authorization header usando el esquema Bearer. Ejemplo: \"Bearer {token}\"",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.Http,
         Scheme = "bearer"
     });
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new() { Id = "Bearer", Type = ReferenceType.SecurityScheme }
+            },
+            Array.Empty<string>()
+        }
+    });
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath)) c.IncludeXmlComments(xmlPath);
 });
 
 var app = builder.Build();
@@ -127,10 +192,24 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("NexoraCors");
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseTenantMiddleware();
+app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapControllers();
+
+// Hangfire dashboard (dev only)
+if (app.Environment.IsDevelopment())
+{
+    app.UseHangfireDashboard();
+}
+
+// Recurring job: check-in reminder at 9 AM
+RecurringJob.AddOrUpdate<CheckInReminderJob>(
+    "check-in-reminder",
+    j => j.RunAsync(),
+    "0 9 * * *"); // Every day at 09:00
 
 // Health check
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", version = "1.0.0" }));

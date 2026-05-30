@@ -86,6 +86,18 @@ public sealed class EmployeeService
         return employee is null ? null : MapToResponse(employee);
     }
 
+    public async Task<EmployeeResponse?> UpdateMyProfileAsync(Guid id, UpdateMyProfileRequest request)
+    {
+        var employee = await _repo.GetByIdAsync(id);
+        if (employee is null) return null;
+
+        if (request.Phone != null) employee.Phone = request.Phone;
+        if (request.PhotoUrl != null) employee.PhotoUrl = request.PhotoUrl;
+
+        await _repo.SaveChangesAsync();
+        return MapToResponse(employee);
+    }
+
     public async Task<bool> DeleteAsync(Guid id)
     {
         var employee = await _repo.GetByIdAsync(id);

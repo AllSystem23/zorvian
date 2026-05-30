@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../auth/auth_provider.dart';
-import '../../core/network/dio_client.dart';
+
 
 class OnboardingPage extends ConsumerStatefulWidget {
   const OnboardingPage({super.key});
@@ -21,8 +21,6 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   final _employeesCtrl = TextEditingController(text: '10');
   bool _loading = false;
   String? _error;
-  int _step = 0;
-
   @override
   void dispose() {
     _companyNameCtrl.dispose();
