@@ -31,4 +31,31 @@ public sealed class SeedController : ControllerBase
         await _seed.SeedAsync(_tenant.TenantId);
         return Ok(new { message = "Seed data created" });
     }
+
+    /// <summary>
+    /// Crea el usuario Super Admin en Firebase Authentication y en la base de datos.
+    /// Endpoint público para bootstrap inicial.
+    /// </summary>
+    [HttpPost("super-admin")]
+    [AllowAnonymous]
+    public async Task<IActionResult> CreateSuperAdmin([FromBody] CreateSuperAdminRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email))
+            return BadRequest(new { error = "El email es requerido" });
+
+        var result = await _seed.SeedSuperAdminAsync(request.Email.Trim());
+
+        if (result.AlreadyExists)
+            return Ok(new { message = result.PasswordOrMessage });
+
+        return Ok(new
+        {
+            message = "Super Admin creado exitosamente",
+            email = result.Email,
+            password = result.PasswordOrMessage,
+            tip = "Guarda esta contraseña. No podrás recuperarla después.",
+        });
+    }
 }
+
+public sealed record CreateSuperAdminRequest(string Email);

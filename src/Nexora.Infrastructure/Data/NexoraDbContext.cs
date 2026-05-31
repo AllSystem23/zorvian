@@ -483,7 +483,8 @@ public sealed class NexoraDbContext : DbContext
         {
             if (entry.State == EntityState.Added)
             {
-                entry.Entity.TenantId = _tenantContext.TenantId;
+                if (string.IsNullOrEmpty(entry.Entity.TenantId))
+                    entry.Entity.TenantId = _tenantContext.TenantId;
                 entry.Entity.CreatedAt = DateTime.UtcNow;
             }
             if (entry.State is EntityState.Modified or EntityState.Added)
@@ -500,7 +501,8 @@ public sealed class NexoraDbContext : DbContext
         {
             if (entry.State == EntityState.Added)
             {
-                entry.Entity.TenantId = _tenantContext.TenantId;
+                if (string.IsNullOrEmpty(entry.Entity.TenantId))
+                    entry.Entity.TenantId = _tenantContext.TenantId;
                 entry.Entity.CreatedAt = DateTime.UtcNow;
             }
             if (entry.State is EntityState.Modified or EntityState.Added)

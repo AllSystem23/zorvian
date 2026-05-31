@@ -17,6 +17,7 @@ public sealed class AuthRepository : IAuthRepository
     public async Task<User?> GetUserByFirebaseUidAsync(string firebaseUid)
     {
         return await _db.Users
+            .IgnoreQueryFilters()
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
                 .ThenInclude(r => r.RolePermissions)
@@ -26,6 +27,7 @@ public sealed class AuthRepository : IAuthRepository
     public async Task<User?> GetUserWithRolesAsync(Guid userId)
     {
         return await _db.Users
+            .IgnoreQueryFilters()
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
                 .ThenInclude(r => r.RolePermissions)

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Nexora.Application.Interfaces;
 using Nexora.Core.Entities;
 using Nexora.Core.Enums;
 using Nexora.Infrastructure.Data;
@@ -8,10 +9,12 @@ namespace Nexora.Infrastructure.Services;
 public sealed class SeedService
 {
     private readonly NexoraDbContext _db;
+    private readonly IFirebaseAuthService _firebase;
 
-    public SeedService(NexoraDbContext db)
+    public SeedService(NexoraDbContext db, IFirebaseAuthService firebase)
     {
         _db = db;
+        _firebase = firebase;
     }
 
     public async Task SeedAsync(string tenantId)
@@ -37,6 +40,7 @@ public sealed class SeedService
 
         var roles = new List<Role>
         {
+            new() { Name = RoleType.SuperAdmin, DisplayName = "Super Admin", IsSystem = true },
             new() { Name = RoleType.CompanyAdmin, DisplayName = "Admin", IsSystem = true },
             new() { Name = RoleType.Rrhh, DisplayName = "RRHH", IsSystem = true },
             new() { Name = RoleType.Supervisor, DisplayName = "Supervisor", IsSystem = true },
@@ -118,4 +122,93 @@ public sealed class SeedService
             await _db.SaveChangesAsync();
         }
     }
+
+    public async Task<SuperAdminResult> SeedSuperAdminAsync(string email)
+    {
+        var existingUser = await _db.Users
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.Email == email);
+
+        if (existingUser is not null)
+        {
+            var existingRole = await _db.UserRoles
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(ur => ur.UserId == existingUser.Id);
+
+            if (existingRole?.Role?.Name == RoleType.SuperAdmin)
+                return new SuperAdminResult(email, "El super admin ya existe", true);
+        }
+
+        var superAdminRole = await _db.Roles
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(r => r.Name == RoleType.SuperAdmin);
+
+        if (superAdminRole is null)
+        {
+            superAdminRole = new Role
+            {
+                Name = RoleType.SuperAdmin,
+                DisplayName = "Super Admin",
+                IsSystem = true,
+            };
+            _db.Roles.Add(superAdminRole);
+            await _db.SaveChangesAsync();
+        }
+
+        var password = GenerateRandomPassword();
+
+        FirebaseUserCreated created;
+        try
+        {
+            created = await _firebase.CreateUserAsync(email, password, "Super Admin");
+        }
+        catch (Exception ex) when (ex.Message.Contains("EMAIL_EXISTS"))
+        {
+            return new SuperAdminResult(email,
+                "El correo ya existe en Firebase Authentication. Debes crear el super admin manualmente.", false);
+        }
+
+        var user = new User
+        {
+            FirebaseUid = created.Uid,
+            Email = created.Email,
+            DisplayName = "Super Admin",
+            TenantId = "superadmin",
+            IsActive = true,
+        };
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync();
+
+        var userRole = new UserRole
+        {
+            UserId = user.Id,
+            RoleId = superAdminRole.Id,
+        };
+        _db.UserRoles.Add(userRole);
+        await _db.SaveChangesAsync();
+
+        return new SuperAdminResult(email, password, false);
+    }
+
+    private static string GenerateRandomPassword()
+    {
+        const string upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const string lower = "abcdefghijklmnopqrstuvwxyz";
+        const string digits = "0123456789";
+        const string special = "!@#$%&*";
+        var all = upper + lower + digits + special;
+        var rng = Random.Shared;
+
+        var chars = new char[16];
+        chars[0] = upper[rng.Next(upper.Length)];
+        chars[1] = lower[rng.Next(lower.Length)];
+        chars[2] = digits[rng.Next(digits.Length)];
+        chars[3] = special[rng.Next(special.Length)];
+        for (int i = 4; i < chars.Length; i++)
+            chars[i] = all[rng.Next(all.Length)];
+
+        return new string(chars[..].OrderBy(_ => rng.Next()).ToArray());
+    }
 }
+
+public sealed record SuperAdminResult(string Email, string PasswordOrMessage, bool AlreadyExists);

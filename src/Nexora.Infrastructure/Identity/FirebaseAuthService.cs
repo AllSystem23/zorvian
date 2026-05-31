@@ -22,4 +22,17 @@ public sealed class FirebaseAuthService : IFirebaseAuthService
             return null;
         }
     }
+
+    public async Task<FirebaseUserCreated> CreateUserAsync(string email, string password, string displayName)
+    {
+        var args = new UserRecordArgs
+        {
+            Email = email,
+            Password = password,
+            DisplayName = displayName,
+        };
+
+        var record = await FirebaseAuth.DefaultInstance.CreateUserAsync(args);
+        return new FirebaseUserCreated(record.Uid, record.Email);
+    }
 }
