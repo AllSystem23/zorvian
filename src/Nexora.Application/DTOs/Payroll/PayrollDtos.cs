@@ -107,3 +107,8 @@ public sealed record GeneratePayrollRequest(
     Guid PayrollPeriodId,
     string? Notes
 );
+
+public sealed record AchExportResult(
+    byte[] Content,
+    string FileName
+);

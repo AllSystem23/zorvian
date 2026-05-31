@@ -29,7 +29,7 @@ class _EmployeeListPageState extends ConsumerState<EmployeeListPage> {
   }
 
   Future<void> _importExcel() async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['xlsx'],
     );

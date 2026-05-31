@@ -1,4 +1,5 @@
 using Moq;
+using Nexora.Application.DTOs.Payroll;
 using Nexora.Application.Interfaces;
 using Nexora.Application.Services;
 using Nexora.Core.Entities;
@@ -12,48 +13,30 @@ public sealed class PayrollServiceTests
     private readonly Mock<IEmployeeRepository> _employeeRepo = new();
     private readonly Mock<ITenantContext> _tenant = new();
     private readonly Mock<IWebhookService> _webhook = new();
+    private readonly Mock<IAchExportService> _ach = new();
     private readonly PayrollService _sut;
 
     public PayrollServiceTests()
     {
-        _sut = new PayrollService(_repo.Object, _employeeRepo.Object, _tenant.Object, _webhook.Object);
+        _sut = new PayrollService(_repo.Object, _employeeRepo.Object, _tenant.Object, _webhook.Object, _ach.Object);
     }
 
     [Fact]
-    public async Task ExportAchFileAsync_Should_Return_Csv_Content_When_Run_Is_Approved()
+    public async Task ExportAchFileAsync_Should_Return_Result_When_Run_Is_Approved()
     {
         var runId = Guid.NewGuid();
-        var run = new PayrollRun
-        {
-            Id = runId,
-            Status = "approved",
-            PayrollPeriod = new PayrollPeriod { Name = "Enero 2026" },
-            Details = new List<PayrollDetail>
-            {
-                new() 
-                { 
-                    NetPay = 1000, 
-                    Employee = new Employee 
-                    { 
-                        FirstName = "Carlos", 
-                        LastName = "Mendoza", 
-                        BankAccountNumber = "12345", 
-                        BankName = "BAC", 
-                        BankAccountType = "Ahorro" 
-                    } 
-                }
-            }
-        };
+        var run = new PayrollRun { Id = runId, Status = "approved" };
         _repo.Setup(r => r.GetRunByIdAsync(runId)).ReturnsAsync(run);
+
+        var expectedContent = new byte[] { 1, 2, 3 };
+        _ach.Setup(a => a.GenerateAchFileAsync(runId)).ReturnsAsync(expectedContent);
+        _ach.SetupGet(a => a.FileName).Returns("test_ach.csv");
 
         var result = await _sut.ExportAchFileAsync(runId);
 
         Assert.NotNull(result);
-        var csv = System.Text.Encoding.UTF8.GetString(result.Value.Content);
-        Assert.Contains("Carlos Mendoza", csv);
-        Assert.Contains("12345", csv);
-        Assert.Contains("1000", csv);
-        Assert.Equal("ACH_Nomina_Enero 2026.csv", result.Value.FileName);
+        Assert.Equal(expectedContent, result.Content);
+        Assert.Equal("test_ach.csv", result.FileName);
     }
 
     [Fact]
@@ -62,6 +45,17 @@ public sealed class PayrollServiceTests
         var runId = Guid.NewGuid();
         var run = new PayrollRun { Id = runId, Status = "draft" };
         _repo.Setup(r => r.GetRunByIdAsync(runId)).ReturnsAsync(run);
+
+        var result = await _sut.ExportAchFileAsync(runId);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task ExportAchFileAsync_Should_Return_Null_When_Run_Not_Found()
+    {
+        var runId = Guid.NewGuid();
+        _repo.Setup(r => r.GetRunByIdAsync(runId)).ReturnsAsync((PayrollRun?)null);
 
         var result = await _sut.ExportAchFileAsync(runId);
 

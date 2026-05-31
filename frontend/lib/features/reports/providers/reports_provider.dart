@@ -1,8 +1,8 @@
-import 'dart:html' as html;
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../core/services/file_saver_stub.dart' if (dart.library.html) '../../../core/services/file_saver_web.dart';
 
 final reportsProvider = Provider<ReportsService>((ref) {
   final dio = ref.read(dioClientProvider);
@@ -27,7 +27,7 @@ class ReportsService {
 
     final data = response.data as List<int>;
     final fileName = _getFileName(type, year, month);
-    await _saveFile(data, fileName);
+    await saveFile(data, fileName);
   }
 
   String _getFileName(String type, int? year, int? month) {
@@ -45,14 +45,5 @@ class ReportsService {
       default:
         return 'reporte.xlsx';
     }
-  }
-
-  Future<void> _saveFile(List<int> data, String fileName) async {
-    final blob = html.Blob([data]);
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    html.AnchorElement(href: url)
-      ..setAttribute('download', fileName)
-      ..click();
-    html.Url.revokeObjectUrl(url);
   }
 }

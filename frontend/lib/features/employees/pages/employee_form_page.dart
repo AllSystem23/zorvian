@@ -20,8 +20,11 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
   final _phoneCtrl = TextEditingController();
   final _positionCtrl = TextEditingController();
   final _salaryCtrl = TextEditingController();
+  final _bankNameCtrl = TextEditingController();
+  final _bankAccountCtrl = TextEditingController();
   String? _selectedDeptId;
   String _salaryType = 'monthly';
+  String _bankAccountType = 'ahorro';
   bool _loading = false;
   String? _error;
   bool _isEditing = false;
@@ -47,6 +50,9 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
       _selectedDeptId = data['departmentId'] as String?;
       _salaryType = data['salaryType'] as String? ?? 'monthly';
       _salaryCtrl.text = data['salary']?.toString() ?? '';
+      _bankNameCtrl.text = data['bankName'] ?? '';
+      _bankAccountCtrl.text = data['bankAccountNumber'] ?? '';
+      _bankAccountType = data['bankAccountType'] as String? ?? 'ahorro';
       setState(() {});
     } catch (_) {
       setState(() => _error = 'Error al cargar empleado');
@@ -67,6 +73,9 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
         'position': _positionCtrl.text.trim(),
         'departmentId': _selectedDeptId,
         'salaryType': _salaryType,
+        'bankName': _bankNameCtrl.text.trim(),
+        'bankAccountNumber': _bankAccountCtrl.text.trim(),
+        'bankAccountType': _bankAccountType,
         if (_salaryCtrl.text.isNotEmpty) 'salary': double.tryParse(_salaryCtrl.text),
       };
 

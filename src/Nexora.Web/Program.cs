@@ -80,6 +80,7 @@ builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 builder.Services.AddScoped<AttendanceService>();
 builder.Services.AddScoped<IPayrollRepository, PayrollRepository>();
 builder.Services.AddScoped<PayrollService>();
+builder.Services.AddScoped<IAchExportService, AchExportService>();
 builder.Services.AddScoped<IWebhookService, WebhookService>();
 builder.Services.AddScoped<ApiKeyService>();
 builder.Services.AddScoped<IJobScheduler, HangfireJobScheduler>();

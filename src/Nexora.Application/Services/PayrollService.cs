@@ -11,17 +11,20 @@ public sealed class PayrollService
     private readonly IEmployeeRepository _employeeRepo;
     private readonly ITenantContext _tenant;
     private readonly IWebhookService _webhookService;
+    private readonly IAchExportService _achService;
 
     public PayrollService(
         IPayrollRepository repo,
         IEmployeeRepository employeeRepo,
         ITenantContext tenant,
-        IWebhookService webhookService)
+        IWebhookService webhookService,
+        IAchExportService achService)
     {
         _repo = repo;
         _employeeRepo = employeeRepo;
         _tenant = tenant;
         _webhookService = webhookService;
+        _achService = achService;
     }
 
     // --- Deduction Types ---
@@ -230,43 +233,20 @@ public sealed class PayrollService
         return MapRun(run);
     }
 
-    public async Task<(byte[] Content, string FileName)?> ExportAchFileAsync(Guid runId)
-    {
-        var run = await _repo.GetRunByIdAsync(runId);
-        if (run is null || run.Status != "approved") return null;
-
-        var sb = new System.Text.StringBuilder();
-        sb.AppendLine("Nombre,Cuenta,Banco,TipoCuenta,Monto,Moneda,Referencia");
-
-        foreach (var detail in run.Details ?? [])
-        {
-            var emp = detail.Employee;
-            if (emp is null) continue;
-
-            sb.AppendLine($"\"{emp.FirstName} {emp.LastName}\",\"{emp.BankAccountNumber}\",\"{emp.BankName}\",\"{emp.BankAccountType}\",{detail.NetPay},NIO,\"Pago Nomina {run.PayrollPeriod?.Name}\"");
-        }
-
-        var fileName = $"ACH_Nomina_{run.PayrollPeriod?.Name ?? runId.ToString()}.csv";
-        return (System.Text.Encoding.UTF8.GetBytes(sb.ToString()), fileName);
-    }
-
-    // --- Calculation Helpers ---
-
     private static decimal CalculateInss(decimal grossPay)
     {
-        // Nicaragua INSS Laboral: 7% of gross pay, capped
-        var rate = 0.07m;
-        var maxInss = 1500m; // Example cap
-        return Math.Min(grossPay * rate, maxInss);
+        // INSS Laboral: 7% del salario, tope máximo C$1,500
+        var inss = grossPay * 0.07m;
+        return Math.Min(inss, 1500m);
     }
 
     private static decimal CalculateIr(decimal taxableIncome)
     {
-        // Nicaragua IR simplified progressive brackets (example)
-        if (taxableIncome <= 5000) return 0;
-        if (taxableIncome <= 20000) return (taxableIncome - 5000) * 0.15m;
-        if (taxableIncome <= 50000) return 2250 + (taxableIncome - 20000) * 0.20m;
-        return 8250 + (taxableIncome - 50000) * 0.25m;
+        // IR progresivo simplificado (Nicaragua)
+        if (taxableIncome <= 10000m) return 0m;
+        if (taxableIncome <= 20000m) return (taxableIncome - 10000m) * 0.15m;
+        if (taxableIncome <= 30000m) return 1500m + (taxableIncome - 20000m) * 0.20m;
+        return 3500m + (taxableIncome - 30000m) * 0.25m;
     }
 
     // --- Mapping ---
@@ -277,6 +257,15 @@ public sealed class PayrollService
     private static EmployeeSalaryResponse MapSalary(EmployeeSalary s) => new(
         s.Id, s.EmployeeId, s.Employee?.FirstName + " " + s.Employee?.LastName, s.BaseSalary, s.SalaryType,
         s.EffectiveDate, s.EndDate, s.IsActive, s.Notes);
+
+    public async Task<AchExportResult?> ExportAchFileAsync(Guid runId)
+    {
+        var run = await _repo.GetRunByIdAsync(runId);
+        if (run is null || run.Status != "approved") return null;
+
+        var fileContent = await _achService.GenerateAchFileAsync(runId);
+        return new AchExportResult(fileContent, _achService.FileName);
+    }
 
     private static PayrollPeriodResponse MapPeriod(PayrollPeriod p) => new(
         p.Id, p.Name, p.Year, p.Month, p.PeriodNumber, p.StartDate, p.EndDate, p.PaymentDate, p.Status);
