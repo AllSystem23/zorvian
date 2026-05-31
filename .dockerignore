@@ -1,0 +1,14 @@
+.git/
+.gitignore
+.gitattributes
+**/.DS_Store
+frontend/
+tests/
+*.md
+PLAN.md
+SPEC.md
+firebase.json
+.firebaserc
+nexora-hr-firebase-admin.json
+*.local
+*.development
