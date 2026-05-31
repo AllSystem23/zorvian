@@ -14,9 +14,4 @@ COPY --from=build /app .
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
-ENV Jwt__Secret=NexoraSuperSecretKey2026!AtLeast32CharactersLong!
-ENV Jwt__ExpirationMinutes=60
-ENV Jwt__RefreshExpirationDays=7
-ENV ConnectionStrings__NexoraDb=Host=ep-solitary-cake-apmacxlx-pooler.c-7.us-east-1.aws.neon.tech;Database=nexora;Username=neondb_owner;Password=npg_N2lCkzum3shZ;SSL Mode=Require;Trust Server Certificate=true
-ENV Firebase__ProjectId=nexora-hr
 ENTRYPOINT ["dotnet", "Nexora.Web.dll"]
