@@ -256,22 +256,12 @@ RecurringJob.AddOrUpdate<AbsenteeismTrainingJob>(
 // Health check
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", version = "1.0.0" }));
 
-// Auto-migrate in production (background, non-blocking)
+// Auto-migrate in production
 if (app.Environment.IsProduction())
 {
-    _ = Task.Run(async () =>
-    {
-        try
-        {
-            using var scope = app.Services.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<NexoraDbContext>();
-            await db.Database.MigrateAsync();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Migration error (non-fatal): {ex.Message}");
-        }
-    });
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<NexoraDbContext>();
+    await db.Database.MigrateAsync();
 }
 
 app.Run();
