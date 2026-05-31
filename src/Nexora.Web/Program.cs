@@ -232,23 +232,25 @@ if (app.Environment.IsDevelopment())
     app.UseHangfireDashboard();
 }
 
-// Recurring job: check-in reminder at 9 AM
-RecurringJob.AddOrUpdate<CheckInReminderJob>(
+// Recurring jobs using IRecurringJobManager from DI
+var recurringJobManager = app.Services.GetRequiredService<IRecurringJobManager>();
+
+recurringJobManager.AddOrUpdate<CheckInReminderJob>(
     "check-in-reminder",
     j => j.RunAsync(),
     "0 9 * * *"); // Every day at 09:00
 
-RecurringJob.AddOrUpdate<DocumentExpirationJob>(
+recurringJobManager.AddOrUpdate<DocumentExpirationJob>(
     "document-expiration-check",
     j => j.RunAsync(),
     "0 8 * * *"); // Every day at 08:00
 
-RecurringJob.AddOrUpdate<AttendancePhotoCleanupJob>(
+recurringJobManager.AddOrUpdate<AttendancePhotoCleanupJob>(
     "attendance-photo-cleanup",
     j => j.RunAsync(),
     "0 3 1 * *"); // 1st day of every month at 03:00
 
-RecurringJob.AddOrUpdate<AbsenteeismTrainingJob>(
+recurringJobManager.AddOrUpdate<AbsenteeismTrainingJob>(
     "absenteeism-model-training",
     j => j.RunAsync(),
     "0 2 * * 0"); // Every Sunday at 02:00
