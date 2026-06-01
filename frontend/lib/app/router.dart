@@ -15,6 +15,7 @@ import '../features/reports/pages/audit_logs_page.dart';
 import '../features/settings/pages/company_settings_page.dart';
 import '../features/settings/pages/leave_types_page.dart';
 import '../features/admin/pages/user_list_page.dart';
+import '../features/admin/pages/invite_user_page.dart';
 import '../features/departments/pages/department_form_page.dart';
 import '../features/departments/pages/department_list_page.dart';
 import '../features/employees/pages/employee_detail_page.dart';
@@ -212,6 +213,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/admin/users',
         name: 'admin-users',
         builder: (_, _) => const UserListPage(),
+      ),
+      GoRoute(
+        path: '/admin/invite',
+        name: 'admin-invite',
+        builder: (_, _) => const InviteUserPage(),
       ),
       GoRoute(
         path: '/leave-types',
