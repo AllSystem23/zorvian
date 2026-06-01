@@ -25,18 +25,17 @@ using Nexora.Web.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // Firebase Admin SDK
-var credPath = builder.Configuration["Firebase:CredentialsFilePath"];
-if (!string.IsNullOrEmpty(credPath))
+var credPath = builder.Configuration["Firebase:CredentialsFilePath"] ?? "nexora-hr-firebase-admin.json";
+var fbCredFile = Path.Combine(builder.Environment.ContentRootPath, credPath);
+if (!File.Exists(fbCredFile))
+    fbCredFile = Path.Combine("/etc/secrets", credPath);
+if (File.Exists(fbCredFile))
 {
-    var fullPath = Path.Combine(builder.Environment.ContentRootPath, credPath);
-    if (File.Exists(fullPath))
+    FirebaseApp.Create(new AppOptions
     {
-        FirebaseApp.Create(new AppOptions
-        {
-            Credential = CredentialFactory.FromFile<ServiceAccountCredential>(fullPath).ToGoogleCredential().CreateScoped(),
-            ProjectId = builder.Configuration["Firebase:ProjectId"],
-        });
-    }
+        Credential = CredentialFactory.FromFile<ServiceAccountCredential>(fbCredFile).ToGoogleCredential().CreateScoped(),
+        ProjectId = builder.Configuration["Firebase:ProjectId"],
+    });
 }
 
 builder.Services.AddControllers();
