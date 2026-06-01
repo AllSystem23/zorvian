@@ -25,7 +25,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       // Connect SignalR for real-time notifications
       final auth = ref.read(authProvider);
       if (auth.status == AuthStatus.authenticated) {
-        const apiUrl = String.fromEnvironment('API_URL', defaultValue: 'https://api.nexora.app');
+        const apiUrl = String.fromEnvironment('API_URL', defaultValue: 'https://nexora-9yal.onrender.com/api/v1');
         final storage = ref.read(secureStorageProvider);
         final token = await storage.getAccessToken();
         if (token != null) {

@@ -64,11 +64,12 @@ class DioClient {
       final refresh = await _storage.getRefreshToken();
       if (refresh == null) return false;
 
+      // Usamos baseUrl directamente para evitar concatenaciones mal formadas
       final response = await Dio(BaseOptions(
         connectTimeout: const Duration(seconds: 10),
         receiveTimeout: const Duration(seconds: 10),
       )).post(
-        '${_dio.options.baseUrl}/auth/refresh',
+        '${_dio.options.baseUrl}auth/refresh',
         data: {'refreshToken': refresh},
       );
 

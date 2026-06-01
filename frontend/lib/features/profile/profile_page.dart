@@ -129,7 +129,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   icon: const Icon(Icons.download, size: 18),
                   label: const Text('Descargar Constancia'),
                   onPressed: () async {
-                    const defaultUrl = String.fromEnvironment('API_URL', defaultValue: 'https://api.nexora.app/api/v1');
+                    const defaultUrl = String.fromEnvironment('API_URL', defaultValue: 'https://nexora-9yal.onrender.com/api/v1');
                     final storage = ref.read(secureStorageProvider);
                     final token = await storage.getAccessToken();
                     final uri = Uri.parse('$defaultUrl/employees/me/certificate').replace(queryParameters: {'access_token': token ?? ''});
