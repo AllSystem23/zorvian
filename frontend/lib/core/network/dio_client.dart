@@ -32,10 +32,17 @@ class DioClient {
             const Duration(milliseconds: 500),
             onTimeout: () => null,
           );
+          print('DEBUG: Request path: ${options.path}');
+          print('DEBUG: Headers: ${options.headers}');
+          print('DEBUG: Token retrieved: ${token != null ? 'Yes' : 'No'}');
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
+            print('DEBUG: Authorization header added.');
+          } else {
+            print('DEBUG: No token found to add.');
           }
-        } catch (_) {
+        } catch (e) {
+          print('DEBUG: Token retrieval error: $e');
           // Si falla el almacenamiento, continuamos sin token
         }
         handler.next(options);

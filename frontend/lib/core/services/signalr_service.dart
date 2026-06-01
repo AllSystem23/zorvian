@@ -37,8 +37,14 @@ class SignalRNotifier extends Notifier<NotificationState> {
     await disconnect();
 
     try {
+      print('DEBUG: SignalR connect called with baseUrl: $baseUrl');
+      // Limpiamos agresivamente baseUrl para asegurar una construcción perfecta
+      final cleanBaseUrl = baseUrl.replaceAll(RegExp(r'/+$'), '');
+      final hubUrl = '$cleanBaseUrl/hubs/notifications';
+      print('DEBUG: Built hubUrl: $hubUrl');
+      
       _connection = HubConnectionBuilder()
-          .withUrl('$baseUrl/hubs/notifications', options: HttpConnectionOptions(
+          .withUrl(hubUrl, options: HttpConnectionOptions(
             accessTokenFactory: () async => token,
           ))
           .withAutomaticReconnect()

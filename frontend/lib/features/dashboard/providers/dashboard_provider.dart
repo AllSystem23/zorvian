@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
 
@@ -143,10 +145,11 @@ class DashboardNotifier extends Notifier<DashboardState> {
     state = state.copyWith(loading: true, error: null);
     try {
       final dio = ref.read(dioClientProvider);
+      final timeout = const Duration(seconds: 10);
       final results = await Future.wait([
-        dio.get('dashboard/kpis'),
-        dio.get('dashboard/vacation-calendar'),
-        dio.get('dashboard/recent-requests'),
+        dio.get('/dashboard/kpis').timeout(timeout),
+        dio.get('/dashboard/vacation-calendar').timeout(timeout),
+        dio.get('/dashboard/recent-requests').timeout(timeout),
       ]);
       state = DashboardState(
         kpis: DashboardKpis.fromJson(results[0].data),
@@ -157,6 +160,8 @@ class DashboardNotifier extends Notifier<DashboardState> {
             .map((e) => RecentRequestItem.fromJson(e))
             .toList(),
       );
+    } on TimeoutException {
+      state = state.copyWith(error: 'Tiempo de espera agotado al cargar dashboard', loading: false);
     } catch (e) {
       state = state.copyWith(error: 'Error al cargar dashboard', loading: false);
     }

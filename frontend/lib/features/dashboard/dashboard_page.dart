@@ -25,11 +25,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       // Connect SignalR for real-time notifications
       final auth = ref.read(authProvider);
       if (auth.status == AuthStatus.authenticated) {
+        // Aseguramos que la URL base se concatene correctamente sin doble slash
         const apiUrl = String.fromEnvironment('API_URL', defaultValue: 'https://nexora-9yal.onrender.com/api/v1');
+        final cleanApiUrl = apiUrl.replaceAll(RegExp(r'(?<!:)/+'), '/').replaceAll(RegExp(r'/$'), '');
+        
         final storage = ref.read(secureStorageProvider);
         final token = await storage.getAccessToken();
         if (token != null) {
-          ref.read(signalRProvider.notifier).connect(apiUrl, token);
+          ref.read(signalRProvider.notifier).connect(cleanApiUrl, token);
         }
       }
     });

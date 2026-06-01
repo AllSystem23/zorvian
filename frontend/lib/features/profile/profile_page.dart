@@ -76,7 +76,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       ),
       body: profileAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error al cargar perfil')),
+        error: (e, stack) {
+          print('DEBUG: Profile error: $e');
+          print('DEBUG: Stack trace: $stack');
+          return Center(child: Text('Error al cargar perfil: $e'));
+        },
         data: (profile) {
           if (profile == null) return const Center(child: Text('Perfil no encontrado'));
           return ListView(
