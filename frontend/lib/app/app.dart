@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/app_localizations.dart';
+import '../auth/auth_provider.dart';
 import '../core/theme/theme_provider.dart';
 import '../core/widgets/error_handler_widget.dart';
 import '../features/biometrics/pages/biometric_unlock_page.dart';
@@ -15,6 +16,12 @@ class NexoraApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     final themeMode = ref.watch(themeModeProvider);
+
+    ref.listen(authProvider, (_, next) {
+      if (next.status == AuthStatus.authenticated || next.status == AuthStatus.unauthenticated) {
+        router.refresh();
+      }
+    });
 
     return ErrorHandlerWidget(
       child: BiometricUnlockPage(
