@@ -46,11 +46,20 @@ public sealed class NexoraDbContext : DbContext
     public DbSet<PolicyChunk> PolicyChunks => Set<PolicyChunk>();
     public DbSet<Objective> Objectives => Set<Objective>();
     public DbSet<KeyResult> KeyResults => Set<KeyResult>();
+    public DbSet<Invitation> Invitations => Set<Invitation>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
-        builder.Entity<Company>(e =>
+        builder.Entity<Invitation>(e =>
         {
+            e.HasKey(i => i.Id);
+            e.HasIndex(i => i.Code).IsUnique();
+            e.Property(i => i.Email).HasMaxLength(255).IsRequired();
+            e.HasQueryFilter(i => i.TenantId == _tenantContext.TenantId);
+        });
+
+        builder.Entity<Company>(e =>
+    ...
             e.HasKey(c => c.Id);
             e.HasIndex(c => c.TenantId).IsUnique();
             e.Property(c => c.Name).HasMaxLength(255).IsRequired();
