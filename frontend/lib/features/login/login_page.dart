@@ -141,6 +141,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           )
                         : const Text('Iniciar sesión'),
                   ),
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: () => context.push('/register'),
+                    child: const Text('¿No tienes cuenta? Regístrate con invitación'),
+                  ),
                 ],
               ),
             ),

@@ -20,6 +20,7 @@ import '../features/departments/pages/department_list_page.dart';
 import '../features/employees/pages/employee_detail_page.dart';
 import '../features/employees/pages/employee_form_page.dart';
 import '../features/employees/pages/employee_list_page.dart';
+import '../features/login/register_page.dart';
 import '../features/login/login_page.dart';
 import '../features/vacations/pages/vacation_detail_page.dart';
 import '../features/vacations/pages/vacation_form_page.dart';
@@ -91,6 +92,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/login',
         name: 'login',
         builder: (_, _) => const LoginPage(),
+      ),
+      GoRoute(
+        path: '/register',
+        name: 'register',
+        builder: (_, state) => RegisterPage(inviteCode: state.uri.queryParameters['code']),
       ),
       GoRoute(
         path: '/onboarding',
