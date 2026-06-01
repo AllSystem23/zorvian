@@ -73,7 +73,7 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final dio = ref.read(dioClientProvider);
       final storage = ref.read(secureStorageProvider);
-      final response = await dio.post('/auth/login-password', data: {
+      final response = await dio.post('auth/login-password', data: {
         'email': email,
         'password': password,
       });
@@ -102,7 +102,7 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final dio = ref.read(dioClientProvider);
       final storage = ref.read(secureStorageProvider);
-      final response = await dio.post('/auth/login', data: {
+      final response = await dio.post('auth/login', data: {
         'idToken': idToken,
       });
 
@@ -135,7 +135,7 @@ class AuthNotifier extends Notifier<AuthState> {
     final refresh = await storage.getRefreshToken();
     if (refresh != null) {
       try {
-        await dio.post('/auth/logout', data: {'refreshToken': refresh});
+        await dio.post('auth/logout', data: {'refreshToken': refresh});
       } catch (_) {}
     }
       await storage.clearTokens();
@@ -148,7 +148,7 @@ class AuthNotifier extends Notifier<AuthState> {
       final fcmToken = await FirebaseMessaging.instance.getToken();
       if (fcmToken == null) return;
       final dio = ref.read(dioClientProvider);
-      await dio.post('/notifications/register-device', data: {
+      await dio.post('notifications/register-device', data: {
         'token': fcmToken,
         'platform': 'web', // Change to 'android' or 'ios' for mobile
       });

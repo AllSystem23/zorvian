@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -10,40 +11,40 @@ import 'features/biometrics/providers/biometric_provider.dart';
 
 final localNotificationServiceProvider = Provider<LocalNotificationService>((_) => LocalNotificationService());
 
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // Handle background messages
-}
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: firebaseOptions,
-  );
 
-  // FCM
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  final messaging = FirebaseMessaging.instance;
-  final fcmToken = await messaging.getToken();
-  if (fcmToken != null) {
-    // Token will be sent to backend after user logs in
-  }
+  try {
+    await Firebase.initializeApp(
+      options: firebaseOptions,
+    );
+  } catch (_) {}
 
-  // Local notifications
   final notifService = LocalNotificationService();
-  await notifService.initialize();
+  try {
+    await notifService.initialize();
+  } catch (_) {}
 
-  // Listen to foreground messages
-  FirebaseMessaging.onMessage.listen((message) {
-    final title = message.notification?.title ?? 'Nexora';
-    final body = message.notification?.body ?? '';
-    if (title.isNotEmpty || body.isNotEmpty) {
-      notifService.showNotification(
-        id: DateTime.now().millisecondsSinceEpoch % 100000,
-        title: title,
-        body: body,
-      );
-    }
-  });
+  if (!kIsWeb) {
+    try {
+      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+      final messaging = FirebaseMessaging.instance;
+      await messaging.getToken();
+      FirebaseMessaging.onMessage.listen((message) {
+        final title = message.notification?.title ?? 'Nexora';
+        final body = message.notification?.body ?? '';
+        if (title.isNotEmpty || body.isNotEmpty) {
+          notifService.showNotification(
+            id: DateTime.now().millisecondsSinceEpoch % 100000,
+            title: title,
+            body: body,
+          );
+        }
+      });
+    } catch (_) {}
+  }
 
   runApp(ProviderScope(overrides: [
     localNotificationServiceProvider.overrideWithValue(notifService),
@@ -62,8 +63,12 @@ class _AppLoaderState extends ConsumerState<_AppLoader> {
   void initState() {
     super.initState();
     Future.microtask(() async {
-      await ref.read(themeModeProvider.notifier).loadPreference();
-      await ref.read(biometricProvider.notifier).init();
+      try {
+        await ref.read(themeModeProvider.notifier).loadPreference();
+      } catch (_) {}
+      try {
+        await ref.read(biometricProvider.notifier).init();
+      } catch (_) {}
     });
   }
 
