@@ -79,7 +79,10 @@ class AuthNotifier extends Notifier<AuthState> {
       });
 
       final data = response.data['data'];
-      await storage.saveTokens(data['accessToken'], data['refreshToken']);
+      // Añadimos timeout al guardado para evitar bloqueos en web
+      await storage.saveTokens(data['accessToken'], data['refreshToken'])
+          .timeout(const Duration(seconds: 2))
+          .catchError((_) => null);
 
       final user = data['user'];
       state = AuthState(
@@ -107,7 +110,10 @@ class AuthNotifier extends Notifier<AuthState> {
       });
 
       final data = response.data['data'];
-      await storage.saveTokens(data['accessToken'], data['refreshToken']);
+      // Añadimos timeout al guardado para evitar bloqueos en web
+      await storage.saveTokens(data['accessToken'], data['refreshToken'])
+          .timeout(const Duration(seconds: 2))
+          .catchError((_) => null);
 
       final user = data['user'];
       state = AuthState(

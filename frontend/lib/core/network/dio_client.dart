@@ -21,9 +21,22 @@ class DioClient {
 
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
-        final token = await _storage.getAccessToken();
-        if (token != null) {
-          options.headers['Authorization'] = 'Bearer $token';
+        // No necesitamos token para el login
+        if (options.path.contains('auth/login')) {
+          return handler.next(options);
+        }
+
+        try {
+          // Añadimos un timeout corto para evitar bloqueos en web
+          final token = await _storage.getAccessToken().timeout(
+            const Duration(milliseconds: 500),
+            onTimeout: () => null,
+          );
+          if (token != null) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+        } catch (_) {
+          // Si falla el almacenamiento, continuamos sin token
         }
         handler.next(options);
       },
