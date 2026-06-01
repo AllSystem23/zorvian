@@ -157,21 +157,25 @@ public sealed class SeedService
 
         var password = GenerateRandomPassword();
 
-        FirebaseUserCreated created;
+        string firebaseUid;
         try
         {
-            created = await _firebase.CreateUserAsync(email, password, "Super Admin");
+            var created = await _firebase.CreateUserAsync(email, password, "Super Admin");
+            firebaseUid = created.Uid;
         }
-        catch (Exception ex) when (ex.Message.Contains("EMAIL_EXISTS"))
+        catch (Exception ex)
         {
-            return new SuperAdminResult(email,
-                "El correo ya existe en Firebase Authentication. Debes crear el super admin manualmente.", false);
+            var fbUser = await _firebase.GetUserByEmailAsync(email);
+            if (fbUser is null)
+                return new SuperAdminResult(email,
+                    $"Error al crear usuario en Firebase: {ex.Message}", false);
+            firebaseUid = fbUser.Uid;
         }
 
         var user = new User
         {
-            FirebaseUid = created.Uid,
-            Email = created.Email,
+            FirebaseUid = firebaseUid,
+            Email = email,
             DisplayName = "Super Admin",
             TenantId = "superadmin",
             IsActive = true,

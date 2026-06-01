@@ -35,4 +35,17 @@ public sealed class FirebaseAuthService : IFirebaseAuthService
         var record = await FirebaseAuth.DefaultInstance.CreateUserAsync(args);
         return new FirebaseUserCreated(record.Uid, record.Email);
     }
+
+    public async Task<FirebaseUserCreated?> GetUserByEmailAsync(string email)
+    {
+        try
+        {
+            var record = await FirebaseAuth.DefaultInstance.GetUserByEmailAsync(email);
+            return new FirebaseUserCreated(record.Uid, record.Email);
+        }
+        catch
+        {
+            return null;
+        }
+    }
 }
