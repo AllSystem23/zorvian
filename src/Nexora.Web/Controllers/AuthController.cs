@@ -34,6 +34,20 @@ public sealed class AuthController : ControllerBase
     }
 
     /// <summary>
+    /// Inicia sesión con correo y contraseña (sin Firebase JS SDK). Válido para clientes web.
+    /// </summary>
+    [HttpPost("login-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> LoginWithPassword([FromBody] LoginPasswordRequest request)
+    {
+        var result = await _authService.LoginWithPasswordAsync(request);
+        if (result is null)
+            return Unauthorized(new { error = "Invalid credentials" });
+
+        return Ok(new LoginResponse(result));
+    }
+
+    /// <summary>
     /// Renueva el token de acceso usando un token de renovación válido.
     /// </summary>
     [HttpPost("refresh")]

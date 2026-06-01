@@ -1,10 +1,21 @@
+using System.Net.Http.Json;
+using System.Text.Json;
 using FirebaseAdmin.Auth;
+using Microsoft.Extensions.Configuration;
 using Nexora.Application.Interfaces;
 
 namespace Nexora.Infrastructure.Identity;
 
 public sealed class FirebaseAuthService : IFirebaseAuthService
 {
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly string _webApiKey;
+
+    public FirebaseAuthService(IHttpClientFactory httpClientFactory, IConfiguration configuration)
+    {
+        _httpClientFactory = httpClientFactory;
+        _webApiKey = configuration["Firebase:WebApiKey"] ?? throw new InvalidOperationException("Firebase:WebApiKey not configured");
+    }
     public async Task<FirebaseUser?> VerifyIdTokenAsync(string idToken)
     {
         try
@@ -42,6 +53,31 @@ public sealed class FirebaseAuthService : IFirebaseAuthService
         {
             var record = await FirebaseAuth.DefaultInstance.GetUserByEmailAsync(email);
             return new FirebaseUserCreated(record.Uid, record.Email);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public async Task<FirebaseUser?> SignInWithPasswordAsync(string email, string password)
+    {
+        try
+        {
+            var httpClient = _httpClientFactory.CreateClient();
+            var response = await httpClient.PostAsJsonAsync(
+                $"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={_webApiKey}",
+                new { email, password, returnSecureToken = true });
+
+            if (!response.IsSuccessStatusCode)
+                return null;
+
+            var fbResponse = await response.Content.ReadFromJsonAsync<JsonElement>();
+            var idToken = fbResponse.GetProperty("idToken").GetString();
+
+            if (idToken is null) return null;
+
+            return await VerifyIdTokenAsync(idToken);
         }
         catch
         {

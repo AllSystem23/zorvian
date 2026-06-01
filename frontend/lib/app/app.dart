@@ -9,19 +9,30 @@ import '../features/biometrics/pages/biometric_unlock_page.dart';
 import 'router.dart';
 import 'theme.dart';
 
-class NexoraApp extends ConsumerWidget {
+class NexoraApp extends ConsumerStatefulWidget {
   const NexoraApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final router = ref.watch(routerProvider);
-    final themeMode = ref.watch(themeModeProvider);
+  ConsumerState<NexoraApp> createState() => _NexoraAppState();
+}
 
-    ref.listen(authProvider, (_, next) {
+class _NexoraAppState extends ConsumerState<NexoraApp> {
+  @override
+  void initState() {
+    super.initState();
+    ref.listenManual(authProvider, (_, next) {
       if (next.status == AuthStatus.authenticated || next.status == AuthStatus.unauthenticated) {
-        router.refresh();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ref.read(routerProvider).refresh();
+        });
       }
     });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final router = ref.watch(routerProvider);
+    final themeMode = ref.watch(themeModeProvider);
 
     return ErrorHandlerWidget(
       child: BiometricUnlockPage(

@@ -69,6 +69,35 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
+  Future<bool> loginWithPassword(String email, String password) async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      final storage = ref.read(secureStorageProvider);
+      final response = await dio.post('/auth/login-password', data: {
+        'email': email,
+        'password': password,
+      });
+
+      final data = response.data['data'];
+      await storage.saveTokens(data['accessToken'], data['refreshToken']);
+
+      final user = data['user'];
+      state = AuthState(
+        status: AuthStatus.authenticated,
+        userId: user['id'],
+        email: user['email'],
+        displayName: user['displayName'],
+        role: user['role'],
+        tenantId: user['tenantId'],
+        employeeId: user['employeeId'],
+      );
+
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<bool> loginWithFirebase(String idToken) async {
     try {
       final dio = ref.read(dioClientProvider);

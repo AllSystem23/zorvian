@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_auth/firebase_auth.dart' as fb;
 import '../../auth/auth_provider.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -31,26 +30,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     setState(() { _loading = true; _error = null; });
 
     try {
-      final cred = await fb.FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
+      final success = await ref.read(authProvider.notifier).loginWithPassword(
+        _emailController.text.trim(),
+        _passwordController.text,
       );
-      final idToken = await cred.user!.getIdToken();
-      if (idToken == null) throw Exception('No idToken');
-
-      final success = await ref.read(authProvider.notifier).loginWithFirebase(idToken);
       if (!success && mounted) {
         setState(() => _error = 'Error al conectar con el servidor');
       }
-    } on fb.FirebaseAuthException catch (e) {
-      setState(() {
-        _error = switch (e.code) {
-          'user-not-found' || 'invalid-credential' => 'Correo o contraseña incorrectos',
-          'too-many-requests' => 'Demasiados intentos. Intente más tarde',
-          _ => 'Error de autenticación: ${e.message}',
-        };
-      });
-    } catch (e) {
+    } catch (_) {
       if (mounted) setState(() => _error = 'Error de conexión');
     } finally {
       if (mounted) setState(() => _loading = false);
