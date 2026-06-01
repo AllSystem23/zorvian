@@ -125,20 +125,6 @@ public sealed class SeedService
 
     public async Task<SuperAdminResult> SeedSuperAdminAsync(string email)
     {
-        var existingUser = await _db.Users
-            .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(u => u.Email == email);
-
-        if (existingUser is not null)
-        {
-            var existingRole = await _db.UserRoles
-                .IgnoreQueryFilters()
-                .FirstOrDefaultAsync(ur => ur.UserId == existingUser.Id);
-
-            if (existingRole?.Role?.Name == RoleType.SuperAdmin)
-                return new SuperAdminResult(email, "El super admin ya existe", true);
-        }
-
         var superAdminRole = await _db.Roles
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(r => r.Name == RoleType.SuperAdmin);
@@ -153,6 +139,27 @@ public sealed class SeedService
             };
             _db.Roles.Add(superAdminRole);
             await _db.SaveChangesAsync();
+        }
+
+        var existingUser = await _db.Users
+            .IgnoreQueryFilters()
+            .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+            .FirstOrDefaultAsync(u => u.Email == email);
+
+        if (existingUser is not null)
+        {
+            if (existingUser.UserRoles.Any(ur => ur.Role.Name == RoleType.SuperAdmin))
+                return new SuperAdminResult(email, "El super admin ya existe", true);
+
+            var ur = new UserRole
+            {
+                UserId = existingUser.Id,
+                RoleId = superAdminRole.Id,
+            };
+            _db.UserRoles.Add(ur);
+            await _db.SaveChangesAsync();
+            return new SuperAdminResult(email, "Rol Super Admin asignado al usuario existente", true);
         }
 
         var password = GenerateRandomPassword();
@@ -183,12 +190,12 @@ public sealed class SeedService
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
 
-        var userRole = new UserRole
+        var newUserRole = new UserRole
         {
             UserId = user.Id,
             RoleId = superAdminRole.Id,
         };
-        _db.UserRoles.Add(userRole);
+        _db.UserRoles.Add(newUserRole);
         await _db.SaveChangesAsync();
 
         return new SuperAdminResult(email, password, false);
