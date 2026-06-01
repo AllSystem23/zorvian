@@ -146,11 +146,13 @@ class DashboardNotifier extends Notifier<DashboardState> {
     try {
       final dio = ref.read(dioClientProvider);
       final timeout = const Duration(seconds: 10);
+      print('DEBUG: Loading dashboard data...');
       final results = await Future.wait([
-        dio.get('/dashboard/kpis').timeout(timeout),
-        dio.get('/dashboard/vacation-calendar').timeout(timeout),
-        dio.get('/dashboard/recent-requests').timeout(timeout),
+        dio.get('dashboard/kpis').timeout(timeout),
+        dio.get('dashboard/vacation-calendar').timeout(timeout),
+        dio.get('dashboard/recent-requests').timeout(timeout),
       ]);
+      print('DEBUG: Dashboard data loaded successfully.');
       state = DashboardState(
         kpis: DashboardKpis.fromJson(results[0].data),
         calendarEvents: (results[1].data as List)
@@ -161,9 +163,11 @@ class DashboardNotifier extends Notifier<DashboardState> {
             .toList(),
       );
     } on TimeoutException {
+      print('DEBUG: Dashboard timeout error');
       state = state.copyWith(error: 'Tiempo de espera agotado al cargar dashboard', loading: false);
     } catch (e) {
-      state = state.copyWith(error: 'Error al cargar dashboard', loading: false);
+      print('DEBUG: Dashboard error: $e');
+      state = state.copyWith(error: 'Error al cargar dashboard: $e', loading: false);
     }
   }
 

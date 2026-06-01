@@ -1,13 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:dio/dio.dart';
 import '../../auth/auth_provider.dart';
 import '../biometrics/providers/biometric_provider.dart';
 
 final profileProvider = FutureProvider.autoDispose<Map<String, dynamic>?>((ref) async {
   final dio = ref.read(dioClientProvider);
-  final r = await dio.get('employees/me');
-  return r.data as Map<String, dynamic>;
+  try {
+    final r = await dio.get('employees/me');
+    print('DEBUG: Profile response: ${r.data}');
+    if (r.data == null || (r.data is Map && r.data.isEmpty)) return null;
+    return r.data as Map<String, dynamic>;
+  } catch (e) {
+    if (e is DioException) {
+      if (e.response?.statusCode == 401) return null;
+      print('DEBUG: Profile dio error: ${e.response?.data}');
+    }
+    rethrow;
+  }
 });
 
 class ProfilePage extends ConsumerStatefulWidget {
@@ -77,9 +88,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       body: profileAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, stack) {
-          print('DEBUG: Profile error: $e');
-          print('DEBUG: Stack trace: $stack');
-          return Center(child: Text('Error al cargar perfil: $e'));
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: SelectableText(
+                'Error al cargar perfil:\n$e\n\nStack:\n$stack',
+                style: const TextStyle(color: Colors.red),
+              ),
+            ),
+          );
         },
         data: (profile) {
           if (profile == null) return const Center(child: Text('Perfil no encontrado'));

@@ -38,9 +38,10 @@ class SignalRNotifier extends Notifier<NotificationState> {
 
     try {
       print('DEBUG: SignalR connect called with baseUrl: $baseUrl');
-      // Limpiamos agresivamente baseUrl para asegurar una construcción perfecta
-      final cleanBaseUrl = baseUrl.replaceAll(RegExp(r'/+$'), '');
-      final hubUrl = '$cleanBaseUrl/hubs/notifications';
+      
+      // FORZAMOS la conexión a la raíz absoluta, ignorando cualquier baseUrl
+      final hubUrl = 'https://nexora-9yal.onrender.com/hubs/notifications';
+      
       print('DEBUG: Built hubUrl: $hubUrl');
       
       _connection = HubConnectionBuilder()

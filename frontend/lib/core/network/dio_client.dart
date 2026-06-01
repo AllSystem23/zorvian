@@ -71,6 +71,8 @@ class DioClient {
       final refresh = await _storage.getRefreshToken();
       if (refresh == null) return false;
 
+      print('DEBUG: Attempting refresh with token: $refresh');
+      
       // Usamos baseUrl directamente para evitar concatenaciones mal formadas
       final response = await Dio(BaseOptions(
         connectTimeout: const Duration(seconds: 10),
@@ -80,6 +82,8 @@ class DioClient {
         data: {'refreshToken': refresh},
       );
 
+      print('DEBUG: Refresh response: ${response.statusCode}');
+
       if (response.statusCode == 200) {
         await _storage.saveTokens(
           response.data['data']['accessToken'],
@@ -87,7 +91,11 @@ class DioClient {
         );
         return true;
       }
-    } catch (_) {}
+    } catch (e) {
+      if (e is DioException) {
+        print('DEBUG: Refresh error: ${e.response?.statusCode} - ${e.response?.data}');
+      }
+    }
     return false;
   }
 
