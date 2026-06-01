@@ -40,7 +40,7 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
   Future<void> _loadEmployee() async {
     try {
       final dio = ref.read(dioClientProvider);
-      final response = await dio.get('/employees/${widget.employeeId}');
+      final response = await dio.get('employees/${widget.employeeId}');
       final data = response.data;
       _firstNameCtrl.text = data['firstName'] ?? '';
       _lastNameCtrl.text = data['lastName'] ?? '';
@@ -80,9 +80,9 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
       };
 
       if (_isEditing) {
-        await dio.put('/employees/${widget.employeeId}', data: body);
+        await dio.put('employees/${widget.employeeId}', data: body);
       } else {
-        await dio.post('/employees', data: body);
+        await dio.post('employees', data: body);
       }
       if (mounted) context.pop(true);
     } catch (e) {

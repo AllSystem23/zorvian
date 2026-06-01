@@ -71,7 +71,7 @@ class _VacationFormPageState extends ConsumerState<VacationFormPage> {
         'endDate': _endDate!.toIso8601String().substring(0, 10),
         'comments': _commentsCtrl.text.trim(),
       };
-      await dio.post('/vacations', data: body);
+      await dio.post('vacations', data: body);
       if (mounted) context.pop(true);
     } catch (e) {
       setState(() => _error = 'Error al crear solicitud');

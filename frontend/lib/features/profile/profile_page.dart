@@ -6,7 +6,7 @@ import '../biometrics/providers/biometric_provider.dart';
 
 final profileProvider = FutureProvider.autoDispose<Map<String, dynamic>?>((ref) async {
   final dio = ref.read(dioClientProvider);
-  final r = await dio.get('/employees/me');
+  final r = await dio.get('employees/me');
   return r.data as Map<String, dynamic>;
 });
 
@@ -34,7 +34,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     setState(() => _saving = true);
     try {
       final dio = ref.read(dioClientProvider);
-      await dio.put('/employees/me', data: {
+      await dio.put('employees/me', data: {
         'phone': _phoneCtrl.text,
         'photoUrl': _photoUrlCtrl.text,
       });

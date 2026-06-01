@@ -9,7 +9,7 @@ class UserListPage extends ConsumerWidget {
   Future<void> _assignRole(WidgetRef ref, String userId, String roleId, BuildContext context) async {
     try {
       final dio = ref.read(dioClientProvider);
-      await dio.put('/users/$userId/role', data: {'roleId': roleId});
+      await dio.put('users/$userId/role', data: {'roleId': roleId});
       ref.invalidate(usersProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Rol actualizado')));

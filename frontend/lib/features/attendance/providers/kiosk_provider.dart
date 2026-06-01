@@ -4,7 +4,7 @@ import '../../../auth/auth_provider.dart';
 final kioskLookupProvider = FutureProvider.autoDispose.family<List<Map<String, dynamic>>, String>((ref, code) async {
   if (code.length < 2) return [];
   final dio = ref.read(dioClientProvider);
-  final res = await dio.get('/kiosk/lookup', params: {'code': code, 'max': 8});
+  final res = await dio.get('kiosk/lookup', params: {'code': code, 'max': 8});
   return (res.data as List<dynamic>).cast<Map<String, dynamic>>();
 });
 
@@ -67,7 +67,7 @@ class KioskNotifier extends Notifier<KioskState> {
     state = state.copyWith(loading: true, error: null, successType: null);
     try {
       final dio = ref.read(dioClientProvider);
-      await dio.post('/kiosk/$action', data: {
+      await dio.post('kiosk/$action', data: {
         'employeeCode': state.employeeCode,
       });
 

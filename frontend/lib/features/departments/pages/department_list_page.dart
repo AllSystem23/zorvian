@@ -34,7 +34,7 @@ class _DepartmentListPageState extends ConsumerState<DepartmentListPage> {
 
     try {
       final dio = ref.read(dioClientProvider);
-      await dio.delete('/departments/$id');
+      await dio.delete('departments/$id');
       ref.read(departmentProvider.notifier).load();
     } catch (_) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error al eliminar departamento')));

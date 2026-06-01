@@ -102,7 +102,7 @@ class VacationNotifier extends Notifier<VacationListState> {
         if (status != null) 'status': status,
         if (employeeId != null) 'employeeId': employeeId,
       };
-      final r = await dio.get('/vacations', params: params);
+      final r = await dio.get('vacations', params: params);
       final data = r.data;
       state = VacationListState(
         items: (data['items'] as List).map((e) => VacationItem.fromJson(e)).toList(),
@@ -116,7 +116,7 @@ class VacationNotifier extends Notifier<VacationListState> {
   Future<void> loadBalance() async {
     try {
       final dio = ref.read(dioClientProvider);
-      final r = await dio.get('/vacations/balance');
+      final r = await dio.get('vacations/balance');
       state = state.copyWith(balance: VacationBalance.fromJson(r.data));
     } catch (e) {
       state = state.copyWith(error: 'Error al cargar saldo');

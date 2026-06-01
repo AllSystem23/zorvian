@@ -31,7 +31,7 @@ class _DepartmentFormPageState extends ConsumerState<DepartmentFormPage> {
   Future<void> _load() async {
     try {
       final dio = ref.read(dioClientProvider);
-      final r = await dio.get('/departments/${widget.departmentId}');
+      final r = await dio.get('departments/${widget.departmentId}');
       final data = r.data;
       _codeCtrl.text = data['code'] ?? '';
       _nameCtrl.text = data['name'] ?? '';
@@ -57,9 +57,9 @@ class _DepartmentFormPageState extends ConsumerState<DepartmentFormPage> {
       };
 
       if (_isEditing) {
-        await dio.put('/departments/${widget.departmentId}', data: body);
+        await dio.put('departments/${widget.departmentId}', data: body);
       } else {
-        await dio.post('/departments', data: body);
+        await dio.post('departments', data: body);
       }
       if (mounted) context.pop(true);
     } catch (e) {

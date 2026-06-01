@@ -61,7 +61,7 @@ class DepartmentNotifier extends Notifier<DepartmentState> {
     state = state.copyWith(loading: true, error: null);
     try {
       final dio = ref.read(dioClientProvider);
-      final response = await dio.get('/departments');
+      final response = await dio.get('departments');
       final data = response.data as List;
       state = DepartmentState(
         items: data.map((e) => DepartmentItem.fromJson(e)).toList(),

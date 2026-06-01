@@ -64,7 +64,7 @@ class BiometricNotifier extends Notifier<BiometricState> {
       if (newEnabled) {
         final token = await storage.getAccessToken();
         final deviceId = token?.substring(0, 12) ?? 'unknown';
-        await ref.read(dioClientProvider).post('/biometrics/register', data: {
+        await ref.read(dioClientProvider).post('biometrics/register', data: {
           'deviceId': deviceId,
           'deviceName': 'Dispositivo actual',
         });

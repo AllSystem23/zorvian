@@ -12,7 +12,7 @@ class DioClient {
     _dio = Dio(BaseOptions(
       baseUrl: const String.fromEnvironment(
         'API_URL',
-        defaultValue: 'https://api.nexora.app/api/v1',
+        defaultValue: 'https://nexora-9yal.onrender.com/api/v1/',
       ),
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),

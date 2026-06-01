@@ -42,7 +42,7 @@ class _EmployeeListPageState extends ConsumerState<EmployeeListPage> {
         filename: result.files.single.name,
       );
       final form = FormData.fromMap({'file': file});
-      final r = await dio.post('/employees/import', data: form);
+      final r = await dio.post('employees/import', data: form);
       final data = r.data;
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

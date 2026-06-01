@@ -27,7 +27,7 @@ class _PermissionDetailPageState extends ConsumerState<PermissionDetailPage> {
     setState(() { _loading = true; _error = null; });
     try {
       final dio = ref.read(dioClientProvider);
-      final r = await dio.get('/permissions/${widget.permissionId}');
+      final r = await dio.get('permissions/${widget.permissionId}');
       setState(() => _permission = r.data as Map<String, dynamic>);
     } catch (e) {
       setState(() => _error = 'Error al cargar permiso');
@@ -43,7 +43,7 @@ class _PermissionDetailPageState extends ConsumerState<PermissionDetailPage> {
     setState(() => _actionLoading = true);
     try {
       final dio = ref.read(dioClientProvider);
-      await dio.put('/permissions/${widget.permissionId}/approve', data: {'comment': comment});
+      await dio.put('permissions/${widget.permissionId}/approve', data: {'comment': comment});
       _load();
     } catch (e) {
       _showError('Error al aprobar');
@@ -62,7 +62,7 @@ class _PermissionDetailPageState extends ConsumerState<PermissionDetailPage> {
     setState(() => _actionLoading = true);
     try {
       final dio = ref.read(dioClientProvider);
-      await dio.put('/permissions/${widget.permissionId}/reject', data: {'comment': reason});
+      await dio.put('permissions/${widget.permissionId}/reject', data: {'comment': reason});
       _load();
     } catch (e) {
       _showError('Error al rechazar');

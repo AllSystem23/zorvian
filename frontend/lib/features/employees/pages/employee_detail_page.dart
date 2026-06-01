@@ -25,7 +25,7 @@ class _EmployeeDetailPageState extends ConsumerState<EmployeeDetailPage> {
   Future<void> _load() async {
     try {
       final dio = ref.read(dioClientProvider);
-      final r = await dio.get('/employees/${widget.employeeId}');
+      final r = await dio.get('employees/${widget.employeeId}');
       setState(() { _employee = r.data; _loading = false; });
     } catch (_) {
       setState(() { _error = 'Error al cargar empleado'; _loading = false; });

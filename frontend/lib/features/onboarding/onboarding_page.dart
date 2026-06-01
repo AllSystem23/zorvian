@@ -38,7 +38,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
 
     try {
       final dio = ref.read(dioClientProvider);
-      await dio.post('/companies', data: {
+      await dio.post('companies', data: {
         'name': _companyNameCtrl.text.trim(),
         'legalName': _legalNameCtrl.text.trim(),
         'taxId': _taxIdCtrl.text.trim(),

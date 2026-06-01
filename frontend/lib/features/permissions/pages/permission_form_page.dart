@@ -85,7 +85,7 @@ class _PermissionFormPageState extends ConsumerState<PermissionFormPage> {
           filename: _selectedFile!.name,
         ),
       });
-      final r = await dio.post('/permissions/upload', data: formData);
+      final r = await dio.post('permissions/upload', data: formData);
       setState(() {
         _uploadedUrl = r.data['url'] as String?;
         _uploadedFileName = r.data['fileName'] as String?;
@@ -131,7 +131,7 @@ class _PermissionFormPageState extends ConsumerState<PermissionFormPage> {
         if (_uploadedUrl != null) 'supportingDocumentUrl': _uploadedUrl,
         if (_uploadedFileName != null) 'supportingDocumentFileName': _uploadedFileName,
       };
-      await dio.post('/permissions', data: body);
+      await dio.post('permissions', data: body);
       if (mounted) context.pop(true);
     } catch (e) {
       final msg = e is DioException

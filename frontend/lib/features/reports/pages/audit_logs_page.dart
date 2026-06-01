@@ -4,7 +4,7 @@ import '../../../auth/auth_provider.dart';
 
 final auditLogsProvider = FutureProvider.autoDispose.family<List<dynamic>, AuditFilter>((ref, filter) async {
   final dio = ref.read(dioClientProvider);
-  final response = await dio.get('/audit/logs', params: {
+  final response = await dio.get('audit/logs', params: {
     if (filter.entityName != null) 'entityName': filter.entityName,
     if (filter.action != null) 'action': filter.action,
     'page': filter.page.toString(),

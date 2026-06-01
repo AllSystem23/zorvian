@@ -33,7 +33,7 @@ class CalendarNotifier extends Notifier<CalendarState> {
     state = state.copyWith(loading: true, error: null);
     try {
       final dio = ref.read(dioClientProvider);
-      final r = await dio.get('/dashboard/vacation-calendar');
+      final r = await dio.get('dashboard/vacation-calendar');
       state = CalendarState(
         events: (r.data as List).map((e) => CalendarEvent.fromJson(e)).toList(),
       );

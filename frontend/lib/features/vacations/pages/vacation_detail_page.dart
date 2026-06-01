@@ -25,7 +25,7 @@ class _VacationDetailPageState extends ConsumerState<VacationDetailPage> {
   Future<void> _load() async {
     try {
       final dio = ref.read(dioClientProvider);
-      final r = await dio.get('/vacations/${widget.vacationId}');
+      final r = await dio.get('vacations/${widget.vacationId}');
       setState(() { _request = r.data; _loading = false; });
     } catch (_) {
       setState(() { _error = 'Error al cargar solicitud'; _loading = false; });
@@ -36,7 +36,7 @@ class _VacationDetailPageState extends ConsumerState<VacationDetailPage> {
     setState(() => _actionLoading = true);
     try {
       final dio = ref.read(dioClientProvider);
-      await dio.put('/vacations/${widget.vacationId}/approve', data: {'comment': ''});
+      await dio.put('vacations/${widget.vacationId}/approve', data: {'comment': ''});
       if (mounted) _load();
     } catch (_) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error al aprobar')));
@@ -55,7 +55,7 @@ class _VacationDetailPageState extends ConsumerState<VacationDetailPage> {
     setState(() => _actionLoading = true);
     try {
       final dio = ref.read(dioClientProvider);
-      await dio.put('/vacations/${widget.vacationId}/reject', data: {'comment': reason});
+      await dio.put('vacations/${widget.vacationId}/reject', data: {'comment': reason});
       if (mounted) _load();
     } catch (_) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error al rechazar')));

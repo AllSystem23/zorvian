@@ -37,7 +37,7 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
   Future<void> _saveCompany() async {
     try {
       final dio = ref.read(dioClientProvider);
-      await dio.put('/companies/current', data: {
+      await dio.put('companies/current', data: {
         'name': _nameCtrl.text,
         'legalName': _legalCtrl.text,
         'taxId': _taxCtrl.text,
@@ -53,7 +53,7 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
   Future<void> _saveSettings() async {
     try {
       final dio = ref.read(dioClientProvider);
-      await dio.put('/companies/settings', data: {
+      await dio.put('companies/settings', data: {
         'vacationDaysPerYear': int.tryParse(_vacationDaysCtrl.text),
         'lateToleranceMinutes': int.tryParse(_toleranceCtrl.text),
         'workingHoursPerDay': double.tryParse(_workingHoursCtrl.text),

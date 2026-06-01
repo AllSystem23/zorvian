@@ -5,7 +5,7 @@ import '../../../auth/auth_provider.dart';
 
 final leaveTypesProvider = FutureProvider.autoDispose<List<dynamic>>((ref) async {
   final dio = ref.read(dioClientProvider);
-  final response = await dio.get('/leave-types');
+  final response = await dio.get('leave-types');
   return (response.data as List).cast<dynamic>();
 });
 

@@ -83,7 +83,7 @@ class EmployeeNotifier extends Notifier<EmployeeListState> {
         if (status != null && status.isNotEmpty) 'status': status,
         if (departmentId != null) 'departmentId': departmentId,
       };
-      final response = await dio.get('/employees', params: params);
+      final response = await dio.get('employees', params: params);
       final data = response.data;
       state = EmployeeListState(
         items: (data['items'] as List).map((e) => EmployeeListItem.fromJson(e)).toList(),

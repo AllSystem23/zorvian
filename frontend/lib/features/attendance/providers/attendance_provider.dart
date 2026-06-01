@@ -97,7 +97,7 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
     state = state.copyWith(loading: true, error: null);
     try {
       final dio = ref.read(dioClientProvider);
-      final r = await dio.get('/attendance/my');
+      final r = await dio.get('attendance/my');
       final summary = AttendanceSummary.fromJson(r.data);
 
       // Find today's record if it exists
@@ -118,7 +118,7 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
       final body = <String, dynamic>{'qrCode': qrCode};
       if (lat != null) body['latitude'] = lat;
       if (lng != null) body['longitude'] = lng;
-      final r = await dio.post('/attendance/qr-check-in', data: body);
+      final r = await dio.post('attendance/qr-check-in', data: body);
       final record = AttendanceRecord.fromJson(r.data);
       state = state.copyWith(todayRecord: record, checking: false, checkResult: 'check-in');
       return true;
@@ -135,7 +135,7 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
       final body = <String, dynamic>{};
       if (lat != null) body['latitude'] = lat;
       if (lng != null) body['longitude'] = lng;
-      final r = await dio.post('/attendance/check-in', data: body);
+      final r = await dio.post('attendance/check-in', data: body);
       final record = AttendanceRecord.fromJson(r.data);
       state = state.copyWith(todayRecord: record, checking: false, checkResult: 'check-in');
       return true;
@@ -153,7 +153,7 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
       final body = <String, dynamic>{};
       if (lat != null) body['latitude'] = lat;
       if (lng != null) body['longitude'] = lng;
-      final r = await dio.post('/attendance/check-out', data: body);
+      final r = await dio.post('attendance/check-out', data: body);
       final record = AttendanceRecord.fromJson(r.data);
       state = state.copyWith(todayRecord: record, checking: false, checkResult: 'check-out');
       return true;

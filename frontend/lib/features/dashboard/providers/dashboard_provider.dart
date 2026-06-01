@@ -144,9 +144,9 @@ class DashboardNotifier extends Notifier<DashboardState> {
     try {
       final dio = ref.read(dioClientProvider);
       final results = await Future.wait([
-        dio.get('/dashboard/kpis'),
-        dio.get('/dashboard/vacation-calendar'),
-        dio.get('/dashboard/recent-requests'),
+        dio.get('dashboard/kpis'),
+        dio.get('dashboard/vacation-calendar'),
+        dio.get('dashboard/recent-requests'),
       ]);
       state = DashboardState(
         kpis: DashboardKpis.fromJson(results[0].data),

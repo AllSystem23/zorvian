@@ -139,7 +139,7 @@ class PermissionNotifier extends Notifier<PermissionListState> {
         if (status != null) 'status': status,
         if (employeeId != null) 'employeeId': employeeId,
       };
-      final r = await dio.get('/permissions', params: params);
+      final r = await dio.get('permissions', params: params);
       final data = r.data;
       state = PermissionListState(
         items: (data['items'] as List).map((e) => PermissionItem.fromJson(e)).toList(),
@@ -155,7 +155,7 @@ class PermissionNotifier extends Notifier<PermissionListState> {
     state = state.copyWith(typesLoading: true);
     try {
       final dio = ref.read(dioClientProvider);
-      final r = await dio.get('/permissions/types');
+      final r = await dio.get('permissions/types');
       final data = r.data as List;
       state = state.copyWith(
         types: data.map((e) => PermissionType.fromJson(e)).toList(),
