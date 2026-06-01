@@ -33,10 +33,14 @@ public sealed class EmployeesController : ControllerBase
     [HttpGet("me")]
     public async Task<IActionResult> GetMyProfile()
     {
-        if (_tenant.CurrentEmployeeId is null)
+        var isSuperAdmin = User.IsInRole("SuperAdmin");
+        if (_tenant.CurrentEmployeeId is null && !isSuperAdmin)
             return Unauthorized(new { error = "No employee profile linked" });
 
-        var employee = await _service.GetByIdAsync(_tenant.CurrentEmployeeId.Value);
+        if (isSuperAdmin && _tenant.CurrentEmployeeId is null)
+            return Ok(new { Email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value, FullName = "Super Admin" });
+
+        var employee = await _service.GetByIdAsync(_tenant.CurrentEmployeeId!.Value);
         if (employee is null)
             return NotFound(new { error = "Employee not found" });
         return Ok(employee);
@@ -48,10 +52,14 @@ public sealed class EmployeesController : ControllerBase
     [HttpPut("me")]
     public async Task<IActionResult> UpdateMyProfile([FromBody] UpdateMyProfileRequest request)
     {
-        if (_tenant.CurrentEmployeeId is null)
+        var isSuperAdmin = User.IsInRole("SuperAdmin");
+        if (_tenant.CurrentEmployeeId is null && !isSuperAdmin)
             return Unauthorized(new { error = "No employee profile linked" });
 
-        var employee = await _service.UpdateMyProfileAsync(_tenant.CurrentEmployeeId.Value, request);
+        if (isSuperAdmin && _tenant.CurrentEmployeeId is null)
+            return BadRequest(new { error = "Cannot update profile for non-linked Super Admin" });
+
+        var employee = await _service.UpdateMyProfileAsync(_tenant.CurrentEmployeeId!.Value, request);
         if (employee is null)
             return NotFound(new { error = "Employee not found" });
         return Ok(employee);
