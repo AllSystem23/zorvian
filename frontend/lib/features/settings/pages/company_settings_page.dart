@@ -116,33 +116,48 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
                   const SizedBox(height: 12),
                   settingsAsync.when(
                     loading: () => const Center(child: CircularProgressIndicator()),
-                    error: (e, stack) => Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text('Error cargando configuración: $e', style: const TextStyle(color: Colors.red)),
-                    ),
-                    data: (s) {
-                      _vacationDaysCtrl.text = (s['vacationDaysPerYear'] ?? 15).toString();
-                      _toleranceCtrl.text = (s['lateToleranceMinutes'] ?? 15).toString();
-                      _workingHoursCtrl.text = (s['workingHoursPerDay'] ?? 8).toString();
-                      _currencyCtrl.text = s['currency'] ?? 'NIO';
-                      _timezoneCtrl.text = s['timezone'] ?? 'America/Managua';
-                      return Column(
-                        children: [
-                          TextField(controller: _vacationDaysCtrl, decoration: const InputDecoration(labelText: 'Días de Vacaciones/Año', border: OutlineInputBorder()), keyboardType: TextInputType.number),
-                          const SizedBox(height: 12),
-                          TextField(controller: _toleranceCtrl, decoration: const InputDecoration(labelText: 'Tolerancia (minutos)', border: OutlineInputBorder()), keyboardType: TextInputType.number),
-                          const SizedBox(height: 12),
-                          TextField(controller: _workingHoursCtrl, decoration: const InputDecoration(labelText: 'Horas Laborales/Día', border: OutlineInputBorder()), keyboardType: TextInputType.number),
-                          const SizedBox(height: 12),
-                          TextField(controller: _currencyCtrl, decoration: const InputDecoration(labelText: 'Moneda', border: OutlineInputBorder())),
-                          const SizedBox(height: 12),
-                          TextField(controller: _timezoneCtrl, decoration: const InputDecoration(labelText: 'Zona Horaria', border: OutlineInputBorder())),
-                          const SizedBox(height: 12),
-                          FilledButton(onPressed: _saveSettings, child: const Text('Guardar Configuración')),
-                        ],
-                      );
+                    error: (e, stack) {
+                      // Si es un 404, mostramos formulario vacío para crear
+                      if (e.toString().contains('404')) {
+                        return _buildConfigForm({});
+                      }
+                      return Text('Error: $e', style: const TextStyle(color: Colors.red));
                     },
+                    data: (s) => _buildConfigForm(s),
                   ),
+                ],
+              ),
+            ),
+          ),
+          // ... resto de la página
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConfigForm(Map<String, dynamic> s) {
+    _vacationDaysCtrl.text = (s['vacationDaysPerYear'] ?? 15).toString();
+    _toleranceCtrl.text = (s['lateToleranceMinutes'] ?? 15).toString();
+    _workingHoursCtrl.text = (s['workingHoursPerDay'] ?? 8).toString();
+    _currencyCtrl.text = s['currency'] ?? 'NIO';
+    _timezoneCtrl.text = s['timezone'] ?? 'America/Managua';
+    return Column(
+      children: [
+        TextField(controller: _vacationDaysCtrl, decoration: const InputDecoration(labelText: 'Días de Vacaciones/Año', border: OutlineInputBorder()), keyboardType: TextInputType.number),
+        const SizedBox(height: 12),
+        TextField(controller: _toleranceCtrl, decoration: const InputDecoration(labelText: 'Tolerancia (minutos)', border: OutlineInputBorder()), keyboardType: TextInputType.number),
+        const SizedBox(height: 12),
+        TextField(controller: _workingHoursCtrl, decoration: const InputDecoration(labelText: 'Horas Laborales/Día', border: OutlineInputBorder()), keyboardType: TextInputType.number),
+        const SizedBox(height: 12),
+        TextField(controller: _currencyCtrl, decoration: const InputDecoration(labelText: 'Moneda', border: OutlineInputBorder())),
+        const SizedBox(height: 12),
+        TextField(controller: _timezoneCtrl, decoration: const InputDecoration(labelText: 'Zona Horaria', border: OutlineInputBorder())),
+        const SizedBox(height: 12),
+        FilledButton(onPressed: _saveSettings, child: const Text('Guardar Configuración')),
+      ],
+    );
+  }
+}
                 ],
               ),
             ),

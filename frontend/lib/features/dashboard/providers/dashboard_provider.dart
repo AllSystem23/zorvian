@@ -153,13 +153,21 @@ class DashboardNotifier extends Notifier<DashboardState> {
         dio.get('dashboard/recent-requests').timeout(timeout),
       ]);
       print('DEBUG: Dashboard data loaded successfully.');
+      final kpisData = results[0].data;
+      final calendarData = results[1].data;
+      final requestsData = results[2].data;
+
+      if (kpisData is! Map || calendarData is! List || requestsData is! List) {
+         throw Exception('Formato de datos inválido en Dashboard');
+      }
+
       state = DashboardState(
-        kpis: DashboardKpis.fromJson(results[0].data),
-        calendarEvents: (results[1].data as List)
-            .map((e) => CalendarEvent.fromJson(e))
+        kpis: DashboardKpis.fromJson(kpisData as Map<String, dynamic>),
+        calendarEvents: (calendarData)
+            .map((e) => CalendarEvent.fromJson(e as Map<String, dynamic>))
             .toList(),
-        recentRequests: (results[2].data as List)
-            .map((e) => RecentRequestItem.fromJson(e))
+        recentRequests: (requestsData)
+            .map((e) => RecentRequestItem.fromJson(e as Map<String, dynamic>))
             .toList(),
       );
     } on TimeoutException {
