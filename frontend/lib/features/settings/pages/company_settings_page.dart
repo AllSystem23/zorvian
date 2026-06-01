@@ -85,22 +85,26 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
                 children: [
                   Text('Información de la Empresa', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 12),
-                  companyAsync.whenOrNull(data: (c) {
-                    _nameCtrl.text = c['name'] ?? '';
-                    _legalCtrl.text = c['legalName'] ?? '';
-                    _taxCtrl.text = c['taxId'] ?? '';
-                    return Column(
-                      children: [
-                        TextField(controller: _nameCtrl, decoration: const InputDecoration(labelText: 'Nombre', border: OutlineInputBorder())),
-                        const SizedBox(height: 12),
-                        TextField(controller: _legalCtrl, decoration: const InputDecoration(labelText: 'Razón Social', border: OutlineInputBorder())),
-                        const SizedBox(height: 12),
-                        TextField(controller: _taxCtrl, decoration: const InputDecoration(labelText: 'RUC/NIT', border: OutlineInputBorder())),
-                        const SizedBox(height: 12),
-                        FilledButton(onPressed: _saveCompany, child: const Text('Guardar Empresa')),
-                      ],
-                    );
-                  }) ?? const Center(child: CircularProgressIndicator()),
+                  companyAsync.when(
+                    loading: () => const Center(child: CircularProgressIndicator()),
+                    error: (e, stack) => Text('Error: $e'),
+                    data: (c) {
+                      _nameCtrl.text = c['name'] ?? '';
+                      _legalCtrl.text = c['legalName'] ?? '';
+                      _taxCtrl.text = c['taxId'] ?? '';
+                      return Column(
+                        children: [
+                          TextField(controller: _nameCtrl, decoration: const InputDecoration(labelText: 'Nombre', border: OutlineInputBorder())),
+                          const SizedBox(height: 12),
+                          TextField(controller: _legalCtrl, decoration: const InputDecoration(labelText: 'Razón Social', border: OutlineInputBorder())),
+                          const SizedBox(height: 12),
+                          TextField(controller: _taxCtrl, decoration: const InputDecoration(labelText: 'RUC/NIT', border: OutlineInputBorder())),
+                          const SizedBox(height: 12),
+                          FilledButton(onPressed: _saveCompany, child: const Text('Guardar Empresa')),
+                        ],
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -117,7 +121,6 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
                   settingsAsync.when(
                     loading: () => const Center(child: CircularProgressIndicator()),
                     error: (e, stack) {
-                      // Si es un 404, mostramos formulario vacío para crear
                       if (e.toString().contains('404')) {
                         return _buildConfigForm({});
                       }
@@ -129,7 +132,16 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
               ),
             ),
           ),
-          // ... resto de la página
+          const SizedBox(height: 16),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.event_note),
+              title: const Text('Tipos de Permiso'),
+              subtitle: const Text('Gestionar tipos de permiso disponibles'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/leave-types'),
+            ),
+          ),
         ],
       ),
     );
@@ -155,25 +167,6 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
         const SizedBox(height: 12),
         FilledButton(onPressed: _saveSettings, child: const Text('Guardar Configuración')),
       ],
-    );
-  }
-}
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.event_note),
-              title: const Text('Tipos de Permiso'),
-              subtitle: const Text('Gestionar tipos de permiso disponibles'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push('/leave-types'),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
