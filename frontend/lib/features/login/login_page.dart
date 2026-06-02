@@ -62,27 +62,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 children: [
                   Image.asset(
                     'assets/logo_erp.png',
-                    height: 180,
+                    height: 200,
                     fit: BoxFit.contain,
                     errorBuilder: (_, __, ___) => Icon(Icons.workspace_premium, size: 64, color: theme.colorScheme.primary),
-                  ),
-                  const SizedBox(height: 32),
-                  Text(
-                    'Zorvian',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.headlineLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'MODULAR ERP SOFTWARE',
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      letterSpacing: 2.0,
-                    ),
                   ),
                   const SizedBox(height: 48),
                   if (_error != null)
