@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 
-class NexoraTheme {
-  static const _primaryColor = Color(0xFF4F46E5);
-  static const _indigo400 = Color(0xFF818CF8);
+class ZorvianTheme {
+  static const _primaryColor = Color(0xFF0B1F3B);
+  static const _accentColor = Color(0xFF2EE59D);
+  static const _backgroundColor = Color(0xFFF4F6F8);
 
   static ThemeData light() => ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
     colorSchemeSeed: _primaryColor,
-    scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+    scaffoldBackgroundColor: _backgroundColor,
     appBarTheme: const AppBarTheme(
       elevation: 0,
       centerTitle: false,
       backgroundColor: Colors.white,
-      foregroundColor: Color(0xFF1E293B),
+      foregroundColor: _primaryColor,
     ),
     cardTheme: CardThemeData(
       elevation: 0,
@@ -35,25 +36,25 @@ class NexoraTheme {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: _primaryColor, width: 2),
+        borderSide: const BorderSide(color: _accentColor, width: 2),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: _primaryColor,
-        foregroundColor: Colors.white,
+        backgroundColor: _accentColor,
+        foregroundColor: _primaryColor,
         minimumSize: const Size(double.infinity, 48),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
       ),
     ),
   );
-
+// ... dark theme remains largely same but primary/accent updated
   static ThemeData dark() => ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
-    colorSchemeSeed: _indigo400,
+    colorSchemeSeed: _accentColor,
     scaffoldBackgroundColor: const Color(0xFF0F0F1A),
     appBarTheme: const AppBarTheme(
       elevation: 0,
@@ -79,8 +80,8 @@ class NexoraTheme {
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: _indigo400,
-        foregroundColor: Colors.white,
+        backgroundColor: _accentColor,
+        foregroundColor: _primaryColor,
         minimumSize: const Size(double.infinity, 48),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),

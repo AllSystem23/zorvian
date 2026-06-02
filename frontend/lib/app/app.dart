@@ -39,8 +39,8 @@ class _NexoraAppState extends ConsumerState<NexoraApp> {
         child: MaterialApp.router(
           title: 'Nexora',
           debugShowCheckedModeBanner: false,
-          theme: NexoraTheme.light(),
-          darkTheme: NexoraTheme.dark(),
+          theme: ZorvianTheme.light(),
+          darkTheme: ZorvianTheme.dark(),
           themeMode: themeMode,
           localizationsDelegates: const [
             AppLocalizations.delegate,
