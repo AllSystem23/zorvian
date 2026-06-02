@@ -1,26 +1,26 @@
 using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 using Moq;
-using Nexora.Core.Entities;
-using Nexora.Core.Interfaces;
-using Nexora.Infrastructure.Data;
-using Nexora.Infrastructure.Services;
+using Zorvian.Core.Entities;
+using Zorvian.Core.Interfaces;
+using Zorvian.Infrastructure.Data;
+using Zorvian.Infrastructure.Services;
 
-namespace Nexora.Tests.Services;
+namespace Zorvian.Tests.Services;
 
 public sealed class ReportServiceTests : IDisposable
 {
-    private readonly NexoraDbContext _db;
+    private readonly ZorvianDbContext _db;
     private readonly Mock<ITenantContext> _tenant = new();
     private readonly ReportService _sut;
 
     public ReportServiceTests()
     {
-        var options = new DbContextOptionsBuilder<NexoraDbContext>()
+        var options = new DbContextOptionsBuilder<ZorvianDbContext>()
             .UseInMemoryDatabase($"ReportsTest_{Guid.NewGuid()}")
             .Options;
         _tenant.Setup(t => t.TenantId).Returns("tenant-123");
-        _db = new NexoraDbContext(options, _tenant.Object);
+        _db = new ZorvianDbContext(options, _tenant.Object);
         _sut = new ReportService(_db, _tenant.Object);
 
         SeedData();

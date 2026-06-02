@@ -1,26 +1,26 @@
 using Microsoft.EntityFrameworkCore;
-using Nexora.Infrastructure.Services;
-using Nexora.Core.Entities;
-using Nexora.Infrastructure.Data;
+using Zorvian.Infrastructure.Services;
+using Zorvian.Core.Entities;
+using Zorvian.Infrastructure.Data;
 using Moq;
-using Nexora.Core.Interfaces;
+using Zorvian.Core.Interfaces;
 
-namespace Nexora.Tests.Services;
+namespace Zorvian.Tests.Services;
 
 public sealed class ApiKeyServiceTests
 {
-    private readonly NexoraDbContext _db;
+    private readonly ZorvianDbContext _db;
     private readonly ApiKeyService _sut;
 
     public ApiKeyServiceTests()
     {
-        var options = new DbContextOptionsBuilder<NexoraDbContext>()
+        var options = new DbContextOptionsBuilder<ZorvianDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
         
         var tenantMock = new Mock<ITenantContext>();
         tenantMock.Setup(t => t.TenantId).Returns("tenant-1");
-        _db = new NexoraDbContext(options, tenantMock.Object);
+        _db = new ZorvianDbContext(options, tenantMock.Object);
         _sut = new ApiKeyService(_db);
     }
 

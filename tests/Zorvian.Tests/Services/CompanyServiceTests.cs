@@ -1,10 +1,10 @@
 using Moq;
-using Nexora.Application.DTOs.Company;
-using Nexora.Application.Interfaces;
-using Nexora.Application.Services;
-using Nexora.Core.Interfaces;
+using Zorvian.Application.DTOs.Company;
+using Zorvian.Application.Interfaces;
+using Zorvian.Application.Services;
+using Zorvian.Core.Interfaces;
 
-namespace Nexora.Tests.Services;
+namespace Zorvian.Tests.Services;
 
 public sealed class CompanyServiceTests
 {
@@ -148,7 +148,12 @@ public sealed class CompanyServiceTests
             Timezone: null,
             Currency: null,
             DateFormat: null,
-            ApprovalFlowConfig: "[{\"step\":1,\"role\":\"Rrhh\"}]"
+            ApprovalFlowConfig: "[{\"step\":1,\"role\":\"Rrhh\"}]",
+            LateFeeDailyRate: 0.05m,
+            LateFeePercentage: 5.0m,
+            LateFeeGracePeriod: 3,
+            TaxEnabled: true,
+            TaxRate: 15.0m
         );
 
         var result = await _sut.UpdateSettingsAsync(request);

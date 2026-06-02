@@ -1,14 +1,14 @@
 using AutoMapper;
 using Moq;
 using FluentAssertions;
-using Nexora.Application.DTOs.Common;
-using Nexora.Application.DTOs.Credit;
-using Nexora.Application.Interfaces;
-using Nexora.Application.Services;
-using Nexora.Core.Entities;
-using Nexora.Core.Interfaces;
+using Zorvian.Application.DTOs.Common;
+using Zorvian.Application.DTOs.Credit;
+using Zorvian.Application.Interfaces;
+using Zorvian.Application.Services;
+using Zorvian.Core.Entities;
+using Zorvian.Core.Interfaces;
 
-namespace Nexora.Tests.Services;
+namespace Zorvian.Tests.Services;
 
 public sealed class CreditServiceTests
 {

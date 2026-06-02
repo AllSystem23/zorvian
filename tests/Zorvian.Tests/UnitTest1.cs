@@ -1,4 +1,4 @@
-﻿namespace Nexora.Tests;
+namespace Zorvian.Tests;
 
 public class UnitTest1
 {

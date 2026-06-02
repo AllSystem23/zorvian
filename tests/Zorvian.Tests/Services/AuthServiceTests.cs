@@ -1,11 +1,11 @@
 using Moq;
-using Nexora.Application.DTOs.Auth;
-using Nexora.Application.Interfaces;
-using Nexora.Application.Services;
-using Nexora.Core.Entities;
-using Nexora.Core.Enums;
+using Zorvian.Application.DTOs.Auth;
+using Zorvian.Application.Interfaces;
+using Zorvian.Application.Services;
+using Zorvian.Core.Entities;
+using Zorvian.Core.Enums;
 
-namespace Nexora.Tests.Services;
+namespace Zorvian.Tests.Services;
 
 public sealed class AuthServiceTests
 {

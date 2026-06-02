@@ -1,31 +1,31 @@
 using Moq;
 using Microsoft.EntityFrameworkCore;
-using Nexora.Application.Interfaces;
-using Nexora.Core.Entities;
-using Nexora.Infrastructure.Data;
-using Nexora.Application.Jobs;
+using Zorvian.Application.Interfaces;
+using Zorvian.Core.Entities;
+using Zorvian.Infrastructure.Data;
+using Zorvian.Application.Jobs;
 using Xunit;
 using System.Net;
 using System.Net.Http;
 using Moq.Protected;
 
-namespace Nexora.Tests.Jobs;
+namespace Zorvian.Tests.Jobs;
 
 public sealed class OcrProcessingJobTests
 {
-    private readonly NexoraDbContext _db;
+    private readonly ZorvianDbContext _db;
     private readonly Mock<IOcrService> _ocrService = new();
     private readonly Mock<IHttpClientFactory> _httpClientFactory = new();
 
     public OcrProcessingJobTests()
     {
-        var options = new DbContextOptionsBuilder<NexoraDbContext>()
+        var options = new DbContextOptionsBuilder<ZorvianDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
         
-        var tenantMock = new Mock<Nexora.Core.Interfaces.ITenantContext>();
+        var tenantMock = new Mock<Zorvian.Core.Interfaces.ITenantContext>();
         tenantMock.Setup(t => t.TenantId).Returns("tenant-1");
-        _db = new NexoraDbContext(options, tenantMock.Object);
+        _db = new ZorvianDbContext(options, tenantMock.Object);
     }
 
     [Fact]
@@ -57,7 +57,7 @@ public sealed class OcrProcessingJobTests
         _ocrService.Setup(s => s.ExtractTextAsync(It.IsAny<Stream>()))
             .ReturnsAsync("Extracted Text: Medical Certificate");
 
-        var repoMock = new Mock<Nexora.Application.Interfaces.IPermissionRepository>();
+        var repoMock = new Mock<Zorvian.Application.Interfaces.IPermissionRepository>();
         repoMock.Setup(r => r.GetByIdAsync(permissionId)).ReturnsAsync(permission);
         
         var sut = new OcrProcessingJob(repoMock.Object, _ocrService.Object, _httpClientFactory.Object);
