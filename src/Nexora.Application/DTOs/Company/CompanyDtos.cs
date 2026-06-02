@@ -43,7 +43,12 @@ public sealed record CompanySettingsResponse(
     string? Timezone,
     string Currency,
     string? DateFormat,
-    string? ApprovalFlowConfig
+    string? ApprovalFlowConfig,
+    decimal LateFeeDailyRate,
+    decimal LateFeePercentage,
+    int LateFeeGracePeriod,
+    bool TaxEnabled,
+    decimal TaxRate
 );
 
 public sealed record UpdateCompanySettingsRequest(
@@ -56,5 +61,10 @@ public sealed record UpdateCompanySettingsRequest(
     string? Timezone,
     string? Currency,
     string? DateFormat,
-    string? ApprovalFlowConfig
+    string? ApprovalFlowConfig,
+    decimal? LateFeeDailyRate,
+    decimal? LateFeePercentage,
+    int? LateFeeGracePeriod,
+    bool? TaxEnabled,
+    decimal? TaxRate
 );

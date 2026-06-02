@@ -1,4 +1,6 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Nexora.Core.Entities;
 using Nexora.Core.Interfaces;
 
@@ -48,6 +50,39 @@ public sealed class NexoraDbContext : DbContext
     public DbSet<KeyResult> KeyResults => Set<KeyResult>();
     public DbSet<Invitation> Invitations => Set<Invitation>();
 
+    // New Module: Multisucursal
+    public DbSet<Branch> Branches => Set<Branch>();
+
+    // New Module: Comercial
+    public DbSet<Client> Clients => Set<Client>();
+    public DbSet<Quote> Quotes => Set<Quote>();
+    public DbSet<QuoteDetail> QuoteDetails => Set<QuoteDetail>();
+    public DbSet<Sale> Sales => Set<Sale>();
+    public DbSet<SaleDetail> SaleDetails => Set<SaleDetail>();
+    public DbSet<SalePayment> SalePayments => Set<SalePayment>();
+
+    // New Module: Inventario
+    public DbSet<Category> Categories => Set<Category>();
+    public DbSet<Brand> Brands => Set<Brand>();
+    public DbSet<Supplier> Suppliers => Set<Supplier>();
+    public DbSet<Product> Products => Set<Product>();
+    public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>();
+
+    // New Module: Créditos
+    public DbSet<Credit> Credits => Set<Credit>();
+    public DbSet<CreditInstallment> CreditInstallments => Set<CreditInstallment>();
+    public DbSet<CreditPayment> CreditPayments => Set<CreditPayment>();
+    public DbSet<LateFee> LateFees => Set<LateFee>();
+    public DbSet<CollectionAction> CollectionActions => Set<CollectionAction>();
+
+    // New Module: Caja
+    public DbSet<CashRegister> CashRegisters => Set<CashRegister>();
+    public DbSet<CashMovement> CashMovements => Set<CashMovement>();
+
+    // New Module: Garantías
+    public DbSet<Warranty> Warranties => Set<Warranty>();
+    public DbSet<WarrantyClaim> WarrantyClaims => Set<WarrantyClaim>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         builder.Entity<Invitation>(e =>
@@ -55,11 +90,11 @@ public sealed class NexoraDbContext : DbContext
             e.HasKey(i => i.Id);
             e.HasIndex(i => i.Code).IsUnique();
             e.Property(i => i.Email).HasMaxLength(255).IsRequired();
-            e.HasQueryFilter(i => i.TenantId == _tenantContext.TenantId);
+            e.HasQueryFilter(i => i.TenantId == _tenantContext.TenantId && !i.IsDeleted);
         });
 
         builder.Entity<Company>(e =>
-    ...
+        {
             e.HasKey(c => c.Id);
             e.HasIndex(c => c.TenantId).IsUnique();
             e.Property(c => c.Name).HasMaxLength(255).IsRequired();
@@ -68,7 +103,7 @@ public sealed class NexoraDbContext : DbContext
             e.Property(c => c.Country).HasMaxLength(100);
             e.Property(c => c.Currency).HasMaxLength(3);
             e.Property(c => c.Timezone).HasMaxLength(50);
-            e.HasQueryFilter(c => c.TenantId == _tenantContext.TenantId || _tenantContext.TenantId == "superadmin");
+            e.HasQueryFilter(c => (c.TenantId == _tenantContext.TenantId || _tenantContext.TenantId == "superadmin") && !c.IsDeleted);
         });
 
         builder.Entity<User>(e =>
@@ -83,7 +118,7 @@ public sealed class NexoraDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(u => u.EmployeeId)
                 .OnDelete(DeleteBehavior.SetNull);
-            e.HasQueryFilter(u => u.TenantId == _tenantContext.TenantId);
+            e.HasQueryFilter(u => u.TenantId == _tenantContext.TenantId && !u.IsDeleted);
         });
 
         builder.Entity<Role>(e =>
@@ -91,7 +126,7 @@ public sealed class NexoraDbContext : DbContext
             e.HasKey(r => r.Id);
             e.Property(r => r.DisplayName).HasMaxLength(100).IsRequired();
             e.Property(r => r.Name).HasConversion<string>().HasMaxLength(50).IsRequired();
-            e.HasQueryFilter(r => r.TenantId == _tenantContext.TenantId || r.IsSystem);
+            e.HasQueryFilter(r => (r.TenantId == _tenantContext.TenantId || r.IsSystem) && !r.IsDeleted);
         });
 
         builder.Entity<UserRole>(e =>
@@ -117,11 +152,14 @@ public sealed class NexoraDbContext : DbContext
         builder.Entity<CompanySettings>(e =>
         {
             e.HasKey(cs => cs.Id);
+            e.Property(cs => cs.LateFeeDailyRate).HasColumnType("decimal(18,6)");
+            e.Property(cs => cs.LateFeePercentage).HasColumnType("decimal(18,6)");
+            e.Property(cs => cs.TaxRate).HasColumnType("decimal(18,6)");
             e.HasOne(cs => cs.Company)
                 .WithOne(c => c.Settings)
                 .HasForeignKey<CompanySettings>(cs => cs.CompanyId)
                 .OnDelete(DeleteBehavior.Cascade);
-            e.HasQueryFilter(cs => cs.TenantId == _tenantContext.TenantId);
+            e.HasQueryFilter(cs => cs.TenantId == _tenantContext.TenantId && !cs.IsDeleted);
         });
 
         builder.Entity<Department>(e =>
@@ -138,7 +176,7 @@ public sealed class NexoraDbContext : DbContext
                 .WithMany(d => d.ChildDepartments)
                 .HasForeignKey(d => d.ParentDepartmentId)
                 .OnDelete(DeleteBehavior.SetNull);
-            e.HasQueryFilter(d => d.TenantId == _tenantContext.TenantId);
+            e.HasQueryFilter(d => d.TenantId == _tenantContext.TenantId && !d.IsDeleted);
         });
 
         builder.Entity<Employee>(e =>
@@ -162,7 +200,7 @@ public sealed class NexoraDbContext : DbContext
                 .HasForeignKey(em => em.DepartmentId)
                 .OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(em => new { em.Status, em.DepartmentId });
-            e.HasQueryFilter(em => em.TenantId == _tenantContext.TenantId);
+            e.HasQueryFilter(em => em.TenantId == _tenantContext.TenantId && !em.IsDeleted);
         });
 
         builder.Entity<EmployeeSupervisor>(e =>
@@ -177,7 +215,7 @@ public sealed class NexoraDbContext : DbContext
                 .HasForeignKey(es => es.SupervisorId)
                 .OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(es => new { es.EmployeeId, es.SupervisorId }).IsUnique();
-            e.HasQueryFilter(es => es.TenantId == _tenantContext.TenantId);
+            e.HasQueryFilter(es => es.TenantId == _tenantContext.TenantId && !es.IsDeleted);
         });
 
         builder.Entity<EmployeeDocument>(e =>
@@ -192,7 +230,7 @@ public sealed class NexoraDbContext : DbContext
                 .WithMany(emp => emp.Documents)
                 .HasForeignKey(ed => ed.EmployeeId)
                 .OnDelete(DeleteBehavior.Cascade);
-            e.HasQueryFilter(ed => ed.TenantId == _tenantContext.TenantId);
+            e.HasQueryFilter(ed => ed.TenantId == _tenantContext.TenantId && !ed.IsDeleted);
         });
 
         builder.Entity<LeaveBalances>(e =>
@@ -203,7 +241,7 @@ public sealed class NexoraDbContext : DbContext
                 .HasForeignKey(lb => lb.EmployeeId)
                 .OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(lb => new { lb.EmployeeId, lb.Year }).IsUnique();
-            e.HasQueryFilter(lb => lb.TenantId == _tenantContext.TenantId);
+            e.HasQueryFilter(lb => lb.TenantId == _tenantContext.TenantId && !lb.IsDeleted);
         });
 
         builder.Entity<EmployeeHistory>(e =>
@@ -216,7 +254,7 @@ public sealed class NexoraDbContext : DbContext
                 .HasForeignKey(eh => eh.EmployeeId)
                 .OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(eh => new { eh.EmployeeId, eh.CreatedAt });
-            e.HasQueryFilter(eh => eh.TenantId == _tenantContext.TenantId);
+            e.HasQueryFilter(eh => eh.TenantId == _tenantContext.TenantId && !eh.IsDeleted);
         });
 
         builder.Entity<VacationRequest>(e =>
@@ -231,7 +269,7 @@ public sealed class NexoraDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(v => new { v.EmployeeId, v.Status });
             e.HasIndex(v => new { v.StartDate, v.EndDate });
-            e.HasQueryFilter(v => v.TenantId == _tenantContext.TenantId);
+            e.HasQueryFilter(v => v.TenantId == _tenantContext.TenantId && !v.IsDeleted);
         });
 
         builder.Entity<ApprovalFlow>(e =>
@@ -250,7 +288,7 @@ public sealed class NexoraDbContext : DbContext
                 .OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(a => new { a.ApproverId, a.Status });
             e.HasIndex(a => new { a.RequestId, a.RequestType });
-            e.HasQueryFilter(a => a.TenantId == _tenantContext.TenantId);
+            e.HasQueryFilter(a => a.TenantId == _tenantContext.TenantId && !a.IsDeleted);
         });
 
         builder.Entity<LeaveType>(e =>
@@ -290,7 +328,7 @@ public sealed class NexoraDbContext : DbContext
             e.HasIndex(p => new { p.EmployeeId, p.Status });
             e.HasIndex(p => p.LeaveTypeId);
             e.HasIndex(p => new { p.StartDate, p.EndDate });
-            e.HasQueryFilter(p => p.TenantId == _tenantContext.TenantId);
+            e.HasQueryFilter(p => p.TenantId == _tenantContext.TenantId && !p.IsDeleted);
         });
 
         builder.Entity<AttendanceRecord>(e =>
@@ -303,7 +341,7 @@ public sealed class NexoraDbContext : DbContext
                 .HasForeignKey(a => a.EmployeeId)
                 .OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(a => new { a.EmployeeId, a.Date }).IsUnique();
-            e.HasQueryFilter(a => a.TenantId == _tenantContext.TenantId);
+            e.HasQueryFilter(a => a.TenantId == _tenantContext.TenantId && !a.IsDeleted);
         });
 
         builder.Entity<DeviceToken>(e =>
@@ -316,7 +354,7 @@ public sealed class NexoraDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(d => d.Token).IsUnique();
-            e.HasQueryFilter(d => d.TenantId == _tenantContext.TenantId);
+            e.HasQueryFilter(d => d.TenantId == _tenantContext.TenantId && !d.IsDeleted);
         });
 
         builder.Entity<BiometricRegistration>(e =>
@@ -329,7 +367,7 @@ public sealed class NexoraDbContext : DbContext
                 .HasForeignKey(b => b.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(b => new { b.UserId, b.DeviceId }).IsUnique();
-            e.HasQueryFilter(b => b.TenantId == _tenantContext.TenantId);
+            e.HasQueryFilter(b => b.TenantId == _tenantContext.TenantId && !b.IsDeleted);
         });
 
         builder.Entity<RefreshToken>(e =>
@@ -342,7 +380,7 @@ public sealed class NexoraDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(rt => rt.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
-            e.HasQueryFilter(rt => rt.TenantId == _tenantContext.TenantId);
+            e.HasQueryFilter(rt => rt.TenantId == _tenantContext.TenantId && !rt.IsDeleted);
         });
 
         builder.Entity<AuditLog>(e =>
@@ -356,7 +394,7 @@ public sealed class NexoraDbContext : DbContext
             e.Property(a => a.RequestPath).HasMaxLength(500);
             e.HasIndex(a => new { a.EntityName, a.Action });
             e.HasIndex(a => a.CreatedAt);
-            e.HasQueryFilter(a => a.TenantId == _tenantContext.TenantId);
+            e.HasQueryFilter(a => a.TenantId == _tenantContext.TenantId && !a.IsDeleted);
         });
 
         builder.Entity<DeductionType>(e =>
@@ -385,7 +423,7 @@ public sealed class NexoraDbContext : DbContext
                 .HasForeignKey(s => s.DeductionTypeId)
                 .OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(s => new { s.EmployeeId, s.IsActive });
-            e.HasQueryFilter(s => s.TenantId == _tenantContext.TenantId);
+            e.HasQueryFilter(s => s.TenantId == _tenantContext.TenantId && !s.IsDeleted);
         });
 
         builder.Entity<PayrollPeriod>(e =>
@@ -394,7 +432,7 @@ public sealed class NexoraDbContext : DbContext
             e.Property(p => p.Name).HasMaxLength(100).IsRequired();
             e.Property(p => p.Status).HasMaxLength(20).IsRequired();
             e.HasIndex(p => new { p.Year, p.Month, p.PeriodNumber }).IsUnique();
-            e.HasQueryFilter(p => p.TenantId == _tenantContext.TenantId);
+            e.HasQueryFilter(p => p.TenantId == _tenantContext.TenantId && !p.IsDeleted);
         });
 
         builder.Entity<PayrollRun>(e =>
@@ -409,7 +447,7 @@ public sealed class NexoraDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(r => r.PayrollPeriodId)
                 .OnDelete(DeleteBehavior.Restrict);
-            e.HasQueryFilter(r => r.TenantId == _tenantContext.TenantId);
+            e.HasQueryFilter(r => r.TenantId == _tenantContext.TenantId && !r.IsDeleted);
         });
 
         builder.Entity<PayrollDetail>(e =>
@@ -433,7 +471,7 @@ public sealed class NexoraDbContext : DbContext
                 .HasForeignKey(d => d.EmployeeId)
                 .OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(d => d.PayrollRunId);
-            e.HasQueryFilter(d => d.TenantId == _tenantContext.TenantId);
+            e.HasQueryFilter(d => d.TenantId == _tenantContext.TenantId && !d.IsDeleted);
         });
 
         builder.Entity<ApiKey>(e =>
@@ -442,7 +480,7 @@ public sealed class NexoraDbContext : DbContext
             e.Property(k => k.Name).HasMaxLength(100).IsRequired();
             e.Property(k => k.Prefix).HasMaxLength(8).IsRequired();
             e.Property(k => k.KeyHash).HasMaxLength(128).IsRequired();
-            e.HasQueryFilter(k => k.TenantId == _tenantContext.TenantId);
+            e.HasQueryFilter(k => k.TenantId == _tenantContext.TenantId && !k.IsDeleted);
         });
 
         builder.Entity<WebhookSubscription>(e =>
@@ -452,7 +490,7 @@ public sealed class NexoraDbContext : DbContext
             e.Property(w => w.TargetUrl).HasMaxLength(500).IsRequired();
             e.Property(w => w.Secret).HasMaxLength(100).IsRequired();
             e.Property(w => w.Description).HasMaxLength(500);
-            e.HasQueryFilter(w => w.TenantId == _tenantContext.TenantId);
+            e.HasQueryFilter(w => w.TenantId == _tenantContext.TenantId && !w.IsDeleted);
         });
 
         builder.Entity<PolicyDocument>(e =>
@@ -460,21 +498,21 @@ public sealed class NexoraDbContext : DbContext
             e.HasKey(p => p.Id);
             e.Property(p => p.Title).HasMaxLength(200).IsRequired();
             e.Property(p => p.Content).IsRequired();
-            e.HasQueryFilter(p => p.TenantId == _tenantContext.TenantId);
+            e.HasQueryFilter(p => p.TenantId == _tenantContext.TenantId && !p.IsDeleted);
         });
 
         builder.Entity<PolicyChunk>(e =>
         {
             e.HasKey(c => c.Id);
             e.Property(c => c.Content).IsRequired();
-            e.HasQueryFilter(c => c.TenantId == _tenantContext.TenantId);
+            e.HasQueryFilter(c => c.TenantId == _tenantContext.TenantId && !c.IsDeleted);
         });
 
         builder.Entity<Objective>(e =>
         {
             e.HasKey(o => o.Id);
             e.Property(o => o.Title).HasMaxLength(200).IsRequired();
-            e.HasQueryFilter(o => o.TenantId == _tenantContext.TenantId);
+            e.HasQueryFilter(o => o.TenantId == _tenantContext.TenantId && !o.IsDeleted);
         });
 
         builder.Entity<KeyResult>(e =>
@@ -482,29 +520,534 @@ public sealed class NexoraDbContext : DbContext
             e.HasKey(k => k.Id);
             e.Property(k => k.TargetValue).HasColumnType("decimal(18,2)");
             e.Property(k => k.CurrentValue).HasColumnType("decimal(18,2)");
-            e.HasQueryFilter(k => k.TenantId == _tenantContext.TenantId);
+            e.HasQueryFilter(k => k.TenantId == _tenantContext.TenantId && !k.IsDeleted);
+        });
+
+        // ---- New Module: Multisucursal ----
+        builder.Entity<Branch>(e =>
+        {
+            e.HasKey(b => b.Id);
+            e.Property(b => b.Name).HasMaxLength(255).IsRequired();
+            e.Property(b => b.Code).HasMaxLength(50);
+            e.Property(b => b.Address).HasMaxLength(500);
+            e.Property(b => b.Phone).HasMaxLength(20);
+            e.Property(b => b.Email).HasMaxLength(255);
+            e.HasOne(b => b.Company)
+                .WithMany(c => c.Branches)
+                .HasForeignKey(b => b.CompanyId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(b => b.TenantId == _tenantContext.TenantId && !b.IsDeleted);
+        });
+
+        // ---- New Module: Comercial ----
+        builder.Entity<Client>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.Property(c => c.Code).HasMaxLength(50).IsRequired();
+            e.Property(c => c.FirstName).HasMaxLength(100).IsRequired();
+            e.Property(c => c.LastName).HasMaxLength(100).IsRequired();
+            e.Property(c => c.IdentificationNumber).HasMaxLength(50);
+            e.Property(c => c.Phone).HasMaxLength(20);
+            e.Property(c => c.Address).HasMaxLength(500);
+            e.Property(c => c.City).HasMaxLength(100);
+            e.Property(c => c.State).HasMaxLength(100);
+            e.Property(c => c.References).HasMaxLength(500);
+            e.Property(c => c.Status).HasMaxLength(20).IsRequired();
+            e.Property(c => c.CreditLimit).HasColumnType("decimal(18,2)");
+            e.HasIndex(c => c.Code);
+            e.HasQueryFilter(c => c.TenantId == _tenantContext.TenantId && !c.IsDeleted);
+        });
+
+        builder.Entity<Quote>(e =>
+        {
+            e.HasKey(q => q.Id);
+            e.Property(q => q.QuoteNumber).HasMaxLength(50).IsRequired();
+            e.Property(q => q.Status).HasMaxLength(20).IsRequired();
+            e.Property(q => q.Notes).HasMaxLength(500);
+            e.Property(q => q.Subtotal).HasColumnType("decimal(18,2)");
+            e.Property(q => q.Tax).HasColumnType("decimal(18,2)");
+            e.Property(q => q.Discount).HasColumnType("decimal(18,2)");
+            e.Property(q => q.Total).HasColumnType("decimal(18,2)");
+            e.HasOne(q => q.Client)
+                .WithMany(c => c.Quotes)
+                .HasForeignKey(q => q.ClientId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(q => q.Employee)
+                .WithMany()
+                .HasForeignKey(q => q.EmployeeId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(q => q.QuoteNumber).IsUnique();
+            e.HasQueryFilter(q => q.TenantId == _tenantContext.TenantId && !q.IsDeleted);
+        });
+
+        builder.Entity<QuoteDetail>(e =>
+        {
+            e.HasKey(qd => qd.Id);
+            e.Property(qd => qd.UnitPrice).HasColumnType("decimal(18,2)");
+            e.Property(qd => qd.Discount).HasColumnType("decimal(18,2)");
+            e.Property(qd => qd.Subtotal).HasColumnType("decimal(18,2)");
+            e.HasOne(qd => qd.Quote)
+                .WithMany(q => q.Details)
+                .HasForeignKey(qd => qd.QuoteId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(qd => qd.Product)
+                .WithMany()
+                .HasForeignKey(qd => qd.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(qd => qd.TenantId == _tenantContext.TenantId && !qd.IsDeleted);
+        });
+
+        builder.Entity<Sale>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.Property(s => s.InvoiceNumber).HasMaxLength(50).IsRequired();
+            e.Property(s => s.SaleType).HasMaxLength(20).IsRequired();
+            e.Property(s => s.Status).HasMaxLength(20).IsRequired();
+            e.Property(s => s.Notes).HasMaxLength(500);
+            e.Property(s => s.Subtotal).HasColumnType("decimal(18,2)");
+            e.Property(s => s.Tax).HasColumnType("decimal(18,2)");
+            e.Property(s => s.Discount).HasColumnType("decimal(18,2)");
+            e.Property(s => s.Total).HasColumnType("decimal(18,2)");
+            e.Property(s => s.PaidAmount).HasColumnType("decimal(18,2)");
+            e.Property(s => s.Balance).HasColumnType("decimal(18,2)");
+            e.HasOne(s => s.Client)
+                .WithMany(c => c.Sales)
+                .HasForeignKey(s => s.ClientId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(s => s.Employee)
+                .WithMany(emp => emp.Sales)
+                .HasForeignKey(s => s.EmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(s => s.InvoiceNumber).IsUnique();
+            e.HasIndex(s => s.SaleDate);
+            e.HasQueryFilter(s => s.TenantId == _tenantContext.TenantId && !s.IsDeleted);
+        });
+
+        builder.Entity<SaleDetail>(e =>
+        {
+            e.HasKey(sd => sd.Id);
+            e.Property(sd => sd.UnitPrice).HasColumnType("decimal(18,2)");
+            e.Property(sd => sd.Discount).HasColumnType("decimal(18,2)");
+            e.Property(sd => sd.Subtotal).HasColumnType("decimal(18,2)");
+            e.HasOne(sd => sd.Sale)
+                .WithMany(s => s.Details)
+                .HasForeignKey(sd => sd.SaleId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(sd => sd.Product)
+                .WithMany()
+                .HasForeignKey(sd => sd.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(sd => sd.TenantId == _tenantContext.TenantId && !sd.IsDeleted);
+        });
+
+        builder.Entity<SalePayment>(e =>
+        {
+            e.HasKey(sp => sp.Id);
+            e.Property(sp => sp.Amount).HasColumnType("decimal(18,2)");
+            e.Property(sp => sp.PaymentMethod).HasMaxLength(50).IsRequired();
+            e.Property(sp => sp.ReferenceNumber).HasMaxLength(100);
+            e.HasOne(sp => sp.Sale)
+                .WithMany(s => s.Payments)
+                .HasForeignKey(sp => sp.SaleId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(sp => sp.TenantId == _tenantContext.TenantId && !sp.IsDeleted);
+        });
+
+        // ---- New Module: Inventario ----
+        builder.Entity<Category>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.Property(c => c.Name).HasMaxLength(100).IsRequired();
+            e.Property(c => c.Description).HasMaxLength(500);
+            e.HasIndex(c => new { c.Name, c.CompanyId }).IsUnique();
+            e.HasQueryFilter(c => c.TenantId == _tenantContext.TenantId && !c.IsDeleted);
+        });
+
+        builder.Entity<Brand>(e =>
+        {
+            e.HasKey(b => b.Id);
+            e.Property(b => b.Name).HasMaxLength(100).IsRequired();
+            e.Property(b => b.Description).HasMaxLength(500);
+            e.HasIndex(b => new { b.Name, b.CompanyId }).IsUnique();
+            e.HasQueryFilter(b => b.TenantId == _tenantContext.TenantId && !b.IsDeleted);
+        });
+
+        builder.Entity<Supplier>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.Property(s => s.Code).HasMaxLength(50).IsRequired();
+            e.Property(s => s.Name).HasMaxLength(255).IsRequired();
+            e.Property(s => s.ContactName).HasMaxLength(255);
+            e.Property(s => s.Phone).HasMaxLength(20);
+            e.Property(s => s.Email).HasMaxLength(255);
+            e.Property(s => s.Address).HasMaxLength(500);
+            e.Property(s => s.TaxId).HasMaxLength(50);
+            e.HasQueryFilter(s => s.TenantId == _tenantContext.TenantId && !s.IsDeleted);
+        });
+
+        builder.Entity<Product>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.Property(p => p.Code).HasMaxLength(50).IsRequired();
+            e.Property(p => p.Name).HasMaxLength(255).IsRequired();
+            e.Property(p => p.Description).HasMaxLength(500);
+            e.Property(p => p.UnitOfMeasure).HasMaxLength(20).IsRequired();
+            e.Property(p => p.Location).HasMaxLength(100);
+            e.Property(p => p.Barcode).HasMaxLength(100);
+            e.Property(p => p.ImageUrl).HasMaxLength(500);
+            e.Property(p => p.CostPrice).HasColumnType("decimal(18,2)");
+            e.Property(p => p.SellingPrice).HasColumnType("decimal(18,2)");
+            e.HasOne(p => p.Category)
+                .WithMany(c => c.Products)
+                .HasForeignKey(p => p.CategoryId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(p => p.Brand)
+                .WithMany(b => b.Products)
+                .HasForeignKey(p => p.BrandId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(p => p.Supplier)
+                .WithMany(s => s.Products)
+                .HasForeignKey(p => p.SupplierId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(p => new { p.Code, p.BranchId }).IsUnique();
+            e.HasQueryFilter(p => p.TenantId == _tenantContext.TenantId && !p.IsDeleted);
+        });
+
+        builder.Entity<InventoryMovement>(e =>
+        {
+            e.HasKey(m => m.Id);
+            e.Property(m => m.MovementType).HasMaxLength(30).IsRequired();
+            e.Property(m => m.UnitCost).HasColumnType("decimal(18,2)");
+            e.Property(m => m.ReferenceNumber).HasMaxLength(100);
+            e.Property(m => m.Notes).HasMaxLength(500);
+            e.HasOne(m => m.Product)
+                .WithMany(p => p.InventoryMovements)
+                .HasForeignKey(m => m.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(m => m.PerformedBy)
+                .WithMany(emp => emp.PerformedInventoryMovements)
+                .HasForeignKey(m => m.PerformedByEmployeeId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(m => new { m.ProductId, m.CreatedAt });
+            e.HasQueryFilter(m => m.TenantId == _tenantContext.TenantId && !m.IsDeleted);
+        });
+
+        // ---- New Module: Créditos ----
+        builder.Entity<Credit>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.Property(c => c.CreditNumber).HasMaxLength(50).IsRequired();
+            e.Property(c => c.FinancedAmount).HasColumnType("decimal(18,2)");
+            e.Property(c => c.InterestRate).HasColumnType("decimal(5,2)");
+            e.Property(c => c.InstallmentAmount).HasColumnType("decimal(18,2)");
+            e.Property(c => c.TotalAmount).HasColumnType("decimal(18,2)");
+            e.Property(c => c.PaidAmount).HasColumnType("decimal(18,2)");
+            e.Property(c => c.Balance).HasColumnType("decimal(18,2)");
+            e.Property(c => c.InterestAmount).HasColumnType("decimal(18,2)");
+            e.Property(c => c.Status).HasMaxLength(20).IsRequired();
+            e.Property(c => c.Notes).HasMaxLength(500);
+            e.HasOne(c => c.Client)
+                .WithMany(cl => cl.Credits)
+                .HasForeignKey(c => c.ClientId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(c => c.Sale)
+                .WithOne(s => s.Credit)
+                .HasForeignKey<Credit>(c => c.SaleId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(c => c.Employee)
+                .WithMany(emp => emp.ManagedCredits)
+                .HasForeignKey(c => c.EmployeeId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(c => c.CreditNumber).IsUnique();
+            e.HasQueryFilter(c => c.TenantId == _tenantContext.TenantId && !c.IsDeleted);
+        });
+
+        builder.Entity<CreditInstallment>(e =>
+        {
+            e.HasKey(ci => ci.Id);
+            e.Property(ci => ci.Amount).HasColumnType("decimal(18,2)");
+            e.Property(ci => ci.PrincipalAmount).HasColumnType("decimal(18,2)");
+            e.Property(ci => ci.InterestAmount).HasColumnType("decimal(18,2)");
+            e.Property(ci => ci.PaidAmount).HasColumnType("decimal(18,2)");
+            e.Property(ci => ci.Balance).HasColumnType("decimal(18,2)");
+            e.Property(ci => ci.Status).HasMaxLength(20).IsRequired();
+            e.HasOne(ci => ci.Credit)
+                .WithMany(c => c.Installments)
+                .HasForeignKey(ci => ci.CreditId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(ci => new { ci.CreditId, ci.InstallmentNumber }).IsUnique();
+            e.HasQueryFilter(ci => ci.TenantId == _tenantContext.TenantId && !ci.IsDeleted);
+        });
+
+        builder.Entity<CreditPayment>(e =>
+        {
+            e.HasKey(cp => cp.Id);
+            e.Property(cp => cp.Amount).HasColumnType("decimal(18,2)");
+            e.Property(cp => cp.PrincipalAmount).HasColumnType("decimal(18,2)");
+            e.Property(cp => cp.InterestAmount).HasColumnType("decimal(18,2)");
+            e.Property(cp => cp.PaymentMethod).HasMaxLength(50).IsRequired();
+            e.Property(cp => cp.ReferenceNumber).HasMaxLength(100);
+            e.HasOne(cp => cp.Credit)
+                .WithMany(c => c.Payments)
+                .HasForeignKey(cp => cp.CreditId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(cp => cp.CreditInstallment)
+                .WithMany()
+                .HasForeignKey(cp => cp.CreditInstallmentId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(cp => cp.Employee)
+                .WithMany()
+                .HasForeignKey(cp => cp.EmployeeId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasQueryFilter(cp => cp.TenantId == _tenantContext.TenantId && !cp.IsDeleted);
+        });
+
+        builder.Entity<LateFee>(e =>
+        {
+            e.HasKey(lf => lf.Id);
+            e.Property(lf => lf.FeeAmount).HasColumnType("decimal(18,2)");
+            e.Property(lf => lf.InterestAmount).HasColumnType("decimal(18,2)");
+            e.Property(lf => lf.TotalAmount).HasColumnType("decimal(18,2)");
+            e.Property(lf => lf.PaidAmount).HasColumnType("decimal(18,2)");
+            e.Property(lf => lf.Balance).HasColumnType("decimal(18,2)");
+            e.Property(lf => lf.Status).HasMaxLength(20).IsRequired();
+            e.Property(lf => lf.Notes).HasMaxLength(500);
+            e.HasOne(lf => lf.CreditInstallment)
+                .WithMany()
+                .HasForeignKey(lf => lf.CreditInstallmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(lf => lf.Credit)
+                .WithMany()
+                .HasForeignKey(lf => lf.CreditId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(lf => new { lf.CreditInstallmentId, lf.CalculatedAt });
+            e.HasQueryFilter(lf => lf.TenantId == _tenantContext.TenantId && !lf.IsDeleted);
+        });
+
+        builder.Entity<CollectionAction>(e =>
+        {
+            e.HasKey(ca => ca.Id);
+            e.Property(ca => ca.ActionType).HasMaxLength(30).IsRequired();
+            e.Property(ca => ca.Description).HasMaxLength(1000);
+            e.Property(ca => ca.ContactPerson).HasMaxLength(200);
+            e.Property(ca => ca.ContactPhone).HasMaxLength(20);
+            e.Property(ca => ca.PromiseAmount).HasMaxLength(50);
+            e.Property(ca => ca.Status).HasMaxLength(20).IsRequired();
+            e.Property(ca => ca.Result).HasMaxLength(500);
+            e.HasOne(ca => ca.Credit)
+                .WithMany()
+                .HasForeignKey(ca => ca.CreditId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(ca => ca.Employee)
+                .WithMany()
+                .HasForeignKey(ca => ca.EmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(ca => new { ca.CreditId, ca.ActionDate });
+            e.HasQueryFilter(ca => ca.TenantId == _tenantContext.TenantId && !ca.IsDeleted);
+        });
+
+        // ---- New Module: Caja ----
+        builder.Entity<CashRegister>(e =>
+        {
+            e.HasKey(cr => cr.Id);
+            e.Property(cr => cr.Code).HasMaxLength(50).IsRequired();
+            e.Property(cr => cr.OpeningBalance).HasColumnType("decimal(18,2)");
+            e.Property(cr => cr.ClosingBalance).HasColumnType("decimal(18,2)");
+            e.Property(cr => cr.TotalIncome).HasColumnType("decimal(18,2)");
+            e.Property(cr => cr.TotalExpense).HasColumnType("decimal(18,2)");
+            e.Property(cr => cr.ExpectedBalance).HasColumnType("decimal(18,2)");
+            e.Property(cr => cr.Difference).HasColumnType("decimal(18,2)");
+            e.Property(cr => cr.Status).HasMaxLength(20).IsRequired();
+            e.Property(cr => cr.Notes).HasMaxLength(500);
+            e.HasOne(cr => cr.Employee)
+                .WithMany(emp => emp.CashRegisters)
+                .HasForeignKey(cr => cr.EmployeeId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(cr => new { cr.BranchId, cr.Status });
+            e.HasQueryFilter(cr => cr.TenantId == _tenantContext.TenantId && !cr.IsDeleted);
+        });
+
+        builder.Entity<CashMovement>(e =>
+        {
+            e.HasKey(cm => cm.Id);
+            e.Property(cm => cm.MovementType).HasMaxLength(20).IsRequired();
+            e.Property(cm => cm.Amount).HasColumnType("decimal(18,2)");
+            e.Property(cm => cm.Concept).HasMaxLength(255);
+            e.Property(cm => cm.ReferenceNumber).HasMaxLength(100);
+            e.HasOne(cm => cm.CashRegister)
+                .WithMany(cr => cr.Movements)
+                .HasForeignKey(cm => cm.CashRegisterId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(cm => cm.Employee)
+                .WithMany()
+                .HasForeignKey(cm => cm.EmployeeId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasQueryFilter(cm => cm.TenantId == _tenantContext.TenantId && !cm.IsDeleted);
+        });
+
+        // ---- New Module: Garantías ----
+        builder.Entity<Warranty>(e =>
+        {
+            e.HasKey(w => w.Id);
+            e.Property(w => w.WarrantyNumber).HasMaxLength(50).IsRequired();
+            e.Property(w => w.Terms).HasMaxLength(2000);
+            e.Property(w => w.Status).HasMaxLength(20).IsRequired();
+            e.HasOne(w => w.Client)
+                .WithMany(c => c.Warranties)
+                .HasForeignKey(w => w.ClientId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(w => w.Product)
+                .WithMany()
+                .HasForeignKey(w => w.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(w => w.Sale)
+                .WithMany()
+                .HasForeignKey(w => w.SaleId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(w => w.WarrantyNumber).IsUnique();
+            e.HasQueryFilter(w => w.TenantId == _tenantContext.TenantId && !w.IsDeleted);
+        });
+
+        builder.Entity<WarrantyClaim>(e =>
+        {
+            e.HasKey(wc => wc.Id);
+            e.Property(wc => wc.Description).HasMaxLength(2000).IsRequired();
+            e.Property(wc => wc.Status).HasMaxLength(20).IsRequired();
+            e.Property(wc => wc.Resolution).HasMaxLength(2000);
+            e.HasOne(wc => wc.Warranty)
+                .WithMany(w => w.Claims)
+                .HasForeignKey(wc => wc.WarrantyId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(wc => wc.ApprovedBy)
+                .WithMany()
+                .HasForeignKey(wc => wc.ApprovedByEmployeeId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasQueryFilter(wc => wc.TenantId == _tenantContext.TenantId && !wc.IsDeleted);
         });
     }
 
     public override int SaveChanges()
     {
-        foreach (var entry in ChangeTracker.Entries<BaseEntity>())
-        {
-            if (entry.State == EntityState.Added)
-            {
-                if (string.IsNullOrEmpty(entry.Entity.TenantId))
-                    entry.Entity.TenantId = _tenantContext.TenantId;
-                entry.Entity.CreatedAt = DateTime.UtcNow;
-            }
-            if (entry.State is EntityState.Modified or EntityState.Added)
-            {
-                entry.Entity.UpdatedAt = DateTime.UtcNow;
-            }
-        }
+        ApplyAuditLog();
+        ApplySoftDelete();
+        ApplyAuditTimestamps();
         return base.SaveChanges();
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        ApplyAuditLog();
+        ApplySoftDelete();
+        ApplyAuditTimestamps();
+        return await base.SaveChangesAsync(cancellationToken);
+    }
+
+    private void ApplySoftDelete()
+    {
+        foreach (var entry in ChangeTracker.Entries<BaseEntity>())
+        {
+            if (entry.State == EntityState.Deleted)
+            {
+                entry.State = EntityState.Modified;
+                entry.Entity.IsDeleted = true;
+                entry.Entity.DeletedAt = DateTime.UtcNow;
+            }
+        }
+    }
+
+    private void ApplyAuditLog()
+    {
+        var entries = ChangeTracker.Entries<BaseEntity>()
+            .Where(e => e.Entity is not AuditLog
+                && e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+            .ToList();
+
+        if (entries.Count == 0) return;
+
+        var userId = _tenantContext.CurrentEmployeeId;
+
+        foreach (var entry in entries)
+        {
+            var entity = entry.Entity;
+            var entityName = entity.GetType().Name;
+            var entityId = entity.Id.ToString();
+
+            if (entry.State == EntityState.Added)
+            {
+                AuditLogs.Add(new AuditLog
+                {
+                    EntityName = entityName,
+                    EntityId = entityId,
+                    Action = "Created",
+                    NewValues = SerializeValues(entry.Properties),
+                    PerformedBy = userId,
+                });
+            }
+            else if (entry.State == EntityState.Modified && entry.Properties.Any(p => p.IsModified))
+            {
+                var changedProps = entry.Properties
+                    .Where(p => p.IsModified && !IsAuditIgnored(p.Metadata.Name))
+                    .ToList();
+
+                if (changedProps.Count == 0) continue;
+
+                AuditLogs.Add(new AuditLog
+                {
+                    EntityName = entityName,
+                    EntityId = entityId,
+                    Action = "Updated",
+                    OldValues = SerializeProperties(changedProps, p => p.OriginalValue),
+                    NewValues = SerializeProperties(changedProps, p => p.CurrentValue),
+                    ChangedProperties = string.Join(", ", changedProps.Select(p => p.Metadata.Name)),
+                    PerformedBy = userId,
+                });
+            }
+            else if (entry.State == EntityState.Deleted)
+            {
+                AuditLogs.Add(new AuditLog
+                {
+                    EntityName = entityName,
+                    EntityId = entityId,
+                    Action = "Deleted",
+                    OldValues = SerializeValues(entry.Properties),
+                    PerformedBy = userId,
+                });
+            }
+        }
+    }
+
+    private static string SerializeValues(IEnumerable<PropertyEntry> properties)
+    {
+        var data = new Dictionary<string, object?>();
+        foreach (var prop in properties)
+        {
+            if (!IsAuditIgnored(prop.Metadata.Name))
+                data[prop.Metadata.Name] = prop.CurrentValue;
+        }
+        return JsonSerializer.Serialize(data);
+    }
+
+    private static string SerializeProperties(List<PropertyEntry> properties, Func<PropertyEntry, object?> valueSelector)
+    {
+        var data = new Dictionary<string, object?>();
+        foreach (var prop in properties)
+            data[prop.Metadata.Name] = valueSelector(prop);
+        return JsonSerializer.Serialize(data);
+    }
+
+    private static bool IsAuditIgnored(string propertyName) => propertyName switch
+    {
+        nameof(BaseEntity.TenantId) => true,
+        nameof(BaseEntity.CreatedAt) => true,
+        nameof(BaseEntity.CreatedBy) => true,
+        nameof(BaseEntity.UpdatedAt) => true,
+        nameof(BaseEntity.UpdatedBy) => true,
+        nameof(BaseEntity.IsDeleted) => true,
+        nameof(BaseEntity.DeletedAt) => true,
+        _ => false,
+    };
+
+    private void ApplyAuditTimestamps()
     {
         foreach (var entry in ChangeTracker.Entries<BaseEntity>())
         {
@@ -519,6 +1062,5 @@ public sealed class NexoraDbContext : DbContext
                 entry.Entity.UpdatedAt = DateTime.UtcNow;
             }
         }
-        return await base.SaveChangesAsync(cancellationToken);
     }
 }

@@ -41,7 +41,49 @@ Nexora/
 - Super Admin has explicit `TenantId = "superadmin"`, bypasses filter via `IgnoreQueryFilters()`
 - Login determines tenant context from FirebaseUid → User.TenantId
 
+## New Modules (2026-06-01)
+
+### Nexora Comercial
+- **Entities**: Client, Quote, QuoteDetail, Sale, SaleDetail, SalePayment
+- **Controllers**: ClientsController, QuotesController, SalesController
+- **Routes**: `/api/v1/clients`, `/api/v1/quotes`, `/api/v1/sales`
+- **Features**: Cash sales, credit sales, quotes with line items, kardex auto-update on sale
+
+### Nexora Inventario
+- **Entities**: Category, Brand, Supplier, Product, InventoryMovement (Kardex)
+- **Controllers**: ProductsController, CategoriesController, BrandsController, SuppliersController, InventoryMovementsController
+- **Routes**: `/api/v1/products`, `/api/v1/categories`, `/api/v1/brands`, `/api/v1/suppliers`, `/api/v1/inventory-movements`
+- **Features**: Stock tracking, low-stock alerts, kardex movement audit, top-selling products
+
+### Nexora Créditos
+- **Entities**: Credit, CreditInstallment, CreditPayment
+- **Controllers**: CreditsController
+- **Routes**: `/api/v1/credits`
+- **Features**: Installment generation, payment registration with principal/interest split, balance tracking
+
+### Nexora Caja
+- **Entities**: CashRegister, CashMovement
+- **Controllers**: CashRegistersController
+- **Routes**: `/api/v1/cash-registers`
+- **Features**: Open/close cash register, income/expense tracking, difference calculation, per-branch control
+
+### Garantías
+- **Entities**: Warranty, WarrantyClaim
+- **Controllers**: WarrantiesController
+- **Routes**: `/api/v1/warranties`
+- **Features**: Product warranties linked to client+invoice, claim management, expiration tracking
+
+### Multisucursal (cross-cutting)
+- **Entity**: Branch (belongs to Company)
+- **Controller**: BranchesController
+- All operational entities include CompanyId + BranchId for per-branch isolation
+
+### Executive Dashboard
+- **Endpoint**: `GET /api/v1/dashboard/executive`
+- Returns KPIs across all modules: sales, credits, inventory, cash, HR
+
 ## Key Endpoints
 - `POST /api/v1/auth/login` — exchange Firebase token for JWT
 - `POST /api/v1/seed/super-admin` — Super Admin creation (AllowAnonymous, public)
 - `GET /health` — health check
+- `GET /api/v1/dashboard/executive` — executive KPI dashboard

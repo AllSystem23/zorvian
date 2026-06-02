@@ -87,9 +87,4 @@ public sealed record UpdateMyProfileRequest(
     string? PhotoUrl
 );
 
-public sealed record PagedResult<T>(
-    List<T> Items,
-    int Total,
-    int Page,
-    int PageSize
-);
+// PagedResult moved to Nexora.Application.DTOs.Common.PagedResult<T>

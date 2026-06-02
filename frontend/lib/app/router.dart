@@ -3,8 +3,10 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../auth/auth_provider.dart';
+import '../core/widgets/app_shell.dart';
 import '../features/dashboard/dashboard_page.dart';
 import '../features/dashboard/pages/absence_calendar_page.dart';
+import '../features/executive_dashboard/executive_dashboard_page.dart';
 import '../features/profile/profile_page.dart';
 import '../features/attendance/pages/attendance_page.dart';
 import '../features/attendance/pages/attendance_history_page.dart';
@@ -34,9 +36,30 @@ import '../features/payroll/pages/payroll_page.dart';
 import '../features/payroll/pages/payroll_run_detail_page.dart';
 import '../features/payroll/pages/payroll_periods_page.dart';
 import '../features/unauthorized/unauthorized_page.dart';
+import '../features/clients/pages/client_list_page.dart';
+import '../features/clients/pages/client_form_page.dart';
+import '../features/clients/pages/client_statement_page.dart';
+import '../features/sales/pages/sale_list_page.dart';
+import '../features/sales/pages/sale_detail_page.dart';
+import '../features/sales/pages/sale_form_page.dart';
+import '../features/quotes/pages/quote_list_page.dart';
+import '../features/products/pages/product_list_page.dart';
+import '../features/products/pages/product_form_page.dart';
+import '../features/categories/pages/category_list_page.dart';
+import '../features/brands/pages/brand_list_page.dart';
+import '../features/suppliers/pages/supplier_list_page.dart';
+import '../features/suppliers/pages/supplier_form_page.dart';
+import '../features/inventory_movements/pages/inventory_movement_list_page.dart';
+import '../features/credits/pages/credit_list_page.dart';
+import '../features/credits/pages/credit_detail_page.dart';
+import '../features/cash_registers/pages/cash_register_list_page.dart';
+import '../features/cash_registers/pages/cash_register_detail_page.dart';
+import '../features/warranties/pages/warranty_list_page.dart';
+import '../features/warranties/pages/warranty_form_page.dart';
 
 final _routeRoles = <String, List<String>>{
   '/dashboard': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
+  '/executive-dashboard': ['SuperAdmin', 'CompanyAdmin'],
   '/employees': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor'],
   '/departments': ['SuperAdmin', 'CompanyAdmin', 'Rrhh'],
   '/vacations': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
@@ -47,6 +70,17 @@ final _routeRoles = <String, List<String>>{
   '/admin': ['SuperAdmin', 'CompanyAdmin'],
   '/settings': ['SuperAdmin', 'CompanyAdmin'],
   '/payroll': ['SuperAdmin', 'CompanyAdmin', 'Rrhh'],
+  '/clients': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
+  '/sales': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
+  '/quotes': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
+  '/products': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
+  '/categories': ['SuperAdmin', 'CompanyAdmin'],
+  '/brands': ['SuperAdmin', 'CompanyAdmin'],
+  '/suppliers': ['SuperAdmin', 'CompanyAdmin', 'Supervisor'],
+  '/inventory-movements': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
+  '/credits': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
+  '/cash-registers': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
+  '/warranties': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
 };
 
 bool _hasAccess(String role, String location) {
@@ -104,174 +138,218 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'onboarding',
         builder: (_, _) => const OnboardingPage(),
       ),
-      GoRoute(
-        path: '/dashboard',
-        name: 'dashboard',
-        builder: (_, _) => const DashboardPage(),
-      ),
-      GoRoute(
-        path: '/profile',
-        name: 'profile',
-        builder: (_, _) => const ProfilePage(),
-      ),
-      GoRoute(
-        path: '/absence-calendar',
-        name: 'absence-calendar',
-        builder: (_, _) => const AbsenceCalendarPage(),
-      ),
-      GoRoute(
-        path: '/attendance',
-        name: 'attendance',
-        builder: (_, _) => const AttendancePage(),
+      ShellRoute(
+        builder: (_, _, child) => AppShell(child: child),
         routes: [
           GoRoute(
-            path: 'history',
-            name: 'attendance-history',
-            builder: (_, _) => const AttendanceHistoryPage(),
+            path: '/dashboard',
+            name: 'dashboard',
+            builder: (_, _) => const DashboardPage(),
           ),
           GoRoute(
-            path: 'kiosk',
-            name: 'attendance-kiosk',
-            builder: (_, _) => const KioskPage(),
+            path: '/executive-dashboard',
+            name: 'executive-dashboard',
+            builder: (_, _) => const ExecutiveDashboardPage(),
           ),
           GoRoute(
-            path: 'qr',
-            name: 'attendance-qr',
-            builder: (_, _) => const QRCheckInPage(),
-          ),
-        ],
-      ),
-      GoRoute(
-        path: '/unauthorized',
-        name: 'unauthorized',
-        builder: (_, _) => const UnauthorizedPage(),
-      ),
-      GoRoute(
-        path: '/employees',
-        name: 'employees',
-        builder: (_, _) => const EmployeeListPage(),
-        routes: [
-          GoRoute(
-            path: 'new',
-            name: 'employee-new',
-            builder: (_, _) => const EmployeeFormPage(),
+            path: '/profile',
+            name: 'profile',
+            builder: (_, _) => const ProfilePage(),
           ),
           GoRoute(
-            path: ':employeeId',
-            name: 'employee-detail',
-            builder: (_, state) => EmployeeDetailPage(employeeId: state.pathParameters['employeeId']!),
+            path: '/absence-calendar',
+            name: 'absence-calendar',
+            builder: (_, _) => const AbsenceCalendarPage(),
+          ),
+          GoRoute(
+            path: '/attendance',
+            name: 'attendance',
+            builder: (_, _) => const AttendancePage(),
             routes: [
+              GoRoute(path: 'history', name: 'attendance-history', builder: (_, _) => const AttendanceHistoryPage()),
+              GoRoute(path: 'kiosk', name: 'attendance-kiosk', builder: (_, _) => const KioskPage()),
+              GoRoute(path: 'qr', name: 'attendance-qr', builder: (_, _) => const QRCheckInPage()),
+            ],
+          ),
+          GoRoute(
+            path: '/unauthorized',
+            name: 'unauthorized',
+            builder: (_, _) => const UnauthorizedPage(),
+          ),
+          GoRoute(
+            path: '/employees',
+            name: 'employees',
+            builder: (_, _) => const EmployeeListPage(),
+            routes: [
+              GoRoute(path: 'new', name: 'employee-new', builder: (_, _) => const EmployeeFormPage()),
               GoRoute(
-                path: 'edit',
-                name: 'employee-edit',
-                builder: (_, state) => EmployeeFormPage(employeeId: state.pathParameters['employeeId']!),
+                path: ':employeeId',
+                name: 'employee-detail',
+                builder: (_, state) => EmployeeDetailPage(employeeId: state.pathParameters['employeeId']!),
+                routes: [
+                  GoRoute(path: 'edit', name: 'employee-edit', builder: (_, state) => EmployeeFormPage(employeeId: state.pathParameters['employeeId']!)),
+                ],
               ),
             ],
           ),
-        ],
-      ),
-      GoRoute(
-        path: '/vacations',
-        name: 'vacations',
-        builder: (_, _) => const VacationListPage(),
-        routes: [
           GoRoute(
-            path: 'new',
-            name: 'vacation-new',
-            builder: (_, _) => const VacationFormPage(),
+            path: '/vacations',
+            name: 'vacations',
+            builder: (_, _) => const VacationListPage(),
+            routes: [
+              GoRoute(path: 'new', name: 'vacation-new', builder: (_, _) => const VacationFormPage()),
+              GoRoute(path: ':vacationId', name: 'vacation-detail', builder: (_, state) => VacationDetailPage(vacationId: state.pathParameters['vacationId']!)),
+            ],
           ),
           GoRoute(
-            path: ':vacationId',
-            name: 'vacation-detail',
-            builder: (_, state) => VacationDetailPage(vacationId: state.pathParameters['vacationId']!),
-          ),
-        ],
-      ),
-      GoRoute(
-        path: '/permissions',
-        name: 'permissions',
-        builder: (_, _) => const PermissionListPage(),
-        routes: [
-          GoRoute(
-            path: 'new',
-            name: 'permission-new',
-            builder: (_, _) => const PermissionFormPage(),
+            path: '/permissions',
+            name: 'permissions',
+            builder: (_, _) => const PermissionListPage(),
+            routes: [
+              GoRoute(path: 'new', name: 'permission-new', builder: (_, _) => const PermissionFormPage()),
+              GoRoute(path: ':permissionId', name: 'permission-detail', builder: (_, state) => PermissionDetailPage(permissionId: state.pathParameters['permissionId']!)),
+            ],
           ),
           GoRoute(
-            path: ':permissionId',
-            name: 'permission-detail',
-            builder: (_, state) => PermissionDetailPage(permissionId: state.pathParameters['permissionId']!),
-          ),
-        ],
-      ),
-      GoRoute(
-        path: '/settings',
-        name: 'settings',
-        builder: (_, _) => const CompanySettingsPage(),
-      ),
-      GoRoute(
-        path: '/admin/users',
-        name: 'admin-users',
-        builder: (_, _) => const UserListPage(),
-      ),
-      GoRoute(
-        path: '/admin/invite',
-        name: 'admin-invite',
-        builder: (_, _) => const InviteUserPage(),
-      ),
-      GoRoute(
-        path: '/leave-types',
-        name: 'leave-types',
-        builder: (_, _) => const LeaveTypesPage(),
-      ),
-      GoRoute(
-        path: '/reports',
-        name: 'reports',
-        builder: (_, _) => const ReportsPage(),
-      ),
-      GoRoute(
-        path: '/audit-logs',
-        name: 'audit-logs',
-        builder: (_, _) => const AuditLogsPage(),
-      ),
-      GoRoute(
-        path: '/departments',
-        name: 'departments',
-        builder: (_, _) => const DepartmentListPage(),
-        routes: [
-          GoRoute(
-            path: 'new',
-            name: 'department-new',
-            builder: (_, _) => const DepartmentFormPage(),
+            path: '/settings',
+            name: 'settings',
+            builder: (_, _) => const CompanySettingsPage(),
           ),
           GoRoute(
-            path: ':departmentId/edit',
-            name: 'department-edit',
-            builder: (_, state) => DepartmentFormPage(departmentId: state.pathParameters['departmentId']!),
+            path: '/admin/users',
+            name: 'admin-users',
+            builder: (_, _) => const UserListPage(),
           ),
-        ],
-      ),
-      GoRoute(
-        path: '/payroll',
-        name: 'payroll',
-        builder: (_, _) => const PayrollPage(),
-        routes: [
           GoRoute(
-            path: 'periods',
-            name: 'payroll-periods',
-            builder: (_, _) => const PayrollPeriodsPage(),
+            path: '/admin/invite',
+            name: 'admin-invite',
+            builder: (_, _) => const InviteUserPage(),
+          ),
+          GoRoute(
+            path: '/leave-types',
+            name: 'leave-types',
+            builder: (_, _) => const LeaveTypesPage(),
+          ),
+          GoRoute(
+            path: '/reports',
+            name: 'reports',
+            builder: (_, _) => const ReportsPage(),
+          ),
+          GoRoute(
+            path: '/audit-logs',
+            name: 'audit-logs',
+            builder: (_, _) => const AuditLogsPage(),
+          ),
+          GoRoute(
+            path: '/departments',
+            name: 'departments',
+            builder: (_, _) => const DepartmentListPage(),
+            routes: [
+              GoRoute(path: 'new', name: 'department-new', builder: (_, _) => const DepartmentFormPage()),
+              GoRoute(path: ':departmentId/edit', name: 'department-edit', builder: (_, state) => DepartmentFormPage(departmentId: state.pathParameters['departmentId']!)),
+            ],
+          ),
+          GoRoute(
+            path: '/payroll',
+            name: 'payroll',
+            builder: (_, _) => const PayrollPage(),
             routes: [
               GoRoute(
-                path: 'new',
-                name: 'payroll-period-new',
+                path: 'periods',
+                name: 'payroll-periods',
                 builder: (_, _) => const PayrollPeriodsPage(),
+                routes: [GoRoute(path: 'new', name: 'payroll-period-new', builder: (_, _) => const PayrollPeriodsPage())],
               ),
+              GoRoute(path: 'runs/:runId', name: 'payroll-run-detail', builder: (_, state) => PayrollRunDetailPage(runId: state.pathParameters['runId']!)),
             ],
           ),
           GoRoute(
-            path: 'runs/:runId',
-            name: 'payroll-run-detail',
-            builder: (_, state) => PayrollRunDetailPage(runId: state.pathParameters['runId']!),
+            path: '/clients',
+            name: 'clients',
+            builder: (_, _) => const ClientListPage(),
+            routes: [
+              GoRoute(path: 'new', name: 'client-new', builder: (_, _) => const ClientFormPage()),
+              GoRoute(path: ':clientId/edit', name: 'client-edit', builder: (_, state) => ClientFormPage(clientId: state.pathParameters['clientId']!)),
+              GoRoute(path: ':clientId/statement', name: 'client-statement', builder: (_, state) => ClientStatementPage(clientId: state.pathParameters['clientId']!)),
+            ],
+          ),
+          GoRoute(
+            path: '/sales',
+            name: 'sales',
+            builder: (_, _) => const SaleListPage(),
+          ),
+          GoRoute(
+            path: '/sales/new',
+            name: 'new-sale',
+            builder: (_, _) => const NewSalePage(),
+          ),
+          GoRoute(
+            path: '/sales/:id',
+            name: 'sale-detail',
+            builder: (_, state) => SaleDetailPage(saleId: state.pathParameters['id']!),
+          ),
+          GoRoute(
+            path: '/quotes',
+            name: 'quotes',
+            builder: (_, _) => const QuoteListPage(),
+          ),
+          GoRoute(
+            path: '/products',
+            name: 'products',
+            builder: (_, _) => const ProductListPage(),
+            routes: [
+              GoRoute(path: 'new', name: 'product-new', builder: (_, _) => const ProductFormPage()),
+              GoRoute(path: ':productId/edit', name: 'product-edit', builder: (_, state) => ProductFormPage(productId: state.pathParameters['productId']!)),
+            ],
+          ),
+          GoRoute(
+            path: '/categories',
+            name: 'categories',
+            builder: (_, _) => const CategoryListPage(),
+          ),
+          GoRoute(
+            path: '/brands',
+            name: 'brands',
+            builder: (_, _) => const BrandListPage(),
+          ),
+          GoRoute(
+            path: '/suppliers',
+            name: 'suppliers',
+            builder: (_, _) => const SupplierListPage(),
+            routes: [
+              GoRoute(path: 'new', name: 'supplier-new', builder: (_, _) => const SupplierFormPage()),
+              GoRoute(path: ':supplierId/edit', name: 'supplier-edit', builder: (_, state) => SupplierFormPage(supplierId: state.pathParameters['supplierId']!)),
+            ],
+          ),
+          GoRoute(
+            path: '/inventory-movements',
+            name: 'inventory-movements',
+            builder: (_, _) => const InventoryMovementListPage(),
+          ),
+          GoRoute(
+            path: '/credits',
+            name: 'credits',
+            builder: (_, _) => const CreditListPage(),
+            routes: [
+              GoRoute(path: ':creditId', name: 'credit-detail', builder: (_, state) => CreditDetailPage(creditId: state.pathParameters['creditId']!)),
+            ],
+          ),
+          GoRoute(
+            path: '/cash-registers',
+            name: 'cash-registers',
+            builder: (_, _) => const CashRegisterListPage(),
+            routes: [
+              GoRoute(path: ':registerId', name: 'cash-register-detail', builder: (_, state) => CashRegisterDetailPage(registerId: state.pathParameters['registerId']!)),
+            ],
+          ),
+          GoRoute(
+            path: '/warranties',
+            name: 'warranties',
+            builder: (_, _) => const WarrantyListPage(),
+            routes: [
+              GoRoute(path: 'new', name: 'warranty-new', builder: (_, _) => const WarrantyFormPage()),
+              GoRoute(path: ':warrantyId/edit', name: 'warranty-edit', builder: (_, state) => WarrantyFormPage(warrantyId: state.pathParameters['warrantyId']!)),
+            ],
           ),
         ],
       ),

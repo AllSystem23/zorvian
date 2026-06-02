@@ -1,0 +1,31 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test-and-deploy:
+    name: Test & Deploy to Render
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Restore
+        run: dotnet restore src/Nexora.Web/Nexora.Web.csproj
+
+      - name: Build
+        run: dotnet build src/Nexora.Web/Nexora.Web.csproj --no-restore -c Release
+
+      - name: Test
+        run: dotnet test tests/Nexora.Tests/Nexora.Tests.csproj --no-build -c Release --verbosity normal
+
+      - name: Trigger Render Deploy
+        run: |
+          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"

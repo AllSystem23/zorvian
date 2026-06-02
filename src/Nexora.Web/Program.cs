@@ -16,6 +16,8 @@ using Nexora.Infrastructure.Data;
 using Nexora.Infrastructure.Identity;
 using Nexora.Infrastructure.Repositories;
 using Nexora.Infrastructure.Services;
+using AutoMapper;
+using Nexora.Application.Mapping;
 using Nexora.Web.Hubs;
 using Nexora.Web.Jobs;
 using Nexora.Application.Jobs;
@@ -45,6 +47,12 @@ builder.Services.AddEndpointsApiExplorer();
 // Database
 builder.Services.AddDbContext<NexoraDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("NexoraDb")));
+
+// AutoMapper
+builder.Services.AddAutoMapper(cfg =>
+{
+    cfg.AddProfile<MappingProfile>();
+}, typeof(MappingProfile).Assembly);
 
 // DI - Infrastructure
 builder.Services.AddScoped<ITenantContext, TenantContext>();
@@ -93,6 +101,46 @@ builder.Services.AddScoped<IPolicyRepository, PolicyRepository>();
 builder.Services.AddScoped<IPolicyService, PolicyService>();
 builder.Services.AddScoped<PerformanceService>();
 builder.Services.AddScoped<IVacationRecommendationService, VacationRecommendationService>();
+// DI - New Module: Multisucursal
+builder.Services.AddScoped<IBranchRepository, BranchRepository>();
+builder.Services.AddScoped<BranchService>();
+
+// DI - New Module: Comercial
+builder.Services.AddScoped<IClientRepository, ClientRepository>();
+builder.Services.AddScoped<ClientService>();
+builder.Services.AddScoped<IQuoteRepository, QuoteRepository>();
+builder.Services.AddScoped<QuoteService>();
+builder.Services.AddScoped<ISaleRepository, SaleRepository>();
+builder.Services.AddScoped<SaleService>();
+
+// DI - New Module: Inventario
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<CategoryService>();
+builder.Services.AddScoped<IBrandRepository, BrandRepository>();
+builder.Services.AddScoped<BrandService>();
+builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
+builder.Services.AddScoped<SupplierService>();
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<ProductService>();
+builder.Services.AddScoped<IInventoryMovementRepository, InventoryMovementRepository>();
+builder.Services.AddScoped<InventoryMovementService>();
+
+// DI - New Module: Créditos
+builder.Services.AddScoped<ICreditRepository, CreditRepository>();
+builder.Services.AddScoped<ICreditPaymentRepository, CreditPaymentRepository>();
+builder.Services.AddScoped<ILateFeeRepository, LateFeeRepository>();
+builder.Services.AddScoped<ICollectionActionRepository, CollectionActionRepository>();
+builder.Services.AddScoped<CreditService>();
+
+// DI - New Module: Caja
+builder.Services.AddScoped<ICashRegisterRepository, CashRegisterRepository>();
+builder.Services.AddScoped<ICashMovementRepository, CashMovementRepository>();
+builder.Services.AddScoped<CashRegisterService>();
+
+// DI - New Module: Garantías
+builder.Services.AddScoped<IWarrantyRepository, WarrantyRepository>();
+builder.Services.AddScoped<WarrantyService>();
+
 builder.Services.AddScoped<IChatService>(sp => new ChatService(
     sp.GetRequiredService<NexoraDbContext>(),
     sp.GetRequiredService<IEmbeddingService>(),
@@ -215,7 +263,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseGlobalExceptionMiddleware();
 app.UseCors("NexoraCors");
+app.UseRateLimitingMiddleware(maxRequests: 120, windowSeconds: 60);
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseMiddleware<ApiKeyMiddleware>();

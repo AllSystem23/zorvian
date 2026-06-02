@@ -53,4 +53,15 @@ public sealed class DashboardController : ControllerBase
         var result = await _service.GetRecentRequestsAsync(count);
         return Ok(result);
     }
+
+    /// <summary>
+    /// Obtiene el dashboard ejecutivo con KPIs de todos los módulos.
+    /// </summary>
+    [HttpGet("executive")]
+    [ProducesResponseType(typeof(ExecutiveDashboardResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetExecutiveDashboard()
+    {
+        var result = await _service.GetExecutiveDashboardAsync();
+        return Ok(result);
+    }
 }

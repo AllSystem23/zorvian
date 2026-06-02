@@ -1,3 +1,4 @@
+using Nexora.Application.DTOs.Common;
 using Nexora.Application.DTOs.Employee;
 using Nexora.Application.DTOs.Permission;
 using Nexora.Application.Interfaces;

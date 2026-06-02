@@ -1,4 +1,5 @@
 using Nexora.Application.DTOs.Employee;
+using Nexora.Application.DTOs.Common;
 using Nexora.Application.DTOs.Vacation;
 using Nexora.Application.Interfaces;
 using Nexora.Core.Entities;

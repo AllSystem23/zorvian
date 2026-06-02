@@ -21,4 +21,5 @@ public sealed class Company : BaseEntity
     public ICollection<Department> Departments { get; set; } = [];
     public ICollection<Role> Roles { get; set; } = [];
     public CompanySettings? Settings { get; set; }
+    public ICollection<Branch> Branches { get; set; } = [];
 }

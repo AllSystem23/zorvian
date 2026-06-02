@@ -13,6 +13,15 @@ public sealed class CompanySettings : BaseEntity
     public string? DateFormat { get; set; } = "DD/MM/YYYY";
     public string? ApprovalFlowConfig { get; set; } // JSON: [{"step":1,"role":"Supervisor"},{"step":2,"role":"Rrhh"}]
 
+    // Cobranza + Mora
+    public decimal LateFeeDailyRate { get; set; } = 0.001m;
+    public decimal LateFeePercentage { get; set; } = 0.05m;
+    public int LateFeeGracePeriod { get; set; } = 0;
+
+    // Facturación / IVA
+    public bool TaxEnabled { get; set; } = true;
+    public decimal TaxRate { get; set; } = 0.15m;
+
     public Guid CompanyId { get; set; }
     public Company Company { get; set; } = null!;
 }

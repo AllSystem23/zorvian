@@ -8,10 +8,23 @@ public sealed class DashboardService
     private const string PermissionType = "permiso";
     private const string VacationType = "vacacion";
     private readonly IDashboardRepository _repo;
+    private readonly ISaleRepository _saleRepo;
+    private readonly ICreditRepository _creditRepo;
+    private readonly IProductRepository _productRepo;
+    private readonly ICashRegisterRepository _cashRepo;
 
-    public DashboardService(IDashboardRepository repo)
+    public DashboardService(
+        IDashboardRepository repo,
+        ISaleRepository saleRepo,
+        ICreditRepository creditRepo,
+        IProductRepository productRepo,
+        ICashRegisterRepository cashRepo)
     {
         _repo = repo;
+        _saleRepo = saleRepo;
+        _creditRepo = creditRepo;
+        _productRepo = productRepo;
+        _cashRepo = cashRepo;
     }
 
     public async Task<DashboardKpisResponse> GetKpisAsync()
@@ -34,6 +47,38 @@ public sealed class DashboardService
             pendingPerm,
             birthdays.Count,
             anniversaries.Count
+        );
+    }
+
+    public async Task<ExecutiveDashboardResponse> GetExecutiveDashboardAsync()
+    {
+        var todaySales = await _saleRepo.GetTodaySalesAsync(Guid.Empty);
+        var monthSales = await _saleRepo.GetMonthSalesAsync(Guid.Empty);
+        var avgTicket = await _saleRepo.GetAverageTicketAsync(Guid.Empty);
+        var todaySalesCount = await _saleRepo.GetTodaySalesCountAsync(Guid.Empty);
+        var activeCredits = await _creditRepo.GetActiveCreditsCountAsync(Guid.Empty);
+        var overdueCredits = await _creditRepo.GetOverdueCreditsCountAsync(Guid.Empty);
+        var monthlyRecovery = await _creditRepo.GetMonthlyRecoveryAsync(Guid.Empty);
+        var totalPortfolio = await _creditRepo.GetTotalPortfolioAsync(Guid.Empty);
+        var outOfStock = await _productRepo.GetOutOfStockAsync(Guid.Empty);
+        var lowStock = await _productRepo.GetLowStockAsync(Guid.Empty);
+        var totalProducts = await _productRepo.GetTotalCountAsync(Guid.Empty);
+        var topSelling = await _productRepo.GetTopSellingAsync(Guid.Empty, 5);
+        var todayIncome = await _cashRepo.GetTodayIncomeAsync(Guid.Empty);
+        var todayExpense = await _cashRepo.GetTodayExpenseAsync(Guid.Empty);
+        var openRegisters = await _cashRepo.GetOpenRegistersCountAsync(Guid.Empty);
+        var activeEmployees = await _repo.GetActiveEmployeesAsync();
+        var totalEmployees = await _repo.GetTotalEmployeesAsync();
+        var pendingVac = await _repo.GetPendingVacationRequestsAsync();
+        var pendingPerm = await _repo.GetPendingPermissionRequestsAsync();
+
+        return new ExecutiveDashboardResponse(
+            new CommercialKpis(todaySales, monthSales, avgTicket, todaySalesCount),
+            new CreditKpis(activeCredits, overdueCredits, monthlyRecovery, totalPortfolio),
+            new InventoryKpis(outOfStock.Count, lowStock.Count, totalProducts,
+                topSelling.Select(p => new TopProductItem(p.Product.Name, p.TotalSold)).ToList()),
+            new CashKpis(todayIncome, todayExpense, openRegisters),
+            new HrKpis(activeEmployees, pendingVac, pendingPerm, totalEmployees)
         );
     }
 

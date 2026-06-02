@@ -34,6 +34,9 @@ firebase-debug.log
 .DS_Store
 Thumbs.db
 
+# OpenCode memory
+.memory/
+
 # Environment
 .env
 *.env.local

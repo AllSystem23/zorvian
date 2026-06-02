@@ -134,6 +134,11 @@ public sealed class CompanyService
         if (request.Currency is not null) settings.Currency = request.Currency;
         if (request.DateFormat is not null) settings.DateFormat = request.DateFormat;
         if (request.ApprovalFlowConfig is not null) settings.ApprovalFlowConfig = request.ApprovalFlowConfig;
+        if (request.LateFeeDailyRate.HasValue) settings.LateFeeDailyRate = request.LateFeeDailyRate.Value;
+        if (request.LateFeePercentage.HasValue) settings.LateFeePercentage = request.LateFeePercentage.Value;
+        if (request.LateFeeGracePeriod.HasValue) settings.LateFeeGracePeriod = request.LateFeeGracePeriod.Value;
+        if (request.TaxEnabled.HasValue) settings.TaxEnabled = request.TaxEnabled.Value;
+        if (request.TaxRate.HasValue) settings.TaxRate = request.TaxRate.Value;
 
         await _repo.UpdateSettingsAsync(settings);
         await _repo.SaveChangesAsync();
@@ -151,6 +156,11 @@ public sealed class CompanyService
         s.Timezone,
         s.Currency,
         s.DateFormat,
-        s.ApprovalFlowConfig
+        s.ApprovalFlowConfig,
+        s.LateFeeDailyRate,
+        s.LateFeePercentage,
+        s.LateFeeGracePeriod,
+        s.TaxEnabled,
+        s.TaxRate
     );
 }

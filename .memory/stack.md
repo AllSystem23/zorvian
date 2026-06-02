@@ -2,12 +2,21 @@
 
 ## Backend
 - **Runtime:** .NET 9.0 (C#)
-- **Framework:** ASP.NET Core Minimal APIs / Controllers
+- **Framework:** ASP.NET Core Controllers
 - **ORM:** Entity Framework Core 9
 - **Database:** PostgreSQL 15+ hosted on Neon (`ep-solitary-*.neon.tech`)
 - **Auth:** Firebase Authentication (JWT validation via Firebase Admin SDK) + custom JWT (symmetric key)
 - **Jobs:** Hangfire (recurring tasks)
 - **Hosting:** Render (Docker, free tier)
+
+## Backend Modules (2026-06-01)
+- **Nexora RH** (existing): Employees, Departments, Vacations, Permissions, Attendance, Payroll
+- **Nexora Comercial** (new): Clients, Quotes, Sales, Invoice generation
+- **Nexora Inventario** (new): Products, Categories, Brands, Suppliers, Kardex
+- **Nexora Créditos** (new): Credits, Installments, Payments, Collections
+- **Nexora Caja** (new): Cash register open/close, income/expense tracking
+- **Garantías** (new): Product warranties, claims management
+- **Multisucursal** (new): Branch entity with CompanyId FK on all operational tables
 
 ## Frontend
 - **Framework:** Flutter 3.x with `--dart-define` for env vars

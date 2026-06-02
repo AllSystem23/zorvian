@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Nexora.Application.Interfaces;
 using Nexora.Core.Entities;
+using Nexora.Core.Interfaces;
 using Nexora.Infrastructure.Data;
 
 namespace Nexora.Web.Controllers;
