@@ -61,14 +61,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Image.asset(
-                    'assets/logo.jpeg',
-                    height: 80,
+                    'assets/logo_erp.png',
+                    height: 180,
                     fit: BoxFit.contain,
                     errorBuilder: (_, __, ___) => Icon(Icons.workspace_premium, size: 64, color: theme.colorScheme.primary),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 32),
                   Text(
-                    'Nexora',
+                    'Zorvian',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.headlineLarge?.copyWith(
                       fontWeight: FontWeight.bold,
@@ -77,10 +77,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Gestión de Recursos Humanos',
+                    'MODULAR ERP SOFTWARE',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
+                      letterSpacing: 2.0,
                     ),
                   ),
                   const SizedBox(height: 48),
