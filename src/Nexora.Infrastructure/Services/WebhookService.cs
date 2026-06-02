@@ -38,6 +38,11 @@ public sealed class WebhookService : IWebhookService
         {
             try
             {
+                if (!await IsSafeUrlAsync(sub.TargetUrl))
+                {
+                    continue; // SSRF Protection
+                }
+
                 var request = new HttpRequestMessage(HttpMethod.Post, sub.TargetUrl)
                 {
                     Content = JsonContent.Create(payload)
@@ -55,6 +60,54 @@ public sealed class WebhookService : IWebhookService
                 // Log failure or implement retry logic
             }
         }
+    }
+
+    private static async Task<bool> IsSafeUrlAsync(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return false;
+
+        // Only allow HTTP/HTTPS
+        if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
+            return false;
+
+        try
+        {
+            var hostEntry = await System.Net.Dns.GetHostEntryAsync(uri.Host);
+            foreach (var ip in hostEntry.AddressList)
+            {
+                if (IsPrivateOrLocalIpAddress(ip))
+                {
+                    return false;
+                }
+            }
+        }
+        catch
+        {
+            return false; // Could not resolve
+        }
+
+        return true;
+    }
+
+    private static bool IsPrivateOrLocalIpAddress(System.Net.IPAddress ip)
+    {
+        if (System.Net.IPAddress.IsLoopback(ip)) return true;
+
+        var bytes = ip.GetAddressBytes();
+        switch (ip.AddressFamily)
+        {
+            case System.Net.Sockets.AddressFamily.InterNetwork:
+                if (bytes[0] == 10) return true;
+                if (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31) return true;
+                if (bytes[0] == 192 && bytes[1] == 168) return true;
+                if (bytes[0] == 169 && bytes[1] == 254) return true;
+                break;
+            case System.Net.Sockets.AddressFamily.InterNetworkV6:
+                if (ip.IsIPv6LinkLocal || ip.IsIPv6SiteLocal || ip.IsIPv6Multicast) return true;
+                break;
+        }
+
+        return false;
     }
 
     private static string GenerateSignature(string payload, string secret)
