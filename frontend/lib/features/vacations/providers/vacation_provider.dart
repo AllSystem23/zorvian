@@ -99,8 +99,8 @@ class VacationNotifier extends Notifier<VacationListState> {
       final params = <String, dynamic>{
         'page': 1,
         'pageSize': 20,
-        if (status != null) 'status': status,
-        if (employeeId != null) 'employeeId': employeeId,
+        if (status case final s?) 'status': s,
+        if (employeeId case final e?) 'employeeId': e,
       };
       final r = await dio.get('vacations', params: params);
       final data = r.data;
