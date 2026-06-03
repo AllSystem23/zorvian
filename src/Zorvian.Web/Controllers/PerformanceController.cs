@@ -7,7 +7,7 @@ namespace Zorvian.Web.Controllers;
 
 [ApiController]
 [Authorize]
-[Route("zorvian/v1/performance")]
+[Route("api/v1/performance")]
 public sealed class PerformanceController : ControllerBase
 {
     private readonly PerformanceService _service;

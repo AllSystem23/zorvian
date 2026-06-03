@@ -8,7 +8,7 @@ namespace Zorvian.Web.Controllers;
 
 [ApiController]
 [Authorize]
-[Route("zorvian/v1/cash-registers")]
+[Route("api/v1/cash-registers")]
 public sealed class CashRegistersController : ControllerBase
 {
     private readonly CashRegisterService _service;

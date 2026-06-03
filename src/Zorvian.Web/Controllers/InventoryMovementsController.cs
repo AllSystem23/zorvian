@@ -8,7 +8,7 @@ namespace Zorvian.Web.Controllers;
 
 [ApiController]
 [Authorize]
-[Route("zorvian/v1/inventory-movements")]
+[Route("api/v1/inventory-movements")]
 public sealed class InventoryMovementsController : ControllerBase
 {
     private readonly InventoryMovementService _service;

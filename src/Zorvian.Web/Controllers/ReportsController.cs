@@ -11,7 +11,7 @@ namespace Zorvian.Web.Controllers;
 /// </summary>
 [ApiController]
 [Authorize]
-[Route("zorvian/v1/reports")]
+[Route("api/v1/reports")]
 public sealed class ReportsController : ControllerBase
 {
     private readonly IReportService _service;

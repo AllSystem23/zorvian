@@ -8,7 +8,7 @@ namespace Zorvian.Web.Controllers;
 
 [ApiController]
 [Authorize]
-[Route("zorvian/v1/quotes")]
+[Route("api/v1/quotes")]
 public sealed class QuotesController : ControllerBase
 {
     private readonly QuoteService _service;

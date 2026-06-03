@@ -15,7 +15,7 @@ namespace Zorvian.Web.Controllers;
 /// </summary>
 [ApiController]
 [Authorize]
-[Route("zorvian/v1/users")]
+[Route("api/v1/users")]
 public sealed class UsersController : ControllerBase
 {
     private readonly ZorvianDbContext _db;

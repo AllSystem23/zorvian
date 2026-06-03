@@ -11,7 +11,7 @@ namespace Zorvian.Web.Controllers;
 /// </summary>
 [ApiController]
 [Authorize]
-[Route("zorvian/v1/kiosk")]
+[Route("api/v1/kiosk")]
 public sealed class KioskController : ControllerBase
 {
     private readonly AttendanceService _service;

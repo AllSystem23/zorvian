@@ -13,7 +13,7 @@ namespace Zorvian.Web.Controllers;
 /// </summary>
 [ApiController]
 [Authorize]
-[Route("zorvian/v1/permissions")]
+[Route("api/v1/permissions")]
 public sealed class PermissionsController : ControllerBase
 {
     private readonly PermissionService _service;

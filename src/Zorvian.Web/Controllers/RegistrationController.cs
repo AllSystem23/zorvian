@@ -8,7 +8,7 @@ using Zorvian.Infrastructure.Data;
 namespace Zorvian.Web.Controllers;
 
 [ApiController]
-[Route("zorvian/v1/auth")]
+[Route("api/v1/auth")]
 public sealed class RegistrationController : ControllerBase
 {
     private readonly ZorvianDbContext _db;

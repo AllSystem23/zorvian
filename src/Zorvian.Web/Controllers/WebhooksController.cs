@@ -9,7 +9,7 @@ namespace Zorvian.Web.Controllers;
 
 [ApiController]
 [Authorize(Roles = "SuperAdmin,CompanyAdmin")]
-[Route("zorvian/v1/webhooks")]
+[Route("api/v1/webhooks")]
 public sealed class WebhooksController : ControllerBase
 {
     private readonly ZorvianDbContext _db;

@@ -11,7 +11,7 @@ namespace Zorvian.Web.Controllers;
 /// </summary>
 [ApiController]
 [Authorize]
-[Route("zorvian/v1/companies")]
+[Route("api/v1/companies")]
 public sealed class CompaniesController : ControllerBase
 {
     private readonly CompanyService _companyService;

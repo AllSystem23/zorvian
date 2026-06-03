@@ -218,12 +218,12 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new()
     {
-        Title = "Zorvian HR API",
+        Title = "Nexora HR API",
         Version = "v1",
-        Description = "API REST para el sistema de gestión de recursos humanos Zorvian. Multi-tenant, con autenticación JWT + Firebase.",
+        Description = "API REST para el sistema de gestión de recursos humanos Nexora. Multi-tenant, con autenticación JWT + Firebase.",
         Contact = new OpenApiContact
         {
-            Name = "Soporte Zorvian",
+            Name = "Soporte Nexora",
             Email = "soporte@nexora.app",
         },
         License = new OpenApiLicense

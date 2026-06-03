@@ -7,7 +7,7 @@ namespace Zorvian.Web.Controllers;
 
 [ApiController]
 [Authorize]
-[Route("zorvian/v1/payroll")]
+[Route("api/v1/payroll")]
 public sealed class PayrollController : ControllerBase
 {
     private readonly PayrollService _service;

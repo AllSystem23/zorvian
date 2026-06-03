@@ -10,7 +10,7 @@ namespace Zorvian.Web.Controllers;
 /// </summary>
 [ApiController]
 [Authorize]
-[Route("zorvian/v1/departments")]
+[Route("api/v1/departments")]
 public sealed class DepartmentsController : ControllerBase
 {
     private readonly DepartmentService _service;

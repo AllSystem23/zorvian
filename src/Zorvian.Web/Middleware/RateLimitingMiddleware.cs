@@ -35,6 +35,26 @@ public sealed class RateLimitingMiddleware
         }
 
         var clientKey = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+        if (context.Request.Path.StartsWithSegments("/api/v1/auth"))
+        {
+            var authWindow = _clients.GetOrAdd($"auth:{clientKey}", _ => new SlidingWindow(5, TimeSpan.FromMinutes(15)));
+            if (!authWindow.TryRequest())
+            {
+                context.Response.StatusCode = (int)HttpStatusCode.TooManyRequests;
+                context.Response.Headers.RetryAfter = "900";
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsync(JsonSerializer.Serialize(new
+                {
+                    error = new { message = "Demasiados intentos de autenticación. Intenta de nuevo en 15 minutos.", statusCode = 429 }
+                }));
+                return;
+            }
+
+            await _next(context);
+            return;
+        }
+
         var window = _clients.GetOrAdd(clientKey, _ => new SlidingWindow(_maxRequests, _windowSize));
 
         if (!window.TryRequest())

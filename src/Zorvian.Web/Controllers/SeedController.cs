@@ -10,7 +10,7 @@ namespace Zorvian.Web.Controllers;
 /// </summary>
 [ApiController]
 [Authorize]
-[Route("zorvian/v1/seed")]
+[Route("api/v1/seed")]
 public sealed class SeedController : ControllerBase
 {
     private readonly SeedService _seed;

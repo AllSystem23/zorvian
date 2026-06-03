@@ -8,7 +8,7 @@ namespace Zorvian.Web.Controllers;
 
 [ApiController]
 [Authorize]
-[Route("zorvian/v1/categories")]
+[Route("api/v1/categories")]
 public sealed class CategoriesController : ControllerBase
 {
     private readonly CategoryService _service;
