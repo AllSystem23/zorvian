@@ -82,7 +82,7 @@ class _QRCheckInPageState extends ConsumerState<QRCheckInPage> {
             child: Text(
               'Apunta al código QR para marcar entrada',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14),
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 14),
             ),
           ),
         ],

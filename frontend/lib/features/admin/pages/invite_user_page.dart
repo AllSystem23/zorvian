@@ -70,7 +70,7 @@ class _InviteUserPageState extends ConsumerState<InviteUserPage> {
                 validator: (v) => v == null || !v.contains('@') ? 'Correo inválido' : null,
               ),
               DropdownButtonFormField<String>(
-                value: _selectedRole,
+                initialValue: _selectedRole,
                 items: _roles.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
                 onChanged: (v) => setState(() => _selectedRole = v!),
                 decoration: const InputDecoration(labelText: 'Rol'),

@@ -9,13 +9,12 @@ final profileProvider = FutureProvider.autoDispose<Map<String, dynamic>?>((ref) 
   final dio = ref.read(dioClientProvider);
   try {
     final r = await dio.get('employees/me');
-    print('DEBUG: Profile response: ${r.data}');
+    print('Profile loaded: ${r.data?.runtimeType}');
     if (r.data == null || (r.data is Map && r.data.isEmpty)) return null;
     return r.data as Map<String, dynamic>;
   } catch (e) {
     if (e is DioException) {
       if (e.response?.statusCode == 401) return null;
-      print('DEBUG: Profile dio error: ${e.response?.data}');
     }
     rethrow;
   }
@@ -110,7 +109,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   child: Text(
                     _editing && _photoUrlCtrl.text.isNotEmpty
                         ? '...'
-                        : '${auth.displayName?.isNotEmpty == true ? auth.displayName![0] : '?'}',
+                        : auth.displayName?.isNotEmpty == true ? auth.displayName![0] : '?',
                     style: const TextStyle(fontSize: 36, color: Colors.white),
                   ),
                 ),

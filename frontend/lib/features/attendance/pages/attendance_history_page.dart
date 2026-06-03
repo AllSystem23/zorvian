@@ -44,9 +44,9 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Expanded(child: _StatCard(label: 'Total Horas', value: '${summary.totalHours.toStringAsFixed(1)}', icon: Icons.access_time, color: Colors.blue)),
+                        Expanded(child: _StatCard(label: 'Total Horas', value: summary.totalHours.toStringAsFixed(1), icon: Icons.access_time, color: Colors.blue)),
                         const SizedBox(width: 8),
-                        Expanded(child: _StatCard(label: 'Promedio/día', value: '${summary.averageHoursPerDay.toStringAsFixed(1)}', icon: Icons.trending_up, color: Colors.purple)),
+                        Expanded(child: _StatCard(label: 'Promedio/día', value: summary.averageHoursPerDay.toStringAsFixed(1), icon: Icons.trending_up, color: Colors.purple)),
                         const SizedBox(width: 8),
                         Expanded(child: _StatCard(label: 'Registros', value: '${summary.records.length}', icon: Icons.list, color: Colors.teal)),
                       ],

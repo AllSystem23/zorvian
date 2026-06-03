@@ -36,7 +36,7 @@ class _ShimmerLoaderState extends State<ShimmerLoader> with SingleTickerProvider
     final theme = Theme.of(context);
     return AnimatedBuilder(
       animation: _controller,
-      builder: (_, __) {
+      builder: (_, _) {
         final isLight = theme.brightness == Brightness.light;
         return Container(
           width: widget.width,

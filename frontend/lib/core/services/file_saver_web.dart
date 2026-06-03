@@ -1,11 +1,14 @@
-// file_saver_web.dart
-import 'dart:html' as html;
+import 'dart:js_interop';
+import 'dart:typed_data';
+import 'package:web/web.dart';
 
 Future<void> saveFile(List<int> data, String fileName) async {
-  final blob = html.Blob([data]);
-  final url = html.Url.createObjectUrlFromBlob(blob);
-  html.AnchorElement(href: url)
-    ..setAttribute('download', fileName)
+  final blobParts = [Uint8List.fromList(data).toJS].toJS;
+  final blob = Blob(blobParts as JSArray<BlobPart>);
+  final url = URL.createObjectURL(blob);
+  HTMLAnchorElement()
+    ..href = url
+    ..download = fileName
     ..click();
-  html.Url.revokeObjectUrl(url);
+  URL.revokeObjectURL(url);
 }

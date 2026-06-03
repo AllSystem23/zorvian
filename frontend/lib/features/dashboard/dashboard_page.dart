@@ -30,8 +30,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         final uri = Uri.parse(apiUrl);
         final rootUrl = '${uri.scheme}://${uri.host}${uri.hasPort ? ':${uri.port}' : ''}';
         
-        print('DEBUG: Dashboard apiUrl: $apiUrl');
-        print('DEBUG: Dashboard rootUrl for SignalR: $rootUrl');
+        // print('DEBUG: Dashboard apiUrl: $apiUrl');
+        // print('DEBUG: Dashboard rootUrl for SignalR: $rootUrl');
         
         final storage = ref.read(secureStorageProvider);
         final token = await storage.getAccessToken();
@@ -61,7 +61,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       appBar: AppBar(
         title: Row(
           children: [
-            Image.asset('assets/logo3.png', height: 28, errorBuilder: (_, __, ___) => const SizedBox.shrink()),
+            Image.asset('assets/logo3.png', height: 28, errorBuilder: (_, _, _) => const SizedBox.shrink()),
             const SizedBox(width: 8),
             Text('Hola, $user'),
           ],
@@ -73,7 +73,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             onPressed: () => CommandPalette.show(context),
           ),
           Consumer(
-            builder: (_, ref, __) {
+            builder: (_, ref, _) {
               final notifState = ref.watch(signalRProvider);
               final unread = notifState.notifications.length;
               return Stack(
@@ -105,7 +105,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             },
           ),
           Consumer(
-            builder: (_, ref, __) {
+            builder: (context, ref, child) {
               final mode = ref.watch(themeModeProvider);
               return IconButton(
                 icon: Icon(mode == ThemeMode.dark ? Icons.light_mode : Icons.dark_mode),
@@ -167,7 +167,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               : ListView.separated(
                   shrinkWrap: true,
                   itemCount: list.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (_, i) {
                     final n = list[i];
                     return ListTile(
@@ -273,8 +273,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         subtitle: Text(item.description ?? item.requestType),
         trailing: _statusChip(item.status),
         onTap: () {
-          if (item.requestType == 'vacacion') context.push('/vacations/${item.id}');
-          else context.push('/permissions/${item.id}');
+          if (item.requestType == 'vacacion') {
+            context.push('/vacations/${item.id}');
+          } else {
+            context.push('/permissions/${item.id}');
+          }
         },
       ),
     );

@@ -173,7 +173,7 @@ class _AttendancePageState extends ConsumerState<AttendancePage> {
         const SizedBox(width: 8),
         Expanded(child: _SummaryCard(label: 'Tardes', value: '${summary.lateDays}', color: Colors.orange)),
         const SizedBox(width: 8),
-        Expanded(child: _SummaryCard(label: 'Horas', value: '${summary.totalHours.toStringAsFixed(1)}', color: Colors.blue)),
+        Expanded(child: _SummaryCard(label: 'Horas', value: summary.totalHours.toStringAsFixed(1), color: Colors.blue)),
       ],
     );
   }

@@ -82,7 +82,7 @@ class _AbsenceCalendarPageState extends ConsumerState<AbsenceCalendarPage> {
                           width: 36,
                           height: 36,
                           decoration: BoxDecoration(
-                            color: hasEvent ? const Color(0xFFD97706).withOpacity(0.2) : null,
+                            color: hasEvent ? const Color(0xFFD97706).withValues(alpha: 0.2) : null,
                             shape: BoxShape.circle,
                             border: isToday ? Border.all(color: theme.colorScheme.primary, width: 2) : null,
                           ),
@@ -98,7 +98,7 @@ class _AbsenceCalendarPageState extends ConsumerState<AbsenceCalendarPage> {
           if (events.isNotEmpty)
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: theme.colorScheme.surfaceVariant.withOpacity(0.3)),
+              decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

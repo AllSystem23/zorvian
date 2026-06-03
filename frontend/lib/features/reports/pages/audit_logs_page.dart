@@ -47,7 +47,7 @@ class _AuditLogsPageState extends ConsumerState<AuditLogsPage> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _entityFilter,
+                    initialValue: _entityFilter,
                     decoration: const InputDecoration(
                       labelText: 'Entidad',
                       border: OutlineInputBorder(),
@@ -65,7 +65,7 @@ class _AuditLogsPageState extends ConsumerState<AuditLogsPage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: DropdownButtonFormField<String>(
-                    value: _actionFilter,
+                    initialValue: _actionFilter,
                     decoration: const InputDecoration(
                       labelText: 'Acción',
                       border: OutlineInputBorder(),

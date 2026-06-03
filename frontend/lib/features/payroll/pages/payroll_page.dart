@@ -59,7 +59,7 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
                   if (_runs.isEmpty)
                     const EmptyState(icon: Icons.receipt_long, title: 'Sin corridas', subtitle: 'Genere una corrida desde un periodo abierto'),
                   if (_runs.isNotEmpty)
-                    ..._runs.map((r) => _RunCard(r, theme)),
+                    ..._runs.map((r) => _buildRunCard(r, theme)),
                 ],
               ),
             ),
@@ -86,7 +86,7 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
     );
   }
 
-  Widget _RunCard(dynamic run, ThemeData theme) {
+  Widget _buildRunCard(dynamic run, ThemeData theme) {
     final status = run['status'] as String? ?? 'draft';
     final (label, color) = switch (status) {
       'draft' => ('Borrador', Colors.grey),

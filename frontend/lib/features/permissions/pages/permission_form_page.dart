@@ -169,7 +169,7 @@ class _PermissionFormPageState extends ConsumerState<PermissionFormPage> {
                   child: Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
                 ),
               DropdownButtonFormField<String>(
-                value: _selectedTypeId,
+                initialValue: _selectedTypeId,
                 decoration: const InputDecoration(
                   labelText: 'Tipo de permiso',
                   prefixIcon: Icon(Icons.category),

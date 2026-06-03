@@ -53,7 +53,7 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
                     const SizedBox(height: 24),
                     Text('Detalle por Empleado', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 12),
-                    ...(_run!['details'] as List<dynamic>? ?? []).map((d) => _DetailCard(d, theme)),
+                    ...(_run!['details'] as List<dynamic>? ?? []).map((d) => _buildDetailCard(d, theme)),
                   ],
                 ),
     );
@@ -82,12 +82,12 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
               ],
             ),
             const SizedBox(height: 16),
-            _SummaryRow('Salarios', 'C\$ ${_run!['totalSalaries']?.toStringAsFixed(2) ?? '0.00'}'),
-            _SummaryRow('Deducciones', '- C\$ ${_run!['totalDeductions']?.toStringAsFixed(2) ?? '0.00'}'),
+            _buildSummaryRow('Salarios', 'C\$ ${_run!["totalSalaries"]?.toStringAsFixed(2) ?? "0.00"}'),
+            _buildSummaryRow('Deducciones', '- C\$ ${_run!["totalDeductions"]?.toStringAsFixed(2) ?? "0.00"}'),
             const Divider(),
-            _SummaryRow('Neto a Pagar', 'C\$ ${_run!['totalNetPay']?.toStringAsFixed(2) ?? '0.00'}', bold: true),
+            _buildSummaryRow('Neto a Pagar', 'C\$ ${_run!["totalNetPay"]?.toStringAsFixed(2) ?? "0.00"}', bold: true),
             const SizedBox(height: 8),
-            _SummaryRow('Empleados', '${_run!['employeeCount'] ?? 0}'),
+            _buildSummaryRow('Empleados', '${_run!["employeeCount"] ?? 0}'),
             if (_run!['status'] == 'draft')
               Padding(
                 padding: const EdgeInsets.only(top: 16),
@@ -106,7 +106,7 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
     );
   }
 
-  Widget _SummaryRow(String label, String value, {bool bold = false}) {
+  Widget _buildSummaryRow(String label, String value, {bool bold = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -119,7 +119,7 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
     );
   }
 
-  Widget _DetailCard(dynamic d, ThemeData theme) {
+  Widget _buildDetailCard(dynamic d, ThemeData theme) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
