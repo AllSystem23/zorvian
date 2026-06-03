@@ -8,6 +8,7 @@ import 'core/firebase_options.dart';
 import 'core/services/local_notification_service.dart';
 import 'core/theme/theme_provider.dart';
 import 'features/biometrics/providers/biometric_provider.dart';
+import 'auth/auth_provider.dart';
 
 final localNotificationServiceProvider = Provider<LocalNotificationService>((_) => LocalNotificationService());
 
@@ -68,6 +69,9 @@ class _AppLoaderState extends ConsumerState<_AppLoader> {
       } catch (_) {}
       try {
         await ref.read(biometricProvider.notifier).init();
+      } catch (_) {}
+      try {
+        await ref.read(authProvider.notifier).checkAuth();
       } catch (_) {}
     });
   }

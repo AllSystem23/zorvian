@@ -17,20 +17,32 @@ final class AppShell extends ConsumerWidget {
 
     return Row(
       children: [
-        NavigationRail(
-          selectedIndex: _selectedIndex(context, role),
-          onDestinationSelected: (i) => _onNavigate(context, i, role),
-          labelType: NavigationRailLabelType.all,
-          leading: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Icon(Icons.diamond, color: theme.colorScheme.primary, size: 32),
-          ),
-          destinations: _navDestinations(role),
-          trailing: Expanded(
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 12),
+        SizedBox(
+          width: 80,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Icon(Icons.diamond, color: theme.colorScheme.primary, size: 32),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  children: [
+                    for (var i = 0; i < _navItems(role).length; i++)
+                      _NavItemWidget(
+                        item: _navItems(role)[i],
+                        selected: _selectedIndex(context, role) == i,
+                        onTap: () => _onNavigate(context, i, role),
+                        theme: theme,
+                      ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -50,7 +62,7 @@ final class AppShell extends ConsumerWidget {
                   ],
                 ),
               ),
-            ),
+            ],
           ),
         ),
         const VerticalDivider(width: 1),
@@ -107,13 +119,6 @@ final class AppShell extends ConsumerWidget {
     return all;
   }
 
-  List<NavigationRailDestination> _navDestinations(String role) {
-    return _navItems(role).map((item) => NavigationRailDestination(
-      icon: Icon(item.icon, size: 20),
-      selectedIcon: Icon(item.icon, size: 20),
-      label: Text(item.label, style: const TextStyle(fontSize: 11)),
-    )).toList();
-  }
 }
 
 final class _NavItem {
@@ -121,4 +126,39 @@ final class _NavItem {
   final IconData icon;
   final String route;
   const _NavItem(this.label, this.icon, this.route);
+}
+
+final class _NavItemWidget extends StatelessWidget {
+  final _NavItem item;
+  final bool selected;
+  final VoidCallback onTap;
+  final ThemeData theme;
+
+  const _NavItemWidget({
+    required this.item,
+    required this.selected,
+    required this.onTap,
+    required this.theme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected
+        ? theme.colorScheme.primary
+        : theme.colorScheme.onSurfaceVariant;
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(item.icon, size: 20, color: color),
+            const SizedBox(height: 4),
+            Text(item.label, style: TextStyle(fontSize: 10, color: color), maxLines: 1, overflow: TextOverflow.ellipsis),
+          ],
+        ),
+      ),
+    );
+  }
 }
