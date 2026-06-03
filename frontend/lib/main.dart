@@ -33,7 +33,7 @@ void main() async {
       final messaging = FirebaseMessaging.instance;
       await messaging.getToken();
       FirebaseMessaging.onMessage.listen((message) {
-        final title = message.notification?.title ?? 'Nexora';
+        final title = message.notification?.title ?? 'Zorvian ERP';
         final body = message.notification?.body ?? '';
         if (title.isNotEmpty || body.isNotEmpty) {
           notifService.showNotification(
@@ -73,5 +73,5 @@ class _AppLoaderState extends ConsumerState<_AppLoader> {
   }
 
   @override
-  Widget build(BuildContext context) => const NexoraApp();
+  Widget build(BuildContext context) => const ZorvianApp();
 }

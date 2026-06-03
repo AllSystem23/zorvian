@@ -1,10 +1,10 @@
 {
   "@@locale": "es",
-  "appTitle": "Nexora",
+  "appTitle": "Zorvian ERP",
   "login": "Iniciar Sesión",
   "email": "Correo Electrónico",
   "password": "Contraseña",
-  "welcome": "Bienvenido a Nexora",
+  "welcome": "Bienvenido a Zorvian ERP",
   "employees": "Empleados",
   "payroll": "Nómina",
   "vacations": "Vacaciones",

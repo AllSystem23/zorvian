@@ -3,8 +3,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class SecureStorage {
   static const _storage = FlutterSecureStorage(
     webOptions: WebOptions(
-      dbName: 'NexoraStorage',
-      publicKey: 'NexoraKey',
+      dbName: 'ZorvianStorage',
+      publicKey: 'ZorvianKey',
     ),
   );
 

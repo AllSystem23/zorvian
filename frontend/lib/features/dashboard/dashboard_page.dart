@@ -61,7 +61,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       appBar: AppBar(
         title: Row(
           children: [
-            Image.asset('assets/logo3.png', height: 28, errorBuilder: (_, _, _) => const SizedBox.shrink()),
+            Image.asset('assets/Zorvian.png', height: 28),
             const SizedBox(width: 8),
             Text('Hola, $user'),
           ],

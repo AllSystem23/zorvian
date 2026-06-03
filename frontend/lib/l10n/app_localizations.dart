@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In es, this message translates to:
-  /// **'Nexora'**
+  /// **'Zorvian ERP'**
   String get appTitle;
 
   /// No description provided for @login.
@@ -125,7 +125,7 @@ abstract class AppLocalizations {
   /// No description provided for @welcome.
   ///
   /// In es, this message translates to:
-  /// **'Bienvenido a Nexora'**
+  /// **'Bienvenido a Zorvian ERP'**
   String get welcome;
 
   /// No description provided for @employees.

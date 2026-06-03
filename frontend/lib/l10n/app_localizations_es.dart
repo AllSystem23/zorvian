@@ -9,7 +9,7 @@ class AppLocalizationsEs extends AppLocalizations {
   AppLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
-  String get appTitle => 'Nexora';
+  String get appTitle => 'Zorvian ERP';
 
   @override
   String get login => 'Iniciar Sesión';
@@ -21,7 +21,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get password => 'Contraseña';
 
   @override
-  String get welcome => 'Bienvenido a Nexora';
+  String get welcome => 'Bienvenido a Zorvian ERP';
 
   @override
   String get employees => 'Empleados';

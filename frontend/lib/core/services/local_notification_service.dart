@@ -26,8 +26,8 @@ class LocalNotificationService {
     String? payload,
   }) async {
     const androidDetails = AndroidNotificationDetails(
-      'nexora_channel',
-      'Notificaciones Nexora',
+      'zorvian_channel',
+      'Notificaciones Zorvian ERP',
       channelDescription: 'Notificaciones de asistencia, vacaciones y permisos',
       importance: Importance.high,
       priority: Priority.high,

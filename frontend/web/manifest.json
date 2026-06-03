@@ -1,11 +1,11 @@
 {
-    "name": "nexora",
-    "short_name": "nexora",
+    "name": "Zorvian ERP",
+    "short_name": "Zorvian",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#0B1F3B",
+    "theme_color": "#0B1F3B",
+    "description": "Zorvian ERP - Gestión empresarial inteligente",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

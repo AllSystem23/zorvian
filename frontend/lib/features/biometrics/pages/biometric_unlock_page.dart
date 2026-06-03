@@ -62,7 +62,7 @@ class _BiometricUnlockPageState extends ConsumerState<BiometricUnlockPage> with 
               Icon(Icons.fingerprint, size: 80, color: Theme.of(context).colorScheme.onPrimary),
               const SizedBox(height: 24),
               Text(
-                'Nexora',
+                'Zorvian ERP',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onPrimary,
                   fontWeight: FontWeight.bold,

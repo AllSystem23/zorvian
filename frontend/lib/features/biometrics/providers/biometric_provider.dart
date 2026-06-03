@@ -42,7 +42,7 @@ class BiometricNotifier extends Notifier<BiometricState> {
 
   Future<bool> tryUnlock() async {
     if (!state.isEnabled) return true;
-    final success = await ref.read(biometricServiceProvider).authenticate(reason: 'Desbloquear Nexora');
+    final success = await ref.read(biometricServiceProvider).authenticate(reason: 'Desbloquear Zorvian ERP');
     if (success) {
       state = state.copyWith(isUnlocked: true);
     }

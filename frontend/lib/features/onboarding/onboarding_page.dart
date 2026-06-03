@@ -76,7 +76,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                 Icon(Icons.business, size: 48, color: theme.colorScheme.primary),
                 const SizedBox(height: 16),
                 Text(
-                  'Bienvenido a Nexora',
+                  'Bienvenido a Zorvian ERP',
                   textAlign: TextAlign.center,
                   style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
                 ),

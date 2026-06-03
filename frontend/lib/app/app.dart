@@ -9,14 +9,14 @@ import '../features/biometrics/pages/biometric_unlock_page.dart';
 import 'router.dart';
 import 'theme.dart';
 
-class NexoraApp extends ConsumerStatefulWidget {
-  const NexoraApp({super.key});
+class ZorvianApp extends ConsumerStatefulWidget {
+  const ZorvianApp({super.key});
 
   @override
-  ConsumerState<NexoraApp> createState() => _NexoraAppState();
+  ConsumerState<ZorvianApp> createState() => _ZorvianAppState();
 }
 
-class _NexoraAppState extends ConsumerState<NexoraApp> {
+class _ZorvianAppState extends ConsumerState<ZorvianApp> {
   @override
   void initState() {
     super.initState();
@@ -37,7 +37,7 @@ class _NexoraAppState extends ConsumerState<NexoraApp> {
     return ErrorHandlerWidget(
       child: BiometricUnlockPage(
         child: MaterialApp.router(
-          title: 'Nexora',
+          title: 'Zorvian ERP',
           debugShowCheckedModeBanner: false,
           theme: ZorvianTheme.light(),
           darkTheme: ZorvianTheme.dark(),

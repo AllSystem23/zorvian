@@ -20,7 +20,7 @@ class BiometricService {
     }
   }
 
-  Future<bool> authenticate({String reason = 'Acceso a Nexora'}) async {
+  Future<bool> authenticate({String reason = 'Acceso a Zorvian ERP'}) async {
     try {
       return await _auth.authenticate(
         localizedReason: reason,
