@@ -159,9 +159,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           child: Container(
             padding: const EdgeInsets.all(40),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.white.withOpacity(0.2)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
             ),
             child: Form(
               key: _formKey,
@@ -180,7 +180,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   const SizedBox(height: 8),
                   Text(
                     'Ingresa tus credenciales para continuar',
-                    style: TextStyle(color: Colors.white.withOpacity(0.6)),
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
                   ),
                   const SizedBox(height: 32),
                   if (_error != null) _buildErrorBanner(theme),
@@ -218,7 +218,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     onPressed: () => context.push('/register'),
                     child: Text(
                       '¿No tienes cuenta? Solicita acceso',
-                      style: TextStyle(color: Colors.white.withOpacity(0.8)),
+                      style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
                     ),
                   ),
                 ],
@@ -242,13 +242,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
-        prefixIcon: Icon(icon, color: Colors.white.withOpacity(0.6)),
+        labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+        prefixIcon: Icon(icon, color: Colors.white.withValues(alpha: 0.6)),
         filled: true,
-        fillColor: Colors.white.withOpacity(0.05),
+        fillColor: Colors.white.withValues(alpha: 0.05),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -258,7 +258,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             ? IconButton(
                 icon: Icon(
                   _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                  color: Colors.white.withOpacity(0.6),
+                  color: Colors.white.withValues(alpha: 0.6),
                 ),
                 onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
               )
@@ -274,7 +274,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       padding: const EdgeInsets.all(12),
       margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
-        color: theme.colorScheme.error.withOpacity(0.2),
+        color: theme.colorScheme.error.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: theme.colorScheme.error.withOpacity(0.3)),
       ),
