@@ -2,7 +2,7 @@ name: Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [master]
 
 jobs:
   test-and-deploy:
@@ -18,13 +18,13 @@ jobs:
           dotnet-version: 9.0.x
 
       - name: Restore
-        run: dotnet restore src/Nexora.Web/Nexora.Web.csproj
+        run: dotnet restore src/Zorvian.Web/Zorvian.Web.csproj
 
       - name: Build
-        run: dotnet build src/Nexora.Web/Nexora.Web.csproj --no-restore -c Release
+        run: dotnet build src/Zorvian.Web/Zorvian.Web.csproj --no-restore -c Release
 
       - name: Test
-        run: dotnet test tests/Nexora.Tests/Nexora.Tests.csproj --no-build -c Release --verbosity normal
+        run: dotnet test tests/Zorvian.Tests/Zorvian.Tests.csproj --no-build -c Release --verbosity normal
 
       - name: Trigger Render Deploy
         run: |
