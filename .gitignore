@@ -48,3 +48,6 @@ appsettings.Development.json
 *.pem
 serviceAccountKey.json
 *-firebase-admin.json
+
+# Firebase service account
+nexora-hr-firebase-adminsdk-fbsvc-dbd7abf513.json

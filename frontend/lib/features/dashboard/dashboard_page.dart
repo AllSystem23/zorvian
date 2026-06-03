@@ -26,7 +26,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       final auth = ref.read(authProvider);
       if (auth.status == AuthStatus.authenticated) {
         // Extraemos solo la raíz del dominio para SignalR
-        const apiUrl = String.fromEnvironment('API_URL', defaultValue: 'https://nexora-9yal.onrender.com/api/v1');
+        const apiUrl = String.fromEnvironment('API_URL', defaultValue: 'https://nexora-9yal.onrender.com/zorvian/v1');
         final uri = Uri.parse(apiUrl);
         final rootUrl = '${uri.scheme}://${uri.host}${uri.hasPort ? ':${uri.port}' : ''}';
         
