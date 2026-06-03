@@ -4,6 +4,6 @@ import 'package:nexora/app/app.dart';
 void main() {
   testWidgets('App renders login page', (WidgetTester tester) async {
     await tester.pumpWidget(const NexoraApp());
-    expect(find.text('Nexora'), findsOneWidget);
+    expect(find.text('Zorvian ERP'), findsOneWidget);
   });
 }

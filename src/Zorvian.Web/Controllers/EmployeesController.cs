@@ -94,14 +94,14 @@ public sealed class EmployeesController : ControllerBase
 </head>
 <body>
   <h1 style=""text-align:center;"">CONSTANCIA LABORAL</h1>
-  <p>El suscrito, representante legal de <strong>Zorvian HR</strong>, hace constar que:</p>
+  <p>El suscrito, representante legal de <strong>Zorvian ERP</strong>, hace constar que:</p>
   <p style=""text-align:center;font-size:18px;""><strong>{name}</strong></p>
   <p>con cédula de identidad <strong>{employee.IdentificationNumber}</strong>, labora desde el <strong>{hired}</strong> en el cargo de <strong>{employee.Position}</strong> en <strong>{employee.DepartmentName}</strong>.</p>
   <p>Estado actual: <strong>{employee.Status}</strong>.</p>
   <p>Se extiende la presente para los fines que el interesado estime conveniente.</p>
   <div class=""signature"">
     <p>_________________________________</p>
-    <p><strong>Recursos Humanos</strong><br>Zorvian HR</p>
+    <p><strong>Recursos Humanos</strong><br>Zorvian ERP</p>
   </div>
   <div class=""footer"">
     <p>Emitido el {DateTime.UtcNow:dd/MM/yyyy HH:mm} UTC</p>
