@@ -14,7 +14,7 @@ namespace Zorvian.Web.Controllers;
 /// </summary>
 [ApiController]
 [Authorize]
-[Route("api/v1/vacations")]
+[Route("zorvian/v1/vacations")]
 public sealed class VacationsController : ControllerBase
 {
     private readonly VacationService _service;

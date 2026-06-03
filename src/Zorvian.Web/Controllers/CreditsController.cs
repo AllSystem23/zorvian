@@ -8,7 +8,7 @@ namespace Zorvian.Web.Controllers;
 
 [ApiController]
 [Authorize]
-[Route("api/v1/credits")]
+[Route("zorvian/v1/credits")]
 public sealed class CreditsController : ControllerBase
 {
     private readonly CreditService _service;

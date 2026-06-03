@@ -10,7 +10,7 @@ namespace Zorvian.Web.Controllers;
 
 [ApiController]
 [Authorize(Roles = "SuperAdmin,CompanyAdmin")]
-[Route("api/v1/api-keys")]
+[Route("zorvian/v1/api-keys")]
 public sealed class ApiKeysController : ControllerBase
 {
     private readonly ApiKeyService _service;

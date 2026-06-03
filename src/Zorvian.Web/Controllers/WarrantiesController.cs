@@ -8,7 +8,7 @@ namespace Zorvian.Web.Controllers;
 
 [ApiController]
 [Authorize]
-[Route("api/v1/warranties")]
+[Route("zorvian/v1/warranties")]
 public sealed class WarrantiesController : ControllerBase
 {
     private readonly WarrantyService _service;

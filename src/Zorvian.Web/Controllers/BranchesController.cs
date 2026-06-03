@@ -8,7 +8,7 @@ namespace Zorvian.Web.Controllers;
 
 [ApiController]
 [Authorize]
-[Route("api/v1/branches")]
+[Route("zorvian/v1/branches")]
 public sealed class BranchesController : ControllerBase
 {
     private readonly BranchService _service;

@@ -8,7 +8,7 @@ namespace Zorvian.Web.Controllers;
 
 [ApiController]
 [Authorize]
-[Route("api/v1/products")]
+[Route("zorvian/v1/products")]
 public sealed class ProductsController : ControllerBase
 {
     private readonly ProductService _service;

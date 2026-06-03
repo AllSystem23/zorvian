@@ -9,7 +9,7 @@ namespace Zorvian.Web.Controllers;
 
 [ApiController]
 [Authorize(Roles = "SuperAdmin")]
-[Route("api/v1/invitations")]
+[Route("zorvian/v1/invitations")]
 public sealed class InvitationsController : ControllerBase
 {
     private readonly ZorvianDbContext _db;

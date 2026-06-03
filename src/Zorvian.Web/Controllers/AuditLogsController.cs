@@ -9,7 +9,7 @@ namespace Zorvian.Web.Controllers;
 /// </summary>
 [ApiController]
 [Authorize]
-[Route("api/v1/audit")]
+[Route("zorvian/v1/audit")]
 public sealed class AuditLogsController : ControllerBase
 {
     private readonly IAuditLogRepository _repo;

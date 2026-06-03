@@ -9,7 +9,7 @@ namespace Zorvian.Web.Controllers;
 /// Controlador de autenticación. Maneja inicio de sesión, renovación de tokens, cierre de sesión y verificación de salud del servicio.
 /// </summary>
 [ApiController]
-[Route("api/v1/auth")]
+[Route("zorvian/v1/auth")]
 public sealed class AuthController : ControllerBase
 {
     private readonly AuthService _authService;

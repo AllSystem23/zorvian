@@ -15,7 +15,7 @@ namespace Zorvian.Web.Controllers;
 /// </summary>
 [ApiController]
 [Authorize]
-[Route("api/v1/attendance")]
+[Route("zorvian/v1/attendance")]
 public sealed class AttendanceController : ControllerBase
 {
     private readonly AttendanceService _service;

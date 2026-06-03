@@ -13,7 +13,7 @@ namespace Zorvian.Web.Controllers;
 /// </summary>
 [ApiController]
 [Authorize]
-[Route("api/v1/leave-types")]
+[Route("zorvian/v1/leave-types")]
 public sealed class LeaveTypesController : ControllerBase
 {
     private readonly IPermissionRepository _repo;

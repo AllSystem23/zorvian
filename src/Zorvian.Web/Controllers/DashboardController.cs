@@ -10,7 +10,7 @@ namespace Zorvian.Web.Controllers;
 /// </summary>
 [ApiController]
 [Authorize]
-[Route("api/v1/dashboard")]
+[Route("zorvian/v1/dashboard")]
 [ProducesResponseType(StatusCodes.Status401Unauthorized)]
 public sealed class DashboardController : ControllerBase
 {

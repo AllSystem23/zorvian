@@ -8,7 +8,7 @@ namespace Zorvian.Web.Controllers;
 
 [ApiController]
 [Authorize]
-[Route("api/v1/suppliers")]
+[Route("zorvian/v1/suppliers")]
 public sealed class SuppliersController : ControllerBase
 {
     private readonly SupplierService _service;

@@ -14,7 +14,7 @@ namespace Zorvian.Web.Controllers;
 /// </summary>
 [ApiController]
 [Authorize]
-[Route("api/v1/biometrics")]
+[Route("zorvian/v1/biometrics")]
 public sealed class BiometricsController : ControllerBase
 {
     private readonly ZorvianDbContext _db;

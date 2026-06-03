@@ -13,7 +13,7 @@ namespace Zorvian.Web.Controllers;
 /// </summary>
 [ApiController]
 [Authorize]
-[Route("api/v1/notifications")]
+[Route("zorvian/v1/notifications")]
 public sealed class NotificationsController : ControllerBase
 {
     private readonly ZorvianDbContext _db;
