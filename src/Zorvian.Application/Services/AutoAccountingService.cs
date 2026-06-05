@@ -14,6 +14,10 @@ public interface IAutoAccountingService
     Task<Guid> GenerateInventoryEntryAsync(Guid movementId, Guid productId, string movementType, int quantity, decimal unitCost);
     Task<Guid> GeneratePayrollEntryAsync(Guid payrollRunId);
     Task<Guid> GenerateCashMovementEntryAsync(Guid movementId);
+    Task<Guid> GenerateFixedAssetAcquisitionEntryAsync(Guid assetId, decimal cost, Guid companyId, Guid branchId);
+    Task<Guid> GenerateDepreciationEntryAsync(Guid assetId, decimal amount, Guid companyId, Guid branchId);
+    Task<Guid> GenerateDisposalEntryAsync(Guid assetId, decimal cost, decimal accumulatedDepreciation, decimal saleAmount, decimal gainOrLoss, string disposalType, Guid companyId, Guid branchId);
+    Task<Guid> GenerateRevaluationEntryAsync(Guid assetId, decimal previousValue, decimal newValue, decimal accumulatedDepreciation, Guid companyId, Guid branchId);
 }
 
 public class AutoAccountingService : IAutoAccountingService
@@ -453,6 +457,172 @@ public AutoAccountingService(
             [
                 new() { AccountId = apAccountId, DebitAmount = total, CreditAmount = 0, Description = "Nota crédito proveedor", CompanyId = companyId },
                 new() { AccountId = invAccountId, DebitAmount = 0, CreditAmount = total, Description = "Devolución de inventario", CompanyId = companyId },
+            ],
+        };
+
+        await _entryRepo.AddAsync(entry);
+        await _entryRepo.SaveChangesAsync();
+        return entry.Id;
+    }
+
+    public async Task<Guid> GenerateFixedAssetAcquisitionEntryAsync(Guid assetId, decimal cost, Guid companyId, Guid branchId)
+    {
+        var periodId = await GetPeriodIdAsync();
+        var assetAccountId = await GetAccountIdAsync(TransactionTypes.FixedAssetAcquisition, AccountRoles.FixedAssetCost);
+        var cashAccountId = await GetAccountIdAsync(TransactionTypes.FixedAssetAcquisition, AccountRoles.Cash);
+
+        if (cashAccountId == Guid.Empty)
+            cashAccountId = await GetAccountIdAsync(TransactionTypes.CashMovement, AccountRoles.Cash);
+
+        var entry = new AccountingEntry
+        {
+            EntryNumber = $"AS-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..4]}",
+            EntryDate = DateTime.UtcNow,
+            Description = $"Adquisición activo fijo #{assetId.ToString()[..8]}",
+            ReferenceType = "FixedAssetAcquisition",
+            ReferenceId = assetId,
+            Status = "posted",
+            AccountingPeriodId = periodId,
+            CompanyId = companyId,
+            BranchId = branchId,
+            TotalDebit = cost,
+            TotalCredit = cost,
+            PostedAt = DateTime.UtcNow,
+            Details =
+            [
+                new() { AccountId = assetAccountId, DebitAmount = cost, CreditAmount = 0, Description = "Costo activo fijo", CompanyId = companyId },
+                new() { AccountId = cashAccountId, DebitAmount = 0, CreditAmount = cost, Description = "Salida de efectivo", CompanyId = companyId },
+            ],
+        };
+
+        await _entryRepo.AddAsync(entry);
+        await _entryRepo.SaveChangesAsync();
+        return entry.Id;
+    }
+
+    public async Task<Guid> GenerateDepreciationEntryAsync(Guid assetId, decimal amount, Guid companyId, Guid branchId)
+    {
+        var periodId = await GetPeriodIdAsync();
+        var deprExpenseId = await GetAccountIdAsync(TransactionTypes.FixedAssetDepreciation, AccountRoles.DepreciationExpense);
+        var accumDeprId = await GetAccountIdAsync(TransactionTypes.FixedAssetDepreciation, AccountRoles.AccumulatedDepreciation);
+
+        var entry = new AccountingEntry
+        {
+            EntryNumber = $"AS-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..4]}",
+            EntryDate = DateTime.UtcNow,
+            Description = $"Depreciación activo fijo #{assetId.ToString()[..8]}",
+            ReferenceType = "FixedAssetDepreciation",
+            ReferenceId = assetId,
+            Status = "posted",
+            AccountingPeriodId = periodId,
+            CompanyId = companyId,
+            BranchId = branchId,
+            TotalDebit = amount,
+            TotalCredit = amount,
+            PostedAt = DateTime.UtcNow,
+            Details =
+            [
+                new() { AccountId = deprExpenseId, DebitAmount = amount, CreditAmount = 0, Description = "Gasto depreciación", CompanyId = companyId },
+                new() { AccountId = accumDeprId, DebitAmount = 0, CreditAmount = amount, Description = "Depreciación acumulada", CompanyId = companyId },
+            ],
+        };
+
+        await _entryRepo.AddAsync(entry);
+        await _entryRepo.SaveChangesAsync();
+        return entry.Id;
+    }
+
+    public async Task<Guid> GenerateDisposalEntryAsync(Guid assetId, decimal cost, decimal accumulatedDepreciation, decimal saleAmount, decimal gainOrLoss, string disposalType, Guid companyId, Guid branchId)
+    {
+        var periodId = await GetPeriodIdAsync();
+        var assetAccountId = await GetAccountIdAsync(TransactionTypes.FixedAssetDisposal, AccountRoles.FixedAssetCost);
+        var accumDeprId = await GetAccountIdAsync(TransactionTypes.FixedAssetDisposal, AccountRoles.AccumulatedDepreciation);
+        var cashAccountId = await GetAccountIdAsync(TransactionTypes.FixedAssetDisposal, AccountRoles.Cash);
+        var gainAccountId = await GetAccountIdAsync(TransactionTypes.FixedAssetDisposal, AccountRoles.GainOnDisposal);
+        var lossAccountId = await GetAccountIdAsync(TransactionTypes.FixedAssetDisposal, AccountRoles.LossOnDisposal);
+
+        if (cashAccountId == Guid.Empty)
+            cashAccountId = await GetAccountIdAsync(TransactionTypes.CashMovement, AccountRoles.Cash);
+
+        var netBookValue = cost - accumulatedDepreciation;
+        var isGain = gainOrLoss >= 0;
+        var totalDebit = cost + (isGain ? 0 : Math.Abs(gainOrLoss));
+        var totalCredit = accumulatedDepreciation + saleAmount + (isGain ? gainOrLoss : 0);
+
+        var details = new List<AccountingEntryDetail>
+        {
+            new() { AccountId = accumDeprId, DebitAmount = 0, CreditAmount = accumulatedDepreciation, Description = "Baja depreciación acumulada", CompanyId = companyId },
+            new() { AccountId = assetAccountId, DebitAmount = 0, CreditAmount = cost, Description = "Baja costo activo", CompanyId = companyId },
+        };
+
+        if (saleAmount > 0)
+        {
+            details.Add(new() { AccountId = cashAccountId, DebitAmount = saleAmount, CreditAmount = 0, Description = "Venta activo fijo", CompanyId = companyId });
+        }
+
+        if (isGain && gainOrLoss > 0)
+        {
+            details.Add(new() { AccountId = gainAccountId, DebitAmount = 0, CreditAmount = gainOrLoss, Description = "Ganancia en venta de activo", CompanyId = companyId });
+        }
+        else if (!isGain && gainOrLoss < 0)
+        {
+            details.Add(new() { AccountId = lossAccountId, DebitAmount = Math.Abs(gainOrLoss), CreditAmount = 0, Description = "Pérdida en baja de activo", CompanyId = companyId });
+        }
+
+        var maxTotal = Math.Max(totalDebit, totalCredit);
+        var entry = new AccountingEntry
+        {
+            EntryNumber = $"AS-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..4]}",
+            EntryDate = DateTime.UtcNow,
+            Description = $"Baja activo fijo #{assetId.ToString()[..8]}",
+            ReferenceType = "FixedAssetDisposal",
+            ReferenceId = assetId,
+            Status = "posted",
+            AccountingPeriodId = periodId,
+            CompanyId = companyId,
+            BranchId = branchId,
+            TotalDebit = maxTotal,
+            TotalCredit = maxTotal,
+            PostedAt = DateTime.UtcNow,
+            Details = details,
+        };
+
+        await _entryRepo.AddAsync(entry);
+        await _entryRepo.SaveChangesAsync();
+        return entry.Id;
+    }
+
+    public async Task<Guid> GenerateRevaluationEntryAsync(Guid assetId, decimal previousValue, decimal newValue, decimal accumulatedDepreciation, Guid companyId, Guid branchId)
+    {
+        var periodId = await GetPeriodIdAsync();
+        var assetAccountId = await GetAccountIdAsync(TransactionTypes.FixedAssetRevaluation, AccountRoles.FixedAssetCost);
+        var revalSurplusId = await GetAccountIdAsync(TransactionTypes.FixedAssetRevaluation, AccountRoles.RevaluationSurplus);
+
+        var difference = newValue - previousValue;
+        var isIncrease = difference >= 0;
+
+        var entry = new AccountingEntry
+        {
+            EntryNumber = $"AS-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..4]}",
+            EntryDate = DateTime.UtcNow,
+            Description = $"Revaluación activo fijo #{assetId.ToString()[..8]}",
+            ReferenceType = "FixedAssetRevaluation",
+            ReferenceId = assetId,
+            Status = "posted",
+            AccountingPeriodId = periodId,
+            CompanyId = companyId,
+            BranchId = branchId,
+            TotalDebit = isIncrease ? difference : Math.Abs(difference),
+            TotalCredit = isIncrease ? difference : Math.Abs(difference),
+            PostedAt = DateTime.UtcNow,
+            Details =
+            [
+                isIncrease
+                    ? new() { AccountId = assetAccountId, DebitAmount = difference, CreditAmount = 0, Description = "Incremento por revaluación", CompanyId = companyId }
+                    : new() { AccountId = assetAccountId, DebitAmount = 0, CreditAmount = Math.Abs(difference), Description = "Decremento por revaluación", CompanyId = companyId },
+                isIncrease
+                    ? new() { AccountId = revalSurplusId, DebitAmount = 0, CreditAmount = difference, Description = "Superávit por revaluación", CompanyId = companyId }
+                    : new() { AccountId = revalSurplusId, DebitAmount = Math.Abs(difference), CreditAmount = 0, Description = "Reversión superávit por revaluación", CompanyId = companyId },
             ],
         };
 

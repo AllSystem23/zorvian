@@ -100,6 +100,7 @@ public sealed class AccountService
             new() { Code = "1.1.05", Name = "IVA Crédito Fiscal", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
             new() { Code = "1.2", Name = "Activos No Circulantes", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsSystem = true, IsActive = true, ParentId = GetTempId() },
             new() { Code = "1.2.01", Name = "Propiedad, Planta y Equipo", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
+            new() { Code = "1.2.02", Name = "Depreciación Acumulada", Type = AccountTypes.Asset, NormalSide = AccountSide.Credit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
 
             new() { Code = "2", Name = "Pasivos", Type = AccountTypes.Liability, NormalSide = AccountSide.Credit, Level = 0, CompanyId = companyId, IsSystem = true, IsActive = true },
             new() { Code = "2.1", Name = "Pasivos Circulantes", Type = AccountTypes.Liability, NormalSide = AccountSide.Credit, Level = 1, CompanyId = companyId, IsSystem = true, IsActive = true, ParentId = GetTempId() },
@@ -110,9 +111,11 @@ public sealed class AccountService
             new() { Code = "3", Name = "Patrimonio", Type = AccountTypes.Equity, NormalSide = AccountSide.Credit, Level = 0, CompanyId = companyId, IsSystem = true, IsActive = true },
             new() { Code = "3.1.01", Name = "Capital Social", Type = AccountTypes.Equity, NormalSide = AccountSide.Credit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
             new() { Code = "3.1.02", Name = "Utilidades Retenidas", Type = AccountTypes.Equity, NormalSide = AccountSide.Credit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
+            new() { Code = "3.1.03", Name = "Superávit por Revaluación", Type = AccountTypes.Equity, NormalSide = AccountSide.Credit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
 
             new() { Code = "4", Name = "Ingresos", Type = AccountTypes.Income, NormalSide = AccountSide.Credit, Level = 0, CompanyId = companyId, IsSystem = true, IsActive = true },
             new() { Code = "4.1.01", Name = "Ventas", Type = AccountTypes.Income, NormalSide = AccountSide.Credit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
+            new() { Code = "4.4.01", Name = "Ganancia en Venta de Activos", Type = AccountTypes.Income, NormalSide = AccountSide.Credit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
 
             new() { Code = "5", Name = "Costos", Type = AccountTypes.Cost, NormalSide = AccountSide.Debit, Level = 0, CompanyId = companyId, IsSystem = true, IsActive = true },
             new() { Code = "5.1.01", Name = "Costo de Ventas", Type = AccountTypes.Cost, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
@@ -120,6 +123,9 @@ public sealed class AccountService
             new() { Code = "6", Name = "Gastos", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 0, CompanyId = companyId, IsSystem = true, IsActive = true },
             new() { Code = "6.1.01", Name = "Gastos Administrativos", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
             new() { Code = "6.1.02", Name = "Gastos de Venta", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
+            new() { Code = "6.1.04", Name = "Depreciación", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
+            new() { Code = "6.1.05", Name = "Mantenimiento y Reparaciones", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
+            new() { Code = "6.2.01", Name = "Pérdida en Baja de Activos", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
         };
 
         // Assign parent relationships properly

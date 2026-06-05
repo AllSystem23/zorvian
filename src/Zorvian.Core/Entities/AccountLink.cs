@@ -19,6 +19,11 @@ public static class TransactionTypes
     public const string SupplierCreditNote = "SupplierCreditNote";
     public const string CashMovement = "CashMovement";
     public const string Payroll = "Payroll";
+    public const string FixedAssetAcquisition = "FixedAssetAcquisition";
+    public const string FixedAssetDepreciation = "FixedAssetDepreciation";
+    public const string FixedAssetDisposal = "FixedAssetDisposal";
+    public const string FixedAssetRevaluation = "FixedAssetRevaluation";
+    public const string FixedAssetMaintenance = "FixedAssetMaintenance";
 }
 
 public static class AccountRoles
@@ -38,4 +43,10 @@ public static class AccountRoles
     public const string ContraAccount = "ContraAccount";
     public const string WithholdingPayable = "WithholdingPayable";
     public const string Advances = "Advances";
+    public const string FixedAssetCost = "FixedAssetCost";
+    public const string AccumulatedDepreciation = "AccumulatedDepreciation";
+    public const string DepreciationExpense = "DepreciationExpense";
+    public const string RevaluationSurplus = "RevaluationSurplus";
+    public const string GainOnDisposal = "GainOnDisposal";
+    public const string LossOnDisposal = "LossOnDisposal";
 }

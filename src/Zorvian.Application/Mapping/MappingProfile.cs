@@ -8,6 +8,7 @@ using Zorvian.Application.DTOs.Employee;
 using Zorvian.Application.DTOs.Inventory;
 using Zorvian.Application.DTOs.Warranty;
 using Zorvian.Application.DTOs.Accounting;
+using Zorvian.Application.DTOs.FixedAssets;
 using Zorvian.Core.Entities;
 
 namespace Zorvian.Application.Mapping;
@@ -329,6 +330,62 @@ public sealed class MappingProfile : Profile
             .ForMember(d => d.Supplier, o => o.Ignore())
             .ForMember(d => d.Payments, o => o.Ignore())
             .ForMember(d => d.CreditNotes, o => o.Ignore());
+
+        // FixedAsset
+        CreateMap<CreateFixedAssetRequest, FixedAsset>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.Code, o => o.Ignore())
+            .ForMember(d => d.Status, o => o.Ignore())
+            .ForMember(d => d.IsActive, o => o.Ignore())
+            .ForMember(d => d.CompanyId, o => o.Ignore())
+            .ForMember(d => d.Category, o => o.Ignore())
+            .ForMember(d => d.Supplier, o => o.Ignore())
+            .ForMember(d => d.Location, o => o.Ignore())
+            .ForMember(d => d.Department, o => o.Ignore())
+            .ForMember(d => d.Purchase, o => o.Ignore())
+            .ForMember(d => d.DepreciationEntries, o => o.Ignore())
+            .ForMember(d => d.Revaluations, o => o.Ignore())
+            .ForMember(d => d.MaintenanceRecords, o => o.Ignore())
+            .ForMember(d => d.Disposal, o => o.Ignore());
+
+        CreateMap<UpdateFixedAssetRequest, FixedAsset>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.Code, o => o.Ignore())
+            .ForMember(d => d.CompanyId, o => o.Ignore())
+            .ForMember(d => d.Category, o => o.Ignore())
+            .ForMember(d => d.Supplier, o => o.Ignore())
+            .ForMember(d => d.Location, o => o.Ignore())
+            .ForMember(d => d.Department, o => o.Ignore())
+            .ForMember(d => d.Purchase, o => o.Ignore())
+            .ForMember(d => d.DepreciationEntries, o => o.Ignore())
+            .ForMember(d => d.Revaluations, o => o.Ignore())
+            .ForMember(d => d.MaintenanceRecords, o => o.Ignore())
+            .ForMember(d => d.Disposal, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+
+        CreateMap<FixedAsset, FixedAssetListResponse>()
+            .ForMember(d => d.CategoryName, o => o.MapFrom(s => s.Category != null ? s.Category.Name : null))
+            .ForMember(d => d.LocationName, o => o.MapFrom(s => s.Location != null ? s.Location.Name : null));
+
+        CreateMap<DepreciationEntry, DepreciationEntryResponse>();
+        CreateMap<AssetRevaluation, AssetRevaluationResponse>();
+        CreateMap<AssetMaintenance, AssetMaintenanceResponse>();
+        CreateMap<AssetDisposal, AssetDisposalResponse>();
+
+        CreateMap<CreateFixedAssetCategoryRequest, FixedAssetCategory>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.IsActive, o => o.MapFrom(_ => true))
+            .ForMember(d => d.CompanyId, o => o.Ignore());
+
+        CreateMap<FixedAssetCategory, FixedAssetCategoryResponse>();
+
+        CreateMap<CreateLocationRequest, Location>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.IsActive, o => o.MapFrom(_ => true))
+            .ForMember(d => d.CompanyId, o => o.Ignore());
+
+        CreateMap<Location, LocationResponse>();
+
         CreateMap<Purchase, PurchaseResponse>()
             .ForMember(d => d.SupplierName, o => o.MapFrom(s => s.Supplier.Name))
             .ForMember(d => d.Details, o => o.MapFrom(s => s.Details));

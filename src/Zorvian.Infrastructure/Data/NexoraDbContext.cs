@@ -102,6 +102,15 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<Warranty> Warranties => Set<Warranty>();
     public DbSet<WarrantyClaim> WarrantyClaims => Set<WarrantyClaim>();
 
+    // New Module: Activos Fijos
+    public DbSet<FixedAsset> FixedAssets => Set<FixedAsset>();
+    public DbSet<FixedAssetCategory> FixedAssetCategories => Set<FixedAssetCategory>();
+    public DbSet<DepreciationEntry> DepreciationEntries => Set<DepreciationEntry>();
+    public DbSet<AssetRevaluation> AssetRevaluations => Set<AssetRevaluation>();
+    public DbSet<AssetMaintenance> AssetMaintenances => Set<AssetMaintenance>();
+    public DbSet<AssetDisposal> AssetDisposals => Set<AssetDisposal>();
+    public DbSet<Location> Locations => Set<Location>();
+
     // New Module: Contabilidad
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<AccountingEntry> AccountingEntries => Set<AccountingEntry>();
@@ -1173,6 +1182,140 @@ public sealed class ZorvianDbContext : DbContext
                 .HasForeignKey(w => w.PurchaseId)
                 .OnDelete(DeleteBehavior.Restrict);
             e.HasQueryFilter(w => w.TenantId == _tenantContext.TenantId && !w.IsDeleted);
+        });
+
+        // ---- New Module: Activos Fijos ----
+        builder.Entity<FixedAssetCategory>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.Property(c => c.Name).HasMaxLength(100).IsRequired();
+            e.Property(c => c.Description).HasMaxLength(500);
+            e.Property(c => c.DefaultDepreciationMethod).HasMaxLength(20);
+            e.HasQueryFilter(c => c.TenantId == _tenantContext.TenantId && !c.IsDeleted);
+        });
+
+        builder.Entity<Location>(e =>
+        {
+            e.HasKey(l => l.Id);
+            e.Property(l => l.Name).HasMaxLength(100).IsRequired();
+            e.Property(l => l.Description).HasMaxLength(500);
+            e.Property(l => l.Address).HasMaxLength(500);
+            e.HasQueryFilter(l => l.TenantId == _tenantContext.TenantId && !l.IsDeleted);
+        });
+
+        builder.Entity<FixedAsset>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.Property(a => a.Code).HasMaxLength(50).IsRequired();
+            e.Property(a => a.Name).HasMaxLength(255).IsRequired();
+            e.Property(a => a.Description).HasMaxLength(1000);
+            e.Property(a => a.SerialNumber).HasMaxLength(100);
+            e.Property(a => a.Barcode).HasMaxLength(100);
+            e.Property(a => a.Brand).HasMaxLength(100);
+            e.Property(a => a.Model).HasMaxLength(100);
+            e.Property(a => a.InvoiceReference).HasMaxLength(100);
+            e.Property(a => a.DepreciationMethod).HasMaxLength(20).IsRequired();
+            e.Property(a => a.Status).HasMaxLength(20).IsRequired();
+            e.Property(a => a.AssignedTo).HasMaxLength(255);
+            e.Property(a => a.ImageUrl).HasMaxLength(500);
+            e.Property(a => a.AcquisitionCost).HasColumnType("decimal(18,2)");
+            e.Property(a => a.ResidualValue).HasColumnType("decimal(18,2)");
+            e.Property(a => a.TotalUnits).HasColumnType("decimal(18,2)");
+            e.Property(a => a.UnitsProduced).HasColumnType("decimal(18,2)");
+            e.HasOne(a => a.Category)
+                .WithMany()
+                .HasForeignKey(a => a.CategoryId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(a => a.Supplier)
+                .WithMany()
+                .HasForeignKey(a => a.SupplierId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(a => a.Location)
+                .WithMany()
+                .HasForeignKey(a => a.LocationId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(a => a.Department)
+                .WithMany()
+                .HasForeignKey(a => a.DepartmentId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(a => a.Purchase)
+                .WithMany()
+                .HasForeignKey(a => a.PurchaseId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(a => a.Code).IsUnique();
+            e.HasQueryFilter(a => a.TenantId == _tenantContext.TenantId && !a.IsDeleted);
+        });
+
+        builder.Entity<DepreciationEntry>(e =>
+        {
+            e.HasKey(d => d.Id);
+            e.Property(d => d.Amount).HasColumnType("decimal(18,2)");
+            e.Property(d => d.AccumulatedDepreciation).HasColumnType("decimal(18,2)");
+            e.Property(d => d.NetBookValue).HasColumnType("decimal(18,2)");
+            e.Property(d => d.Notes).HasMaxLength(500);
+            e.HasOne(d => d.FixedAsset)
+                .WithMany(a => a.DepreciationEntries)
+                .HasForeignKey(d => d.FixedAssetId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(d => d.AccountingEntry)
+                .WithMany()
+                .HasForeignKey(d => d.AccountingEntryId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasQueryFilter(d => d.TenantId == _tenantContext.TenantId && !d.IsDeleted);
+        });
+
+        builder.Entity<AssetRevaluation>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.Property(r => r.PreviousValue).HasColumnType("decimal(18,2)");
+            e.Property(r => r.NewValue).HasColumnType("decimal(18,2)");
+            e.Property(r => r.PreviousAccumulatedDepreciation).HasColumnType("decimal(18,2)");
+            e.Property(r => r.Reason).HasMaxLength(500);
+            e.Property(r => r.ApprovedBy).HasMaxLength(255);
+            e.HasOne(r => r.FixedAsset)
+                .WithMany(a => a.Revaluations)
+                .HasForeignKey(r => r.FixedAssetId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(r => r.AccountingEntry)
+                .WithMany()
+                .HasForeignKey(r => r.AccountingEntryId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasQueryFilter(r => r.TenantId == _tenantContext.TenantId && !r.IsDeleted);
+        });
+
+        builder.Entity<AssetMaintenance>(e =>
+        {
+            e.HasKey(m => m.Id);
+            e.Property(m => m.Description).HasMaxLength(1000).IsRequired();
+            e.Property(m => m.MaintenanceType).HasMaxLength(20).IsRequired();
+            e.Property(m => m.Provider).HasMaxLength(255);
+            e.Property(m => m.Status).HasMaxLength(20).IsRequired();
+            e.Property(m => m.Cost).HasColumnType("decimal(18,2)");
+            e.HasOne(m => m.FixedAsset)
+                .WithMany(a => a.MaintenanceRecords)
+                .HasForeignKey(m => m.FixedAssetId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(m => m.TenantId == _tenantContext.TenantId && !m.IsDeleted);
+        });
+
+        builder.Entity<AssetDisposal>(e =>
+        {
+            e.HasKey(d => d.Id);
+            e.Property(d => d.DisposalType).HasMaxLength(20).IsRequired();
+            e.Property(d => d.Reason).HasMaxLength(1000);
+            e.Property(d => d.ApprovedBy).HasMaxLength(255);
+            e.Property(d => d.SaleAmount).HasColumnType("decimal(18,2)");
+            e.Property(d => d.NetBookValueAtDisposal).HasColumnType("decimal(18,2)");
+            e.Property(d => d.GainOrLoss).HasColumnType("decimal(18,2)");
+            e.HasOne(d => d.FixedAsset)
+                .WithOne(a => a.Disposal)
+                .HasForeignKey<AssetDisposal>(d => d.FixedAssetId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(d => d.AccountingEntry)
+                .WithMany()
+                .HasForeignKey(d => d.AccountingEntryId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasQueryFilter(d => d.TenantId == _tenantContext.TenantId && !d.IsDeleted);
         });
 
         // ---- New Module: Garantías ----

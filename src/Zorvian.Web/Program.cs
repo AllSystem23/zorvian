@@ -24,6 +24,7 @@ using Zorvian.Application.Jobs;
 using Zorvian.Web.Middleware;
 using Zorvian.Web.Services;
 using Zorvian.Application.Services.PayrollStrategies;
+using Zorvian.Application.Services.DepreciationCalculators;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -174,6 +175,17 @@ builder.Services.AddScoped<ProductService>();
     builder.Services.AddScoped<IWithholdingRepository, WithholdingRepository>();
     builder.Services.AddScoped<SupplierPaymentService>();
     builder.Services.AddScoped<SupplierCreditNoteService>();
+
+// DI - New Module: Activos Fijos
+builder.Services.AddScoped<IFixedAssetRepository, FixedAssetRepository>();
+builder.Services.AddScoped<IFixedAssetCategoryRepository, FixedAssetCategoryRepository>();
+builder.Services.AddScoped<IDepreciationEntryRepository, DepreciationEntryRepository>();
+builder.Services.AddScoped<IAssetRevaluationRepository, AssetRevaluationRepository>();
+builder.Services.AddScoped<IAssetDisposalRepository, AssetDisposalRepository>();
+builder.Services.AddScoped<IAssetMaintenanceRepository, AssetMaintenanceRepository>();
+builder.Services.AddScoped<ILocationRepository, LocationRepository>();
+builder.Services.AddScoped<FixedAssetService>();
+builder.Services.AddSingleton<DepreciationCalculatorFactory>();
 
 // DI - New Module: Créditos
 builder.Services.AddScoped<ICreditRepository, CreditRepository>();
