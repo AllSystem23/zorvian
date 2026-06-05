@@ -130,10 +130,14 @@ public sealed class AttendanceController : ControllerBase
     [HttpGet("my")]
     public async Task<IActionResult> GetMyMonthly([FromQuery] int? year, [FromQuery] int? month)
     {
-        if (_tenant.CurrentEmployeeId is null)
+        var isSuperAdmin = User.IsInRole("SuperAdmin");
+        if (_tenant.CurrentEmployeeId is null && !isSuperAdmin)
             return Unauthorized(new { error = "No employee profile linked" });
 
-        var result = await _service.GetMyMonthlyAsync(_tenant.CurrentEmployeeId.Value, year, month);
+        if (isSuperAdmin && _tenant.CurrentEmployeeId is null)
+            return Ok(new AttendanceSummaryResponse(0, 0, 0, 0, 0, []));
+
+        var result = await _service.GetMyMonthlyAsync(_tenant.CurrentEmployeeId!.Value, year, month);
         return Ok(result);
     }
 }

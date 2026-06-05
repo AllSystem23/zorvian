@@ -13,6 +13,7 @@ public sealed class SaleService
     private readonly IProductRepository _productRepo;
     private readonly IInventoryMovementRepository _movementRepo;
     private readonly ICompanyRepository _companyRepo;
+    private readonly IAutoAccountingService _autoAccounting;
     private readonly ITenantContext _tenant;
     private readonly IMapper _mapper;
 
@@ -21,6 +22,7 @@ public sealed class SaleService
         IProductRepository productRepo,
         IInventoryMovementRepository movementRepo,
         ICompanyRepository companyRepo,
+        IAutoAccountingService autoAccounting,
         ITenantContext tenant,
         IMapper mapper)
     {
@@ -28,49 +30,65 @@ public sealed class SaleService
         _productRepo = productRepo;
         _movementRepo = movementRepo;
         _companyRepo = companyRepo;
+        _autoAccounting = autoAccounting;
         _tenant = tenant;
         _mapper = mapper;
-    }
-
-    private async Task<(bool taxEnabled, decimal taxRate)> GetTaxConfigAsync()
-    {
-        var company = await _companyRepo.GetByTenantIdAsync(_tenant.TenantId);
-        if (company is null) return (true, 0.15m);
-        var settings = await _companyRepo.GetSettingsAsync(company.Id);
-        if (settings is null) return (true, 0.15m);
-        return (settings.TaxEnabled, settings.TaxRate);
     }
 
     public async Task<SaleResponse> CreateCashSaleAsync(CreateCashSaleRequest request)
     {
         var companyId = Guid.Parse(_tenant.TenantId);
-        var (taxEnabled, taxRate) = await GetTaxConfigAsync();
 
-        var subtotal = request.Details.Sum(d => d.Quantity * d.UnitPrice);
+        decimal subtotal = 0;
+        decimal totalTax = 0;
+
+        // Calculate subtotal and tax per product
+        foreach (var detail in request.Details)
+        {
+            var product = await _productRepo.GetByIdAsync(detail.ProductId)
+                ?? throw new InvalidOperationException($"Product not found: {detail.ProductId}");
+
+            var lineSubtotal = detail.Quantity * detail.UnitPrice;
+            subtotal += lineSubtotal;
+            
+            // Apply product-level tax
+            var rate = product.TaxCategory?.Rate ?? 0m; 
+            totalTax += (lineSubtotal - detail.Discount) * rate;
+        }
+
         var taxableAmount = subtotal - request.Discount;
-        var tax = taxEnabled ? taxableAmount * taxRate : 0;
-        var total = taxableAmount + tax;
+        var total = taxableAmount + totalTax;
 
         var sale = _mapper.Map<Sale>(request);
         sale.InvoiceNumber = await _saleRepo.GenerateInvoiceNumberAsync(companyId);
         sale.Subtotal = subtotal;
-        sale.Tax = tax;
+        sale.Tax = totalTax;
         sale.Total = total;
         sale.PaidAmount = total;
         sale.Balance = 0;
         sale.CompanyId = companyId;
 
-        sale.Details = request.Details.Select(d => new SaleDetail
+        // Refactored to include Product navigation property
+        var saleDetails = new List<SaleDetail>();
+        foreach (var d in request.Details)
         {
-            SaleId = sale.Id,
-            ProductId = d.ProductId,
-            Quantity = d.Quantity,
-            UnitPrice = d.UnitPrice,
-            Discount = d.Discount,
-            Subtotal = d.Quantity * d.UnitPrice - d.Discount,
-            CompanyId = companyId,
-            BranchId = request.BranchId,
-        }).ToList();
+            var product = await _productRepo.GetByIdAsync(d.ProductId)
+                ?? throw new InvalidOperationException($"Product not found: {d.ProductId}");
+            
+            saleDetails.Add(new SaleDetail
+            {
+                SaleId = sale.Id,
+                ProductId = d.ProductId,
+                Product = product,
+                Quantity = d.Quantity,
+                UnitPrice = d.UnitPrice,
+                Discount = d.Discount,
+                Subtotal = d.Quantity * d.UnitPrice - d.Discount,
+                CompanyId = companyId,
+                BranchId = request.BranchId,
+            });
+        }
+        sale.Details = saleDetails;
 
         sale.Payments = new List<SalePayment>
         {
@@ -89,10 +107,13 @@ public sealed class SaleService
 
         await _saleRepo.AddAsync(sale);
 
+        decimal totalCost = 0;
         foreach (var detail in request.Details)
         {
             var product = await _productRepo.GetByIdAsync(detail.ProductId);
             if (product is null) continue;
+
+            totalCost += product.CostPrice * detail.Quantity;
 
             var stockBefore = product.Stock;
             product.Stock -= detail.Quantity;
@@ -114,18 +135,32 @@ public sealed class SaleService
 
         await _saleRepo.SaveChangesAsync();
 
+        await _autoAccounting.GenerateSaleEntryAsync(
+            sale.Id, sale.Details.ToList(), request.Discount, request.Payment.Amount, "cash");
+        await _autoAccounting.GenerateCostOfSaleEntryAsync(sale.Id, totalCost);
+
         return await GetByIdAsync(sale.Id) ?? throw new InvalidOperationException("Failed to create sale");
     }
 
     public async Task<SaleResponse> CreateCreditSaleAsync(CreateCreditSaleRequest request)
     {
         var companyId = Guid.Parse(_tenant.TenantId);
-        var (taxEnabled, taxRate) = await GetTaxConfigAsync();
 
-        var subtotal = request.Details.Sum(d => d.Quantity * d.UnitPrice);
-        var taxableAmount = subtotal - request.Discount;
-        var tax = taxEnabled ? taxableAmount * taxRate : 0;
-        var total = taxableAmount + tax;
+        decimal subtotal = 0;
+        decimal totalTax = 0;
+
+        foreach (var detail in request.Details)
+        {
+            var product = await _productRepo.GetByIdAsync(detail.ProductId)
+                ?? throw new InvalidOperationException($"Product not found: {detail.ProductId}");
+
+            var lineSubtotal = detail.Quantity * detail.UnitPrice;
+            subtotal += lineSubtotal;
+            var rate = product.TaxCategory?.Rate ?? 0m;
+            totalTax += (lineSubtotal - detail.Discount) * rate;
+        }
+
+        var total = (subtotal - request.Discount) + totalTax;
 
         var financedAmount = total - request.DownPayment;
         var interestAmount = financedAmount * (request.InterestRate / 100);
@@ -135,24 +170,34 @@ public sealed class SaleService
         var sale = _mapper.Map<Sale>(request);
         sale.InvoiceNumber = await _saleRepo.GenerateInvoiceNumberAsync(companyId);
         sale.Subtotal = subtotal;
-        sale.Tax = tax;
+        sale.Tax = totalTax;
         sale.Total = total;
         sale.PaidAmount = request.DownPayment;
         sale.Balance = financedAmount;
         sale.Status = "pending";
         sale.CompanyId = companyId;
 
-        sale.Details = request.Details.Select(d => new SaleDetail
+        // Refactored to include Product navigation property
+        var saleDetails = new List<SaleDetail>();
+        foreach (var d in request.Details)
         {
-            SaleId = sale.Id,
-            ProductId = d.ProductId,
-            Quantity = d.Quantity,
-            UnitPrice = d.UnitPrice,
-            Discount = d.Discount,
-            Subtotal = d.Quantity * d.UnitPrice - d.Discount,
-            CompanyId = companyId,
-            BranchId = request.BranchId,
-        }).ToList();
+            var product = await _productRepo.GetByIdAsync(d.ProductId)
+                ?? throw new InvalidOperationException($"Product not found: {d.ProductId}");
+            
+            saleDetails.Add(new SaleDetail
+            {
+                SaleId = sale.Id,
+                ProductId = d.ProductId,
+                Product = product,
+                Quantity = d.Quantity,
+                UnitPrice = d.UnitPrice,
+                Discount = d.Discount,
+                Subtotal = d.Quantity * d.UnitPrice - d.Discount,
+                CompanyId = companyId,
+                BranchId = request.BranchId,
+            });
+        }
+        sale.Details = saleDetails;
 
         if (request.DownPayment > 0)
         {
@@ -214,10 +259,13 @@ public sealed class SaleService
 
         await _saleRepo.AddAsync(sale);
 
+        decimal totalCost = 0;
         foreach (var detail in request.Details)
         {
             var product = await _productRepo.GetByIdAsync(detail.ProductId);
             if (product is null) continue;
+
+            totalCost += product.CostPrice * detail.Quantity;
 
             var stockBefore = product.Stock;
             product.Stock -= detail.Quantity;
@@ -238,6 +286,10 @@ public sealed class SaleService
         }
 
         await _saleRepo.SaveChangesAsync();
+
+        await _autoAccounting.GenerateSaleEntryAsync(
+            sale.Id, sale.Details.ToList(), request.Discount, request.DownPayment, "credit");
+        await _autoAccounting.GenerateCostOfSaleEntryAsync(sale.Id, totalCost);
 
         return await GetByIdAsync(sale.Id) ?? throw new InvalidOperationException("Failed to create credit sale");
     }

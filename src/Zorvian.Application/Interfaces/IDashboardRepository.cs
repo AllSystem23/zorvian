@@ -15,4 +15,8 @@ public interface IDashboardRepository
     Task<List<VacationRequest>> GetVacationsInRangeAsync(DateOnly start, DateOnly end);
     Task<List<PermissionRequest>> GetRecentPermissionsAsync(int count);
     Task<List<VacationRequest>> GetRecentVacationsAsync(int count);
+    
+    // Payroll Dashboard
+    Task<List<(string Department, decimal Amount)>> GetPayrollCostByDepartmentAsync();
+    Task<List<(string Period, decimal Amount)>> GetPayrollHistoryAsync(int count);
 }

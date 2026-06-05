@@ -22,7 +22,10 @@ class LeaveTypesPage extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: () => context.push('/leave-types/new'),
+            onPressed: () async {
+              final created = await context.push<bool>('/leave-types/new');
+              if (created == true) ref.invalidate(leaveTypesProvider);
+            },
           ),
         ],
       ),

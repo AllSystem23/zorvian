@@ -44,6 +44,9 @@ public sealed class PayrollRepository : IPayrollRepository
             .Include(s => s.Employee)
             .FirstOrDefaultAsync(s => s.EmployeeId == employeeId && s.IsActive);
 
+    public async Task<EmployeeSalary?> GetSalaryByIdAsync(Guid id) =>
+        await _db.EmployeeSalaries.Include(s => s.Employee).FirstOrDefaultAsync(s => s.Id == id);
+
     public async Task AddSalaryAsync(EmployeeSalary salary) =>
         await _db.EmployeeSalaries.AddAsync(salary);
 
@@ -73,13 +76,22 @@ public sealed class PayrollRepository : IPayrollRepository
     // Payroll Runs
     public async Task<List<PayrollRun>> GetRunsAsync(Guid? periodId)
     {
-        var query = _db.PayrollRuns.Include(r => r.PayrollPeriod).Include(r => r.Details).ThenInclude(d => d.Employee).AsQueryable();
+        var query = _db.PayrollRuns
+            .Include(r => r.PayrollPeriod)
+            .Include(r => r.Details).ThenInclude(d => d.Employee)
+            .Include(r => r.Details).ThenInclude(d => d.Concepts)
+            .AsQueryable();
         if (periodId.HasValue) query = query.Where(r => r.PayrollPeriodId == periodId.Value);
         return await query.OrderByDescending(r => r.CreatedAt).ToListAsync();
     }
 
     public async Task<PayrollRun?> GetRunByIdAsync(Guid id) =>
-        await _db.PayrollRuns.Include(r => r.PayrollPeriod).Include(r => r.Details).ThenInclude(d => d.Employee).FirstOrDefaultAsync(r => r.Id == id);
+        await _db.PayrollRuns
+            .Include(r => r.PayrollPeriod)
+            .Include(r => r.Details).ThenInclude(d => d.Employee)
+            .Include(r => r.Details).ThenInclude(d => d.Concepts)
+            .Include(r => r.ApprovalSteps).ThenInclude(a => a.Approver)
+            .FirstOrDefaultAsync(r => r.Id == id);
 
     public async Task AddRunAsync(PayrollRun run) =>
         await _db.PayrollRuns.AddAsync(run);
@@ -87,9 +99,33 @@ public sealed class PayrollRepository : IPayrollRepository
     public Task UpdateRunAsync(PayrollRun run) =>
         Task.FromResult(_db.PayrollRuns.Update(run));
 
+    public async Task DeleteRunAsync(Guid id)
+    {
+        var run = await _db.PayrollRuns.Include(r => r.Details).FirstOrDefaultAsync(r => r.Id == id);
+        if (run != null)
+        {
+            _db.PayrollDetails.RemoveRange(run.Details);
+            _db.PayrollRuns.Remove(run);
+        }
+    }
+
     // Payroll Details
     public async Task AddDetailsAsync(List<PayrollDetail> details) =>
         await _db.PayrollDetails.AddRangeAsync(details);
+
+    public async Task<PayrollDetail?> GetDetailByIdAsync(Guid id) =>
+        await _db.PayrollDetails
+            .Include(d => d.Employee).ThenInclude(e => e!.Department)
+            .Include(d => d.Concepts)
+            .Include(d => d.PayrollRun).ThenInclude(r => r!.PayrollPeriod)
+            .FirstOrDefaultAsync(d => d.Id == id);
+
+    public async Task<PayrollDetail?> GetDetailByReferenceAsync(string reference) =>
+        await _db.PayrollDetails
+            .FirstOrDefaultAsync(d => d.PaymentReference == reference);
+
+    public Task UpdateDetailAsync(PayrollDetail detail) =>
+        Task.FromResult(_db.PayrollDetails.Update(detail));
 
     public async Task SaveChangesAsync() => await _db.SaveChangesAsync();
 }

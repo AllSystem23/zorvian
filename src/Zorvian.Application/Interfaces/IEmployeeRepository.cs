@@ -14,4 +14,9 @@ public interface IEmployeeRepository
     Task UpdateAsync(Employee employee);
     Task DeleteAsync(Employee employee);
     Task SaveChangesAsync();
+
+    // Extensions for Payroll
+    Task<List<AttendanceRecord>> GetAttendanceInRangeAsync(Guid employeeId, DateOnly start, DateOnly end);
+    Task<List<VacationRequest>> GetVacationsInRangeAsync(Guid employeeId, DateOnly start, DateOnly end);
+    Task<List<EmployeeBankAccount>> GetBankAccountsAsync(Guid employeeId);
 }

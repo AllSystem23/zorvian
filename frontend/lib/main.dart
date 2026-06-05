@@ -63,15 +63,15 @@ class _AppLoaderState extends ConsumerState<_AppLoader> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() async {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       try {
-        await ref.read(themeModeProvider.notifier).loadPreference();
+        ref.read(themeModeProvider.notifier).loadPreference();
       } catch (_) {}
       try {
-        await ref.read(biometricProvider.notifier).init();
+        ref.read(biometricProvider.notifier).init();
       } catch (_) {}
       try {
-        await ref.read(authProvider.notifier).checkAuth();
+        ref.read(authProvider.notifier).checkAuth();
       } catch (_) {}
     });
   }

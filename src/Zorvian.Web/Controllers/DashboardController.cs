@@ -22,6 +22,17 @@ public sealed class DashboardController : ControllerBase
     }
 
     /// <summary>
+    /// Obtiene un resumen completo de todos los indicadores y eventos del dashboard.
+    /// </summary>
+    [HttpGet("summary")]
+    [ProducesResponseType(typeof(DashboardSummaryResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSummary()
+    {
+        var result = await _service.GetSummaryAsync();
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Obtiene los indicadores clave del dashboard (empleados, vacaciones, permisos, asistencia).
     /// </summary>
     [HttpGet("kpis")]
@@ -62,6 +73,17 @@ public sealed class DashboardController : ControllerBase
     public async Task<IActionResult> GetExecutiveDashboard()
     {
         var result = await _service.GetExecutiveDashboardAsync();
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Obtiene el dashboard de costos de nómina.
+    /// </summary>
+    [HttpGet("payroll")]
+    [ProducesResponseType(typeof(PayrollDashboardResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPayrollDashboard()
+    {
+        var result = await _service.GetPayrollDashboardAsync();
         return Ok(result);
     }
 }

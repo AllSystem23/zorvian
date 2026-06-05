@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Zorvian.Application.DTOs.Auth;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
@@ -40,62 +41,66 @@ public sealed class AuthService
             if (user is null) return null;
         }
 
-        user.LastLoginAt = DateTime.UtcNow;
-        await _authRepo.SaveChangesAsync();
-
-        var primaryRole = user.UserRoles.FirstOrDefault()?.Role
-            ?? new Role { Name = Core.Enums.RoleType.Employee, DisplayName = "Empleado" };
-
-        var tenantId = user.TenantId;
-        var (accessToken, refreshToken, expiresIn) = _jwt.GenerateTokens(user, primaryRole, tenantId);
-
-        var refreshTokenEntity = new RefreshToken
-        {
-            UserId = user.Id,
-            Token = refreshToken,
-            ExpiresAt = DateTime.UtcNow.AddDays(7),
-        };
-        await _authRepo.AddRefreshTokenAsync(refreshTokenEntity);
-        await _authRepo.SaveChangesAsync();
-
-        return new AuthResponse(
-            accessToken,
-            refreshToken,
-            expiresIn,
-            new UserInfo(
-                user.Id.ToString(),
-                user.Email,
-                user.DisplayName,
-                primaryRole.Name.ToString(),
-                tenantId,
-                user.EmployeeId?.ToString()
-            )
-        );
+        return await GenerateAuthResponse(user);
     }
 
     public async Task<AuthResponse?> LoginWithPasswordAsync(LoginPasswordRequest request)
     {
         var fbUser = await _firebase.SignInWithPasswordAsync(request.Email, request.Password);
-        if (fbUser is null) return null;
 
-        var user = await _authRepo.GetUserByFirebaseUidAsync(fbUser.Uid);
+        User? user = null;
 
-        if (user is null)
+        if (fbUser is not null)
         {
-            user = new User
-            {
-                FirebaseUid = fbUser.Uid,
-                Email = fbUser.Email,
-                DisplayName = fbUser.Name,
-                AvatarUrl = fbUser.Picture,
-            };
-            await _authRepo.AddUserAsync(user);
-            await _authRepo.SaveChangesAsync();
-
             user = await _authRepo.GetUserByFirebaseUidAsync(fbUser.Uid);
-            if (user is null) return null;
+
+            if (user is null)
+            {
+                user = new User
+                {
+                    FirebaseUid = fbUser.Uid,
+                    Email = fbUser.Email,
+                    DisplayName = fbUser.Name,
+                    AvatarUrl = fbUser.Picture,
+                };
+                await _authRepo.AddUserAsync(user);
+                await _authRepo.SaveChangesAsync();
+
+                user = await _authRepo.GetUserByFirebaseUidAsync(fbUser.Uid);
+                if (user is null) return null;
+            }
+        }
+        else
+        {
+            user = await _authRepo.GetUserByEmailAsync(request.Email);
+            if (user is null || user.PasswordHash is null) return null;
+
+            if (!PasswordHelper.Verify(request.Password, user.PasswordHash)) return null;
         }
 
+        return await GenerateAuthResponse(user);
+    }
+
+    public async Task<UserInfo?> GetMeAsync(Guid userId)
+    {
+        var user = await _authRepo.GetUserWithRolesAsync(userId);
+        if (user is null) return null;
+
+        var primaryRole = user.UserRoles.FirstOrDefault()?.Role
+            ?? new Role { Name = Core.Enums.RoleType.Employee, DisplayName = "Empleado" };
+
+        return new UserInfo(
+            user.Id.ToString(),
+            user.Email,
+            user.DisplayName,
+            primaryRole.Name.ToString(),
+            user.TenantId,
+            user.EmployeeId?.ToString()
+        );
+    }
+
+    private async Task<AuthResponse> GenerateAuthResponse(User user)
+    {
         user.LastLoginAt = DateTime.UtcNow;
         await _authRepo.SaveChangesAsync();
 

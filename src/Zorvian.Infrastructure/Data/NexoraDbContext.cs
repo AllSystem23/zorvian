@@ -42,12 +42,24 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<PayrollPeriod> PayrollPeriods => Set<PayrollPeriod>();
     public DbSet<PayrollRun> PayrollRuns => Set<PayrollRun>();
     public DbSet<PayrollDetail> PayrollDetails => Set<PayrollDetail>();
+    public DbSet<PayrollDetailConcept> PayrollDetailConcepts => Set<PayrollDetailConcept>();
+    public DbSet<CountryTaxConfig> CountryTaxConfigs => Set<CountryTaxConfig>();
+    public DbSet<OvertimeRecord> OvertimeRecords => Set<OvertimeRecord>();
+    public DbSet<CommissionRecord> CommissionRecords => Set<CommissionRecord>();
+    public DbSet<BonusRecord> BonusRecords => Set<BonusRecord>();
     public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
     public DbSet<WebhookSubscription> WebhookSubscriptions => Set<WebhookSubscription>();
     public DbSet<PolicyDocument> PolicyDocuments => Set<PolicyDocument>();
     public DbSet<PolicyChunk> PolicyChunks => Set<PolicyChunk>();
     public DbSet<Objective> Objectives => Set<Objective>();
     public DbSet<KeyResult> KeyResults => Set<KeyResult>();
+    public DbSet<PayrollConceptDefinition> PayrollConceptDefinitions => Set<PayrollConceptDefinition>();
+    public DbSet<EmployeeLoan> EmployeeLoans => Set<EmployeeLoan>();
+    public DbSet<LoanInstallment> LoanInstallments => Set<LoanInstallment>();
+    public DbSet<SalaryAdvance> SalaryAdvances => Set<SalaryAdvance>();
+    public DbSet<WageGarnishment> WageGarnishments => Set<WageGarnishment>();
+    public DbSet<BenefitProvision> BenefitProvisions => Set<BenefitProvision>();
+    public DbSet<EmployeeBankAccount> EmployeeBankAccounts => Set<EmployeeBankAccount>();
     public DbSet<Invitation> Invitations => Set<Invitation>();
 
     // New Module: Multisucursal
@@ -79,12 +91,102 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<CashRegister> CashRegisters => Set<CashRegister>();
     public DbSet<CashMovement> CashMovements => Set<CashMovement>();
 
+    // New Module: Compras
+    public DbSet<Purchase> Purchases => Set<Purchase>();
+    public DbSet<PurchaseDetail> PurchaseDetails => Set<PurchaseDetail>();
+
     // New Module: Garantías
     public DbSet<Warranty> Warranties => Set<Warranty>();
     public DbSet<WarrantyClaim> WarrantyClaims => Set<WarrantyClaim>();
 
+    // New Module: Contabilidad
+    public DbSet<Account> Accounts => Set<Account>();
+    public DbSet<AccountingEntry> AccountingEntries => Set<AccountingEntry>();
+    public DbSet<AccountingEntryDetail> AccountingEntryDetails => Set<AccountingEntryDetail>();
+    public DbSet<AccountingPeriod> AccountingPeriods => Set<AccountingPeriod>();
+    public DbSet<AccountLink> AccountLinks => Set<AccountLink>();
+    public DbSet<AccountingRule> AccountingRules => Set<AccountingRule>();
+    public DbSet<TaxCategory> TaxCategories => Set<TaxCategory>();
+    
+    // New Module: Nómina Avanzada
+    public DbSet<SickLeaveRecord> SickLeaveRecords => Set<SickLeaveRecord>();
+    public DbSet<TerminationRecord> TerminationRecords => Set<TerminationRecord>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
+        builder.Entity<PayrollConceptDefinition>(e =>
+        {
+            e.HasKey(pcd => pcd.Id);
+            e.Property(pcd => pcd.Code).HasMaxLength(50).IsRequired();
+            e.Property(pcd => pcd.Name).HasMaxLength(255).IsRequired();
+            e.Property(pcd => pcd.ConceptType).HasMaxLength(20).IsRequired();
+            e.Property(pcd => pcd.CalculationMethod).HasMaxLength(50);
+            e.HasIndex(pcd => new { pcd.Code, pcd.TenantId }).IsUnique();
+            e.HasQueryFilter(pcd => pcd.TenantId == _tenantContext.TenantId && !pcd.IsDeleted);
+        });
+
+        builder.Entity<EmployeeLoan>(e =>
+        {
+            e.HasKey(l => l.Id);
+            e.Property(l => l.LoanNumber).HasMaxLength(50).IsRequired();
+            e.Property(l => l.Status).HasMaxLength(20).IsRequired();
+            e.HasOne(l => l.Employee).WithMany().HasForeignKey(l => l.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(l => l.TenantId == _tenantContext.TenantId && !l.IsDeleted);
+        });
+
+        builder.Entity<LoanInstallment>(e =>
+        {
+            e.HasKey(li => li.Id);
+            e.Property(li => li.Status).HasMaxLength(20).IsRequired();
+            e.HasOne(li => li.EmployeeLoan).WithMany(l => l.Installments).HasForeignKey(li => li.EmployeeLoanId).OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(li => li.TenantId == _tenantContext.TenantId && !li.IsDeleted);
+        });
+
+        builder.Entity<SalaryAdvance>(e =>
+        {
+            e.HasKey(sa => sa.Id);
+            e.Property(sa => sa.Status).HasMaxLength(20).IsRequired();
+            e.HasOne(sa => sa.Employee).WithMany().HasForeignKey(sa => sa.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(sa => sa.ApprovedBy).WithMany().HasForeignKey(sa => sa.ApprovedByEmployeeId).OnDelete(DeleteBehavior.SetNull);
+            e.HasQueryFilter(sa => sa.TenantId == _tenantContext.TenantId && !sa.IsDeleted);
+        });
+
+        builder.Entity<WageGarnishment>(e =>
+        {
+            e.HasKey(wg => wg.Id);
+            e.Property(wg => wg.CourtOrder).HasMaxLength(100).IsRequired();
+            e.Property(wg => wg.Status).HasMaxLength(20).IsRequired();
+            e.HasOne(wg => wg.Employee).WithMany().HasForeignKey(wg => wg.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(wg => wg.TenantId == _tenantContext.TenantId && !wg.IsDeleted);
+        });
+
+        builder.Entity<EmployeeBankAccount>(e =>
+        {
+            e.HasKey(ba => ba.Id);
+            e.Property(ba => ba.BankName).HasMaxLength(255).IsRequired();
+            e.Property(ba => ba.AccountNumber).HasMaxLength(50).IsRequired();
+            e.Property(ba => ba.AccountType).HasMaxLength(30).IsRequired();
+            e.Property(ba => ba.AccountCurrency).HasMaxLength(3).IsRequired();
+            e.HasOne(ba => ba.Employee).WithMany(e => e.BankAccounts).HasForeignKey(ba => ba.EmployeeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(ba => ba.TenantId == _tenantContext.TenantId && !ba.IsDeleted);
+        });
+
+        builder.Entity<SickLeaveRecord>(e =>
+        {
+            e.HasKey(sl => sl.Id);
+            e.Property(sl => sl.Status).HasMaxLength(20).IsRequired();
+            e.HasOne(sl => sl.Employee).WithMany().HasForeignKey(sl => sl.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(sl => sl.TenantId == _tenantContext.TenantId && !sl.IsDeleted);
+        });
+
+        builder.Entity<TerminationRecord>(e =>
+        {
+            e.HasKey(tr => tr.Id);
+            e.Property(tr => tr.Status).HasMaxLength(20).IsRequired();
+            e.HasOne(tr => tr.Employee).WithMany().HasForeignKey(tr => tr.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(tr => tr.TenantId == _tenantContext.TenantId && !tr.IsDeleted);
+        });
+
         builder.Entity<Invitation>(e =>
         {
             e.HasKey(i => i.Id);
@@ -406,6 +508,7 @@ public sealed class ZorvianDbContext : DbContext
             e.Property(d => d.CalculationMethod).HasMaxLength(20).IsRequired();
             e.Property(d => d.Rate).HasColumnType("decimal(5,2)");
             e.Property(d => d.FixedAmount).HasColumnType("decimal(18,2)");
+            e.HasQueryFilter(d => d.TenantId == _tenantContext.TenantId && !d.IsDeleted);
         });
 
         builder.Entity<EmployeeSalary>(e =>
@@ -874,6 +977,8 @@ public sealed class ZorvianDbContext : DbContext
             e.Property(cm => cm.Amount).HasColumnType("decimal(18,2)");
             e.Property(cm => cm.Concept).HasMaxLength(255);
             e.Property(cm => cm.ReferenceNumber).HasMaxLength(100);
+            e.Property(cm => cm.DocumentReference).HasMaxLength(100);
+            e.Property(cm => cm.ApprovalStatus).HasMaxLength(20).IsRequired();
             e.HasOne(cm => cm.CashRegister)
                 .WithMany(cr => cr.Movements)
                 .HasForeignKey(cm => cm.CashRegisterId)
@@ -883,6 +988,128 @@ public sealed class ZorvianDbContext : DbContext
                 .HasForeignKey(cm => cm.EmployeeId)
                 .OnDelete(DeleteBehavior.SetNull);
             e.HasQueryFilter(cm => cm.TenantId == _tenantContext.TenantId && !cm.IsDeleted);
+        });
+
+        // ---- New Module: Contabilidad ----
+        builder.Entity<Account>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.Property(a => a.Code).HasMaxLength(50).IsRequired();
+            e.Property(a => a.Name).HasMaxLength(255).IsRequired();
+            e.Property(a => a.Description).HasMaxLength(500);
+            e.Property(a => a.Type).HasMaxLength(30).IsRequired();
+            e.Property(a => a.NormalSide).HasMaxLength(10).IsRequired();
+            e.Property(a => a.OpeningBalance).HasColumnType("decimal(18,2)");
+            e.HasOne(a => a.Parent)
+                .WithMany(a => a.Children)
+                .HasForeignKey(a => a.ParentId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(a => new { a.Code, a.CompanyId }).IsUnique();
+            e.HasQueryFilter(a => a.TenantId == _tenantContext.TenantId && !a.IsDeleted);
+        });
+
+        builder.Entity<AccountingPeriod>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.Property(p => p.Name).HasMaxLength(20).IsRequired();
+            e.Property(p => p.Status).HasMaxLength(20).IsRequired();
+            e.HasIndex(p => new { p.Year, p.Month, p.CompanyId }).IsUnique();
+            e.HasQueryFilter(p => p.TenantId == _tenantContext.TenantId && !p.IsDeleted);
+        });
+
+        builder.Entity<AccountingEntry>(e =>
+        {
+            e.HasKey(en => en.Id);
+            e.Property(en => en.EntryNumber).HasMaxLength(50).IsRequired();
+            e.Property(en => en.Description).HasMaxLength(500).IsRequired();
+            e.Property(en => en.ReferenceType).HasMaxLength(50);
+            e.Property(en => en.Status).HasMaxLength(20).IsRequired();
+            e.Property(en => en.TotalDebit).HasColumnType("decimal(18,2)");
+            e.Property(en => en.TotalCredit).HasColumnType("decimal(18,2)");
+            e.HasOne(en => en.AccountingPeriod)
+                .WithMany(p => p.Entries)
+                .HasForeignKey(en => en.AccountingPeriodId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(en => en.EntryNumber).IsUnique();
+            e.HasIndex(en => en.EntryDate);
+            e.HasQueryFilter(en => en.TenantId == _tenantContext.TenantId && !en.IsDeleted);
+        });
+
+        builder.Entity<AccountingEntryDetail>(e =>
+        {
+            e.HasKey(d => d.Id);
+            e.Property(d => d.DebitAmount).HasColumnType("decimal(18,2)");
+            e.Property(d => d.CreditAmount).HasColumnType("decimal(18,2)");
+            e.Property(d => d.Description).HasMaxLength(500);
+            e.HasOne(d => d.AccountingEntry)
+                .WithMany(en => en.Details)
+                .HasForeignKey(d => d.AccountingEntryId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(d => d.Account)
+                .WithMany()
+                .HasForeignKey(d => d.AccountId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(d => d.TenantId == _tenantContext.TenantId && !d.IsDeleted);
+        });
+
+        builder.Entity<AccountLink>(e =>
+        {
+            e.HasKey(l => l.Id);
+            e.Property(l => l.TransactionType).HasMaxLength(50).IsRequired();
+            e.Property(l => l.Role).HasMaxLength(50).IsRequired();
+            e.HasOne(l => l.Account)
+                .WithMany()
+                .HasForeignKey(l => l.AccountId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(l => new { l.TransactionType, l.Role, l.CompanyId }).IsUnique();
+            e.HasQueryFilter(l => l.TenantId == _tenantContext.TenantId && !l.IsDeleted);
+        });
+
+        builder.Entity<AccountingRule>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.Property(r => r.EventType).HasMaxLength(50).IsRequired();
+            e.Property(r => r.LineType).HasMaxLength(10).IsRequired();
+            e.Property(r => r.AccountRole).HasMaxLength(50).IsRequired();
+            e.Property(r => r.Formula).HasMaxLength(200);
+            e.HasQueryFilter(r => r.TenantId == _tenantContext.TenantId && !r.IsDeleted);
+        });
+
+        // ---- New Module: Compras ----
+        builder.Entity<Purchase>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.Property(p => p.PurchaseNumber).HasMaxLength(50).IsRequired();
+            e.Property(p => p.Status).HasMaxLength(20).IsRequired();
+            e.Property(p => p.Notes).HasMaxLength(500);
+            e.Property(p => p.InvoiceReference).HasMaxLength(100);
+            e.Property(p => p.Subtotal).HasColumnType("decimal(18,2)");
+            e.Property(p => p.Tax).HasColumnType("decimal(18,2)");
+            e.Property(p => p.Discount).HasColumnType("decimal(18,2)");
+            e.Property(p => p.Total).HasColumnType("decimal(18,2)");
+            e.HasOne(p => p.Supplier)
+                .WithMany()
+                .HasForeignKey(p => p.SupplierId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(p => p.PurchaseNumber).IsUnique();
+            e.HasQueryFilter(p => p.TenantId == _tenantContext.TenantId && !p.IsDeleted);
+        });
+
+        builder.Entity<PurchaseDetail>(e =>
+        {
+            e.HasKey(pd => pd.Id);
+            e.Property(pd => pd.UnitCost).HasColumnType("decimal(18,2)");
+            e.Property(pd => pd.Discount).HasColumnType("decimal(18,2)");
+            e.Property(pd => pd.Subtotal).HasColumnType("decimal(18,2)");
+            e.HasOne(pd => pd.Purchase)
+                .WithMany(p => p.Details)
+                .HasForeignKey(pd => pd.PurchaseId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(pd => pd.Product)
+                .WithMany()
+                .HasForeignKey(pd => pd.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(pd => pd.TenantId == _tenantContext.TenantId && !pd.IsDeleted);
         });
 
         // ---- New Module: Garantías ----

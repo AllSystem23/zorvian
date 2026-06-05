@@ -16,8 +16,11 @@ import '../features/reports/pages/reports_page.dart';
 import '../features/reports/pages/audit_logs_page.dart';
 import '../features/settings/pages/company_settings_page.dart';
 import '../features/settings/pages/leave_types_page.dart';
+import '../features/settings/pages/leave_type_form_page.dart';
 import '../features/admin/pages/user_list_page.dart';
 import '../features/admin/pages/invite_user_page.dart';
+import '../features/branches/pages/branch_list_page.dart';
+import '../features/branches/pages/branch_form_page.dart';
 import '../features/departments/pages/department_form_page.dart';
 import '../features/departments/pages/department_list_page.dart';
 import '../features/employees/pages/employee_detail_page.dart';
@@ -35,6 +38,8 @@ import '../features/onboarding/onboarding_page.dart';
 import '../features/payroll/pages/payroll_page.dart';
 import '../features/payroll/pages/payroll_run_detail_page.dart';
 import '../features/payroll/pages/payroll_periods_page.dart';
+import '../features/payroll/pages/salaries_page.dart';
+import '../features/payroll/pages/deduction_types_page.dart';
 import '../features/unauthorized/unauthorized_page.dart';
 import '../features/clients/pages/client_list_page.dart';
 import '../features/clients/pages/client_form_page.dart';
@@ -43,6 +48,8 @@ import '../features/sales/pages/sale_list_page.dart';
 import '../features/sales/pages/sale_detail_page.dart';
 import '../features/sales/pages/sale_form_page.dart';
 import '../features/quotes/pages/quote_list_page.dart';
+import '../features/quotes/pages/quote_form_page.dart';
+import '../features/quotes/pages/quote_detail_page.dart';
 import '../features/products/pages/product_list_page.dart';
 import '../features/products/pages/product_form_page.dart';
 import '../features/categories/pages/category_list_page.dart';
@@ -56,6 +63,10 @@ import '../features/cash_registers/pages/cash_register_list_page.dart';
 import '../features/cash_registers/pages/cash_register_detail_page.dart';
 import '../features/warranties/pages/warranty_list_page.dart';
 import '../features/warranties/pages/warranty_form_page.dart';
+import '../features/purchases/pages/purchase_list_page.dart';
+import '../features/purchases/pages/purchase_form_page.dart';
+import '../features/purchases/pages/purchase_detail_page.dart';
+import '../features/purchases/pages/inventory_adjustment_page.dart';
 
 final _routeRoles = <String, List<String>>{
   '/dashboard': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
@@ -81,6 +92,7 @@ final _routeRoles = <String, List<String>>{
   '/credits': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/cash-registers': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/warranties': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
+  '/branches': ['SuperAdmin', 'CompanyAdmin', 'Supervisor', 'Rrhh', 'Employee'],
 };
 
 bool _hasAccess(String role, String location) {
@@ -229,6 +241,22 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/leave-types',
             name: 'leave-types',
             builder: (_, _) => const LeaveTypesPage(),
+            routes: [
+              GoRoute(
+                path: 'new',
+                name: 'leave-type-new',
+                builder: (_, _) => const LeaveTypeFormPage(),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: '/branches',
+            name: 'branches',
+            builder: (_, _) => const BranchListPage(),
+            routes: [
+              GoRoute(path: 'new', name: 'branch-new', builder: (_, _) => const BranchFormPage()),
+              GoRoute(path: ':branchId', name: 'branch-detail', builder: (_, state) => BranchFormPage(branchId: state.pathParameters['branchId'])),
+            ],
           ),
           GoRoute(
             path: '/reports',
@@ -261,6 +289,8 @@ final routerProvider = Provider<GoRouter>((ref) {
                 routes: [GoRoute(path: 'new', name: 'payroll-period-new', builder: (_, _) => const PayrollPeriodsPage())],
               ),
               GoRoute(path: 'runs/:runId', name: 'payroll-run-detail', builder: (_, state) => PayrollRunDetailPage(runId: state.pathParameters['runId']!)),
+              GoRoute(path: 'salaries', name: 'payroll-salaries', builder: (_, _) => const SalariesPage()),
+              GoRoute(path: 'deduction-types', name: 'payroll-deduction-types', builder: (_, _) => const DeductionTypesPage()),
             ],
           ),
           GoRoute(
@@ -292,6 +322,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/quotes',
             name: 'quotes',
             builder: (_, _) => const QuoteListPage(),
+            routes: [
+              GoRoute(path: 'new', name: 'quote-new', builder: (_, _) => const QuoteFormPage()),
+              GoRoute(path: ':quoteId', name: 'quote-detail', builder: (_, state) => QuoteDetailPage(quoteId: state.pathParameters['quoteId']!)),
+              GoRoute(path: ':quoteId/edit', name: 'quote-edit', builder: (_, state) => QuoteFormPage(quoteId: state.pathParameters['quoteId'])),
+            ],
           ),
           GoRoute(
             path: '/products',
@@ -350,6 +385,20 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(path: 'new', name: 'warranty-new', builder: (_, _) => const WarrantyFormPage()),
               GoRoute(path: ':warrantyId/edit', name: 'warranty-edit', builder: (_, state) => WarrantyFormPage(warrantyId: state.pathParameters['warrantyId']!)),
             ],
+          ),
+          GoRoute(
+            path: '/purchases',
+            name: 'purchases',
+            builder: (_, _) => const PurchaseListPage(),
+            routes: [
+              GoRoute(path: 'new', name: 'purchase-new', builder: (_, _) => const PurchaseFormPage()),
+              GoRoute(path: ':purchaseId', name: 'purchase-detail', builder: (_, state) => PurchaseDetailPage(purchaseId: state.pathParameters['purchaseId']!)),
+            ],
+          ),
+          GoRoute(
+            path: '/inventory-adjustment',
+            name: 'inventory-adjustment',
+            builder: (_, _) => const InventoryAdjustmentPage(),
           ),
         ],
       ),

@@ -26,6 +26,7 @@ public sealed class Employee : BaseEntity
     public string? BankAccountType { get; set; }
     public Guid? UserId { get; set; }
 
+    public ICollection<EmployeeBankAccount> BankAccounts { get; set; } = [];
     public ICollection<EmployeeSupervisor> SupervisedBy { get; set; } = [];
     public ICollection<EmployeeSupervisor> Supervisors { get; set; } = [];
     public ICollection<EmployeeDocument> Documents { get; set; } = [];

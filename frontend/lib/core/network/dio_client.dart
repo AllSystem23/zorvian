@@ -2,18 +2,20 @@ import 'package:dio/dio.dart';
 import '../storage/secure_storage.dart';
 
 typedef OnErrorCallback = void Function(int? statusCode, String message);
+typedef OnUnauthorizedCallback = void Function();
 
 class DioClient {
   late final Dio _dio;
   final SecureStorage _storage;
   final OnErrorCallback? onError;
+  final OnUnauthorizedCallback? onUnauthorized;
 
-  DioClient(this._storage, {this.onError}) {
+  static String _normalizeBaseUrl(String url) =>
+      url.endsWith('/') ? url : '$url/';
+
+  DioClient(this._storage, {this.onError, this.onUnauthorized}) {
     _dio = Dio(BaseOptions(
-      baseUrl: const String.fromEnvironment(
-        'API_URL',
-        defaultValue: 'https://nexora-9yal.onrender.com/zorvian/v1/',
-      ),
+      baseUrl: _normalizeBaseUrl(const String.fromEnvironment('API_URL', defaultValue: 'http://localhost:5192/zorvian/v1/')),
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
       headers: {'Content-Type': 'application/json'},
@@ -27,22 +29,11 @@ class DioClient {
         }
 
         try {
-          // Añadimos un timeout corto para evitar bloqueos en web
-          final token = await _storage.getAccessToken().timeout(
-            const Duration(milliseconds: 500),
-            onTimeout: () => null,
-          );
-          print('DEBUG: Request path: ${options.path}');
-          print('DEBUG: Headers: ${options.headers}');
-          print('DEBUG: Token retrieved: ${token != null ? 'Yes' : 'No'}');
+          final token = await _storage.getAccessToken();
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
-            print('DEBUG: Authorization header added.');
-          } else {
-            print('DEBUG: No token found to add.');
           }
-        } catch (e) {
-          print('DEBUG: Token retrieval error: $e');
+        } catch (_) {
           // Si falla el almacenamiento, continuamos sin token
         }
         handler.next(options);
@@ -55,11 +46,16 @@ class DioClient {
             handler.resolve(retryResponse);
             return;
           }
+          await _storage.clearTokens();
+          onUnauthorized?.call();
         }
-        final msg = error.response?.data?['message'] as String? ??
-            error.response?.data?['title'] as String? ??
-            error.message ??
-            'Error de conexión';
+        final data = error.response?.data;
+        final msg = data is Map
+            ? (data['message'] as String? ??
+                data['title'] as String? ??
+                error.message ??
+                'Error de conexión')
+            : data?.toString() ?? error.message ?? 'Error de conexión';
         onError?.call(error.response?.statusCode, msg);
         handler.next(error);
       },
@@ -99,8 +95,8 @@ class DioClient {
     return false;
   }
 
-  Future<Response<T>> get<T>(String path, {Map<String, dynamic>? params}) =>
-      _dio.get<T>(path, queryParameters: params);
+  Future<Response<T>> get<T>(String path, {Map<String, dynamic>? params, Options? options}) =>
+      _dio.get<T>(path, queryParameters: params, options: options);
 
   Future<Response<T>> post<T>(String path, {dynamic data, Options? options}) =>
       _dio.post<T>(path, data: data, options: options);

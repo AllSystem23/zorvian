@@ -6,6 +6,8 @@ using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
+using Zorvian.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace Zorvian.Tests.Services;
 
@@ -21,23 +23,47 @@ public sealed class SaleServiceTests
     private readonly Guid _branchId = Guid.NewGuid();
     private readonly Guid _clientId = Guid.NewGuid();
     private readonly Guid _employeeId = Guid.NewGuid();
+    private readonly Guid _companyId = Guid.NewGuid();
 
     public SaleServiceTests()
     {
-        _tenant.Setup(t => t.TenantId).Returns("tenant-123");
+        _tenant.Setup(t => t.TenantId).Returns(_companyId.ToString());
+
+        var mockEntryRepo = new Mock<IAccountingEntryRepository>();
+        var mockPeriodRepo = new Mock<IAccountingPeriodRepository>();
+        var mockLinkRepo = new Mock<IAccountLinkRepository>(); // Setup properly
+        mockLinkRepo.Setup(r => r.GetByTransactionTypeAndRoleAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid>()))
+            .ReturnsAsync(new AccountLink { AccountId = Guid.NewGuid() });
+            
+        var mockRuleRepo = new Mock<IAccountingRuleRepository>();
+        var mockAccountRepo = new Mock<IAccountRepository>();
+        var mockPayrollRepo = new Mock<IPayrollRepository>();
+        
+        var mockTenantContext = new Mock<ITenantContext>();
+        mockTenantContext.Setup(t => t.TenantId).Returns(_companyId.ToString());
+        mockAccountRepo.Setup(r => r.GetByCodeAsync(It.IsAny<string>(), It.IsAny<Guid>()))
+            .ReturnsAsync(new Account { Id = Guid.NewGuid() });
+            
+        var mockCashRepo = new Mock<ICashMovementRepository>();
+        
+        var autoAccounting = new AutoAccountingService(
+            mockEntryRepo.Object, mockPeriodRepo.Object, mockLinkRepo.Object, mockRuleRepo.Object, 
+            mockAccountRepo.Object, mockTenantContext.Object, mockPayrollRepo.Object, mockCashRepo.Object);
+
         _sut = new SaleService(
             _saleRepo.Object,
             _productRepo.Object,
             _movementRepo.Object,
             _companyRepo.Object,
+            autoAccounting,
             _tenant.Object,
             _mapper.Object);
     }
-
+    // ... (rest of the file remains same)
     private Company MakeCompany() => new()
     {
         Id = Guid.NewGuid(),
-        TenantId = "tenant-123",
+        TenantId = _companyId.ToString(),
     };
 
     private CompanySettings MakeSettings(bool taxEnabled = true, decimal taxRate = 0.16m) => new()
@@ -62,7 +88,7 @@ public sealed class SaleServiceTests
         PaidAmount = 1160m,
         Balance = 0,
         Status = "completed",
-        CompanyId = Guid.Parse("tenant-123"),
+        CompanyId = _companyId,
         BranchId = _branchId,
     };
 
@@ -70,11 +96,9 @@ public sealed class SaleServiceTests
     public async Task CreateCashSaleAsync_WithTaxEnabled_CalculatesTotalCorrectly()
     {
         var company = MakeCompany();
-        var settings = MakeSettings(taxEnabled: true, taxRate: 0.16m);
         var saleId = Guid.NewGuid();
 
-        _companyRepo.Setup(r => r.GetByTenantIdAsync("tenant-123")).ReturnsAsync(company);
-        _companyRepo.Setup(r => r.GetSettingsAsync(company.Id)).ReturnsAsync(settings);
+        _companyRepo.Setup(r => r.GetByTenantIdAsync(_companyId.ToString())).ReturnsAsync(company);
 
         var request = new CreateCashSaleRequest(
             _clientId, _employeeId, 0, null, _branchId,
@@ -84,7 +108,16 @@ public sealed class SaleServiceTests
             },
             new SalePaymentInfo(1160m, "cash", null, null));
 
+        var product = new Product { 
+            Id = request.Details[0].ProductId, 
+            Stock = 10, 
+            CostPrice = 300m,
+            TaxCategory = new TaxCategory { Rate = 0.16m, Name = "16%" }
+        };
+        _productRepo.Setup(r => r.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync(product);
+
         var sale = MakeSale(saleId);
+        sale.Details = new List<SaleDetail> { new() { Product = product, Quantity = 2, UnitPrice = 500m, Discount = 0, Subtotal = 1000m } };
         _mapper.Setup(m => m.Map<Sale>(request)).Returns(sale);
         _saleRepo.Setup(r => r.GenerateInvoiceNumberAsync(company.Id)).ReturnsAsync("INV-001");
 
@@ -95,9 +128,6 @@ public sealed class SaleServiceTests
 
         _saleRepo.Setup(r => r.GetByIdAsync(saleId)).ReturnsAsync(sale);
         _mapper.Setup(m => m.Map<SaleResponse>(sale)).Returns(expectedResponse);
-
-        var product = new Product { Id = Guid.NewGuid(), Stock = 10, CostPrice = 300m };
-        _productRepo.Setup(r => r.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync(product);
 
         var result = await _sut.CreateCashSaleAsync(request);
 
@@ -116,7 +146,7 @@ public sealed class SaleServiceTests
         var settings = MakeSettings(taxEnabled: false);
         var saleId = Guid.NewGuid();
 
-        _companyRepo.Setup(r => r.GetByTenantIdAsync("tenant-123")).ReturnsAsync(company);
+        _companyRepo.Setup(r => r.GetByTenantIdAsync(_companyId.ToString())).ReturnsAsync(company);
         _companyRepo.Setup(r => r.GetSettingsAsync(company.Id)).ReturnsAsync(settings);
 
         var request = new CreateCashSaleRequest(
@@ -139,7 +169,12 @@ public sealed class SaleServiceTests
         _saleRepo.Setup(r => r.GetByIdAsync(saleId)).ReturnsAsync(sale);
         _mapper.Setup(m => m.Map<SaleResponse>(sale)).Returns(expectedResponse);
 
-        var product = new Product { Id = Guid.NewGuid(), Stock = 10, CostPrice = 300m };
+        var product = new Product { 
+            Id = request.Details[0].ProductId, 
+            Stock = 10, 
+            CostPrice = 300m,
+            TaxCategory = new TaxCategory { Rate = 0.0m, Name = "Exento" }
+        };
         _productRepo.Setup(r => r.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync(product);
 
         var result = await _sut.CreateCashSaleAsync(request);
@@ -157,7 +192,7 @@ public sealed class SaleServiceTests
         var settings = MakeSettings(taxEnabled: false);
         var saleId = Guid.NewGuid();
 
-        _companyRepo.Setup(r => r.GetByTenantIdAsync("tenant-123")).ReturnsAsync(company);
+        _companyRepo.Setup(r => r.GetByTenantIdAsync(_companyId.ToString())).ReturnsAsync(company);
         _companyRepo.Setup(r => r.GetSettingsAsync(company.Id)).ReturnsAsync(settings);
 
         var request = new CreateCreditSaleRequest(

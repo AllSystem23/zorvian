@@ -247,6 +247,8 @@ Cada tarea incluye: `[Area]` | `Prioridad` | `Estimado` | `Depende de`
 | F2.5 | API Publica + Webhooks para integraciones | Media | — |
 | F2.6 | Multi-idioma (ingles) | Media | — |
 | F2.7 | Administracion de documentos avanzada (vencimientos, alertas) | Baja | 2.10 |
+| F2.8 | Automatización Bancaria (H2H/SFTP para LAFISE/BANPRO) | Media | — |
+| F2.9 | Servicio de polling para conciliación automática de pagos | Media | F2.8 |
 
 ## Post-MVP — Fase 3 (Q1–Q2 2027)
 

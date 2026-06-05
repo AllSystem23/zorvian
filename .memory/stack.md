@@ -7,16 +7,16 @@
 - **Database:** PostgreSQL 15+ hosted on Neon (`ep-solitary-*.neon.tech`)
 - **Auth:** Firebase Authentication (JWT validation via Firebase Admin SDK) + custom JWT (symmetric key)
 - **Jobs:** Hangfire (recurring tasks)
-- **Hosting:** Render (Docker, free tier)
+- **Hosting:** Render (Docker)
 
-## Backend Modules (2026-06-01)
-- **Nexora RH** (existing): Employees, Departments, Vacations, Permissions, Attendance, Payroll
-- **Nexora Comercial** (new): Clients, Quotes, Sales, Invoice generation
-- **Nexora Inventario** (new): Products, Categories, Brands, Suppliers, Kardex
-- **Nexora Créditos** (new): Credits, Installments, Payments, Collections
-- **Nexora Caja** (new): Cash register open/close, income/expense tracking
-- **Garantías** (new): Product warranties, claims management
-- **Multisucursal** (new): Branch entity with CompanyId FK on all operational tables
+## Backend Modules (Zorvian ERP)
+- **Zorvian HR**: Employees, Departments, Vacations, Permissions, Attendance, Payroll
+- **Zorvian Comercial**: Clients, Quotes, Sales, Invoice generation
+- **Zorvian Inventario**: Products, Categories, Brands, Suppliers, Kardex
+- **Zorvian Créditos**: Credits, Installments, Payments, Collections
+- **Zorvian Caja**: Cash register open/close, income/expense tracking
+- **Garantías**: Product warranties, claims management
+- **Multisucursal**: Branch entity with CompanyId FK on all operational tables
 
 ## Frontend
 - **Framework:** Flutter 3.x with `--dart-define` for env vars

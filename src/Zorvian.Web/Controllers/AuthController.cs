@@ -76,6 +76,25 @@ public sealed class AuthController : ControllerBase
     }
 
     /// <summary>
+    /// Obtiene la información del usuario autenticado actualmente.
+    /// </summary>
+    [HttpGet("me")]
+    [Authorize]
+    [ProducesResponseType(typeof(UserInfo), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMe()
+    {
+        var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+            return Unauthorized();
+
+        var result = await _authService.GetMeAsync(userId);
+        if (result is null)
+            return NotFound();
+
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Verifica que el servicio de autenticación esté operativo.
     /// </summary>
     [HttpGet("health")]

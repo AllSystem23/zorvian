@@ -216,9 +216,10 @@ public sealed class VacationService
 
     public async Task<VacationBalanceResponse> CalculateBalanceAsync()
     {
-        var employeeId = _tenant.CurrentEmployeeId
-            ?? throw new InvalidOperationException("Authenticated employee not found");
-        return await CalculateBalanceAsync(employeeId);
+        var employeeId = _tenant.CurrentEmployeeId;
+        if (employeeId is null)
+            return new VacationBalanceResponse(15, 0, 0, 0, 0);
+        return await CalculateBalanceAsync(employeeId.Value);
     }
 
     public async Task<VacationBalanceResponse> CalculateBalanceAsync(Guid employeeId)

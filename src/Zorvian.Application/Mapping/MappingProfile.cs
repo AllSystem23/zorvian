@@ -7,6 +7,7 @@ using Zorvian.Application.DTOs.Department;
 using Zorvian.Application.DTOs.Employee;
 using Zorvian.Application.DTOs.Inventory;
 using Zorvian.Application.DTOs.Warranty;
+using Zorvian.Application.DTOs.Accounting;
 using Zorvian.Core.Entities;
 
 namespace Zorvian.Application.Mapping;
@@ -311,6 +312,25 @@ public sealed class MappingProfile : Profile
         CreateMap<CollectionAction, CollectionActionResponse>()
             .ForMember(d => d.EmployeeName, o => o.MapFrom(s => s.Employee.FirstName + " " + s.Employee.LastName));
 
+        // Purchase
+        CreateMap<CreatePurchaseRequest, Purchase>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.PurchaseNumber, o => o.Ignore())
+            .ForMember(d => d.Status, o => o.Ignore())
+            .ForMember(d => d.Subtotal, o => o.Ignore())
+            .ForMember(d => d.Tax, o => o.Ignore())
+            .ForMember(d => d.Total, o => o.Ignore())
+            .ForMember(d => d.CompanyId, o => o.Ignore())
+            .ForMember(d => d.Details, o => o.Ignore())
+            .ForMember(d => d.Supplier, o => o.Ignore());
+        CreateMap<Purchase, PurchaseResponse>()
+            .ForMember(d => d.SupplierName, o => o.MapFrom(s => s.Supplier.Name))
+            .ForMember(d => d.Details, o => o.MapFrom(s => s.Details));
+        CreateMap<PurchaseDetail, PurchaseDetailItem>()
+            .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name));
+        CreateMap<Purchase, PurchaseListResponse>()
+            .ForMember(d => d.SupplierName, o => o.MapFrom(s => s.Supplier.Name));
+
         CreateMap<CreateWarrantyClaimRequest, WarrantyClaim>()
             .ForMember(d => d.Id, o => o.Ignore())
             .ForMember(d => d.ClaimDate, o => o.MapFrom(_ => DateOnly.FromDateTime(DateTime.UtcNow)))
@@ -327,5 +347,20 @@ public sealed class MappingProfile : Profile
             .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product != null ? s.Product.Name : ""));
         CreateMap<WarrantyClaim, WarrantyClaimResponse>()
             .ForMember(d => d.ApprovedByName, o => o.Ignore());
+
+        // Accounting
+        CreateMap<CreateAccountRequest, Account>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.Parent, o => o.Ignore())
+            .ForMember(d => d.Children, o => o.Ignore())
+            .ForMember(d => d.CompanyId, o => o.Ignore())
+            .ForMember(d => d.IsActive, o => o.MapFrom(_ => true));
+        CreateMap<Account, AccountResponse>()
+            .ForMember(d => d.ParentName, o => o.Ignore())
+            .ForMember(d => d.CurrentBalance, o => o.Ignore());
+        CreateMap<CreateAccountingRuleRequest, AccountingRule>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.IsActive, o => o.MapFrom(_ => true))
+            .ForMember(d => d.CompanyId, o => o.Ignore());
     }
 }

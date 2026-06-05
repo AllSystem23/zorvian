@@ -83,7 +83,8 @@ class _VacationFormPageState extends ConsumerState<VacationFormPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final balance = ref.watch(vacationProvider).balance;
+    final state = ref.watch(vacationProvider);
+    final balance = state.balance;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Solicitar vacaciones')),
@@ -94,6 +95,22 @@ class _VacationFormPageState extends ConsumerState<VacationFormPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (state.error != null)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.errorContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.error_outline, size: 18, color: theme.colorScheme.error),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(state.error!, style: TextStyle(color: theme.colorScheme.error, fontSize: 13))),
+                    ],
+                  ),
+                ),
               if (balance != null)
                 Card(
                   child: Padding(

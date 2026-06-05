@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../auth/auth_provider.dart';
+import '../../../core/network/dio_client.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../providers/payroll_provider.dart';
 
@@ -13,6 +15,8 @@ class PayrollPage extends ConsumerStatefulWidget {
 
 class _PayrollPageState extends ConsumerState<PayrollPage> {
   List<dynamic> _runs = [];
+  List<dynamic> _periods = [];
+  int _employeeCount = 0;
   bool _loading = true;
 
   @override
@@ -25,7 +29,11 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
     setState(() => _loading = true);
     try {
       final svc = ref.read(payrollServiceProvider);
+      final dio = ref.read(dioClientProvider);
       _runs = await svc.getRuns(null);
+      _periods = await svc.getPeriods(null);
+      final empRes = await dio.get('employees', params: {'page': 1, 'pageSize': 1});
+      _employeeCount = (empRes.data['total'] as int?) ?? 0;
     } catch (_) {}
     setState(() => _loading = false);
   }
@@ -53,6 +61,9 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
                 padding: const EdgeInsets.all(16),
                 children: [
                   _buildSummaryCards(theme),
+                  const SizedBox(height: 16),
+                  if (ref.watch(authProvider).role == 'SuperAdmin' || ref.watch(authProvider).role == 'CompanyAdmin')
+                    _buildAdminLinks(theme),
                   const SizedBox(height: 24),
                   Text('Corridas de Nómina', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
@@ -72,16 +83,44 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
         Expanded(child: _SummaryCard(
           icon: Icons.people,
           label: 'Empleados',
-          value: '---',
+          value: '$_employeeCount',
           color: const Color(0xFF4F46E5),
         )),
         const SizedBox(width: 12),
         Expanded(child: _SummaryCard(
-          icon: Icons.attach_money,
+          icon: Icons.calendar_month,
           label: 'Períodos',
-          value: '${_runs.length}',
+          value: '${_periods.length}',
           color: const Color(0xFF059669),
         )),
+      ],
+    );
+  }
+
+  Widget _buildAdminLinks(ThemeData theme) {
+    return Row(
+      children: [
+        Expanded(
+          child: Card(
+            child: ListTile(
+              leading: Icon(Icons.attach_money, color: Colors.green.shade600),
+              title: const Text('Salarios', style: TextStyle(fontSize: 13)),
+              trailing: const Icon(Icons.chevron_right, size: 18),
+              onTap: () => context.push('/payroll/salaries'),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Card(
+            child: ListTile(
+              leading: Icon(Icons.category, color: Colors.indigo.shade400),
+              title: const Text('Deducciones', style: TextStyle(fontSize: 13)),
+              trailing: const Icon(Icons.chevron_right, size: 18),
+              onTap: () => context.push('/payroll/deduction-types'),
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -103,7 +142,10 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
         title: Text(run['periodName'] ?? 'Sin nombre'),
         subtitle: Text('C\$${run['totalNetPay']?.toStringAsFixed(2) ?? '0.00'} · ${run['employeeCount']} emp.'),
         trailing: Chip(label: Text(label, style: TextStyle(fontSize: 11, color: color)), materialTapTargetSize: MaterialTapTargetSize.shrinkWrap),
-        onTap: run['id'] != null ? () => context.push('/payroll/runs/${run['id']}') : null,
+        onTap: run['id'] != null ? () async {
+          final deleted = await context.push<bool>('/payroll/runs/${run['id']}');
+          if (deleted == true) _load();
+        } : null,
       ),
     );
   }

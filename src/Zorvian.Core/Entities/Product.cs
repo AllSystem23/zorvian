@@ -21,6 +21,8 @@ public sealed class Product : BaseEntity
     public string? ImageUrl { get; set; }
     public string? Barcode { get; set; }
     public bool IsActive { get; set; } = true;
+    public Guid? TaxCategoryId { get; set; }
+    public TaxCategory? TaxCategory { get; set; }
     public Guid CompanyId { get; set; }
     public Guid BranchId { get; set; }
 

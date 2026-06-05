@@ -14,11 +14,32 @@ public sealed class PayrollServiceTests
     private readonly Mock<ITenantContext> _tenant = new();
     private readonly Mock<IWebhookService> _webhook = new();
     private readonly Mock<IAchExportService> _ach = new();
+    private readonly Mock<IAutoAccountingService> _autoAccounting = new();
+    private readonly Mock<ICountryTaxConfigRepository> _taxConfigRepo = new();
+    private readonly Mock<ICompanyRepository> _companyRepo = new();
+    private readonly Mock<IOvertimeRecordRepository> _overtimeRepo = new();
+    private readonly Mock<ICommissionRecordRepository> _commissionRepo = new();
+    private readonly Mock<IBonusRecordRepository> _bonusRepo = new();
+    private readonly Mock<IPayrollConceptRepository> _conceptRepo = new();
+    private readonly Mock<IEmployeeLoanRepository> _loanRepo = new();
+    private readonly Mock<ISalaryAdvanceRepository> _advanceRepo = new();
+    private readonly Mock<IWageGarnishmentRepository> _garnishmentRepo = new();
+    private readonly Mock<IBenefitProvisionRepository> _benefitProvisionRepo = new();
+    private readonly Mock<IAuditLogRepository> _auditRepo = new();
+    private readonly Mock<IBankTransferService> _bankTransferService = new();
+    private readonly Mock<ISickLeaveRepository> _sickLeaveRepo = new();
     private readonly PayrollService _sut;
 
     public PayrollServiceTests()
     {
-        _sut = new PayrollService(_repo.Object, _employeeRepo.Object, _tenant.Object, _webhook.Object, _ach.Object);
+        var mockStrategy = new Mock<IPayrollCalculationStrategy>();
+        var factory = new PayrollCalculationFactory(new List<IPayrollCalculationStrategy> { mockStrategy.Object });
+
+        _sut = new PayrollService(_repo.Object, _employeeRepo.Object, _tenant.Object, _webhook.Object, _ach.Object, 
+            _autoAccounting.Object, _taxConfigRepo.Object, _companyRepo.Object, 
+            _overtimeRepo.Object, _commissionRepo.Object, _bonusRepo.Object, _conceptRepo.Object,
+            _loanRepo.Object, _advanceRepo.Object, _garnishmentRepo.Object, _benefitProvisionRepo.Object,
+            _auditRepo.Object, factory, _bankTransferService.Object, _sickLeaveRepo.Object);
     }
 
     [Fact]

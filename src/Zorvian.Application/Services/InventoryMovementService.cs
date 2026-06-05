@@ -11,17 +11,20 @@ public sealed class InventoryMovementService
 {
     private readonly IInventoryMovementRepository _movementRepo;
     private readonly IProductRepository _productRepo;
+    private readonly IAutoAccountingService _autoAccounting;
     private readonly ITenantContext _tenant;
     private readonly IMapper _mapper;
 
     public InventoryMovementService(
         IInventoryMovementRepository movementRepo,
         IProductRepository productRepo,
+        IAutoAccountingService autoAccounting,
         ITenantContext tenant,
         IMapper mapper)
     {
         _movementRepo = movementRepo;
         _productRepo = productRepo;
+        _autoAccounting = autoAccounting;
         _tenant = tenant;
         _mapper = mapper;
     }
@@ -49,6 +52,9 @@ public sealed class InventoryMovementService
 
         await _movementRepo.AddAsync(movement);
         await _movementRepo.SaveChangesAsync();
+
+        await _autoAccounting.GenerateInventoryEntryAsync(
+            movement.Id, movement.ProductId, movement.MovementType, movement.Quantity, product.CostPrice);
 
         return _mapper.Map<InventoryMovementResponse>(movement);
     }

@@ -91,10 +91,35 @@ public sealed class DashboardRepository : IDashboardRepository
 
     public async Task<List<VacationRequest>> GetRecentVacationsAsync(int count)
     {
-        return await _db.Set<VacationRequest>()
+        return await _db.VacationRequests
             .Include(v => v.Employee)
             .OrderByDescending(v => v.CreatedAt)
             .Take(count)
+            .ToListAsync();
+    }
+
+    public async Task<List<(string Department, decimal Amount)>> GetPayrollCostByDepartmentAsync()
+    {
+        var latestRun = await _db.PayrollRuns
+            .OrderByDescending(r => r.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        if (latestRun == null) return new List<(string, decimal)>();
+
+        return await _db.PayrollDetails
+            .Where(d => d.PayrollRunId == latestRun.Id)
+            .GroupBy(d => d.Employee!.Department!.Name)
+            .Select(g => new ValueTuple<string, decimal>(g.Key, g.Sum(d => d.GrossPay)))
+            .ToListAsync();
+    }
+
+    public async Task<List<(string Period, decimal Amount)>> GetPayrollHistoryAsync(int count)
+    {
+        return await _db.PayrollRuns
+            .Include(r => r.PayrollPeriod)
+            .OrderByDescending(r => r.CreatedAt)
+            .Take(count)
+            .Select(r => new ValueTuple<string, decimal>(r.PayrollPeriod!.Name, r.TotalNetPay))
             .ToListAsync();
     }
 }

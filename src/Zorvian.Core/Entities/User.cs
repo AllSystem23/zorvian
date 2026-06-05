@@ -7,6 +7,7 @@ public sealed class User : BaseEntity
     public string DisplayName { get; set; } = string.Empty;
     public string? Phone { get; set; }
     public string? AvatarUrl { get; set; }
+    public string? PasswordHash { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime? LastLoginAt { get; set; }
 

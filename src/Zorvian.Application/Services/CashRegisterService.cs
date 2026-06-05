@@ -14,16 +14,40 @@ public sealed class CashRegisterService
     private readonly ITenantContext _tenant;
     private readonly IMapper _mapper;
 
+    private readonly IAutoAccountingService _accountingService;
+
     public CashRegisterService(
         ICashRegisterRepository registerRepo,
         ICashMovementRepository movementRepo,
         ITenantContext tenant,
-        IMapper mapper)
+        IMapper mapper,
+        IAutoAccountingService accountingService)
     {
         _registerRepo = registerRepo;
         _movementRepo = movementRepo;
         _tenant = tenant;
         _mapper = mapper;
+        _accountingService = accountingService;
+    }
+
+    // ... (rest of the methods) ...
+
+    public async Task<bool> ApproveMovementAsync(Guid movementId)
+    {
+        var movement = await _movementRepo.GetByIdAsync(movementId) 
+            ?? throw new InvalidOperationException("Movement not found");
+
+        if (movement.ApprovalStatus == "approved")
+            throw new InvalidOperationException("Movement already approved");
+
+        movement.ApprovalStatus = "approved";
+        await _movementRepo.UpdateAsync(movement);
+        await _movementRepo.SaveChangesAsync();
+
+        // Generate accounting entry (Fase 9.2)
+        await _accountingService.GenerateCashMovementEntryAsync(movementId);
+
+        return true;
     }
 
     public async Task<CashRegisterResponse> OpenAsync(OpenCashRegisterRequest request)

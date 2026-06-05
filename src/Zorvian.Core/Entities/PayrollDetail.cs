@@ -15,4 +15,9 @@ public sealed class PayrollDetail : BaseEntity
     public decimal? IrDeduction { get; set; }
     public decimal? OtherDeductions { get; set; }
     public string? Details { get; set; }
+    public string PaymentStatus { get; set; } = "pending"; // pending, sent, paid, failed
+    public string? PaymentReference { get; set; }
+    public string Currency { get; set; } = "NIO";
+    public decimal ExchangeRate { get; set; } = 1.0m;
+    public ICollection<PayrollDetailConcept> Concepts { get; set; } = new List<PayrollDetailConcept>();
 }

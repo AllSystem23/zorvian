@@ -100,7 +100,57 @@ public sealed record PayrollDetailResponse(
     string? InssCode,
     decimal? InssDeduction,
     decimal? IrDeduction,
-    decimal? OtherDeductions
+    decimal? OtherDeductions,
+    string PaymentStatus,
+    string Currency,
+    List<PayrollDetailConceptResponse>? Concepts = null
+);
+
+public sealed record PayrollDetailConceptResponse(
+    string Code,
+    string Description,
+    decimal Amount,
+    bool IsEmployerCost
+);
+
+public sealed record EmployeeBankAccountResponse(
+    Guid Id,
+    Guid EmployeeId,
+    string BankName,
+    string AccountNumber,
+    string AccountType,
+    string AccountCurrency,
+    bool IsDefault,
+    bool IsActive
+);
+
+public sealed record CreateEmployeeBankAccountRequest(
+    Guid EmployeeId,
+    string BankName,
+    string AccountNumber,
+    string AccountType,
+    string AccountCurrency,
+    bool IsDefault
+);
+
+public sealed record UpdateEmployeeBankAccountRequest(
+    string? BankName,
+    string? AccountNumber,
+    string? AccountType,
+    string? AccountCurrency,
+    bool? IsDefault,
+    bool? IsActive
+);
+
+public sealed record UpdatePayrollDetailRequest(
+    decimal? BaseSalary,
+    decimal? GrossPay,
+    decimal? TotalDeductions,
+    decimal? NetPay,
+    decimal? InssDeduction,
+    decimal? IrDeduction,
+    decimal? OtherDeductions,
+    string? Details
 );
 
 public sealed record GeneratePayrollRequest(

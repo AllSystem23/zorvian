@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../shared/printing/pdf_generator.dart';
+import '../../../shared/printing/print_share_sheet.dart';
+import '../../../shared/printing/print_utils.dart';
+import '../../../shared/printing/qr_code_dialog.dart';
+import '../../../shared/printing/thermal_template.dart';
 import '../providers/sale_provider.dart';
 
 final class SaleDetailPage extends ConsumerStatefulWidget {
@@ -42,7 +47,85 @@ final class _SaleDetailPageState extends ConsumerState<SaleDetailPage> {
     final stColor = switch (d.status) { 'completed' => Colors.green, 'cancelled' => Colors.red, _ => Colors.orange };
 
     return Scaffold(
-      appBar: AppBar(title: Text('Factura ${d.invoiceNumber}')),
+      appBar: AppBar(
+        title: Text('Factura ${d.invoiceNumber}'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code, size: 20),
+            tooltip: 'Código QR',
+            onPressed: () => showQrCodeDialog(context, ref,
+              title: 'Factura ${d.invoiceNumber}',
+              number: d.invoiceNumber,
+              clientName: d.clientName,
+              total: d.total,
+              date: d.saleDate,
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.share, size: 20),
+            tooltip: 'Compartir',
+            onPressed: () => showModalBottomSheet(
+              context: context,
+              builder: (_) => PrintShareSheet(
+                title: 'Factura ${d.invoiceNumber}',
+                filename: 'factura_${d.invoiceNumber}',
+                buildPdf: (c, s) => generateSalePdf(sale: d, company: c, settings: s),
+                buildThermal: (c) => saleThermalHtml(
+                  company: c,
+                  invoiceNumber: d.invoiceNumber,
+                  date: d.saleDate,
+                  clientName: d.clientName,
+                  saleType: d.saleType,
+                  subtotal: d.subtotal,
+                  discount: d.discount,
+                  tax: d.tax,
+                  total: d.total,
+                  paidAmount: d.paidAmount,
+                  balance: d.balance,
+                  status: d.status,
+                  notes: d.notes,
+                  items: d.details.map((i) => {
+                    'productName': i.productName,
+                    'quantity': i.quantity,
+                    'unitPrice': i.unitPrice,
+                    'discount': i.discount,
+                    'subtotal': i.subtotal,
+                  }).toList(),
+                ),
+                buildText: (c) => saleTextSummary(
+                  companyName: c['legalName'] as String? ?? c['name'] as String? ?? '',
+                  invoiceNumber: d.invoiceNumber,
+                  date: d.saleDate,
+                  clientName: d.clientName,
+                  total: d.total,
+                  status: d.status,
+                ),
+                buildCsv: () async => saleCsvBytes(
+                  companyName: '',
+                  invoiceNumber: d.invoiceNumber,
+                  date: d.saleDate,
+                  clientName: d.clientName,
+                  saleType: d.saleType,
+                  subtotal: d.subtotal,
+                  discount: d.discount,
+                  tax: d.tax,
+                  total: d.total,
+                  paidAmount: d.paidAmount,
+                  balance: d.balance,
+                  status: d.status,
+                  items: d.details.map((i) => {
+                    'productName': i.productName,
+                    'quantity': i.quantity,
+                    'unitPrice': i.unitPrice,
+                    'discount': i.discount,
+                    'subtotal': i.subtotal,
+                  }).toList(),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

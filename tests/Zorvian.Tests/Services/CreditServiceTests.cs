@@ -22,10 +22,11 @@ public sealed class CreditServiceTests
     private readonly CreditService _sut;
     private readonly Guid _employeeId = Guid.NewGuid();
     private readonly Guid _branchId = Guid.NewGuid();
+    private readonly Guid _companyId = Guid.NewGuid();
 
     public CreditServiceTests()
     {
-        _tenant.Setup(t => t.TenantId).Returns("tenant-123");
+        _tenant.Setup(t => t.TenantId).Returns(_companyId.ToString());
         _tenant.Setup(t => t.CurrentEmployeeId).Returns(_employeeId);
         _sut = new CreditService(
             _creditRepo.Object,
@@ -54,7 +55,7 @@ public sealed class CreditServiceTests
         EndDate = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(11)),
         Status = "active",
         BranchId = _branchId,
-        CompanyId = Guid.Parse("tenant-123"),
+        CompanyId = _companyId,
         Installments = installments.ToList(),
     };
 
@@ -85,7 +86,7 @@ public sealed class CreditServiceTests
         Balance = 60m,
         Status = "pending",
         CalculatedAt = DateOnly.FromDateTime(DateTime.UtcNow),
-        CompanyId = Guid.Parse("tenant-123"),
+        CompanyId = _companyId,
         BranchId = _branchId,
     };
 
@@ -109,7 +110,7 @@ public sealed class CreditServiceTests
         var settings = MakeSettings();
 
         _creditRepo.Setup(r => r.GetByIdAsync(creditId)).ReturnsAsync(credit);
-        _companyRepo.Setup(r => r.GetByTenantIdAsync("tenant-123")).ReturnsAsync(new Company { Id = companyId });
+        _companyRepo.Setup(r => r.GetByTenantIdAsync(_companyId.ToString())).ReturnsAsync(new Company { Id = companyId });
         _companyRepo.Setup(r => r.GetSettingsAsync(companyId)).ReturnsAsync(settings);
         _lateFeeRepo.Setup(r => r.GetByInstallmentAndDateAsync(installment.Id, It.IsAny<DateOnly>())).ReturnsAsync((LateFee?)null);
 
@@ -140,7 +141,7 @@ public sealed class CreditServiceTests
         var existingLateFee = MakeLateFee(creditId, installment.Id);
 
         _creditRepo.Setup(r => r.GetByIdAsync(creditId)).ReturnsAsync(credit);
-        _companyRepo.Setup(r => r.GetByTenantIdAsync("tenant-123")).ReturnsAsync(new Company { Id = companyId });
+        _companyRepo.Setup(r => r.GetByTenantIdAsync(_companyId.ToString())).ReturnsAsync(new Company { Id = companyId });
         _companyRepo.Setup(r => r.GetSettingsAsync(companyId)).ReturnsAsync(settings);
         _lateFeeRepo.Setup(r => r.GetByInstallmentAndDateAsync(installment.Id, It.IsAny<DateOnly>())).ReturnsAsync(existingLateFee);
 
@@ -166,7 +167,7 @@ public sealed class CreditServiceTests
         credit.Installments.Clear();
 
         _creditRepo.Setup(r => r.GetByIdAsync(creditId)).ReturnsAsync(credit);
-        _companyRepo.Setup(r => r.GetByTenantIdAsync("tenant-123")).ReturnsAsync((Company?)null);
+        _companyRepo.Setup(r => r.GetByTenantIdAsync(_companyId.ToString())).ReturnsAsync((Company?)null);
 
         var result = await _sut.CalculateLateFeesAsync(creditId);
 
@@ -185,7 +186,7 @@ public sealed class CreditServiceTests
         credit.Id = creditId;
 
         _creditRepo.Setup(r => r.GetByIdAsync(creditId)).ReturnsAsync(credit);
-        _companyRepo.Setup(r => r.GetByTenantIdAsync("tenant-123")).ReturnsAsync((Company?)null);
+        _companyRepo.Setup(r => r.GetByTenantIdAsync(_companyId.ToString())).ReturnsAsync((Company?)null);
 
         var result = await _sut.CalculateLateFeesAsync(creditId);
 

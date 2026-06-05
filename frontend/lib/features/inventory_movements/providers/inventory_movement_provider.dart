@@ -53,8 +53,8 @@ final class InventoryMovementNotifier extends Notifier<InventoryMovementState> {
     try {
       final dio = ref.read(dioClientProvider);
       final r = await dio.get('inventory-movements');
-      final data = r.data as List;
-      state = InventoryMovementState(items: data.map((e) => InventoryMovementItem.fromJson(e)).toList());
+      final data = r.data;
+      state = InventoryMovementState(items: (data['items'] as List).map((e) => InventoryMovementItem.fromJson(e)).toList());
     } catch (_) {
       state = state.copyWith(error: 'Error al cargar movimientos', loading: false);
     }

@@ -14,6 +14,7 @@ public interface IPayrollRepository
     // Employee Salaries
     Task<List<EmployeeSalary>> GetSalariesAsync(Guid? employeeId);
     Task<EmployeeSalary?> GetActiveSalaryAsync(Guid employeeId);
+    Task<EmployeeSalary?> GetSalaryByIdAsync(Guid id);
     Task AddSalaryAsync(EmployeeSalary salary);
     Task UpdateSalaryAsync(EmployeeSalary salary);
 
@@ -29,9 +30,13 @@ public interface IPayrollRepository
     Task<PayrollRun?> GetRunByIdAsync(Guid id);
     Task AddRunAsync(PayrollRun run);
     Task UpdateRunAsync(PayrollRun run);
+    Task DeleteRunAsync(Guid id);
 
     // Payroll Details
     Task AddDetailsAsync(List<PayrollDetail> details);
+    Task<PayrollDetail?> GetDetailByIdAsync(Guid id);
+    Task<PayrollDetail?> GetDetailByReferenceAsync(string reference);
+    Task UpdateDetailAsync(PayrollDetail detail);
 
     Task SaveChangesAsync();
 }

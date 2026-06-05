@@ -34,6 +34,16 @@ public sealed class AuthRepository : IAuthRepository
             .FirstOrDefaultAsync(u => u.Id == userId);
     }
 
+    public async Task<User?> GetUserByEmailAsync(string email)
+    {
+        return await _db.Users
+            .IgnoreQueryFilters()
+            .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                .ThenInclude(r => r.RolePermissions)
+            .FirstOrDefaultAsync(u => u.Email == email);
+    }
+
     public async Task AddUserAsync(User user)
     {
         await _db.Users.AddAsync(user);

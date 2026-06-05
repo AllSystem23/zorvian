@@ -8,4 +8,6 @@ public interface IReportService
     Task<byte[]> GeneratePermissionReportAsync(int year);
     Task<byte[]> GenerateAttendanceReportAsync(int year, int month);
     Task<byte[]> GenerateBalanceReportAsync();
+    Task<byte[]> GeneratePayStubAsync(Guid detailId);
+    Task<byte[]> GeneratePayrollCostReportAsync(Guid runId);
 }

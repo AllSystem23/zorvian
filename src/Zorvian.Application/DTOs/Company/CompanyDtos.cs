@@ -17,6 +17,10 @@ public sealed record CompanyResponse(
     string Name,
     string LegalName,
     string TaxId,
+    string? Address,
+    string? Phone,
+    string? Email,
+    string? LogoUrl,
     string Currency,
     string Timezone,
     int MaxEmployees

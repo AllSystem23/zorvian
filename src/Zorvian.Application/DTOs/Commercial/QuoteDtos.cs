@@ -37,6 +37,16 @@ public sealed record QuoteResponse(
     List<QuoteDetailItem> Details
 );
 
+public sealed record UpdateQuoteRequest(
+    Guid ClientId,
+    Guid? EmployeeId,
+    DateOnly? ExpirationDate,
+    decimal Discount,
+    string? Notes,
+    Guid BranchId,
+    List<QuoteDetailItem> Details
+);
+
 public sealed record QuoteFilterRequest(
     Guid? ClientId,
     string? Status,

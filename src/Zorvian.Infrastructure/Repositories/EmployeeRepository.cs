@@ -111,6 +111,20 @@ public sealed class EmployeeRepository : IEmployeeRepository
         return Task.CompletedTask;
     }
 
-    public async Task SaveChangesAsync() =>
-        await _db.SaveChangesAsync();
-}
+    public async Task SaveChangesAsync() => await _db.SaveChangesAsync();
+
+    public async Task<List<AttendanceRecord>> GetAttendanceInRangeAsync(Guid employeeId, DateOnly start, DateOnly end) =>
+        await _db.AttendanceRecords
+            .Where(a => a.EmployeeId == employeeId && a.Date >= start && a.Date <= end)
+            .ToListAsync();
+
+    public async Task<List<VacationRequest>> GetVacationsInRangeAsync(Guid employeeId, DateOnly start, DateOnly end) =>
+        await _db.VacationRequests
+            .Where(v => v.EmployeeId == employeeId && v.StartDate <= end && v.EndDate >= start)
+            .ToListAsync();
+
+    public async Task<List<EmployeeBankAccount>> GetBankAccountsAsync(Guid employeeId) =>
+        await _db.EmployeeBankAccounts
+            .Where(ba => ba.EmployeeId == employeeId)
+            .ToListAsync();
+    }

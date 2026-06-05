@@ -55,6 +55,10 @@ public sealed class CompanyService
             company.Name,
             company.LegalName,
             company.TaxId ?? "",
+            company.Address,
+            company.Phone,
+            company.Email,
+            company.LogoUrl,
             company.Currency,
             company.Timezone,
             company.MaxEmployees
@@ -64,13 +68,17 @@ public sealed class CompanyService
     public async Task<CompanyResponse?> GetCurrentAsync()
     {
         var company = await _repo.GetByTenantIdAsync(_tenant.TenantId);
-        if (company is null) return null;
+        if (company is null) return DefaultCompanyResponse();
 
         return new CompanyResponse(
             company.Id,
             company.Name,
             company.LegalName,
             company.TaxId ?? "",
+            company.Address,
+            company.Phone,
+            company.Email,
+            company.LogoUrl,
             company.Currency,
             company.Timezone,
             company.MaxEmployees
@@ -99,22 +107,58 @@ public sealed class CompanyService
             company.Name,
             company.LegalName,
             company.TaxId ?? "",
+            company.Address,
+            company.Phone,
+            company.Email,
+            company.LogoUrl,
             company.Currency,
             company.Timezone,
             company.MaxEmployees
         );
     }
 
+    private static CompanyResponse DefaultCompanyResponse() => new(
+        Id: Guid.Empty,
+        Name: "Mi Empresa",
+        LegalName: "Mi Empresa S.A.",
+        TaxId: "",
+        Address: null,
+        Phone: null,
+        Email: null,
+        LogoUrl: null,
+        Currency: "NIO",
+        Timezone: "America/Managua",
+        MaxEmployees: 50
+    );
+
     public async Task<CompanySettingsResponse?> GetSettingsAsync()
     {
         var company = await _repo.GetByTenantIdAsync(_tenant.TenantId);
-        if (company is null) return null;
+        if (company is null) return DefaultSettings();
 
         var settings = await _repo.GetSettingsAsync(company.Id);
-        if (settings is null) return null;
+        if (settings is null) return DefaultSettings();
 
         return MapSettings(settings);
     }
+
+    private static CompanySettingsResponse DefaultSettings() => new(
+        VacationDaysPerYear: 30,
+        VacationAccrualMethod: "monthly",
+        LateToleranceMinutes: 10,
+        WorkingHoursPerDay: 8m,
+        WorkingDays: "Monday,Tuesday,Wednesday,Thursday,Friday",
+        OvertimeEnabled: false,
+        Timezone: "America/Managua",
+        Currency: "NIO",
+        DateFormat: null,
+        ApprovalFlowConfig: null,
+        LateFeeDailyRate: 0.001m,
+        LateFeePercentage: 0.05m,
+        LateFeeGracePeriod: 0,
+        TaxEnabled: true,
+        TaxRate: 0.15m
+    );
 
     public async Task<CompanySettingsResponse?> UpdateSettingsAsync(UpdateCompanySettingsRequest request)
     {

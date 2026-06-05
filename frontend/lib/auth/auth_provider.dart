@@ -12,6 +12,8 @@ final dioClientProvider = Provider<DioClient>((ref) {
     final notifier = ref.read(errorNotifierProvider.notifier);
     final friendly = notifier.friendlyHttpError(statusCode);
     notifier.showError(friendly, detail: message);
+  }, onUnauthorized: () {
+    ref.read(authProvider.notifier).logout();
   });
 });
 
@@ -63,7 +65,23 @@ class AuthNotifier extends Notifier<AuthState> {
     final storage = ref.read(secureStorageProvider);
     final token = await storage.getAccessToken();
     if (token != null) {
-      state = state.copyWith(status: AuthStatus.authenticated);
+      try {
+        final dio = ref.read(dioClientProvider);
+        final response = await dio.get('auth/me');
+        final user = response.data;
+        state = AuthState(
+          status: AuthStatus.authenticated,
+          userId: user['id'],
+          email: user['email'],
+          displayName: user['displayName'],
+          role: user['role'],
+          tenantId: user['tenantId'],
+          employeeId: user['employeeId'],
+        );
+      } catch (_) {
+        await storage.clearTokens();
+        state = state.copyWith(status: AuthStatus.unauthenticated);
+      }
     } else {
       state = state.copyWith(status: AuthStatus.unauthenticated);
     }
@@ -79,9 +97,8 @@ class AuthNotifier extends Notifier<AuthState> {
       });
 
       final data = response.data['data'];
-      // Añadimos timeout al guardado para evitar bloqueos en web
+      // Guardamos tokens
       await storage.saveTokens(data['accessToken'], data['refreshToken'])
-          .timeout(const Duration(seconds: 2))
           .catchError((_) => null);
 
       final user = data['user'];
@@ -110,9 +127,8 @@ class AuthNotifier extends Notifier<AuthState> {
       });
 
       final data = response.data['data'];
-      // Añadimos timeout al guardado para evitar bloqueos en web
+      // Guardamos tokens
       await storage.saveTokens(data['accessToken'], data['refreshToken'])
-          .timeout(const Duration(seconds: 2))
           .catchError((_) => null);
 
       final user = data['user'];

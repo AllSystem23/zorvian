@@ -1,4 +1,3 @@
-import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 
 class BiometricService {
@@ -7,7 +6,7 @@ class BiometricService {
   Future<bool> isAvailable() async {
     try {
       return await _auth.canCheckBiometrics || await _auth.isDeviceSupported();
-    } on PlatformException {
+    } catch (_) {
       return false;
     }
   }
@@ -15,7 +14,7 @@ class BiometricService {
   Future<List<BiometricType>> getAvailableBiometrics() async {
     try {
       return await _auth.getAvailableBiometrics();
-    } on PlatformException {
+    } catch (_) {
       return [];
     }
   }
@@ -29,7 +28,7 @@ class BiometricService {
           biometricOnly: false,
         ),
       );
-    } on PlatformException {
+    } catch (_) {
       return false;
     }
   }

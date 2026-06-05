@@ -114,6 +114,7 @@ class VacationNotifier extends Notifier<VacationListState> {
   }
 
   Future<void> loadBalance() async {
+    state = state.copyWith(error: null);
     try {
       final dio = ref.read(dioClientProvider);
       final r = await dio.get('vacations/balance');

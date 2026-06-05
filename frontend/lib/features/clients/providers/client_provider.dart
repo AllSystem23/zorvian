@@ -61,8 +61,8 @@ final class ClientNotifier extends Notifier<ClientState> {
     try {
       final dio = ref.read(dioClientProvider);
       final r = await dio.get('clients');
-      final data = r.data as List;
-      state = ClientState(items: data.map((e) => ClientItem.fromJson(e)).toList());
+      final data = r.data;
+      state = ClientState(items: (data['items'] as List).map((e) => ClientItem.fromJson(e)).toList());
     } catch (_) {
       state = state.copyWith(error: 'Error al cargar clientes', loading: false);
     }

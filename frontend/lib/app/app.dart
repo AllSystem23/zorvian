@@ -34,26 +34,25 @@ class _ZorvianAppState extends ConsumerState<ZorvianApp> {
     final router = ref.watch(routerProvider);
     final themeMode = ref.watch(themeModeProvider);
 
-    return ErrorHandlerWidget(
-      child: BiometricUnlockPage(
-        child: MaterialApp.router(
-          title: 'Zorvian ERP',
-          debugShowCheckedModeBanner: false,
-          theme: ZorvianTheme.light(),
-          darkTheme: ZorvianTheme.dark(),
-          themeMode: themeMode,
-          localizationsDelegates: const [
-            AppLocalizations.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          supportedLocales: const [
-            Locale('es', ''),
-            Locale('en', ''),
-          ],
-          routerConfig: router,
-        ),
+    return BiometricUnlockPage(
+      child: MaterialApp.router(
+        title: 'Zorvian ERP',
+        debugShowCheckedModeBanner: false,
+        theme: ZorvianTheme.light(),
+        darkTheme: ZorvianTheme.dark(),
+        themeMode: themeMode,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('es', ''),
+          Locale('en', ''),
+        ],
+        routerConfig: router,
+        builder: (context, child) => ErrorHandlerWidget(child: child!),
       ),
     );
   }

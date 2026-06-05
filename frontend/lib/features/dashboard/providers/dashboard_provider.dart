@@ -144,27 +144,21 @@ class DashboardNotifier extends Notifier<DashboardState> {
     state = state.copyWith(loading: true, error: null);
     try {
       final dio = ref.read(dioClientProvider);
-      final timeout = const Duration(seconds: 10);
-      // Loading dashboard data...
-      final results = await Future.wait([
-        dio.get('dashboard/kpis').timeout(timeout),
-        dio.get('dashboard/vacation-calendar').timeout(timeout),
-        dio.get('dashboard/recent-requests').timeout(timeout),
-      ]);
-      final kpisData = results[0].data;
-      final calendarData = results[1].data;
-      final requestsData = results[2].data;
+      final timeout = const Duration(seconds: 25);
+      
+      final response = await dio.get('dashboard/summary').timeout(timeout);
+      final data = response.data;
 
-      if (kpisData is! Map || calendarData is! List || requestsData is! List) {
+      if (data is! Map<String, dynamic>) {
          throw Exception('Formato de datos inválido en Dashboard');
       }
 
       state = DashboardState(
-        kpis: DashboardKpis.fromJson(kpisData as Map<String, dynamic>),
-        calendarEvents: (calendarData)
+        kpis: DashboardKpis.fromJson(data['kpis'] as Map<String, dynamic>),
+        calendarEvents: (data['calendarEvents'] as List)
             .map((e) => CalendarEvent.fromJson(e as Map<String, dynamic>))
             .toList(),
-        recentRequests: (requestsData)
+        recentRequests: (data['recentRequests'] as List)
             .map((e) => RecentRequestItem.fromJson(e as Map<String, dynamic>))
             .toList(),
       );

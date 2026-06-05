@@ -58,8 +58,8 @@ final class ProductNotifier extends Notifier<ProductState> {
     try {
       final dio = ref.read(dioClientProvider);
       final r = await dio.get('products');
-      final data = r.data as List;
-      state = ProductState(items: data.map((e) => ProductItem.fromJson(e)).toList());
+      final data = r.data;
+      state = ProductState(items: (data['items'] as List).map((e) => ProductItem.fromJson(e)).toList());
     } catch (_) {
       state = state.copyWith(error: 'Error al cargar productos', loading: false);
     }

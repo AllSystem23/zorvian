@@ -16,10 +16,11 @@ public sealed class ClientServiceTests
     private readonly Mock<ITenantContext> _tenant = new();
     private readonly ClientService _sut;
     private readonly Guid _clientId = Guid.NewGuid();
+    private readonly Guid _companyId = Guid.NewGuid();
 
     public ClientServiceTests()
     {
-        _tenant.Setup(t => t.TenantId).Returns("tenant-123");
+        _tenant.Setup(t => t.TenantId).Returns(_companyId.ToString());
         _sut = new ClientService(_repo.Object, _saleRepo.Object, _creditRepo.Object, _tenant.Object, Mock.Of<AutoMapper.IMapper>());
     }
 
@@ -32,7 +33,7 @@ public sealed class ClientServiceTests
         Phone = "555-0100",
         CreditLimit = 50000m,
         Status = "active",
-        CompanyId = Guid.Parse("tenant-123"),
+        CompanyId = _companyId,
         BranchId = Guid.NewGuid(),
     };
 
@@ -49,7 +50,7 @@ public sealed class ClientServiceTests
         PaidAmount = 200m,
         Balance = 800m,
         Status = "completed",
-        CompanyId = Guid.Parse("tenant-123"),
+        CompanyId = _companyId,
         BranchId = Guid.NewGuid(),
     };
 
@@ -65,7 +66,7 @@ public sealed class ClientServiceTests
         PaidAmount = status == "paid" ? 500m : 0,
         Balance = status == "paid" ? 0 : balance,
         Status = status,
-        CompanyId = Guid.Parse("tenant-123"),
+        CompanyId = _companyId,
         BranchId = Guid.NewGuid(),
     };
 
@@ -87,7 +88,7 @@ public sealed class ClientServiceTests
         NextDueDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(5)),
         Status = "active",
         CreatedAt = DateTime.UtcNow.AddDays(-60),
-        CompanyId = Guid.Parse("tenant-123"),
+        CompanyId = _companyId,
         BranchId = Guid.NewGuid(),
         Installments = installments.ToList(),
     };

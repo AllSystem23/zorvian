@@ -49,6 +49,11 @@ public sealed class PayrollController : ControllerBase
         return CreatedAtAction(nameof(GetSalaries), new { employeeId = request.EmployeeId }, result);
     }
 
+    [HttpDelete("salaries/{id:guid}")]
+    [Authorize(Roles = "SuperAdmin,CompanyAdmin")]
+    public async Task<IActionResult> DeactivateSalary(Guid id) =>
+        await _service.DeactivateSalaryAsync(id) ? NoContent() : NotFound();
+
     // Payroll Periods
     [HttpGet("periods")]
     public async Task<IActionResult> GetPeriods([FromQuery] int? year) =>
@@ -66,6 +71,13 @@ public sealed class PayrollController : ControllerBase
     public async Task<IActionResult> GetRuns([FromQuery] Guid? periodId) =>
         Ok(await _service.GetRunsAsync(periodId));
 
+    [HttpGet("runs/{id:guid}")]
+    public async Task<IActionResult> GetRunById(Guid id)
+    {
+        var result = await _service.GetRunByIdAsync(id);
+        return result is null ? NotFound() : Ok(result);
+    }
+
     [HttpPost("runs/generate")]
     public async Task<IActionResult> GeneratePayroll([FromBody] GeneratePayrollRequest request)
     {
@@ -79,11 +91,62 @@ public sealed class PayrollController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
-
     [HttpPost("runs/{id:guid}/approve")]
     public async Task<IActionResult> ApproveRun(Guid id)
     {
         var result = await _service.ApproveRunAsync(id);
+        return result is null ? NotFound() : Ok(result);
+    }
+
+    [HttpDelete("runs/{id:guid}")]
+    [Authorize(Roles = "SuperAdmin,CompanyAdmin")]
+    public async Task<IActionResult> DeleteRun(Guid id)
+    {
+        try
+        {
+            return await _service.DeleteRunAsync(id) ? NoContent() : NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("runs/{id:guid}/cancel")]
+    [Authorize(Roles = "SuperAdmin,CompanyAdmin")]
+    public async Task<IActionResult> CancelRun(Guid id)
+    {
+        try
+        {
+            var result = await _service.CancelRunAsync(id);
+            return result is null ? NotFound() : Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("runs/{id:guid}/mark-paid")]
+    [Authorize(Roles = "SuperAdmin,CompanyAdmin")]
+    public async Task<IActionResult> MarkAsPaid(Guid id)
+    {
+        try
+        {
+            var result = await _service.MarkAsPaidAsync(id);
+            return result is null ? NotFound() : Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPut("details/{detailId:guid}")]
+    [Authorize(Roles = "SuperAdmin,CompanyAdmin")]
+    public async Task<IActionResult> UpdateDetail(Guid detailId, [FromBody] UpdatePayrollDetailRequest request)
+    {
+        var result = await _service.UpdateDetailAsync(detailId, request);
         return result is null ? NotFound() : Ok(result);
     }
 

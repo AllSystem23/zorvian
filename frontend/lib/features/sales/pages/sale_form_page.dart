@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../shared/printing/qr_code_dialog.dart';
 import '../../clients/providers/client_provider.dart';
 import '../../products/providers/product_provider.dart';
 import '../providers/sale_provider.dart';
@@ -127,6 +128,19 @@ final class _NewSalePageState extends ConsumerState<NewSalePage> {
     if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
+  void _scanProduct(String code) {
+    final product = ref.read(productProvider).items.where((p) => p.code.toLowerCase() == code.toLowerCase()).firstOrNull;
+    if (product == null) {
+      _err('Producto con código "$code" no encontrado');
+      return;
+    }
+    setState(() {
+      final existing = _cart.where((c) => c.productId == product.id).firstOrNull;
+      if (existing != null) { existing.quantity++; } else { _cart.add(_CartItem(productId: product.id, productName: product.name, quantity: 1, unitPrice: product.price)); }
+      _searchCtrl.clear();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -196,15 +210,26 @@ final class _NewSalePageState extends ConsumerState<NewSalePage> {
           if (products.error != null)
             Text(products.error!, style: TextStyle(color: theme.colorScheme.error))
           else
-            TextField(
-              controller: _searchCtrl,
-              decoration: InputDecoration(
-                hintText: 'Buscar producto...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
-              ),
-              onChanged: (v) => setState(() {}),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchCtrl,
+                    decoration: InputDecoration(
+                      hintText: 'Buscar producto...',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.qr_code_scanner, size: 20),
+                        tooltip: 'Escanear código',
+                        onPressed: () => showScannerDialog(context, onScan: _scanProduct),
+                      ),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                    ),
+                    onChanged: (v) => setState(() {}),
+                  ),
+                ),
+              ],
             ),
           const SizedBox(height: 4),
           if (_searchCtrl.text.isNotEmpty)

@@ -22,6 +22,9 @@ public sealed class QuoteService
 
     public async Task<QuoteResponse> CreateAsync(CreateQuoteRequest request)
     {
+        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+            throw new InvalidOperationException("Tenant is not associated with a company.");
+
         var taxRate = 0.15m;
         var subtotal = request.Details.Sum(d => d.Quantity * d.UnitPrice);
         var totalDiscount = request.Discount;
@@ -30,11 +33,11 @@ public sealed class QuoteService
         var total = taxableAmount + tax;
 
         var quote = _mapper.Map<Quote>(request);
-        quote.QuoteNumber = await _repo.GenerateNumberAsync(Guid.Parse(_tenant.TenantId));
+        quote.QuoteNumber = await _repo.GenerateNumberAsync(companyId);
         quote.Subtotal = subtotal;
         quote.Tax = tax;
         quote.Total = total;
-        quote.CompanyId = Guid.Parse(_tenant.TenantId);
+        quote.CompanyId = companyId;
 
         quote.Details = request.Details.Select(d => new QuoteDetail
         {
@@ -52,6 +55,49 @@ public sealed class QuoteService
         await _repo.SaveChangesAsync();
 
         return await GetByIdAsync(quote.Id) ?? throw new InvalidOperationException("Failed to create quote");
+    }
+
+    public async Task<QuoteResponse?> UpdateAsync(Guid id, UpdateQuoteRequest request)
+    {
+        var quote = await _repo.GetByIdAsync(id);
+        if (quote is null) return null;
+
+        var taxRate = 0.15m;
+        var subtotal = request.Details.Sum(d => d.Quantity * d.UnitPrice);
+        var totalDiscount = request.Discount;
+        var taxableAmount = subtotal - totalDiscount;
+        var tax = taxableAmount * taxRate;
+        var total = taxableAmount + tax;
+
+        _mapper.Map(request, quote);
+        quote.Subtotal = subtotal;
+        quote.Tax = tax;
+        quote.Total = total;
+
+        quote.Details = request.Details.Select(d => new QuoteDetail
+        {
+            QuoteId = quote.Id,
+            ProductId = d.ProductId,
+            Quantity = d.Quantity,
+            UnitPrice = d.UnitPrice,
+            Discount = d.Discount,
+            Subtotal = d.Quantity * d.UnitPrice - d.Discount,
+            CompanyId = quote.CompanyId,
+            BranchId = quote.BranchId,
+        }).ToList();
+
+        await _repo.SaveChangesAsync();
+        return await GetByIdAsync(quote.Id);
+    }
+
+    public async Task<bool> DeleteAsync(Guid id)
+    {
+        var quote = await _repo.GetByIdAsync(id);
+        if (quote is null) return false;
+
+        await _repo.DeleteAsync(quote);
+        await _repo.SaveChangesAsync();
+        return true;
     }
 
     public async Task<QuoteResponse?> GetByIdAsync(Guid id)

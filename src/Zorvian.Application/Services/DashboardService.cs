@@ -27,6 +27,15 @@ public sealed class DashboardService
         _cashRepo = cashRepo;
     }
 
+    public async Task<DashboardSummaryResponse> GetSummaryAsync()
+    {
+        var kpis = await GetKpisAsync();
+        var calendar = await GetVacationCalendarAsync();
+        var requests = await GetRecentRequestsAsync();
+
+        return new DashboardSummaryResponse(kpis, calendar, requests);
+    }
+
     public async Task<DashboardKpisResponse> GetKpisAsync()
     {
         var total = await _repo.GetTotalEmployeesAsync();
@@ -127,5 +136,17 @@ public sealed class DashboardService
         )));
 
         return result.OrderByDescending(r => r.CreatedAt).Take(count).ToList();
+    }
+
+    public async Task<PayrollDashboardResponse> GetPayrollDashboardAsync()
+    {
+        var costs = await _repo.GetPayrollCostByDepartmentAsync();
+        var history = await _repo.GetPayrollHistoryAsync(6);
+
+        return new PayrollDashboardResponse(
+            costs.Select(c => new PayrollCostByDept(c.Department, c.Amount)).ToList(),
+            history.Select(h => new PayrollHistoryItem(h.Period, h.Amount)).ToList(),
+            costs.Sum(c => c.Amount)
+        );
     }
 }

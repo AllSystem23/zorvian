@@ -31,7 +31,7 @@ public sealed class ReportsController : ControllerBase
         string fileName;
         string contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
-        switch (request.ReportType)
+        switch (request.ReportType.ToLower())
         {
             case "vacation":
                 data = await _service.GenerateVacationReportAsync(request.Year ?? DateTime.UtcNow.Year);
@@ -51,8 +51,19 @@ public sealed class ReportsController : ControllerBase
                 data = await _service.GenerateBalanceReportAsync();
                 fileName = $"reporte_saldos_vacaciones.xlsx";
                 break;
+            case "pay-stub":
+                if (!request.Id.HasValue) return BadRequest(new { error = "Se requiere el Id del detalle de nómina para generar la colilla." });
+                data = await _service.GeneratePayStubAsync(request.Id.Value);
+                fileName = $"colilla_pago_{request.Id.Value}.pdf";
+                contentType = "application/pdf";
+                break;
+            case "payroll-cost":
+                if (!request.Id.HasValue) return BadRequest(new { error = "Se requiere el Id de la nómina (RunId) para generar el reporte de costos." });
+                data = await _service.GeneratePayrollCostReportAsync(request.Id.Value);
+                fileName = $"costos_nomina_{request.Id.Value}.xlsx";
+                break;
             default:
-                return BadRequest(new { error = "Tipo de reporte inválido. Use: vacation, permission, attendance, balance" });
+                return BadRequest(new { error = "Tipo de reporte inválido. Use: vacation, permission, attendance, balance, pay-stub, payroll-cost" });
         }
 
         Response.Headers.Append("Content-Disposition", $"attachment; filename=\"{fileName}\"");

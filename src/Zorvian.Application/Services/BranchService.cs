@@ -21,7 +21,8 @@ public sealed class BranchService
 
     public async Task<List<BranchResponse>> GetAllAsync()
     {
-        var companyId = Guid.Parse(_tenant.TenantId);
+        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+            return [];
         var branches = await _repo.GetAllAsync(companyId);
         return _mapper.Map<List<BranchResponse>>(branches);
     }

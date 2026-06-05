@@ -48,8 +48,8 @@ final class WarrantyNotifier extends Notifier<WarrantyState> {
     try {
       final dio = ref.read(dioClientProvider);
       final r = await dio.get('warranties');
-      final data = r.data as List;
-      state = WarrantyState(items: data.map((e) => WarrantyItem.fromJson(e)).toList());
+      final data = r.data;
+      state = WarrantyState(items: (data['items'] as List).map((e) => WarrantyItem.fromJson(e)).toList());
     } catch (_) {
       state = state.copyWith(error: 'Error al cargar garantías', loading: false);
     }

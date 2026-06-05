@@ -48,4 +48,24 @@ public sealed class QuotesController : ControllerBase
         var result = await _service.GetFilteredAsync(filter);
         return Ok(result);
     }
+
+    [Audit("Quote", "Update")]
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateQuoteRequest request)
+    {
+        var quote = await _service.UpdateAsync(id, request);
+        if (quote is null)
+            return NotFound(new { error = "Quote not found" });
+        return Ok(quote);
+    }
+
+    [Audit("Quote", "Delete")]
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        var deleted = await _service.DeleteAsync(id);
+        if (!deleted)
+            return NotFound(new { error = "Quote not found" });
+        return NoContent();
+    }
 }

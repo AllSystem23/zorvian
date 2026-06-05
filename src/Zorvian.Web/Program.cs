@@ -23,6 +23,7 @@ using Zorvian.Web.Jobs;
 using Zorvian.Application.Jobs;
 using Zorvian.Web.Middleware;
 using Zorvian.Web.Services;
+using Zorvian.Application.Services.PayrollStrategies;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -77,6 +78,13 @@ var storageBucket = builder.Configuration["Firebase:StorageBucket"]
 builder.Services.AddScoped<IDocumentStorageService>(_ =>
     new FirebaseStorageService(storageBucket));
 
+builder.Services.AddScoped<IPayrollCalculationStrategy, NicaraguaCalculationStrategy>();
+builder.Services.AddScoped<PayrollCalculationFactory>();
+builder.Services.AddScoped<EmployeeLoanService>();
+builder.Services.AddScoped<SalaryAdvanceService>();
+builder.Services.AddScoped<WageGarnishmentService>();
+builder.Services.AddScoped<TerminationService>();
+
 // DI - Repositories
 builder.Services.AddScoped<ICompanyRepository, CompanyRepository>();
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
@@ -87,7 +95,42 @@ builder.Services.AddScoped<IAttendanceRepository, AttendanceRepository>();
 builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 builder.Services.AddScoped<AttendanceService>();
 builder.Services.AddScoped<IPayrollRepository, PayrollRepository>();
-builder.Services.AddScoped<PayrollService>();
+builder.Services.AddScoped<IBankAccountRepository, BankAccountRepository>();
+builder.Services.AddScoped<ISickLeaveRepository, SickLeaveRepository>();
+builder.Services.AddScoped<ITerminationRepository, TerminationRepository>();
+builder.Services.AddScoped<BankAccountService>();
+builder.Services.AddScoped<SickLeaveService>();
+builder.Services.AddScoped<TerminationService>();
+builder.Services.AddScoped<IReconciliationService, ReconciliationService>();
+builder.Services.AddScoped<IEmployeeLoanRepository, EmployeeLoanRepository>();
+builder.Services.AddScoped<ISalaryAdvanceRepository, SalaryAdvanceRepository>();
+builder.Services.AddScoped<IWageGarnishmentRepository, WageGarnishmentRepository>();
+builder.Services.AddScoped<IBenefitProvisionRepository, BenefitProvisionRepository>();
+builder.Services.AddScoped<ICommissionRecordRepository, CommissionRecordRepository>();
+builder.Services.AddScoped<IBonusRecordRepository, BonusRecordRepository>();
+builder.Services.AddScoped<ICountryTaxConfigRepository, CountryTaxConfigRepository>();
+builder.Services.AddScoped<PayrollService>(sp => new PayrollService(
+    sp.GetRequiredService<IPayrollRepository>(),
+    sp.GetRequiredService<IEmployeeRepository>(),
+    sp.GetRequiredService<ITenantContext>(),
+    sp.GetRequiredService<IWebhookService>(),
+    sp.GetRequiredService<IAchExportService>(),
+    sp.GetRequiredService<AutoAccountingService>(),
+    sp.GetRequiredService<ICountryTaxConfigRepository>(),
+    sp.GetRequiredService<ICompanyRepository>(),
+    sp.GetRequiredService<IOvertimeRecordRepository>(),
+    sp.GetRequiredService<ICommissionRecordRepository>(),
+    sp.GetRequiredService<IBonusRecordRepository>(),
+    sp.GetRequiredService<IPayrollConceptRepository>(),
+    sp.GetRequiredService<IEmployeeLoanRepository>(),
+    sp.GetRequiredService<ISalaryAdvanceRepository>(),
+    sp.GetRequiredService<IWageGarnishmentRepository>(),
+    sp.GetRequiredService<IBenefitProvisionRepository>(),
+    sp.GetRequiredService<IAuditLogRepository>(),
+    sp.GetRequiredService<PayrollCalculationFactory>(),
+    sp.GetRequiredService<IBankTransferService>(),
+    sp.GetRequiredService<ISickLeaveRepository>()));
+builder.Services.AddScoped<PayrollConceptService>();
 builder.Services.AddScoped<IAchExportService, AchExportService>();
 builder.Services.AddScoped<IWebhookService, WebhookService>();
 builder.Services.AddScoped<ApiKeyService>();
@@ -122,8 +165,10 @@ builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
 builder.Services.AddScoped<SupplierService>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<ProductService>();
-builder.Services.AddScoped<IInventoryMovementRepository, InventoryMovementRepository>();
-builder.Services.AddScoped<InventoryMovementService>();
+    builder.Services.AddScoped<IInventoryMovementRepository, InventoryMovementRepository>();
+    builder.Services.AddScoped<InventoryMovementService>();
+    builder.Services.AddScoped<IPurchaseRepository, PurchaseRepository>();
+    builder.Services.AddScoped<PurchaseService>();
 
 // DI - New Module: Créditos
 builder.Services.AddScoped<ICreditRepository, CreditRepository>();
@@ -140,6 +185,28 @@ builder.Services.AddScoped<CashRegisterService>();
 // DI - New Module: Garantías
 builder.Services.AddScoped<IWarrantyRepository, WarrantyRepository>();
 builder.Services.AddScoped<WarrantyService>();
+
+// DI - New Module: Contabilidad
+builder.Services.AddScoped<IAccountRepository, AccountRepository>();
+builder.Services.AddScoped<IAccountingEntryRepository, AccountingEntryRepository>();
+builder.Services.AddScoped<IAccountingPeriodRepository, AccountingPeriodRepository>();
+builder.Services.AddScoped<IAccountLinkRepository, AccountLinkRepository>();
+builder.Services.AddScoped<IAccountingRuleRepository, AccountingRuleRepository>();
+builder.Services.AddScoped<AccountService>();
+builder.Services.AddScoped<AccountingEntryService>();
+builder.Services.AddScoped<AccountingPeriodService>();
+builder.Services.AddScoped<AccountLinkService>();
+builder.Services.AddScoped<AutoAccountingService>(sp => new AutoAccountingService(
+    sp.GetRequiredService<IAccountingEntryRepository>(),
+    sp.GetRequiredService<IAccountingPeriodRepository>(),
+    sp.GetRequiredService<IAccountLinkRepository>(),
+    sp.GetRequiredService<IAccountingRuleRepository>(),
+    sp.GetRequiredService<IAccountRepository>(),
+    sp.GetRequiredService<ITenantContext>(),
+    sp.GetRequiredService<IPayrollRepository>(),
+    sp.GetRequiredService<ICashMovementRepository>()));
+builder.Services.AddScoped<IAutoAccountingService>(sp => sp.GetRequiredService<AutoAccountingService>());
+builder.Services.AddScoped<FinancialReportService>();
 
 builder.Services.AddScoped<IChatService>(sp => new ChatService(
     sp.GetRequiredService<ZorvianDbContext>(),
@@ -206,7 +273,14 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("ZorvianCors", policy =>
     {
-        policy.WithOrigins(builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? ["*"])
+        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+        policy.SetIsOriginAllowed(origin =>
+            {
+                if (origin.StartsWith("http://localhost:") || origin.StartsWith("https://localhost:") ||
+                    origin.StartsWith("http://127.0.0.1:") || origin.StartsWith("https://127.0.0.1:"))
+                    return true;
+                return allowedOrigins.Contains(origin);
+            })
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -256,6 +330,9 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+// THE SOLUTION: CORS MUST BE FIRST
+app.UseCors("ZorvianCors");
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -264,14 +341,13 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseGlobalExceptionMiddleware();
-app.UseCors("ZorvianCors");
 app.UseRateLimitingMiddleware(maxRequests: 120, windowSeconds: 60);
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseMiddleware<ApiKeyMiddleware>();
 app.UseAuthentication();
-app.UseAuthorization();
 app.UseTenantMiddleware();
+app.UseAuthorization();
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapControllers();
 

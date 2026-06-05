@@ -1,12 +1,11 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class SecureStorage {
-  static const _storage = FlutterSecureStorage(
-    webOptions: WebOptions(
-      dbName: 'ZorvianStorage',
-      publicKey: 'ZorvianKey',
-    ),
+  static final _storage = FlutterSecureStorage(
+    webOptions: WebOptions(dbName: 'ZorvianStorage'),
   );
+  static final _memory = <String, String>{};
 
   static const _accessTokenKey = 'access_token';
   static const _refreshTokenKey = 'refresh_token';
@@ -15,35 +14,56 @@ class SecureStorage {
 
   Future<void> saveTokens(String access, String refresh) async {
     await Future.wait([
-      _storage.write(key: _accessTokenKey, value: access),
-      _storage.write(key: _refreshTokenKey, value: refresh),
+      _write(_accessTokenKey, access),
+      _write(_refreshTokenKey, refresh),
     ]);
   }
 
-  Future<String?> getAccessToken() =>
-      _storage.read(key: _accessTokenKey);
+  Future<String?> getAccessToken() => _read(_accessTokenKey);
 
-  Future<String?> getRefreshToken() =>
-      _storage.read(key: _refreshTokenKey);
+  Future<String?> getRefreshToken() => _read(_refreshTokenKey);
 
   Future<void> clearTokens() async {
     await Future.wait([
-      _storage.delete(key: _accessTokenKey),
-      _storage.delete(key: _refreshTokenKey),
+      _delete(_accessTokenKey),
+      _delete(_refreshTokenKey),
     ]);
   }
 
-  Future<void> saveThemeMode(String mode) =>
-      _storage.write(key: _themeModeKey, value: mode);
+  Future<void> saveThemeMode(String mode) => _write(_themeModeKey, mode);
 
-  Future<String?> getThemeMode() =>
-      _storage.read(key: _themeModeKey);
+  Future<String?> getThemeMode() => _read(_themeModeKey);
 
   Future<void> setBiometricEnabled(bool enabled) =>
-      _storage.write(key: _biometricEnabledKey, value: enabled.toString());
+      _write(_biometricEnabledKey, enabled.toString());
 
   Future<bool> isBiometricEnabled() async {
-    final val = await _storage.read(key: _biometricEnabledKey);
+    final val = await _read(_biometricEnabledKey);
     return val == 'true';
+  }
+
+  Future<void> _write(String key, String value) async {
+    _memory[key] = value;
+    try {
+      await _storage.write(key: key, value: value);
+    } catch (_) {}
+  }
+
+  Future<String?> _read(String key) async {
+    if (kIsWeb && _memory.containsKey(key)) return _memory[key];
+    try {
+      final val = await _storage.read(key: key);
+      if (val != null) _memory[key] = val;
+      return val;
+    } catch (_) {
+      return _memory[key];
+    }
+  }
+
+  Future<void> _delete(String key) async {
+    _memory.remove(key);
+    try {
+      await _storage.delete(key: key);
+    } catch (_) {}
   }
 }

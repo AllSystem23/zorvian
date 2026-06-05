@@ -34,3 +34,26 @@ public sealed record RecentRequestItem(
     string? Description,
     DateTime CreatedAt
 );
+
+public sealed record DashboardSummaryResponse(
+    DashboardKpisResponse Kpis,
+    List<VacationCalendarEvent> CalendarEvents,
+    List<RecentRequestItem> RecentRequests
+);
+
+public sealed record PayrollDashboardResponse(
+    List<PayrollCostByDept> CostsByDepartment,
+    List<PayrollHistoryItem> History,
+    decimal TotalLastPayroll
+);
+
+public sealed record PayrollCostByDept(
+    string Department,
+    decimal Amount
+);
+
+public sealed record PayrollHistoryItem(
+    string Period,
+    decimal Amount
+);
+

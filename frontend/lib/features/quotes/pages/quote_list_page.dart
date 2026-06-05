@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../providers/quote_provider.dart';
 
 final class QuoteListPage extends ConsumerStatefulWidget {
@@ -23,7 +24,7 @@ final class _QuoteListPageState extends ConsumerState<QuoteListPage> {
     final q = _searchQuery.toLowerCase();
     return items.where((qt) =>
       qt.clientName.toLowerCase().contains(q) ||
-      qt.folio.toLowerCase().contains(q) ||
+      qt.quoteNumber.toLowerCase().contains(q) ||
       qt.status.toLowerCase().contains(q)
     ).toList();
   }
@@ -82,14 +83,18 @@ final class _QuoteListPageState extends ConsumerState<QuoteListPage> {
                                   return ListTile(
                                     leading: CircleAvatar(
                                       backgroundColor: stColor.withAlpha(30),
-                                      child: Text(q.folio, style: TextStyle(fontSize: 10, color: stColor, fontWeight: FontWeight.bold)),
+                                      child: Text(q.quoteNumber, style: TextStyle(fontSize: 10, color: stColor, fontWeight: FontWeight.bold)),
                                     ),
                                     title: Text(q.clientName, style: const TextStyle(fontWeight: FontWeight.w600)),
-                                    subtitle: Text('\$${q.total.toStringAsFixed(0)} · ${q.createdAt.substring(0, 10)}'),
+                                    subtitle: Text('\$${q.total.toStringAsFixed(0)} · ${q.quoteDate.substring(0, 10)}'),
                                     trailing: Chip(
                                       label: Text(q.status, style: TextStyle(fontSize: 11, color: stColor)),
                                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                     ),
+                                    onTap: () async {
+                                      final result = await context.push<bool>('/quotes/${q.id}');
+                                      if (result == true) ref.read(quoteProvider.notifier).load();
+                                    },
                                   );
                                 },
                               ),
@@ -97,6 +102,13 @@ final class _QuoteListPageState extends ConsumerState<QuoteListPage> {
                     ),
                   ],
                 ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final result = await context.push<bool>('/quotes/new');
+          if (result == true) ref.read(quoteProvider.notifier).load();
+        },
+        child: const Icon(Icons.add),
+      ),
     );
   }
 }

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Zorvian.Application.Interfaces;
+using Zorvian.Application.Services;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Enums;
 using Zorvian.Infrastructure.Data;
@@ -170,12 +171,25 @@ public sealed class SeedService
             var created = await _firebase.CreateUserAsync(email, password, "Super Admin");
             firebaseUid = created.Uid;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             var fbUser = await _firebase.GetUserByEmailAsync(email);
             if (fbUser is null)
-                return new SuperAdminResult(email,
-                    $"Error al crear usuario en Firebase: {ex.Message}", false);
+            {
+                var localUser = new User
+                {
+                    FirebaseUid = Guid.NewGuid().ToString("N"),
+                    Email = email,
+                    DisplayName = "Super Admin",
+                    PasswordHash = PasswordHelper.Hash(password),
+                    TenantId = "superadmin",
+                    IsActive = true,
+                };
+                _db.Users.Add(localUser);
+                await _db.SaveChangesAsync();
+                await AssignSuperAdminRole(localUser.Id);
+                return new SuperAdminResult(email, password, false);
+            }
             firebaseUid = fbUser.Uid;
         }
 
@@ -190,15 +204,31 @@ public sealed class SeedService
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
 
-        var newUserRole = new UserRole
-        {
-            UserId = user.Id,
-            RoleId = superAdminRole.Id,
-        };
-        _db.UserRoles.Add(newUserRole);
-        await _db.SaveChangesAsync();
+        await AssignSuperAdminRole(user.Id);
 
         return new SuperAdminResult(email, password, false);
+    }
+
+    private async Task AssignSuperAdminRole(Guid userId)
+    {
+        var role = await _db.Roles
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(r => r.Name == RoleType.SuperAdmin);
+
+        if (role is null)
+        {
+            role = new Role
+            {
+                Name = RoleType.SuperAdmin,
+                DisplayName = "Super Admin",
+                IsSystem = true,
+            };
+            _db.Roles.Add(role);
+            await _db.SaveChangesAsync();
+        }
+
+        _db.UserRoles.Add(new UserRole { UserId = userId, RoleId = role.Id });
+        await _db.SaveChangesAsync();
     }
 
     private static string GenerateRandomPassword()
