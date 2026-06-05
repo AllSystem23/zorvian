@@ -219,10 +219,12 @@ public sealed class MappingProfile : Profile
         CreateMap<CreateSupplierRequest, Supplier>()
             .ForMember(d => d.Id, o => o.Ignore())
             .ForMember(d => d.Code, o => o.Ignore())
-            .ForMember(d => d.IsActive, o => o.MapFrom(_ => true));
+            .ForMember(d => d.IsActive, o => o.MapFrom(_ => true))
+            .ForMember(d => d.CompanyId, o => o.Ignore());
         CreateMap<UpdateSupplierRequest, Supplier>()
             .ForMember(d => d.Id, o => o.Ignore())
             .ForMember(d => d.Code, o => o.Ignore())
+            .ForMember(d => d.CompanyId, o => o.Ignore())
             .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
         CreateMap<Supplier, SupplierResponse>();
 
@@ -320,9 +322,13 @@ public sealed class MappingProfile : Profile
             .ForMember(d => d.Subtotal, o => o.Ignore())
             .ForMember(d => d.Tax, o => o.Ignore())
             .ForMember(d => d.Total, o => o.Ignore())
+            .ForMember(d => d.PaidAmount, o => o.Ignore())
+            .ForMember(d => d.Balance, o => o.Ignore())
             .ForMember(d => d.CompanyId, o => o.Ignore())
             .ForMember(d => d.Details, o => o.Ignore())
-            .ForMember(d => d.Supplier, o => o.Ignore());
+            .ForMember(d => d.Supplier, o => o.Ignore())
+            .ForMember(d => d.Payments, o => o.Ignore())
+            .ForMember(d => d.CreditNotes, o => o.Ignore());
         CreateMap<Purchase, PurchaseResponse>()
             .ForMember(d => d.SupplierName, o => o.MapFrom(s => s.Supplier.Name))
             .ForMember(d => d.Details, o => o.MapFrom(s => s.Details));

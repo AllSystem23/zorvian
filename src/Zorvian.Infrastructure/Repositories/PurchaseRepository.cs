@@ -19,14 +19,18 @@ public sealed class PurchaseRepository : IPurchaseRepository
             .Include(p => p.Supplier)
             .Include(p => p.Details)
                 .ThenInclude(d => d.Product)
+            .Include(p => p.Payments)
+            .Include(p => p.CreditNotes)
             .FirstOrDefaultAsync(p => p.Id == id);
 
     public async Task<List<Purchase>> GetFilteredAsync(Guid? supplierId, string? status, DateTime? fromDate, DateTime? toDate, Guid branchId, int page, int pageSize)
     {
         var query = _db.Set<Purchase>()
             .Include(p => p.Supplier)
-            .Where(p => p.BranchId == branchId)
             .AsQueryable();
+
+        if (branchId != Guid.Empty)
+            query = query.Where(p => p.BranchId == branchId);
 
         if (supplierId.HasValue)
             query = query.Where(p => p.SupplierId == supplierId.Value);
@@ -46,14 +50,38 @@ public sealed class PurchaseRepository : IPurchaseRepository
 
     public async Task<int> GetFilteredCountAsync(Guid? supplierId, string? status, DateTime? fromDate, DateTime? toDate, Guid branchId)
     {
-        var query = _db.Set<Purchase>().Where(p => p.BranchId == branchId).AsQueryable();
-
+        var query = _db.Set<Purchase>().AsQueryable();
+        if (branchId != Guid.Empty)
+            query = query.Where(p => p.BranchId == branchId);
         if (supplierId.HasValue) query = query.Where(p => p.SupplierId == supplierId.Value);
         if (!string.IsNullOrWhiteSpace(status)) query = query.Where(p => p.Status == status);
         if (fromDate.HasValue) query = query.Where(p => p.CreatedAt >= fromDate.Value);
         if (toDate.HasValue) query = query.Where(p => p.CreatedAt <= toDate.Value);
 
         return await query.CountAsync();
+    }
+
+    public async Task<List<Purchase>> GetPendingAsync(Guid branchId)
+    {
+        var query = _db.Set<Purchase>()
+            .Include(p => p.Supplier)
+            .Where(p => p.Balance > 0);
+
+        if (branchId != Guid.Empty)
+            query = query.Where(p => p.BranchId == branchId);
+
+        return await query
+            .OrderByDescending(p => p.DueDate)
+            .ThenByDescending(p => p.CreatedAt)
+            .ToListAsync();
+    }
+
+    public async Task<decimal> GetTotalPayableAsync(Guid branchId)
+    {
+        var query = _db.Set<Purchase>().AsQueryable();
+        if (branchId != Guid.Empty)
+            query = query.Where(p => p.BranchId == branchId);
+        return await query.SumAsync(p => p.Balance);
     }
 
     public async Task<string> GeneratePurchaseNumberAsync(Guid companyId)

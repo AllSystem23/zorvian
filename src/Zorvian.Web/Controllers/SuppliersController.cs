@@ -19,8 +19,13 @@ public sealed class SuppliersController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
+        if (page > 1 || !string.IsNullOrWhiteSpace(search))
+        {
+            var result = await _service.GetFilteredAsync(search, page, pageSize);
+            return Ok(result);
+        }
         var suppliers = await _service.GetAllAsync();
         return Ok(suppliers);
     }
@@ -29,18 +34,32 @@ public sealed class SuppliersController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateSupplierRequest request)
     {
-        var supplier = await _service.CreateAsync(request);
-        return CreatedAtAction(nameof(GetAll), null, supplier);
+        try
+        {
+            var supplier = await _service.CreateAsync(request);
+            return CreatedAtAction(nameof(GetAll), null, supplier);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 
     [Audit("Supplier", "Update")]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateSupplierRequest request)
     {
-        var supplier = await _service.UpdateAsync(id, request);
-        if (supplier is null)
-            return NotFound(new { error = "Supplier not found" });
-        return Ok(supplier);
+        try
+        {
+            var supplier = await _service.UpdateAsync(id, request);
+            if (supplier is null)
+                return NotFound(new { error = "Supplier not found" });
+            return Ok(supplier);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 
     [Audit("Supplier", "Delete")]

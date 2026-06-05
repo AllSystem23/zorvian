@@ -110,7 +110,7 @@ public sealed record CollectionActionResponse(
     DateOnly? FollowUpDate,
     string? ContactPerson,
     string? ContactPhone,
-    string? PromiseAmount,
+    decimal? PromiseAmount,
     DateOnly? PromiseDate,
     string Status,
     string? Result
@@ -123,7 +123,7 @@ public sealed record CreateCollectionActionRequest(
     DateOnly? FollowUpDate,
     string? ContactPerson,
     string? ContactPhone,
-    string? PromiseAmount,
+    decimal? PromiseAmount,
     DateOnly? PromiseDate,
     string? Result
 );

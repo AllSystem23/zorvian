@@ -42,6 +42,8 @@ Thumbs.db
 *.env.local
 appsettings.Local.json
 appsettings.Development.json
+appsettings.json
+login_test.json
 
 # Secrets
 *.key

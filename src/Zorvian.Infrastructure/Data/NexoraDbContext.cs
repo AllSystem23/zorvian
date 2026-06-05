@@ -94,6 +94,9 @@ public sealed class ZorvianDbContext : DbContext
     // New Module: Compras
     public DbSet<Purchase> Purchases => Set<Purchase>();
     public DbSet<PurchaseDetail> PurchaseDetails => Set<PurchaseDetail>();
+    public DbSet<SupplierPayment> SupplierPayments => Set<SupplierPayment>();
+    public DbSet<SupplierCreditNote> SupplierCreditNotes => Set<SupplierCreditNote>();
+    public DbSet<Withholding> Withholdings => Set<Withholding>();
 
     // New Module: Garantías
     public DbSet<Warranty> Warranties => Set<Warranty>();
@@ -785,6 +788,7 @@ public sealed class ZorvianDbContext : DbContext
             e.Property(s => s.Email).HasMaxLength(255);
             e.Property(s => s.Address).HasMaxLength(500);
             e.Property(s => s.TaxId).HasMaxLength(50);
+            e.HasIndex(s => new { s.TaxId, s.CompanyId }).IsUnique();
             e.HasQueryFilter(s => s.TenantId == _tenantContext.TenantId && !s.IsDeleted);
         });
 
@@ -1083,10 +1087,15 @@ public sealed class ZorvianDbContext : DbContext
             e.Property(p => p.Status).HasMaxLength(20).IsRequired();
             e.Property(p => p.Notes).HasMaxLength(500);
             e.Property(p => p.InvoiceReference).HasMaxLength(100);
+            e.Property(p => p.WithholdingType).HasMaxLength(30);
             e.Property(p => p.Subtotal).HasColumnType("decimal(18,2)");
             e.Property(p => p.Tax).HasColumnType("decimal(18,2)");
             e.Property(p => p.Discount).HasColumnType("decimal(18,2)");
             e.Property(p => p.Total).HasColumnType("decimal(18,2)");
+            e.Property(p => p.PaidAmount).HasColumnType("decimal(18,2)");
+            e.Property(p => p.Balance).HasColumnType("decimal(18,2)");
+            e.Property(p => p.WithholdingRate).HasColumnType("decimal(5,2)");
+            e.Property(p => p.WithholdingAmount).HasColumnType("decimal(18,2)");
             e.HasOne(p => p.Supplier)
                 .WithMany()
                 .HasForeignKey(p => p.SupplierId)
@@ -1110,6 +1119,60 @@ public sealed class ZorvianDbContext : DbContext
                 .HasForeignKey(pd => pd.ProductId)
                 .OnDelete(DeleteBehavior.Restrict);
             e.HasQueryFilter(pd => pd.TenantId == _tenantContext.TenantId && !pd.IsDeleted);
+        });
+
+        // ---- SupplierPayment Configuration ----
+        builder.Entity<SupplierPayment>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.Property(p => p.Amount).HasColumnType("decimal(18,2)");
+            e.Property(p => p.PaymentMethod).HasMaxLength(30).IsRequired();
+            e.Property(p => p.ReferenceNumber).HasMaxLength(100);
+            e.Property(p => p.Notes).HasMaxLength(500);
+            e.HasOne(p => p.Purchase)
+                .WithMany(pur => pur.Payments)
+                .HasForeignKey(p => p.PurchaseId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(p => p.TenantId == _tenantContext.TenantId && !p.IsDeleted);
+        });
+
+        // ---- SupplierCreditNote Configuration ----
+        builder.Entity<SupplierCreditNote>(e =>
+        {
+            e.HasKey(cn => cn.Id);
+            e.Property(cn => cn.CreditNoteNumber).HasMaxLength(50).IsRequired();
+            e.Property(cn => cn.Reason).HasMaxLength(1000);
+            e.Property(cn => cn.Status).HasMaxLength(20).IsRequired();
+            e.Property(cn => cn.Subtotal).HasColumnType("decimal(18,2)");
+            e.Property(cn => cn.Tax).HasColumnType("decimal(18,2)");
+            e.Property(cn => cn.Total).HasColumnType("decimal(18,2)");
+            e.HasOne(cn => cn.Supplier)
+                .WithMany()
+                .HasForeignKey(cn => cn.SupplierId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(cn => cn.Purchase)
+                .WithMany(pur => pur.CreditNotes)
+                .HasForeignKey(cn => cn.PurchaseId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(cn => cn.CreditNoteNumber).IsUnique();
+            e.HasQueryFilter(cn => cn.TenantId == _tenantContext.TenantId && !cn.IsDeleted);
+        });
+
+        // ---- Withholding Configuration ----
+        builder.Entity<Withholding>(e =>
+        {
+            e.HasKey(w => w.Id);
+            e.Property(w => w.WithholdingType).HasMaxLength(30).IsRequired();
+            e.Property(w => w.Rate).HasColumnType("decimal(5,2)");
+            e.Property(w => w.BaseAmount).HasColumnType("decimal(18,2)");
+            e.Property(w => w.Amount).HasColumnType("decimal(18,2)");
+            e.Property(w => w.CertificateNumber).HasMaxLength(50);
+            e.Property(w => w.Status).HasMaxLength(20).IsRequired();
+            e.HasOne(w => w.Purchase)
+                .WithMany()
+                .HasForeignKey(w => w.PurchaseId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(w => w.TenantId == _tenantContext.TenantId && !w.IsDeleted);
         });
 
         // ---- New Module: Garantías ----

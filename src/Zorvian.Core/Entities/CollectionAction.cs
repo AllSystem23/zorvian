@@ -12,7 +12,7 @@ public sealed class CollectionAction : BaseEntity
     public DateOnly? FollowUpDate { get; set; }
     public string? ContactPerson { get; set; }
     public string? ContactPhone { get; set; }
-    public string? PromiseAmount { get; set; }
+    public decimal? PromiseAmount { get; set; }
     public DateOnly? PromiseDate { get; set; }
     public string Status { get; set; } = "completed";
     public string? Result { get; set; }

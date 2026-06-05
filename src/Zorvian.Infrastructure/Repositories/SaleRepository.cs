@@ -28,8 +28,10 @@ public sealed class SaleRepository : ISaleRepository
     {
         var query = _db.Set<Sale>()
             .Include(s => s.Client)
-            .Where(s => s.BranchId == branchId)
             .AsQueryable();
+
+        if (branchId != Guid.Empty)
+            query = query.Where(s => s.BranchId == branchId);
 
         if (clientId.HasValue)
             query = query.Where(s => s.ClientId == clientId.Value);
@@ -51,7 +53,9 @@ public sealed class SaleRepository : ISaleRepository
 
     public async Task<int> GetFilteredCountAsync(Guid? clientId, string? saleType, string? status, DateTime? fromDate, DateTime? toDate, Guid branchId)
     {
-        var query = _db.Set<Sale>().Where(s => s.BranchId == branchId).AsQueryable();
+        var query = _db.Set<Sale>().AsQueryable();
+        if (branchId != Guid.Empty)
+            query = query.Where(s => s.BranchId == branchId);
 
         if (clientId.HasValue) query = query.Where(s => s.ClientId == clientId.Value);
         if (!string.IsNullOrWhiteSpace(saleType)) query = query.Where(s => s.SaleType == saleType);

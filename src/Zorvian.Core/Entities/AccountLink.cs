@@ -15,6 +15,8 @@ public static class TransactionTypes
     public const string Purchase = "Purchase";
     public const string InventoryMovement = "InventoryMovement";
     public const string CreditPayment = "CreditPayment";
+    public const string SupplierPayment = "SupplierPayment";
+    public const string SupplierCreditNote = "SupplierCreditNote";
     public const string CashMovement = "CashMovement";
     public const string Payroll = "Payroll";
 }
@@ -34,4 +36,6 @@ public static class AccountRoles
     public const string InventoryAdjustment = "InventoryAdjustment";
     public const string PurchaseExpense = "PurchaseExpense";
     public const string ContraAccount = "ContraAccount";
+    public const string WithholdingPayable = "WithholdingPayable";
+    public const string Advances = "Advances";
 }

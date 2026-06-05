@@ -13,6 +13,8 @@ public sealed class SaleService
     private readonly IProductRepository _productRepo;
     private readonly IInventoryMovementRepository _movementRepo;
     private readonly ICompanyRepository _companyRepo;
+    private readonly IClientRepository _clientRepo;
+    private readonly ICreditRepository _creditRepo;
     private readonly IAutoAccountingService _autoAccounting;
     private readonly ITenantContext _tenant;
     private readonly IMapper _mapper;
@@ -22,6 +24,8 @@ public sealed class SaleService
         IProductRepository productRepo,
         IInventoryMovementRepository movementRepo,
         ICompanyRepository companyRepo,
+        IClientRepository clientRepo,
+        ICreditRepository creditRepo,
         IAutoAccountingService autoAccounting,
         ITenantContext tenant,
         IMapper mapper)
@@ -30,6 +34,8 @@ public sealed class SaleService
         _productRepo = productRepo;
         _movementRepo = movementRepo;
         _companyRepo = companyRepo;
+        _clientRepo = clientRepo;
+        _creditRepo = creditRepo;
         _autoAccounting = autoAccounting;
         _tenant = tenant;
         _mapper = mapper;
@@ -167,6 +173,20 @@ public sealed class SaleService
         var totalWithInterest = financedAmount + interestAmount;
         var installmentAmount = totalWithInterest / request.InstallmentCount;
 
+        var client = await _clientRepo.GetByIdAsync(request.ClientId)
+            ?? throw new InvalidOperationException("Client not found");
+
+        if (client.CreditLimit.HasValue)
+        {
+            var activeCredits = await _creditRepo.GetFilteredAsync(request.ClientId, "active", request.BranchId, 1, int.MaxValue);
+            activeCredits.AddRange(await _creditRepo.GetFilteredAsync(request.ClientId, "overdue", request.BranchId, 1, int.MaxValue));
+            var currentExposure = activeCredits.Sum(c => c.Balance);
+            if (currentExposure + financedAmount > client.CreditLimit.Value)
+                throw new InvalidOperationException(
+                    $"El crédito excede el límite del cliente. Límite: {client.CreditLimit.Value:N2}, " +
+                    $"Exposición actual: {currentExposure:N2}, Nuevo financiamiento: {financedAmount:N2}");
+        }
+
         var sale = _mapper.Map<Sale>(request);
         sale.InvoiceNumber = await _saleRepo.GenerateInvoiceNumberAsync(companyId);
         sale.Subtotal = subtotal;
@@ -217,7 +237,7 @@ public sealed class SaleService
 
         var credit = new Credit
         {
-            CreditNumber = $"CRE-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..4]}",
+            CreditNumber = await _creditRepo.GenerateCreditNumberAsync(companyId),
             ClientId = request.ClientId,
             SaleId = sale.Id,
             EmployeeId = request.EmployeeId,

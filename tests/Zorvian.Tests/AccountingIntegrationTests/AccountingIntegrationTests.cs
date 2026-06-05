@@ -18,6 +18,8 @@ public class AccountingIntegrationTests
         var mockSaleRepo = new Mock<ISaleRepository>();
         var mockMovementRepo = new Mock<IInventoryMovementRepository>();
         var mockCompanyRepo = new Mock<ICompanyRepository>();
+        var mockClientRepo = new Mock<IClientRepository>();
+        var mockCreditRepo = new Mock<ICreditRepository>();
         var mockTenant = new Mock<ITenantContext>();
         var mockMapper = new Mock<AutoMapper.IMapper>();
 
@@ -29,7 +31,8 @@ public class AccountingIntegrationTests
         // Setup SaleService
         var saleService = new SaleService(
             mockSaleRepo.Object, mockProductRepo.Object, mockMovementRepo.Object,
-            mockCompanyRepo.Object, mockAutoAccounting.Object, mockTenant.Object, mockMapper.Object);
+            mockCompanyRepo.Object, mockClientRepo.Object, mockCreditRepo.Object,
+            mockAutoAccounting.Object, mockTenant.Object, mockMapper.Object);
 
         // Mock two products with different tax categories
         var prod1 = new Product { Id = Guid.NewGuid(), TaxCategory = new TaxCategory { Rate = 0.15m, Name = "15%" }, CostPrice = 10 };

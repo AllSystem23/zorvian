@@ -9,6 +9,8 @@ public interface IAutoAccountingService
     Task<Guid> GenerateSaleEntryAsync(Guid saleId, List<SaleDetail> details, decimal discount, decimal paidAmount, string saleType);
     Task<Guid> GenerateCostOfSaleEntryAsync(Guid saleId, decimal totalCost);
     Task<Guid> GeneratePurchaseEntryAsync(Guid purchaseId, List<PurchaseDetail> details, decimal discount, decimal total);
+    Task<Guid> GenerateSupplierPaymentEntryAsync(Guid paymentId, Guid purchaseId, decimal amount, Guid companyId, Guid branchId);
+    Task<Guid> GenerateSupplierCreditNoteEntryAsync(Guid creditNoteId, Guid supplierId, Guid? purchaseId, decimal total, Guid companyId, Guid branchId);
     Task<Guid> GenerateInventoryEntryAsync(Guid movementId, Guid productId, string movementType, int quantity, decimal unitCost);
     Task<Guid> GeneratePayrollEntryAsync(Guid payrollRunId);
     Task<Guid> GenerateCashMovementEntryAsync(Guid movementId);
@@ -379,6 +381,78 @@ public AutoAccountingService(
                     CreditAmount = isIncome ? movement.Amount : 0, 
                     Description = movement.Concept, CompanyId = CompanyId 
                 },
+            ],
+        };
+
+        await _entryRepo.AddAsync(entry);
+        await _entryRepo.SaveChangesAsync();
+        return entry.Id;
+    }
+
+    public async Task<Guid> GenerateSupplierPaymentEntryAsync(Guid paymentId, Guid purchaseId, decimal amount, Guid companyId, Guid branchId)
+    {
+        var periodId = await GetPeriodIdAsync();
+        var apAccountId = await GetAccountIdAsync(TransactionTypes.SupplierPayment, AccountRoles.AccountsPayable);
+        var cashAccountId = await GetAccountIdAsync(TransactionTypes.SupplierPayment, AccountRoles.Cash);
+
+        if (cashAccountId == Guid.Empty)
+            cashAccountId = await GetAccountIdAsync(TransactionTypes.CashMovement, AccountRoles.Cash);
+
+        var entry = new AccountingEntry
+        {
+            EntryNumber = $"AS-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..4]}",
+            EntryDate = DateTime.UtcNow,
+            Description = $"Pago a proveedor #{purchaseId.ToString()[..8]}",
+            ReferenceType = "SupplierPayment",
+            ReferenceId = paymentId,
+            Status = "posted",
+            AccountingPeriodId = periodId,
+            CompanyId = companyId,
+            BranchId = branchId,
+            TotalDebit = amount,
+            TotalCredit = amount,
+            PostedAt = DateTime.UtcNow,
+            Details =
+            [
+                new() { AccountId = apAccountId, DebitAmount = amount, CreditAmount = 0, Description = "Pago a proveedor", CompanyId = companyId },
+                new() { AccountId = cashAccountId, DebitAmount = 0, CreditAmount = amount, Description = "Salida de efectivo", CompanyId = companyId },
+            ],
+        };
+
+        await _entryRepo.AddAsync(entry);
+        await _entryRepo.SaveChangesAsync();
+        return entry.Id;
+    }
+
+    public async Task<Guid> GenerateSupplierCreditNoteEntryAsync(Guid creditNoteId, Guid supplierId, Guid? purchaseId, decimal total, Guid companyId, Guid branchId)
+    {
+        var periodId = await GetPeriodIdAsync();
+        var apAccountId = await GetAccountIdAsync(TransactionTypes.SupplierCreditNote, AccountRoles.AccountsPayable);
+        var invAccountId = await GetAccountIdAsync(TransactionTypes.SupplierCreditNote, AccountRoles.Inventory);
+        var vatAccountId = await GetAccountIdAsync(TransactionTypes.SupplierCreditNote, AccountRoles.VatReceivable);
+
+        var description = purchaseId.HasValue
+            ? $"Nota crédito proveedor #{purchaseId.Value.ToString()[..8]}"
+            : $"Nota crédito proveedor #{supplierId.ToString()[..8]}";
+
+        var entry = new AccountingEntry
+        {
+            EntryNumber = $"AS-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..4]}",
+            EntryDate = DateTime.UtcNow,
+            Description = description,
+            ReferenceType = "SupplierCreditNote",
+            ReferenceId = creditNoteId,
+            Status = "posted",
+            AccountingPeriodId = periodId,
+            CompanyId = companyId,
+            BranchId = branchId,
+            TotalDebit = total,
+            TotalCredit = total,
+            PostedAt = DateTime.UtcNow,
+            Details =
+            [
+                new() { AccountId = apAccountId, DebitAmount = total, CreditAmount = 0, Description = "Nota crédito proveedor", CompanyId = companyId },
+                new() { AccountId = invAccountId, DebitAmount = 0, CreditAmount = total, Description = "Devolución de inventario", CompanyId = companyId },
             ],
         };
 

@@ -14,6 +14,7 @@ public sealed class CreditService
     private readonly ILateFeeRepository _lateFeeRepo;
     private readonly ICollectionActionRepository _collectionActionRepo;
     private readonly ICompanyRepository _companyRepo;
+    private readonly ISaleRepository _saleRepo;
     private readonly ITenantContext _tenant;
     private readonly IMapper _mapper;
 
@@ -23,6 +24,7 @@ public sealed class CreditService
         ILateFeeRepository lateFeeRepo,
         ICollectionActionRepository collectionActionRepo,
         ICompanyRepository companyRepo,
+        ISaleRepository saleRepo,
         ITenantContext tenant,
         IMapper mapper)
     {
@@ -31,6 +33,7 @@ public sealed class CreditService
         _lateFeeRepo = lateFeeRepo;
         _collectionActionRepo = collectionActionRepo;
         _companyRepo = companyRepo;
+        _saleRepo = saleRepo;
         _tenant = tenant;
         _mapper = mapper;
     }
@@ -60,13 +63,40 @@ public sealed class CreditService
         var credit = await _creditRepo.GetByIdAsync(request.CreditId)
             ?? throw new InvalidOperationException("Credit not found");
 
-        var remainingInterest = credit.InterestAmount - credit.Payments.Sum(p => p.InterestAmount);
+        decimal principalAmount, interestAmount;
 
-        var principalAmount = Math.Min(request.Amount, credit.Balance - remainingInterest);
-        var interestAmount = Math.Min(remainingInterest, request.Amount - principalAmount);
+        if (request.CreditInstallmentId.HasValue)
+        {
+            var installment = credit.Installments
+                .FirstOrDefault(i => i.Id == request.CreditInstallmentId.Value)
+                ?? throw new InvalidOperationException("Installment not found");
 
-        if (principalAmount < 0) principalAmount = 0;
-        if (interestAmount < 0) interestAmount = 0;
+            var ratio = installment.Amount > 0
+                ? installment.PrincipalAmount / installment.Amount
+                : 0;
+
+            principalAmount = Math.Min(
+                Math.Round(request.Amount * ratio, 2),
+                Math.Max(0, installment.PrincipalAmount - installment.PaidAmount));
+            interestAmount = request.Amount - principalAmount;
+
+            if (interestAmount < 0) interestAmount = 0;
+
+            installment.PaidAmount += request.Amount;
+            installment.Balance = Math.Max(0, installment.Amount - installment.PaidAmount);
+            if (installment.Balance <= 0)
+                installment.Status = "paid";
+        }
+        else
+        {
+            var remainingInterest = credit.InterestAmount - credit.Payments.Sum(p => p.InterestAmount);
+
+            principalAmount = Math.Min(request.Amount, Math.Max(0, credit.Balance - remainingInterest));
+            interestAmount = Math.Min(Math.Max(0, remainingInterest), request.Amount - principalAmount);
+
+            if (principalAmount < 0) principalAmount = 0;
+            if (interestAmount < 0) interestAmount = 0;
+        }
 
         var payment = new CreditPayment
         {
@@ -85,19 +115,6 @@ public sealed class CreditService
         credit.PaidAmount += request.Amount;
         credit.Balance = Math.Max(0, credit.TotalAmount - credit.PaidAmount);
 
-        if (request.CreditInstallmentId.HasValue)
-        {
-            var installment = credit.Installments
-                .FirstOrDefault(i => i.Id == request.CreditInstallmentId.Value);
-            if (installment is not null)
-            {
-                installment.PaidAmount += request.Amount;
-                installment.Balance = Math.Max(0, installment.Amount - installment.PaidAmount);
-                if (installment.Balance <= 0)
-                    installment.Status = "paid";
-            }
-        }
-
         if (credit.Balance <= 0)
             credit.Status = "canceled";
 
@@ -108,6 +125,20 @@ public sealed class CreditService
 
         await _paymentRepo.AddAsync(payment);
         await _paymentRepo.SaveChangesAsync();
+
+        if (credit.SaleId.HasValue)
+        {
+            var sale = await _saleRepo.GetByIdAsync(credit.SaleId.Value);
+            if (sale is not null)
+            {
+                sale.PaidAmount += principalAmount;
+                sale.Balance = Math.Max(0, sale.Total - sale.PaidAmount);
+                if (sale.Balance <= 0)
+                    sale.Status = "completed";
+                await _saleRepo.UpdateAsync(sale);
+                await _saleRepo.SaveChangesAsync();
+            }
+        }
 
         return _mapper.Map<CreditPaymentResponse>(payment);
     }

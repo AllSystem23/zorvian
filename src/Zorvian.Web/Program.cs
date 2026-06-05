@@ -169,6 +169,11 @@ builder.Services.AddScoped<ProductService>();
     builder.Services.AddScoped<InventoryMovementService>();
     builder.Services.AddScoped<IPurchaseRepository, PurchaseRepository>();
     builder.Services.AddScoped<PurchaseService>();
+    builder.Services.AddScoped<ISupplierPaymentRepository, SupplierPaymentRepository>();
+    builder.Services.AddScoped<ISupplierCreditNoteRepository, SupplierCreditNoteRepository>();
+    builder.Services.AddScoped<IWithholdingRepository, WithholdingRepository>();
+    builder.Services.AddScoped<SupplierPaymentService>();
+    builder.Services.AddScoped<SupplierCreditNoteService>();
 
 // DI - New Module: Créditos
 builder.Services.AddScoped<ICreditRepository, CreditRepository>();

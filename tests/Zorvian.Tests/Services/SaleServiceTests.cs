@@ -17,6 +17,8 @@ public sealed class SaleServiceTests
     private readonly Mock<IProductRepository> _productRepo = new();
     private readonly Mock<IInventoryMovementRepository> _movementRepo = new();
     private readonly Mock<ICompanyRepository> _companyRepo = new();
+    private readonly Mock<IClientRepository> _clientRepo = new();
+    private readonly Mock<ICreditRepository> _creditRepo = new();
     private readonly Mock<ITenantContext> _tenant = new();
     private readonly Mock<IMapper> _mapper = new();
     private readonly SaleService _sut;
@@ -55,6 +57,8 @@ public sealed class SaleServiceTests
             _productRepo.Object,
             _movementRepo.Object,
             _companyRepo.Object,
+            _clientRepo.Object,
+            _creditRepo.Object,
             autoAccounting,
             _tenant.Object,
             _mapper.Object);
@@ -192,6 +196,11 @@ public sealed class SaleServiceTests
         var settings = MakeSettings(taxEnabled: false);
         var saleId = Guid.NewGuid();
 
+        var client = new Client { Id = _clientId, CreditLimit = 100000m, Status = "active", CompanyId = _companyId, BranchId = _branchId };
+        _clientRepo.Setup(r => r.GetByIdAsync(_clientId)).ReturnsAsync(client);
+        _creditRepo.Setup(r => r.GetFilteredAsync(_clientId, It.IsAny<string>(), _branchId, 1, int.MaxValue))
+            .ReturnsAsync(new List<Credit>());
+
         _companyRepo.Setup(r => r.GetByTenantIdAsync(_companyId.ToString())).ReturnsAsync(company);
         _companyRepo.Setup(r => r.GetSettingsAsync(company.Id)).ReturnsAsync(settings);
 
@@ -207,6 +216,7 @@ public sealed class SaleServiceTests
         sale.SaleType = "credit";
         _mapper.Setup(m => m.Map<Sale>(request)).Returns(sale);
         _saleRepo.Setup(r => r.GenerateInvoiceNumberAsync(company.Id)).ReturnsAsync("INV-002");
+        _creditRepo.Setup(r => r.GenerateCreditNumberAsync(It.IsAny<Guid>())).ReturnsAsync("CRE-001");
 
         Sale? capturedSale = null;
         _saleRepo.Setup(r => r.AddAsync(It.IsAny<Sale>()))

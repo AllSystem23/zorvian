@@ -130,7 +130,7 @@ public sealed class ClientServiceTests
         result.TotalSales.Should().Be(2);
         result.ActiveCredits.Should().Be(1);
         result.TotalBalance.Should().Be(6000m);
-        result.OverdueBalance.Should().Be(6000m);
+        result.OverdueBalance.Should().Be(500m);
         result.RecentSales.Should().HaveCount(2);
         result.ActiveCreditsList.Should().HaveCount(1);
     }

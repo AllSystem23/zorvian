@@ -64,6 +64,21 @@ public sealed class PurchasesController : ControllerBase
         }
     }
 
+    [Audit("Purchase", "Complete")]
+    [HttpPost("{id:guid}/complete")]
+    public async Task<IActionResult> Complete(Guid id)
+    {
+        try
+        {
+            await _service.CompleteAsync(id);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
     [Audit("Purchase", "Cancel")]
     [HttpPost("{id:guid}/cancel")]
     public async Task<IActionResult> Cancel(Guid id)
@@ -77,5 +92,12 @@ public sealed class PurchasesController : ControllerBase
         {
             return BadRequest(new { error = ex.Message });
         }
+    }
+
+    [HttpGet("aging")]
+    public async Task<IActionResult> GetAging()
+    {
+        var result = await _service.GetAgingAsync();
+        return Ok(result);
     }
 }

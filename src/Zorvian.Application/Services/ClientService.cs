@@ -85,16 +85,13 @@ public sealed class ClientService
         var sales = await _saleRepo.GetFilteredAsync(clientId, null, null, null, null, Guid.Empty, 1, 50);
         var credits = await _creditRepo.GetFilteredAsync(clientId, null, Guid.Empty, 1, 50);
 
-        var overdueBalance = 0m;
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var activeCredits = credits.Where(c => c.Status == "active" || c.Status == "defaulted").ToList();
 
-        foreach (var credit in activeCredits)
-        {
-            var today = DateOnly.FromDateTime(DateTime.UtcNow);
-            var hasOverdueInstallments = credit.Installments.Any(i => i.Status == "late" || (i.Status == "pending" && i.DueDate < today));
-            if (hasOverdueInstallments)
-                overdueBalance += credit.Balance;
-        }
+        var overdueBalance = activeCredits
+            .SelectMany(c => c.Installments)
+            .Where(i => i.Status == "late" || (i.Status == "pending" && i.DueDate < today))
+            .Sum(i => i.Balance);
 
         return new ClientStatementResponse(
             ClientId: client.Id,

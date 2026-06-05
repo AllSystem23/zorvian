@@ -23,6 +23,58 @@ public sealed class SupplierRepository : ISupplierRepository
     public async Task<Supplier?> GetByIdAsync(Guid id) =>
         await _db.Set<Supplier>().FirstOrDefaultAsync(s => s.Id == id);
 
+    public async Task<Supplier?> GetByTaxIdAsync(string taxId, Guid companyId) =>
+        await _db.Set<Supplier>()
+            .FirstOrDefaultAsync(s => s.TaxId == taxId && s.CompanyId == companyId);
+
+    public async Task<List<Supplier>> GetFilteredAsync(string? search, Guid companyId, int page, int pageSize)
+    {
+        var query = _db.Set<Supplier>()
+            .Where(s => s.CompanyId == companyId)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.ToLower();
+            query = query.Where(sup =>
+                sup.Name.ToLower().Contains(s) ||
+                (sup.TaxId != null && sup.TaxId.ToLower().Contains(s)) ||
+                (sup.ContactName != null && sup.ContactName.ToLower().Contains(s)) ||
+                (sup.Phone != null && sup.Phone.Contains(s)));
+        }
+
+        return await query
+            .OrderBy(s => s.Name)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+    }
+
+    public async Task<int> GetFilteredCountAsync(string? search, Guid companyId)
+    {
+        var query = _db.Set<Supplier>()
+            .Where(s => s.CompanyId == companyId)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.ToLower();
+            query = query.Where(sup =>
+                sup.Name.ToLower().Contains(s) ||
+                (sup.TaxId != null && sup.TaxId.ToLower().Contains(s)) ||
+                (sup.ContactName != null && sup.ContactName.ToLower().Contains(s)) ||
+                (sup.Phone != null && sup.Phone.Contains(s)));
+        }
+
+        return await query.CountAsync();
+    }
+
+    public async Task<string> GenerateCodeAsync(Guid companyId)
+    {
+        var count = await _db.Set<Supplier>().CountAsync(s => s.CompanyId == companyId);
+        return $"PROV-{DateTime.UtcNow:yyyyMMdd}-{(count + 1):D3}";
+    }
+
     public async Task AddAsync(Supplier supplier) =>
         await _db.Set<Supplier>().AddAsync(supplier);
 

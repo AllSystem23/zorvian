@@ -28,8 +28,10 @@ public sealed class CreditRepository : ICreditRepository
         var query = _db.Set<Credit>()
             .Include(c => c.Client)
             .Include(c => c.Installments)
-            .Where(c => c.BranchId == branchId)
             .AsQueryable();
+
+        if (branchId != Guid.Empty)
+            query = query.Where(c => c.BranchId == branchId);
 
         if (clientId.HasValue) query = query.Where(c => c.ClientId == clientId.Value);
         if (!string.IsNullOrWhiteSpace(status)) query = query.Where(c => c.Status == status);
@@ -43,7 +45,9 @@ public sealed class CreditRepository : ICreditRepository
 
     public async Task<int> GetFilteredCountAsync(Guid? clientId, string? status, Guid branchId)
     {
-        var query = _db.Set<Credit>().Where(c => c.BranchId == branchId).AsQueryable();
+        var query = _db.Set<Credit>().AsQueryable();
+        if (branchId != Guid.Empty)
+            query = query.Where(c => c.BranchId == branchId);
         if (clientId.HasValue) query = query.Where(c => c.ClientId == clientId.Value);
         if (!string.IsNullOrWhiteSpace(status)) query = query.Where(c => c.Status == status);
         return await query.CountAsync();

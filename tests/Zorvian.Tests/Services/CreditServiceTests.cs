@@ -17,6 +17,7 @@ public sealed class CreditServiceTests
     private readonly Mock<ILateFeeRepository> _lateFeeRepo = new();
     private readonly Mock<ICollectionActionRepository> _collectionActionRepo = new();
     private readonly Mock<ICompanyRepository> _companyRepo = new();
+    private readonly Mock<ISaleRepository> _saleRepo = new();
     private readonly Mock<ITenantContext> _tenant = new();
     private readonly Mock<IMapper> _mapper = new();
     private readonly CreditService _sut;
@@ -34,6 +35,7 @@ public sealed class CreditServiceTests
             _lateFeeRepo.Object,
             _collectionActionRepo.Object,
             _companyRepo.Object,
+            _saleRepo.Object,
             _tenant.Object,
             _mapper.Object);
     }
@@ -284,7 +286,7 @@ public sealed class CreditServiceTests
         credit.Id = creditId;
         var request = new CreateCollectionActionRequest(
             creditId, "PHONE_CALL", "Called client", null,
-            "Juan Pérez", "555-0100", "500",
+            "Juan Pérez", "555-0100", 500m,
             DateOnly.FromDateTime(DateTime.UtcNow.AddDays(7)), "No answer");
 
         _creditRepo.Setup(r => r.GetByIdAsync(creditId)).ReturnsAsync(credit);
@@ -292,7 +294,7 @@ public sealed class CreditServiceTests
         var expectedResponse = new CollectionActionResponse(
             Guid.NewGuid(), creditId, _employeeId, "Test Employee",
             "PHONE_CALL", "Called client", DateTime.UtcNow, null,
-            "Juan Pérez", "555-0100", "500",
+            "Juan Pérez", "555-0100", 500m,
             DateOnly.FromDateTime(DateTime.UtcNow.AddDays(7)), "completed", "No answer");
         _mapper.Setup(m => m.Map<CollectionActionResponse>(It.IsAny<CollectionAction>())).Returns(expectedResponse);
 

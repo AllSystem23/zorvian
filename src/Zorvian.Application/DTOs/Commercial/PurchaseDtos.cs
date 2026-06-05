@@ -16,12 +16,17 @@ public sealed record PurchaseResponse(
     string SupplierName,
     DateTime CreatedAt,
     DateTime? PurchaseDate,
+    DateOnly? DueDate,
     string? InvoiceReference,
     string Status,
     decimal Subtotal,
     decimal Tax,
     decimal Discount,
     decimal Total,
+    decimal PaidAmount,
+    decimal Balance,
+    string? WithholdingType,
+    decimal? WithholdingAmount,
     string? Notes,
     List<PurchaseDetailItem> Details
 );
@@ -32,26 +37,32 @@ public sealed record PurchaseListResponse(
     string SupplierName,
     DateTime CreatedAt,
     string Status,
-    decimal Total
+    decimal Total,
+    decimal PaidAmount,
+    decimal Balance
 );
 
 public sealed record CreatePurchaseRequest(
     Guid SupplierId,
     DateTime? PurchaseDate,
+    DateOnly? DueDate,
     string? InvoiceReference,
+    string? WithholdingType,
+    decimal? WithholdingRate,
     decimal Discount,
     string? Notes,
     Guid BranchId,
-    List<SaleDetailItem> Details
+    List<PurchaseDetailItem> Details
 );
 
 public sealed record UpdatePurchaseRequest(
     Guid? SupplierId,
     DateTime? PurchaseDate,
+    DateOnly? DueDate,
     string? InvoiceReference,
     decimal? Discount,
     string? Notes,
-    List<SaleDetailItem>? Details
+    List<PurchaseDetailItem>? Details
 );
 
 public sealed record PurchaseFilterRequest(
@@ -59,6 +70,7 @@ public sealed record PurchaseFilterRequest(
     string? Status,
     DateTime? FromDate,
     DateTime? ToDate,
+    Guid? BranchId,
     int? Page = 1,
     int? PageSize = 20
 );
