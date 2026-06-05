@@ -110,16 +110,14 @@ namespace Zorvian.Infrastructure.Migrations
                 nullable: false,
                 defaultValue: "");
 
-            migrationBuilder.AlterColumn<decimal>(
-                name: "PromiseAmount",
-                table: "CollectionActions",
-                type: "numeric",
-                maxLength: 50,
-                nullable: true,
-                oldClrType: typeof(string),
-                oldType: "character varying(50)",
-                oldMaxLength: 50,
-                oldNullable: true);
+            migrationBuilder.Sql("""
+                ALTER TABLE "CollectionActions"
+                ALTER COLUMN "PromiseAmount" TYPE numeric
+                USING CASE
+                    WHEN "PromiseAmount" ~ '^[0-9]+\.?[0-9]*$' THEN "PromiseAmount"::numeric
+                    ELSE NULL
+                END;
+            """);
 
             migrationBuilder.AddColumn<string>(
                 name: "ApprovalStatus",
