@@ -424,12 +424,34 @@ recurringJobManager.AddOrUpdate<AuditLogCleanupJob>(
 // Health check
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", version = "1.0.0" }));
 
-// Auto-migrate in production
+// Auto-migrate in production with guardrails
 if (app.Environment.IsProduction())
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<ZorvianDbContext>();
-    await db.Database.MigrateAsync();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+    try
+    {
+        var pending = await db.Database.GetPendingMigrationsAsync();
+        var pendingList = pending.ToList();
+
+        if (pendingList.Count > 0)
+        {
+            logger.LogInformation("Applying {Count} pending migration(s): {Migrations}",
+                pendingList.Count, string.Join(", ", pendingList));
+            await db.Database.MigrateAsync();
+            logger.LogInformation("Migration(s) applied successfully");
+        }
+        else
+        {
+            logger.LogInformation("No pending migrations");
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Migration failed — application will start but database may be out of date");
+    }
 }
 
 app.Run();

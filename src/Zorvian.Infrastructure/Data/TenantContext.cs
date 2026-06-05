@@ -5,6 +5,7 @@ namespace Zorvian.Infrastructure.Data;
 public sealed class TenantContext : ITenantContext, ITenantContextWriter
 {
     public string TenantId { get; private set; } = string.Empty;
+    public bool IsSuperAdmin { get; private set; }
     public Guid? CurrentUserId { get; private set; }
     public Guid? CurrentEmployeeId { get; private set; }
 
@@ -19,5 +20,10 @@ public sealed class TenantContext : ITenantContext, ITenantContextWriter
     {
         CurrentUserId = userId;
         CurrentEmployeeId = employeeId;
+    }
+
+    public void SetIsSuperAdmin(bool isSuperAdmin)
+    {
+        IsSuperAdmin = isSuperAdmin;
     }
 }

@@ -33,6 +33,9 @@ public sealed class TenantMiddleware
         Guid? employeeId = Guid.TryParse(employeeIdClaim, out var eid) ? eid : null;
         tenantWriter.SetCurrentUser(userId, employeeId);
 
+        var roleClaim = context.User?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+        tenantWriter.SetIsSuperAdmin(roleClaim == "SuperAdmin");
+
         await _next(context);
     }
 }

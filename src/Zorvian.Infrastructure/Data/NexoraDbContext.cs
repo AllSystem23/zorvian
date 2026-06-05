@@ -217,7 +217,7 @@ public sealed class ZorvianDbContext : DbContext
             e.Property(c => c.Country).HasMaxLength(100);
             e.Property(c => c.Currency).HasMaxLength(3);
             e.Property(c => c.Timezone).HasMaxLength(50);
-            e.HasQueryFilter(c => (c.TenantId == _tenantContext.TenantId || _tenantContext.TenantId == "superadmin") && !c.IsDeleted);
+            e.HasQueryFilter(c => (c.TenantId == _tenantContext.TenantId || _tenantContext.IsSuperAdmin) && !c.IsDeleted);
         });
 
         builder.Entity<User>(e =>

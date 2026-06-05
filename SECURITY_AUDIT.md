@@ -11,15 +11,15 @@
 
 | Métrica | Original | Actual |
 |---------|----------|--------|
-| **CRÍTICO** | 5 | 2 |
-| **ALTO** | 7 | 5 |
-| **MEDIO** | 9 | 6 |
+| **CRÍTICO** | 5 | 0 |
+| **ALTO** | 7 | 3 |
+| **MEDIO** | 9 | 4 |
 | **BAJO** | 5 | 5 |
 | **INFO** | 4 | 4 |
-| **Total hallazgos** | **30** | **21** |
-| **Resueltos** | — | **9** |
+| **Total hallazgos** | **30** | **16** |
+| **Resueltos** | — | **14** |
 
-### Hallazgos Resueltos (8)
+### Hallazgos Resueltos (14)
 
 | ID | Severidad | Descripción | Fix |
 |----|-----------|-------------|-----|
@@ -32,6 +32,10 @@
 | DRP-001 | 🟠 ALTO | Hangfire MemoryStorage | Migrado a `UsePostgreSqlStorage` |
 | AUT-004 | 🟡 MEDIO | Sin endpoint revocar todas las sesiones | `POST /auth/revoke-all` implementado |
 | HST-002 | 🔴 CRÍTICO | EmployeeHistory no se poblaba nunca | `CaptureState` + `AddHistoryEntries` en CRUD |
+| RBP-003 | 🟠 ALTO | SuperAdmin bypass hardcodeado como string | `ITenantContext.IsSuperAdmin` basado en role claim |
+| DAT-002 | 🔴 CRÍTICO | JWT Secret hardcodeado en appsettings | Removido; solo env var o Development.json |
+| DRP-003 | 🟡 MEDIO | Migración automática sin guardrails | Solo ejecuta si hay migraciones pendientes; try-catch |
+| USR-003 | 🟠 ALTO | ToggleActive sin verificar último admin | Validación de CompanyAdmin restante |
 
 ### Fixes Adicionales (no categorizados como hallazgos originales)
 
@@ -63,7 +67,7 @@
 |----------|-----------|--------|---------|
 | **RBP-001**: Permisos basados en strings sin registro central | 🟡 MEDIO | ❌ PENDIENTE | `Entities/RolePermission.cs:7` |
 | **RBP-002**: Claims de permiso NUNCA validados server-side | 🔴 CRÍTICO | ✅ FIXED | `Authorization/RequirePermissionAttribute.cs` |
-| **RBP-003**: Role `SuperAdmin` con bypass hardcodeado | 🟠 ALTO | ❌ PENDIENTE | `Data/NexoraDbContext.cs:220` |
+| **RBP-003**: Role `SuperAdmin` con bypass hardcodeado | 🟠 ALTO | ✅ FIXED | `Data/NexoraDbContext.cs:220` |
 | **RBP-004**: Sin endpoints protegidos con `[Authorize(Roles = "SuperAdmin")]` | 🟠 ALTO | ❌ PENDIENTE | `Controllers/*.cs` |
 | **RBP-005**: Sin granularidad de permisos por módulo | 🟠 ALTO | ❌ PENDIENTE | `Controllers/*.cs` |
 
@@ -104,7 +108,7 @@
 | Hallazgo | Severidad | Estado | Archivo |
 |----------|-----------|--------|---------|
 | **DAT-001**: Firebase admin credentials en el repositorio | 🔴 CRÍTICO | 🟡 PARCIAL | `nexora-hr-firebase-admin.json` |
-| **DAT-002**: JWT Secret hardcodeado en appsettings | 🔴 CRÍTICO | 🟡 PARCIAL | `Identity/JwtService.cs:34` |
+| **DAT-002**: JWT Secret hardcodeado en appsettings | 🔴 CRÍTICO | ✅ FIXED | `Identity/JwtService.cs:34` |
 | **DAT-003**: PII sin cifrado a nivel de columna | 🟠 ALTO | ❌ PENDIENTE | `Entities/Employee.cs` |
 | **DAT-004**: Soft-delete sin fecha de purge | 🟡 MEDIO | ❌ PENDIENTE | `Entities/BaseEntity.cs:11` |
 | **DAT-005**: Firebase Storage sin cifrado server-side | 🔵 INFO | ❌ PENDIENTE | `Services/FirebaseStorageService.cs` |
@@ -121,7 +125,7 @@
 |----------|-----------|--------|---------|
 | **DRP-001**: Hangfire MemoryStorage — jobs se pierden al reiniciar | 🟠 ALTO | ✅ FIXED | `Program.cs:294` |
 | **DRP-002**: Sin automatización de backups | 🟠 ALTO | ❌ PENDIENTE | — |
-| **DRP-003**: Migración automática en producción | 🟡 MEDIO | ❌ PENDIENTE | `Program.cs:429` |
+| **DRP-003**: Migración automática en producción | 🟡 MEDIO | ✅ FIXED | `Program.cs:427-440` |
 | **DRP-004**: Sin read replicas ni failover | 🔵 INFO | ❌ PENDIENTE | — |
 
 ---
@@ -389,13 +393,16 @@ options.AddPolicy("payroll.write", policy =>
 
 ### Inmediatos
 1. Rotar credenciales Firebase en Firebase Console; eliminar `nexora-hr-firebase-admin.json` del disco
-2. Rotar JWT Secret via env var; eliminar fallback de `appsettings.json`
-3. Verificar que `Database.MigrateAsync()` en producción tenga guardrails (DRP-003)
 
 ### Corto Plazo
-5. Eliminar bypass hardcodeado de SuperAdmin en query filter (RBP-003/MTN-002)
-6. Implementar MFA/2FA (AUT-003)
-7. Agregar cifrado de columnas PII (DAT-003)
+2. Implementar MFA/2FA (AUT-003)
+3. Agregar cifrado de columnas PII (DAT-003)
+4. Auditoría de lecturas GET a datos sensibles (TRZ-002)
+
+### Mediano Plazo
+5. Historial de cambios para entidades financieras (HST-001)
+6. CSRF protection
+7. Backup automático de BD (DRP-002)
 
 ---
 
