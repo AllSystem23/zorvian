@@ -13,13 +13,13 @@
 |---------|----------|--------|
 | **CRÍTICO** | 5 | 0 |
 | **ALTO** | 7 | 3 |
-| **MEDIO** | 9 | 4 |
+| **MEDIO** | 9 | 3 |
 | **BAJO** | 5 | 5 |
 | **INFO** | 4 | 4 |
-| **Total hallazgos** | **30** | **16** |
-| **Resueltos** | — | **14** |
+| **Total hallazgos** | **30** | **15** |
+| **Resueltos** | — | **15** |
 
-### Hallazgos Resueltos (14)
+### Hallazgos Resueltos (15)
 
 | ID | Severidad | Descripción | Fix |
 |----|-----------|-------------|-----|
@@ -36,6 +36,7 @@
 | DAT-002 | 🔴 CRÍTICO | JWT Secret hardcodeado en appsettings | Removido; solo env var o Development.json |
 | DRP-003 | 🟡 MEDIO | Migración automática sin guardrails | Solo ejecuta si hay migraciones pendientes; try-catch |
 | USR-003 | 🟠 ALTO | ToggleActive sin verificar último admin | Validación de CompanyAdmin restante |
+| AUT-003 | 🟡 MEDIO | Sin MFA/2FA en login | TOTP con Google Authenticator + login two-step |
 
 ### Fixes Adicionales (no categorizados como hallazgos originales)
 
@@ -92,7 +93,7 @@
 |----------|-----------|--------|---------|
 | **AUT-001**: Refresh tokens sin device fingerprint | 🔴 CRÍTICO | ✅ FIXED | `Core/Entities/RefreshToken.cs:12` |
 | **AUT-002**: Sin detección de rotación de refresh token | 🟠 ALTO | ✅ FIXED | `Services/AuthService.cs:145` |
-| **AUT-003**: Sin MFA/2FA en ningún flujo | 🟡 MEDIO | ❌ PENDIENTE | `Services/AuthService.cs` |
+| **AUT-003**: Sin MFA/2FA en ningún flujo | 🟡 MEDIO | ✅ FIXED | `Services/AuthService.cs`, `MfaService.cs` |
 | **AUT-004**: Sin gestión de sesiones (revocar todas) | 🟡 MEDIO | ✅ FIXED | `Controllers/AuthController.cs:66-76` |
 | **AUT-005**: `WebApiKey` como query param en URL | 🟢 BAJO | ❌ PENDIENTE | `Identity/FirebaseAuthService.cs:69` |
 
@@ -340,7 +341,7 @@ options.AddPolicy("payroll.write", policy =>
 - [ ] Cross-reference entre AuditLog y EmployeeHistory
 
 ### Acceso
-- [ ] MFA habilitado
+- [x] MFA habilitado (TOTP con Google Authenticator)
 - [x] Refresh token rotation con reuse detection
 - [x] Device fingerprint en tokens
 - [ ] Rate limiting por endpoint específico
@@ -395,9 +396,8 @@ options.AddPolicy("payroll.write", policy =>
 1. Rotar credenciales Firebase en Firebase Console; eliminar `nexora-hr-firebase-admin.json` del disco
 
 ### Corto Plazo
-2. Implementar MFA/2FA (AUT-003)
-3. Agregar cifrado de columnas PII (DAT-003)
-4. Auditoría de lecturas GET a datos sensibles (TRZ-002)
+2. Agregar cifrado de columnas PII (DAT-003)
+3. Auditoría de lecturas GET a datos sensibles (TRZ-002)
 
 ### Mediano Plazo
 5. Historial de cambios para entidades financieras (HST-001)

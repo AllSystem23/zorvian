@@ -73,6 +73,7 @@ builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 
 // DI - Application
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<IMfaService, Zorvian.Infrastructure.Services.MfaService>();
 builder.Services.AddScoped<CompanyService>();
 builder.Services.AddScoped<EmployeeService>();
 builder.Services.AddScoped<DepartmentService>();

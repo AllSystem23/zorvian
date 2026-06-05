@@ -12,11 +12,14 @@ public sealed class AuthServiceTests
     private readonly Mock<IAuthRepository> _authRepo = new();
     private readonly Mock<IFirebaseAuthService> _firebase = new();
     private readonly Mock<IJwtService> _jwt = new();
+    private readonly Mock<IMfaService> _mfa = new();
     private readonly AuthService _sut;
 
     public AuthServiceTests()
     {
-        _sut = new AuthService(_authRepo.Object, _firebase.Object, _jwt.Object);
+        _mfa.Setup(m => m.GenerateMfaToken(It.IsAny<Guid>())).Returns("mfa-test-token");
+        _mfa.Setup(m => m.ValidateMfaToken(It.IsAny<string>())).Returns((Guid?)null);
+        _sut = new AuthService(_authRepo.Object, _firebase.Object, _jwt.Object, _mfa.Object);
     }
 
     [Fact]

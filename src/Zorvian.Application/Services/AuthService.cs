@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using Zorvian.Application.DTOs.Auth;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
@@ -10,12 +9,14 @@ public sealed class AuthService
     private readonly IAuthRepository _authRepo;
     private readonly IFirebaseAuthService _firebase;
     private readonly IJwtService _jwt;
+    private readonly IMfaService _mfa;
 
-    public AuthService(IAuthRepository authRepo, IFirebaseAuthService firebase, IJwtService jwt)
+    public AuthService(IAuthRepository authRepo, IFirebaseAuthService firebase, IJwtService jwt, IMfaService mfa)
     {
         _authRepo = authRepo;
         _firebase = firebase;
         _jwt = jwt;
+        _mfa = mfa;
     }
 
     public async Task<AuthResponse?> LoginAsync(LoginRequest request)
@@ -45,6 +46,12 @@ public sealed class AuthService
     }
 
     public async Task<AuthResponse?> LoginWithPasswordAsync(LoginPasswordRequest request)
+    {
+        var result = await LoginWithPasswordStep1Async(request);
+        return result?.AuthResponse;
+    }
+
+    public async Task<LoginStep1Result?> LoginWithPasswordStep1Async(LoginPasswordRequest request)
     {
         var fbUser = await _firebase.SignInWithPasswordAsync(request.Email, request.Password);
 
@@ -78,7 +85,29 @@ public sealed class AuthService
             if (!PasswordHelper.Verify(request.Password, user.PasswordHash)) return null;
         }
 
-        return await GenerateAuthResponse(user, request.DeviceFingerprint);
+        if (user.IsMfaEnabled)
+        {
+            var mfaToken = _mfa.GenerateMfaToken(user.Id);
+            return LoginStep1Result.MfaRequired(new MfaRequiredResponse(mfaToken));
+        }
+
+        var authResponse = await GenerateAuthResponse(user, request.DeviceFingerprint);
+        return LoginStep1Result.Completed(authResponse);
+    }
+
+    public async Task<AuthResponse?> CompleteMfaLoginAsync(string mfaToken, string code, string? deviceFingerprint = null)
+    {
+        var userId = _mfa.ValidateMfaToken(mfaToken);
+        if (userId is null) return null;
+
+        var user = await _authRepo.GetUserWithRolesAsync(userId.Value);
+        if (user is null || !user.IsMfaEnabled || string.IsNullOrEmpty(user.MfaSecretKey))
+            return null;
+
+        if (!_mfa.ValidateCode(user.MfaSecretKey, code))
+            return null;
+
+        return await GenerateAuthResponse(user, deviceFingerprint);
     }
 
     public async Task<UserInfo?> GetMeAsync(Guid userId)

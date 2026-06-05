@@ -11,6 +11,9 @@ public sealed class User : BaseEntity
     public bool IsActive { get; set; } = true;
     public DateTime? LastLoginAt { get; set; }
 
+    public string? MfaSecretKey { get; set; }
+    public bool IsMfaEnabled { get; set; }
+
     public Guid? EmployeeId { get; set; }
     public Employee? Employee { get; set; }
     public ICollection<UserRole> UserRoles { get; set; } = [];
