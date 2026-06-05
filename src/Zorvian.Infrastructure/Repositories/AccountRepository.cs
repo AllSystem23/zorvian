@@ -25,6 +25,9 @@ public sealed class AccountRepository : IAccountRepository
     public async Task<Account?> GetByCodeAsync(string code, Guid companyId) =>
         await _db.Set<Account>().FirstOrDefaultAsync(a => a.Code == code && a.CompanyId == companyId);
 
+    public async Task<List<Account>> GetByCodesAsync(string[] codes, Guid companyId) =>
+        await _db.Set<Account>().Where(a => codes.Contains(a.Code) && a.CompanyId == companyId).ToListAsync();
+
     public async Task<List<Account>> GetActiveAsync(Guid companyId) =>
         await _db.Set<Account>().Where(a => a.IsActive && a.CompanyId == companyId).OrderBy(a => a.Code).ToListAsync();
 

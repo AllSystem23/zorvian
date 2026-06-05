@@ -176,6 +176,9 @@ builder.Services.AddScoped<ProductService>();
     builder.Services.AddScoped<SupplierPaymentService>();
     builder.Services.AddScoped<SupplierCreditNoteService>();
 
+// DI - New Module: Business Intelligence
+builder.Services.AddScoped<BiService>();
+
 // DI - New Module: Activos Fijos
 builder.Services.AddScoped<IFixedAssetRepository, FixedAssetRepository>();
 builder.Services.AddScoped<IFixedAssetCategoryRepository, FixedAssetCategoryRepository>();

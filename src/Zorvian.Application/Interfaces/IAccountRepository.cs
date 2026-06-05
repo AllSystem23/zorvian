@@ -9,6 +9,7 @@ public interface IAccountRepository
     Task<List<Account>> GetByTypeAsync(string type, Guid companyId);
     Task<List<Account>> GetByParentAsync(Guid parentId);
     Task<Account?> GetByCodeAsync(string code, Guid companyId);
+    Task<List<Account>> GetByCodesAsync(string[] codes, Guid companyId);
     Task<List<Account>> GetActiveAsync(Guid companyId);
     Task<bool> CodeExistsAsync(string code, Guid companyId);
     Task<int> GetMaxLevelAsync(Guid? parentId, Guid companyId);
