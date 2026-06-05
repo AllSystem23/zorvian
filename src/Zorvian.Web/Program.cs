@@ -7,6 +7,7 @@ using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Zorvian.Application.Interfaces;
@@ -51,7 +52,8 @@ builder.Services.AddDbContext<ZorvianDbContext>((sp, options) =>
 {
     var interceptor = sp.GetRequiredService<Zorvian.Infrastructure.Data.AuditInterceptor>();
     options.UseNpgsql(builder.Configuration.GetConnectionString("ZorvianDb"))
-           .AddInterceptors(interceptor);
+           .AddInterceptors(interceptor)
+           .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
 });
 
 // AutoMapper
@@ -103,6 +105,7 @@ builder.Services.AddScoped<IAttendanceRepository, AttendanceRepository>();
 builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 builder.Services.AddScoped<AttendanceService>();
 builder.Services.AddScoped<IPayrollRepository, PayrollRepository>();
+builder.Services.AddScoped<IPayrollConceptRepository, PayrollConceptRepository>();
 builder.Services.AddScoped<IBankAccountRepository, BankAccountRepository>();
 builder.Services.AddScoped<ISickLeaveRepository, SickLeaveRepository>();
 builder.Services.AddScoped<ITerminationRepository, TerminationRepository>();
