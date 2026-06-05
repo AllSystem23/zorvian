@@ -4,13 +4,11 @@ using Zorvian.Application.DTOs.Employee;
 using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
 using Zorvian.Core.Interfaces;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
 
-/// <summary>
-/// Controlador de empleados. Administra perfiles, creación, actualización, consulta, importación masiva y generación de constancias laborales.
-/// </summary>
 [ApiController]
 [Authorize]
 [Route("zorvian/v1/employees")]
@@ -27,9 +25,6 @@ public sealed class EmployeesController : ControllerBase
         _tenant = tenant;
     }
 
-    /// <summary>
-    /// Obtiene el perfil del empleado autenticado actualmente.
-    /// </summary>
     [HttpGet("me")]
     public async Task<IActionResult> GetMyProfile()
     {
@@ -46,9 +41,6 @@ public sealed class EmployeesController : ControllerBase
         return Ok(employee);
     }
 
-    /// <summary>
-    /// Actualiza el perfil del empleado autenticado.
-    /// </summary>
     [HttpPut("me")]
     public async Task<IActionResult> UpdateMyProfile([FromBody] UpdateMyProfileRequest request)
     {
@@ -65,9 +57,6 @@ public sealed class EmployeesController : ControllerBase
         return Ok(employee);
     }
 
-    /// <summary>
-    /// Genera y descarga una constancia laboral en formato HTML para el empleado autenticado.
-    /// </summary>
     [HttpGet("me/certificate")]
     public async Task<IActionResult> GetEmploymentCertificate()
     {
@@ -109,25 +98,21 @@ public sealed class EmployeesController : ControllerBase
 </body>
 </html>";
 
-        Response.Headers.Append("Content-Disposition", "attachment; filename=\"constancia_laboral.html\"");
+        Response.Headers.Append("Content-Disposition", "attachment; filename=constancia_laboral.html");
         return Content(html, "text/html");
     }
 
-    /// <summary>
-    /// Crea un nuevo empleado en el sistema.
-    /// </summary>
     [Audit("Employee", "Create")]
     [HttpPost]
+    [RequirePermission(Permissions.EmployeeWrite)]
     public async Task<IActionResult> Create([FromBody] CreateEmployeeRequest request)
     {
         var employee = await _service.CreateAsync(request);
         return CreatedAtAction(nameof(GetById), new { id = employee.Id }, employee);
     }
 
-    /// <summary>
-    /// Obtiene un empleado por su identificador único.
-    /// </summary>
     [HttpGet("{id:guid}")]
+    [RequirePermission(Permissions.EmployeeRead)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var employee = await _service.GetByIdAsync(id);
@@ -136,21 +121,17 @@ public sealed class EmployeesController : ControllerBase
         return Ok(employee);
     }
 
-    /// <summary>
-    /// Obtiene una lista filtrada de empleados.
-    /// </summary>
     [HttpGet]
+    [RequirePermission(Permissions.EmployeeRead)]
     public async Task<IActionResult> GetList([FromQuery] EmployeeFilterRequest filter)
     {
         var result = await _service.GetFilteredAsync(filter);
         return Ok(result);
     }
 
-    /// <summary>
-    /// Actualiza los datos de un empleado existente.
-    /// </summary>
     [Audit("Employee", "Update")]
     [HttpPut("{id:guid}")]
+    [RequirePermission(Permissions.EmployeeWrite)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateEmployeeRequest request)
     {
         var employee = await _service.UpdateAsync(id, request);
@@ -159,10 +140,8 @@ public sealed class EmployeesController : ControllerBase
         return Ok(employee);
     }
 
-    /// <summary>
-    /// Importa empleados de forma masiva desde un archivo Excel (.xlsx).
-    /// </summary>
     [HttpPost("import")]
+    [RequirePermission(Permissions.EmployeeImport)]
     public async Task<IActionResult> Import(IFormFile file)
     {
         if (file is null || file.Length == 0)
@@ -176,11 +155,9 @@ public sealed class EmployeesController : ControllerBase
         return Ok(result);
     }
 
-    /// <summary>
-    /// Elimina lógicamente un empleado del sistema.
-    /// </summary>
     [Audit("Employee", "Delete")]
     [HttpDelete("{id:guid}")]
+    [RequirePermission(Permissions.EmployeeDelete)]
     public async Task<IActionResult> Delete(Guid id)
     {
         var deleted = await _service.DeleteAsync(id);

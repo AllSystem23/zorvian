@@ -1,3 +1,3 @@
 namespace Zorvian.Application.DTOs.Auth;
 
-public sealed record LoginPasswordRequest(string Email, string Password);
+public sealed record LoginPasswordRequest(string Email, string Password, string? DeviceFingerprint = null);

@@ -27,8 +27,6 @@ final class _AccountingEntriesPageState extends ConsumerState<AccountingEntriesP
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(accountingProvider);
-    final theme = Theme.of(context);
-
     final filtered = _searchQuery.isEmpty
         ? state.entries
         : state.entries.where((e) =>

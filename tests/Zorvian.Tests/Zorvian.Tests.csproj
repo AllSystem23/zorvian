@@ -22,9 +22,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Zorvian.Application\Zorvian.Application.csproj" />
     <ProjectReference Include="..\..\src\Zorvian.Core\Zorvian.Core.csproj" />
     <ProjectReference Include="..\..\src\Zorvian.Infrastructure\Zorvian.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Zorvian.Web\Zorvian.Web.csproj" />
   </ItemGroup>
 
 </Project>

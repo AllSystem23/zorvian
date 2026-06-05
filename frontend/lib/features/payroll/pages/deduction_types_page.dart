@@ -49,8 +49,8 @@ class _DeductionTypesPageState extends ConsumerState<DeductionTypesPage> {
               const SizedBox(height: 8),
               ValueListenableBuilder(
                 valueListenable: method,
-                builder: (_, v, __) => DropdownButtonFormField<String>(
-                  value: v,
+                builder: (_, v, _) => DropdownButtonFormField<String>(
+                  initialValue: v,
                   decoration: const InputDecoration(labelText: 'Método', isDense: true),
                   items: const [
                     DropdownMenuItem(value: 'percentage', child: Text('Porcentaje')),

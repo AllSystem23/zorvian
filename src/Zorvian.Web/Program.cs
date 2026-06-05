@@ -3,7 +3,7 @@ using System.Text;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using Hangfire;
-using Hangfire.MemoryStorage;
+using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 using Microsoft.EntityFrameworkCore;
@@ -47,8 +47,12 @@ builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
 
 // Database
-builder.Services.AddDbContext<ZorvianDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("ZorvianDb")));
+builder.Services.AddDbContext<ZorvianDbContext>((sp, options) =>
+{
+    var interceptor = sp.GetRequiredService<Zorvian.Infrastructure.Data.AuditInterceptor>();
+    options.UseNpgsql(builder.Configuration.GetConnectionString("ZorvianDb"))
+           .AddInterceptors(interceptor);
+});
 
 // AutoMapper
 builder.Services.AddAutoMapper(cfg =>
@@ -57,7 +61,10 @@ builder.Services.AddAutoMapper(cfg =>
 }, typeof(MappingProfile).Assembly);
 
 // DI - Infrastructure
-builder.Services.AddScoped<ITenantContext, TenantContext>();
+builder.Services.AddScoped<TenantContext>();
+builder.Services.AddScoped<ITenantContext>(sp => sp.GetRequiredService<TenantContext>());
+builder.Services.AddScoped<ITenantContextWriter>(sp => sp.GetRequiredService<TenantContext>());
+builder.Services.AddScoped<Zorvian.Infrastructure.Data.AuditInterceptor>();
 builder.Services.AddSingleton<IFirebaseAuthService, FirebaseAuthService>();
 builder.Services.AddSingleton<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
@@ -281,12 +288,17 @@ builder.Services.AddScoped<IFCMNotificationService, FCMNotificationService>();
 builder.Services.AddScoped<INotificationService, CombinedNotificationService>();
 
 // Hangfire
-builder.Services.AddHangfire(c => c.UseMemoryStorage());
+builder.Services.AddHangfire((sp, config) =>
+{
+    var connectionString = builder.Configuration.GetConnectionString("ZorvianDb");
+    config.UsePostgreSqlStorage(connectionString);
+});
 builder.Services.AddHangfireServer();
 builder.Services.AddScoped<CheckInReminderJob>();
 builder.Services.AddScoped<DocumentExpirationJob>();
 builder.Services.AddScoped<AttendancePhotoCleanupJob>();
 builder.Services.AddScoped<AbsenteeismTrainingJob>();
+builder.Services.AddScoped<AuditLogCleanupJob>();
 
 // CORS
 builder.Services.AddCors(options =>
@@ -360,6 +372,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseSecurityHeaders();
 app.UseGlobalExceptionMiddleware();
 app.UseRateLimitingMiddleware(maxRequests: 120, windowSeconds: 60);
 app.UseHttpsRedirection();
@@ -399,6 +412,11 @@ recurringJobManager.AddOrUpdate<AbsenteeismTrainingJob>(
     "absenteeism-model-training",
     j => j.RunAsync(),
     "0 2 * * 0"); // Every Sunday at 02:00
+
+recurringJobManager.AddOrUpdate<AuditLogCleanupJob>(
+    "audit-log-cleanup",
+    j => j.RunAsync(),
+    "0 3 1 * *"); // 1st day of every month at 03:00
 
 // Health check
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", version = "1.0.0" }));

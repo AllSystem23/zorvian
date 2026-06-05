@@ -1,10 +1,10 @@
-import 'dart:html' as html;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/settings/providers/company_settings_provider.dart';
 import 'print_utils.dart';
 import 'thermal_template.dart';
+import 'platform/download_helper.dart';
 
 class PrintShareSheet extends ConsumerWidget {
   final String title;
@@ -68,7 +68,7 @@ class PrintShareSheet extends ConsumerWidget {
                     final company = companyAsync.asData!.value;
                     final settings = settingsAsync.asData!.value;
                     final pdf = await buildPdf(company, settings);
-                    downloadPdf(pdf, '$filename.pdf');
+                    downloadPdf(pdf, filename);
                     if (context.mounted) Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('PDF descargado: $filename.pdf')));
                   },
@@ -82,10 +82,7 @@ class PrintShareSheet extends ConsumerWidget {
                     final company = companyAsync.asData!.value;
                     final settings = settingsAsync.asData!.value;
                     final pdf = await buildPdf(company, settings);
-                    final blob = html.Blob([pdf], 'application/pdf');
-                    final url = html.Url.createObjectUrl(blob);
-                    html.window.open(url, '_blank');
-                    html.Url.revokeObjectUrl(url);
+                    downloadBytes(pdf, '$filename.pdf');
                     if (context.mounted) Navigator.pop(context);
                   },
                 ),
@@ -134,7 +131,7 @@ class PrintShareSheet extends ConsumerWidget {
                     subtitle: 'Datos en formato de hoja de cálculo',
                     onTap: () async {
                       final bytes = await buildCsv!();
-                      downloadCsv(bytes, '$filename.csv');
+                      downloadCsv(bytes, filename);
                       if (context.mounted) Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('CSV descargado: $filename.csv')));
                     },

@@ -9,4 +9,6 @@ public sealed class RefreshToken : BaseEntity
     public bool IsRevoked { get; set; }
     public DateTime? RevokedAt { get; set; }
     public string? ReplacedByToken { get; set; }
+    public string? DeviceFingerprint { get; set; }
+    public string? IpAddress { get; set; }
 }

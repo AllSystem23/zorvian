@@ -67,6 +67,10 @@ import '../features/purchases/pages/purchase_list_page.dart';
 import '../features/purchases/pages/purchase_form_page.dart';
 import '../features/purchases/pages/purchase_detail_page.dart';
 import '../features/purchases/pages/inventory_adjustment_page.dart';
+import '../features/bi/pages/executive_dashboard_page.dart' as bi;
+import '../features/bi/pages/financial_dashboard_page.dart';
+import '../features/bi/pages/commercial_dashboard_page.dart';
+import '../features/bi/pages/operational_dashboard_page.dart';
 
 final _routeRoles = <String, List<String>>{
   '/dashboard': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
@@ -93,6 +97,10 @@ final _routeRoles = <String, List<String>>{
   '/cash-registers': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/warranties': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/branches': ['SuperAdmin', 'CompanyAdmin', 'Supervisor', 'Rrhh', 'Employee'],
+  '/bi/executive': ['SuperAdmin', 'CompanyAdmin'],
+  '/bi/financial': ['SuperAdmin', 'CompanyAdmin'],
+  '/bi/commercial': ['SuperAdmin', 'CompanyAdmin', 'Supervisor', 'Employee'],
+  '/bi/operational': ['SuperAdmin', 'CompanyAdmin', 'Rrhh'],
 };
 
 bool _hasAccess(String role, String location) {
@@ -399,6 +407,26 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/inventory-adjustment',
             name: 'inventory-adjustment',
             builder: (_, _) => const InventoryAdjustmentPage(),
+          ),
+          GoRoute(
+            path: '/bi/executive',
+            name: 'bi-executive',
+            builder: (_, _) => const bi.ExecutiveDashboardPage(),
+          ),
+          GoRoute(
+            path: '/bi/financial',
+            name: 'bi-financial',
+            builder: (_, _) => const FinancialDashboardPage(),
+          ),
+          GoRoute(
+            path: '/bi/commercial',
+            name: 'bi-commercial',
+            builder: (_, _) => const CommercialDashboardPage(),
+          ),
+          GoRoute(
+            path: '/bi/operational',
+            name: 'bi-operational',
+            builder: (_, _) => const OperationalDashboardPage(),
           ),
         ],
       ),

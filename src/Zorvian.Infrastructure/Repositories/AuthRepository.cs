@@ -57,10 +57,38 @@ public sealed class AuthRepository : IAuthRepository
     public async Task<RefreshToken?> GetRefreshTokenAsync(string token)
     {
         return await _db.RefreshTokens
+            .IgnoreQueryFilters()
             .Include(rt => rt.User)
                 .ThenInclude(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
             .FirstOrDefaultAsync(rt => rt.Token == token);
+    }
+
+    public async Task<List<RefreshToken>> GetActiveRefreshTokensAsync(Guid userId)
+    {
+        var now = DateTime.UtcNow;
+        return await _db.RefreshTokens
+            .IgnoreQueryFilters()
+            .Where(rt => rt.UserId == userId && !rt.IsRevoked && rt.ExpiresAt > now)
+            .ToListAsync();
+    }
+
+    public async Task RevokeAllUserTokensAsync(Guid userId, string? excludeToken = null)
+    {
+        var now = DateTime.UtcNow;
+        var query = _db.RefreshTokens
+            .IgnoreQueryFilters()
+            .Where(rt => rt.UserId == userId && !rt.IsRevoked && rt.ExpiresAt > now);
+
+        if (!string.IsNullOrEmpty(excludeToken))
+            query = query.Where(rt => rt.Token != excludeToken);
+
+        var tokens = await query.ToListAsync();
+        foreach (var token in tokens)
+        {
+            token.IsRevoked = true;
+            token.RevokedAt = now;
+        }
     }
 
     public async Task SaveChangesAsync()

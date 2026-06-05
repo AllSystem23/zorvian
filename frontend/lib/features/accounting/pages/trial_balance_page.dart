@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../auth/auth_provider.dart';
 import '../providers/accounting_provider.dart';
 
 final class TrialBalancePage extends ConsumerStatefulWidget {
@@ -11,19 +10,8 @@ final class TrialBalancePage extends ConsumerStatefulWidget {
 
 final class _TrialBalancePageState extends ConsumerState<TrialBalancePage> {
   TrialBalanceData? _data;
-  bool _loading = false;
+  final bool _loading = false;
   String? _error;
-
-  Future<void> _load(String periodId) async {
-    setState(() { _loading = true; _error = null; });
-    try {
-      final dio = ref.read(dioClientProvider);
-      final r = await dio.get('financial-reports/trial-balance/$periodId');
-      setState(() { _data = TrialBalanceData.fromJson(r.data); _loading = false; });
-    } catch (_) {
-      setState(() { _error = 'Error al cargar balanza'; _loading = false; });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,10 +43,10 @@ final class _TrialBalancePageState extends ConsumerState<TrialBalancePage> {
                           rows: _data!.items.map((i) => DataRow(cells: [
                             DataCell(Text(i.accountCode, style: const TextStyle(fontSize: 11))),
                             DataCell(Text(i.accountName, style: const TextStyle(fontSize: 11))),
-                            DataCell(Text('\$${i.openingBalance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11)), numeric: true),
-                            DataCell(Text('\$${i.debitMovements.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11)), numeric: true),
-                            DataCell(Text('\$${i.creditMovements.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11)), numeric: true),
-                            DataCell(Text('\$${i.endingBalance.toStringAsFixed(2)}', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: i.endingBalance >= 0 ? Colors.green : Colors.red)), numeric: true),
+                            DataCell(Text('\$${i.openingBalance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11))),
+                            DataCell(Text('\$${i.debitMovements.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11))),
+                            DataCell(Text('\$${i.creditMovements.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11))),
+                            DataCell(Text('\$${i.endingBalance.toStringAsFixed(2)}', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: i.endingBalance >= 0 ? Colors.green : Colors.red))),
                           ])).toList(),
                         ),
                       ],

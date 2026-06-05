@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Credit;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
@@ -19,6 +20,7 @@ public sealed class CreditsController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [RequirePermission(Permissions.CreditRead)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var credit = await _service.GetByIdAsync(id);
@@ -28,6 +30,7 @@ public sealed class CreditsController : ControllerBase
     }
 
     [HttpGet]
+    [RequirePermission(Permissions.CreditRead)]
     public async Task<IActionResult> GetList([FromQuery] CreditFilterRequest filter)
     {
         var result = await _service.GetFilteredAsync(filter);
@@ -36,6 +39,7 @@ public sealed class CreditsController : ControllerBase
 
     [Audit("CreditPayment", "Create")]
     [HttpPost("{id:guid}/payments")]
+    [RequirePermission(Permissions.CreditWrite)]
     public async Task<IActionResult> RegisterPayment(Guid id, [FromBody] CreateCreditPaymentRequest request)
     {
         try
@@ -50,6 +54,7 @@ public sealed class CreditsController : ControllerBase
     }
 
     [HttpGet("{id:guid}/payments")]
+    [RequirePermission(Permissions.CreditRead)]
     public async Task<IActionResult> GetPayments(Guid id, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
         var result = await _service.GetPaymentsAsync(id, page, pageSize);
@@ -57,6 +62,7 @@ public sealed class CreditsController : ControllerBase
     }
 
     [HttpPost("{id:guid}/late-fees/calculate")]
+    [RequirePermission(Permissions.CreditWrite)]
     public async Task<IActionResult> CalculateLateFees(Guid id, [FromBody] CalculateLateFeeRequest? request)
     {
         try
@@ -71,6 +77,7 @@ public sealed class CreditsController : ControllerBase
     }
 
     [HttpGet("{id:guid}/late-fees")]
+    [RequirePermission(Permissions.CreditRead)]
     public async Task<IActionResult> GetLateFees(Guid id)
     {
         var result = await _service.GetLateFeesAsync(id);
@@ -78,6 +85,7 @@ public sealed class CreditsController : ControllerBase
     }
 
     [HttpGet("{id:guid}/overdue-installments")]
+    [RequirePermission(Permissions.CreditRead)]
     public async Task<IActionResult> GetOverdueInstallments(Guid id)
     {
         var result = await _service.GetOverdueInstallmentsAsync(id);
@@ -86,6 +94,7 @@ public sealed class CreditsController : ControllerBase
 
     [Audit("CollectionAction", "Create")]
     [HttpPost("{id:guid}/collection-actions")]
+    [RequirePermission(Permissions.CreditWrite)]
     public async Task<IActionResult> AddCollectionAction(Guid id, [FromBody] CreateCollectionActionRequest request)
     {
         try
@@ -100,6 +109,7 @@ public sealed class CreditsController : ControllerBase
     }
 
     [HttpGet("{id:guid}/collection-actions")]
+    [RequirePermission(Permissions.CreditRead)]
     public async Task<IActionResult> GetCollectionActions(Guid id, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
         var result = await _service.GetCollectionActionsAsync(id, page, pageSize);

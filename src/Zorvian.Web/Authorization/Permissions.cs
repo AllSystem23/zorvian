@@ -1,0 +1,51 @@
+namespace Zorvian.Web.Authorization;
+
+public static class Permissions
+{
+    public const string UserRead = "user.read";
+    public const string UserWrite = "user.write";
+    public const string UserManage = "user.manage";
+
+    public const string EmployeeRead = "employee.read";
+    public const string EmployeeWrite = "employee.write";
+    public const string EmployeeDelete = "employee.delete";
+    public const string EmployeeImport = "employee.import";
+
+    public const string PayrollRead = "payroll.read";
+    public const string PayrollWrite = "payroll.write";
+    public const string PayrollProcess = "payroll.process";
+
+    public const string CreditRead = "credit.read";
+    public const string CreditWrite = "credit.write";
+
+    public const string SaleRead = "sale.read";
+    public const string SaleWrite = "sale.write";
+
+    public const string AccountingRead = "accounting.read";
+    public const string AccountingWrite = "accounting.write";
+
+    public const string AuditRead = "audit.read";
+
+    public const string ReportRead = "report.read";
+
+    public const string ApiKeyManage = "apikey.manage";
+
+    public const string CompanyManage = "company.manage";
+
+    public const string RoleManage = "role.manage";
+
+    public const string InventoryRead = "inventory.read";
+    public const string InventoryWrite = "inventory.write";
+
+    public const string CashRead = "cash.read";
+    public const string CashWrite = "cash.write";
+
+    public const string FixedAssetRead = "fixedasset.read";
+    public const string FixedAssetWrite = "fixedasset.write";
+
+    public const string WarrantyRead = "warranty.read";
+    public const string WarrantyWrite = "warranty.write";
+
+    public const string PurchaseRead = "purchase.read";
+    public const string PurchaseWrite = "purchase.write";
+}

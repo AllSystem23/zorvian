@@ -1361,139 +1361,13 @@ public sealed class ZorvianDbContext : DbContext
 
     public override int SaveChanges()
     {
-        ApplyAuditLog();
-        ApplySoftDelete();
-        ApplyAuditTimestamps();
         return base.SaveChanges();
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        ApplyAuditLog();
-        ApplySoftDelete();
-        ApplyAuditTimestamps();
         return await base.SaveChangesAsync(cancellationToken);
     }
 
-    private void ApplySoftDelete()
-    {
-        foreach (var entry in ChangeTracker.Entries<BaseEntity>())
-        {
-            if (entry.State == EntityState.Deleted)
-            {
-                entry.State = EntityState.Modified;
-                entry.Entity.IsDeleted = true;
-                entry.Entity.DeletedAt = DateTime.UtcNow;
-            }
-        }
-    }
 
-    private void ApplyAuditLog()
-    {
-        var entries = ChangeTracker.Entries<BaseEntity>()
-            .Where(e => e.Entity is not AuditLog
-                && e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
-            .ToList();
-
-        if (entries.Count == 0) return;
-
-        var userId = _tenantContext.CurrentEmployeeId;
-
-        foreach (var entry in entries)
-        {
-            var entity = entry.Entity;
-            var entityName = entity.GetType().Name;
-            var entityId = entity.Id.ToString();
-
-            if (entry.State == EntityState.Added)
-            {
-                AuditLogs.Add(new AuditLog
-                {
-                    EntityName = entityName,
-                    EntityId = entityId,
-                    Action = "Created",
-                    NewValues = SerializeValues(entry.Properties),
-                    PerformedBy = userId,
-                });
-            }
-            else if (entry.State == EntityState.Modified && entry.Properties.Any(p => p.IsModified))
-            {
-                var changedProps = entry.Properties
-                    .Where(p => p.IsModified && !IsAuditIgnored(p.Metadata.Name))
-                    .ToList();
-
-                if (changedProps.Count == 0) continue;
-
-                AuditLogs.Add(new AuditLog
-                {
-                    EntityName = entityName,
-                    EntityId = entityId,
-                    Action = "Updated",
-                    OldValues = SerializeProperties(changedProps, p => p.OriginalValue),
-                    NewValues = SerializeProperties(changedProps, p => p.CurrentValue),
-                    ChangedProperties = string.Join(", ", changedProps.Select(p => p.Metadata.Name)),
-                    PerformedBy = userId,
-                });
-            }
-            else if (entry.State == EntityState.Deleted)
-            {
-                AuditLogs.Add(new AuditLog
-                {
-                    EntityName = entityName,
-                    EntityId = entityId,
-                    Action = "Deleted",
-                    OldValues = SerializeValues(entry.Properties),
-                    PerformedBy = userId,
-                });
-            }
-        }
-    }
-
-    private static string SerializeValues(IEnumerable<PropertyEntry> properties)
-    {
-        var data = new Dictionary<string, object?>();
-        foreach (var prop in properties)
-        {
-            if (!IsAuditIgnored(prop.Metadata.Name))
-                data[prop.Metadata.Name] = prop.CurrentValue;
-        }
-        return JsonSerializer.Serialize(data);
-    }
-
-    private static string SerializeProperties(List<PropertyEntry> properties, Func<PropertyEntry, object?> valueSelector)
-    {
-        var data = new Dictionary<string, object?>();
-        foreach (var prop in properties)
-            data[prop.Metadata.Name] = valueSelector(prop);
-        return JsonSerializer.Serialize(data);
-    }
-
-    private static bool IsAuditIgnored(string propertyName) => propertyName switch
-    {
-        nameof(BaseEntity.TenantId) => true,
-        nameof(BaseEntity.CreatedAt) => true,
-        nameof(BaseEntity.CreatedBy) => true,
-        nameof(BaseEntity.UpdatedAt) => true,
-        nameof(BaseEntity.UpdatedBy) => true,
-        nameof(BaseEntity.IsDeleted) => true,
-        nameof(BaseEntity.DeletedAt) => true,
-        _ => false,
-    };
-
-    private void ApplyAuditTimestamps()
-    {
-        foreach (var entry in ChangeTracker.Entries<BaseEntity>())
-        {
-            if (entry.State == EntityState.Added)
-            {
-                if (string.IsNullOrEmpty(entry.Entity.TenantId))
-                    entry.Entity.TenantId = _tenantContext.TenantId;
-                entry.Entity.CreatedAt = DateTime.UtcNow;
-            }
-            if (entry.State is EntityState.Modified or EntityState.Added)
-            {
-                entry.Entity.UpdatedAt = DateTime.UtcNow;
-            }
-        }
-    }
 }

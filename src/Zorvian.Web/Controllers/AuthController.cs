@@ -2,12 +2,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Auth;
 using Zorvian.Application.Services;
+using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
 
-/// <summary>
-/// Controlador de autenticación. Maneja inicio de sesión, renovación de tokens, cierre de sesión y verificación de salud del servicio.
-/// </summary>
 [ApiController]
 [Route("zorvian/v1/auth")]
 public sealed class AuthController : ControllerBase
@@ -19,11 +17,9 @@ public sealed class AuthController : ControllerBase
         _authService = authService;
     }
 
-    /// <summary>
-    /// Inicia sesión con un token de Firebase y devuelve tokens JWT de acceso y renovación.
-    /// </summary>
     [HttpPost("login")]
     [AllowAnonymous]
+    [Audit("Auth", "Login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
         var result = await _authService.LoginAsync(request);
@@ -33,11 +29,9 @@ public sealed class AuthController : ControllerBase
         return Ok(new LoginResponse(result));
     }
 
-    /// <summary>
-    /// Inicia sesión con correo y contraseña (sin Firebase JS SDK). Válido para clientes web.
-    /// </summary>
     [HttpPost("login-password")]
     [AllowAnonymous]
+    [Audit("Auth", "LoginPassword")]
     public async Task<IActionResult> LoginWithPassword([FromBody] LoginPasswordRequest request)
     {
         var result = await _authService.LoginWithPasswordAsync(request);
@@ -47,9 +41,6 @@ public sealed class AuthController : ControllerBase
         return Ok(new LoginResponse(result));
     }
 
-    /// <summary>
-    /// Renueva el token de acceso usando un token de renovación válido.
-    /// </summary>
     [HttpPost("refresh")]
     [AllowAnonymous]
     public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest request)
@@ -61,9 +52,6 @@ public sealed class AuthController : ControllerBase
         return Ok(result);
     }
 
-    /// <summary>
-    /// Cierra la sesión invalidando el token de renovación proporcionado.
-    /// </summary>
     [HttpPost("logout")]
     [Authorize]
     public async Task<IActionResult> Logout([FromBody] RefreshTokenRequest request)
@@ -75,9 +63,18 @@ public sealed class AuthController : ControllerBase
         return NoContent();
     }
 
-    /// <summary>
-    /// Obtiene la información del usuario autenticado actualmente.
-    /// </summary>
+    [HttpPost("revoke-all")]
+    [Authorize]
+    public async Task<IActionResult> RevokeAllSessions()
+    {
+        var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+            return Unauthorized();
+
+        await _authService.RevokeAllSessionsAsync(userId);
+        return NoContent();
+    }
+
     [HttpGet("me")]
     [Authorize]
     [ProducesResponseType(typeof(UserInfo), StatusCodes.Status200OK)]
@@ -94,9 +91,6 @@ public sealed class AuthController : ControllerBase
         return Ok(result);
     }
 
-    /// <summary>
-    /// Verifica que el servicio de autenticación esté operativo.
-    /// </summary>
     [HttpGet("health")]
     [AllowAnonymous]
     public IActionResult Health()

@@ -77,6 +77,13 @@ final class AppShell extends ConsumerWidget {
         _NavItem('Permisos', Icons.description, '/permissions'),
       ]),
       if (isAdmin)
+        _ModuleInfo('Zorvian BI', Icons.insights, [
+          _NavItem('Panel Ejecutivo', Icons.dashboard, '/bi/executive'),
+          _NavItem('Panel Financiero', Icons.account_balance, '/bi/financial'),
+          _NavItem('Panel Comercial', Icons.trending_up, '/bi/commercial'),
+          _NavItem('Panel Operativo', Icons.precision_manufacturing, '/bi/operational'),
+        ]),
+      if (isAdmin)
         _ModuleInfo('Administración', Icons.admin_panel_settings, [
           _NavItem('Usuarios', Icons.person_add, '/admin/users'),
           _NavItem('Reportes', Icons.assessment, '/reports'),

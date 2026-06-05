@@ -1,19 +1,10 @@
 import 'dart:typed_data';
-import 'dart:html' as html;
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'platform/download_helper.dart';
 
 void downloadPdf(Uint8List bytes, String filename) {
-  final blob = html.Blob([bytes], 'application/pdf');
-  final url = html.Url.createObjectUrl(blob);
-  final anchor = html.document.createElement('a') as html.AnchorElement
-    ..href = url
-    ..download = filename
-    ..style.display = 'none';
-  html.document.body!.append(anchor);
-  anchor.click();
-  anchor.remove();
-  html.Url.revokeObjectUrl(url);
+  downloadBytes(bytes, '$filename.pdf');
 }
 
 Future<void> shareWhatsApp(String text) async {
@@ -116,16 +107,7 @@ Uint8List saleCsvBytes({
 }
 
 void downloadCsv(Uint8List bytes, String filename) {
-  final blob = html.Blob([bytes], 'text/csv');
-  final url = html.Url.createObjectUrl(blob);
-  final anchor = html.document.createElement('a') as html.AnchorElement
-    ..href = url
-    ..download = filename
-    ..style.display = 'none';
-  html.document.body!.append(anchor);
-  anchor.click();
-  anchor.remove();
-  html.Url.revokeObjectUrl(url);
+  downloadBytes(bytes, '$filename.csv');
 }
 
 void copyToClipboard(String text) {

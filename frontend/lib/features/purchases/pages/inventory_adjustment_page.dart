@@ -184,7 +184,7 @@ final class _InventoryAdjustmentPageState extends ConsumerState<InventoryAdjustm
                   const Text('Tipo de Movimiento', style: TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    value: _type,
+                    initialValue: _type,
                     decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
                     items: const [
                       DropdownMenuItem(value: 'entry', child: Text('Entrada')),

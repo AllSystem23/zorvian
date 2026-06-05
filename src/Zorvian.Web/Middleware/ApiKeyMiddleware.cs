@@ -28,11 +28,9 @@ public sealed class ApiKeyMiddleware
 
         if (tenantId != null)
         {
-            // Inject tenant_id into the context for multi-tenant isolation
-            var tenantContext = context.RequestServices.GetRequiredService<ITenantContext>();
-            tenantContext.SetTenantId(tenantId);
-            
-            // Mark request as authenticated via API Key
+            var tenantWriter = context.RequestServices.GetRequiredService<ITenantContextWriter>();
+            tenantWriter.SetTenantId(tenantId);
+
             context.Items["IsApiKeyAuth"] = true;
         }
         else

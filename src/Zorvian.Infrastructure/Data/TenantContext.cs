@@ -2,7 +2,7 @@ using Zorvian.Core.Interfaces;
 
 namespace Zorvian.Infrastructure.Data;
 
-public sealed class TenantContext : ITenantContext
+public sealed class TenantContext : ITenantContext, ITenantContextWriter
 {
     public string TenantId { get; private set; } = string.Empty;
     public Guid? CurrentUserId { get; private set; }
@@ -10,6 +10,8 @@ public sealed class TenantContext : ITenantContext
 
     public void SetTenantId(string tenantId)
     {
+        if (string.IsNullOrWhiteSpace(tenantId))
+            throw new ArgumentException("TenantId cannot be null or whitespace", nameof(tenantId));
         TenantId = tenantId;
     }
 

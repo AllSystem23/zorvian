@@ -148,7 +148,7 @@ final class _PurchaseFormPageState extends ConsumerState<PurchaseFormPage> {
                   const Text('Proveedor', style: TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
-                    value: _selectedSupplier,
+                    initialValue: _selectedSupplier,
                     decoration: const InputDecoration(
                       hintText: 'Seleccionar proveedor...',
                       border: OutlineInputBorder(),

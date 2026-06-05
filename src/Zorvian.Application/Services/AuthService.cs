@@ -41,7 +41,7 @@ public sealed class AuthService
             if (user is null) return null;
         }
 
-        return await GenerateAuthResponse(user);
+        return await GenerateAuthResponse(user, request.DeviceFingerprint);
     }
 
     public async Task<AuthResponse?> LoginWithPasswordAsync(LoginPasswordRequest request)
@@ -78,7 +78,7 @@ public sealed class AuthService
             if (!PasswordHelper.Verify(request.Password, user.PasswordHash)) return null;
         }
 
-        return await GenerateAuthResponse(user);
+        return await GenerateAuthResponse(user, request.DeviceFingerprint);
     }
 
     public async Task<UserInfo?> GetMeAsync(Guid userId)
@@ -99,7 +99,7 @@ public sealed class AuthService
         );
     }
 
-    private async Task<AuthResponse> GenerateAuthResponse(User user)
+    private async Task<AuthResponse> GenerateAuthResponse(User user, string? deviceFingerprint = null)
     {
         user.LastLoginAt = DateTime.UtcNow;
         await _authRepo.SaveChangesAsync();
@@ -115,6 +115,7 @@ public sealed class AuthService
             UserId = user.Id,
             Token = refreshToken,
             ExpiresAt = DateTime.UtcNow.AddDays(7),
+            DeviceFingerprint = deviceFingerprint,
         };
         await _authRepo.AddRefreshTokenAsync(refreshTokenEntity);
         await _authRepo.SaveChangesAsync();
@@ -138,8 +139,16 @@ public sealed class AuthService
     {
         var storedToken = await _authRepo.GetRefreshTokenAsync(request.RefreshToken);
 
-        if (storedToken is null || storedToken.IsRevoked || storedToken.ExpiresAt < DateTime.UtcNow)
+        if (storedToken is null || storedToken.ExpiresAt < DateTime.UtcNow)
             return null;
+
+        // Token reuse detection: if already revoked, revoke ALL tokens for this user
+        if (storedToken.IsRevoked)
+        {
+            await _authRepo.RevokeAllUserTokensAsync(storedToken.UserId);
+            await _authRepo.SaveChangesAsync();
+            return null;
+        }
 
         storedToken.IsRevoked = true;
         storedToken.RevokedAt = DateTime.UtcNow;
@@ -158,6 +167,7 @@ public sealed class AuthService
             UserId = user.Id,
             Token = newRefreshToken,
             ExpiresAt = DateTime.UtcNow.AddDays(7),
+            DeviceFingerprint = request.DeviceFingerprint,
         };
         await _authRepo.AddRefreshTokenAsync(newRefreshTokenEntity);
         await _authRepo.SaveChangesAsync();
@@ -184,6 +194,13 @@ public sealed class AuthService
 
         storedToken.IsRevoked = true;
         storedToken.RevokedAt = DateTime.UtcNow;
+        await _authRepo.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> RevokeAllSessionsAsync(Guid userId)
+    {
+        await _authRepo.RevokeAllUserTokensAsync(userId);
         await _authRepo.SaveChangesAsync();
         return true;
     }

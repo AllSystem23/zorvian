@@ -75,9 +75,11 @@ class _QuoteFormPageState extends ConsumerState<QuoteFormPage> {
       }
       setState(() {});
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al cargar cotización'), backgroundColor: Colors.red),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al cargar cotización'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -160,7 +162,7 @@ class _QuoteFormPageState extends ConsumerState<QuoteFormPage> {
         children: [
           DropdownButtonFormField<ClientItem>(
             decoration: const InputDecoration(labelText: 'Cliente'),
-            value: _selectedClient,
+            initialValue: _selectedClient,
             items: clientsAsync.items.map((c) => DropdownMenuItem(value: c, child: Text(c.fullName))).toList(),
             onChanged: (v) => setState(() => _selectedClient = v),
           ),
@@ -189,7 +191,7 @@ class _QuoteFormPageState extends ConsumerState<QuoteFormPage> {
             ],
           ),
           const SizedBox(height: 8),
-          if (productsAsync.items.where((p) => _searchCtrl.text.isEmpty || p.name.toLowerCase().contains(_searchCtrl.text.toLowerCase())).take(5).toList() case final found?)
+          if (productsAsync.items.where((p) => _searchCtrl.text.isEmpty || p.name.toLowerCase().contains(_searchCtrl.text.toLowerCase())).take(5).toList() case final found)
             ...found.map((p) => Card(
               child: ListTile(
                 dense: true,

@@ -56,9 +56,11 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
       await dio.delete('quotes/${widget.quoteId}');
       if (mounted) context.pop(true);
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al eliminar'), backgroundColor: Colors.red),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al eliminar'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 

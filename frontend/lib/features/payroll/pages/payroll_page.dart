@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
-import '../../../core/network/dio_client.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../providers/payroll_provider.dart';
 

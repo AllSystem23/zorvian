@@ -1,4 +1,4 @@
-import 'dart:html' as html;
+import 'platform/download_helper.dart';
 
 String saleThermalHtml({
   required Map<String, dynamic> company,
@@ -174,10 +174,5 @@ String _wrapHtml(String body) => '''
 ''';
 
 void printThermal(String htmlContent) {
-  final win = html.window.open('', '_blank') as dynamic;
-  if (win == null) return;
-  win.document.write(htmlContent);
-  win.document.close();
-  win.focus();
-  win.print();
+  printHtml(htmlContent);
 }

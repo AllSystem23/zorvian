@@ -1,12 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.Interfaces;
+using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers;
 
-/// <summary>
-/// Controlador de auditoría. Permite consultar los registros de actividad del sistema con filtros.
-/// </summary>
 [ApiController]
 [Authorize]
 [Route("zorvian/v1/audit")]
@@ -19,10 +17,8 @@ public sealed class AuditLogsController : ControllerBase
         _repo = repo;
     }
 
-    /// <summary>
-    /// Obtiene los registros de auditoría filtrados por entidad, acción y rango de fechas, con paginación.
-    /// </summary>
     [HttpGet("logs")]
+    [RequirePermission(Permissions.AuditRead)]
     public async Task<IActionResult> GetLogs(
         [FromQuery] string? entityName,
         [FromQuery] string? action,

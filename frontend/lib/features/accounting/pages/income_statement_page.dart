@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../auth/auth_provider.dart';
 import '../providers/accounting_provider.dart';
 
 final class IncomeStatementPage extends ConsumerStatefulWidget {
@@ -11,18 +10,7 @@ final class IncomeStatementPage extends ConsumerStatefulWidget {
 
 final class _IncomeStatementPageState extends ConsumerState<IncomeStatementPage> {
   IncomeStatementData? _data;
-  bool _loading = false;
-
-  Future<void> _load(String periodId) async {
-    setState(() => _loading = true);
-    try {
-      final dio = ref.read(dioClientProvider);
-      final r = await dio.get('financial-reports/income-statement/$periodId');
-      setState(() { _data = IncomeStatementData.fromJson(r.data); _loading = false; });
-    } catch (_) {
-      setState(() => _loading = false);
-    }
-  }
+  final bool _loading = false;
 
   @override
   Widget build(BuildContext context) {

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../core/error/error_notifier.dart';
-import '../../../core/network/dio_client.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../providers/payroll_provider.dart';
 
@@ -51,8 +50,8 @@ class _SalariesPageState extends ConsumerState<SalariesPage> {
             children: [
               ValueListenableBuilder(
                 valueListenable: selectedEmployee,
-                builder: (_, v, __) => DropdownButtonFormField<String>(
-                  value: v,
+                builder: (_, v, _) => DropdownButtonFormField<String>(
+                  initialValue: v,
                   decoration: const InputDecoration(labelText: 'Empleado', isDense: true),
                   items: _employees.map<DropdownMenuItem<String>>((e) => DropdownMenuItem(value: e['id'] as String?, child: Text(e['fullName'] ?? e['firstName'] ?? ''))).toList(),
                   onChanged: (val) => selectedEmployee.value = val,
@@ -63,8 +62,8 @@ class _SalariesPageState extends ConsumerState<SalariesPage> {
               const SizedBox(height: 8),
               ValueListenableBuilder(
                 valueListenable: type,
-                builder: (_, v, __) => DropdownButtonFormField<String>(
-                  value: v,
+                builder: (_, v, _) => DropdownButtonFormField<String>(
+                  initialValue: v,
                   decoration: const InputDecoration(labelText: 'Tipo', isDense: true),
                   items: const [
                     DropdownMenuItem(value: 'monthly', child: Text('Mensual')),
@@ -125,8 +124,6 @@ class _SalariesPageState extends ConsumerState<SalariesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Salarios'),
