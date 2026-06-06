@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Dashboard;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers;
 
@@ -25,6 +26,7 @@ public sealed class DashboardController : ControllerBase
     /// Obtiene un resumen completo de todos los indicadores y eventos del dashboard.
     /// </summary>
     [HttpGet("summary")]
+    [RequirePermission(Permissions.ReportRead)]
     [ProducesResponseType(typeof(DashboardSummaryResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetSummary()
     {
@@ -36,6 +38,7 @@ public sealed class DashboardController : ControllerBase
     /// Obtiene los indicadores clave del dashboard (empleados, vacaciones, permisos, asistencia).
     /// </summary>
     [HttpGet("kpis")]
+    [RequirePermission(Permissions.ReportRead)]
     [ProducesResponseType(typeof(DashboardKpisResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetKpis()
     {
@@ -47,6 +50,7 @@ public sealed class DashboardController : ControllerBase
     /// Obtiene los eventos del calendario de vacaciones.
     /// </summary>
     [HttpGet("vacation-calendar")]
+    [RequirePermission(Permissions.EmployeeRead)]
     [ProducesResponseType(typeof(List<VacationCalendarEvent>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetVacationCalendar()
     {
@@ -58,6 +62,7 @@ public sealed class DashboardController : ControllerBase
     /// Obtiene las solicitudes recientes de vacaciones y permisos.
     /// </summary>
     [HttpGet("recent-requests")]
+    [RequirePermission(Permissions.EmployeeRead)]
     [ProducesResponseType(typeof(List<RecentRequestItem>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetRecentRequests([FromQuery] int count = 10)
     {
@@ -69,6 +74,7 @@ public sealed class DashboardController : ControllerBase
     /// Obtiene el dashboard ejecutivo con KPIs de todos los módulos.
     /// </summary>
     [HttpGet("executive")]
+    [RequirePermission(Permissions.ReportRead)]
     [ProducesResponseType(typeof(ExecutiveDashboardResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetExecutiveDashboard()
     {
@@ -80,6 +86,7 @@ public sealed class DashboardController : ControllerBase
     /// Obtiene el dashboard de costos de nómina.
     /// </summary>
     [HttpGet("payroll")]
+    [RequirePermission(Permissions.PayrollRead)]
     [ProducesResponseType(typeof(PayrollDashboardResponse), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPayrollDashboard()
     {

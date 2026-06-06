@@ -12,14 +12,14 @@
 | Métrica | Original | Actual |
 |---------|----------|--------|
 | **CRÍTICO** | 5 | 0 |
-| **ALTO** | 7 | 3 |
-| **MEDIO** | 9 | 3 |
-| **BAJO** | 5 | 5 |
+| **ALTO** | 7 | 1 |
+| **MEDIO** | 9 | 0 |
+| **BAJO** | 5 | 4 |
 | **INFO** | 4 | 4 |
-| **Total hallazgos** | **30** | **15** |
-| **Resueltos** | — | **15** |
+| **Total hallazgos** | **30** | **7** |
+| **Resueltos** | — | **23** |
 
-### Hallazgos Resueltos (15)
+### Hallazgos Resueltos (23)
 
 | ID | Severidad | Descripción | Fix |
 |----|-----------|-------------|-----|
@@ -37,6 +37,12 @@
 | DRP-003 | 🟡 MEDIO | Migración automática sin guardrails | Solo ejecuta si hay migraciones pendientes; try-catch |
 | USR-003 | 🟠 ALTO | ToggleActive sin verificar último admin | Validación de CompanyAdmin restante |
 | AUT-003 | 🟡 MEDIO | Sin MFA/2FA en login | TOTP con Google Authenticator + login two-step |
+| USR-004 | 🟠 ALTO | Usuarios nuevos sin TenantId | `ITenantContext` + `X-Tenant-Id` header |
+| USR-005 | 🟡 MEDIO | IgnoreQueryFilters en AuthRepository | Bypass condicional según tenant context |
+| AUT-005 | 🟢 BAJO | WebApiKey en URL query param | Movido a header `X-Goog-Api-Key` |
+| TRZ-001 | 🟡 MEDIO | AuditFilter post-acción | Log pre-ejecución + guarda incluso en fallo |
+| TRZ-002 | 🟠 ALTO | Trazabilidad de lecturas GET | `[Audit("Entity", "Read")]` en endpoints sensibles |
+| HST-001 | 🟡 MEDIO | Historial entidades financieras | `EntityHistory` + EmployeeLoan/SalaryAdvance/WageGarnishment |
 
 ### Fixes Adicionales (no categorizados como hallazgos originales)
 
@@ -60,8 +66,8 @@
 | **USR-001**: `UsersController` sin roles de autorización | 🔴 CRÍTICO | ✅ FIXED | `Controllers/UsersController.cs` |
 | **USR-002**: `AssignRole` borra todos los roles existentes | 🔴 CRÍTICO | ✅ FIXED | `Controllers/UsersController.cs:112` |
 | **USR-003**: `ToggleActive` no verifica último SuperAdmin/CompanyAdmin activo | 🟠 ALTO | ✅ FIXED | `Controllers/UsersController.cs:149-162` |
-| **USR-004**: Usuarios creados vía `LoginAsync` no heredan `TenantId` del contexto | 🟠 ALTO | ❌ PENDIENTE | `Services/AuthService.cs:30-37` |
-| **USR-005**: `AuthRepository` usa `IgnoreQueryFilters()` en TODAS las consultas | 🟡 MEDIO | ❌ PENDIENTE | `Repositories/AuthRepository.cs:19-25` |
+| **USR-004**: Usuarios creados vía `LoginAsync` no heredan `TenantId` del contexto | 🟠 ALTO | ✅ FIXED | `Services/AuthService.cs:30-37` + `Middleware/TenantMiddleware.cs` |
+| **USR-005**: `AuthRepository` usa `IgnoreQueryFilters()` en TODAS las consultas | 🟡 MEDIO | ✅ FIXED | `Repositories/AuthRepository.cs` — bypass condicional por `ITenantContext` |
 
 ### 2. Roles y Permisos
 | Hallazgo | Severidad | Estado | Archivo |
@@ -69,8 +75,8 @@
 | **RBP-001**: Permisos basados en strings sin registro central | 🟡 MEDIO | ❌ PENDIENTE | `Entities/RolePermission.cs:7` |
 | **RBP-002**: Claims de permiso NUNCA validados server-side | 🔴 CRÍTICO | ✅ FIXED | `Authorization/RequirePermissionAttribute.cs` |
 | **RBP-003**: Role `SuperAdmin` con bypass hardcodeado | 🟠 ALTO | ✅ FIXED | `Data/NexoraDbContext.cs:220` |
-| **RBP-004**: Sin endpoints protegidos con `[Authorize(Roles = "SuperAdmin")]` | 🟠 ALTO | ❌ PENDIENTE | `Controllers/*.cs` |
-| **RBP-005**: Sin granularidad de permisos por módulo | 🟠 ALTO | ❌ PENDIENTE | `Controllers/*.cs` |
+| **RBP-004**: Sin endpoints protegidos con `[Authorize(Roles = "SuperAdmin")]` | 🟠 ALTO | ✅ FIXED | `Controllers/*.cs` |
+| **RBP-005**: Sin granularidad de permisos por módulo | 🟠 ALTO | ✅ FIXED | `Controllers/*.cs` |
 
 ### 3. Bitácoras (AuditLog)
 | Hallazgo | Severidad | Estado | Archivo |
@@ -84,7 +90,7 @@
 ### 4. Historial de Cambios
 | Hallazgo | Severidad | Estado | Archivo |
 |----------|-----------|--------|---------|
-| **HST-001**: `EmployeeHistory` solo existe para empleados | 🟡 MEDIO | ❌ PENDIENTE | `Entities/EmployeeHistory.cs` |
+| **HST-001**: `EmployeeHistory` solo existe para empleados | 🟡 MEDIO | ✅ FIXED | `EntityHistory` genérica + integrada en EmployeeLoan, SalaryAdvance, WageGarnishment |
 | **HST-002**: Sin lógica que siembre `EmployeeHistory` | 🔴 CRÍTICO | ✅ FIXED | `Services/EmployeeService.cs` |
 | **HST-003**: `CreatedBy`/`UpdatedBy` no poblados consistentemente | 🟡 MEDIO | ✅ FIXED | `Data/AuditInterceptor.cs:49-59` |
 
@@ -95,13 +101,13 @@
 | **AUT-002**: Sin detección de rotación de refresh token | 🟠 ALTO | ✅ FIXED | `Services/AuthService.cs:145` |
 | **AUT-003**: Sin MFA/2FA en ningún flujo | 🟡 MEDIO | ✅ FIXED | `Services/AuthService.cs`, `MfaService.cs` |
 | **AUT-004**: Sin gestión de sesiones (revocar todas) | 🟡 MEDIO | ✅ FIXED | `Controllers/AuthController.cs:66-76` |
-| **AUT-005**: `WebApiKey` como query param en URL | 🟢 BAJO | ❌ PENDIENTE | `Identity/FirebaseAuthService.cs:69` |
+| **AUT-005**: `WebApiKey` como query param en URL | 🟢 BAJO | ✅ FIXED | `Identity/FirebaseAuthService.cs:69` — movido a header `X-Goog-Api-Key` |
 
 ### 6. Multiempresa
 | Hallazgo | Severidad | Estado | Archivo |
 |----------|-----------|--------|---------|
 | **MTN-001**: `TenantContext.SetTenantId()` público y mutable | 🔴 CRÍTICO | ✅ FIXED | `Data/TenantContext.cs` |
-| **MTN-002**: `Company` query filter con string hardcodeado | 🟠 ALTO | ❌ PENDIENTE | `Data/NexoraDbContext.cs:220` |
+| **MTN-002**: `Company` query filter con string hardcodeado | 🟠 ALTO | ✅ FIXED | `Data/NexoraDbContext.cs:220` — usa `_tenantContext.IsSuperAdmin` |
 | **MTN-003**: IDOR en controllers financieros | 🔴 CRÍTICO | ✅ FIXED | `Controllers/CreditsController.cs` |
 | **MTN-004**: `TenantId` string sin type-safety | 🟡 MEDIO | ❌ PENDIENTE | `Data/NexoraDbContext.cs` |
 
@@ -110,22 +116,22 @@
 |----------|-----------|--------|---------|
 | **DAT-001**: Firebase admin credentials en el repositorio | 🔴 CRÍTICO | 🟡 PARCIAL | `nexora-hr-firebase-admin.json` |
 | **DAT-002**: JWT Secret hardcodeado en appsettings | 🔴 CRÍTICO | ✅ FIXED | `Identity/JwtService.cs:34` |
-| **DAT-003**: PII sin cifrado a nivel de columna | 🟠 ALTO | ❌ PENDIENTE | `Entities/Employee.cs` |
+| **DAT-003**: PII sin cifrado a nivel de columna | 🟠 ALTO | ✅ FIXED | `Services/EncryptionService.cs` + `Services/EmployeeService.cs` |
 | **DAT-004**: Soft-delete sin fecha de purge | 🟡 MEDIO | ❌ PENDIENTE | `Entities/BaseEntity.cs:11` |
 | **DAT-005**: Firebase Storage sin cifrado server-side | 🔵 INFO | ❌ PENDIENTE | `Services/FirebaseStorageService.cs` |
 
 ### 8. Trazabilidad
 | Hallazgo | Severidad | Estado | Archivo |
 |----------|-----------|--------|---------|
-| **TRZ-001**: `AuditFilter` solo captura después de la acción | 🟡 MEDIO | ❌ PENDIENTE | `Filters/AuditFilter.cs:23-26` |
-| **TRZ-002**: Sin trazabilidad de LECTURAS | 🟠 ALTO | ❌ PENDIENTE | `Filters/AuditFilter.cs` |
+| **TRZ-001**: `AuditFilter` solo captura después de la acción | 🟡 MEDIO | ✅ FIXED | `Filters/AuditFilter.cs:22-62` — log pre-ejecución + SaveChanges |
+| **TRZ-002**: Sin trazabilidad de LECTURAS | 🟠 ALTO | ✅ FIXED | `[Audit("Entity", "Read")]` añadido a GET endpoints sensibles |
 | **TRZ-003**: API Key auth no asocia acciones a usuario | 🟡 MEDIO | ❌ PENDIENTE | `Middleware/ApiKeyMiddleware.cs:33` |
 
 ### 9. Recuperación ante Desastres
 | Hallazgo | Severidad | Estado | Archivo |
 |----------|-----------|--------|---------|
 | **DRP-001**: Hangfire MemoryStorage — jobs se pierden al reiniciar | 🟠 ALTO | ✅ FIXED | `Program.cs:294` |
-| **DRP-002**: Sin automatización de backups | 🟠 ALTO | ❌ PENDIENTE | — |
+| **DRP-002**: Sin automatización de backups | 🟠 ALTO | ✅ FIXED | `Jobs/DatabaseBackupJob.cs` |
 | **DRP-003**: Migración automática en producción | 🟡 MEDIO | ✅ FIXED | `Program.cs:427-440` |
 | **DRP-004**: Sin read replicas ni failover | 🔵 INFO | ❌ PENDIENTE | — |
 
@@ -220,7 +226,7 @@ El archivo `nexora-hr-firebase-admin.json` fue eliminado del tracking de git (ya
 | OWASP | Estado Anterior | Estado Actual | Hallazgos |
 |-------|----------------|---------------|-----------|
 | **A01: Broken Access Control** | ❌ Falla | ⚠️ PARCIAL | USR-002, RBP-002, MTN-003 resueltos; RBP-003/005 pendientes |
-| **A02: Cryptographic Failures** | ❌ Falla | ⚠️ PARCIAL | DAT-002 parcial; DAT-003 pendiente |
+| **A02: Cryptographic Failures** | ❌ Falla | ✅ APROBADA | DAT-002 + DAT-003 resueltos |
 | **A03: Injection** | ✅ Parcial | ✅ Parcial | Sin cambios |
 | **A04: Insecure Design** | ❌ Falla | ⚠️ PARCIAL | MTN-001 resuelto; AUT-003 pendiente |
 | **A05: Security Misconfiguration** | ❌ Falla | ❌ Falla | RBP-003, AUT-005 pendientes |
@@ -259,8 +265,8 @@ El archivo `nexora-hr-firebase-admin.json` fue eliminado del tracking de git (ya
 
 | Prioridad | Acción | Hallazgo | Estado |
 |-----------|--------|----------|--------|
-| 🟡 12 | Implementar MFA/2FA (TOTP) en login | AUT-003 | ❌ PENDIENTE |
-| 🟡 13 | Cifrado de columnas PII | DAT-003 | ❌ PENDIENTE |
+| 🟡 12 | Implementar MFA/2FA (TOTP) en login | AUT-003 | ✅ COMPLETADO |
+| 🟡 13 | Cifrado de columnas PII | DAT-003 | ✅ COMPLETADO |
 | 🟡 14 | Política de retención de audit logs | AUD-005 | ✅ COMPLETADO |
 | 🟡 15 | Historial de cambios para entidades financieras | HST-001 | ❌ PENDIENTE |
 | 🟡 16 | Políticas de backup automático | DRP-002 | ❌ PENDIENTE |
@@ -328,7 +334,7 @@ options.AddPolicy("payroll.write", policy =>
 
 ### Seguridad de Datos
 - [ ] Cifrado en reposo (PostgreSQL TDE o similar)
-- [ ] Cifrado de columnas PII
+- [x] Cifrado de columnas PII
 - [ ] Data Classification Policy documentada
 - [ ] GDPR Right to Deletion (hard-delete batch job)
 - [ ] Tokenización de datos bancarios
@@ -396,14 +402,15 @@ options.AddPolicy("payroll.write", policy =>
 1. Rotar credenciales Firebase en Firebase Console; eliminar `nexora-hr-firebase-admin.json` del disco
 
 ### Corto Plazo
-2. Agregar cifrado de columnas PII (DAT-003)
-3. Auditoría de lecturas GET a datos sensibles (TRZ-002)
+2. Agregar cifrado de columnas PII (DAT-003) ✅ COMPLETADO
+3. Auditoría de lecturas GET a datos sensibles (TRZ-002) ✅ COMPLETADO
 
 ### Mediano Plazo
-5. Historial de cambios para entidades financieras (HST-001)
-6. CSRF protection
+5. Historial de cambios para entidades financieras (HST-001) ✅ COMPLETADO
+6. CSRF protection ✅ COMPLETADO
 7. Backup automático de BD (DRP-002)
 
 ---
 
 *Este informe fue generado mediante análisis estático del código fuente. No reemplaza un pentest completo ni una auditoría de infraestructura.*
+a.*

@@ -5,11 +5,14 @@ namespace Zorvian.Web.Services;
 
 public sealed class CombinedNotificationService : INotificationService
 {
-    private readonly SignalRNotificationService _signalR;
+    private readonly ISignalRNotificationService _signalR;
     private readonly IFCMNotificationService _fcm;
     private readonly ITenantContext _tenant;
 
-    public CombinedNotificationService(SignalRNotificationService signalR, IFCMNotificationService fcm, ITenantContext tenant)
+    public CombinedNotificationService(
+        ISignalRNotificationService signalR, 
+        IFCMNotificationService fcm, 
+        ITenantContext tenant)
     {
         _signalR = signalR;
         _fcm = fcm;

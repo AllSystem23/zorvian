@@ -4,6 +4,7 @@ using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Enums;
+using Zorvian.Core.Interfaces;
 
 namespace Zorvian.Tests.Services;
 
@@ -13,13 +14,15 @@ public sealed class AuthServiceExtendedTests
     private readonly Mock<IFirebaseAuthService> _firebase = new();
     private readonly Mock<IJwtService> _jwt = new();
     private readonly Mock<IMfaService> _mfa = new();
+    private readonly Mock<ITenantContext> _tenant = new();
     private readonly AuthService _sut;
 
     public AuthServiceExtendedTests()
     {
         _mfa.Setup(m => m.GenerateMfaToken(It.IsAny<Guid>())).Returns("mfa-test-token");
         _mfa.Setup(m => m.ValidateMfaToken(It.IsAny<string>())).Returns((Guid?)null);
-        _sut = new AuthService(_authRepo.Object, _firebase.Object, _jwt.Object, _mfa.Object);
+        _tenant.Setup(t => t.TenantId).Returns(Guid.NewGuid().ToString());
+        _sut = new AuthService(_authRepo.Object, _firebase.Object, _jwt.Object, _mfa.Object, _tenant.Object);
     }
 
     private User MakeUser() => new()

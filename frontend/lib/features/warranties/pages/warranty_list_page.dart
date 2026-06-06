@@ -25,11 +25,42 @@ final class _WarrantyListPageState extends ConsumerState<WarrantyListPage> {
     return items.where((w) =>
       w.clientName.toLowerCase().contains(q) ||
       w.productName.toLowerCase().contains(q) ||
-      w.folio.toLowerCase().contains(q) ||
-      w.type.toLowerCase().contains(q) ||
+      w.warrantyNumber.toLowerCase().contains(q) ||
       w.status.toLowerCase().contains(q)
     ).toList();
   }
+
+  Color _statusColor(String status) => switch (status) {
+    'Registered' => Colors.blue,
+    'PendingReview' => Colors.orange,
+    'InDiagnosis' => Colors.purple,
+    'SentToWorkshop' => Colors.indigo,
+    'InRepair' => Colors.deepOrange,
+    'PendingParts' => Colors.amber,
+    'Repaired' => Colors.teal,
+    'ReplacementApproved' => Colors.cyan,
+    'ReadyForDelivery' => Colors.green,
+    'Delivered' => Colors.green,
+    'Closed' => Colors.grey,
+    'Cancelled' => Colors.red,
+    _ => Colors.grey,
+  };
+
+  String _statusLabel(String status) => switch (status) {
+    'Registered' => 'Registrada',
+    'PendingReview' => 'Pendiente Revisión',
+    'InDiagnosis' => 'En Diagnóstico',
+    'SentToWorkshop' => 'En Taller',
+    'InRepair' => 'En Reparación',
+    'PendingParts' => 'Pendiente Repuestos',
+    'Repaired' => 'Reparada',
+    'ReplacementApproved' => 'Reemplazo Aprobado',
+    'ReadyForDelivery' => 'Lista para Entrega',
+    'Delivered' => 'Entregada',
+    'Closed' => 'Cerrada',
+    'Cancelled' => 'Cancelada',
+    _ => status,
+  };
 
   @override
   void dispose() {
@@ -55,7 +86,7 @@ final class _WarrantyListPageState extends ConsumerState<WarrantyListPage> {
                       child: TextField(
                         controller: _searchCtrl,
                         decoration: InputDecoration(
-                          hintText: 'Buscar por cliente, producto, folio, tipo o estado...',
+                          hintText: 'Buscar por cliente, producto, folio o estado...',
                           prefixIcon: const Icon(Icons.search),
                           suffixIcon: _searchQuery.isNotEmpty
                               ? IconButton(icon: const Icon(Icons.clear), onPressed: () { _searchCtrl.clear(); setState(() => _searchQuery = ''); })
@@ -76,20 +107,15 @@ final class _WarrantyListPageState extends ConsumerState<WarrantyListPage> {
                                 separatorBuilder: (_, _) => const Divider(height: 1),
                                 itemBuilder: (_, i) {
                                   final w = filtered[i];
-                                  final stColor = switch (w.status) {
-                                    'active' => Colors.green,
-                                    'expired' => Colors.red,
-                                    'claimed' => Colors.orange,
-                                    _ => Colors.grey,
-                                  };
+                                  final stColor = _statusColor(w.status);
                                   return ListTile(
                                     leading: CircleAvatar(
                                       backgroundColor: stColor.withAlpha(30),
                                       child: Icon(Icons.verified, color: stColor),
                                     ),
                                     title: Text('${w.productName} - ${w.clientName}', style: const TextStyle(fontWeight: FontWeight.w600)),
-                                    subtitle: Text('${w.type} · ${w.startDate.substring(0, 10)}${w.endDate != null ? " → ${w.endDate!.substring(0, 10)}" : ""}'),
-                                    trailing: Chip(label: Text(w.status, style: TextStyle(fontSize: 11, color: stColor)), materialTapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                                    subtitle: Text('${w.warrantyNumber}' + (w.endDate != null ? ' · Exp: ${w.endDate!.substring(0, 10)}' : '')),
+                                    trailing: Chip(label: Text(_statusLabel(w.status), style: TextStyle(fontSize: 11, color: stColor)), materialTapTargetSize: MaterialTapTargetSize.shrinkWrap),
                                   );
                                 },
                               ),

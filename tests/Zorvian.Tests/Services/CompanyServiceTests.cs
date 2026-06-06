@@ -11,17 +11,18 @@ public sealed class CompanyServiceTests
     private readonly Mock<ICompanyRepository> _repo = new();
     private readonly Mock<ITenantContext> _tenant = new();
     private readonly CompanyService _sut;
+    private readonly string _tenantId = Guid.NewGuid().ToString();
 
     public CompanyServiceTests()
     {
-        _tenant.Setup(t => t.TenantId).Returns("tenant-123");
+        _tenant.Setup(t => t.TenantId).Returns(_tenantId);
         _sut = new CompanyService(_repo.Object, _tenant.Object);
     }
 
     [Fact]
     public async Task CreateAsync_CreatesCompany_WithDefaults()
     {
-        _repo.Setup(r => r.ExistsByTenantIdAsync("tenant-123")).ReturnsAsync(false);
+        _repo.Setup(r => r.ExistsByTenantIdAsync(_tenantId)).ReturnsAsync(false);
 
         var request = new CreateCompanyRequest(
             Name: "Mi Empresa",
@@ -44,7 +45,7 @@ public sealed class CompanyServiceTests
     [Fact]
     public async Task CreateAsync_Throws_WhenCompanyExists()
     {
-        _repo.Setup(r => r.ExistsByTenantIdAsync("tenant-123")).ReturnsAsync(true);
+        _repo.Setup(r => r.ExistsByTenantIdAsync(_tenantId)).ReturnsAsync(true);
 
         var request = new CreateCompanyRequest(
             Name: "Otra",
@@ -63,7 +64,7 @@ public sealed class CompanyServiceTests
         var company = new Core.Entities.Company
         {
             Id = Guid.NewGuid(),
-            TenantId = "tenant-123",
+            TenantId = _tenantId,
             Name = "Original",
             LegalName = "Original S.A.",
             TaxId = "J123",
@@ -71,7 +72,7 @@ public sealed class CompanyServiceTests
             Timezone = "America/Managua",
             MaxEmployees = 50,
         };
-        _repo.Setup(r => r.GetByTenantIdAsync("tenant-123")).ReturnsAsync(company);
+        _repo.Setup(r => r.GetByTenantIdAsync(_tenantId)).ReturnsAsync(company);
 
         var request = new UpdateCompanyRequest(
             Name: "Nuevo Nombre",
@@ -110,7 +111,7 @@ public sealed class CompanyServiceTests
             ApprovalFlowConfig = "[{\"step\":1,\"role\":\"Supervisor\"}]",
         };
 
-        _repo.Setup(r => r.GetByTenantIdAsync("tenant-123")).ReturnsAsync(company);
+        _repo.Setup(r => r.GetByTenantIdAsync(_tenantId)).ReturnsAsync(company);
         _repo.Setup(r => r.GetSettingsAsync(companyId)).ReturnsAsync(settings);
 
         var result = await _sut.GetSettingsAsync();
@@ -135,7 +136,7 @@ public sealed class CompanyServiceTests
             WorkingDays = "MON,TUE,WED,THU,FRI",
         };
 
-        _repo.Setup(r => r.GetByTenantIdAsync("tenant-123")).ReturnsAsync(company);
+        _repo.Setup(r => r.GetByTenantIdAsync(_tenantId)).ReturnsAsync(company);
         _repo.Setup(r => r.GetSettingsAsync(companyId)).ReturnsAsync(settings);
 
         var request = new UpdateCompanySettingsRequest(

@@ -12,34 +12,16 @@ final class WarrantyFormPage extends ConsumerStatefulWidget {
 
 final class _WarrantyFormPageState extends ConsumerState<WarrantyFormPage> {
   final _formKey = GlobalKey<FormState>();
-  final _folioCtrl = TextEditingController();
-  final _descCtrl = TextEditingController();
-  String _type = 'manufacturer';
-  String _status = 'active';
+  final _clientIdCtrl = TextEditingController();
+  final _productIdCtrl = TextEditingController();
+  final _serialCtrl = TextEditingController();
+  final _imeiCtrl = TextEditingController();
+  final _lotCtrl = TextEditingController();
+  final _termsCtrl = TextEditingController();
+  int _durationMonths = 12;
   bool _loading = false;
   String? _error;
   bool get _isEditing => widget.warrantyId != null;
-
-  @override
-  void initState() {
-    super.initState();
-    if (_isEditing) _load();
-  }
-
-  Future<void> _load() async {
-    try {
-      final dio = ref.read(dioClientProvider);
-      final r = await dio.get('warranties/${widget.warrantyId}');
-      final d = r.data;
-      _folioCtrl.text = d['folio'] ?? '';
-      _descCtrl.text = d['description'] ?? '';
-      _type = d['type'] ?? 'manufacturer';
-      _status = d['status'] ?? 'active';
-      setState(() {});
-    } catch (_) {
-      setState(() => _error = 'Error al cargar garantía');
-    }
-  }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
@@ -47,10 +29,13 @@ final class _WarrantyFormPageState extends ConsumerState<WarrantyFormPage> {
     try {
       final dio = ref.read(dioClientProvider);
       final body = {
-        'folio': _folioCtrl.text.trim(),
-        'description': _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
-        'type': _type,
-        'status': _status,
+        'clientId': _clientIdCtrl.text.trim(),
+        'productId': _productIdCtrl.text.trim(),
+        'durationMonths': _durationMonths,
+        'terms': _termsCtrl.text.trim().isEmpty ? null : _termsCtrl.text.trim(),
+        'serialNumber': _serialCtrl.text.trim().isEmpty ? null : _serialCtrl.text.trim(),
+        'imei': _imeiCtrl.text.trim().isEmpty ? null : _imeiCtrl.text.trim(),
+        'lotNumber': _lotCtrl.text.trim().isEmpty ? null : _lotCtrl.text.trim(),
       };
       if (_isEditing) {
         await dio.put('warranties/${widget.warrantyId}', data: body);
@@ -67,7 +52,9 @@ final class _WarrantyFormPageState extends ConsumerState<WarrantyFormPage> {
 
   @override
   void dispose() {
-    _folioCtrl.dispose(); _descCtrl.dispose();
+    _clientIdCtrl.dispose(); _productIdCtrl.dispose();
+    _serialCtrl.dispose(); _imeiCtrl.dispose(); _lotCtrl.dispose();
+    _termsCtrl.dispose();
     super.dispose();
   }
 
@@ -89,32 +76,24 @@ final class _WarrantyFormPageState extends ConsumerState<WarrantyFormPage> {
                 decoration: BoxDecoration(color: theme.colorScheme.errorContainer, borderRadius: BorderRadius.circular(8)),
                 child: Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
               ),
-              TextFormField(controller: _folioCtrl, decoration: const InputDecoration(labelText: 'Folio', prefixIcon: Icon(Icons.tag)), validator: (v) => v == null || v.isEmpty ? 'Requerido' : null),
+              TextFormField(controller: _clientIdCtrl, decoration: const InputDecoration(labelText: 'ID Cliente', prefixIcon: Icon(Icons.person)), validator: (v) => v == null || v.isEmpty ? 'Requerido' : null),
               const SizedBox(height: 12),
-              TextFormField(controller: _descCtrl, decoration: const InputDecoration(labelText: 'Descripción', prefixIcon: Icon(Icons.description)), maxLines: 3),
+              TextFormField(controller: _productIdCtrl, decoration: const InputDecoration(labelText: 'ID Producto', prefixIcon: Icon(Icons.inventory)), validator: (v) => v == null || v.isEmpty ? 'Requerido' : null),
               const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _type,
-                decoration: const InputDecoration(labelText: 'Tipo', prefixIcon: Icon(Icons.category)),
-                items: const [
-                  DropdownMenuItem(value: 'manufacturer', child: Text('Fabricante')),
-                  DropdownMenuItem(value: 'store', child: Text('Tienda')),
-                  DropdownMenuItem(value: 'extended', child: Text('Extendida')),
-                ],
-                onChanged: (v) => setState(() => _type = v ?? 'manufacturer'),
+              TextFormField(controller: _serialCtrl, decoration: const InputDecoration(labelText: 'Número de Serie', prefixIcon: Icon(Icons.qr_code))),
+              const SizedBox(height: 12),
+              TextFormField(controller: _imeiCtrl, decoration: const InputDecoration(labelText: 'IMEI', prefixIcon: Icon(Icons.phone_android)), maxLength: 20),
+              const SizedBox(height: 12),
+              TextFormField(controller: _lotCtrl, decoration: const InputDecoration(labelText: 'Lote', prefixIcon: Icon(Icons.batch_prediction))),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<int>(
+                value: _durationMonths,
+                decoration: const InputDecoration(labelText: 'Duración (meses)', prefixIcon: Icon(Icons.timer)),
+                items: [3, 6, 12, 24, 36].map((m) => DropdownMenuItem(value: m, child: Text('$m meses'))).toList(),
+                onChanged: (v) => setState(() => _durationMonths = v ?? 12),
               ),
               const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _status,
-                decoration: const InputDecoration(labelText: 'Estado', prefixIcon: Icon(Icons.info)),
-                items: const [
-                  DropdownMenuItem(value: 'active', child: Text('Activa')),
-                  DropdownMenuItem(value: 'expired', child: Text('Expirada')),
-                  DropdownMenuItem(value: 'claimed', child: Text('Reclamada')),
-                  DropdownMenuItem(value: 'cancelled', child: Text('Cancelada')),
-                ],
-                onChanged: (v) => setState(() => _status = v ?? 'active'),
-              ),
+              TextFormField(controller: _termsCtrl, decoration: const InputDecoration(labelText: 'Términos y condiciones', prefixIcon: Icon(Icons.description)), maxLines: 3),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: _loading ? null : _save,

@@ -7,7 +7,8 @@ public sealed record CreateInventoryMovementRequest(
     decimal UnitCost,
     string? ReferenceNumber,
     string? Notes,
-    Guid BranchId
+    Guid BranchId,
+    string? SerialNumber = null
 );
 
 public sealed record InventoryMovementResponse(

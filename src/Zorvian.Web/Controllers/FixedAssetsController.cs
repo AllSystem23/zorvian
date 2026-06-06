@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.FixedAssets;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
@@ -20,6 +21,7 @@ public sealed class FixedAssetsController : ControllerBase
 
     [Audit("FixedAsset", "Create")]
     [HttpPost]
+    [RequirePermission(Permissions.FixedAssetWrite)]
     public async Task<IActionResult> Create([FromBody] CreateFixedAssetRequest request)
     {
         try
@@ -34,6 +36,7 @@ public sealed class FixedAssetsController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [RequirePermission(Permissions.FixedAssetRead)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var asset = await _service.GetByIdAsync(id);
@@ -44,6 +47,7 @@ public sealed class FixedAssetsController : ControllerBase
 
     [Audit("FixedAsset", "Update")]
     [HttpPut("{id:guid}")]
+    [RequirePermission(Permissions.FixedAssetWrite)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateFixedAssetRequest request)
     {
         try
@@ -58,6 +62,7 @@ public sealed class FixedAssetsController : ControllerBase
     }
 
     [HttpGet]
+    [RequirePermission(Permissions.FixedAssetRead)]
     public async Task<IActionResult> GetFiltered([FromQuery] FixedAssetFilterRequest filter)
     {
         var result = await _service.GetFilteredAsync(filter);
@@ -66,6 +71,7 @@ public sealed class FixedAssetsController : ControllerBase
 
     [Audit("FixedAsset", "Depreciate")]
     [HttpPost("{id:guid}/depreciate")]
+    [RequirePermission(Permissions.FixedAssetWrite)]
     public async Task<IActionResult> RunDepreciation(Guid id, [FromBody] RunDepreciationRequest request)
     {
         try
@@ -81,6 +87,7 @@ public sealed class FixedAssetsController : ControllerBase
 
     [Audit("FixedAsset", "BulkDepreciate")]
     [HttpPost("depreciate-bulk")]
+    [RequirePermission(Permissions.FixedAssetWrite)]
     public async Task<IActionResult> RunBulkDepreciation([FromBody] RunDepreciationRequest request)
     {
         var count = await _service.RunBulkDepreciationAsync(request.PeriodDate);
@@ -89,6 +96,7 @@ public sealed class FixedAssetsController : ControllerBase
 
     [Audit("FixedAsset", "Revalue")]
     [HttpPost("{id:guid}/revalue")]
+    [RequirePermission(Permissions.FixedAssetWrite)]
     public async Task<IActionResult> Revalue(Guid id, [FromBody] RevalueAssetRequest request)
     {
         try
@@ -104,6 +112,7 @@ public sealed class FixedAssetsController : ControllerBase
 
     [Audit("FixedAsset", "Dispose")]
     [HttpPost("{id:guid}/dispose")]
+    [RequirePermission(Permissions.FixedAssetWrite)]
     public async Task<IActionResult> Dispose(Guid id, [FromBody] DisposeAssetRequest request)
     {
         try
@@ -119,6 +128,7 @@ public sealed class FixedAssetsController : ControllerBase
 
     [Audit("FixedAsset", "AddMaintenance")]
     [HttpPost("{id:guid}/maintenance")]
+    [RequirePermission(Permissions.FixedAssetWrite)]
     public async Task<IActionResult> AddMaintenance(Guid id, [FromBody] AddMaintenanceRequest request)
     {
         try
@@ -133,6 +143,7 @@ public sealed class FixedAssetsController : ControllerBase
     }
 
     [HttpGet("{id:guid}/depreciation-schedule")]
+    [RequirePermission(Permissions.FixedAssetRead)]
     public async Task<IActionResult> GetDepreciationSchedule(Guid id)
     {
         try
@@ -147,6 +158,7 @@ public sealed class FixedAssetsController : ControllerBase
     }
 
     [HttpGet("reports/summary")]
+    [RequirePermission(Permissions.FixedAssetRead)]
     public async Task<IActionResult> GetSummary()
     {
         var summary = await _service.GetSummaryAsync();
@@ -154,6 +166,7 @@ public sealed class FixedAssetsController : ControllerBase
     }
 
     [HttpGet("maintenance/upcoming")]
+    [RequirePermission(Permissions.FixedAssetRead)]
     public async Task<IActionResult> GetUpcomingMaintenance([FromQuery] int days = 30)
     {
         var items = await _service.GetUpcomingMaintenanceAsync(days);

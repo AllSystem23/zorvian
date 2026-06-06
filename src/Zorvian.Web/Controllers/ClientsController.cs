@@ -26,6 +26,7 @@ public sealed class ClientsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = client.Id }, client);
     }
 
+    [Audit("Client", "Read")]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -35,6 +36,7 @@ public sealed class ClientsController : ControllerBase
         return Ok(client);
     }
 
+    [Audit("Client", "ReadStatement")]
     [HttpGet("{id:guid}/statement")]
     public async Task<IActionResult> GetStatement(Guid id)
     {
@@ -44,6 +46,7 @@ public sealed class ClientsController : ControllerBase
         return Ok(statement);
     }
 
+    [Audit("Client", "ReadList")]
     [HttpGet]
     public async Task<IActionResult> GetList([FromQuery] ClientFilterRequest filter)
     {

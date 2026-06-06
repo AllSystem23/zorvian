@@ -25,7 +25,9 @@ public sealed class EmployeesController : ControllerBase
         _tenant = tenant;
     }
 
+    [Audit("Employee", "Read")]
     [HttpGet("me")]
+    [RequirePermission(Permissions.EmployeeRead)]
     public async Task<IActionResult> GetMyProfile()
     {
         var isSuperAdmin = User.IsInRole("SuperAdmin");
@@ -42,6 +44,7 @@ public sealed class EmployeesController : ControllerBase
     }
 
     [HttpPut("me")]
+    [RequirePermission(Permissions.EmployeeWrite)]
     public async Task<IActionResult> UpdateMyProfile([FromBody] UpdateMyProfileRequest request)
     {
         var isSuperAdmin = User.IsInRole("SuperAdmin");
@@ -57,7 +60,9 @@ public sealed class EmployeesController : ControllerBase
         return Ok(employee);
     }
 
+    [Audit("Employee", "ReadCertificate")]
     [HttpGet("me/certificate")]
+    [RequirePermission(Permissions.EmployeeRead)]
     public async Task<IActionResult> GetEmploymentCertificate()
     {
         if (_tenant.CurrentEmployeeId is null)
@@ -111,6 +116,7 @@ public sealed class EmployeesController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = employee.Id }, employee);
     }
 
+    [Audit("Employee", "Read")]
     [HttpGet("{id:guid}")]
     [RequirePermission(Permissions.EmployeeRead)]
     public async Task<IActionResult> GetById(Guid id)
@@ -121,6 +127,7 @@ public sealed class EmployeesController : ControllerBase
         return Ok(employee);
     }
 
+    [Audit("Employee", "ReadList")]
     [HttpGet]
     [RequirePermission(Permissions.EmployeeRead)]
     public async Task<IActionResult> GetList([FromQuery] EmployeeFilterRequest filter)

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Payroll;
 using Zorvian.Application.Services;
+using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
 
@@ -14,10 +15,12 @@ public sealed class BankAccountsController : ControllerBase
 
     public BankAccountsController(BankAccountService service) => _service = service;
 
+    [Audit("BankAccount", "Read")]
     [HttpGet("employee/{employeeId}")]
     public async Task<IActionResult> GetByEmployee(Guid employeeId) =>
         Ok(await _service.GetByEmployeeIdAsync(employeeId));
 
+    [Audit("BankAccount", "Read")]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(Guid id)
     {

@@ -3,31 +3,24 @@ import '../../../auth/auth_provider.dart';
 
 final class WarrantyItem {
   final String id;
-  final String folio;
+  final String warrantyNumber;
   final String clientName;
   final String productName;
-  final String type;
-  final String status;
-  final String startDate;
   final String? endDate;
-  final String? description;
+  final String status;
 
   const WarrantyItem({
-    required this.id, required this.folio, required this.clientName,
-    required this.productName, required this.type, required this.status,
-    required this.startDate, this.endDate, this.description,
+    required this.id, required this.warrantyNumber, required this.clientName,
+    required this.productName, this.endDate, required this.status,
   });
 
   factory WarrantyItem.fromJson(Map<String, dynamic> j) => WarrantyItem(
     id: j['id'] as String,
-    folio: j['folio'] as String? ?? '',
+    warrantyNumber: j['warrantyNumber'] as String? ?? '',
     clientName: j['clientName'] as String? ?? '',
     productName: j['productName'] as String? ?? '',
-    type: j['type'] as String? ?? '',
-    status: j['status'] as String? ?? '',
-    startDate: j['startDate'] as String? ?? '',
     endDate: j['endDate'] as String?,
-    description: j['description'] as String?,
+    status: j['status'] as String? ?? '',
   );
 }
 
@@ -49,7 +42,8 @@ final class WarrantyNotifier extends Notifier<WarrantyState> {
       final dio = ref.read(dioClientProvider);
       final r = await dio.get('warranties');
       final data = r.data;
-      state = WarrantyState(items: (data['items'] as List).map((e) => WarrantyItem.fromJson(e)).toList());
+      final items = (data['items'] as List).map((e) => WarrantyItem.fromJson(e)).toList();
+      state = WarrantyState(items: items);
     } catch (_) {
       state = state.copyWith(error: 'Error al cargar garantías', loading: false);
     }

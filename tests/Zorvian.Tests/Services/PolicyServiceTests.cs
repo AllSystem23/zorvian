@@ -16,7 +16,7 @@ public sealed class PolicyServiceTests
 
     public PolicyServiceTests()
     {
-        _tenant.Setup(t => t.TenantId).Returns("tenant-1");
+        _tenant.Setup(t => t.TenantId).Returns(Guid.NewGuid().ToString());
         _sut = new PolicyService(_repo.Object, _embeddingService.Object, _tenant.Object);
     }
 

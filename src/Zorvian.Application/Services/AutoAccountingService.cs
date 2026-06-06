@@ -12,12 +12,14 @@ public interface IAutoAccountingService
     Task<Guid> GenerateSupplierPaymentEntryAsync(Guid paymentId, Guid purchaseId, decimal amount, Guid companyId, Guid branchId);
     Task<Guid> GenerateSupplierCreditNoteEntryAsync(Guid creditNoteId, Guid supplierId, Guid? purchaseId, decimal total, Guid companyId, Guid branchId);
     Task<Guid> GenerateInventoryEntryAsync(Guid movementId, Guid productId, string movementType, int quantity, decimal unitCost);
+    Task<Guid> GenerateCreditPaymentEntryAsync(Guid paymentId, Guid creditId, decimal principalAmount, decimal interestAmount, Guid companyId, Guid branchId);
     Task<Guid> GeneratePayrollEntryAsync(Guid payrollRunId);
     Task<Guid> GenerateCashMovementEntryAsync(Guid movementId);
     Task<Guid> GenerateFixedAssetAcquisitionEntryAsync(Guid assetId, decimal cost, Guid companyId, Guid branchId);
     Task<Guid> GenerateDepreciationEntryAsync(Guid assetId, decimal amount, Guid companyId, Guid branchId);
     Task<Guid> GenerateDisposalEntryAsync(Guid assetId, decimal cost, decimal accumulatedDepreciation, decimal saleAmount, decimal gainOrLoss, string disposalType, Guid companyId, Guid branchId);
     Task<Guid> GenerateRevaluationEntryAsync(Guid assetId, decimal previousValue, decimal newValue, decimal accumulatedDepreciation, Guid companyId, Guid branchId);
+    Task<Guid> GenerateWarrantyCostEntryAsync(Guid costId, string costCategory, decimal totalCost, string paidBy, Guid? providerId, Guid warrantyId, Guid companyId, Guid branchId);
 }
 
 public class AutoAccountingService : IAutoAccountingService
@@ -30,21 +32,23 @@ public class AutoAccountingService : IAutoAccountingService
     private readonly ITenantContext _tenant;
     private readonly IPayrollRepository _payrollRepo;
     private readonly ICashMovementRepository _cashRepo;
-public AutoAccountingService(
-    IAccountingEntryRepository entryRepo,
-    IAccountingPeriodRepository periodRepo,
-    IAccountLinkRepository linkRepo,
-    IAccountingRuleRepository ruleRepo,
-    IAccountRepository accountRepo,
-    ITenantContext tenant,
-    IPayrollRepository payrollRepo,
-    ICashMovementRepository cashRepo)
-{
-    _entryRepo = entryRepo; _periodRepo = periodRepo;
-    _linkRepo = linkRepo; _ruleRepo = ruleRepo; _accountRepo = accountRepo; _tenant = tenant;
-    _payrollRepo = payrollRepo;
-    _cashRepo = cashRepo;
-}
+
+    public AutoAccountingService(
+        IAccountingEntryRepository entryRepo,
+        IAccountingPeriodRepository periodRepo,
+        IAccountLinkRepository linkRepo,
+        IAccountingRuleRepository ruleRepo,
+        IAccountRepository accountRepo,
+        ITenantContext tenant,
+        IPayrollRepository payrollRepo,
+        ICashMovementRepository cashRepo)
+    {
+        _entryRepo = entryRepo; _periodRepo = periodRepo;
+        _linkRepo = linkRepo; _ruleRepo = ruleRepo; _accountRepo = accountRepo; _tenant = tenant;
+        _payrollRepo = payrollRepo;
+        _cashRepo = cashRepo;
+    }
+    
     private Guid CompanyId => Guid.TryParse(_tenant.TenantId, out var id) ? id : throw new InvalidOperationException("Invalid tenant");
 
     private async Task<Guid> GetPeriodIdAsync()
@@ -268,6 +272,43 @@ public AutoAccountingService(
             TotalCredit = amount,
             PostedAt = DateTime.UtcNow,
             Details = [detail1, detail2],
+        };
+
+        await _entryRepo.AddAsync(entry);
+        await _entryRepo.SaveChangesAsync();
+        return entry.Id;
+    }
+
+    public async Task<Guid> GenerateCreditPaymentEntryAsync(Guid paymentId, Guid creditId, decimal principalAmount, decimal interestAmount, Guid companyId, Guid branchId)
+    {
+        var periodId = await GetPeriodIdAsync();
+        var cashAccountId = await GetAccountIdAsync(TransactionTypes.CreditPayment, AccountRoles.Cash);
+        var arAccountId = await GetAccountIdAsync(TransactionTypes.CreditPayment, AccountRoles.AccountsReceivable);
+        var interestAccountId = await GetAccountIdAsync(TransactionTypes.CreditPayment, AccountRoles.InterestIncome);
+
+        var totalAmount = principalAmount + interestAmount;
+
+        var entry = new AccountingEntry
+        {
+            Id = Guid.NewGuid(),
+            EntryNumber = $"AS-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..4]}",
+            EntryDate = DateTime.UtcNow,
+            Description = $"Pago de crédito #{creditId.ToString()[..8]}",
+            ReferenceType = "CreditPayment",
+            ReferenceId = paymentId,
+            Status = "posted",
+            AccountingPeriodId = periodId,
+            CompanyId = companyId,
+            BranchId = branchId,
+            TotalDebit = totalAmount,
+            TotalCredit = totalAmount,
+            PostedAt = DateTime.UtcNow,
+            Details =
+            [
+                new() { AccountId = cashAccountId, DebitAmount = totalAmount, CreditAmount = 0, Description = "Ingreso de efectivo", CompanyId = companyId },
+                new() { AccountId = arAccountId, DebitAmount = 0, CreditAmount = principalAmount, Description = "Pago de capital", CompanyId = companyId },
+                new() { AccountId = interestAccountId, DebitAmount = 0, CreditAmount = interestAmount, Description = "Intereses ganados", CompanyId = companyId },
+            ],
         };
 
         await _entryRepo.AddAsync(entry);
@@ -623,6 +664,46 @@ public AutoAccountingService(
                 isIncrease
                     ? new() { AccountId = revalSurplusId, DebitAmount = 0, CreditAmount = difference, Description = "Superávit por revaluación", CompanyId = companyId }
                     : new() { AccountId = revalSurplusId, DebitAmount = Math.Abs(difference), CreditAmount = 0, Description = "Reversión superávit por revaluación", CompanyId = companyId },
+            ],
+        };
+
+        await _entryRepo.AddAsync(entry);
+        await _entryRepo.SaveChangesAsync();
+        return entry.Id;
+    }
+
+    public async Task<Guid> GenerateWarrantyCostEntryAsync(Guid costId, string costCategory, decimal totalCost, string paidBy, Guid? providerId, Guid warrantyId, Guid companyId, Guid branchId)
+    {
+        var periodId = await GetPeriodIdAsync();
+        var expenseRole = costCategory switch
+        {
+            "parts" => AccountRoles.WarrantyPartsExpense,
+            "labor" => AccountRoles.WarrantyLaborExpense,
+            _ => AccountRoles.WarrantyExpense,
+        };
+
+        var expenseAccountId = await GetAccountIdAsync(TransactionTypes.WarrantyCost, expenseRole);
+        var creditAccountId = paidBy == "provider"
+            ? await GetAccountIdAsync(TransactionTypes.WarrantyCost, AccountRoles.WarrantyProviderReceivable)
+            : await GetAccountIdAsync(TransactionTypes.WarrantyCost, AccountRoles.Cash);
+
+        var entry = new AccountingEntry
+        {
+            EntryNumber = await GenerateNumberAsync(),
+            EntryDate = DateTime.UtcNow,
+            Description = $"Costo de garantía {(paidBy == "provider" ? "a cargo del proveedor" : "por la empresa")} - {costCategory}",
+            ReferenceType = "WarrantyCost",
+            ReferenceId = costId,
+            Status = "posted",
+            TotalDebit = totalCost,
+            TotalCredit = totalCost,
+            AccountingPeriodId = periodId,
+            CompanyId = companyId,
+            BranchId = branchId,
+            Details =
+            [
+                new() { AccountId = expenseAccountId, DebitAmount = totalCost, CreditAmount = 0, Description = costCategory, CompanyId = companyId },
+                new() { AccountId = creditAccountId, DebitAmount = 0, CreditAmount = totalCost, Description = paidBy == "provider" ? "Cta x Cobrar proveedor" : "Caja/Banco", CompanyId = companyId },
             ],
         };
 

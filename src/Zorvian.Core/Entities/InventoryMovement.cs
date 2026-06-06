@@ -9,6 +9,7 @@ public sealed class InventoryMovement : BaseEntity
     public int StockBefore { get; set; }
     public int StockAfter { get; set; }
     public decimal UnitCost { get; set; }
+    public string? SerialNumber { get; set; }
     public string? ReferenceNumber { get; set; }
     public string? Notes { get; set; }
     public Guid? PerformedByEmployeeId { get; set; }

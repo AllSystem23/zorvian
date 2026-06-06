@@ -19,6 +19,7 @@ public sealed class CreditsController : ControllerBase
         _service = service;
     }
 
+    [Audit("Credit", "Read")]
     [HttpGet("{id:guid}")]
     [RequirePermission(Permissions.CreditRead)]
     public async Task<IActionResult> GetById(Guid id)
@@ -29,6 +30,7 @@ public sealed class CreditsController : ControllerBase
         return Ok(credit);
     }
 
+    [Audit("Credit", "ReadList")]
     [HttpGet]
     [RequirePermission(Permissions.CreditRead)]
     public async Task<IActionResult> GetList([FromQuery] CreditFilterRequest filter)
@@ -53,6 +55,7 @@ public sealed class CreditsController : ControllerBase
         }
     }
 
+    [Audit("Credit", "ReadPayments")]
     [HttpGet("{id:guid}/payments")]
     [RequirePermission(Permissions.CreditRead)]
     public async Task<IActionResult> GetPayments(Guid id, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
@@ -76,6 +79,7 @@ public sealed class CreditsController : ControllerBase
         }
     }
 
+    [Audit("Credit", "ReadLateFees")]
     [HttpGet("{id:guid}/late-fees")]
     [RequirePermission(Permissions.CreditRead)]
     public async Task<IActionResult> GetLateFees(Guid id)
@@ -84,6 +88,7 @@ public sealed class CreditsController : ControllerBase
         return Ok(result);
     }
 
+    [Audit("Credit", "ReadOverdue")]
     [HttpGet("{id:guid}/overdue-installments")]
     [RequirePermission(Permissions.CreditRead)]
     public async Task<IActionResult> GetOverdueInstallments(Guid id)
@@ -108,6 +113,7 @@ public sealed class CreditsController : ControllerBase
         }
     }
 
+    [Audit("Credit", "ReadCollectionActions")]
     [HttpGet("{id:guid}/collection-actions")]
     [RequirePermission(Permissions.CreditRead)]
     public async Task<IActionResult> GetCollectionActions(Guid id, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)

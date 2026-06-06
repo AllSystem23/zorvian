@@ -24,6 +24,7 @@ public static class TransactionTypes
     public const string FixedAssetDisposal = "FixedAssetDisposal";
     public const string FixedAssetRevaluation = "FixedAssetRevaluation";
     public const string FixedAssetMaintenance = "FixedAssetMaintenance";
+    public const string WarrantyCost = "WarrantyCost";
 }
 
 public static class AccountRoles
@@ -49,4 +50,9 @@ public static class AccountRoles
     public const string RevaluationSurplus = "RevaluationSurplus";
     public const string GainOnDisposal = "GainOnDisposal";
     public const string LossOnDisposal = "LossOnDisposal";
+    public const string InterestIncome = "InterestIncome";
+    public const string WarrantyExpense = "WarrantyExpense";
+    public const string WarrantyPartsExpense = "WarrantyPartsExpense";
+    public const string WarrantyLaborExpense = "WarrantyLaborExpense";
+    public const string WarrantyProviderReceivable = "WarrantyProviderReceivable";
 }

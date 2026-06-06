@@ -12,10 +12,12 @@ namespace Zorvian.Web.Controllers;
 public sealed class WarrantiesController : ControllerBase
 {
     private readonly WarrantyService _service;
+    private readonly WarrantyTimelineService _timelineService;
 
-    public WarrantiesController(WarrantyService service)
+    public WarrantiesController(WarrantyService service, WarrantyTimelineService timelineService)
     {
         _service = service;
+        _timelineService = timelineService;
     }
 
     [Audit("Warranty", "Create")]
@@ -55,5 +57,41 @@ public sealed class WarrantiesController : ControllerBase
         {
             return BadRequest(new { error = ex.Message });
         }
+    }
+
+    [Audit("WarrantyClaim", "AssignWorkshop")]
+    [HttpPost("claims/{claimId:guid}/assign-workshop")]
+    public async Task<IActionResult> AssignWorkshop(Guid claimId, [FromBody] AssignWorkshopRequest request)
+    {
+        try
+        {
+            var claim = await _service.AssignWorkshopAsync(claimId, request);
+            return Ok(claim);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [Audit("WarrantyClaim", "ReferToProvider")]
+    [HttpPost("claims/{claimId:guid}/refer-to-provider")]
+    public async Task<IActionResult> ReferToProvider(Guid claimId, [FromBody] ReferToProviderRequest request)
+    {
+        try
+        {
+            var claim = await _service.ReferToProviderAsync(claimId, request);
+            return Ok(claim);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [HttpGet("{id:guid}/timeline")]
+    public async Task<IActionResult> GetTimeline(Guid id)
+    {
+        return Ok(await _timelineService.GetTimelineAsync(id));
     }
 }

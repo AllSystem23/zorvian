@@ -17,7 +17,13 @@ public sealed class TenantMiddleware
         if (string.IsNullOrEmpty(tenantContext.TenantId))
         {
             var tenantId = context.User?.FindFirst("tenant_id")?.Value;
-            logger.LogInformation("TenantId from claim: {TenantId}", tenantId);
+
+            if (string.IsNullOrEmpty(tenantId))
+            {
+                tenantId = context.Request.Headers["X-Tenant-Id"].FirstOrDefault();
+            }
+
+            logger.LogInformation("TenantId from claim/header: {TenantId}", tenantId);
             if (!string.IsNullOrEmpty(tenantId))
             {
                 tenantWriter.SetTenantId(tenantId);

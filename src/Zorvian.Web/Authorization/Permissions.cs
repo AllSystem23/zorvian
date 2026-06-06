@@ -45,6 +45,7 @@ public static class Permissions
 
     public const string WarrantyRead = "warranty.read";
     public const string WarrantyWrite = "warranty.write";
+    public const string WarrantyViewProfitability = "warranty.view_profitability";
 
     public const string PurchaseRead = "purchase.read";
     public const string PurchaseWrite = "purchase.write";

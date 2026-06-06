@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Routing;
+using Xunit;
 using Moq;
 using Zorvian.Web.Authorization;
 
@@ -126,10 +127,20 @@ public sealed class RequirePermissionAttributeTests
     }
 
     [Fact]
-    public void PermissionCode_IsStored()
+    public void Permission_IsStoredOnAttribute()
     {
         var attr = new RequirePermissionAttribute("inventory.write");
+
         Assert.Equal("inventory.write", attr.Permission);
-        Assert.Equal("Permission:inventory.write", attr.Policy);
+    }
+
+    [Fact]
+    public void Order_IsNegativeToRunBeforeFrameworkAuthorizeFilter()
+    {
+        var attr = new RequirePermissionAttribute("inventory.write");
+
+        // Debe tener un orden negativo para ejecutarse ANTES que el filtro Authorize del framework,
+        // que es el que intentaría buscar la policy "Permission:..." registrada.
+        Assert.True(attr.Order < 0);
     }
 }

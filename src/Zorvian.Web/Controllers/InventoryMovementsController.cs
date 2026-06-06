@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Inventory;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
@@ -20,6 +21,7 @@ public sealed class InventoryMovementsController : ControllerBase
 
     [Audit("InventoryMovement", "Create")]
     [HttpPost]
+    [RequirePermission(Permissions.InventoryWrite)]
     public async Task<IActionResult> Create([FromBody] CreateInventoryMovementRequest request)
     {
         try
@@ -34,6 +36,7 @@ public sealed class InventoryMovementsController : ControllerBase
     }
 
     [HttpGet]
+    [RequirePermission(Permissions.InventoryRead)]
     public async Task<IActionResult> GetList([FromQuery] InventoryMovementFilterRequest filter)
     {
         var result = await _service.GetFilteredAsync(filter);

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Company;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
@@ -25,6 +26,7 @@ public sealed class CompaniesController : ControllerBase
     /// Crea una nueva empresa en el sistema.
     /// </summary>
     [HttpPost]
+    [RequirePermission(Permissions.CompanyManage)]
     public async Task<IActionResult> Create([FromBody] CreateCompanyRequest request)
     {
         try
@@ -42,6 +44,7 @@ public sealed class CompaniesController : ControllerBase
     /// Obtiene la información de la empresa actual.
     /// </summary>
     [HttpGet("current")]
+    [RequirePermission(Permissions.CompanyManage)]
     public async Task<IActionResult> GetCurrent()
     {
         var company = await _companyService.GetCurrentAsync();
@@ -55,6 +58,7 @@ public sealed class CompaniesController : ControllerBase
     /// </summary>
     [Audit("Company", "Update")]
     [HttpPut("current")]
+    [RequirePermission(Permissions.CompanyManage)]
     public async Task<IActionResult> Update([FromBody] UpdateCompanyRequest request)
     {
         var result = await _companyService.UpdateAsync(request);
@@ -67,6 +71,7 @@ public sealed class CompaniesController : ControllerBase
     /// Obtiene la configuración general de la empresa.
     /// </summary>
     [HttpGet("settings")]
+    [RequirePermission(Permissions.CompanyManage)]
     public async Task<IActionResult> GetSettings()
     {
         var settings = await _companyService.GetSettingsAsync();
@@ -80,6 +85,7 @@ public sealed class CompaniesController : ControllerBase
     /// </summary>
     [Audit("Company", "UpdateSettings")]
     [HttpPut("settings")]
+    [RequirePermission(Permissions.CompanyManage)]
     public async Task<IActionResult> UpdateSettings([FromBody] UpdateCompanySettingsRequest request)
     {
         var result = await _companyService.UpdateSettingsAsync(request);

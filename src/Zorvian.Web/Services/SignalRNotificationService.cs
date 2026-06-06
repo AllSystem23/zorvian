@@ -4,7 +4,7 @@ using Zorvian.Web.Hubs;
 
 namespace Zorvian.Web.Services;
 
-public sealed class SignalRNotificationService : INotificationService
+public sealed class SignalRNotificationService : ISignalRNotificationService
 {
     private readonly IHubContext<NotificationHub> _hub;
 

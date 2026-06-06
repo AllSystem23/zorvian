@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Commercial;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
@@ -20,6 +21,7 @@ public sealed class SalesController : ControllerBase
 
     [Audit("Sale", "Create")]
     [HttpPost("cash")]
+    [RequirePermission(Permissions.SaleWrite)]
     public async Task<IActionResult> CreateCashSale([FromBody] CreateCashSaleRequest request)
     {
         try
@@ -35,6 +37,7 @@ public sealed class SalesController : ControllerBase
 
     [Audit("Sale", "Create")]
     [HttpPost("credit")]
+    [RequirePermission(Permissions.SaleWrite)]
     public async Task<IActionResult> CreateCreditSale([FromBody] CreateCreditSaleRequest request)
     {
         try
@@ -49,6 +52,7 @@ public sealed class SalesController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [RequirePermission(Permissions.SaleRead)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var sale = await _service.GetByIdAsync(id);
@@ -58,6 +62,7 @@ public sealed class SalesController : ControllerBase
     }
 
     [HttpGet]
+    [RequirePermission(Permissions.SaleRead)]
     public async Task<IActionResult> GetList([FromQuery] SaleFilterRequest filter)
     {
         var result = await _service.GetFilteredAsync(filter);

@@ -15,10 +15,11 @@ public sealed class VacationServiceTests
     private readonly Mock<INotificationService> _notification = new();
     private readonly VacationService _sut;
     private readonly Guid _employeeId = Guid.NewGuid();
+    private readonly string _tenantId = Guid.NewGuid().ToString();
 
     public VacationServiceTests()
     {
-        _tenant.Setup(t => t.TenantId).Returns("tenant-123");
+        _tenant.Setup(t => t.TenantId).Returns(_tenantId);
         _tenant.Setup(t => t.CurrentEmployeeId).Returns(_employeeId);
         _sut = new VacationService(_repo.Object, _employeeRepo.Object, _tenant.Object, _notification.Object);
     }
@@ -229,7 +230,7 @@ public sealed class VacationServiceTests
         await _sut.ApproveAsync(v.Id, null);
 
         _notification.Verify(n => n.NotifyTenantAsync(
-            "tenant-123",
+            _tenantId,
             It.IsAny<string>(),
             It.IsAny<string>(),
             It.IsAny<string>(),
@@ -245,7 +246,7 @@ public sealed class VacationServiceTests
         await _sut.RejectAsync(v.Id, "Motivo de prueba");
 
         _notification.Verify(n => n.NotifyTenantAsync(
-            "tenant-123",
+            _tenantId,
             It.IsAny<string>(),
             It.IsAny<string>(),
             It.IsAny<string>(),

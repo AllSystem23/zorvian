@@ -13,13 +13,14 @@ public sealed class ReportServiceTests : IDisposable
     private readonly ZorvianDbContext _db;
     private readonly Mock<ITenantContext> _tenant = new();
     private readonly ReportService _sut;
+    private readonly string _tenantId = Guid.NewGuid().ToString();
 
     public ReportServiceTests()
     {
         var options = new DbContextOptionsBuilder<ZorvianDbContext>()
             .UseInMemoryDatabase($"ReportsTest_{Guid.NewGuid()}")
             .Options;
-        _tenant.Setup(t => t.TenantId).Returns("tenant-123");
+        _tenant.Setup(t => t.TenantId).Returns(_tenantId);
         _db = new ZorvianDbContext(options, _tenant.Object);
         _sut = new ReportService(_db, _tenant.Object);
 
@@ -33,10 +34,10 @@ public sealed class ReportServiceTests : IDisposable
 
     private void SeedData()
     {
-        var dept = new Department { Id = Guid.NewGuid(), TenantId = "tenant-123", Name = "IT", Code = "IT" };
+        var dept = new Department { Id = Guid.NewGuid(), TenantId = _tenantId, Name = "IT", Code = "IT" };
         var emp = new Employee
         {
-            Id = Guid.NewGuid(), TenantId = "tenant-123", FirstName = "Juan", LastName = "Pérez",
+            Id = Guid.NewGuid(), TenantId = _tenantId, FirstName = "Juan", LastName = "Pérez",
             EmployeeCode = "EMP-001", Email = "juan@test.com", HireDate = new DateOnly(2025, 1, 1),
             DepartmentId = dept.Id, Department = dept, Status = "active",
         };
@@ -46,20 +47,20 @@ public sealed class ReportServiceTests : IDisposable
         _db.Employees.Add(emp);
         _db.VacationRequests.Add(new VacationRequest
         {
-            Id = Guid.NewGuid(), TenantId = "tenant-123", EmployeeId = emp.Id, Employee = emp,
+            Id = Guid.NewGuid(), TenantId = _tenantId, EmployeeId = emp.Id, Employee = emp,
             StartDate = new DateOnly(2026, 6, 1), EndDate = new DateOnly(2026, 6, 5),
             TotalDays = 5, BusinessDays = 5, Status = "approved",
         });
         _db.PermissionRequests.Add(new PermissionRequest
         {
-            Id = Guid.NewGuid(), TenantId = "tenant-123", EmployeeId = emp.Id, Employee = emp,
+            Id = Guid.NewGuid(), TenantId = _tenantId, EmployeeId = emp.Id, Employee = emp,
             LeaveTypeId = leaveType.Id, LeaveType = leaveType,
             StartDate = new DateOnly(2026, 6, 10), EndDate = new DateOnly(2026, 6, 10),
             TotalDays = 1, BusinessDays = 1, Status = "pending",
         });
         _db.AttendanceRecords.Add(new AttendanceRecord
         {
-            Id = Guid.NewGuid(), TenantId = "tenant-123", EmployeeId = emp.Id, Employee = emp,
+            Id = Guid.NewGuid(), TenantId = _tenantId, EmployeeId = emp.Id, Employee = emp,
             Date = new DateOnly(2026, 6, 1), CheckInTime = DateTime.UtcNow, Status = "present", TotalHours = 8,
         });
         _db.SaveChanges();

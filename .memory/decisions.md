@@ -67,7 +67,21 @@
 
 **Consequences:** Backend builds with 0 errors/warnings. Flutter analyze shows 0 errors (only pre-existing info hints).
 
-## 2026-01-06 router.refresh() for GoRouter redirect
+## 2026-06-06 TenantId query filter: use .ToString() for InMemory compatibility
+
+**Context:** EF Core InMemory provider can't evaluate the implicit `TenantId ↔ string` operator inside global query filters, causing all filtered queries to return 0 results. This also broke `.Include()` for navigation entities with non-nullable FKs when the related entity has a query filter.
+**Decision:** Changed all 78 `HasQueryFilter` expressions from `== _tenantContext.TenantId` to `== _tenantContext.TenantId.ToString()`.
+**Reason:** `.ToString()` is well-known and LINQ-friendly; both produce identical SQL (`WHERE "TenantId" = @p0`). The implicit operator is a C# concept that EF Core's expression tree compiler can't always resolve, especially in InMemory.
+**Consequences:** Fixes InMemory tests; PostgreSQL behavior is identical (same parameterized query).
+
+## 2026-06-06 InMemory tests: seed related entities for Include resolution
+
+**Context:** EF Core InMemory with `.Include(w => w.Client)` returns 0 results when the Client entity doesn't exist in the InMemory store, even though the navigation is optional (left join in SQL).
+**Decision:** Tests now seed all related entities (Client, Product, Brand, Category) in the InMemory database before querying with `.Include()`.
+**Reason:** InMemory's navigation resolution requires the related entity to exist in the store; it does not emulate SQL left joins for missing foreign key targets.
+**Consequences:** Repository tests are more thorough (verify full Includes), but require more setup code (helper methods for seeding).
+
+## 2026-06-06 router.refresh() for GoRouter redirect
 
 **Context:** Login navigates to Firebase Auth and sets auth state, but GoRouter doesn't redirect because the redirect is only evaluated on navigation events.
 **Decision:** Call `router.refresh()` via `ref.listen` in NexoraApp when auth status changes.

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Commercial;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
@@ -20,6 +21,7 @@ public sealed class QuotesController : ControllerBase
 
     [Audit("Quote", "Create")]
     [HttpPost]
+    [RequirePermission(Permissions.SaleWrite)]
     public async Task<IActionResult> Create([FromBody] CreateQuoteRequest request)
     {
         try
@@ -34,6 +36,7 @@ public sealed class QuotesController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [RequirePermission(Permissions.SaleRead)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var quote = await _service.GetByIdAsync(id);
@@ -43,6 +46,7 @@ public sealed class QuotesController : ControllerBase
     }
 
     [HttpGet]
+    [RequirePermission(Permissions.SaleRead)]
     public async Task<IActionResult> GetList([FromQuery] QuoteFilterRequest filter)
     {
         var result = await _service.GetFilteredAsync(filter);
@@ -51,6 +55,7 @@ public sealed class QuotesController : ControllerBase
 
     [Audit("Quote", "Update")]
     [HttpPut("{id:guid}")]
+    [RequirePermission(Permissions.SaleWrite)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateQuoteRequest request)
     {
         var quote = await _service.UpdateAsync(id, request);
@@ -61,6 +66,7 @@ public sealed class QuotesController : ControllerBase
 
     [Audit("Quote", "Delete")]
     [HttpDelete("{id:guid}")]
+    [RequirePermission(Permissions.SaleWrite)]
     public async Task<IActionResult> Delete(Guid id)
     {
         var deleted = await _service.DeleteAsync(id);

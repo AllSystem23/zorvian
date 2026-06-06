@@ -24,7 +24,7 @@ public sealed class OcrProcessingJobTests
             .Options;
         
         var tenantMock = new Mock<Zorvian.Core.Interfaces.ITenantContext>();
-        tenantMock.Setup(t => t.TenantId).Returns("tenant-1");
+        tenantMock.Setup(t => t.TenantId).Returns(Guid.NewGuid().ToString());
         _db = new ZorvianDbContext(options, tenantMock.Object);
     }
 

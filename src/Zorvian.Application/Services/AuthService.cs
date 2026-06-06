@@ -1,6 +1,7 @@
 using Zorvian.Application.DTOs.Auth;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
+using Zorvian.Core.Interfaces;
 
 namespace Zorvian.Application.Services;
 
@@ -10,13 +11,15 @@ public sealed class AuthService
     private readonly IFirebaseAuthService _firebase;
     private readonly IJwtService _jwt;
     private readonly IMfaService _mfa;
+    private readonly ITenantContext _tenant;
 
-    public AuthService(IAuthRepository authRepo, IFirebaseAuthService firebase, IJwtService jwt, IMfaService mfa)
+    public AuthService(IAuthRepository authRepo, IFirebaseAuthService firebase, IJwtService jwt, IMfaService mfa, ITenantContext tenant)
     {
         _authRepo = authRepo;
         _firebase = firebase;
         _jwt = jwt;
         _mfa = mfa;
+        _tenant = tenant;
     }
 
     public async Task<AuthResponse?> LoginAsync(LoginRequest request)
@@ -34,6 +37,7 @@ public sealed class AuthService
                 Email = fbUser.Email,
                 DisplayName = fbUser.Name,
                 AvatarUrl = fbUser.Picture,
+                TenantId = _tenant.TenantId,
             };
             await _authRepo.AddUserAsync(user);
             await _authRepo.SaveChangesAsync();
@@ -69,6 +73,7 @@ public sealed class AuthService
                     Email = fbUser.Email,
                     DisplayName = fbUser.Name,
                     AvatarUrl = fbUser.Picture,
+                    TenantId = _tenant.TenantId,
                 };
                 await _authRepo.AddUserAsync(user);
                 await _authRepo.SaveChangesAsync();

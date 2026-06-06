@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Accounting;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers;
 
@@ -14,6 +15,7 @@ public sealed class AccountingEntriesController : ControllerBase
     public AccountingEntriesController(AccountingEntryService service) => _service = service;
 
     [HttpPost]
+    [RequirePermission(Permissions.AccountingWrite)]
     public async Task<IActionResult> CreateManual([FromBody] CreateManualEntryRequest request)
     {
         try
@@ -25,6 +27,7 @@ public sealed class AccountingEntriesController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [RequirePermission(Permissions.AccountingRead)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var entry = await _service.GetByIdAsync(id);
@@ -33,6 +36,7 @@ public sealed class AccountingEntriesController : ControllerBase
     }
 
     [HttpGet]
+    [RequirePermission(Permissions.AccountingRead)]
     public async Task<IActionResult> GetFiltered(
         [FromQuery] Guid? periodId, [FromQuery] string? referenceType,
         [FromQuery] string? status, [FromQuery] DateTime? fromDate,
@@ -43,6 +47,7 @@ public sealed class AccountingEntriesController : ControllerBase
     }
 
     [HttpPost("{id:guid}/post")]
+    [RequirePermission(Permissions.AccountingWrite)]
     public async Task<IActionResult> Post(Guid id)
     {
         try

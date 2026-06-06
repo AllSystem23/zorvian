@@ -18,7 +18,7 @@ public sealed class AuditLogCleanupJobTests
         var options = new DbContextOptionsBuilder<ZorvianDbContext>()
             .UseInMemoryDatabase(databaseName: dbName)
             .Options;
-        _tenant.Setup(t => t.TenantId).Returns("tenant-1");
+        _tenant.Setup(t => t.TenantId).Returns(Guid.NewGuid().ToString());
         return new ZorvianDbContext(options, _tenant.Object);
     }
 

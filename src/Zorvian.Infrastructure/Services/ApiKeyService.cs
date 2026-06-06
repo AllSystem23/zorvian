@@ -35,7 +35,7 @@ public sealed class ApiKeyService
         return (rawKey, apiKey.Id);
     }
 
-    public async Task<string?> ValidateKeyAsync(string rawKey)
+    public async Task<(string TenantId, Guid? UserId)?> ValidateKeyAndGetInfoAsync(string rawKey)
     {
         if (string.IsNullOrWhiteSpace(rawKey) || rawKey.Length < 32) return null;
 
@@ -51,7 +51,7 @@ public sealed class ApiKeyService
         apiKey.LastUsedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
-        return apiKey.TenantId;
+        return (apiKey.TenantId, apiKey.UserId);
     }
 
     private static string GenerateSecureKey()

@@ -14,7 +14,7 @@ public sealed class AuditInterceptorTests
 
     public AuditInterceptorTests()
     {
-        _tenant.Setup(t => t.TenantId).Returns("tenant-1");
+        _tenant.Setup(t => t.TenantId).Returns(Guid.NewGuid().ToString());
         _tenant.Setup(t => t.CurrentUserId).Returns((Guid?)null);
         _interceptor = new AuditInterceptor(_tenant.Object);
     }
@@ -157,6 +157,8 @@ public sealed class AuditInterceptorTests
     [Fact]
     public async Task SaveChanges_EntityWithNullTenantId_GetsTenantIdFromContext()
     {
+        var tenantId = Guid.NewGuid().ToString();
+        _tenant.Setup(t => t.TenantId).Returns(tenantId);
         using var db = CreateDb(Guid.NewGuid().ToString());
         var emp = new Employee
         {
@@ -171,7 +173,7 @@ public sealed class AuditInterceptorTests
         db.Employees.Add(emp);
         await db.SaveChangesAsync();
 
-        Assert.Equal("tenant-1", emp.TenantId);
+        Assert.Equal(tenantId, emp.TenantId);
     }
 
     [Fact]
@@ -205,8 +207,9 @@ public sealed class AuditInterceptorTests
     [Fact]
     public async Task SaveChanges_AddedWithCurrentUser_SetsCreatedBy()
     {
+        var tenantId = Guid.NewGuid().ToString();
         var tenantWithUser = new Mock<ITenantContext>();
-        tenantWithUser.Setup(t => t.TenantId).Returns("tenant-1");
+        tenantWithUser.Setup(t => t.TenantId).Returns(tenantId);
         tenantWithUser.Setup(t => t.CurrentUserId).Returns(Guid.Parse("11111111-1111-1111-1111-111111111111"));
         var interceptorWithUser = new AuditInterceptor(tenantWithUser.Object);
 
@@ -221,7 +224,7 @@ public sealed class AuditInterceptorTests
             Id = Guid.NewGuid(),
             Name = "User Dept",
             Code = "USR",
-            TenantId = "tenant-1",
+            TenantId = tenantId,
         });
         await db.SaveChangesAsync();
 
@@ -233,8 +236,9 @@ public sealed class AuditInterceptorTests
     [Fact]
     public async Task SaveChanges_UpdatedWithCurrentUser_SetsUpdatedBy()
     {
+        var tenantId = Guid.NewGuid().ToString();
         var tenantWithUser = new Mock<ITenantContext>();
-        tenantWithUser.Setup(t => t.TenantId).Returns("tenant-1");
+        tenantWithUser.Setup(t => t.TenantId).Returns(tenantId);
         var userId = Guid.Parse("22222222-2222-2222-2222-222222222222");
         tenantWithUser.Setup(t => t.CurrentUserId).Returns(userId);
         var interceptorWithUser = new AuditInterceptor(tenantWithUser.Object);
@@ -250,7 +254,7 @@ public sealed class AuditInterceptorTests
             Id = Guid.NewGuid(),
             Name = "Before",
             Code = "BEF",
-            TenantId = "tenant-1",
+            TenantId = tenantId,
         };
         db.Departments.Add(dept);
         await db.SaveChangesAsync();

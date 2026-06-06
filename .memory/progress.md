@@ -58,19 +58,41 @@
 - Flutter: router with all routes + role-based access
 - Flutter analyze: 0 issues
 
+## 2026-06-06 Warranty Module — Fase 0 + Fase 1
+
+### Fase 0 — Fundación ✅
+- Bug fix: `WarrantyFilterRequest` missing `BranchId` parameter
+- Bug fix: `MappingProfile` ignoring `BranchId`
+- Bug fix: `WarrantyService.CreateAsync` not assigning `BranchId`
+- Bug fix: `WarrantyService.GetFilteredAsync` passing `Guid.Empty` instead of filter's `BranchId`
+- Bug fix: `WarrantyRepository` not filtering by `BranchId`
+- Created `WarrantyStatus` enum (13 states) + `WarrantyStatusExtensions`
+- Created `WarrantyStateMachine` with full transition matrix
+- Created `InvalidWarrantyStateTransitionException`
+- Updated `Warranty.cs` entity: `Status` → enum, added `BrandId`/`Brand`, `CategoryId`/`Category`, `SerialNumber`, `Imei`, `LotNumber`
+- Updated `WarrantyClaim.cs`: `Status` → enum
+- Updated DTOs, MappingProfile, DbContext (EnumToStringConverter, new columns, relationships)
+- Created EF Core migration `WarrantyModuleFase0`
+- Updated frontend (`warranty_provider.dart`, `warranty_list_page.dart`, `warranty_form_page.dart`)
+- Tests: StateMachine (20), Service (8), Repository (9) — all 62 pass
+
+### Fase 1 — Talleres y Proveedores ✅
+- Created entities: `ServiceWorkshop`, `WorkshopTechnician`, `WorkshopBrand`, `WarrantyProvider`, `ProviderContact`, `ProviderBrand`
+- Extended `WarrantyClaim` with `WorkshopId`/`Workshop`, `TechnicianId`/`Technician`, `ProviderId`/`Provider`
+- Created DTOs: `WorkshopDtos.cs`, `ProviderDtos.cs`
+- Created repository interfaces + implementations
+- Created services: `WorkshopService`, `WarrantyProviderService`
+- Created controllers: `ServiceWorkshopsController`, `WarrantyProvidersController`
+- Updated `MappingProfile` for all new entities
+- Updated `NexoraDbContext` with new DbSets + entity configurations
+- Updated `Program.cs` with DI registrations
+- Created EF Core migration `WarrantyModuleFase1`
+- Fixed all InMemory-related test issues (seeded related entities for Includes, changed query filters to `.ToString()`)
+- Tests: WorkshopRepository (3), WorkshopService (4), WarrantyProviderRepository (3), WarrantyProviderService (4) — all 14 new tests pass
+- Total warranty tests: 76 passing, 0 failing
+
+# Pre-existing
+
+## 2026-06-01 Gap Analysis & Phase 2
+
 ## 2026-01-06 Initial setup and deployment
-
-### Done
-- Created Nexora project (Flutter + .NET 9)
-- Set up Firebase project (`nexora-hr`)
-- Auth flow, multi-tenancy, Super Admin seeding
-- Deployed backend to Render, frontend to Firebase Hosting
-- Built Android APK
-
-### Pending
-- iOS build
-- CI/CD (GitHub Actions)
-- Custom domain
-- Production hardening
-- FlutterFlow integration
-- Tests

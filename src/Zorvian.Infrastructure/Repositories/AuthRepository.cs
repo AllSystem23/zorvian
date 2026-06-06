@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
+using Zorvian.Core.Interfaces;
 using Zorvian.Infrastructure.Data;
 
 namespace Zorvian.Infrastructure.Repositories;
@@ -8,40 +9,50 @@ namespace Zorvian.Infrastructure.Repositories;
 public sealed class AuthRepository : IAuthRepository
 {
     private readonly ZorvianDbContext _db;
+    private readonly ITenantContext _tenant;
 
-    public AuthRepository(ZorvianDbContext db)
+    public AuthRepository(ZorvianDbContext db, ITenantContext tenant)
     {
         _db = db;
+        _tenant = tenant;
     }
+
+    private bool NeedsBypass => string.IsNullOrEmpty(_tenant.TenantId);
 
     public async Task<User?> GetUserByFirebaseUidAsync(string firebaseUid)
     {
-        return await _db.Users
-            .IgnoreQueryFilters()
+        var query = _db.Users
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
-                .ThenInclude(r => r.RolePermissions)
-            .FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid);
+                .ThenInclude(r => r.RolePermissions);
+
+        return await (NeedsBypass
+            ? query.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid)
+            : query.FirstOrDefaultAsync(u => u.FirebaseUid == firebaseUid));
     }
 
     public async Task<User?> GetUserWithRolesAsync(Guid userId)
     {
-        return await _db.Users
-            .IgnoreQueryFilters()
+        var query = _db.Users
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
-                .ThenInclude(r => r.RolePermissions)
-            .FirstOrDefaultAsync(u => u.Id == userId);
+                .ThenInclude(r => r.RolePermissions);
+
+        return await (NeedsBypass
+            ? query.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Id == userId)
+            : query.FirstOrDefaultAsync(u => u.Id == userId));
     }
 
     public async Task<User?> GetUserByEmailAsync(string email)
     {
-        return await _db.Users
-            .IgnoreQueryFilters()
+        var query = _db.Users
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
-                .ThenInclude(r => r.RolePermissions)
-            .FirstOrDefaultAsync(u => u.Email == email);
+                .ThenInclude(r => r.RolePermissions);
+
+        return await (NeedsBypass
+            ? query.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Email == email)
+            : query.FirstOrDefaultAsync(u => u.Email == email));
     }
 
     public async Task AddUserAsync(User user)
@@ -56,34 +67,41 @@ public sealed class AuthRepository : IAuthRepository
 
     public async Task<RefreshToken?> GetRefreshTokenAsync(string token)
     {
-        return await _db.RefreshTokens
-            .IgnoreQueryFilters()
+        var query = _db.RefreshTokens
             .Include(rt => rt.User)
                 .ThenInclude(u => u.UserRoles)
-                .ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(rt => rt.Token == token);
+                .ThenInclude(ur => ur.Role);
+
+        return await (NeedsBypass
+            ? query.IgnoreQueryFilters().FirstOrDefaultAsync(rt => rt.Token == token)
+            : query.FirstOrDefaultAsync(rt => rt.Token == token));
     }
 
     public async Task<List<RefreshToken>> GetActiveRefreshTokensAsync(Guid userId)
     {
         var now = DateTime.UtcNow;
-        return await _db.RefreshTokens
-            .IgnoreQueryFilters()
-            .Where(rt => rt.UserId == userId && !rt.IsRevoked && rt.ExpiresAt > now)
-            .ToListAsync();
+        IQueryable<RefreshToken> query = _db.RefreshTokens
+            .Where(rt => rt.UserId == userId && !rt.IsRevoked && rt.ExpiresAt > now);
+
+        return await (NeedsBypass
+            ? query.IgnoreQueryFilters().ToListAsync()
+            : query.ToListAsync());
     }
 
     public async Task RevokeAllUserTokensAsync(Guid userId, string? excludeToken = null)
     {
         var now = DateTime.UtcNow;
-        var query = _db.RefreshTokens
-            .IgnoreQueryFilters()
+        IQueryable<RefreshToken> query = _db.RefreshTokens
             .Where(rt => rt.UserId == userId && !rt.IsRevoked && rt.ExpiresAt > now);
 
         if (!string.IsNullOrEmpty(excludeToken))
             query = query.Where(rt => rt.Token != excludeToken);
 
-        var tokens = await query.ToListAsync();
+        IQueryable<RefreshToken> final = NeedsBypass
+            ? query.IgnoreQueryFilters()
+            : query;
+
+        var tokens = await final.ToListAsync();
         foreach (var token in tokens)
         {
             token.IsRevoked = true;

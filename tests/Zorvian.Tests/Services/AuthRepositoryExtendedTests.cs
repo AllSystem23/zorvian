@@ -13,25 +13,36 @@ public sealed class AuthRepositoryExtendedTests
     private readonly ZorvianDbContext _db;
     private readonly AuthRepository _sut;
 
+    private readonly string _tenantId = Guid.NewGuid().ToString();
+
     public AuthRepositoryExtendedTests()
     {
         var options = new DbContextOptionsBuilder<ZorvianDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
-        _tenant.Setup(t => t.TenantId).Returns("tenant-1");
+        _tenant.Setup(t => t.TenantId).Returns(_tenantId);
         _db = new ZorvianDbContext(options, _tenant.Object);
-        _sut = new AuthRepository(_db);
+        _sut = new AuthRepository(_db, _tenant.Object);
     }
+
+    private RefreshToken MakeToken(string token, Guid userId, bool revoked = false, bool expired = false) => new()
+    {
+        UserId = userId,
+        Token = token,
+        TenantId = _tenantId,
+        IsRevoked = revoked,
+        ExpiresAt = expired ? DateTime.UtcNow.AddDays(-1) : DateTime.UtcNow.AddDays(1),
+    };
 
     [Fact]
     public async Task GetActiveRefreshTokensAsync_ReturnsOnlyNonRevokedAndNotExpired()
     {
         var userId = Guid.NewGuid();
         _db.RefreshTokens.AddRange(
-            new RefreshToken { UserId = userId, Token = "valid-1", ExpiresAt = DateTime.UtcNow.AddDays(1) },
-            new RefreshToken { UserId = userId, Token = "revoked", IsRevoked = true, ExpiresAt = DateTime.UtcNow.AddDays(1) },
-            new RefreshToken { UserId = userId, Token = "expired", ExpiresAt = DateTime.UtcNow.AddDays(-1) },
-            new RefreshToken { UserId = Guid.NewGuid(), Token = "other-user", ExpiresAt = DateTime.UtcNow.AddDays(1) }
+            MakeToken("valid-1", userId),
+            MakeToken("revoked", userId, revoked: true),
+            MakeToken("expired", userId, expired: true),
+            MakeToken("other-user", Guid.NewGuid())
         );
         await _db.SaveChangesAsync();
 
@@ -46,9 +57,9 @@ public sealed class AuthRepositoryExtendedTests
     {
         var userId = Guid.NewGuid();
         _db.RefreshTokens.AddRange(
-            new RefreshToken { UserId = userId, Token = "t1", ExpiresAt = DateTime.UtcNow.AddDays(1) },
-            new RefreshToken { UserId = userId, Token = "t2", ExpiresAt = DateTime.UtcNow.AddDays(1) },
-            new RefreshToken { UserId = userId, Token = "already-revoked", IsRevoked = true, ExpiresAt = DateTime.UtcNow.AddDays(1) }
+            MakeToken("t1", userId),
+            MakeToken("t2", userId),
+            MakeToken("already-revoked", userId, revoked: true)
         );
         await _db.SaveChangesAsync();
 
@@ -64,8 +75,8 @@ public sealed class AuthRepositoryExtendedTests
     {
         var userId = Guid.NewGuid();
         _db.RefreshTokens.AddRange(
-            new RefreshToken { UserId = userId, Token = "keep-me", ExpiresAt = DateTime.UtcNow.AddDays(1) },
-            new RefreshToken { UserId = userId, Token = "revoke-me", ExpiresAt = DateTime.UtcNow.AddDays(1) }
+            MakeToken("keep-me", userId),
+            MakeToken("revoke-me", userId)
         );
         await _db.SaveChangesAsync();
 
@@ -87,7 +98,7 @@ public sealed class AuthRepositoryExtendedTests
             FirebaseUid = "new-fb",
             Email = "new@test.com",
             DisplayName = "New",
-            TenantId = "tenant-1",
+            TenantId = _tenantId,
         };
 
         await _sut.AddUserAsync(user);

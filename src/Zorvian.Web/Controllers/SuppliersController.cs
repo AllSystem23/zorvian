@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Inventory;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
@@ -19,6 +20,7 @@ public sealed class SuppliersController : ControllerBase
     }
 
     [HttpGet]
+    [RequirePermission(Permissions.PurchaseRead)]
     public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
     {
         if (page > 1 || !string.IsNullOrWhiteSpace(search))
@@ -32,6 +34,7 @@ public sealed class SuppliersController : ControllerBase
 
     [Audit("Supplier", "Create")]
     [HttpPost]
+    [RequirePermission(Permissions.PurchaseWrite)]
     public async Task<IActionResult> Create([FromBody] CreateSupplierRequest request)
     {
         try
@@ -47,6 +50,7 @@ public sealed class SuppliersController : ControllerBase
 
     [Audit("Supplier", "Update")]
     [HttpPut("{id:guid}")]
+    [RequirePermission(Permissions.PurchaseWrite)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateSupplierRequest request)
     {
         try
@@ -64,6 +68,7 @@ public sealed class SuppliersController : ControllerBase
 
     [Audit("Supplier", "Delete")]
     [HttpDelete("{id:guid}")]
+    [RequirePermission(Permissions.PurchaseWrite)]
     public async Task<IActionResult> Delete(Guid id)
     {
         var deleted = await _service.DeleteAsync(id);

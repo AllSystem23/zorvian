@@ -8,4 +8,5 @@ public sealed class ApiKey : BaseEntity
     public DateTime? LastUsedAt { get; set; }
     public DateTime? ExpiresAt { get; set; }
     public bool IsActive { get; set; } = true;
+    public Guid? UserId { get; set; }
 }

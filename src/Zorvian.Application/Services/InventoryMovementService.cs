@@ -7,7 +7,7 @@ using Zorvian.Core.Interfaces;
 
 namespace Zorvian.Application.Services;
 
-public sealed class InventoryMovementService
+public class InventoryMovementService : IInventoryMovementService
 {
     private readonly IInventoryMovementRepository _movementRepo;
     private readonly IProductRepository _productRepo;
@@ -54,7 +54,7 @@ public sealed class InventoryMovementService
         await _movementRepo.SaveChangesAsync();
 
         await _autoAccounting.GenerateInventoryEntryAsync(
-            movement.Id, movement.ProductId, movement.MovementType, movement.Quantity, product.CostPrice);
+            movement.Id, movement.ProductId, movement.MovementType, movement.Quantity, request.UnitCost);
 
         return _mapper.Map<InventoryMovementResponse>(movement);
     }

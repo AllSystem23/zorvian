@@ -480,6 +480,9 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.ToTable("ApiKeys");
@@ -2959,6 +2962,66 @@ namespace Zorvian.Infrastructure.Migrations
                     b.ToTable("EmployeeSupervisors");
                 });
 
+            modelBuilder.Entity("Zorvian.Core.Entities.EntityHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ChangeType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("FieldName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("NewValue")
+                        .HasColumnType("text");
+
+                    b.Property<string>("OldValue")
+                        .HasColumnType("text");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntityType", "EntityId", "CreatedAt");
+
+                    b.ToTable("EntityHistories");
+                });
+
             modelBuilder.Entity("Zorvian.Core.Entities.FixedAsset", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3202,6 +3265,9 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Property<string>("ReferenceNumber")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
+
+                    b.Property<string>("SerialNumber")
+                        .HasColumnType("text");
 
                     b.Property<int>("StockAfter")
                         .HasColumnType("integer");
@@ -4453,6 +4519,88 @@ namespace Zorvian.Infrastructure.Migrations
                     b.ToTable("Products");
                 });
 
+            modelBuilder.Entity("Zorvian.Core.Entities.ProviderBrand", b =>
+                {
+                    b.Property<Guid>("ProviderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BrandId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SlaHours")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("ProviderId", "BrandId");
+
+                    b.HasIndex("BrandId");
+
+                    b.ToTable("ProviderBrands");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.ProviderContact", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("ProviderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Role")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProviderId");
+
+                    b.ToTable("ProviderContacts");
+                });
+
             modelBuilder.Entity("Zorvian.Core.Entities.Purchase", b =>
                 {
                     b.Property<Guid>("Id")
@@ -5189,6 +5337,109 @@ namespace Zorvian.Infrastructure.Migrations
                     b.ToTable("SalePayments");
                 });
 
+            modelBuilder.Entity("Zorvian.Core.Entities.ServiceWorkshop", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("AvgRepairHours")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("AvgResponseHours")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContactName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Country")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LegalName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal>("Rating")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("TaxId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("TenantId", "Code")
+                        .IsUnique();
+
+                    b.ToTable("ServiceWorkshops");
+                });
+
             modelBuilder.Entity("Zorvian.Core.Entities.SickLeaveRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -5330,6 +5581,9 @@ namespace Zorvian.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<Guid>("BranchId")
                         .HasColumnType("uuid");
 
@@ -5351,16 +5605,26 @@ namespace Zorvian.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
                     b.Property<Guid?>("PurchaseId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Reason")
+                        .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
@@ -5372,7 +5636,7 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Property<decimal>("Subtotal")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<Guid>("SupplierId")
+                    b.Property<Guid?>("SupplierId")
                         .HasColumnType("uuid");
 
                     b.Property<decimal>("Tax")
@@ -5391,6 +5655,18 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("WarrantyCostId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("WarrantyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("WarrantyPartRequestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("WarrantyProviderId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CreditNoteNumber")
@@ -5399,6 +5675,14 @@ namespace Zorvian.Infrastructure.Migrations
                     b.HasIndex("PurchaseId");
 
                     b.HasIndex("SupplierId");
+
+                    b.HasIndex("WarrantyCostId");
+
+                    b.HasIndex("WarrantyId");
+
+                    b.HasIndex("WarrantyPartRequestId");
+
+                    b.HasIndex("WarrantyProviderId");
 
                     b.ToTable("SupplierCreditNotes");
                 });
@@ -5845,6 +6129,12 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Property<Guid>("BranchId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("BrandId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CategoryId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("ClientId")
                         .HasColumnType("uuid");
 
@@ -5867,8 +6157,16 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Property<DateOnly>("EndDate")
                         .HasColumnType("date");
 
+                    b.Property<string>("Imei")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("LotNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uuid");
@@ -5876,13 +6174,17 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Property<Guid?>("SaleId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("SerialNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<DateOnly>("StartDate")
                         .HasColumnType("date");
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
 
                     b.Property<string>("TenantId")
                         .IsRequired()
@@ -5905,6 +6207,10 @@ namespace Zorvian.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BrandId");
+
+                    b.HasIndex("CategoryId");
+
                     b.HasIndex("ClientId");
 
                     b.HasIndex("ProductId");
@@ -5917,11 +6223,97 @@ namespace Zorvian.Infrastructure.Migrations
                     b.ToTable("Warranties");
                 });
 
+            modelBuilder.Entity("Zorvian.Core.Entities.WarrantyAttachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid?>("ClaimId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<long?>("FileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("FileType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("FileUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UploadedByEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("WarrantyId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClaimId");
+
+                    b.HasIndex("UploadedByEmployeeId");
+
+                    b.HasIndex("WarrantyId");
+
+                    b.ToTable("WarrantyAttachments");
+                });
+
             modelBuilder.Entity("Zorvian.Core.Entities.WarrantyClaim", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Accessories")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<Guid?>("ApprovedByEmployeeId")
                         .HasColumnType("uuid");
@@ -5950,8 +6342,35 @@ namespace Zorvian.Infrastructure.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<string>("FailureDescription")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("FailureType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("ProductCondition")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ProviderAuthorizationCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("ProviderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ProviderReferredAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Resolution")
                         .HasMaxLength(2000)
@@ -5960,10 +6379,125 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Property<DateOnly?>("ResolutionDate")
                         .HasColumnType("date");
 
+                    b.Property<DateTime?>("SlaBreachedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("SlaDeadline")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid?>("TechnicianId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("WarrantyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("WorkshopAssignedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("WorkshopId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovedByEmployeeId");
+
+                    b.HasIndex("ProviderId");
+
+                    b.HasIndex("TechnicianId");
+
+                    b.HasIndex("WarrantyId");
+
+                    b.HasIndex("WorkshopId");
+
+                    b.ToTable("WarrantyClaims");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.WarrantyCommunication", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid?>("ClaimId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeliveredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Direction")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ExternalId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Metadata")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("SentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("SentByEmployeeId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Subject")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("TemplateId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("TenantId")
                         .IsRequired()
@@ -5980,11 +6514,618 @@ namespace Zorvian.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ApprovedByEmployeeId");
+                    b.HasIndex("ClaimId");
+
+                    b.HasIndex("SentByEmployeeId");
 
                     b.HasIndex("WarrantyId");
 
-                    b.ToTable("WarrantyClaims");
+                    b.ToTable("WarrantyCommunications");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.WarrantyCost", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AccountingEntryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ClaimId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CostCategory")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<decimal>("ExchangeRate")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<DateOnly?>("InvoiceDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("InvoiceNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("InvoiceUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsBilled")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("PaidBy")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid?>("PaidByPartyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("RegisteredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RegisteredByEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("UnitCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("WarrantyId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClaimId");
+
+                    b.HasIndex("RegisteredByEmployeeId");
+
+                    b.HasIndex("WarrantyId");
+
+                    b.ToTable("WarrantyCosts");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.WarrantyEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ClaimId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid?>("EmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EventData")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsMilestone")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("WarrantyId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClaimId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("WarrantyId", "OccurredAt");
+
+                    b.ToTable("WarrantyEvents");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.WarrantyPartReceipt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BatchLot")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Condition")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("InventoryMovementId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("PartRequestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("QuantityReceived")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ReceivedByEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SerialNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("StorageLocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PartRequestId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("ReceivedByEmployeeId");
+
+                    b.HasIndex("StorageLocationId");
+
+                    b.ToTable("WarrantyPartReceipts");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.WarrantyPartRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ApprovedByEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClaimId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly?>("ExpectedDeliveryDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("InternalNotes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProviderAuthorizationCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("ProviderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProviderNotes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("QuantityReceived")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("QuantityRequested")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RequestNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RequestedByEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("UnitPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("WarrantyId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovedByEmployeeId");
+
+                    b.HasIndex("ClaimId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("ProviderId");
+
+                    b.HasIndex("RequestNumber")
+                        .IsUnique();
+
+                    b.HasIndex("RequestedByEmployeeId");
+
+                    b.HasIndex("WarrantyId");
+
+                    b.ToTable("WarrantyPartRequests");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.WarrantyPartUsage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClaimId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid?>("PartReceiptId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("QuantityUsed")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("UnitCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UsedByEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClaimId");
+
+                    b.HasIndex("PartReceiptId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("UsedByEmployeeId");
+
+                    b.ToTable("WarrantyPartUsages");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.WarrantyProvider", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("AvgResponseHours")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContactName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Country")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LegalName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("TaxId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Website")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Code")
+                        .IsUnique();
+
+                    b.ToTable("WarrantyProviders");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.WarrantyStateHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ChangedByEmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ClaimId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FromStatus")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<bool>("SlaBreached")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ToStatus")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("WarrantyId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChangedByEmployeeId");
+
+                    b.HasIndex("ClaimId");
+
+                    b.HasIndex("WarrantyId", "ChangedAt");
+
+                    b.ToTable("WarrantyStateHistories");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.WebhookSubscription", b =>
@@ -6112,6 +7253,101 @@ namespace Zorvian.Infrastructure.Migrations
                     b.HasIndex("PurchaseId");
 
                     b.ToTable("Withholdings");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.WorkshopBrand", b =>
+                {
+                    b.Property<Guid>("WorkshopId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BrandId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SlaHours")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("WorkshopId", "BrandId");
+
+                    b.HasIndex("BrandId");
+
+                    b.ToTable("WorkshopBrands");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.WorkshopTechnician", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("AvgRepairMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly?>("CertificationDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Identification")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCertified")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.PrimitiveCollection<string[]>("Specialties")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("WorkshopId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WorkshopId");
+
+                    b.ToTable("WorkshopTechnicians");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.Account", b =>
@@ -6842,6 +8078,36 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Navigation("TaxCategory");
                 });
 
+            modelBuilder.Entity("Zorvian.Core.Entities.ProviderBrand", b =>
+                {
+                    b.HasOne("Zorvian.Core.Entities.Brand", "Brand")
+                        .WithMany()
+                        .HasForeignKey("BrandId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Zorvian.Core.Entities.WarrantyProvider", "Provider")
+                        .WithMany()
+                        .HasForeignKey("ProviderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Brand");
+
+                    b.Navigation("Provider");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.ProviderContact", b =>
+                {
+                    b.HasOne("Zorvian.Core.Entities.WarrantyProvider", "Provider")
+                        .WithMany("Contacts")
+                        .HasForeignKey("ProviderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Provider");
+                });
+
             modelBuilder.Entity("Zorvian.Core.Entities.Purchase", b =>
                 {
                     b.HasOne("Zorvian.Core.Entities.Supplier", "Supplier")
@@ -7005,6 +8271,17 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Navigation("Sale");
                 });
 
+            modelBuilder.Entity("Zorvian.Core.Entities.ServiceWorkshop", b =>
+                {
+                    b.HasOne("Zorvian.Core.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+                });
+
             modelBuilder.Entity("Zorvian.Core.Entities.SickLeaveRecord", b =>
                 {
                     b.HasOne("Zorvian.Core.Entities.Employee", "Employee")
@@ -7026,12 +8303,39 @@ namespace Zorvian.Infrastructure.Migrations
                     b.HasOne("Zorvian.Core.Entities.Supplier", "Supplier")
                         .WithMany()
                         .HasForeignKey("SupplierId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Zorvian.Core.Entities.WarrantyCost", "WarrantyCost")
+                        .WithMany()
+                        .HasForeignKey("WarrantyCostId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Zorvian.Core.Entities.Warranty", "Warranty")
+                        .WithMany()
+                        .HasForeignKey("WarrantyId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Zorvian.Core.Entities.WarrantyPartRequest", "WarrantyPartRequest")
+                        .WithMany()
+                        .HasForeignKey("WarrantyPartRequestId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Zorvian.Core.Entities.WarrantyProvider", "WarrantyProvider")
+                        .WithMany()
+                        .HasForeignKey("WarrantyProviderId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Purchase");
 
                     b.Navigation("Supplier");
+
+                    b.Navigation("Warranty");
+
+                    b.Navigation("WarrantyCost");
+
+                    b.Navigation("WarrantyPartRequest");
+
+                    b.Navigation("WarrantyProvider");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.SupplierPayment", b =>
@@ -7124,6 +8428,16 @@ namespace Zorvian.Infrastructure.Migrations
 
             modelBuilder.Entity("Zorvian.Core.Entities.Warranty", b =>
                 {
+                    b.HasOne("Zorvian.Core.Entities.Brand", "Brand")
+                        .WithMany()
+                        .HasForeignKey("BrandId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Zorvian.Core.Entities.Category", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Zorvian.Core.Entities.Client", "Client")
                         .WithMany("Warranties")
                         .HasForeignKey("ClientId")
@@ -7141,11 +8455,40 @@ namespace Zorvian.Infrastructure.Migrations
                         .HasForeignKey("SaleId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.Navigation("Brand");
+
+                    b.Navigation("Category");
+
                     b.Navigation("Client");
 
                     b.Navigation("Product");
 
                     b.Navigation("Sale");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.WarrantyAttachment", b =>
+                {
+                    b.HasOne("Zorvian.Core.Entities.WarrantyClaim", "Claim")
+                        .WithMany()
+                        .HasForeignKey("ClaimId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Zorvian.Core.Entities.Employee", "UploadedBy")
+                        .WithMany()
+                        .HasForeignKey("UploadedByEmployeeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Zorvian.Core.Entities.Warranty", "Warranty")
+                        .WithMany()
+                        .HasForeignKey("WarrantyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Claim");
+
+                    b.Navigation("UploadedBy");
+
+                    b.Navigation("Warranty");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.WarrantyClaim", b =>
@@ -7155,13 +8498,249 @@ namespace Zorvian.Infrastructure.Migrations
                         .HasForeignKey("ApprovedByEmployeeId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("Zorvian.Core.Entities.WarrantyProvider", "Provider")
+                        .WithMany()
+                        .HasForeignKey("ProviderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Zorvian.Core.Entities.WorkshopTechnician", "Technician")
+                        .WithMany()
+                        .HasForeignKey("TechnicianId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Zorvian.Core.Entities.Warranty", "Warranty")
                         .WithMany("Claims")
                         .HasForeignKey("WarrantyId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Zorvian.Core.Entities.ServiceWorkshop", "Workshop")
+                        .WithMany()
+                        .HasForeignKey("WorkshopId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("ApprovedBy");
+
+                    b.Navigation("Provider");
+
+                    b.Navigation("Technician");
+
+                    b.Navigation("Warranty");
+
+                    b.Navigation("Workshop");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.WarrantyCommunication", b =>
+                {
+                    b.HasOne("Zorvian.Core.Entities.WarrantyClaim", "Claim")
+                        .WithMany()
+                        .HasForeignKey("ClaimId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Zorvian.Core.Entities.Employee", "SentBy")
+                        .WithMany()
+                        .HasForeignKey("SentByEmployeeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Zorvian.Core.Entities.Warranty", "Warranty")
+                        .WithMany()
+                        .HasForeignKey("WarrantyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Claim");
+
+                    b.Navigation("SentBy");
+
+                    b.Navigation("Warranty");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.WarrantyCost", b =>
+                {
+                    b.HasOne("Zorvian.Core.Entities.WarrantyClaim", "Claim")
+                        .WithMany()
+                        .HasForeignKey("ClaimId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Zorvian.Core.Entities.Employee", "RegisteredBy")
+                        .WithMany()
+                        .HasForeignKey("RegisteredByEmployeeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Zorvian.Core.Entities.Warranty", "Warranty")
+                        .WithMany("Costs")
+                        .HasForeignKey("WarrantyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Claim");
+
+                    b.Navigation("RegisteredBy");
+
+                    b.Navigation("Warranty");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.WarrantyEvent", b =>
+                {
+                    b.HasOne("Zorvian.Core.Entities.WarrantyClaim", "Claim")
+                        .WithMany()
+                        .HasForeignKey("ClaimId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Zorvian.Core.Entities.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Zorvian.Core.Entities.Warranty", "Warranty")
+                        .WithMany()
+                        .HasForeignKey("WarrantyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Claim");
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("Warranty");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.WarrantyPartReceipt", b =>
+                {
+                    b.HasOne("Zorvian.Core.Entities.WarrantyPartRequest", "PartRequest")
+                        .WithMany()
+                        .HasForeignKey("PartRequestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Zorvian.Core.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Zorvian.Core.Entities.Employee", "ReceivedBy")
+                        .WithMany()
+                        .HasForeignKey("ReceivedByEmployeeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Zorvian.Core.Entities.Location", "StorageLocation")
+                        .WithMany()
+                        .HasForeignKey("StorageLocationId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("PartRequest");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("ReceivedBy");
+
+                    b.Navigation("StorageLocation");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.WarrantyPartRequest", b =>
+                {
+                    b.HasOne("Zorvian.Core.Entities.Employee", "ApprovedBy")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByEmployeeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Zorvian.Core.Entities.WarrantyClaim", "Claim")
+                        .WithMany()
+                        .HasForeignKey("ClaimId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Zorvian.Core.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Zorvian.Core.Entities.WarrantyProvider", "Provider")
+                        .WithMany()
+                        .HasForeignKey("ProviderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Zorvian.Core.Entities.Employee", "RequestedBy")
+                        .WithMany()
+                        .HasForeignKey("RequestedByEmployeeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Zorvian.Core.Entities.Warranty", "Warranty")
+                        .WithMany()
+                        .HasForeignKey("WarrantyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ApprovedBy");
+
+                    b.Navigation("Claim");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Provider");
+
+                    b.Navigation("RequestedBy");
+
+                    b.Navigation("Warranty");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.WarrantyPartUsage", b =>
+                {
+                    b.HasOne("Zorvian.Core.Entities.WarrantyClaim", "Claim")
+                        .WithMany()
+                        .HasForeignKey("ClaimId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Zorvian.Core.Entities.WarrantyPartReceipt", "PartReceipt")
+                        .WithMany()
+                        .HasForeignKey("PartReceiptId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Zorvian.Core.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Zorvian.Core.Entities.Employee", "UsedBy")
+                        .WithMany()
+                        .HasForeignKey("UsedByEmployeeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Claim");
+
+                    b.Navigation("PartReceipt");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("UsedBy");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.WarrantyStateHistory", b =>
+                {
+                    b.HasOne("Zorvian.Core.Entities.Employee", "ChangedBy")
+                        .WithMany()
+                        .HasForeignKey("ChangedByEmployeeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Zorvian.Core.Entities.WarrantyClaim", "Claim")
+                        .WithMany()
+                        .HasForeignKey("ClaimId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Zorvian.Core.Entities.Warranty", "Warranty")
+                        .WithMany()
+                        .HasForeignKey("WarrantyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ChangedBy");
+
+                    b.Navigation("Claim");
 
                     b.Navigation("Warranty");
                 });
@@ -7175,6 +8754,36 @@ namespace Zorvian.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Purchase");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.WorkshopBrand", b =>
+                {
+                    b.HasOne("Zorvian.Core.Entities.Brand", "Brand")
+                        .WithMany()
+                        .HasForeignKey("BrandId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Zorvian.Core.Entities.ServiceWorkshop", "Workshop")
+                        .WithMany()
+                        .HasForeignKey("WorkshopId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Brand");
+
+                    b.Navigation("Workshop");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.WorkshopTechnician", b =>
+                {
+                    b.HasOne("Zorvian.Core.Entities.ServiceWorkshop", "Workshop")
+                        .WithMany("Technicians")
+                        .HasForeignKey("WorkshopId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Workshop");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.Account", b =>
@@ -7347,6 +8956,11 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Navigation("Payments");
                 });
 
+            modelBuilder.Entity("Zorvian.Core.Entities.ServiceWorkshop", b =>
+                {
+                    b.Navigation("Technicians");
+                });
+
             modelBuilder.Entity("Zorvian.Core.Entities.Supplier", b =>
                 {
                     b.Navigation("Products");
@@ -7365,6 +8979,13 @@ namespace Zorvian.Infrastructure.Migrations
             modelBuilder.Entity("Zorvian.Core.Entities.Warranty", b =>
                 {
                     b.Navigation("Claims");
+
+                    b.Navigation("Costs");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.WarrantyProvider", b =>
+                {
+                    b.Navigation("Contacts");
                 });
 #pragma warning restore 612, 618
         }

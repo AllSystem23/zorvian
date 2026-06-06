@@ -34,7 +34,7 @@ public sealed record CreateSupplierCreditNoteRequest(
 public sealed record SupplierCreditNoteResponse(
     Guid Id,
     string CreditNoteNumber,
-    Guid SupplierId,
+    Guid? SupplierId,
     string SupplierName,
     Guid? PurchaseId,
     DateOnly CreditNoteDate,

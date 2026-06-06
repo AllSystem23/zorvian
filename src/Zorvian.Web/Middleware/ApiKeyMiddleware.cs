@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Zorvian.Infrastructure.Services;
 using Zorvian.Core.Interfaces;
+using Zorvian.Core.Entities;
 
 namespace Zorvian.Web.Middleware;
 
@@ -24,12 +25,13 @@ public sealed class ApiKeyMiddleware
         }
 
         var apiKeyService = context.RequestServices.GetRequiredService<ApiKeyService>();
-        var tenantId = await apiKeyService.ValidateKeyAsync(extractedApiKey!);
+        var apiKeyInfo = await apiKeyService.ValidateKeyAndGetInfoAsync(extractedApiKey!);
 
-        if (tenantId != null)
+        if (apiKeyInfo != null)
         {
             var tenantWriter = context.RequestServices.GetRequiredService<ITenantContextWriter>();
-            tenantWriter.SetTenantId(tenantId);
+            tenantWriter.SetTenantId(TenantId.FromString(apiKeyInfo.Value.TenantId));
+            tenantWriter.SetCurrentUser(apiKeyInfo.Value.UserId, null); 
 
             context.Items["IsApiKeyAuth"] = true;
         }

@@ -25,6 +25,7 @@ public sealed class UsersController : ControllerBase
         _tenant = tenant;
     }
 
+    [Audit("User", "ReadList")]
     [HttpGet]
     [RequirePermission(Permissions.UserRead)]
     public async Task<IActionResult> GetList()
@@ -51,6 +52,7 @@ public sealed class UsersController : ControllerBase
         }));
     }
 
+    [Audit("User", "Read")]
     [HttpGet("{id:guid}")]
     [RequirePermission(Permissions.UserRead)]
     public async Task<IActionResult> GetById(Guid id)
@@ -167,6 +169,7 @@ public sealed class UsersController : ControllerBase
         return Ok(new { isActive = user.IsActive });
     }
 
+    [Audit("User", "ReadRoles")]
     [HttpGet("roles")]
     [RequirePermission(Permissions.UserRead)]
     public async Task<IActionResult> GetRoles()

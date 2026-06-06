@@ -301,11 +301,10 @@ public sealed class MappingProfile : Profile
         CreateMap<CreateWarrantyRequest, Warranty>()
             .ForMember(d => d.Id, o => o.Ignore())
             .ForMember(d => d.CompanyId, o => o.Ignore())
-            .ForMember(d => d.BranchId, o => o.Ignore())
             .ForMember(d => d.WarrantyNumber, o => o.Ignore())
             .ForMember(d => d.StartDate, o => o.MapFrom(_ => DateOnly.FromDateTime(DateTime.UtcNow)))
             .ForMember(d => d.EndDate, o => o.Ignore())
-            .ForMember(d => d.Status, o => o.MapFrom(_ => "active"))
+            .ForMember(d => d.Status, o => o.MapFrom(_ => Zorvian.Core.Enums.WarrantyStatus.Registered))
             .ForMember(d => d.Client, o => o.Ignore())
             .ForMember(d => d.Product, o => o.Ignore())
             .ForMember(d => d.Sale, o => o.Ignore())
@@ -397,19 +396,125 @@ public sealed class MappingProfile : Profile
         CreateMap<CreateWarrantyClaimRequest, WarrantyClaim>()
             .ForMember(d => d.Id, o => o.Ignore())
             .ForMember(d => d.ClaimDate, o => o.MapFrom(_ => DateOnly.FromDateTime(DateTime.UtcNow)))
-            .ForMember(d => d.Status, o => o.MapFrom(_ => "pending"))
+            .ForMember(d => d.Status, o => o.MapFrom(_ => Zorvian.Core.Enums.WarrantyStatus.Registered))
             .ForMember(d => d.Resolution, o => o.Ignore())
             .ForMember(d => d.ResolutionDate, o => o.Ignore())
             .ForMember(d => d.ApprovedByEmployeeId, o => o.Ignore());
         CreateMap<Warranty, WarrantyResponse>()
             .ForMember(d => d.ClientName, o => o.MapFrom(s => s.Client != null ? $"{s.Client.FirstName} {s.Client.LastName}".Trim() : ""))
             .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product != null ? s.Product.Name : ""))
-            .ForMember(d => d.SaleNumber, o => o.MapFrom(s => s.Sale != null ? s.Sale.InvoiceNumber : null));
+            .ForMember(d => d.SaleNumber, o => o.MapFrom(s => s.Sale != null ? s.Sale.InvoiceNumber : null))
+            .ForMember(d => d.BrandName, o => o.MapFrom(s => s.Brand != null ? s.Brand.Name : null))
+            .ForMember(d => d.CategoryName, o => o.MapFrom(s => s.Category != null ? s.Category.Name : null));
         CreateMap<Warranty, WarrantyListResponse>()
             .ForMember(d => d.ClientName, o => o.MapFrom(s => s.Client != null ? $"{s.Client.FirstName} {s.Client.LastName}".Trim() : ""))
             .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product != null ? s.Product.Name : ""));
         CreateMap<WarrantyClaim, WarrantyClaimResponse>()
-            .ForMember(d => d.ApprovedByName, o => o.Ignore());
+            .ForMember(d => d.ApprovedByName, o => o.Ignore())
+            .ForMember(d => d.WorkshopName, o => o.MapFrom(s => s.Workshop != null ? s.Workshop.Name : null))
+            .ForMember(d => d.TechnicianName, o => o.MapFrom(s => s.Technician != null ? s.Technician.FullName : null))
+            .ForMember(d => d.ProviderName, o => o.MapFrom(s => s.Provider != null ? s.Provider.Name : null));
+
+        // WarrantyCost
+        CreateMap<CreateWarrantyCostRequest, WarrantyCost>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.BranchId, o => o.Ignore())
+            .ForMember(d => d.CompanyId, o => o.Ignore())
+            .ForMember(d => d.CurrencyCode, o => o.MapFrom(_ => "USD"))
+            .ForMember(d => d.ExchangeRate, o => o.MapFrom(_ => 1m))
+            .ForMember(d => d.RegisteredAt, o => o.MapFrom(_ => DateTime.UtcNow))
+            .ForMember(d => d.Warranty, o => o.Ignore())
+            .ForMember(d => d.Claim, o => o.Ignore())
+            .ForMember(d => d.RegisteredBy, o => o.Ignore());
+        CreateMap<UpdateWarrantyCostRequest, WarrantyCost>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.BranchId, o => o.Ignore())
+            .ForMember(d => d.CompanyId, o => o.Ignore())
+            .ForMember(d => d.CurrencyCode, o => o.Ignore())
+            .ForMember(d => d.ExchangeRate, o => o.Ignore())
+            .ForMember(d => d.RegisteredAt, o => o.Ignore())
+            .ForMember(d => d.Warranty, o => o.Ignore())
+            .ForMember(d => d.Claim, o => o.Ignore())
+            .ForMember(d => d.RegisteredBy, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<WarrantyCost, WarrantyCostResponse>();
+
+        // WarrantyPartRequest
+        CreateMap<CreateWarrantyPartRequestRequest, WarrantyPartRequest>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.QuantityReceived, o => o.MapFrom(_ => 0))
+            .ForMember(d => d.RequestNumber, o => o.Ignore())
+            .ForMember(d => d.RequestedAt, o => o.MapFrom(_ => DateTime.UtcNow))
+            .ForMember(d => d.Status, o => o.MapFrom(_ => "requested"))
+            .ForMember(d => d.CurrencyCode, o => o.MapFrom(_ => "USD"))
+            .ForMember(d => d.Warranty, o => o.Ignore())
+            .ForMember(d => d.Claim, o => o.Ignore())
+            .ForMember(d => d.Provider, o => o.Ignore())
+            .ForMember(d => d.Product, o => o.Ignore())
+            .ForMember(d => d.RequestedBy, o => o.Ignore())
+            .ForMember(d => d.ApprovedBy, o => o.Ignore());
+        CreateMap<WarrantyPartRequest, WarrantyPartRequestResponse>();
+
+        // WarrantyPartUsage
+        CreateMap<CreateWarrantyPartUsageRequest, WarrantyPartUsage>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.UsedAt, o => o.MapFrom(_ => DateTime.UtcNow))
+            .ForMember(d => d.Claim, o => o.Ignore())
+            .ForMember(d => d.Product, o => o.Ignore())
+            .ForMember(d => d.PartReceipt, o => o.Ignore());
+        CreateMap<WarrantyPartUsage, WarrantyPartUsageResponse>()
+            .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product != null ? s.Product.Name : ""));
+
+        // WarrantySlaConfig
+        CreateMap<CreateWarrantySlaConfigRequest, WarrantySlaConfig>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.IsActive, o => o.MapFrom(_ => true))
+            .ForMember(d => d.TenantId, o => o.Ignore())
+            .ForMember(d => d.CompanyId, o => o.Ignore());
+        CreateMap<UpdateWarrantySlaConfigRequest, WarrantySlaConfig>()
+            .ForAllMembers(o => o.Condition((src, dest, srcMember) => srcMember != null));
+        CreateMap<WarrantySlaConfig, WarrantySlaConfigResponse>();
+
+        // WarrantyCommunication
+        CreateMap<SendWarrantyCommunicationRequest, WarrantyCommunication>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.Direction, o => o.MapFrom(_ => "outbound"))
+            .ForMember(d => d.Status, o => o.MapFrom(_ => "pending"))
+            .ForMember(d => d.Warranty, o => o.Ignore())
+            .ForMember(d => d.Claim, o => o.Ignore())
+            .ForMember(d => d.SentBy, o => o.Ignore());
+        CreateMap<WarrantyCommunication, WarrantyCommunicationResponse>();
+
+        // ServiceWorkshop
+        CreateMap<CreateServiceWorkshopRequest, ServiceWorkshop>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.IsActive, o => o.MapFrom(_ => true))
+            .ForMember(d => d.Rating, o => o.MapFrom(_ => 0m))
+            .ForMember(d => d.Branch, o => o.Ignore())
+            .ForMember(d => d.Technicians, o => o.Ignore());
+        CreateMap<UpdateServiceWorkshopRequest, ServiceWorkshop>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.BranchId, o => o.Ignore())
+            .ForMember(d => d.Code, o => o.Ignore())
+            .ForMember(d => d.Rating, o => o.Ignore())
+            .ForMember(d => d.Branch, o => o.Ignore())
+            .ForMember(d => d.Technicians, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<ServiceWorkshop, ServiceWorkshopResponse>()
+            .ForMember(d => d.TechnicianCount, o => o.MapFrom(s => s.Technicians != null ? s.Technicians.Count : 0));
+
+        // WarrantyProvider
+        CreateMap<CreateWarrantyProviderRequest, WarrantyProvider>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.IsActive, o => o.MapFrom(_ => true))
+            .ForMember(d => d.Contacts, o => o.Ignore());
+        CreateMap<UpdateWarrantyProviderRequest, WarrantyProvider>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.Code, o => o.Ignore())
+            .ForMember(d => d.Contacts, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<WarrantyProvider, WarrantyProviderResponse>()
+            .ForMember(d => d.ContactCount, o => o.MapFrom(s => s.Contacts != null ? s.Contacts.Count : 0));
 
         // Accounting
         CreateMap<CreateAccountRequest, Account>()

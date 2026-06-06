@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.Interfaces;
 using Zorvian.Web.Authorization;
+using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
 
@@ -17,6 +18,7 @@ public sealed class AuditLogsController : ControllerBase
         _repo = repo;
     }
 
+    [Audit("AuditLog", "Read")]
     [HttpGet("logs")]
     [RequirePermission(Permissions.AuditRead)]
     public async Task<IActionResult> GetLogs(

@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Payroll;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
+using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
 
@@ -15,11 +17,14 @@ public sealed class PayrollController : ControllerBase
     public PayrollController(PayrollService service) => _service = service;
 
     // Deduction Types
+    [Audit("Payroll", "ReadDeductionTypes")]
     [HttpGet("deduction-types")]
+    [RequirePermission(Permissions.PayrollRead)]
     public async Task<IActionResult> GetDeductionTypes() =>
         Ok(await _service.GetDeductionTypesAsync());
 
     [HttpPost("deduction-types")]
+    [RequirePermission(Permissions.PayrollWrite)]
     public async Task<IActionResult> CreateDeductionType([FromBody] CreateDeductionTypeRequest request)
     {
         var result = await _service.CreateDeductionTypeAsync(request);
@@ -27,6 +32,7 @@ public sealed class PayrollController : ControllerBase
     }
 
     [HttpPut("deduction-types/{id:guid}")]
+    [RequirePermission(Permissions.PayrollWrite)]
     public async Task<IActionResult> UpdateDeductionType(Guid id, [FromBody] UpdateDeductionTypeRequest request)
     {
         var result = await _service.UpdateDeductionTypeAsync(id, request);
@@ -34,15 +40,19 @@ public sealed class PayrollController : ControllerBase
     }
 
     [HttpDelete("deduction-types/{id:guid}")]
+    [RequirePermission(Permissions.PayrollWrite)]
     public async Task<IActionResult> DeleteDeductionType(Guid id) =>
         await _service.DeleteDeductionTypeAsync(id) ? NoContent() : NotFound();
 
     // Employee Salaries
+    [Audit("Payroll", "ReadSalaries")]
     [HttpGet("salaries")]
+    [RequirePermission(Permissions.PayrollRead)]
     public async Task<IActionResult> GetSalaries([FromQuery] Guid? employeeId) =>
         Ok(await _service.GetSalariesAsync(employeeId));
 
     [HttpPost("salaries")]
+    [RequirePermission(Permissions.PayrollWrite)]
     public async Task<IActionResult> CreateSalary([FromBody] CreateEmployeeSalaryRequest request)
     {
         var result = await _service.CreateSalaryAsync(request);
@@ -50,16 +60,19 @@ public sealed class PayrollController : ControllerBase
     }
 
     [HttpDelete("salaries/{id:guid}")]
-    [Authorize(Roles = "SuperAdmin,CompanyAdmin")]
+    [RequirePermission(Permissions.PayrollWrite)]
     public async Task<IActionResult> DeactivateSalary(Guid id) =>
         await _service.DeactivateSalaryAsync(id) ? NoContent() : NotFound();
 
     // Payroll Periods
+    [Audit("Payroll", "ReadPeriods")]
     [HttpGet("periods")]
+    [RequirePermission(Permissions.PayrollRead)]
     public async Task<IActionResult> GetPeriods([FromQuery] int? year) =>
         Ok(await _service.GetPeriodsAsync(year));
 
     [HttpPost("periods")]
+    [RequirePermission(Permissions.PayrollWrite)]
     public async Task<IActionResult> CreatePeriod([FromBody] CreatePayrollPeriodRequest request)
     {
         var result = await _service.CreatePeriodAsync(request);
@@ -67,11 +80,15 @@ public sealed class PayrollController : ControllerBase
     }
 
     // Payroll Runs
+    [Audit("Payroll", "ReadRuns")]
     [HttpGet("runs")]
+    [RequirePermission(Permissions.PayrollRead)]
     public async Task<IActionResult> GetRuns([FromQuery] Guid? periodId) =>
         Ok(await _service.GetRunsAsync(periodId));
 
+    [Audit("Payroll", "ReadRun")]
     [HttpGet("runs/{id:guid}")]
+    [RequirePermission(Permissions.PayrollRead)]
     public async Task<IActionResult> GetRunById(Guid id)
     {
         var result = await _service.GetRunByIdAsync(id);
@@ -79,6 +96,7 @@ public sealed class PayrollController : ControllerBase
     }
 
     [HttpPost("runs/generate")]
+    [RequirePermission(Permissions.PayrollProcess)]
     public async Task<IActionResult> GeneratePayroll([FromBody] GeneratePayrollRequest request)
     {
         try
@@ -92,6 +110,7 @@ public sealed class PayrollController : ControllerBase
         }
     }
     [HttpPost("runs/{id:guid}/approve")]
+    [RequirePermission(Permissions.PayrollProcess)]
     public async Task<IActionResult> ApproveRun(Guid id)
     {
         var result = await _service.ApproveRunAsync(id);
@@ -99,7 +118,7 @@ public sealed class PayrollController : ControllerBase
     }
 
     [HttpDelete("runs/{id:guid}")]
-    [Authorize(Roles = "SuperAdmin,CompanyAdmin")]
+    [RequirePermission(Permissions.PayrollWrite)]
     public async Task<IActionResult> DeleteRun(Guid id)
     {
         try
@@ -113,7 +132,7 @@ public sealed class PayrollController : ControllerBase
     }
 
     [HttpPost("runs/{id:guid}/cancel")]
-    [Authorize(Roles = "SuperAdmin,CompanyAdmin")]
+    [RequirePermission(Permissions.PayrollWrite)]
     public async Task<IActionResult> CancelRun(Guid id)
     {
         try
@@ -128,7 +147,7 @@ public sealed class PayrollController : ControllerBase
     }
 
     [HttpPost("runs/{id:guid}/mark-paid")]
-    [Authorize(Roles = "SuperAdmin,CompanyAdmin")]
+    [RequirePermission(Permissions.PayrollProcess)]
     public async Task<IActionResult> MarkAsPaid(Guid id)
     {
         try
@@ -143,14 +162,16 @@ public sealed class PayrollController : ControllerBase
     }
 
     [HttpPut("details/{detailId:guid}")]
-    [Authorize(Roles = "SuperAdmin,CompanyAdmin")]
+    [RequirePermission(Permissions.PayrollWrite)]
     public async Task<IActionResult> UpdateDetail(Guid detailId, [FromBody] UpdatePayrollDetailRequest request)
     {
         var result = await _service.UpdateDetailAsync(detailId, request);
         return result is null ? NotFound() : Ok(result);
     }
 
+    [Audit("Payroll", "ExportAch")]
     [HttpGet("runs/{id:guid}/export-ach")]
+    [RequirePermission(Permissions.PayrollRead)]
     public async Task<IActionResult> ExportAch(Guid id)
     {
         var result = await _service.ExportAchFileAsync(id);

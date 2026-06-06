@@ -1,8 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
+using Zorvian.Infrastructure.Data;
 
 namespace Zorvian.Web.Filters;
 
@@ -20,23 +20,21 @@ public sealed class AuditAttribute : ActionFilterAttribute
 
     public override async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
-        var result = await next();
-
-        if (result.Exception is not null)
-            return;
-
         var httpContext = context.HttpContext;
         var tenant = httpContext.RequestServices.GetRequiredService<ITenantContext>();
-        var repo = httpContext.RequestServices.GetRequiredService<IAuditLogRepository>();
+        var db = httpContext.RequestServices.GetRequiredService<ZorvianDbContext>();
 
         var userIdClaim = httpContext.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         Guid? userId = Guid.TryParse(userIdClaim, out var uid) ? uid : null;
 
+        var entityId = context.RouteData.Values["id"]?.ToString() ?? "";
+
+        // Log before execution — captures intent even if action fails
         var log = new AuditLog
         {
             TenantId = tenant.TenantId ?? "unknown",
             EntityName = _entityName,
-            EntityId = context.RouteData.Values["id"]?.ToString() ?? "",
+            EntityId = entityId,
             Action = _action,
             PerformedBy = userId,
             IpAddress = httpContext.Connection.RemoteIpAddress?.ToString(),
@@ -44,6 +42,22 @@ public sealed class AuditAttribute : ActionFilterAttribute
             RequestPath = httpContext.Request.Path,
         };
 
-        await repo.AddAsync(log);
+        db.AuditLogs.Add(log);
+
+        var result = await next();
+
+        // After execution, update EntityId for create actions where id is set in the response
+        var newEntityId = context.RouteData.Values["id"]?.ToString() ?? "";
+        if (!string.IsNullOrEmpty(newEntityId) && string.IsNullOrEmpty(entityId))
+        {
+            log.EntityId = newEntityId;
+        }
+
+        if (result.Exception is not null && !result.ExceptionHandled)
+        {
+            log.OldValues = $"Failed: {result.Exception.Message}";
+        }
+
+        await db.SaveChangesAsync();
     }
 }

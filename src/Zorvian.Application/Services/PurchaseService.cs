@@ -259,6 +259,9 @@ public sealed class PurchaseService
         await _purchaseRepo.UpdateAsync(purchase);
         await _purchaseRepo.SaveChangesAsync();
 
+        // TODO: Implementar reversión contable para la anulación de compra
+        // await _autoAccounting.ReversePurchaseEntryAsync(purchase.Id);
+
         return await GetByIdAsync(purchase.Id) ?? throw new InvalidOperationException("Failed to cancel purchase");
     }
 

@@ -4,8 +4,8 @@ using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using Hangfire;
 using Hangfire.PostgreSql;
+using Hangfire.MemoryStorage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.IdentityModel.Tokens;
@@ -29,18 +29,23 @@ using Zorvian.Application.Services.DepreciationCalculators;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var mockExternal = builder.Configuration.GetValue<bool>("Testing:MockExternalServices");
+
 // Firebase Admin SDK
-var credPath = builder.Configuration["Firebase:CredentialsFilePath"] ?? "nexora-hr-firebase-admin.json";
-var fbCredFile = Path.Combine(builder.Environment.ContentRootPath, credPath);
-if (!File.Exists(fbCredFile))
-    fbCredFile = Path.Combine("/etc/secrets", credPath);
-if (File.Exists(fbCredFile))
+if (!mockExternal)
 {
-    FirebaseApp.Create(new AppOptions
+    var credPath = builder.Configuration["Firebase:CredentialsFilePath"] ?? string.Empty;
+    var fbCredFile = Path.Combine(builder.Environment.ContentRootPath, credPath);
+    if (!File.Exists(fbCredFile))
+        fbCredFile = Path.Combine("/etc/secrets", credPath);
+    if (File.Exists(fbCredFile))
     {
-        Credential = CredentialFactory.FromFile<ServiceAccountCredential>(fbCredFile).ToGoogleCredential().CreateScoped(),
-        ProjectId = builder.Configuration["Firebase:ProjectId"],
-    });
+        FirebaseApp.Create(new AppOptions
+        {
+            Credential = CredentialFactory.FromFile<ServiceAccountCredential>(fbCredFile).ToGoogleCredential().CreateScoped(),
+            ProjectId = builder.Configuration["Firebase:ProjectId"],
+        });
+    }
 }
 
 builder.Services.AddControllers();
@@ -50,10 +55,21 @@ builder.Services.AddEndpointsApiExplorer();
 // Database
 builder.Services.AddDbContext<ZorvianDbContext>((sp, options) =>
 {
-    var interceptor = sp.GetRequiredService<Zorvian.Infrastructure.Data.AuditInterceptor>();
-    options.UseNpgsql(builder.Configuration.GetConnectionString("ZorvianDb"))
-           .AddInterceptors(interceptor)
-           .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+    var auditInterceptor = sp.GetRequiredService<Zorvian.Infrastructure.Data.AuditInterceptor>();
+    var immutabilityInterceptor = sp.GetRequiredService<Zorvian.Infrastructure.Data.AuditImmutabilityInterceptor>();
+    var connStr = builder.Configuration.GetConnectionString("ZorvianDb");
+    if (mockExternal || string.IsNullOrEmpty(connStr))
+    {
+        options.UseInMemoryDatabase("ZorvianInMemoryDb")
+               .AddInterceptors(auditInterceptor, immutabilityInterceptor)
+               .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+    }
+    else
+    {
+        options.UseNpgsql(connStr)
+               .AddInterceptors(auditInterceptor, immutabilityInterceptor)
+               .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+    }
 });
 
 // AutoMapper
@@ -67,8 +83,10 @@ builder.Services.AddScoped<TenantContext>();
 builder.Services.AddScoped<ITenantContext>(sp => sp.GetRequiredService<TenantContext>());
 builder.Services.AddScoped<ITenantContextWriter>(sp => sp.GetRequiredService<TenantContext>());
 builder.Services.AddScoped<Zorvian.Infrastructure.Data.AuditInterceptor>();
+builder.Services.AddScoped<Zorvian.Infrastructure.Data.AuditImmutabilityInterceptor>();
 builder.Services.AddSingleton<IFirebaseAuthService, FirebaseAuthService>();
 builder.Services.AddSingleton<IJwtService, JwtService>();
+builder.Services.AddSingleton<IEncryptionService, EncryptionService>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 
 // DI - Application
@@ -104,6 +122,7 @@ builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
 builder.Services.AddScoped<DashboardService>();
 builder.Services.AddScoped<IAttendanceRepository, AttendanceRepository>();
 builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+builder.Services.AddScoped<IEntityHistoryRepository, EntityHistoryRepository>();
 builder.Services.AddScoped<AttendanceService>();
 builder.Services.AddScoped<IPayrollRepository, PayrollRepository>();
 builder.Services.AddScoped<IPayrollConceptRepository, PayrollConceptRepository>();
@@ -178,7 +197,7 @@ builder.Services.AddScoped<SupplierService>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<ProductService>();
     builder.Services.AddScoped<IInventoryMovementRepository, InventoryMovementRepository>();
-    builder.Services.AddScoped<InventoryMovementService>();
+    builder.Services.AddScoped<IInventoryMovementService, InventoryMovementService>();
     builder.Services.AddScoped<IPurchaseRepository, PurchaseRepository>();
     builder.Services.AddScoped<PurchaseService>();
     builder.Services.AddScoped<ISupplierPaymentRepository, SupplierPaymentRepository>();
@@ -213,9 +232,21 @@ builder.Services.AddScoped<ICashRegisterRepository, CashRegisterRepository>();
 builder.Services.AddScoped<ICashMovementRepository, CashMovementRepository>();
 builder.Services.AddScoped<CashRegisterService>();
 
-// DI - New Module: Garantías
-builder.Services.AddScoped<IWarrantyRepository, WarrantyRepository>();
-builder.Services.AddScoped<WarrantyService>();
+builder.Services.AddScoped<IWarrantySlaConfigRepository, WarrantySlaConfigRepository>();
+builder.Services.AddScoped<WarrantySlaConfigService>();
+builder.Services.AddScoped<IWarrantyProviderRepository, WarrantyProviderRepository>();
+builder.Services.AddScoped<WarrantyProviderService>();
+builder.Services.AddScoped<IWarrantyCostRepository, WarrantyCostRepository>();
+builder.Services.AddScoped<WarrantyCostService>();
+builder.Services.AddScoped<IWarrantyPartRequestRepository, WarrantyPartRequestRepository>();
+builder.Services.AddScoped<WarrantyPartRequestService>();
+builder.Services.AddScoped<IWarrantyCommunicationRepository, WarrantyCommunicationRepository>();
+builder.Services.AddScoped<WarrantyCommunicationService>();
+builder.Services.AddScoped<IWarrantyEventRepository, WarrantyEventRepository>();
+builder.Services.AddScoped<IWarrantyAttachmentRepository, WarrantyAttachmentRepository>();
+builder.Services.AddScoped<IWarrantyStateHistoryRepository, WarrantyStateHistoryRepository>();
+builder.Services.AddScoped<WarrantyDashboardService>();
+builder.Services.AddScoped<WarrantyTimelineService>();
 
 // DI - New Module: Contabilidad
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
@@ -285,24 +316,33 @@ builder.Services.AddAuthorization();
 
 // SignalR
 builder.Services.AddSignalR();
-
 // Notifications
-builder.Services.AddScoped<SignalRNotificationService>();
+builder.Services.AddScoped<ISignalRNotificationService, SignalRNotificationService>();
 builder.Services.AddScoped<IFCMNotificationService, FCMNotificationService>();
 builder.Services.AddScoped<INotificationService, CombinedNotificationService>();
-
 // Hangfire
-builder.Services.AddHangfire((sp, config) =>
+if (!mockExternal)
 {
-    var connectionString = builder.Configuration.GetConnectionString("ZorvianDb");
-    config.UsePostgreSqlStorage(connectionString);
-});
-builder.Services.AddHangfireServer();
+    builder.Services.AddHangfire((sp, config) =>
+    {
+        var connectionString = builder.Configuration.GetConnectionString("ZorvianDb");
+        config.UsePostgreSqlStorage(options => options.UseNpgsqlConnection(connectionString));
+    });
+    builder.Services.AddHangfireServer();
+}
+else
+{
+    builder.Services.AddHangfire(config => config.UseMemoryStorage());
+}
+
 builder.Services.AddScoped<CheckInReminderJob>();
 builder.Services.AddScoped<DocumentExpirationJob>();
 builder.Services.AddScoped<AttendancePhotoCleanupJob>();
 builder.Services.AddScoped<AbsenteeismTrainingJob>();
-builder.Services.AddScoped<AuditLogCleanupJob>();
+builder.Services.AddScoped<WarrantySlaMonitorJob>();
+
+// Anti-CSRF
+builder.Services.AddAntiforgery();
 
 // CORS
 builder.Services.AddCors(options =>
@@ -366,7 +406,6 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// THE SOLUTION: CORS MUST BE FIRST
 app.UseCors("ZorvianCors");
 
 if (app.Environment.IsDevelopment())
@@ -379,8 +418,12 @@ if (app.Environment.IsDevelopment())
 app.UseSecurityHeaders();
 app.UseGlobalExceptionMiddleware();
 app.UseRateLimitingMiddleware(maxRequests: 120, windowSeconds: 60);
-app.UseHttpsRedirection();
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    app.UseHttpsRedirection();
+}
 app.UseStaticFiles();
+app.UseCsrfProtection();
 app.UseMiddleware<ApiKeyMiddleware>();
 app.UseAuthentication();
 app.UseTenantMiddleware();
@@ -388,45 +431,26 @@ app.UseAuthorization();
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapControllers();
 
-// Hangfire dashboard (dev only)
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() && !mockExternal)
 {
     app.UseHangfireDashboard();
 }
 
-// Recurring jobs using IRecurringJobManager from DI
-var recurringJobManager = app.Services.GetRequiredService<IRecurringJobManager>();
+if (!mockExternal)
+{
+    var recurringJobManager = app.Services.GetRequiredService<IRecurringJobManager>();
 
-recurringJobManager.AddOrUpdate<CheckInReminderJob>(
-    "check-in-reminder",
-    j => j.RunAsync(),
-    "0 9 * * *"); // Every day at 09:00
+    recurringJobManager.AddOrUpdate<CheckInReminderJob>("check-in-reminder", j => j.RunAsync(), "0 9 * * *");
+    recurringJobManager.AddOrUpdate<DocumentExpirationJob>("document-expiration-check", j => j.RunAsync(), "0 8 * * *");
+    recurringJobManager.AddOrUpdate<AttendancePhotoCleanupJob>("attendance-photo-cleanup", j => j.RunAsync(), "0 3 1 * *");
+    recurringJobManager.AddOrUpdate<AbsenteeismTrainingJob>("absenteeism-model-training", j => j.RunAsync(), "0 2 * * 0");
+    recurringJobManager.AddOrUpdate<AuditLogCleanupJob>("audit-log-cleanup", j => j.RunAsync(), "0 3 1 * *");
+    recurringJobManager.AddOrUpdate<DatabaseBackupJob>("database-backup", j => j.RunAsync(), "0 2 * * *");
+}
 
-recurringJobManager.AddOrUpdate<DocumentExpirationJob>(
-    "document-expiration-check",
-    j => j.RunAsync(),
-    "0 8 * * *"); // Every day at 08:00
-
-recurringJobManager.AddOrUpdate<AttendancePhotoCleanupJob>(
-    "attendance-photo-cleanup",
-    j => j.RunAsync(),
-    "0 3 1 * *"); // 1st day of every month at 03:00
-
-recurringJobManager.AddOrUpdate<AbsenteeismTrainingJob>(
-    "absenteeism-model-training",
-    j => j.RunAsync(),
-    "0 2 * * 0"); // Every Sunday at 02:00
-
-recurringJobManager.AddOrUpdate<AuditLogCleanupJob>(
-    "audit-log-cleanup",
-    j => j.RunAsync(),
-    "0 3 1 * *"); // 1st day of every month at 03:00
-
-// Health check
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", version = "1.0.0" }));
 
-// Auto-migrate in production with guardrails
-if (app.Environment.IsProduction())
+if (app.Environment.IsProduction() && !mockExternal)
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<ZorvianDbContext>();
@@ -439,20 +463,17 @@ if (app.Environment.IsProduction())
 
         if (pendingList.Count > 0)
         {
-            logger.LogInformation("Applying {Count} pending migration(s): {Migrations}",
-                pendingList.Count, string.Join(", ", pendingList));
+            logger.LogInformation("Applying {Count} pending migration(s): {Migrations}", pendingList.Count, string.Join(", ", pendingList));
             await db.Database.MigrateAsync();
             logger.LogInformation("Migration(s) applied successfully");
-        }
-        else
-        {
-            logger.LogInformation("No pending migrations");
         }
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "Migration failed — application will start but database may be out of date");
+        logger.LogError(ex, "Migration failed");
     }
 }
 
 app.Run();
+
+public partial class Program { }

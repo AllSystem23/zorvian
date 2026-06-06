@@ -41,7 +41,7 @@ public sealed class SupplierCreditNoteService
             SupplierId = request.SupplierId,
             PurchaseId = request.PurchaseId,
             CreditNoteDate = request.CreditNoteDate,
-            Reason = request.Reason,
+            Reason = request.Reason ?? string.Empty,
             Subtotal = request.Subtotal,
             Tax = request.Tax,
             Total = request.Total,

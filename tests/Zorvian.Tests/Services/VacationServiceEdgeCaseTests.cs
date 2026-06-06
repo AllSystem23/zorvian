@@ -16,7 +16,7 @@ public sealed class VacationServiceEdgeCaseTests
 
     public VacationServiceEdgeCaseTests()
     {
-        _tenant.Setup(t => t.TenantId).Returns("tenant-123");
+        _tenant.Setup(t => t.TenantId).Returns(Guid.NewGuid().ToString());
         _tenant.Setup(t => t.CurrentEmployeeId).Returns(Guid.NewGuid());
         _sut = new VacationService(
             _repo.Object,

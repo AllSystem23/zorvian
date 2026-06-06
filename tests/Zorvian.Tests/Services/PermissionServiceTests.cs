@@ -17,10 +17,11 @@ public sealed class PermissionServiceTests
     private readonly Mock<IJobScheduler> _jobScheduler = new();
     private readonly PermissionService _sut;
     private readonly Guid _employeeId = Guid.NewGuid();
+    private readonly string _tenantId = Guid.NewGuid().ToString();
 
     public PermissionServiceTests()
     {
-        _tenant.Setup(t => t.TenantId).Returns("tenant-123");
+        _tenant.Setup(t => t.TenantId).Returns(_tenantId);
         _tenant.Setup(t => t.CurrentEmployeeId).Returns(_employeeId);
         _sut = new PermissionService(_repo.Object, _employeeRepo.Object, _tenant.Object, _notification.Object, _jobScheduler.Object);
     }
@@ -394,7 +395,7 @@ public sealed class PermissionServiceTests
         await _sut.ApproveAsync(id, "Aprobado");
 
         _notification.Verify(n => n.NotifyTenantAsync(
-            "tenant-123",
+            _tenantId,
             It.IsAny<string>(),
             It.IsAny<string>(),
             It.IsAny<string>(),
@@ -418,7 +419,7 @@ public sealed class PermissionServiceTests
         await _sut.RejectAsync(id, "No aprobado");
 
         _notification.Verify(n => n.NotifyTenantAsync(
-            "tenant-123",
+            _tenantId,
             It.IsAny<string>(),
             It.IsAny<string>(),
             It.IsAny<string>(),

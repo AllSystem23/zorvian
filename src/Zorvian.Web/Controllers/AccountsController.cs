@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Accounting;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers;
 
@@ -14,9 +15,11 @@ public sealed class AccountsController : ControllerBase
     public AccountsController(AccountService service) => _service = service;
 
     [HttpGet]
+    [RequirePermission(Permissions.AccountingRead)]
     public async Task<IActionResult> GetAll() => Ok(await _service.GetTreeAsync());
 
     [HttpGet("{id:guid}")]
+    [RequirePermission(Permissions.AccountingRead)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var account = await _service.GetTreeAsync().ContinueWith(t => t.Result.FirstOrDefault(a => a.Id == id));
@@ -25,6 +28,7 @@ public sealed class AccountsController : ControllerBase
     }
 
     [HttpPost]
+    [RequirePermission(Permissions.AccountingWrite)]
     public async Task<IActionResult> Create([FromBody] CreateAccountRequest request)
     {
         try
@@ -36,6 +40,7 @@ public sealed class AccountsController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [RequirePermission(Permissions.AccountingWrite)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateAccountRequest request)
     {
         try
@@ -47,6 +52,7 @@ public sealed class AccountsController : ControllerBase
     }
 
     [HttpPost("seed")]
+    [RequirePermission(Permissions.AccountingWrite)]
     public async Task<IActionResult> Seed()
     {
         await _service.SeedDefaultChartOfAccountsAsync();

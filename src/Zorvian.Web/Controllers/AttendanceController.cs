@@ -7,6 +7,7 @@ using Zorvian.Core.Interfaces;
 using Zorvian.Infrastructure.Data;
 using Zorvian.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
+using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers;
 
@@ -35,7 +36,7 @@ public sealed class AttendanceController : ControllerBase
     /// Obtiene las predicciones de riesgo de ausentismo para los empleados (Solo Admin).
     /// </summary>
     [HttpGet("predictions")]
-    [Authorize(Roles = "SuperAdmin,CompanyAdmin")]
+    [RequirePermission(Permissions.EmployeeRead)]
     public async Task<IActionResult> GetAbsenteeismPredictions()
     {
         var employees = await _db.Employees.Where(e => e.TenantId == _tenant.TenantId).ToListAsync();
@@ -68,6 +69,7 @@ public sealed class AttendanceController : ControllerBase
     /// Registra la entrada (check-in) del empleado autenticado.
     /// </summary>
     [HttpPost("check-in")]
+    [RequirePermission(Permissions.EmployeeRead)]
     public async Task<IActionResult> CheckIn([FromBody] CheckInRequest request)
     {
         if (_tenant.CurrentEmployeeId is null)
@@ -88,6 +90,7 @@ public sealed class AttendanceController : ControllerBase
     /// Registra la salida (check-out) del empleado autenticado.
     /// </summary>
     [HttpPost("check-out")]
+    [RequirePermission(Permissions.EmployeeRead)]
     public async Task<IActionResult> CheckOut([FromBody] CheckOutRequest request)
     {
         if (_tenant.CurrentEmployeeId is null)
@@ -108,6 +111,7 @@ public sealed class AttendanceController : ControllerBase
     /// Registra la entrada del empleado mediante un código QR.
     /// </summary>
     [HttpPost("qr-check-in")]
+    [RequirePermission(Permissions.EmployeeRead)]
     public async Task<IActionResult> QRCheckIn([FromBody] QRCheckInRequest request)
     {
         if (_tenant.CurrentEmployeeId is null)
@@ -128,6 +132,7 @@ public sealed class AttendanceController : ControllerBase
     /// Obtiene los registros de asistencia mensual del empleado autenticado.
     /// </summary>
     [HttpGet("my")]
+    [RequirePermission(Permissions.EmployeeRead)]
     public async Task<IActionResult> GetMyMonthly([FromQuery] int? year, [FromQuery] int? month)
     {
         var isSuperAdmin = User.IsInRole("SuperAdmin");

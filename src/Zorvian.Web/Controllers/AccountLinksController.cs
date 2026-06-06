@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Accounting;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers;
 
@@ -14,9 +15,11 @@ public sealed class AccountLinksController : ControllerBase
     public AccountLinksController(AccountLinkService service) => _service = service;
 
     [HttpGet]
+    [RequirePermission(Permissions.AccountingRead)]
     public async Task<IActionResult> GetAll() => Ok(await _service.GetAllAsync());
 
     [HttpPost]
+    [RequirePermission(Permissions.AccountingWrite)]
     public async Task<IActionResult> Create([FromBody] CreateAccountLinkRequest request)
     {
         try
@@ -28,6 +31,7 @@ public sealed class AccountLinksController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [RequirePermission(Permissions.AccountingWrite)]
     public async Task<IActionResult> Delete(Guid id)
     {
         try
@@ -39,6 +43,7 @@ public sealed class AccountLinksController : ControllerBase
     }
 
     [HttpPost("seed")]
+    [RequirePermission(Permissions.AccountingWrite)]
     public async Task<IActionResult> Seed()
     {
         await _service.SeedDefaultLinksAsync();
