@@ -17,6 +17,7 @@ public sealed class PurchaseService
     private readonly IAutoAccountingService _autoAccounting;
     private readonly ITenantContext _tenant;
     private readonly IMapper _mapper;
+    private readonly IApprovalEngine _approvalEngine;
 
     public PurchaseService(
         IPurchaseRepository purchaseRepo,
@@ -26,7 +27,8 @@ public sealed class PurchaseService
         ISupplierRepository supplierRepo,
         IAutoAccountingService autoAccounting,
         ITenantContext tenant,
-        IMapper mapper)
+        IMapper mapper,
+        IApprovalEngine approvalEngine)
     {
         _purchaseRepo = purchaseRepo;
         _productRepo = productRepo;
@@ -36,6 +38,7 @@ public sealed class PurchaseService
         _autoAccounting = autoAccounting;
         _tenant = tenant;
         _mapper = mapper;
+        _approvalEngine = approvalEngine;
     }
 
     public async Task<PurchaseResponse> CreateAsync(CreatePurchaseRequest request)
@@ -93,6 +96,24 @@ public sealed class PurchaseService
 
         await _purchaseRepo.AddAsync(purchase);
 
+        // Check if approval is needed
+        var approvalResult = await _approvalEngine.EvaluateAsync(
+            "Purchase", "Create", purchase.Id, total, _tenant.TenantId.ToString());
+        if (approvalResult.RequiresApproval)
+        {
+            purchase.Status = "pending_approval";
+            await _purchaseRepo.SaveChangesAsync();
+            return await GetByIdAsync(purchase.Id) ?? throw new InvalidOperationException("Failed to create purchase");
+        }
+
+        await CompletePurchaseAsync(purchase, request);
+
+        return await GetByIdAsync(purchase.Id) ?? throw new InvalidOperationException("Failed to create purchase");
+    }
+
+    private async Task CompletePurchaseAsync(Purchase purchase, CreatePurchaseRequest request)
+    {
+        var companyId = purchase.CompanyId;
         foreach (var detail in request.Details)
         {
             var product = await _productRepo.GetByIdAsync(detail.ProductId);
@@ -121,8 +142,21 @@ public sealed class PurchaseService
 
         await _autoAccounting.GeneratePurchaseEntryAsync(
             purchase.Id, purchase.Details.ToList(), purchase.Discount, purchase.Total);
+    }
 
-        return await GetByIdAsync(purchase.Id) ?? throw new InvalidOperationException("Failed to create purchase");
+    public async Task<PurchaseResponse?> CompleteApprovedPurchaseAsync(Guid purchaseId)
+    {
+        var purchase = await _purchaseRepo.GetByIdAsync(purchaseId);
+        if (purchase is null || purchase.Status != "pending_approval")
+            return null;
+
+        purchase.Status = "completed";
+        await _purchaseRepo.SaveChangesAsync();
+
+        await _autoAccounting.GeneratePurchaseEntryAsync(
+            purchase.Id, purchase.Details.ToList(), purchase.Discount, purchase.Total);
+
+        return await GetByIdAsync(purchase.Id);
     }
 
     public async Task<PurchaseResponse> UpdateAsync(Guid id, UpdatePurchaseRequest request)
@@ -259,8 +293,8 @@ public sealed class PurchaseService
         await _purchaseRepo.UpdateAsync(purchase);
         await _purchaseRepo.SaveChangesAsync();
 
-        // TODO: Implementar reversión contable para la anulación de compra
-        // await _autoAccounting.ReversePurchaseEntryAsync(purchase.Id);
+        await _autoAccounting.ReversePurchaseEntryAsync(
+            purchase.Id, purchase.Details.ToList(), purchase.Total);
 
         return await GetByIdAsync(purchase.Id) ?? throw new InvalidOperationException("Failed to cancel purchase");
     }
@@ -315,8 +349,8 @@ public sealed class PurchaseService
         var page = filter.Page ?? 1;
         var pageSize = filter.PageSize ?? 20;
 
-        var items = await _purchaseRepo.GetFilteredAsync(filter.SupplierId, filter.Status, filter.FromDate, filter.ToDate, filter.BranchId ?? Guid.Empty, page, pageSize);
-        var total = await _purchaseRepo.GetFilteredCountAsync(filter.SupplierId, filter.Status, filter.FromDate, filter.ToDate, filter.BranchId ?? Guid.Empty);
+        var items = await _purchaseRepo.GetFilteredAsync(filter.SupplierId, filter.Status, filter.FromDate, filter.ToDate, filter.Search, filter.BranchId ?? Guid.Empty, page, pageSize);
+        var total = await _purchaseRepo.GetFilteredCountAsync(filter.SupplierId, filter.Status, filter.FromDate, filter.ToDate, filter.Search, filter.BranchId ?? Guid.Empty);
 
         return new PagedResult<PurchaseListResponse>(
             items.Select(p => new PurchaseListResponse(

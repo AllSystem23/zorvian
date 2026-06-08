@@ -48,7 +48,7 @@ public sealed class BiService
         var todaySales = await _saleRepo.GetTodaySalesAsync(NullBranch);
         var yesterday = DateTime.UtcNow.Date.AddDays(-1);
         var yesterdaySales = await _saleRepo.GetFilteredAsync(
-            null, null, null, yesterday, yesterday.AddDays(1), NullBranch, 1, int.MaxValue);
+            null, null, null, yesterday, yesterday.AddDays(1), null, NullBranch, 1, int.MaxValue);
         var yesterdayTotal = yesterdaySales.Sum(s => s.Total);
         var salesChange = yesterdayTotal > 0 ? (double)((todaySales - yesterdayTotal) / yesterdayTotal) * 100 : 0;
 
@@ -56,7 +56,7 @@ public sealed class BiService
             null, null, null,
             new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1).AddMonths(-1),
             new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1),
-            NullBranch, 1, int.MaxValue);
+            null, NullBranch, 1, int.MaxValue);
         var lastMonthTotal = lastMonthSales.Sum(s => s.Total);
         var monthSales = await _saleRepo.GetMonthSalesAsync(NullBranch);
         var monthChange = lastMonthTotal > 0 ? (double)((monthSales - lastMonthTotal) / lastMonthTotal) * 100 : 0;
@@ -70,7 +70,7 @@ public sealed class BiService
         {
             var day = weekStart.AddDays(i);
             var daySales = await _saleRepo.GetFilteredAsync(
-                null, null, null, day, day.AddDays(1), NullBranch, 1, int.MaxValue);
+                null, null, null, day, day.AddDays(1), null, NullBranch, 1, int.MaxValue);
             weekSales.Add(daySales.Sum(s => s.Total));
         }
 
@@ -86,7 +86,7 @@ public sealed class BiService
         var monthSalesCount = await _saleRepo.GetFilteredCountAsync(
             null, null, null,
             new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1),
-            DateTime.UtcNow, NullBranch);
+            DateTime.UtcNow, null, NullBranch);
         var avgMonthlySales = monthSalesCount > 0 ? monthSales / monthSalesCount : 1;
         var dso = avgMonthlySales > 0 ? (double)(totalPortfolio / avgMonthlySales) * 30 : 0;
 
@@ -133,7 +133,7 @@ public sealed class BiService
     {
         var toDate = DateTime.UtcNow;
         var fromDate = toDate.AddMonths(-months);
-        var sales = await _saleRepo.GetFilteredAsync(null, null, null, fromDate, toDate, NullBranch, 1, int.MaxValue);
+        var sales = await _saleRepo.GetFilteredAsync(null, null, null, fromDate, toDate, null, NullBranch, 1, int.MaxValue);
 
         var monthly = sales
             .GroupBy(s => new { s.CreatedAt.Year, s.CreatedAt.Month })
@@ -168,7 +168,7 @@ public sealed class BiService
     {
         from ??= DateTime.UtcNow.AddMonths(-3);
         to ??= DateTime.UtcNow;
-        var quotes = await _quoteRepo.GetFilteredAsync(null, null, from, to, NullBranch, 1, int.MaxValue);
+        var quotes = await _quoteRepo.GetFilteredAsync(null, null, from, to, null, NullBranch, 1, int.MaxValue);
         var converted = quotes.Where(q => q.Status == "approved").ToList();
         var total = quotes.Count;
         var rate = total > 0 ? (double)converted.Count / total * 100 : 0;
@@ -181,7 +181,7 @@ public sealed class BiService
 
     public async Task<BiArAgingResponse> GetArAgingAsync()
     {
-        var credits = await _creditRepo.GetFilteredAsync(null, null, NullBranch, 1, int.MaxValue);
+        var credits = await _creditRepo.GetFilteredAsync(null, null, null, NullBranch, 1, int.MaxValue);
         var openCredits = credits.Where(c => c.Status == "active" || c.Status == "overdue").ToList();
         var totalPortfolio = openCredits.Sum(c => c.Balance);
         var now = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -226,7 +226,7 @@ public sealed class BiService
 
     public async Task<BiApAgingResponse> GetApAgingAsync()
     {
-        var purchases = await _purchaseRepo.GetFilteredAsync(null, null, null, null, NullBranch, 1, int.MaxValue);
+        var purchases = await _purchaseRepo.GetFilteredAsync(null, null, null, null, null, NullBranch, 1, int.MaxValue);
         var pending = purchases.Where(p => p.Status == "pending" || p.Status == "completed").ToList();
         var totalPayable = pending.Sum(p => p.Balance);
         var now = DateTime.UtcNow;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../shared/ds/ds.dart';
 import '../providers/purchase_provider.dart';
 
 final class PurchaseDetailPage extends ConsumerStatefulWidget {
@@ -32,18 +33,14 @@ final class _PurchaseDetailPageState extends ConsumerState<PurchaseDetailPage> {
   }
 
   Future<void> _cancel() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Anular compra'),
-        content: const Text('¿Está seguro de anular esta compra? Se revertirá el stock.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Anular')),
-        ],
-      ),
+    final confirm = await ZModal.confirm(
+      context,
+      title: 'Anular compra',
+      message: '¿Está seguro de anular esta compra? Se revertirá el stock.',
+      confirmText: 'Anular',
+      cancelText: 'Cancelar',
     );
-    if (confirm != true) return;
+    if (!confirm) return;
     try {
       final dio = ref.read(dioClientProvider);
       await dio.post('purchases/${widget.purchaseId}/cancel');
@@ -77,40 +74,37 @@ final class _PurchaseDetailPageState extends ConsumerState<PurchaseDetailPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Text('Estado: ', style: TextStyle(fontWeight: FontWeight.w600)),
-                      Chip(label: Text(d.status, style: const TextStyle(fontSize: 11, color: Colors.white)), backgroundColor: statusColor, padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
-                    ],
-                  ),
-                  const Divider(),
-                  _row('Proveedor', d.supplierName),
-                  _row('Fecha', d.createdAt.substring(0, 10)),
-                  if (d.invoiceReference != null) _row('Ref. Factura', d.invoiceReference!),
-                  if (d.purchaseDate != null) _row('Fecha Compra', d.purchaseDate!.substring(0, 10)),
-                  const Divider(),
-                  _row('Subtotal', '\$${d.subtotal.toStringAsFixed(2)}'),
-                  _row('IVA', '\$${d.tax.toStringAsFixed(2)}'),
-                  _row('Descuento', '\$${d.discount.toStringAsFixed(2)}'),
-                  _row('Total', '\$${d.total.toStringAsFixed(2)}', bold: true),
-                  if (d.notes != null) ...[const Divider(), _row('Notas', d.notes!)],
+          ZCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Text('Estado: ', style: TextStyle(fontWeight: FontWeight.w600)),
+                    Chip(label: Text(d.status, style: const TextStyle(fontSize: 11, color: Colors.white)), backgroundColor: statusColor, padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
+                  ],
+                ),
+                const Divider(),
+                _row('Proveedor', d.supplierName),
+                _row('Fecha', d.createdAt.substring(0, 10)),
+                if (d.invoiceReference != null) _row('Ref. Factura', d.invoiceReference!),
+                if (d.purchaseDate != null) _row('Fecha Compra', d.purchaseDate!.substring(0, 10)),
+                const Divider(),
+                _row('Subtotal', '\$${d.subtotal.toStringAsFixed(2)}'),
+                _row('IVA', '\$${d.tax.toStringAsFixed(2)}'),
+                _row('Descuento', '\$${d.discount.toStringAsFixed(2)}'),
+                _row('Total', '\$${d.total.toStringAsFixed(2)}', bold: true),
+                if (d.notes != null) ...[const Divider(), _row('Notas', d.notes!)],
                 ],
               ),
-            ),
           ),
           const SizedBox(height: 12),
           Text('Productos (${d.details.length})', style: TextStyle(fontWeight: FontWeight.w600, color: theme.colorScheme.primary)),
           const SizedBox(height: 8),
-          ...d.details.map((i) => Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
+          ...d.details.map((i) => ZCard(
+            padding: const EdgeInsets.all(12),
+            child: Row(
                 children: [
                   Expanded(
                     child: Column(
@@ -123,9 +117,9 @@ final class _PurchaseDetailPageState extends ConsumerState<PurchaseDetailPage> {
                   ),
                   Text('\$${i.subtotal.toStringAsFixed(2)}', style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold)),
                 ],
-              ),
-            ),
-          )),
+          ),
+          ),
+          ),
         ],
       ),
     );

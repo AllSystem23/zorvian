@@ -85,4 +85,29 @@ public sealed class CashRegistersController : ControllerBase
         var movements = await _service.GetMovementsAsync(id);
         return Ok(movements);
     }
+
+    [Audit("CashRegister", "Arqueo")]
+    [HttpPost("{id:guid}/arqueo")]
+    public async Task<IActionResult> CreateArqueo(Guid id, [FromBody] CreateArqueoRequest request)
+    {
+        try
+        {
+            var result = await _service.CreateArqueoAsync(id, request);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [Audit("CashRegister", "ReadArqueo")]
+    [HttpGet("{id:guid}/arqueo")]
+    public async Task<IActionResult> GetArqueo(Guid id)
+    {
+        var result = await _service.GetArqueoAsync(id);
+        if (result is null)
+            return NotFound(new { error = "Arqueo not found" });
+        return Ok(result);
+    }
 }

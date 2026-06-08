@@ -16,6 +16,8 @@ public sealed class AccountingEntry : BaseEntity
     public decimal TotalCredit { get; set; }
     public DateTime? PostedAt { get; set; }
     public string? PostedBy { get; set; }
+    public Guid? CostCenterId { get; set; }
+    public CostCenter? CostCenter { get; set; }
 
     public ICollection<AccountingEntryDetail> Details { get; set; } = [];
 }
@@ -29,5 +31,7 @@ public sealed class AccountingEntryDetail : BaseEntity
     public decimal DebitAmount { get; set; }
     public decimal CreditAmount { get; set; }
     public string? Description { get; set; }
+    public Guid? CostCenterId { get; set; }
+    public CostCenter? CostCenter { get; set; }
     public Guid CompanyId { get; set; }
 }

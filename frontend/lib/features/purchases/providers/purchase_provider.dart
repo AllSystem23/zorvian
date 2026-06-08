@@ -102,11 +102,13 @@ final class PurchaseNotifier extends Notifier<PurchaseState> {
   @override
   PurchaseState build() => const PurchaseState();
 
-  Future<void> load() async {
+  Future<void> load({String? search}) async {
     state = state.copyWith(loading: true, error: null);
     try {
       final dio = ref.read(dioClientProvider);
-      final r = await dio.get('purchases');
+      final params = <String, dynamic>{};
+      if (search != null && search.isNotEmpty) params['search'] = search;
+      final r = await dio.get('purchases', params: params);
       final data = r.data;
       state = PurchaseState(items: (data['items'] as List).map((e) => PurchaseItem.fromJson(e)).toList());
     } catch (_) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../shared/ds/ds.dart';
 
 class EmployeeDetailPage extends ConsumerStatefulWidget {
   final String employeeId;
@@ -64,86 +65,80 @@ class _EmployeeDetailPageState extends ConsumerState<EmployeeDetailPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 32,
-                          backgroundColor: theme.colorScheme.primaryContainer,
-                          child: Text(
-                            '${(e['firstName'] as String? ?? '?')[0]}${(e['lastName'] as String? ?? '?')[0]}',
-                            style: TextStyle(fontSize: 24, color: theme.colorScheme.onPrimaryContainer),
-                          ),
+            ZCard(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 32,
+                        backgroundColor: theme.colorScheme.primaryContainer,
+                        child: Text(
+                          '${(e['firstName'] as String? ?? '?')[0]}${(e['lastName'] as String? ?? '?')[0]}',
+                          style: TextStyle(fontSize: 24, color: theme.colorScheme.onPrimaryContainer),
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('${e['firstName']} ${e['lastName']}', style: theme.textTheme.titleLarge),
-                              const SizedBox(height: 4),
-                              Text(e['position'] ?? '', style: theme.textTheme.bodyMedium),
-                            ],
-                          ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('${e['firstName']} ${e['lastName']}', style: theme.textTheme.titleLarge),
+                            const SizedBox(height: 4),
+                            Text(e['position'] ?? '', style: theme.textTheme.bodyMedium),
+                          ],
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: _statusColor(e['status'] as String? ?? '').withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            e['status'] as String? ?? '',
-                            style: TextStyle(color: _statusColor(e['status'] as String? ?? '')),
-                          ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _statusColor(e['status'] as String? ?? '').withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      ],
-                    ),
-                    const Divider(height: 32),
-                    _infoRow(Icons.badge, 'Código', e['employeeCode']),
-                    _infoRow(Icons.email, 'Correo', e['email']),
-                    _infoRow(Icons.phone, 'Teléfono', e['phone']),
-                    _infoRow(Icons.business, 'Departamento', e['departmentName']),
-                    _infoRow(Icons.work, 'Cargo', e['position']),
-                    _infoRow(Icons.calendar_today, 'Fecha contratación', e['hireDate']),
-                    _infoRow(Icons.attach_money, 'Salario', e['salary']?.toString()),
-                  ],
-                ),
+                        child: Text(
+                          e['status'] as String? ?? '',
+                          style: TextStyle(color: _statusColor(e['status'] as String? ?? '')),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 32),
+                  _infoRow(Icons.badge, 'Código', e['employeeCode']),
+                  _infoRow(Icons.email, 'Correo', e['email']),
+                  _infoRow(Icons.phone, 'Teléfono', e['phone']),
+                  _infoRow(Icons.business, 'Departamento', e['departmentName']),
+                  _infoRow(Icons.work, 'Cargo', e['position']),
+                  _infoRow(Icons.calendar_today, 'Fecha contratación', e['hireDate']),
+                  _infoRow(Icons.attach_money, 'Salario', e['salary']?.toString()),
+                ],
               ),
             ),
             const SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Información adicional', style: theme.textTheme.titleMedium),
-                    const Divider(),
-                    _infoRow(Icons.badge, 'Cédula', e['identificationNumber']),
-                    _infoRow(Icons.cake, 'Fecha de nacimiento', e['dateOfBirth']),
-                    _infoRow(Icons.wc, 'Género', e['gender'] == 'M' ? 'Masculino' : e['gender'] == 'F' ? 'Femenino' : e['gender']),
-                  ],
-                ),
+            ZCard(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Información adicional', style: theme.textTheme.titleMedium),
+                  const Divider(),
+                  _infoRow(Icons.badge, 'Cédula', e['identificationNumber']),
+                  _infoRow(Icons.cake, 'Fecha de nacimiento', e['dateOfBirth']),
+                  _infoRow(Icons.wc, 'Género', e['gender'] == 'M' ? 'Masculino' : e['gender'] == 'F' ? 'Femenino' : e['gender']),
+                ],
               ),
             ),
             const SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Historial', style: theme.textTheme.titleMedium),
-                    const Divider(),
-                    const Center(child: Text('Sin historial registrado')),
-                  ],
-                ),
+            ZCard(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Historial', style: theme.textTheme.titleMedium),
+                  const Divider(),
+                  const Center(child: Text('Sin historial registrado')),
+                ],
               ),
             ),
           ],

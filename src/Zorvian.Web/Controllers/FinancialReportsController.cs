@@ -56,4 +56,26 @@ public sealed class FinancialReportsController : ControllerBase
         }
         catch (InvalidOperationException ex) { return BadRequest(new { error = ex.Message }); }
     }
+
+    [HttpGet("cost-center-expense/{costCenterId:guid}")]
+    public async Task<IActionResult> CostCenterExpense(Guid costCenterId, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
+    {
+        try
+        {
+            var result = await _service.GetCostCenterExpenseReportAsync(costCenterId, fromDate, toDate);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex) { return BadRequest(new { error = ex.Message }); }
+    }
+
+    [HttpGet("budget-vs-actual")]
+    public async Task<IActionResult> BudgetVsActual([FromQuery] int year, [FromQuery] int month)
+    {
+        try
+        {
+            var result = await _service.GetBudgetVsActualAsync(year, month);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex) { return BadRequest(new { error = ex.Message }); }
+    }
 }

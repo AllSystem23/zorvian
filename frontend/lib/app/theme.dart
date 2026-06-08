@@ -1,90 +1,131 @@
 import 'package:flutter/material.dart';
+import '../shared/ds/ds.dart';
 
 class ZorvianTheme {
-  static const _primaryColor = Color(0xFF0B1F3B);
-  static const _accentColor = Color(0xFF2EE59D);
-  static const _backgroundColor = Color(0xFFF4F6F8);
-
   static ThemeData light() => ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
-    colorSchemeSeed: _primaryColor,
-    scaffoldBackgroundColor: _backgroundColor,
-    appBarTheme: const AppBarTheme(
+    colorSchemeSeed: ZColors.brandPrimary,
+    scaffoldBackgroundColor: ZColors.background,
+    appBarTheme: AppBarTheme(
       elevation: 0,
       centerTitle: false,
-      backgroundColor: Colors.white,
-      foregroundColor: _primaryColor,
+      backgroundColor: ZColors.surface,
+      foregroundColor: ZColors.brandPrimary,
     ),
     cardTheme: CardThemeData(
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(ZRadii.lg),
+        side: const BorderSide(color: ZColors.border),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: Colors.white,
+      fillColor: ZColors.surface,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(ZRadii.md),
+        borderSide: const BorderSide(color: ZColors.border),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        borderRadius: BorderRadius.circular(ZRadii.md),
+        borderSide: const BorderSide(color: ZColors.border),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: _accentColor, width: 2),
+        borderRadius: BorderRadius.circular(ZRadii.md),
+        borderSide: const BorderSide(color: ZColors.brandAccent, width: 2),
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: ZSpacing.lg, vertical: ZSpacing.md),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: _accentColor,
-        foregroundColor: _primaryColor,
+        backgroundColor: ZColors.brandAccent,
+        foregroundColor: ZColors.brandPrimary,
         minimumSize: const Size(double.infinity, 48),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ZRadii.md)),
         textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
       ),
     ),
+    textTheme: TextTheme(
+      displayLarge: ZTypography.displayLarge,
+      displayMedium: ZTypography.displayMedium,
+      displaySmall: ZTypography.displaySmall,
+      headlineLarge: ZTypography.headlineLarge,
+      headlineMedium: ZTypography.headlineMedium,
+      headlineSmall: ZTypography.headlineSmall,
+      titleLarge: ZTypography.titleLarge,
+      titleMedium: ZTypography.titleMedium,
+      titleSmall: ZTypography.titleSmall,
+      bodyLarge: ZTypography.bodyLarge,
+      bodyMedium: ZTypography.bodyMedium,
+      bodySmall: ZTypography.bodySmall,
+      labelLarge: ZTypography.labelLarge,
+      labelMedium: ZTypography.labelMedium,
+      labelSmall: ZTypography.labelSmall,
+    ),
   );
-// ... dark theme remains largely same but primary/accent updated
+
   static ThemeData dark() => ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
-    colorSchemeSeed: _accentColor,
-    scaffoldBackgroundColor: const Color(0xFF0F0F1A),
+    colorSchemeSeed: ZColors.brandAccent,
+    scaffoldBackgroundColor: ZColors.darkBackground,
     appBarTheme: const AppBarTheme(
       elevation: 0,
       centerTitle: false,
-      backgroundColor: Color(0xFF1E1E2E),
-      foregroundColor: Color(0xFFE2E8F0),
+      backgroundColor: ZColors.darkSurface,
+      foregroundColor: ZColors.neutral200,
     ),
     cardTheme: CardThemeData(
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Color(0xFF334155)),
+        borderRadius: BorderRadius.circular(ZRadii.lg),
+        side: const BorderSide(color: ZColors.darkBorder),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: const Color(0xFF1E1E2E),
+      fillColor: ZColors.darkSurface,
+      labelStyle: const TextStyle(color: ZColors.neutral300),
+      hintStyle: const TextStyle(color: ZColors.neutral400),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFF334155)),
+        borderRadius: BorderRadius.circular(ZRadii.md),
+        borderSide: const BorderSide(color: ZColors.darkBorder),
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(ZRadii.md),
+        borderSide: const BorderSide(color: ZColors.darkBorder),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(ZRadii.md),
+        borderSide: const BorderSide(color: ZColors.brandAccent, width: 2),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: ZSpacing.lg, vertical: ZSpacing.md),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: _accentColor,
-        foregroundColor: _primaryColor,
+        backgroundColor: ZColors.brandAccent,
+        foregroundColor: ZColors.brandPrimary,
         minimumSize: const Size(double.infinity, 48),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ZRadii.md)),
       ),
+    ),
+    textTheme: TextTheme(
+      displayLarge: ZTypography.displayLarge,
+      displayMedium: ZTypography.displayMedium,
+      displaySmall: ZTypography.displaySmall,
+      headlineLarge: ZTypography.headlineLarge,
+      headlineMedium: ZTypography.headlineMedium,
+      headlineSmall: ZTypography.headlineSmall,
+      titleLarge: ZTypography.titleLarge,
+      titleMedium: ZTypography.titleMedium,
+      titleSmall: ZTypography.titleSmall,
+      bodyLarge: ZTypography.bodyLarge.copyWith(color: ZColors.neutral300),
+      bodyMedium: ZTypography.bodyMedium.copyWith(color: ZColors.neutral300),
+      bodySmall: ZTypography.bodySmall.copyWith(color: ZColors.neutral400),
+      labelLarge: ZTypography.labelLarge.copyWith(color: ZColors.neutral300),
+      labelMedium: ZTypography.labelMedium.copyWith(color: ZColors.neutral400),
+      labelSmall: ZTypography.labelSmall.copyWith(color: ZColors.neutral400),
     ),
   );
 }

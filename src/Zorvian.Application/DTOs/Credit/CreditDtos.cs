@@ -73,6 +73,7 @@ public sealed record CreditPaymentResponse(
 public sealed record CreditFilterRequest(
     Guid? ClientId,
     string? Status,
+    string? Search,
     int? Page = 1,
     int? PageSize = 20
 );
@@ -141,4 +142,50 @@ public sealed record OverdueInstallmentResponse(
     decimal Balance,
     int DaysOverdue,
     string Status
+);
+
+public sealed record CreditRefinancingResponse(
+    Guid Id,
+    Guid CreditId,
+    decimal PreviousBalance,
+    decimal PreviousInterestRate,
+    int PreviousInstallmentCount,
+    decimal PreviousInstallmentAmount,
+    decimal NewFinancedAmount,
+    decimal NewInterestRate,
+    int NewInstallmentCount,
+    decimal NewInstallmentAmount,
+    decimal NewTotalAmount,
+    decimal NewInterestAmount,
+    DateOnly NewStartDate,
+    DateOnly NewEndDate,
+    string Reason
+);
+
+public sealed record CreateRefinancingRequest(
+    decimal NewInterestRate,
+    int NewInstallmentCount,
+    decimal NewInstallmentAmount,
+    decimal NewFinancedAmount,
+    string Reason
+);
+
+public sealed record OverdueAgingBucket(
+    string Label,
+    int MinDays,
+    int MaxDays,
+    int CreditCount,
+    int InstallmentCount,
+    decimal TotalBalance,
+    decimal TotalAmount
+);
+
+public sealed record OverdueDashboardResponse(
+    int TotalOverdueCredits,
+    int TotalActiveCredits,
+    decimal TotalPortfolio,
+    decimal TotalOverdueBalance,
+    decimal RecoveryRate,
+    List<OverdueAgingBucket> AgingBuckets,
+    List<OverdueInstallmentResponse> CriticalOverdue
 );

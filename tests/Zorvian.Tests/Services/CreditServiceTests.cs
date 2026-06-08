@@ -18,6 +18,7 @@ public sealed class CreditServiceTests
     private readonly Mock<ICollectionActionRepository> _collectionActionRepo = new();
     private readonly Mock<ICompanyRepository> _companyRepo = new();
     private readonly Mock<ISaleRepository> _saleRepo = new();
+    private readonly Mock<IAutoAccountingService> _autoAccounting = new();
     private readonly Mock<ITenantContext> _tenant = new();
     private readonly Mock<IMapper> _mapper = new();
     private readonly CreditService _sut;
@@ -34,8 +35,10 @@ public sealed class CreditServiceTests
             _paymentRepo.Object,
             _lateFeeRepo.Object,
             _collectionActionRepo.Object,
+            new Mock<ICreditRefinancingRepository>().Object,
             _companyRepo.Object,
             _saleRepo.Object,
+            _autoAccounting.Object,
             _tenant.Object,
             _mapper.Object);
     }

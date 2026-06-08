@@ -59,3 +59,34 @@ public sealed record CashRegisterFilterRequest(
     int? Page = 1,
     int? PageSize = 20
 );
+
+public sealed record ArqueoDenominationRequest(
+    string DenominationType,
+    decimal DenominationValue,
+    int Quantity
+);
+
+public sealed record CreateArqueoRequest(
+    List<ArqueoDenominationRequest> Denominations,
+    string? Notes
+);
+
+public sealed record ArqueoDenominationResponse(
+    Guid Id,
+    string DenominationType,
+    decimal DenominationValue,
+    int Quantity,
+    decimal Total
+);
+
+public sealed record CashRegisterArqueoResponse(
+    Guid Id,
+    Guid CashRegisterId,
+    decimal ExpectedBalance,
+    decimal CountedTotal,
+    decimal Difference,
+    string? Notes,
+    string EmployeeName,
+    DateTime CreatedAt,
+    List<ArqueoDenominationResponse> Denominations
+);

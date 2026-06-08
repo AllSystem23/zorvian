@@ -62,6 +62,7 @@ final class AppShell extends ConsumerWidget {
       ]),
       _ModuleInfo('Zorvian Créditos', Icons.credit_card, [
         _NavItem('Cartera de Créditos', Icons.account_balance_wallet, '/credits'),
+        _NavItem('Dashboard de Mora', Icons.warning, '/credits/overdue-dashboard'),
       ]),
       _ModuleInfo('Zorvian Caja', Icons.monetization_on, [
         _NavItem('Movimientos de Caja', Icons.account_balance, '/cash-registers'),
@@ -82,6 +83,7 @@ final class AppShell extends ConsumerWidget {
           _NavItem('Panel Financiero', Icons.account_balance, '/bi/financial'),
           _NavItem('Panel Comercial', Icons.trending_up, '/bi/commercial'),
           _NavItem('Panel Operativo', Icons.precision_manufacturing, '/bi/operational'),
+          _NavItem('Asistente IA', Icons.smart_toy, '/chat'),
         ]),
       if (isAdmin)
         _ModuleInfo('Administración', Icons.admin_panel_settings, [
@@ -89,6 +91,8 @@ final class AppShell extends ConsumerWidget {
           _NavItem('Reportes', Icons.assessment, '/reports'),
           _NavItem('Auditoría', Icons.history, '/audit-logs'),
           _NavItem('Configuración', Icons.settings, '/settings'),
+          _NavItem('Flujos Aprobación', Icons.approval, '/approval-flows'),
+          _NavItem('Pendientes Aprob.', Icons.pending_actions, '/approval-pending'),
         ]),
     ];
   }
@@ -328,7 +332,10 @@ final class _NavItemWidget extends StatelessWidget {
         color: bg,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: InkWell(
+      child: Semantics(
+        label: item.label,
+        button: true,
+        child: InkWell(
         borderRadius: BorderRadius.circular(8),
         onTap: onTap,
         child: Padding(
@@ -341,6 +348,7 @@ final class _NavItemWidget extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }

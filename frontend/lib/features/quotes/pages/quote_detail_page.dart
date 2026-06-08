@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../shared/ds/ds.dart';
 import '../../../shared/printing/pdf_generator.dart';
 import '../../../shared/printing/print_share_sheet.dart';
 import '../../../shared/printing/print_utils.dart';
@@ -39,16 +40,11 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
   }
 
   Future<void> _delete() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Eliminar cotización'),
-        content: const Text('¿Está seguro?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Eliminar')),
-        ],
-      ),
+    final confirm = await ZModal.confirm(context,
+      title: 'Eliminar cotización',
+      message: '¿Está seguro?',
+      confirmText: 'Eliminar',
+      cancelText: 'Cancelar',
     );
     if (confirm != true) return;
     try {
@@ -57,9 +53,7 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
       if (mounted) context.pop(true);
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error al eliminar'), backgroundColor: Colors.red),
-        );
+        ZToast.error(context, 'Error al eliminar');
       }
     }
   }
@@ -150,38 +144,36 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(children: [
-                    Expanded(child: Text(d.clientName, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold))),
-                    Chip(label: Text(d.status, style: const TextStyle(fontSize: 11, color: Colors.white)), backgroundColor: stColor),
-                  ]),
-                  const SizedBox(height: 8),
-                  _row('Folio', d.quoteNumber),
-                  _row('Fecha', d.quoteDate.length >= 10 ? d.quoteDate.substring(0, 10) : d.quoteDate),
-                  if (d.expirationDate != null) _row('Vence', d.expirationDate!.length >= 10 ? d.expirationDate!.substring(0, 10) : d.expirationDate!),
-                  if (d.employeeName != null) _row('Creado por', d.employeeName!),
+          ZCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  Expanded(child: Text(d.clientName, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold))),
+                  Chip(label: Text(d.status, style: const TextStyle(fontSize: 11, color: Colors.white)), backgroundColor: stColor),
+                ]),
+                const SizedBox(height: 8),
+                _row('Folio', d.quoteNumber),
+                _row('Fecha', d.quoteDate.length >= 10 ? d.quoteDate.substring(0, 10) : d.quoteDate),
+                if (d.expirationDate != null) _row('Vence', d.expirationDate!.length >= 10 ? d.expirationDate!.substring(0, 10) : d.expirationDate!),
+                if (d.employeeName != null) _row('Creado por', d.employeeName!),
+                const Divider(),
+                _row('Subtotal', '\$${d.subtotal.toStringAsFixed(2)}'),
+                _row('Descuento', '\$${d.discount.toStringAsFixed(2)}'),
+                _row('IVA (15%)', '\$${d.tax.toStringAsFixed(2)}'),
+                _row('Total', '\$${d.total.toStringAsFixed(2)}', bold: true),
+                if (d.notes != null && d.notes!.isNotEmpty) ...[
                   const Divider(),
-                  _row('Subtotal', '\$${d.subtotal.toStringAsFixed(2)}'),
-                  _row('Descuento', '\$${d.discount.toStringAsFixed(2)}'),
-                  _row('IVA (15%)', '\$${d.tax.toStringAsFixed(2)}'),
-                  _row('Total', '\$${d.total.toStringAsFixed(2)}', bold: true),
-                  if (d.notes != null && d.notes!.isNotEmpty) ...[
-                    const Divider(),
-                    _row('Notas', d.notes!),
-                  ],
+                  _row('Notas', d.notes!),
                 ],
-              ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
           Text('Productos', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          ...d.details.map((item) => Card(
+          ...d.details.map((item) => ZCard(
             child: ListTile(
               title: Text(item.productName),
               subtitle: Text('${item.quantity} x \$${item.unitPrice.toStringAsFixed(2)}'),

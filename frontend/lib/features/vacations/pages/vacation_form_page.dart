@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
 import '../providers/vacation_provider.dart';
+import '../../../shared/ds/ds.dart';
 
 class VacationFormPage extends ConsumerStatefulWidget {
   const VacationFormPage({super.key});
@@ -112,24 +113,22 @@ class _VacationFormPageState extends ConsumerState<VacationFormPage> {
                   ),
                 ),
               if (balance != null)
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        Text('Saldo disponible', style: theme.textTheme.titleMedium),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            _balanceChip('Acumulados', balance.accruedDays, Colors.blue),
-                            _balanceChip('Tomados', balance.takenDays, Colors.red),
-                            _balanceChip('Pendientes', balance.pendingDays, Colors.orange),
-                            _balanceChip('Disponibles', balance.availableDays, Colors.green),
-                          ],
-                        ),
-                      ],
-                    ),
+                ZCard(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Text('Saldo disponible', style: theme.textTheme.titleMedium),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _balanceChip('Acumulados', balance.accruedDays, Colors.blue),
+                          _balanceChip('Tomados', balance.takenDays, Colors.red),
+                          _balanceChip('Pendientes', balance.pendingDays, Colors.orange),
+                          _balanceChip('Disponibles', balance.availableDays, Colors.green),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               const SizedBox(height: 16),
@@ -174,11 +173,10 @@ class _VacationFormPageState extends ConsumerState<VacationFormPage> {
                 maxLines: 3,
               ),
               const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _loading ? null : _submit,
-                child: _loading
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text('Solicitar vacaciones'),
+              ZButton(
+                text: 'Solicitar vacaciones',
+                onPressed: _submit,
+                isLoading: _loading,
               ),
             ],
           ),

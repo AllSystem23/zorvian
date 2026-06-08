@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
 import '../../departments/providers/department_provider.dart';
+import '../../../shared/ds/ds.dart';
 
 class EmployeeFormPage extends ConsumerStatefulWidget {
   final String? employeeId;
@@ -184,11 +185,10 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _loading ? null : _save,
-                child: _loading
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : Text(_isEditing ? 'Actualizar' : 'Crear empleado'),
+              ZButton(
+                text: _isEditing ? 'Actualizar' : 'Crear empleado',
+                onPressed: _save,
+                isLoading: _loading,
               ),
             ],
           ),

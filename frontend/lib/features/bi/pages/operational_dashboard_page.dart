@@ -4,6 +4,7 @@ import '../../../core/widgets/bi/bi_bar_chart.dart';
 import '../../../core/widgets/bi/bi_pie_chart.dart';
 import '../../../core/widgets/bi/bi_kpi_card.dart';
 import '../providers/bi_provider.dart';
+import '../../../../shared/ds/ds.dart';
 
 class OperationalDashboardPage extends ConsumerWidget {
   const OperationalDashboardPage({super.key});
@@ -27,7 +28,7 @@ class OperationalDashboardPage extends ConsumerWidget {
             const SizedBox(height: 8),
             inventoryAsync.when(
               loading: () => const SizedBox(height: 200, child: Center(child: CircularProgressIndicator())),
-              error: (e, _) => Card(child: Padding(padding: const EdgeInsets.all(16), child: Text('Error: $e'))),
+              error: (e, _) => ZCard(padding: const EdgeInsets.all(16), child: Text('Error: $e')),
               data: (inv) => Column(
                 children: [
                   LayoutBuilder(
@@ -66,7 +67,7 @@ class OperationalDashboardPage extends ConsumerWidget {
             const SizedBox(height: 8),
             payrollAsync.when(
               loading: () => const SizedBox(height: 200, child: Center(child: CircularProgressIndicator())),
-              error: (e, _) => Card(child: Padding(padding: const EdgeInsets.all(16), child: Text('Error: $e'))),
+              error: (e, _) => ZCard(padding: const EdgeInsets.all(16), child: Text('Error: $e')),
               data: (pr) => Column(
                 children: [
                   LayoutBuilder(

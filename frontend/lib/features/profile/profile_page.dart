@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:dio/dio.dart';
 import '../../auth/auth_provider.dart';
+import '../../shared/ds/ds.dart';
 import '../biometrics/providers/biometric_provider.dart';
 
 final profileProvider = FutureProvider.autoDispose<Map<String, dynamic>?>((ref) async {
@@ -127,7 +128,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 _InfoRow(
                   label: 'Teléfono',
                   text: _editing ? null : (profile['phone'] as String? ?? '—'),
-                  child: _editing ? TextField(controller: _phoneCtrl, decoration: const InputDecoration(isDense: true, border: OutlineInputBorder())) : null,
+                  child: _editing ? ZTextField(controller: _phoneCtrl, label: 'Teléfono') : null,
                 ),
                 _InfoRow(label: 'Fecha Nacimiento', text: profile['dateOfBirth'] as String? ?? '—'),
                 _InfoRow(label: 'Género', text: profile['gender'] as String? ?? '—'),
@@ -135,7 +136,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 if (_editing)
                   _InfoRow(
                     label: 'Foto URL',
-                    child: TextField(controller: _photoUrlCtrl, decoration: const InputDecoration(isDense: true, border: OutlineInputBorder())),
+                    child: ZTextField(controller: _photoUrlCtrl, label: 'Foto URL'),
                   ),
               ]),
               const SizedBox(height: 16),
@@ -177,17 +178,15 @@ class _Section extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
-            const Divider(),
-            ...children,
-          ],
-        ),
+    return ZCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+          const Divider(),
+          ...children,
+        ],
       ),
     );
   }

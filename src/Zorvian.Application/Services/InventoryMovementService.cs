@@ -64,8 +64,8 @@ public class InventoryMovementService : IInventoryMovementService
         var page = filter.Page ?? 1;
         var pageSize = filter.PageSize ?? 20;
 
-        var items = await _movementRepo.GetFilteredAsync(filter.ProductId, filter.MovementType, filter.FromDate, filter.ToDate, Guid.Empty, page, pageSize);
-        var total = await _movementRepo.GetFilteredCountAsync(filter.ProductId, filter.MovementType, filter.FromDate, filter.ToDate, Guid.Empty);
+        var items = await _movementRepo.GetFilteredAsync(filter.ProductId, filter.MovementType, filter.FromDate, filter.ToDate, filter.Search, Guid.Empty, page, pageSize);
+        var total = await _movementRepo.GetFilteredCountAsync(filter.ProductId, filter.MovementType, filter.FromDate, filter.ToDate, filter.Search, Guid.Empty);
 
         return new PagedResult<InventoryMovementResponse>(
             _mapper.Map<List<InventoryMovementResponse>>(items),

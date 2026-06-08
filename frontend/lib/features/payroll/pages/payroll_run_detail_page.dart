@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../core/error/error_notifier.dart';
 import '../providers/payroll_provider.dart';
+import '../../../shared/ds/ds.dart';
 
 class PayrollRunDetailPage extends ConsumerStatefulWidget {
   final String runId;
@@ -72,13 +73,12 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
       _ => (status, Colors.grey),
     };
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return ZCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('Resumen', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
@@ -97,10 +97,10 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
                 padding: const EdgeInsets.only(top: 16),
                 child: SizedBox(
                   width: double.infinity,
-                  child: FilledButton.icon(
+                  child: ZButton(
+                    text: 'Aprobar Nómina',
                     onPressed: _approve,
-                    icon: const Icon(Icons.check),
-                    label: const Text('Aprobar Nómina'),
+                    icon: Icons.check,
                   ),
                 ),
               ),
@@ -111,29 +111,32 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
                   children: [
                     if (_run!['status'] == 'draft')
                       Expanded(
-                        child: OutlinedButton.icon(
+                        child: ZButton(
+                          text: 'Eliminar',
                           onPressed: () => _confirmDelete(context),
-                          icon: const Icon(Icons.delete_outline, size: 18),
-                          label: const Text('Eliminar'),
-                          style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
+                          icon: Icons.delete_outline,
+                          type: ZButtonType.secondary,
+                          fullWidth: false,
                         ),
                       ),
                     if (_run!['status'] == 'approved')
                       Expanded(
-                        child: OutlinedButton.icon(
+                        child: ZButton(
+                          text: 'Marcar Pagado',
                           onPressed: () => _confirmMarkAsPaid(context),
-                          icon: const Icon(Icons.check_circle_outline, size: 18),
-                          label: const Text('Marcar Pagado'),
-                          style: OutlinedButton.styleFrom(foregroundColor: Colors.green),
+                          icon: Icons.check_circle_outline,
+                          type: ZButtonType.secondary,
+                          fullWidth: false,
                         ),
                       ),
                     if (_run!['status'] != 'draft' && _run!['status'] != 'cancelled')
                       Expanded(
-                        child: OutlinedButton.icon(
+                        child: ZButton(
+                          text: 'Anular',
                           onPressed: () => _confirmCancel(context),
-                          icon: const Icon(Icons.cancel, size: 18),
-                          label: const Text('Anular'),
-                          style: OutlinedButton.styleFrom(foregroundColor: Colors.orange),
+                          icon: Icons.cancel,
+                          type: ZButtonType.secondary,
+                          fullWidth: false,
                         ),
                       ),
                   ],
@@ -145,18 +148,22 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
                 child: Row(
                   children: [
                     Expanded(
-                      child: OutlinedButton.icon(
+                      child: ZButton(
+                        text: 'Marcar Pagado',
                         onPressed: () => _confirmMarkAsPaid(context),
-                        icon: const Icon(Icons.check_circle_outline, size: 18),
-                        label: const Text('Marcar Pagado'),
+                        icon: Icons.check_circle_outline,
+                        type: ZButtonType.secondary,
+                        fullWidth: false,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: OutlinedButton.icon(
+                      child: ZButton(
+                        text: 'Exportar ACH',
                         onPressed: _exportAch,
-                        icon: const Icon(Icons.download, size: 18),
-                        label: const Text('Exportar ACH'),
+                        icon: Icons.download,
+                        type: ZButtonType.secondary,
+                        fullWidth: false,
                       ),
                     ),
                   ],
@@ -164,7 +171,6 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
               ),
           ],
         ),
-      ),
     );
   }
 
@@ -183,11 +189,10 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
 
   Widget _buildDetailCard(dynamic d, ThemeData theme) {
     final isDraft = _run!['status'] == 'draft';
-    return Card(
+    return ZCard(
       margin: const EdgeInsets.only(bottom: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
+      padding: const EdgeInsets.all(12),
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -222,7 +227,6 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
             ),
           ],
         ),
-      ),
     );
   }
 
@@ -232,28 +236,23 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
     final irCtrl = TextEditingController(text: (d['irDeduction'] as num?)?.toStringAsFixed(2) ?? '');
     final otherCtrl = TextEditingController(text: (d['otherDeductions'] as num?)?.toStringAsFixed(2) ?? '');
 
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(d['employeeName'] ?? ''),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: grossCtrl, decoration: const InputDecoration(labelText: 'Sueldo bruto', isDense: true), keyboardType: TextInputType.number),
-              const SizedBox(height: 8),
-              TextField(controller: inssCtrl, decoration: const InputDecoration(labelText: 'INSS', isDense: true), keyboardType: TextInputType.number),
-              const SizedBox(height: 8),
-              TextField(controller: irCtrl, decoration: const InputDecoration(labelText: 'IR', isDense: true), keyboardType: TextInputType.number),
-              const SizedBox(height: 8),
-              TextField(controller: otherCtrl, decoration: const InputDecoration(labelText: 'Otras deducciones', isDense: true), keyboardType: TextInputType.number),
-            ],
-          ),
+    final result = await ZModal.show<bool>(context,
+      title: d['employeeName'] ?? '',
+      confirmText: 'Guardar',
+      cancelText: 'Cancelar',
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ZTextField(controller: grossCtrl, label: 'Sueldo bruto', keyboardType: TextInputType.number),
+            const SizedBox(height: 8),
+            ZTextField(controller: inssCtrl, label: 'INSS', keyboardType: TextInputType.number),
+            const SizedBox(height: 8),
+            ZTextField(controller: irCtrl, label: 'IR', keyboardType: TextInputType.number),
+            const SizedBox(height: 8),
+            ZTextField(controller: otherCtrl, label: 'Otras deducciones', keyboardType: TextInputType.number),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Guardar')),
-        ],
       ),
     );
     if (result != true) return;
@@ -289,23 +288,19 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
   }
 
   Future<void> _confirmDelete(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Eliminar corrida'),
-        content: const Text('¿Está seguro de eliminar esta corrida de nómina? Esta acción no se puede deshacer.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('Eliminar', style: TextStyle(color: Colors.red))),
-        ],
-      ),
+    final confirmed = await ZModal.confirm(context,
+      title: 'Eliminar corrida',
+      message: '¿Está seguro de eliminar esta corrida de nómina? Esta acción no se puede deshacer.',
+      confirmText: 'Eliminar',
+      cancelText: 'Cancelar',
+      confirmColor: Colors.red,
     );
     if (confirmed != true) return;
 
     try {
       final svc = ref.read(payrollServiceProvider);
       await svc.deleteRun(widget.runId);
-      if (mounted) {
+      if (context.mounted) {
         ref.read(errorNotifierProvider.notifier).showInfo('Corrida eliminada');
         context.pop(true);
       }
@@ -315,16 +310,12 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
   }
 
   Future<void> _confirmCancel(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Anular corrida'),
-        content: const Text('¿Está seguro de anular esta corrida de nómina? El periodo volverá a estar abierto.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('Anular', style: TextStyle(color: Colors.orange))),
-        ],
-      ),
+    final confirmed = await ZModal.confirm(context,
+      title: 'Anular corrida',
+      message: '¿Está seguro de anular esta corrida de nómina? El periodo volverá a estar abierto.',
+      confirmText: 'Anular',
+      cancelText: 'Cancelar',
+      confirmColor: Colors.orange,
     );
     if (confirmed != true) return;
 
@@ -341,16 +332,11 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
   }
 
   Future<void> _confirmMarkAsPaid(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Marcar como pagada'),
-        content: const Text('¿Confirma que esta nómina ha sido pagada?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Confirmar pago')),
-        ],
-      ),
+    final confirmed = await ZModal.confirm(context,
+      title: 'Marcar como pagada',
+      message: '¿Confirma que esta nómina ha sido pagada?',
+      confirmText: 'Confirmar pago',
+      cancelText: 'Cancelar',
     );
     if (confirmed != true) return;
 

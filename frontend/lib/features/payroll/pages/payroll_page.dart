@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../providers/payroll_provider.dart';
+import '../../../shared/ds/ds.dart';
 
 class PayrollPage extends ConsumerStatefulWidget {
   const PayrollPage({super.key});
@@ -100,7 +101,8 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
     return Row(
       children: [
         Expanded(
-          child: Card(
+          child: ZCard(
+            padding: EdgeInsets.zero,
             child: ListTile(
               leading: Icon(Icons.attach_money, color: Colors.green.shade600),
               title: const Text('Salarios', style: TextStyle(fontSize: 13)),
@@ -111,7 +113,8 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
         ),
         const SizedBox(width: 8),
         Expanded(
-          child: Card(
+          child: ZCard(
+            padding: EdgeInsets.zero,
             child: ListTile(
               leading: Icon(Icons.category, color: Colors.indigo.shade400),
               title: const Text('Deducciones', style: TextStyle(fontSize: 13)),
@@ -134,8 +137,9 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
       _ => (status, Colors.grey),
     };
 
-    return Card(
+    return ZCard(
       margin: const EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.zero,
       child: ListTile(
         leading: Icon(Icons.receipt, color: color),
         title: Text(run['periodName'] ?? 'Sin nombre'),
@@ -160,18 +164,16 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 8),
-            Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
-            Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-          ],
-        ),
+    return ZCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 8),
+          Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
+          Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        ],
       ),
     );
   }

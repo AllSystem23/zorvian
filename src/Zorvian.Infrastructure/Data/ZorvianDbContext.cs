@@ -75,6 +75,12 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<Sale> Sales => Set<Sale>();
     public DbSet<SaleDetail> SaleDetails => Set<SaleDetail>();
     public DbSet<SalePayment> SalePayments => Set<SalePayment>();
+    public DbSet<CreditNote> CreditNotes => Set<CreditNote>();
+    public DbSet<CreditNoteDetail> CreditNoteDetails => Set<CreditNoteDetail>();
+    public DbSet<ApprovalFlowConfig> ApprovalFlowConfigs => Set<ApprovalFlowConfig>();
+    public DbSet<ApprovalFlowStep> ApprovalFlowSteps => Set<ApprovalFlowStep>();
+    public DbSet<ApprovalRequest> ApprovalRequests => Set<ApprovalRequest>();
+    public DbSet<ApprovalRequestAction> ApprovalRequestActions => Set<ApprovalRequestAction>();
 
     // New Module: Inventario
     public DbSet<Category> Categories => Set<Category>();
@@ -89,10 +95,13 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<CreditPayment> CreditPayments => Set<CreditPayment>();
     public DbSet<LateFee> LateFees => Set<LateFee>();
     public DbSet<CollectionAction> CollectionActions => Set<CollectionAction>();
+    public DbSet<CreditRefinancing> CreditRefinancings => Set<CreditRefinancing>();
 
     // New Module: Caja
     public DbSet<CashRegister> CashRegisters => Set<CashRegister>();
     public DbSet<CashMovement> CashMovements => Set<CashMovement>();
+    public DbSet<CashRegisterArqueo> CashRegisterArqueos => Set<CashRegisterArqueo>();
+    public DbSet<CashArqueoDenomination> CashArqueoDenominations => Set<CashArqueoDenomination>();
 
     // New Module: Compras
     public DbSet<Purchase> Purchases => Set<Purchase>();
@@ -136,6 +145,8 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<AccountLink> AccountLinks => Set<AccountLink>();
     public DbSet<AccountingRule> AccountingRules => Set<AccountingRule>();
     public DbSet<TaxCategory> TaxCategories => Set<TaxCategory>();
+    public DbSet<CostCenter> CostCenters => Set<CostCenter>();
+    public DbSet<Budget> Budgets => Set<Budget>();
     
     // New Module: Nómina Avanzada
     public DbSet<SickLeaveRecord> SickLeaveRecords => Set<SickLeaveRecord>();
@@ -795,6 +806,41 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(sp => sp.TenantId == _tenantContext.TenantId.ToString() && !sp.IsDeleted);
         });
 
+        builder.Entity<CreditNote>(e =>
+        {
+            e.HasKey(cn => cn.Id);
+            e.Property(cn => cn.CreditNoteNumber).HasMaxLength(50).IsRequired();
+            e.Property(cn => cn.Status).HasMaxLength(20).IsRequired();
+            e.Property(cn => cn.Reason).HasMaxLength(500);
+            e.Property(cn => cn.Subtotal).HasColumnType("decimal(18,2)");
+            e.Property(cn => cn.Tax).HasColumnType("decimal(18,2)");
+            e.Property(cn => cn.Total).HasColumnType("decimal(18,2)");
+            e.HasOne(cn => cn.Sale)
+                .WithMany()
+                .HasForeignKey(cn => cn.SaleId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(cn => cn.CreditNoteNumber).IsUnique();
+            e.HasQueryFilter(cn => cn.TenantId == _tenantContext.TenantId.ToString() && !cn.IsDeleted);
+        });
+
+        builder.Entity<CreditNoteDetail>(e =>
+        {
+            e.HasKey(cnd => cnd.Id);
+            e.Property(cnd => cnd.UnitPrice).HasColumnType("decimal(18,2)");
+            e.Property(cnd => cnd.Subtotal).HasColumnType("decimal(18,2)");
+            e.Property(cnd => cnd.Tax).HasColumnType("decimal(18,2)");
+            e.Property(cnd => cnd.Total).HasColumnType("decimal(18,2)");
+            e.HasOne(cnd => cnd.CreditNote)
+                .WithMany(cn => cn.Details)
+                .HasForeignKey(cnd => cnd.CreditNoteId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(cnd => cnd.Product)
+                .WithMany()
+                .HasForeignKey(cnd => cnd.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(cnd => cnd.TenantId == _tenantContext.TenantId.ToString() && !cnd.IsDeleted);
+        });
+
         // ---- New Module: Inventario ----
         builder.Entity<Category>(e =>
         {
@@ -989,6 +1035,25 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(ca => ca.TenantId == _tenantContext.TenantId.ToString() && !ca.IsDeleted);
         });
 
+        builder.Entity<CreditRefinancing>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.Property(r => r.PreviousBalance).HasColumnType("decimal(18,2)");
+            e.Property(r => r.PreviousInterestRate).HasColumnType("decimal(5,2)");
+            e.Property(r => r.PreviousInstallmentAmount).HasColumnType("decimal(18,2)");
+            e.Property(r => r.NewFinancedAmount).HasColumnType("decimal(18,2)");
+            e.Property(r => r.NewInterestRate).HasColumnType("decimal(5,2)");
+            e.Property(r => r.NewInstallmentAmount).HasColumnType("decimal(18,2)");
+            e.Property(r => r.NewTotalAmount).HasColumnType("decimal(18,2)");
+            e.Property(r => r.NewInterestAmount).HasColumnType("decimal(18,2)");
+            e.Property(r => r.Reason).HasMaxLength(500);
+            e.HasOne(r => r.Credit)
+                .WithMany(c => c.Refinancings)
+                .HasForeignKey(r => r.CreditId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(r => r.TenantId == _tenantContext.TenantId.ToString() && !r.IsDeleted);
+        });
+
         // ---- New Module: Caja ----
         builder.Entity<CashRegister>(e =>
         {
@@ -1030,6 +1095,38 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(cm => cm.TenantId == _tenantContext.TenantId.ToString() && !cm.IsDeleted);
         });
 
+        builder.Entity<CashRegisterArqueo>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.Property(a => a.ExpectedBalance).HasColumnType("decimal(18,2)");
+            e.Property(a => a.CountedTotal).HasColumnType("decimal(18,2)");
+            e.Property(a => a.Difference).HasColumnType("decimal(18,2)");
+            e.Property(a => a.Notes).HasMaxLength(500);
+            e.HasOne(a => a.CashRegister)
+                .WithMany()
+                .HasForeignKey(a => a.CashRegisterId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(a => a.Employee)
+                .WithMany()
+                .HasForeignKey(a => a.EmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasMany(a => a.Denominations)
+                .WithOne(d => d.Arqueo)
+                .HasForeignKey(d => d.ArqueoId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(a => a.CashRegisterId).IsUnique();
+            e.HasQueryFilter(a => a.TenantId == _tenantContext.TenantId.ToString() && !a.IsDeleted);
+        });
+
+        builder.Entity<CashArqueoDenomination>(e =>
+        {
+            e.HasKey(d => d.Id);
+            e.Property(d => d.DenominationType).HasMaxLength(10).IsRequired();
+            e.Property(d => d.DenominationValue).HasColumnType("decimal(18,2)");
+            e.Ignore(d => d.Total);
+            e.HasQueryFilter(d => d.TenantId == _tenantContext.TenantId.ToString() && !d.IsDeleted);
+        });
+
         // ---- New Module: Contabilidad ----
         builder.Entity<Account>(e =>
         {
@@ -1044,6 +1141,10 @@ public sealed class ZorvianDbContext : DbContext
                 .WithMany(a => a.Children)
                 .HasForeignKey(a => a.ParentId)
                 .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(a => a.CostCenter)
+                .WithMany()
+                .HasForeignKey(a => a.CostCenterId)
+                .OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(a => new { a.Code, a.CompanyId }).IsUnique();
             e.HasQueryFilter(a => a.TenantId == _tenantContext.TenantId.ToString() && !a.IsDeleted);
         });
@@ -1070,6 +1171,10 @@ public sealed class ZorvianDbContext : DbContext
                 .WithMany(p => p.Entries)
                 .HasForeignKey(en => en.AccountingPeriodId)
                 .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(en => en.CostCenter)
+                .WithMany()
+                .HasForeignKey(en => en.CostCenterId)
+                .OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(en => en.EntryNumber).IsUnique();
             e.HasIndex(en => en.EntryDate);
             e.HasQueryFilter(en => en.TenantId == _tenantContext.TenantId.ToString() && !en.IsDeleted);
@@ -1089,6 +1194,10 @@ public sealed class ZorvianDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(d => d.AccountId)
                 .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(d => d.CostCenter)
+                .WithMany()
+                .HasForeignKey(d => d.CostCenterId)
+                .OnDelete(DeleteBehavior.SetNull);
             e.HasQueryFilter(d => d.TenantId == _tenantContext.TenantId.ToString() && !d.IsDeleted);
         });
 
@@ -1113,6 +1222,79 @@ public sealed class ZorvianDbContext : DbContext
             e.Property(r => r.AccountRole).HasMaxLength(50).IsRequired();
             e.Property(r => r.Formula).HasMaxLength(200);
             e.HasQueryFilter(r => r.TenantId == _tenantContext.TenantId.ToString() && !r.IsDeleted);
+        });
+
+        builder.Entity<CostCenter>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.Property(c => c.Name).HasMaxLength(200).IsRequired();
+            e.Property(c => c.Code).HasMaxLength(50).IsRequired();
+            e.Property(c => c.Description).HasMaxLength(500);
+            e.HasIndex(c => new { c.Code, c.CompanyId }).IsUnique();
+            e.HasQueryFilter(c => c.TenantId == _tenantContext.TenantId.ToString() && !c.IsDeleted);
+        });
+
+        builder.Entity<Budget>(e =>
+        {
+            e.HasKey(b => b.Id);
+            e.Property(b => b.BudgetedAmount).HasColumnType("decimal(18,2)").IsRequired();
+            e.HasOne(b => b.Account)
+                .WithMany()
+                .HasForeignKey(b => b.AccountId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(b => b.CostCenter)
+                .WithMany()
+                .HasForeignKey(b => b.CostCenterId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(b => new { b.Year, b.Month, b.AccountId, b.CostCenterId, b.CompanyId }).IsUnique();
+            e.HasQueryFilter(b => b.TenantId == _tenantContext.TenantId.ToString() && !b.IsDeleted);
+        });
+
+        builder.Entity<ApprovalFlowConfig>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.Property(a => a.Module).HasMaxLength(50).IsRequired();
+            e.Property(a => a.EventType).HasMaxLength(50).IsRequired();
+            e.Property(a => a.Description).HasMaxLength(500);
+            e.HasMany(a => a.Steps)
+                .WithOne(s => s.ApprovalFlowConfig)
+                .HasForeignKey(s => s.ApprovalFlowConfigId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(a => new { a.Module, a.EventType, a.CompanyId }).IsUnique();
+            e.HasQueryFilter(a => a.TenantId == _tenantContext.TenantId.ToString() && !a.IsDeleted);
+        });
+
+        builder.Entity<ApprovalFlowStep>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.Property(s => s.ApproverRole).HasMaxLength(50).IsRequired();
+            e.Property(s => s.MinAmount).HasColumnType("decimal(18,2)");
+            e.Property(s => s.MaxAmount).HasColumnType("decimal(18,2)");
+            e.HasQueryFilter(s => s.TenantId == _tenantContext.TenantId.ToString() && !s.IsDeleted);
+        });
+
+        builder.Entity<ApprovalRequest>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.Property(r => r.Module).HasMaxLength(50).IsRequired();
+            e.Property(r => r.EventType).HasMaxLength(50).IsRequired();
+            e.Property(r => r.Status).HasMaxLength(20).IsRequired();
+            e.Property(r => r.RequestedBy).HasMaxLength(100).IsRequired();
+            e.Property(r => r.Notes).HasMaxLength(500);
+            e.HasMany(r => r.Actions)
+                .WithOne(a => a.ApprovalRequest)
+                .HasForeignKey(a => a.ApprovalRequestId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(r => r.TenantId == _tenantContext.TenantId.ToString() && !r.IsDeleted);
+        });
+
+        builder.Entity<ApprovalRequestAction>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.Property(a => a.Action).HasMaxLength(20).IsRequired();
+            e.Property(a => a.Comment).HasMaxLength(500);
+            e.Property(a => a.ActedBy).HasMaxLength(100).IsRequired();
+            e.HasQueryFilter(a => a.TenantId == _tenantContext.TenantId.ToString() && !a.IsDeleted);
         });
 
         // ---- New Module: Compras ----

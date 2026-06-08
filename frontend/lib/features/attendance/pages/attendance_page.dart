@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/attendance_provider.dart';
+import '../../../shared/ds/ds.dart';
 
 class AttendancePage extends ConsumerStatefulWidget {
   const AttendancePage({super.key});
@@ -120,19 +121,17 @@ class _AttendancePageState extends ConsumerState<AttendancePage> {
 
   Widget _buildStatusCard(ThemeData theme, AttendanceRecord record) {
     final statusColor = record.status == 'present' ? Colors.green : Colors.orange;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Icon(Icons.check_circle, color: statusColor, size: 48),
-            const SizedBox(height: 8),
-            Text(record.status == 'present' ? 'Presente' : 'Tarde', style: TextStyle(fontSize: 18, color: statusColor, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text('Entrada: ${record.checkInTime ?? '—'}'),
-            Text('Salida: ${record.checkOutTime ?? 'Pendiente'}'),
-          ],
-        ),
+    return ZCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          Icon(Icons.check_circle, color: statusColor, size: 48),
+          const SizedBox(height: 8),
+          Text(record.status == 'present' ? 'Presente' : 'Tarde', style: TextStyle(fontSize: 18, color: statusColor, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Text('Entrada: ${record.checkInTime ?? '—'}'),
+          Text('Salida: ${record.checkOutTime ?? 'Pendiente'}'),
+        ],
       ),
     );
   }
@@ -146,9 +145,12 @@ class _AttendancePageState extends ConsumerState<AttendancePage> {
         elevation: 4,
         shape: const CircleBorder(),
         color: color,
-        child: InkWell(
-          customBorder: const CircleBorder(),
-          onTap: checking ? null : onPressed,
+        child: Semantics(
+          label: label,
+          button: !checking,
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: checking ? null : onPressed,
           child: Center(
             child: checking
                 ? const CircularProgressIndicator(color: Colors.white)
@@ -161,6 +163,7 @@ class _AttendancePageState extends ConsumerState<AttendancePage> {
                     ],
                   ),
           ),
+        ),
         ),
       ),
     );
@@ -202,15 +205,13 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
-            Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-          ],
-        ),
+    return ZCard(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        children: [
+          Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
+          Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        ],
       ),
     );
   }

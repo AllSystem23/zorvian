@@ -22,7 +22,7 @@ public sealed class QuoteRepository : IQuoteRepository
                 .ThenInclude(d => d.Product)
             .FirstOrDefaultAsync(q => q.Id == id);
 
-    public async Task<List<Quote>> GetFilteredAsync(Guid? clientId, string? status, DateTime? fromDate, DateTime? toDate, Guid branchId, int page, int pageSize)
+    public async Task<List<Quote>> GetFilteredAsync(Guid? clientId, string? status, DateTime? fromDate, DateTime? toDate, string? search, Guid branchId, int page, int pageSize)
     {
         var query = _db.Set<Quote>()
             .Include(q => q.Client)
@@ -40,6 +40,13 @@ public sealed class QuoteRepository : IQuoteRepository
             query = query.Where(q => q.QuoteDate >= DateOnly.FromDateTime(fromDate.Value));
         if (toDate.HasValue)
             query = query.Where(q => q.QuoteDate <= DateOnly.FromDateTime(toDate.Value));
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var q = search.ToLower();
+            query = query.Where(quote => quote.QuoteNumber.ToLower().Contains(q)
+                || quote.Client.FirstName.ToLower().Contains(q)
+                || quote.Client.LastName.ToLower().Contains(q));
+        }
 
         return await query
             .OrderByDescending(q => q.QuoteDate)
@@ -48,9 +55,12 @@ public sealed class QuoteRepository : IQuoteRepository
             .ToListAsync();
     }
 
-    public async Task<int> GetFilteredCountAsync(Guid? clientId, string? status, DateTime? fromDate, DateTime? toDate, Guid branchId)
+    public async Task<int> GetFilteredCountAsync(Guid? clientId, string? status, DateTime? fromDate, DateTime? toDate, string? search, Guid branchId)
     {
-        var query = _db.Set<Quote>().Where(q => q.BranchId == branchId).AsQueryable();
+        var query = _db.Set<Quote>()
+            .Include(q => q.Client)
+            .Where(q => q.BranchId == branchId)
+            .AsQueryable();
 
         if (clientId.HasValue)
             query = query.Where(q => q.ClientId == clientId.Value);
@@ -60,6 +70,13 @@ public sealed class QuoteRepository : IQuoteRepository
             query = query.Where(q => q.QuoteDate >= DateOnly.FromDateTime(fromDate.Value));
         if (toDate.HasValue)
             query = query.Where(q => q.QuoteDate <= DateOnly.FromDateTime(toDate.Value));
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var q = search.ToLower();
+            query = query.Where(quote => quote.QuoteNumber.ToLower().Contains(q)
+                || quote.Client.FirstName.ToLower().Contains(q)
+                || quote.Client.LastName.ToLower().Contains(q));
+        }
 
         return await query.CountAsync();
     }

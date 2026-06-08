@@ -9,6 +9,7 @@ using Zorvian.Application.DTOs.Inventory;
 using Zorvian.Application.DTOs.Warranty;
 using Zorvian.Application.DTOs.Accounting;
 using Zorvian.Application.DTOs.FixedAssets;
+using Zorvian.Application.DTOs.Approval;
 using Zorvian.Core.Entities;
 
 namespace Zorvian.Application.Mapping;
@@ -296,6 +297,9 @@ public sealed class MappingProfile : Profile
             .ForMember(d => d.EmployeeName, o => o.MapFrom(s => s.Employee != null ? $"{s.Employee.FirstName} {s.Employee.LastName}".Trim() : null));
         CreateMap<CashMovement, CashMovementResponse>()
             .ForMember(d => d.EmployeeName, o => o.Ignore());
+        CreateMap<CashRegisterArqueo, CashRegisterArqueoResponse>()
+            .ForMember(d => d.EmployeeName, o => o.MapFrom(s => s.Employee.FirstName + " " + s.Employee.LastName));
+        CreateMap<CashArqueoDenomination, ArqueoDenominationResponse>();
 
         // Warranty
         CreateMap<CreateWarrantyRequest, Warranty>()
@@ -313,6 +317,7 @@ public sealed class MappingProfile : Profile
         CreateMap<LateFee, LateFeeResponse>();
         CreateMap<CollectionAction, CollectionActionResponse>()
             .ForMember(d => d.EmployeeName, o => o.MapFrom(s => s.Employee.FirstName + " " + s.Employee.LastName));
+        CreateMap<CreditRefinancing, CreditRefinancingResponse>();
 
         // Purchase
         CreateMap<CreatePurchaseRequest, Purchase>()
@@ -530,5 +535,40 @@ public sealed class MappingProfile : Profile
             .ForMember(d => d.Id, o => o.Ignore())
             .ForMember(d => d.IsActive, o => o.MapFrom(_ => true))
             .ForMember(d => d.CompanyId, o => o.Ignore());
+
+        // CostCenter
+        CreateMap<CreateCostCenterRequest, CostCenter>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.IsActive, o => o.MapFrom(_ => true))
+            .ForMember(d => d.CompanyId, o => o.Ignore());
+        CreateMap<UpdateCostCenterRequest, CostCenter>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<CostCenter, CostCenterResponse>();
+
+        // Budget
+        CreateMap<CreateBudgetRequest, Budget>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.CompanyId, o => o.Ignore());
+        CreateMap<UpdateBudgetRequest, Budget>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<Budget, BudgetResponse>()
+            .ForMember(d => d.AccountName, o => o.MapFrom(s => s.Account.Name))
+            .ForMember(d => d.AccountCode, o => o.MapFrom(s => s.Account.Code))
+            .ForMember(d => d.CostCenterName, o => o.MapFrom(s => s.CostCenter == null ? null : s.CostCenter.Name))
+            .ForMember(d => d.CostCenterCode, o => o.MapFrom(s => s.CostCenter == null ? null : s.CostCenter.Code));
+
+        // CreditNote
+        CreateMap<CreditNote, CreditNoteResponse>()
+            .ForMember(d => d.InvoiceNumber, o => o.MapFrom(s => s.Sale.InvoiceNumber));
+        CreateMap<CreditNoteDetail, CreditNoteDetailResponse>()
+            .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product.Name));
+
+        // Approval
+        CreateMap<ApprovalFlowConfig, ApprovalFlowConfigResponse>();
+        CreateMap<ApprovalFlowStep, ApprovalFlowStepResponse>();
+        CreateMap<ApprovalRequest, ApprovalRequestResponse>();
+        CreateMap<ApprovalRequestAction, ApprovalRequestActionResponse>();
     }
 }

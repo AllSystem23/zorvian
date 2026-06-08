@@ -212,7 +212,7 @@ public sealed class WarrantyRepositoryTests
         );
         await _db.SaveChangesAsync();
 
-        var count = await _sut.GetFilteredCountAsync(null, "Registered", null, Guid.Empty);
+        var count = await _sut.GetFilteredCountAsync(null, "registered", null, Guid.Empty);
 
         Assert.Equal(1, count);
     }

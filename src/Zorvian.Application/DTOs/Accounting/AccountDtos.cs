@@ -66,3 +66,24 @@ public sealed record CreateAccountingRuleRequest(
     string? Formula,
     int SortOrder
 );
+
+public sealed record CostCenterResponse(
+    Guid Id,
+    string Name,
+    string Code,
+    string? Description,
+    bool IsActive
+);
+
+public sealed record CreateCostCenterRequest(
+    string Name,
+    string Code,
+    string? Description
+);
+
+public sealed record UpdateCostCenterRequest(
+    string? Name,
+    string? Code,
+    string? Description,
+    bool? IsActive
+);

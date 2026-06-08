@@ -26,9 +26,12 @@ class BiKpiCard extends StatelessWidget {
     final isPositive = changePercent != null && changePercent! >= 0;
     return Card(
       margin: const EdgeInsets.all(4),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+      child: Semantics(
+        label: label,
+        button: onTap != null,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
@@ -63,6 +66,7 @@ class BiKpiCard extends StatelessWidget {
           ),
         ),
       ),
+    ),
     );
   }
 }

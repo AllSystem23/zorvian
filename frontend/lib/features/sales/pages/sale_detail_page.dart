@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../shared/ds/ds.dart';
 import '../../../shared/printing/pdf_generator.dart';
 import '../../../shared/printing/print_share_sheet.dart';
 import '../../../shared/printing/print_utils.dart';
@@ -50,6 +52,14 @@ final class _SaleDetailPageState extends ConsumerState<SaleDetailPage> {
       appBar: AppBar(
         title: Text('Factura ${d.invoiceNumber}'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.assignment_return, size: 20),
+            tooltip: 'Nota de Crédito',
+            onPressed: () async {
+              final result = await context.push<bool>('/credit-notes/new/${widget.saleId}');
+              if (result == true) _load();
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.qr_code, size: 20),
             tooltip: 'Código QR',
@@ -129,63 +139,56 @@ final class _SaleDetailPageState extends ConsumerState<SaleDetailPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(children: [
-                    Expanded(child: Text(d.clientName, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold))),
-                    Chip(label: Text(d.status, style: const TextStyle(fontSize: 11, color: Colors.white)), backgroundColor: stColor, materialTapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                  ]),
-                  const SizedBox(height: 8),
-                  _row('Factura', d.invoiceNumber),
-                  _row('Tipo', isCash ? 'Contado' : 'Crédito'),
-                  _row('Fecha', d.saleDate.length >= 10 ? d.saleDate.substring(0, 10) : d.saleDate),
+          ZCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  Expanded(child: Text(d.clientName, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold))),
+                  Chip(label: Text(d.status, style: const TextStyle(fontSize: 11, color: Colors.white)), backgroundColor: stColor, materialTapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                ]),
+                const SizedBox(height: 8),
+                _row('Factura', d.invoiceNumber),
+                _row('Tipo', isCash ? 'Contado' : 'Crédito'),
+                _row('Fecha', d.saleDate.length >= 10 ? d.saleDate.substring(0, 10) : d.saleDate),
+                const Divider(),
+                _row('Subtotal', '\$${d.subtotal.toStringAsFixed(2)}'),
+                _row('Descuento', '\$${d.discount.toStringAsFixed(2)}'),
+                _row('IVA (15%)', '\$${d.tax.toStringAsFixed(2)}'),
+                _row('Total', '\$${d.total.toStringAsFixed(2)}', bold: true),
+                if (!isCash) ...[
                   const Divider(),
-                  _row('Subtotal', '\$${d.subtotal.toStringAsFixed(2)}'),
-                  _row('Descuento', '\$${d.discount.toStringAsFixed(2)}'),
-                  _row('IVA (15%)', '\$${d.tax.toStringAsFixed(2)}'),
-                  _row('Total', '\$${d.total.toStringAsFixed(2)}', bold: true),
-                  if (!isCash) ...[
-                    const Divider(),
-                    _row('Pagado', '\$${d.paidAmount.toStringAsFixed(2)}'),
-                    _row('Saldo', '\$${d.balance.toStringAsFixed(2)}', bold: true, color: Colors.red),
-                    if (d.creditId != null)
-                      InkWell(
-                        child: _row('Crédito', d.creditId!, color: Colors.blue),
-                        onTap: () {},
-                      ),
-                  ],
-                  if (d.notes != null && d.notes!.isNotEmpty) ...[
-                    const Divider(),
-                    _row('Notas', d.notes!),
-                  ],
+                  _row('Pagado', '\$${d.paidAmount.toStringAsFixed(2)}'),
+                  _row('Saldo', '\$${d.balance.toStringAsFixed(2)}', bold: true, color: Colors.red),
+                  if (d.creditId != null)
+                    _row('Crédito', d.creditId!, color: Colors.blue),
                 ],
-              ),
+                if (d.notes != null && d.notes!.isNotEmpty) ...[
+                  const Divider(),
+                  _row('Notas', d.notes!),
+                ],
+              ],
             ),
           ),
           const SizedBox(height: 16),
           Text('Productos', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          ...d.details.map((item) => Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(item.productName, style: const TextStyle(fontWeight: FontWeight.w600)),
-                        Text('${item.quantity} x \$${item.unitPrice.toStringAsFixed(2)}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                      ],
-                    ),
+          ...d.details.map((item) => ZCard(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(item.productName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                      Text('${item.quantity} x \$${item.unitPrice.toStringAsFixed(2)}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                    ],
                   ),
-                  Text('\$${item.subtotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                ],
-              ),
+                ),
+                Text('\$${item.subtotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+              ],
             ),
           )),
         ],

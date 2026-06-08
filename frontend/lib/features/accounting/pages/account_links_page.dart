@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../shared/ds/ds.dart';
 import '../providers/accounting_provider.dart';
 
 final class AccountLinksPage extends ConsumerStatefulWidget {
@@ -45,10 +46,9 @@ final class _AccountLinksPageState extends ConsumerState<AccountLinksPage> {
                   onRefresh: () => ref.read(accountingProvider.notifier).loadLinks(),
                   child: ListView(
                     padding: const EdgeInsets.all(16),
-                    children: grouped.entries.map((entry) => Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
+                    children: grouped.entries.map((entry) => ZCard(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(_txTypeName(entry.key), style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
@@ -63,11 +63,11 @@ final class _AccountLinksPageState extends ConsumerState<AccountLinksPage> {
                               ),
                             )),
                           ],
-                        ),
-                      ),
-                    )).toList(),
+                    ),
                   ),
+                  ).toList(),
                 ),
+              ),
     );
   }
 

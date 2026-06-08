@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../auth/auth_provider.dart';
 import '../../core/widgets/responsive_layout.dart';
+import '../../shared/ds/ds.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -92,6 +93,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   'assets/Zorvian.png',
                   height: 120,
                   fit: BoxFit.contain,
+                  excludeFromSemantics: true,
                 ),
                 const SizedBox(height: 32),
                 const Text(
@@ -137,6 +139,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 'assets/Zorvian.png',
                 height: 100,
                 fit: BoxFit.contain,
+                excludeFromSemantics: true,
               ),
               const SizedBox(height: 48),
               _buildGlassCard(),
@@ -197,29 +200,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     isPassword: true,
                   ),
                   const SizedBox(height: 32),
-                  ElevatedButton(
-                    onPressed: _loading ? null : _login,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2EE59D),
-                      foregroundColor: const Color(0xFF0B1F3B),
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      elevation: 0,
-                    ),
-                    child: _loading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0B1F3B)),
-                          )
-                        : const Text('Entrar al Sistema'),
+                  ZButton(
+                    text: 'Entrar al Sistema',
+                    onPressed: _login,
+                    isLoading: _loading,
                   ),
                   const SizedBox(height: 20),
-                  TextButton(
+                  ZButton(
+                    text: '¿No tienes cuenta? Solicita acceso',
                     onPressed: () => context.push('/register'),
-                    child: Text(
-                      '¿No tienes cuenta? Solicita acceso',
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.8)),
-                    ),
+                    type: ZButtonType.ghost,
+                    fullWidth: false,
                   ),
                 ],
               ),
@@ -236,36 +227,22 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     required IconData icon,
     bool isPassword = false,
   }) {
-    return TextFormField(
+    return ZTextField(
       controller: controller,
+      label: label,
       obscureText: isPassword && _obscurePassword,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
-        prefixIcon: Icon(icon, color: Colors.white.withValues(alpha: 0.6)),
-        filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.05),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF2EE59D), width: 1.5),
-        ),
-        suffixIcon: isPassword
-            ? IconButton(
-                icon: Icon(
-                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                  color: Colors.white.withValues(alpha: 0.6),
-                ),
-                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-              )
-            : null,
-      ),
+      prefix: Icon(icon),
+      suffix: isPassword
+          ? IconButton(
+              icon: Icon(
+                _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                semanticLabel: _obscurePassword ? 'Mostrar contraseña' : 'Ocultar contraseña',
+              ),
+              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+              tooltip: _obscurePassword ? 'Mostrar contraseña' : 'Ocultar contraseña',
+            )
+          : null,
       validator: (v) => v == null || v.isEmpty ? 'Este campo es obligatorio' : null,
-      onFieldSubmitted: (_) => _login(),
     );
   }
 

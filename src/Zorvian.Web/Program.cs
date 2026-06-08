@@ -57,17 +57,18 @@ builder.Services.AddDbContext<ZorvianDbContext>((sp, options) =>
 {
     var auditInterceptor = sp.GetRequiredService<Zorvian.Infrastructure.Data.AuditInterceptor>();
     var immutabilityInterceptor = sp.GetRequiredService<Zorvian.Infrastructure.Data.AuditImmutabilityInterceptor>();
+    var entityHistoryInterceptor = sp.GetRequiredService<Zorvian.Infrastructure.Data.EntityHistoryInterceptor>();
     var connStr = builder.Configuration.GetConnectionString("ZorvianDb");
     if (mockExternal || string.IsNullOrEmpty(connStr))
     {
         options.UseInMemoryDatabase("ZorvianInMemoryDb")
-               .AddInterceptors(auditInterceptor, immutabilityInterceptor)
+               .AddInterceptors(entityHistoryInterceptor, auditInterceptor, immutabilityInterceptor)
                .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
     }
     else
     {
         options.UseNpgsql(connStr)
-               .AddInterceptors(auditInterceptor, immutabilityInterceptor)
+               .AddInterceptors(entityHistoryInterceptor, auditInterceptor, immutabilityInterceptor)
                .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
     }
 });
@@ -84,6 +85,7 @@ builder.Services.AddScoped<ITenantContext>(sp => sp.GetRequiredService<TenantCon
 builder.Services.AddScoped<ITenantContextWriter>(sp => sp.GetRequiredService<TenantContext>());
 builder.Services.AddScoped<Zorvian.Infrastructure.Data.AuditInterceptor>();
 builder.Services.AddScoped<Zorvian.Infrastructure.Data.AuditImmutabilityInterceptor>();
+builder.Services.AddScoped<Zorvian.Infrastructure.Data.EntityHistoryInterceptor>();
 builder.Services.AddSingleton<IFirebaseAuthService, FirebaseAuthService>();
 builder.Services.AddSingleton<IJwtService, JwtService>();
 builder.Services.AddSingleton<IEncryptionService, EncryptionService>();
@@ -225,11 +227,13 @@ builder.Services.AddScoped<ICreditRepository, CreditRepository>();
 builder.Services.AddScoped<ICreditPaymentRepository, CreditPaymentRepository>();
 builder.Services.AddScoped<ILateFeeRepository, LateFeeRepository>();
 builder.Services.AddScoped<ICollectionActionRepository, CollectionActionRepository>();
+builder.Services.AddScoped<ICreditRefinancingRepository, CreditRefinancingRepository>();
 builder.Services.AddScoped<CreditService>();
 
 // DI - New Module: Caja
 builder.Services.AddScoped<ICashRegisterRepository, CashRegisterRepository>();
 builder.Services.AddScoped<ICashMovementRepository, CashMovementRepository>();
+builder.Services.AddScoped<ICashRegisterArqueoRepository, CashRegisterArqueoRepository>();
 builder.Services.AddScoped<CashRegisterService>();
 
 builder.Services.AddScoped<IWarrantySlaConfigRepository, WarrantySlaConfigRepository>();
@@ -254,6 +258,16 @@ builder.Services.AddScoped<IAccountingEntryRepository, AccountingEntryRepository
 builder.Services.AddScoped<IAccountingPeriodRepository, AccountingPeriodRepository>();
 builder.Services.AddScoped<IAccountLinkRepository, AccountLinkRepository>();
 builder.Services.AddScoped<IAccountingRuleRepository, AccountingRuleRepository>();
+builder.Services.AddScoped<ICostCenterRepository, CostCenterRepository>();
+builder.Services.AddScoped<IBudgetRepository, BudgetRepository>();
+builder.Services.AddScoped<ICreditNoteRepository, CreditNoteRepository>();
+builder.Services.AddScoped<CostCenterService>();
+builder.Services.AddScoped<BudgetService>();
+builder.Services.AddScoped<CreditNoteService>();
+builder.Services.AddScoped<IApprovalFlowConfigRepository, ApprovalFlowConfigRepository>();
+builder.Services.AddScoped<IApprovalRequestRepository, ApprovalRequestRepository>();
+builder.Services.AddScoped<ApprovalFlowConfigService>();
+builder.Services.AddScoped<IApprovalEngine, ApprovalEngine>();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<AccountingEntryService>();
 builder.Services.AddScoped<AccountingPeriodService>();
@@ -276,6 +290,10 @@ builder.Services.AddScoped<IChatService>(sp => new ChatService(
     builder.Configuration["GoogleAi:ProjectId"]!,
     builder.Configuration["GoogleAi:Location"]!));
 builder.Services.AddSingleton<AbsenteeismPredictionService>();
+builder.Services.AddSingleton<SalesPredictionService>();
+builder.Services.AddSingleton<ExpenseClassificationService>();
+builder.Services.AddScoped<AccountingAssistantService>();
+builder.Services.AddScoped<PurchaseRecommendationService>();
 builder.Services.AddScoped<OcrProcessingJob>();
 builder.Services.AddHttpClient(); // For fetching document streams
 
@@ -339,6 +357,8 @@ builder.Services.AddScoped<CheckInReminderJob>();
 builder.Services.AddScoped<DocumentExpirationJob>();
 builder.Services.AddScoped<AttendancePhotoCleanupJob>();
 builder.Services.AddScoped<AbsenteeismTrainingJob>();
+builder.Services.AddScoped<SalesPredictionTrainingJob>();
+builder.Services.AddScoped<ExpenseClassificationTrainingJob>();
 builder.Services.AddScoped<WarrantySlaMonitorJob>();
 
 // Anti-CSRF
@@ -444,6 +464,8 @@ if (!mockExternal)
     recurringJobManager.AddOrUpdate<DocumentExpirationJob>("document-expiration-check", j => j.RunAsync(), "0 8 * * *");
     recurringJobManager.AddOrUpdate<AttendancePhotoCleanupJob>("attendance-photo-cleanup", j => j.RunAsync(), "0 3 1 * *");
     recurringJobManager.AddOrUpdate<AbsenteeismTrainingJob>("absenteeism-model-training", j => j.RunAsync(), "0 2 * * 0");
+    recurringJobManager.AddOrUpdate<SalesPredictionTrainingJob>("sales-prediction-model-training", j => j.RunAsync(), "0 3 * * 0");
+    recurringJobManager.AddOrUpdate<ExpenseClassificationTrainingJob>("expense-classification-training", j => j.RunAsync(), "0 4 * * 0");
     recurringJobManager.AddOrUpdate<AuditLogCleanupJob>("audit-log-cleanup", j => j.RunAsync(), "0 3 1 * *");
     recurringJobManager.AddOrUpdate<DatabaseBackupJob>("database-backup", j => j.RunAsync(), "0 2 * * *");
 }

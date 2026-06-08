@@ -11,6 +11,7 @@ public class CashRegisterServiceTests
 {
     private readonly Mock<ICashRegisterRepository> _mockRegisterRepo = new();
     private readonly Mock<ICashMovementRepository> _mockMovementRepo = new();
+    private readonly Mock<ICashRegisterArqueoRepository> _mockArqueoRepo = new();
     private readonly Mock<ITenantContext> _mockTenant = new();
     private readonly Mock<AutoMapper.IMapper> _mockMapper = new();
     private readonly Mock<IAutoAccountingService> _mockAccountingService = new();
@@ -22,6 +23,7 @@ public class CashRegisterServiceTests
         _sut = new CashRegisterService(
             _mockRegisterRepo.Object,
             _mockMovementRepo.Object,
+            _mockArqueoRepo.Object,
             _mockTenant.Object,
             _mockMapper.Object,
             _mockAccountingService.Object);

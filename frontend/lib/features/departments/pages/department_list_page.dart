@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../shared/ds/ds.dart';
 import '../providers/department_provider.dart';
 
 class DepartmentListPage extends ConsumerStatefulWidget {
@@ -19,18 +20,15 @@ class _DepartmentListPageState extends ConsumerState<DepartmentListPage> {
   }
 
   Future<void> _confirmDelete(String id, String name) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Eliminar departamento'),
-        content: Text('¿Eliminar $name? Los empleados asignados quedarán sin departamento.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Eliminar', style: TextStyle(color: Colors.red))),
-        ],
-      ),
+    final ok = await ZModal.confirm(
+      context,
+      title: 'Eliminar departamento',
+      message: '¿Eliminar $name? Los empleados asignados quedarán sin departamento.',
+      confirmText: 'Eliminar',
+      cancelText: 'Cancelar',
+      confirmColor: Colors.red,
     );
-    if (ok != true) return;
+    if (!ok) return;
 
     try {
       final dio = ref.read(dioClientProvider);

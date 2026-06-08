@@ -24,7 +24,7 @@ public sealed class SaleRepository : ISaleRepository
             .Include(s => s.Credit)
             .FirstOrDefaultAsync(s => s.Id == id);
 
-    public async Task<List<Sale>> GetFilteredAsync(Guid? clientId, string? saleType, string? status, DateTime? fromDate, DateTime? toDate, Guid branchId, int page, int pageSize)
+    public async Task<List<Sale>> GetFilteredAsync(Guid? clientId, string? saleType, string? status, DateTime? fromDate, DateTime? toDate, string? search, Guid branchId, int page, int pageSize)
     {
         var query = _db.Set<Sale>()
             .Include(s => s.Client)
@@ -43,6 +43,13 @@ public sealed class SaleRepository : ISaleRepository
             query = query.Where(s => s.SaleDate >= fromDate.Value);
         if (toDate.HasValue)
             query = query.Where(s => s.SaleDate <= toDate.Value);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var q = search.ToLower();
+            query = query.Where(s => s.InvoiceNumber.ToLower().Contains(q)
+                || s.Client.FirstName.ToLower().Contains(q)
+                || s.Client.LastName.ToLower().Contains(q));
+        }
 
         return await query
             .OrderByDescending(s => s.SaleDate)
@@ -51,9 +58,11 @@ public sealed class SaleRepository : ISaleRepository
             .ToListAsync();
     }
 
-    public async Task<int> GetFilteredCountAsync(Guid? clientId, string? saleType, string? status, DateTime? fromDate, DateTime? toDate, Guid branchId)
+    public async Task<int> GetFilteredCountAsync(Guid? clientId, string? saleType, string? status, DateTime? fromDate, DateTime? toDate, string? search, Guid branchId)
     {
-        var query = _db.Set<Sale>().AsQueryable();
+        var query = _db.Set<Sale>()
+            .Include(s => s.Client)
+            .AsQueryable();
         if (branchId != Guid.Empty)
             query = query.Where(s => s.BranchId == branchId);
 
@@ -62,6 +71,13 @@ public sealed class SaleRepository : ISaleRepository
         if (!string.IsNullOrWhiteSpace(status)) query = query.Where(s => s.Status == status);
         if (fromDate.HasValue) query = query.Where(s => s.SaleDate >= fromDate.Value);
         if (toDate.HasValue) query = query.Where(s => s.SaleDate <= toDate.Value);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var q = search.ToLower();
+            query = query.Where(s => s.InvoiceNumber.ToLower().Contains(q)
+                || s.Client.FirstName.ToLower().Contains(q)
+                || s.Client.LastName.ToLower().Contains(q));
+        }
 
         return await query.CountAsync();
     }

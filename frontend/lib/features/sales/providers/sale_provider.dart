@@ -107,11 +107,13 @@ final class SaleNotifier extends Notifier<SaleState> {
   @override
   SaleState build() => const SaleState();
 
-  Future<void> load() async {
+  Future<void> load({String? search}) async {
     state = state.copyWith(loading: true, error: null);
     try {
       final dio = ref.read(dioClientProvider);
-      final r = await dio.get('sales');
+      final params = <String, dynamic>{};
+      if (search != null && search.isNotEmpty) params['search'] = search;
+      final r = await dio.get('sales', params: params);
       final body = r.data;
       final list = body is Map ? (body['items'] ?? []) : (body is List ? body : []);
       state = SaleState(items: (list as List).map((e) => SaleItem.fromJson(e as Map<String, dynamic>)).toList());

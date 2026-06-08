@@ -70,6 +70,7 @@ public sealed record PurchaseFilterRequest(
     string? Status,
     DateTime? FromDate,
     DateTime? ToDate,
+    string? Search,
     Guid? BranchId,
     int? Page = 1,
     int? PageSize = 20

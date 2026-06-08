@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../shared/ds/ds.dart';
 import '../../../shared/printing/qr_code_dialog.dart';
 import '../../clients/providers/client_provider.dart';
 import '../../products/providers/product_provider.dart';
@@ -76,9 +77,7 @@ class _QuoteFormPageState extends ConsumerState<QuoteFormPage> {
       setState(() {});
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error al cargar cotización'), backgroundColor: Colors.red),
-        );
+        ZToast.error(context, 'Error al cargar cotización');
       }
     }
   }
@@ -136,7 +135,7 @@ class _QuoteFormPageState extends ConsumerState<QuoteFormPage> {
 
   void _err(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
+    ZToast.error(context, msg);
   }
 
   void _scanProduct(String code) {
@@ -192,7 +191,7 @@ class _QuoteFormPageState extends ConsumerState<QuoteFormPage> {
           ),
           const SizedBox(height: 8),
           if (productsAsync.items.where((p) => _searchCtrl.text.isEmpty || p.name.toLowerCase().contains(_searchCtrl.text.toLowerCase())).take(5).toList() case final found)
-            ...found.map((p) => Card(
+            ...found.map((p) => ZCard(
               child: ListTile(
                 dense: true,
                 title: Text(p.name, style: const TextStyle(fontSize: 13)),
@@ -210,45 +209,43 @@ class _QuoteFormPageState extends ConsumerState<QuoteFormPage> {
             ..._cart.asMap().entries.map((entry) {
               final i = entry.key;
               final c = entry.value;
-              return Card(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: Row(children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(c.productName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                          Text('\$${c.unitPrice.toStringAsFixed(2)} c/u', style: const TextStyle(fontSize: 11)),
-                        ],
-                      ),
+              return ZCard(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(c.productName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                        Text('\$${c.unitPrice.toStringAsFixed(2)} c/u', style: const TextStyle(fontSize: 11)),
+                      ],
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.remove_circle_outline, size: 18),
-                      onPressed: c.quantity > 1 ? () => setState(() => c.quantity--) : null,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.remove_circle_outline, size: 18),
+                    onPressed: c.quantity > 1 ? () => setState(() => c.quantity--) : null,
+                  ),
+                  Text('${c.quantity}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline, size: 18),
+                    onPressed: () => setState(() => c.quantity++),
+                  ),
+                  SizedBox(
+                    width: 80,
+                    child: TextField(
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'Desc', isDense: true, contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 4)),
+                      controller: TextEditingController(text: c.discount.toStringAsFixed(0)),
+                      style: const TextStyle(fontSize: 12),
+                      onChanged: (v) => setState(() => c.discount = double.tryParse(v) ?? 0),
                     ),
-                    Text('${c.quantity}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                    IconButton(
-                      icon: const Icon(Icons.add_circle_outline, size: 18),
-                      onPressed: () => setState(() => c.quantity++),
-                    ),
-                    SizedBox(
-                      width: 80,
-                      child: TextField(
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(labelText: 'Desc', isDense: true, contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 4)),
-                        controller: TextEditingController(text: c.discount.toStringAsFixed(0)),
-                        style: const TextStyle(fontSize: 12),
-                        onChanged: (v) => setState(() => c.discount = double.tryParse(v) ?? 0),
-                      ),
-                    ),
-                    SizedBox(width: 80, child: Text('\$${c.subtotal.toStringAsFixed(0)}', textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w600))),
-                    IconButton(
-                      icon: const Icon(Icons.close, size: 18, color: Colors.red),
-                      onPressed: () => setState(() => _cart.removeAt(i)),
-                    ),
-                  ]),
-                ),
+                  ),
+                  SizedBox(width: 80, child: Text('\$${c.subtotal.toStringAsFixed(0)}', textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w600))),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 18, color: Colors.red),
+                    onPressed: () => setState(() => _cart.removeAt(i)),
+                  ),
+                ]),
               );
             }),
           const SizedBox(height: 16),

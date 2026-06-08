@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../shared/ds/ds.dart';
 
 class VacationDetailPage extends ConsumerStatefulWidget {
   final String vacationId;
@@ -46,9 +47,32 @@ class _VacationDetailPageState extends ConsumerState<VacationDetailPage> {
   }
 
   Future<void> _reject() async {
-    final reason = await showDialog<String>(
-      context: context,
-      builder: (_) => _RejectDialog(),
+    final ctrl = TextEditingController();
+    final reason = await ZModal.show<String>(context,
+      title: 'Motivo de rechazo',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ZTextField(
+            controller: ctrl,
+            label: '',
+            hint: 'Ingrese el motivo...',
+            maxLines: 3,
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+              const SizedBox(width: 8),
+              ZButton(
+                onPressed: () => Navigator.pop(context, ctrl.text),
+                text: 'Rechazar',
+              ),
+            ],
+          ),
+        ],
+      ),
     );
     if (reason == null) return;
 
@@ -103,81 +127,78 @@ class _VacationDetailPageState extends ConsumerState<VacationDetailPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        CircleAvatar(
-                          backgroundColor: theme.colorScheme.primaryContainer,
-                          child: Text(
-                            ((r['employeeName'] as String?)?[0] ?? '?'),
-                            style: TextStyle(color: theme.colorScheme.onPrimaryContainer),
-                          ),
+            ZCard(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: theme.colorScheme.primaryContainer,
+                        child: Text(
+                          ((r['employeeName'] as String?)?[0] ?? '?'),
+                          style: TextStyle(color: theme.colorScheme.onPrimaryContainer),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(child: Text(r['employeeName'] ?? '', style: theme.textTheme.titleMedium)),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: _statusColor(r['status'] as String? ?? '').withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            _statusLabel(r['status'] as String? ?? ''),
-                            style: TextStyle(color: _statusColor(r['status'] as String? ?? ''), fontWeight: FontWeight.w600),
-                          ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(child: Text(r['employeeName'] ?? '', style: theme.textTheme.titleMedium)),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _statusColor(r['status'] as String? ?? '').withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      ],
-                    ),
-                    const Divider(height: 24),
-                    _row('Código', r['employeeCode']),
-                    _row('Inicio', r['startDate']),
-                    _row('Fin', r['endDate']),
-                    _row('Días totales', '${r['totalDays']}'),
-                    _row('Días hábiles', '${r['businessDays']}'),
-                    _row('Comentarios', r['comments'] ?? '—'),
-                    if (r['rejectionReason'] != null)
-                      _row('Motivo rechazo', r['rejectionReason']),
-                  ],
-                ),
+                        child: Text(
+                          _statusLabel(r['status'] as String? ?? ''),
+                          style: TextStyle(color: _statusColor(r['status'] as String? ?? ''), fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 24),
+                  _row('Código', r['employeeCode']),
+                  _row('Inicio', r['startDate']),
+                  _row('Fin', r['endDate']),
+                  _row('Días totales', '${r['totalDays']}'),
+                  _row('Días hábiles', '${r['businessDays']}'),
+                  _row('Comentarios', r['comments'] ?? '—'),
+                  if (r['rejectionReason'] != null)
+                    _row('Motivo rechazo', r['rejectionReason']),
+                ],
               ),
             ),
             const SizedBox(height: 16),
             if (r['approvalSteps'] is List && (r['approvalSteps'] as List).isNotEmpty)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Flujo de aprobación', style: theme.textTheme.titleMedium),
-                      const Divider(),
-                      ...((r['approvalSteps'] as List).map((s) {
-                        final approver = s['approverName'] as String? ?? 'RRHH';
-                        final stepStatus = s['status'] as String? ?? 'pending';
-                        return ListTile(
-                          leading: Icon(
-                            stepStatus == 'approved'
-                                ? Icons.check_circle
-                                : stepStatus == 'rejected'
-                                    ? Icons.cancel
-                                    : Icons.schedule,
-                            color: stepStatus == 'approved'
-                                ? Colors.green
-                                : stepStatus == 'rejected'
-                                    ? Colors.red
-                                    : Colors.grey,
-                          ),
-                          title: Text('Paso ${s['step']}: $approver'),
-                          subtitle: Text(_statusLabel(stepStatus)),
-                        );
-                      })),
-                    ],
-                  ),
+              ZCard(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Flujo de aprobación', style: theme.textTheme.titleMedium),
+                    const Divider(),
+                    ...((r['approvalSteps'] as List).map((s) {
+                      final approver = s['approverName'] as String? ?? 'RRHH';
+                      final stepStatus = s['status'] as String? ?? 'pending';
+                      return ListTile(
+                        leading: Icon(
+                          stepStatus == 'approved'
+                              ? Icons.check_circle
+                              : stepStatus == 'rejected'
+                                  ? Icons.cancel
+                                  : Icons.schedule,
+                          color: stepStatus == 'approved'
+                              ? Colors.green
+                              : stepStatus == 'rejected'
+                                  ? Colors.red
+                                  : Colors.grey,
+                        ),
+                        title: Text('Paso ${s['step']}: $approver'),
+                        subtitle: Text(_statusLabel(stepStatus),
+                        ),
+                      );
+                    })),
+                  ],
                 ),
               ),
             if (_canAct())
@@ -220,25 +241,6 @@ class _VacationDetailPageState extends ConsumerState<VacationDetailPage> {
           Expanded(child: Text(value ?? '—')),
         ],
       ),
-    );
-  }
-}
-
-class _RejectDialog extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final ctrl = TextEditingController();
-    return AlertDialog(
-      title: const Text('Motivo de rechazo'),
-      content: TextField(
-        controller: ctrl,
-        decoration: const InputDecoration(hintText: 'Ingrese el motivo...'),
-        maxLines: 3,
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-        TextButton(onPressed: () => Navigator.pop(context, ctrl.text), child: const Text('Rechazar', style: TextStyle(color: Colors.red))),
-      ],
     );
   }
 }

@@ -48,11 +48,13 @@ final class InventoryMovementState {
 final class InventoryMovementNotifier extends Notifier<InventoryMovementState> {
   @override
   InventoryMovementState build() => const InventoryMovementState();
-  Future<void> load() async {
+  Future<void> load({String? search}) async {
     state = state.copyWith(loading: true, error: null);
     try {
       final dio = ref.read(dioClientProvider);
-      final r = await dio.get('inventory-movements');
+      final params = <String, dynamic>{};
+      if (search != null && search.isNotEmpty) params['search'] = search;
+      final r = await dio.get('inventory-movements', params: params);
       final data = r.data;
       state = InventoryMovementState(items: (data['items'] as List).map((e) => InventoryMovementItem.fromJson(e)).toList());
     } catch (_) {

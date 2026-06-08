@@ -11,7 +11,6 @@ final class QuoteListPage extends ConsumerStatefulWidget {
 
 final class _QuoteListPageState extends ConsumerState<QuoteListPage> {
   final _searchCtrl = TextEditingController();
-  String _searchQuery = '';
 
   @override
   void initState() {
@@ -19,14 +18,8 @@ final class _QuoteListPageState extends ConsumerState<QuoteListPage> {
     Future.microtask(() => ref.read(quoteProvider.notifier).load());
   }
 
-  List<QuoteItem> _filter(List<QuoteItem> items) {
-    if (_searchQuery.isEmpty) return items;
-    final q = _searchQuery.toLowerCase();
-    return items.where((qt) =>
-      qt.clientName.toLowerCase().contains(q) ||
-      qt.quoteNumber.toLowerCase().contains(q) ||
-      qt.status.toLowerCase().contains(q)
-    ).toList();
+  void _onSearch(String v) {
+    ref.read(quoteProvider.notifier).load(search: v.isNotEmpty ? v : null);
   }
 
   @override
@@ -39,7 +32,7 @@ final class _QuoteListPageState extends ConsumerState<QuoteListPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(quoteProvider);
     final theme = Theme.of(context);
-    final filtered = _filter(state.items);
+    final items = state.items;
     return Scaffold(
       appBar: AppBar(title: const Text('Cotizaciones')),
       body: state.loading
@@ -53,27 +46,27 @@ final class _QuoteListPageState extends ConsumerState<QuoteListPage> {
                       child: TextField(
                         controller: _searchCtrl,
                         decoration: InputDecoration(
-                          hintText: 'Buscar por cliente, folio o estado...',
+                          hintText: 'Buscar por cliente o folio...',
                           prefixIcon: const Icon(Icons.search),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? IconButton(icon: const Icon(Icons.clear), onPressed: () { _searchCtrl.clear(); setState(() => _searchQuery = ''); })
+                          suffixIcon: _searchCtrl.text.isNotEmpty
+                              ? IconButton(icon: const Icon(Icons.clear), onPressed: () { _searchCtrl.clear(); _onSearch(''); })
                               : null,
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           contentPadding: const EdgeInsets.symmetric(vertical: 0),
                         ),
-                        onChanged: (v) => setState(() => _searchQuery = v),
+                        onChanged: _onSearch,
                       ),
                     ),
                     Expanded(
-                      child: filtered.isEmpty
-                          ? Center(child: Text(_searchQuery.isNotEmpty ? 'Sin resultados' : 'No hay cotizaciones'))
+                      child: items.isEmpty
+                          ? Center(child: Text(_searchCtrl.text.isNotEmpty ? 'Sin resultados' : 'No hay cotizaciones'))
                           : RefreshIndicator(
                               onRefresh: () => ref.read(quoteProvider.notifier).load(),
                               child: ListView.separated(
-                                itemCount: filtered.length,
+                                itemCount: items.length,
                                 separatorBuilder: (_, _) => const Divider(height: 1),
                                 itemBuilder: (_, i) {
-                                  final q = filtered[i];
+                                  final q = items[i];
                                   final stColor = switch (q.status) {
                                     'approved' => Colors.green,
                                     'rejected' => Colors.red,

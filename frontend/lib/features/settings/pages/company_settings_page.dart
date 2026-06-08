@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../shared/ds/ds.dart';
 import '../providers/company_settings_provider.dart';
 
 class CompanySettingsPage extends ConsumerStatefulWidget {
@@ -91,63 +92,59 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Información de la Empresa', style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 12),
-                  companyAsync.when(
-                    loading: () => const Center(child: CircularProgressIndicator()),
-                    error: (e, stack) => Text('Error: $e'),
-                    data: (c) {
-                      _nameCtrl.text = c['name'] ?? '';
-                      _legalCtrl.text = c['legalName'] ?? '';
-                      _taxIdCtrl.text = c['taxId'] ?? '';
-                      return Column(
-                        children: [
-                          TextField(controller: _nameCtrl, decoration: const InputDecoration(labelText: 'Nombre', border: OutlineInputBorder())),
-                          const SizedBox(height: 12),
-                          TextField(controller: _legalCtrl, decoration: const InputDecoration(labelText: 'Razón Social', border: OutlineInputBorder())),
-                          const SizedBox(height: 12),
-                          TextField(controller: _taxIdCtrl, decoration: const InputDecoration(labelText: 'RUC/NIT', border: OutlineInputBorder())),
-                          const SizedBox(height: 12),
-                          FilledButton(onPressed: _saveCompany, child: const Text('Guardar Empresa')),
-                        ],
-                      );
-                    },
-                  ),
-                ],
-              ),
+          ZCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Información de la Empresa', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 12),
+                companyAsync.when(
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (e, stack) => Text('Error: $e'),
+                  data: (c) {
+                    _nameCtrl.text = c['name'] ?? '';
+                    _legalCtrl.text = c['legalName'] ?? '';
+                    _taxIdCtrl.text = c['taxId'] ?? '';
+                    return Column(
+                      children: [
+                        ZTextField(controller: _nameCtrl, label: 'Nombre'),
+                        const SizedBox(height: 12),
+                        ZTextField(controller: _legalCtrl, label: 'Razón Social'),
+                        const SizedBox(height: 12),
+                        ZTextField(controller: _taxIdCtrl, label: 'RUC/NIT'),
+                        const SizedBox(height: 12),
+                        ZButton(text: 'Guardar Empresa', onPressed: _saveCompany),
+                      ],
+                    );
+                  },
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Configuración General', style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 12),
-                  settingsAsync.when(
-                    loading: () => const Center(child: CircularProgressIndicator()),
-                    error: (e, stack) {
-                      if (e.toString().contains('404')) {
-                        return _buildConfigForm({});
-                      }
-                      return Text('Error: $e', style: const TextStyle(color: Colors.red));
-                    },
-                    data: (s) => _buildConfigForm(s),
-                  ),
-                ],
-              ),
+          ZCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Configuración General', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 12),
+                settingsAsync.when(
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (e, stack) {
+                    if (e.toString().contains('404')) {
+                      return _buildConfigForm({});
+                    }
+                    return Text('Error: $e', style: const TextStyle(color: Colors.red));
+                  },
+                  data: (s) => _buildConfigForm(s),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
-          Card(
+          ZCard(
             child: ListTile(
               leading: const Icon(Icons.event_note),
               title: const Text('Tipos de Permiso'),
@@ -177,15 +174,15 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
       children: [
         Text('General', style: const TextStyle(fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
-        TextField(controller: _vacationDaysCtrl, decoration: const InputDecoration(labelText: 'Días de Vacaciones/Año', border: OutlineInputBorder()), keyboardType: TextInputType.number),
+        ZTextField(controller: _vacationDaysCtrl, label: 'Días de Vacaciones/Año', keyboardType: TextInputType.number),
         const SizedBox(height: 12),
-        TextField(controller: _toleranceCtrl, decoration: const InputDecoration(labelText: 'Tolerancia (minutos)', border: OutlineInputBorder()), keyboardType: TextInputType.number),
+        ZTextField(controller: _toleranceCtrl, label: 'Tolerancia (minutos)', keyboardType: TextInputType.number),
         const SizedBox(height: 12),
-        TextField(controller: _workingHoursCtrl, decoration: const InputDecoration(labelText: 'Horas Laborales/Día', border: OutlineInputBorder()), keyboardType: TextInputType.number),
+        ZTextField(controller: _workingHoursCtrl, label: 'Horas Laborales/Día', keyboardType: TextInputType.number),
         const SizedBox(height: 12),
-        TextField(controller: _currencyCtrl, decoration: const InputDecoration(labelText: 'Moneda', border: OutlineInputBorder())),
+        ZTextField(controller: _currencyCtrl, label: 'Moneda'),
         const SizedBox(height: 12),
-        TextField(controller: _timezoneCtrl, decoration: const InputDecoration(labelText: 'Zona Horaria', border: OutlineInputBorder())),
+        ZTextField(controller: _timezoneCtrl, label: 'Zona Horaria'),
         const SizedBox(height: 20),
         Text('Facturación / IVA', style: const TextStyle(fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
@@ -196,17 +193,17 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
           contentPadding: EdgeInsets.zero,
         ),
         if (_taxEnabled)
-          TextField(controller: _taxRateCtrl, decoration: const InputDecoration(labelText: 'Tasa de IVA (ej: 0.15)', border: OutlineInputBorder(), helperText: '0.15 = 15%'), keyboardType: const TextInputType.numberWithOptions(decimal: true)),
+          ZTextField(controller: _taxRateCtrl, label: 'Tasa de IVA (ej: 0.15)', keyboardType: const TextInputType.numberWithOptions(decimal: true), hint: '0.15 = 15%'),
         const SizedBox(height: 20),
         Text('Cobranza y Mora', style: const TextStyle(fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
-        TextField(controller: _lateFeeRateCtrl, decoration: const InputDecoration(labelText: 'Tasa de Interés Moratorio Diario (ej: 0.001)', border: OutlineInputBorder(), helperText: '0.001 = 0.1% diario'), keyboardType: const TextInputType.numberWithOptions(decimal: true)),
+        ZTextField(controller: _lateFeeRateCtrl, label: 'Tasa de Interés Moratorio Diario (ej: 0.001)', keyboardType: const TextInputType.numberWithOptions(decimal: true), hint: '0.001 = 0.1% diario'),
         const SizedBox(height: 12),
-        TextField(controller: _lateFeePctCtrl, decoration: const InputDecoration(labelText: 'Porcentaje de Multa por Cuota (ej: 0.05)', border: OutlineInputBorder(), helperText: '0.05 = 5%'), keyboardType: const TextInputType.numberWithOptions(decimal: true)),
+        ZTextField(controller: _lateFeePctCtrl, label: 'Porcentaje de Multa por Cuota (ej: 0.05)', keyboardType: const TextInputType.numberWithOptions(decimal: true), hint: '0.05 = 5%'),
         const SizedBox(height: 12),
-        TextField(controller: _graceDaysCtrl, decoration: const InputDecoration(labelText: 'Días de Gracia', border: OutlineInputBorder(), helperText: '0 = sin gracia'), keyboardType: TextInputType.number),
+        ZTextField(controller: _graceDaysCtrl, label: 'Días de Gracia', keyboardType: TextInputType.number, hint: '0 = sin gracia'),
         const SizedBox(height: 12),
-        FilledButton(onPressed: _saveSettings, child: const Text('Guardar Configuración')),
+        ZButton(text: 'Guardar Configuración', onPressed: _saveSettings),
       ],
     );
   }

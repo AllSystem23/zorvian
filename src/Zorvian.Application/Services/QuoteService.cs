@@ -111,8 +111,8 @@ public sealed class QuoteService
         var page = filter.Page ?? 1;
         var pageSize = filter.PageSize ?? 20;
 
-        var items = await _repo.GetFilteredAsync(filter.ClientId, filter.Status, filter.FromDate, filter.ToDate, Guid.Empty, page, pageSize);
-        var total = await _repo.GetFilteredCountAsync(filter.ClientId, filter.Status, filter.FromDate, filter.ToDate, Guid.Empty);
+        var items = await _repo.GetFilteredAsync(filter.ClientId, filter.Status, filter.FromDate, filter.ToDate, filter.Search, Guid.Empty, page, pageSize);
+        var total = await _repo.GetFilteredCountAsync(filter.ClientId, filter.Status, filter.FromDate, filter.ToDate, filter.Search, Guid.Empty);
 
         return new PagedResult<QuoteResponse>(
             _mapper.Map<List<QuoteResponse>>(items),

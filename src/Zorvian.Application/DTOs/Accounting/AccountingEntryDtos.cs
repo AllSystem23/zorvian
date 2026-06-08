@@ -155,3 +155,47 @@ public sealed record GeneralLedgerResponse(
     decimal EndingBalance,
     List<GeneralLedgerItem> Items
 );
+
+public sealed record CostCenterExpenseItem(
+    string AccountCode,
+    string AccountName,
+    decimal DebitAmount,
+    decimal CreditAmount,
+    decimal Balance
+);
+
+public sealed record CostCenterExpenseReport(
+    Guid CostCenterId,
+    string CostCenterName,
+    string CostCenterCode,
+    DateTime GeneratedAt,
+    decimal TotalDebit,
+    decimal TotalCredit,
+    decimal TotalBalance,
+    List<CostCenterExpenseItem> Items
+);
+
+public sealed record BudgetVsActualItem(
+    Guid BudgetId,
+    int Year,
+    int Month,
+    Guid AccountId,
+    string AccountCode,
+    string AccountName,
+    Guid? CostCenterId,
+    string? CostCenterName,
+    decimal BudgetedAmount,
+    decimal ActualAmount,
+    decimal Variance,
+    decimal VariancePercent
+);
+
+public sealed record BudgetVsActualReport(
+    int Year,
+    int Month,
+    DateTime GeneratedAt,
+    decimal TotalBudgeted,
+    decimal TotalActual,
+    decimal TotalVariance,
+    List<BudgetVsActualItem> Items
+);

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../shared/ds/ds.dart';
 
 final class SupplierFormPage extends ConsumerStatefulWidget {
   final String? supplierId;
@@ -113,11 +114,10 @@ final class _SupplierFormPageState extends ConsumerState<SupplierFormPage> {
               const SizedBox(height: 12),
               SwitchListTile(title: const Text('Activo'), value: _isActive, onChanged: (v) => setState(() => _isActive = v)),
               const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _loading ? null : _save,
-                child: _loading
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : Text(_isEditing ? 'Actualizar' : 'Crear proveedor'),
+              ZButton(
+                text: _isEditing ? 'Actualizar' : 'Crear proveedor',
+                onPressed: _save,
+                isLoading: _loading,
               ),
             ],
           ),

@@ -106,11 +106,13 @@ final class QuoteNotifier extends Notifier<QuoteState> {
   @override
   QuoteState build() => const QuoteState();
 
-  Future<void> load() async {
+  Future<void> load({String? search}) async {
     state = state.copyWith(loading: true, error: null);
     try {
       final dio = ref.read(dioClientProvider);
-      final r = await dio.get('quotes');
+      final params = <String, dynamic>{};
+      if (search != null && search.isNotEmpty) params['search'] = search;
+      final r = await dio.get('quotes', params: params);
       final data = r.data;
       state = QuoteState(items: (data['items'] as List).map((e) => QuoteItem.fromJson(e)).toList());
     } catch (_) {

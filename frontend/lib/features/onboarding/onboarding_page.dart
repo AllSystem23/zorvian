@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../auth/auth_provider.dart';
+import '../../shared/ds/ds.dart';
 
 
 class OnboardingPage extends ConsumerStatefulWidget {
@@ -156,14 +157,10 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                   },
                 ),
                 const SizedBox(height: 32),
-                ElevatedButton(
-                  onPressed: _loading ? null : _submit,
-                  child: _loading
-                      ? const SizedBox(
-                          height: 20, width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Text('Crear empresa'),
+                ZButton(
+                  text: 'Crear empresa',
+                  onPressed: _submit,
+                  isLoading: _loading,
                 ),
               ],
             ),

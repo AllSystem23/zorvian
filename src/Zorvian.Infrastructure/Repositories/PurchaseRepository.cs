@@ -23,7 +23,7 @@ public sealed class PurchaseRepository : IPurchaseRepository
             .Include(p => p.CreditNotes)
             .FirstOrDefaultAsync(p => p.Id == id);
 
-    public async Task<List<Purchase>> GetFilteredAsync(Guid? supplierId, string? status, DateTime? fromDate, DateTime? toDate, Guid branchId, int page, int pageSize)
+    public async Task<List<Purchase>> GetFilteredAsync(Guid? supplierId, string? status, DateTime? fromDate, DateTime? toDate, string? search, Guid branchId, int page, int pageSize)
     {
         var query = _db.Set<Purchase>()
             .Include(p => p.Supplier)
@@ -40,6 +40,12 @@ public sealed class PurchaseRepository : IPurchaseRepository
             query = query.Where(p => p.CreatedAt >= fromDate.Value);
         if (toDate.HasValue)
             query = query.Where(p => p.CreatedAt <= toDate.Value);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var q = search.ToLower();
+            query = query.Where(p => p.PurchaseNumber.ToLower().Contains(q)
+                || p.Supplier.Name.ToLower().Contains(q));
+        }
 
         return await query
             .OrderByDescending(p => p.CreatedAt)
@@ -48,15 +54,23 @@ public sealed class PurchaseRepository : IPurchaseRepository
             .ToListAsync();
     }
 
-    public async Task<int> GetFilteredCountAsync(Guid? supplierId, string? status, DateTime? fromDate, DateTime? toDate, Guid branchId)
+    public async Task<int> GetFilteredCountAsync(Guid? supplierId, string? status, DateTime? fromDate, DateTime? toDate, string? search, Guid branchId)
     {
-        var query = _db.Set<Purchase>().AsQueryable();
+        var query = _db.Set<Purchase>()
+            .Include(p => p.Supplier)
+            .AsQueryable();
         if (branchId != Guid.Empty)
             query = query.Where(p => p.BranchId == branchId);
         if (supplierId.HasValue) query = query.Where(p => p.SupplierId == supplierId.Value);
         if (!string.IsNullOrWhiteSpace(status)) query = query.Where(p => p.Status == status);
         if (fromDate.HasValue) query = query.Where(p => p.CreatedAt >= fromDate.Value);
         if (toDate.HasValue) query = query.Where(p => p.CreatedAt <= toDate.Value);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var q = search.ToLower();
+            query = query.Where(p => p.PurchaseNumber.ToLower().Contains(q)
+                || p.Supplier.Name.ToLower().Contains(q));
+        }
 
         return await query.CountAsync();
     }

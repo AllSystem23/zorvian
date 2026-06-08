@@ -70,6 +70,7 @@ class PrintShareSheet extends ConsumerWidget {
                     final pdf = await buildPdf(company, settings);
                     downloadPdf(pdf, filename);
                     if (context.mounted) Navigator.pop(context);
+                    if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('PDF descargado: $filename.pdf')));
                   },
                 ),
@@ -133,6 +134,7 @@ class PrintShareSheet extends ConsumerWidget {
                       final bytes = await buildCsv!();
                       downloadCsv(bytes, filename);
                       if (context.mounted) Navigator.pop(context);
+                      if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('CSV descargado: $filename.csv')));
                     },
                   ),
@@ -157,9 +159,12 @@ class _OptionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
+    return Semantics(
+      label: label,
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Row(
           children: [
@@ -174,10 +179,11 @@ class _OptionTile extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, size: 20, color: Colors.grey.shade400),
-          ],
-        ),
+          Icon(Icons.chevron_right, size: 20, color: Colors.grey.shade400),
+        ],
       ),
+      ),
+    ),
     );
   }
 }

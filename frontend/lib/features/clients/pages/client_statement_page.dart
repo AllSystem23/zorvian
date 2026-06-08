@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../shared/ds/ds.dart';
 
 final class ClientStatementPage extends ConsumerStatefulWidget {
   final String clientId;
@@ -46,19 +47,17 @@ final class _ClientStatementPageState extends ConsumerState<ClientStatementPage>
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(d['clientName'] ?? '', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 4),
-                  Text('Código: ${d['clientCode'] ?? ''}', style: const TextStyle(color: Colors.grey)),
-                  if (d['clientPhone'] != null) Text('Tel: ${d['clientPhone']}', style: const TextStyle(color: Colors.grey)),
-                  if (d['creditLimit'] != null) Text('Límite de crédito: \$${(d['creditLimit'] as num).toStringAsFixed(0)}', style: const TextStyle(color: Colors.grey)),
-                ],
-              ),
+          ZCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(d['clientName'] ?? '', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text('Código: ${d['clientCode'] ?? ''}', style: const TextStyle(color: Colors.grey)),
+                if (d['clientPhone'] != null) Text('Tel: ${d['clientPhone']}', style: const TextStyle(color: Colors.grey)),
+                if (d['creditLimit'] != null) Text('Límite de crédito: \$${(d['creditLimit'] as num).toStringAsFixed(0)}', style: const TextStyle(color: Colors.grey)),
+              ],
             ),
           ),
           const SizedBox(height: 12),
@@ -77,7 +76,7 @@ final class _ClientStatementPageState extends ConsumerState<ClientStatementPage>
           if (sales.isEmpty)
             const Text('Sin ventas registradas', style: TextStyle(color: Colors.grey))
           else
-            ...sales.take(5).map((s) => Card(
+            ...sales.take(5).map((s) => ZCard(
               child: ListTile(
                 dense: true,
                 title: Text('Factura ${s['invoiceNumber'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -99,7 +98,7 @@ final class _ClientStatementPageState extends ConsumerState<ClientStatementPage>
           if (credits.isEmpty)
             const Text('Sin créditos activos', style: TextStyle(color: Colors.grey))
           else
-            ...credits.map((c) => Card(
+            ...credits.map((c) => ZCard(
               child: ListTile(
                 dense: true,
                 title: Text(c['creditNumber'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -119,16 +118,14 @@ final class _ClientStatementPageState extends ConsumerState<ClientStatementPage>
 
   Widget _kpiCard(String label, String value, Color color, ThemeData theme) {
     return Expanded(
-      child: Card(
+      child: ZCard(
         margin: const EdgeInsets.symmetric(horizontal: 4),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            children: [
-              Text(value, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: color)),
-              Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-            ],
-          ),
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            Text(value, style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold, color: color)),
+            Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+          ],
         ),
       ),
     );

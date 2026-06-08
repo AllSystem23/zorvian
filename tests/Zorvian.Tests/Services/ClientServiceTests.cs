@@ -104,7 +104,7 @@ public sealed class ClientServiceTests
             MakeSale(),
             MakeSale(),
         };
-        _saleRepo.Setup(r => r.GetFilteredAsync(_clientId, null, null, null, null, Guid.Empty, 1, 50))
+        _saleRepo.Setup(r => r.GetFilteredAsync(_clientId, null, null, null, null, null, Guid.Empty, 1, 50))
             .ReturnsAsync(sales);
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -118,7 +118,7 @@ public sealed class ClientServiceTests
         credit.Balance = 6000m;
 
         var credits = new List<Credit> { credit };
-        _creditRepo.Setup(r => r.GetFilteredAsync(_clientId, null, Guid.Empty, 1, 50))
+        _creditRepo.Setup(r => r.GetFilteredAsync(_clientId, null, null, Guid.Empty, 1, 50))
             .ReturnsAsync(credits);
 
         var result = await _sut.GetStatementAsync(_clientId);
@@ -141,11 +141,11 @@ public sealed class ClientServiceTests
         var client = MakeClient();
         _repo.Setup(r => r.GetByIdAsync(_clientId)).ReturnsAsync(client);
 
-        _saleRepo.Setup(r => r.GetFilteredAsync(_clientId, null, null, null, null, Guid.Empty, 1, 50))
+        _saleRepo.Setup(r => r.GetFilteredAsync(_clientId, null, null, null, null, null, Guid.Empty, 1, 50))
             .ReturnsAsync(new List<Sale>());
 
         var credit = MakeCredit();
-        _creditRepo.Setup(r => r.GetFilteredAsync(_clientId, null, Guid.Empty, 1, 50))
+        _creditRepo.Setup(r => r.GetFilteredAsync(_clientId, null, null, Guid.Empty, 1, 50))
             .ReturnsAsync(new List<Credit> { credit });
 
         var result = await _sut.GetStatementAsync(_clientId);
@@ -164,10 +164,10 @@ public sealed class ClientServiceTests
         _repo.Setup(r => r.GetByIdAsync(_clientId)).ReturnsAsync(client);
 
         var sales = new List<Sale> { MakeSale() };
-        _saleRepo.Setup(r => r.GetFilteredAsync(_clientId, null, null, null, null, Guid.Empty, 1, 50))
+        _saleRepo.Setup(r => r.GetFilteredAsync(_clientId, null, null, null, null, null, Guid.Empty, 1, 50))
             .ReturnsAsync(sales);
 
-        _creditRepo.Setup(r => r.GetFilteredAsync(_clientId, null, Guid.Empty, 1, 50))
+        _creditRepo.Setup(r => r.GetFilteredAsync(_clientId, null, null, Guid.Empty, 1, 50))
             .ReturnsAsync(new List<Credit>());
 
         var result = await _sut.GetStatementAsync(_clientId);

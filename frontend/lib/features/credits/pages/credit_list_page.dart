@@ -11,7 +11,6 @@ final class CreditListPage extends ConsumerStatefulWidget {
 
 final class _CreditListPageState extends ConsumerState<CreditListPage> {
   final _searchCtrl = TextEditingController();
-  String _searchQuery = '';
 
   @override
   void initState() {
@@ -19,14 +18,8 @@ final class _CreditListPageState extends ConsumerState<CreditListPage> {
     Future.microtask(() => ref.read(creditProvider.notifier).load());
   }
 
-  List<CreditItem> _filter(List<CreditItem> items) {
-    if (_searchQuery.isEmpty) return items;
-    final q = _searchQuery.toLowerCase();
-    return items.where((c) =>
-      c.clientName.toLowerCase().contains(q) ||
-      c.creditNumber.toLowerCase().contains(q) ||
-      c.status.toLowerCase().contains(q)
-    ).toList();
+  void _onSearch(String v) {
+    ref.read(creditProvider.notifier).load(search: v.isNotEmpty ? v : null);
   }
 
   @override
@@ -39,7 +32,7 @@ final class _CreditListPageState extends ConsumerState<CreditListPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(creditProvider);
     final theme = Theme.of(context);
-    final filtered = _filter(state.items);
+    final items = state.items;
     return Scaffold(
       appBar: AppBar(title: const Text('Créditos')),
       body: state.loading
@@ -53,27 +46,27 @@ final class _CreditListPageState extends ConsumerState<CreditListPage> {
                       child: TextField(
                         controller: _searchCtrl,
                         decoration: InputDecoration(
-                          hintText: 'Buscar por cliente, folio o estado...',
+                          hintText: 'Buscar por cliente o folio...',
                           prefixIcon: const Icon(Icons.search),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? IconButton(icon: const Icon(Icons.clear), onPressed: () { _searchCtrl.clear(); setState(() => _searchQuery = ''); })
+                          suffixIcon: _searchCtrl.text.isNotEmpty
+                              ? IconButton(icon: const Icon(Icons.clear), onPressed: () { _searchCtrl.clear(); _onSearch(''); })
                               : null,
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           contentPadding: const EdgeInsets.symmetric(vertical: 0),
                         ),
-                        onChanged: (v) => setState(() => _searchQuery = v),
+                        onChanged: _onSearch,
                       ),
                     ),
                     Expanded(
-                      child: filtered.isEmpty
-                          ? Center(child: Text(_searchQuery.isNotEmpty ? 'Sin resultados' : 'No hay créditos'))
+                      child: items.isEmpty
+                          ? Center(child: Text(_searchCtrl.text.isNotEmpty ? 'Sin resultados' : 'No hay créditos'))
                           : RefreshIndicator(
                               onRefresh: () => ref.read(creditProvider.notifier).load(),
                               child: ListView.separated(
-                                itemCount: filtered.length,
+                                itemCount: items.length,
                                 separatorBuilder: (_, _) => const Divider(height: 1),
                                 itemBuilder: (_, i) {
-                                  final c = filtered[i];
+                                  final c = items[i];
                                   final stColor = switch (c.status) {
                                     'active' => Colors.green,
                                     'completed' => Colors.blue,

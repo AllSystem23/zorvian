@@ -23,7 +23,7 @@ public sealed class CreditRepository : ICreditRepository
             .Include(c => c.Payments)
             .FirstOrDefaultAsync(c => c.Id == id);
 
-    public async Task<List<Credit>> GetFilteredAsync(Guid? clientId, string? status, Guid branchId, int page, int pageSize)
+    public async Task<List<Credit>> GetFilteredAsync(Guid? clientId, string? status, string? search, Guid branchId, int page, int pageSize)
     {
         var query = _db.Set<Credit>()
             .Include(c => c.Client)
@@ -35,6 +35,13 @@ public sealed class CreditRepository : ICreditRepository
 
         if (clientId.HasValue) query = query.Where(c => c.ClientId == clientId.Value);
         if (!string.IsNullOrWhiteSpace(status)) query = query.Where(c => c.Status == status);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var q = search.ToLower();
+            query = query.Where(c => c.CreditNumber.ToLower().Contains(q)
+                || c.Client.FirstName.ToLower().Contains(q)
+                || c.Client.LastName.ToLower().Contains(q));
+        }
 
         return await query
             .OrderByDescending(c => c.CreatedAt)
@@ -43,13 +50,22 @@ public sealed class CreditRepository : ICreditRepository
             .ToListAsync();
     }
 
-    public async Task<int> GetFilteredCountAsync(Guid? clientId, string? status, Guid branchId)
+    public async Task<int> GetFilteredCountAsync(Guid? clientId, string? status, string? search, Guid branchId)
     {
-        var query = _db.Set<Credit>().AsQueryable();
+        var query = _db.Set<Credit>()
+            .Include(c => c.Client)
+            .AsQueryable();
         if (branchId != Guid.Empty)
             query = query.Where(c => c.BranchId == branchId);
         if (clientId.HasValue) query = query.Where(c => c.ClientId == clientId.Value);
         if (!string.IsNullOrWhiteSpace(status)) query = query.Where(c => c.Status == status);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var q = search.ToLower();
+            query = query.Where(c => c.CreditNumber.ToLower().Contains(q)
+                || c.Client.FirstName.ToLower().Contains(q)
+                || c.Client.LastName.ToLower().Contains(q));
+        }
         return await query.CountAsync();
     }
 

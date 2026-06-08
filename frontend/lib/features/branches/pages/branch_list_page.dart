@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../shared/ds/ds.dart';
 
 final branchListProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
   final dio = ref.read(dioClientProvider);
@@ -35,7 +36,7 @@ class BranchListPage extends ConsumerWidget {
                   itemCount: branches.length,
                   itemBuilder: (_, i) {
                     final b = branches[i];
-                    return Card(
+                    return ZCard(
                       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                       child: ListTile(
                         leading: CircleAvatar(

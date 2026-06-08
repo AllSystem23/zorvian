@@ -13,8 +13,10 @@ public sealed class CreditService
     private readonly ICreditPaymentRepository _paymentRepo;
     private readonly ILateFeeRepository _lateFeeRepo;
     private readonly ICollectionActionRepository _collectionActionRepo;
+    private readonly ICreditRefinancingRepository _refinancingRepo;
     private readonly ICompanyRepository _companyRepo;
     private readonly ISaleRepository _saleRepo;
+    private readonly IAutoAccountingService _autoAccounting;
     private readonly ITenantContext _tenant;
     private readonly IMapper _mapper;
 
@@ -23,8 +25,10 @@ public sealed class CreditService
         ICreditPaymentRepository paymentRepo,
         ILateFeeRepository lateFeeRepo,
         ICollectionActionRepository collectionActionRepo,
+        ICreditRefinancingRepository refinancingRepo,
         ICompanyRepository companyRepo,
         ISaleRepository saleRepo,
+        IAutoAccountingService autoAccounting,
         ITenantContext tenant,
         IMapper mapper)
     {
@@ -32,8 +36,10 @@ public sealed class CreditService
         _paymentRepo = paymentRepo;
         _lateFeeRepo = lateFeeRepo;
         _collectionActionRepo = collectionActionRepo;
+        _refinancingRepo = refinancingRepo;
         _companyRepo = companyRepo;
         _saleRepo = saleRepo;
+        _autoAccounting = autoAccounting;
         _tenant = tenant;
         _mapper = mapper;
     }
@@ -49,8 +55,8 @@ public sealed class CreditService
         var page = filter.Page ?? 1;
         var pageSize = filter.PageSize ?? 20;
 
-        var items = await _creditRepo.GetFilteredAsync(filter.ClientId, filter.Status, Guid.Empty, page, pageSize);
-        var total = await _creditRepo.GetFilteredCountAsync(filter.ClientId, filter.Status, Guid.Empty);
+        var items = await _creditRepo.GetFilteredAsync(filter.ClientId, filter.Status, filter.Search, Guid.Empty, page, pageSize);
+        var total = await _creditRepo.GetFilteredCountAsync(filter.ClientId, filter.Status, filter.Search, Guid.Empty);
 
         return new PagedResult<CreditListResponse>(
             _mapper.Map<List<CreditListResponse>>(items),
@@ -125,6 +131,10 @@ public sealed class CreditService
 
         await _paymentRepo.AddAsync(payment);
         await _paymentRepo.SaveChangesAsync();
+
+        await _autoAccounting.GenerateCreditPaymentEntryAsync(
+            payment.Id, credit.Id, principalAmount, interestAmount,
+            Guid.Parse(_tenant.TenantId), credit.BranchId);
 
         if (credit.SaleId.HasValue)
         {
@@ -281,6 +291,152 @@ public sealed class CreditService
         return new PagedResult<CollectionActionResponse>(
             _mapper.Map<List<CollectionActionResponse>>(items),
             total, page, pageSize
+        );
+    }
+
+    public async Task<CreditRefinancingResponse> CreateRefinancingAsync(Guid creditId, CreateRefinancingRequest request)
+    {
+        var credit = await _creditRepo.GetByIdAsync(creditId)
+            ?? throw new InvalidOperationException("Credit not found");
+
+        if (credit.Status == "canceled")
+            throw new InvalidOperationException("Cannot refinance a paid credit");
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var totalInterest = Math.Round(request.NewFinancedAmount * request.NewInterestRate / 100 * request.NewInstallmentCount, 2);
+        var totalAmount = request.NewFinancedAmount + totalInterest;
+
+        var refinancing = new CreditRefinancing
+        {
+            CreditId = creditId,
+            PreviousBalance = credit.Balance,
+            PreviousInterestRate = credit.InterestRate,
+            PreviousInstallmentCount = credit.InstallmentCount,
+            PreviousInstallmentAmount = credit.InstallmentAmount,
+            NewFinancedAmount = request.NewFinancedAmount,
+            NewInterestRate = request.NewInterestRate,
+            NewInstallmentCount = request.NewInstallmentCount,
+            NewInstallmentAmount = request.NewInstallmentAmount,
+            NewTotalAmount = totalAmount,
+            NewInterestAmount = totalInterest,
+            NewStartDate = today,
+            NewEndDate = today.AddMonths(request.NewInstallmentCount),
+            Reason = request.Reason,
+            CompanyId = Guid.Parse(_tenant.TenantId),
+            BranchId = credit.BranchId,
+        };
+
+        credit.InterestRate = request.NewInterestRate;
+        credit.InstallmentCount = request.NewInstallmentCount;
+        credit.InstallmentAmount = request.NewInstallmentAmount;
+        credit.TotalAmount = totalAmount;
+        credit.InterestAmount = totalInterest;
+        credit.FinancedAmount = request.NewFinancedAmount;
+        credit.Balance = totalAmount - credit.PaidAmount;
+        credit.StartDate = today;
+        credit.EndDate = today.AddMonths(request.NewInstallmentCount);
+        credit.NextDueDate = today.AddMonths(1);
+        credit.Status = "active";
+
+        foreach (var inst in credit.Installments.Where(i => i.Status != "paid"))
+            inst.Status = "refinanced";
+
+        for (var i = 1; i <= request.NewInstallmentCount; i++)
+        {
+            var principalPortion = Math.Round(request.NewFinancedAmount / request.NewInstallmentCount, 2);
+            var interestPortion = Math.Round(totalInterest / request.NewInstallmentCount, 2);
+            if (i == request.NewInstallmentCount)
+            {
+                principalPortion = request.NewFinancedAmount - principalPortion * (request.NewInstallmentCount - 1);
+                interestPortion = totalInterest - interestPortion * (request.NewInstallmentCount - 1);
+            }
+            credit.Installments.Add(new CreditInstallment
+            {
+                CreditId = creditId,
+                InstallmentNumber = i,
+                DueDate = today.AddMonths(i),
+                Amount = principalPortion + interestPortion,
+                PrincipalAmount = principalPortion,
+                InterestAmount = interestPortion,
+                PaidAmount = 0,
+                Balance = principalPortion + interestPortion,
+                Status = "pending",
+                CompanyId = Guid.Parse(_tenant.TenantId),
+                BranchId = credit.BranchId,
+            });
+        }
+
+        await _refinancingRepo.AddAsync(refinancing);
+        await _creditRepo.SaveChangesAsync();
+
+        return _mapper.Map<CreditRefinancingResponse>(refinancing);
+    }
+
+    public async Task<List<CreditRefinancingResponse>> GetRefinancingsAsync(Guid creditId)
+    {
+        var list = await _refinancingRepo.GetByCreditIdAsync(creditId);
+        return _mapper.Map<List<CreditRefinancingResponse>>(list);
+    }
+
+    public async Task<OverdueDashboardResponse> GetOverdueDashboardAsync()
+    {
+        var branchId = Guid.Empty;
+        var totalActive = await _creditRepo.GetActiveCreditsCountAsync(branchId);
+        var totalOverdue = await _creditRepo.GetOverdueCreditsCountAsync(branchId);
+        var totalPortfolio = await _creditRepo.GetTotalPortfolioAsync(branchId);
+        var monthlyRecovery = await _creditRepo.GetMonthlyRecoveryAsync(branchId);
+        var overdueInsts = await _creditRepo.GetOverdueInstallmentsAsync(branchId);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var buckets = new List<OverdueAgingBucket>
+        {
+            new("1-30 días", 1, 30, 0, 0, 0, 0),
+            new("31-60 días", 31, 60, 0, 0, 0, 0),
+            new("61-90 días", 61, 90, 0, 0, 0, 0),
+            new("90+ días", 91, 9999, 0, 0, 0, 0),
+        };
+
+        foreach (var inst in overdueInsts)
+        {
+            var days = today.DayNumber - inst.DueDate.DayNumber;
+            var bucket = buckets.FirstOrDefault(b => days >= b.MinDays && days <= b.MaxDays);
+            if (bucket is null) continue;
+
+            var idx = buckets.IndexOf(bucket);
+            var b = buckets[idx];
+            buckets[idx] = b with
+            {
+                InstallmentCount = b.InstallmentCount + 1,
+                TotalBalance = b.TotalBalance + inst.Balance,
+                TotalAmount = b.TotalAmount + inst.Amount,
+            };
+        }
+
+        var creditIds = overdueInsts.Select(i => i.CreditId).Distinct();
+        foreach (var cid in creditIds)
+        {
+            var insts = overdueInsts.Where(i => i.CreditId == cid).ToList();
+            if (insts.Count == 0) continue;
+            var maxDays = insts.Max(i => today.DayNumber - i.DueDate.DayNumber);
+            var bucket = buckets.FirstOrDefault(b => maxDays >= b.MinDays && maxDays <= b.MaxDays);
+            if (bucket is null) continue;
+            var idx = buckets.IndexOf(bucket);
+            buckets[idx] = buckets[idx] with { CreditCount = buckets[idx].CreditCount + 1 };
+        }
+
+        var totalOverdueBalance = overdueInsts.Sum(i => i.Balance);
+        var pastDueInsts = overdueInsts.Where(i => today.DayNumber - i.DueDate.DayNumber > 90)
+            .Select(i => new OverdueInstallmentResponse(
+                i.Id, i.InstallmentNumber, i.DueDate, i.Amount, i.Balance,
+                today.DayNumber - i.DueDate.DayNumber, i.Status))
+            .OrderByDescending(i => i.DaysOverdue)
+            .Take(10)
+            .ToList();
+
+        return new OverdueDashboardResponse(
+            totalOverdue, totalActive, totalPortfolio, totalOverdueBalance,
+            totalPortfolio > 0 ? Math.Round(monthlyRecovery / totalPortfolio * 100, 2) : 0,
+            buckets, pastDueInsts
         );
     }
 }

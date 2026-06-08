@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/widgets/bi/bi_bar_chart.dart';
 import '../../../core/widgets/bi/bi_pie_chart.dart';
 import '../../../core/widgets/bi/bi_gauge.dart';
+import '../../../core/widgets/bi/anomaly_detection_section.dart';
 import '../providers/bi_provider.dart';
+import '../../../../shared/ds/ds.dart';
 
 class FinancialDashboardPage extends ConsumerWidget {
   const FinancialDashboardPage({super.key});
@@ -33,7 +35,7 @@ class FinancialDashboardPage extends ConsumerWidget {
             const SizedBox(height: 8),
             ratiosAsync.when(
               loading: () => const SizedBox(height: 150, child: Center(child: CircularProgressIndicator())),
-              error: (e, _) => Card(child: Padding(padding: const EdgeInsets.all(16), child: Text('Error: $e'))),
+              error: (e, _) => ZCard(padding: const EdgeInsets.all(16), child: Text('Error: $e')),
               data: (r) => Wrap(
                 spacing: 16, runSpacing: 16,
                 children: [
@@ -52,11 +54,10 @@ class FinancialDashboardPage extends ConsumerWidget {
             const SizedBox(height: 8),
             comparativeAsync.when(
               loading: () => const SizedBox(height: 200, child: Center(child: CircularProgressIndicator())),
-              error: (e, _) => Card(child: Padding(padding: const EdgeInsets.all(16), child: Text('Error: $e'))),
-              data: (ci) => Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
+              error: (e, _) => ZCard(padding: const EdgeInsets.all(16), child: Text('Error: $e')),
+              data: (ci) => ZCard(
+                padding: const EdgeInsets.all(16),
+                child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('${ci.current.periodName} vs ${ci.previous.periodName}', style: Theme.of(context).textTheme.bodyMedium),
@@ -82,7 +83,6 @@ class FinancialDashboardPage extends ConsumerWidget {
                         ),
                     ],
                   ),
-                ),
               ),
             ),
             const SizedBox(height: 24),
@@ -90,7 +90,7 @@ class FinancialDashboardPage extends ConsumerWidget {
             const SizedBox(height: 8),
             cashFlowAsync.when(
               loading: () => const SizedBox(height: 200, child: Center(child: CircularProgressIndicator())),
-              error: (e, _) => Card(child: Padding(padding: const EdgeInsets.all(16), child: Text('Error: $e'))),
+              error: (e, _) => ZCard(padding: const EdgeInsets.all(16), child: Text('Error: $e')),
               data: (cf) => SizedBox(
                 height: 200,
                 child: BiPieChart(
@@ -110,7 +110,7 @@ class FinancialDashboardPage extends ConsumerWidget {
                 Expanded(
                   child: arAgingAsync.when(
                     loading: () => const SizedBox(height: 150, child: Center(child: CircularProgressIndicator())),
-                    error: (e, _) => Card(child: Padding(padding: const EdgeInsets.all(8), child: Text('AR: $e', style: const TextStyle(fontSize: 10)))),
+                    error: (e, _) => ZCard(padding: const EdgeInsets.all(8), child: Text('AR: $e', style: const TextStyle(fontSize: 10))),
                     data: (ar) => Column(
                       children: [
                         const Text('Cuentas por Cobrar', style: TextStyle(fontWeight: FontWeight.w600)),
@@ -134,7 +134,7 @@ class FinancialDashboardPage extends ConsumerWidget {
                 Expanded(
                   child: apAgingAsync.when(
                     loading: () => const SizedBox(height: 150, child: Center(child: CircularProgressIndicator())),
-                    error: (e, _) => Card(child: Padding(padding: const EdgeInsets.all(8), child: Text('AP: $e', style: const TextStyle(fontSize: 10)))),
+                    error: (e, _) => ZCard(padding: const EdgeInsets.all(8), child: Text('AP: $e', style: const TextStyle(fontSize: 10))),
                     data: (ap) => Column(
                       children: [
                         const Text('Cuentas por Pagar', style: TextStyle(fontWeight: FontWeight.w600)),
@@ -156,6 +156,8 @@ class FinancialDashboardPage extends ConsumerWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 24),
+            const AnomalyDetectionSection(),
           ],
         ),
       ),

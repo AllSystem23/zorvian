@@ -20,7 +20,7 @@ public sealed class InventoryMovementRepository : IInventoryMovementRepository
             .Include(m => m.PerformedBy)
             .FirstOrDefaultAsync(m => m.Id == id);
 
-    public async Task<List<InventoryMovement>> GetFilteredAsync(Guid? productId, string? movementType, DateTime? fromDate, DateTime? toDate, Guid branchId, int page, int pageSize)
+    public async Task<List<InventoryMovement>> GetFilteredAsync(Guid? productId, string? movementType, DateTime? fromDate, DateTime? toDate, string? search, Guid branchId, int page, int pageSize)
     {
         var query = _db.Set<InventoryMovement>()
             .Include(m => m.Product)
@@ -32,6 +32,13 @@ public sealed class InventoryMovementRepository : IInventoryMovementRepository
         if (!string.IsNullOrWhiteSpace(movementType)) query = query.Where(m => m.MovementType == movementType);
         if (fromDate.HasValue) query = query.Where(m => m.CreatedAt >= fromDate.Value);
         if (toDate.HasValue) query = query.Where(m => m.CreatedAt <= toDate.Value);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var q = search.ToLower();
+            query = query.Where(m => m.ReferenceNumber != null && m.ReferenceNumber.ToLower().Contains(q)
+                || m.Product.Name.ToLower().Contains(q)
+                || m.Product.Code.ToLower().Contains(q));
+        }
 
         return await query
             .OrderByDescending(m => m.CreatedAt)
@@ -40,14 +47,24 @@ public sealed class InventoryMovementRepository : IInventoryMovementRepository
             .ToListAsync();
     }
 
-    public async Task<int> GetFilteredCountAsync(Guid? productId, string? movementType, DateTime? fromDate, DateTime? toDate, Guid branchId)
+    public async Task<int> GetFilteredCountAsync(Guid? productId, string? movementType, DateTime? fromDate, DateTime? toDate, string? search, Guid branchId)
     {
-        var query = _db.Set<InventoryMovement>().Where(m => m.BranchId == branchId).AsQueryable();
+        var query = _db.Set<InventoryMovement>()
+            .Include(m => m.Product)
+            .Where(m => m.BranchId == branchId)
+            .AsQueryable();
 
         if (productId.HasValue) query = query.Where(m => m.ProductId == productId.Value);
         if (!string.IsNullOrWhiteSpace(movementType)) query = query.Where(m => m.MovementType == movementType);
         if (fromDate.HasValue) query = query.Where(m => m.CreatedAt >= fromDate.Value);
         if (toDate.HasValue) query = query.Where(m => m.CreatedAt <= toDate.Value);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var q = search.ToLower();
+            query = query.Where(m => m.ReferenceNumber != null && m.ReferenceNumber.ToLower().Contains(q)
+                || m.Product.Name.ToLower().Contains(q)
+                || m.Product.Code.ToLower().Contains(q));
+        }
 
         return await query.CountAsync();
     }

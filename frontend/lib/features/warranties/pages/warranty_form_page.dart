@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nexora/shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
 
 final class WarrantyFormPage extends ConsumerStatefulWidget {
@@ -60,46 +61,44 @@ final class _WarrantyFormPageState extends ConsumerState<WarrantyFormPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: Text(_isEditing ? 'Editar garantía' : 'Nueva garantía')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(ZSpacing.lg),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (_error != null) Container(
-                padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(color: theme.colorScheme.errorContainer, borderRadius: BorderRadius.circular(8)),
-                child: Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
+                padding: const EdgeInsets.all(ZSpacing.md),
+                margin: const EdgeInsets.only(bottom: ZSpacing.md),
+                decoration: BoxDecoration(color: ZColors.danger.withAlpha(30), borderRadius: BorderRadius.circular(8)),
+                child: Text(_error!, style: const TextStyle(color: ZColors.danger)),
               ),
-              TextFormField(controller: _clientIdCtrl, decoration: const InputDecoration(labelText: 'ID Cliente', prefixIcon: Icon(Icons.person)), validator: (v) => v == null || v.isEmpty ? 'Requerido' : null),
-              const SizedBox(height: 12),
-              TextFormField(controller: _productIdCtrl, decoration: const InputDecoration(labelText: 'ID Producto', prefixIcon: Icon(Icons.inventory)), validator: (v) => v == null || v.isEmpty ? 'Requerido' : null),
-              const SizedBox(height: 12),
-              TextFormField(controller: _serialCtrl, decoration: const InputDecoration(labelText: 'Número de Serie', prefixIcon: Icon(Icons.qr_code))),
-              const SizedBox(height: 12),
-              TextFormField(controller: _imeiCtrl, decoration: const InputDecoration(labelText: 'IMEI', prefixIcon: Icon(Icons.phone_android)), maxLength: 20),
-              const SizedBox(height: 12),
-              TextFormField(controller: _lotCtrl, decoration: const InputDecoration(labelText: 'Lote', prefixIcon: Icon(Icons.batch_prediction))),
-              const SizedBox(height: 12),
+              ZTextField(controller: _clientIdCtrl, label: 'ID Cliente', validator: (v) => v == null || v.isEmpty ? 'Requerido' : null),
+              const SizedBox(height: ZSpacing.md),
+              ZTextField(controller: _productIdCtrl, label: 'ID Producto', validator: (v) => v == null || v.isEmpty ? 'Requerido' : null),
+              const SizedBox(height: ZSpacing.md),
+              ZTextField(controller: _serialCtrl, label: 'Número de Serie'),
+              const SizedBox(height: ZSpacing.md),
+              ZTextField(controller: _imeiCtrl, label: 'IMEI'),
+              const SizedBox(height: ZSpacing.md),
+              ZTextField(controller: _lotCtrl, label: 'Lote'),
+              const SizedBox(height: ZSpacing.md),
               DropdownButtonFormField<int>(
-                value: _durationMonths,
-                decoration: const InputDecoration(labelText: 'Duración (meses)', prefixIcon: Icon(Icons.timer)),
+                initialValue: _durationMonths,
+                decoration: const InputDecoration(labelText: 'Duración (meses)', border: OutlineInputBorder()),
                 items: [3, 6, 12, 24, 36].map((m) => DropdownMenuItem(value: m, child: Text('$m meses'))).toList(),
                 onChanged: (v) => setState(() => _durationMonths = v ?? 12),
               ),
-              const SizedBox(height: 12),
-              TextFormField(controller: _termsCtrl, decoration: const InputDecoration(labelText: 'Términos y condiciones', prefixIcon: Icon(Icons.description)), maxLines: 3),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _loading ? null : _save,
-                child: _loading
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : Text(_isEditing ? 'Actualizar' : 'Crear garantía'),
+              const SizedBox(height: ZSpacing.md),
+              ZTextField(controller: _termsCtrl, label: 'Términos y condiciones'),
+              const SizedBox(height: ZSpacing.xl),
+              ZButton(
+                text: _isEditing ? 'Actualizar' : 'Crear garantía',
+                onPressed: _save,
+                isLoading: _loading,
               ),
             ],
           ),

@@ -4,7 +4,11 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../../core/widgets/bi/bi_line_chart.dart';
 import '../../../core/widgets/bi/bi_bar_chart.dart';
 import '../../../core/widgets/bi/bi_kpi_card.dart';
+import '../../../core/widgets/bi/sales_prediction_section.dart';
+import '../../../core/widgets/bi/purchase_recommendation_section.dart';
+import '../../../core/widgets/bi/expense_classifier_section.dart';
 import '../providers/bi_provider.dart';
+import '../../../../shared/ds/ds.dart';
 
 class CommercialDashboardPage extends ConsumerWidget {
   const CommercialDashboardPage({super.key});
@@ -24,7 +28,7 @@ class CommercialDashboardPage extends ConsumerWidget {
             const SizedBox(height: 8),
             salesTrendAsync.when(
               loading: () => const SizedBox(height: 200, child: Center(child: CircularProgressIndicator())),
-              error: (e, _) => Card(child: Padding(padding: const EdgeInsets.all(16), child: Text('Error: $e'))),
+              error: (e, _) => ZCard(padding: const EdgeInsets.all(16), child: Text('Error: $e')),
               data: (months) {
                 final totals = months.map((m) => m.total).toList();
                 final counts = months.map((m) => m.count.toDouble()).toList();
@@ -84,6 +88,12 @@ class CommercialDashboardPage extends ConsumerWidget {
                           ],
                         ),
                       ),
+                    const SizedBox(height: 24),
+                    const SalesPredictionSection(),
+                    const SizedBox(height: 24),
+                    const PurchaseRecommendationSection(),
+                    const SizedBox(height: 24),
+                    const ExpenseClassifierSection(),
                   ],
                 );
               },

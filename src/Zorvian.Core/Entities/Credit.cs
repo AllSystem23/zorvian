@@ -27,4 +27,5 @@ public sealed class Credit : BaseEntity
 
     public ICollection<CreditInstallment> Installments { get; set; } = [];
     public ICollection<CreditPayment> Payments { get; set; } = [];
+    public ICollection<CreditRefinancing> Refinancings { get; set; } = [];
 }

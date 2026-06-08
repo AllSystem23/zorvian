@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/error/error_notifier.dart';
 import '../providers/payroll_provider.dart';
+import '../../../shared/ds/ds.dart';
 
 class PayrollPeriodsPage extends ConsumerStatefulWidget {
   const PayrollPeriodsPage({super.key});
@@ -60,7 +61,7 @@ class _PayrollPeriodsPageState extends ConsumerState<PayrollPeriodsPage> {
                                 const SizedBox(height: 16),
                                 Text('Sin períodos', style: theme.textTheme.titleMedium),
                                 const SizedBox(height: 24),
-                                FilledButton.icon(onPressed: () => _showCreateDialog(), icon: const Icon(Icons.add), label: const Text('Crear período')),
+                                ZButton(text: 'Crear período', onPressed: () => _showCreateDialog(), icon: Icons.add, fullWidth: false),
                               ],
                             ),
                           ),
@@ -74,8 +75,9 @@ class _PayrollPeriodsPageState extends ConsumerState<PayrollPeriodsPage> {
                         final p = _periods[i];
                         final status = p['status'] as String? ?? 'open';
                         final isOpen = status == 'open';
-                        return Card(
+                        return ZCard(
                           margin: const EdgeInsets.only(bottom: 8),
+                          padding: EdgeInsets.zero,
                           child: ListTile(
                             leading: Icon(isOpen ? Icons.lock_open : Icons.lock, color: isOpen ? Colors.green : Colors.grey),
                             title: Text(p['name'] ?? ''),
@@ -84,9 +86,11 @@ class _PayrollPeriodsPageState extends ConsumerState<PayrollPeriodsPage> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 if (isOpen)
-                                  FilledButton.tonal(
+                                  ZButton(
+                                    text: 'Generar',
                                     onPressed: () => _generateRun(p['id']),
-                                    child: const Text('Generar'),
+                                    type: ZButtonType.secondary,
+                                    fullWidth: false,
                                   ),
                                 const SizedBox(width: 8),
                                 Chip(label: Text(status == 'open' ? 'Abierto' : status == 'closed' ? 'Cerrado' : status, style: const TextStyle(fontSize: 11))),
@@ -110,52 +114,49 @@ class _PayrollPeriodsPageState extends ConsumerState<PayrollPeriodsPage> {
     DateOnly end = DateOnly(year, month, periodNumber == 1 ? 15 : DateTime(year, month + 1, 0).day);
     DateOnly payDate = end.add(Duration(days: periodNumber == 1 ? 7 : 5));
 
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Nuevo Período'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
+    ZModal.show(
+      context,
+      title: 'Nuevo Período',
+      confirmText: 'Crear',
+      cancelText: 'Cancelar',
+      onConfirm: () async {
+        if (nameCtrl.text.isEmpty) return false;
+        try {
+          final svc = ref.read(payrollServiceProvider);
+          await svc.createPeriod({
+            'name': nameCtrl.text,
+            'year': year,
+            'month': month,
+            'periodNumber': periodNumber,
+            'startDate': start.toISO(),
+            'endDate': end.toISO(),
+            'paymentDate': payDate.toISO(),
+          });
+          _load();
+          ref.read(errorNotifierProvider.notifier).showInfo('Período creado');
+          return true;
+        } catch (e) {
+          ref.read(errorNotifierProvider.notifier).showError('Error al crear período');
+          return false;
+        }
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ZTextField(
+            controller: nameCtrl,
+            label: 'Nombre',
+            hint: 'Ej: Junio 1ra Quincena 2026',
+          ),
+          const SizedBox(height: 12),
+          Row(
             children: [
-              TextField(
-                controller: nameCtrl,
-                decoration: const InputDecoration(labelText: 'Nombre', hintText: 'Ej: Junio 1ra Quincena 2026'),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(child: Text('Año: $year')),
-                  Expanded(child: Text('Mes: $month')),
-                  Expanded(child: Text('Período: $periodNumber')),
-                ],
-              ),
+              Expanded(child: Text('Año: $year')),
+              Expanded(child: Text('Mes: $month')),
+              Expanded(child: Text('Período: $periodNumber')),
             ],
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
-            FilledButton(onPressed: () async {
-              if (nameCtrl.text.isEmpty) return;
-              try {
-                final svc = ref.read(payrollServiceProvider);
-                await svc.createPeriod({
-                  'name': nameCtrl.text,
-                  'year': year,
-                  'month': month,
-                  'periodNumber': periodNumber,
-                  'startDate': start.toISO(),
-                  'endDate': end.toISO(),
-                  'paymentDate': payDate.toISO(),
-                });
-                if (ctx.mounted) Navigator.pop(ctx);
-                _load();
-                if (mounted) ref.read(errorNotifierProvider.notifier).showInfo('Período creado');
-              } catch (e) {
-                if (mounted) ref.read(errorNotifierProvider.notifier).showError('Error al crear período');
-              }
-            }, child: const Text('Crear')),
-          ],
-        ),
+        ],
       ),
     );
   }

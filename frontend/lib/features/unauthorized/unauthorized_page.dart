@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../shared/ds/ds.dart';
 
 class UnauthorizedPage extends StatelessWidget {
   const UnauthorizedPage({super.key});
@@ -30,9 +31,9 @@ class UnauthorizedPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 32),
-              ElevatedButton(
+              ZButton(
+                text: 'Volver al inicio',
                 onPressed: () => context.go('/dashboard'),
-                child: const Text('Volver al inicio'),
               ),
             ],
           ),

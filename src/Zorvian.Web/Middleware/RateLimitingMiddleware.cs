@@ -15,15 +15,15 @@ public static class RateLimitingExtensions
 public sealed class RateLimitingMiddleware
 {
     private readonly RequestDelegate _next;
-    private readonly ConcurrentDictionary<string, SlidingWindow> _clients = new();
+    private readonly ConcurrentDictionary<string, FixedWindowCounter> _clients = new();
     private readonly int _maxRequests;
-    private readonly TimeSpan _windowSize;
+    private readonly int _windowSeconds;
 
     public RateLimitingMiddleware(RequestDelegate next, int maxRequests = 120, int windowSeconds = 60)
     {
         _next = next;
         _maxRequests = maxRequests;
-        _windowSize = TimeSpan.FromSeconds(windowSeconds);
+        _windowSeconds = windowSeconds;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -38,8 +38,7 @@ public sealed class RateLimitingMiddleware
 
         if (context.Request.Path.StartsWithSegments("/api/v1/auth"))
         {
-            var authWindow = _clients.GetOrAdd($"auth:{clientKey}", _ => new SlidingWindow(5, TimeSpan.FromMinutes(15)));
-            if (!authWindow.TryRequest())
+            if (!TryRequest($"auth:{clientKey}", 5, 900))
             {
                 context.Response.StatusCode = (int)HttpStatusCode.TooManyRequests;
                 context.Response.Headers.RetryAfter = "900";
@@ -55,19 +54,17 @@ public sealed class RateLimitingMiddleware
             return;
         }
 
-        var window = _clients.GetOrAdd(clientKey, _ => new SlidingWindow(_maxRequests, _windowSize));
-
-        if (!window.TryRequest())
+        if (!TryRequest(clientKey, _maxRequests, _windowSeconds))
         {
             context.Response.StatusCode = (int)HttpStatusCode.TooManyRequests;
-            context.Response.Headers.RetryAfter = ((int)_windowSize.TotalSeconds).ToString();
+            context.Response.Headers.RetryAfter = _windowSeconds.ToString();
             context.Response.ContentType = "application/json";
 
             var error = new
             {
                 error = new
                 {
-                    message = $"Rate limit exceeded. Max {_maxRequests} requests per {_windowSize.TotalSeconds}s. Try again later.",
+                    message = $"Rate limit exceeded. Max {_maxRequests} requests per {_windowSeconds}s. Try again later.",
                     statusCode = 429,
                 }
             };
@@ -79,34 +76,32 @@ public sealed class RateLimitingMiddleware
         await _next(context);
     }
 
-    private sealed class SlidingWindow
+    private bool TryRequest(string key, int maxRequests, int windowSeconds)
     {
-        private readonly int _maxRequests;
-        private readonly TimeSpan _windowSize;
-        private readonly ConcurrentQueue<DateTime> _timestamps = new();
-        private readonly object _lock = new();
+        var now = DateTime.UtcNow;
+        var windowSlot = now.Ticks / (windowSeconds * TimeSpan.TicksPerSecond);
 
-        public SlidingWindow(int maxRequests, TimeSpan windowSize)
+        var counter = _clients.GetOrAdd(key, _ => new FixedWindowCounter());
+
+        lock (counter)
         {
-            _maxRequests = maxRequests;
-            _windowSize = windowSize;
-        }
-
-        public bool TryRequest()
-        {
-            var now = DateTime.UtcNow;
-
-            lock (_lock)
+            if (counter.WindowSlot != windowSlot)
             {
-                while (_timestamps.TryPeek(out var oldest) && now - oldest > _windowSize)
-                    _timestamps.TryDequeue(out _);
-
-                if (_timestamps.Count >= _maxRequests)
-                    return false;
-
-                _timestamps.Enqueue(now);
-                return true;
+                counter.WindowSlot = windowSlot;
+                counter.Count = 0;
             }
+
+            if (counter.Count >= maxRequests)
+                return false;
+
+            counter.Count++;
+            return true;
         }
+    }
+
+    private sealed class FixedWindowCounter
+    {
+        public long WindowSlot { get; set; }
+        public int Count { get; set; }
     }
 }

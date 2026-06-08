@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../auth/auth_provider.dart';
+import '../../shared/ds/ds.dart';
 
 class RegisterPage extends ConsumerStatefulWidget {
   final String? inviteCode;
@@ -76,7 +77,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
               TextFormField(controller: _emailCtrl, decoration: const InputDecoration(labelText: 'Correo')),
               TextFormField(controller: _passwordCtrl, decoration: const InputDecoration(labelText: 'Contraseña'), obscureText: true),
               const SizedBox(height: 24),
-              ElevatedButton(onPressed: _loading ? null : _register, child: const Text('Registrarse')),
+              ZButton(text: 'Registrarse', onPressed: _register, isLoading: _loading),
             ],
           ),
         ),

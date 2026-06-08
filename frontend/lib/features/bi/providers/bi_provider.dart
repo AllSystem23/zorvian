@@ -77,3 +77,40 @@ final biPayrollSummaryProvider = FutureProvider.autoDispose((ref) async {
   final res = await dio.get('bi/payroll-summary');
   return BiPayrollSummary.fromJson(res.data);
 });
+
+final biSalesPredictionNextWeekProvider = FutureProvider.autoDispose<List<BiSalesPredictionDaily>>((ref) async {
+  final dio = ref.read(dioClientProvider);
+  final res = await dio.get('sales/predictions/next-week');
+  final data = res.data as List;
+  return data.map((e) => BiSalesPredictionDaily.fromJson(e)).toList();
+});
+
+final biSalesPredictionNextMonthProvider = FutureProvider.autoDispose<BiMonthlySalesPrediction>((ref) async {
+  final dio = ref.read(dioClientProvider);
+  final res = await dio.get('sales/predictions/next-month');
+  return BiMonthlySalesPrediction.fromJson(res.data);
+});
+
+final biMonthlyProjectionProvider = FutureProvider.autoDispose<BiMonthlyProjection>((ref) async {
+  final dio = ref.read(dioClientProvider);
+  final res = await dio.get('sales/predictions/monthly-total');
+  return BiMonthlyProjection.fromJson(res.data);
+});
+
+final purchaseRecommendationProvider = FutureProvider.autoDispose<PurchaseRecommendationSummary>((ref) async {
+  final dio = ref.read(dioClientProvider);
+  final res = await dio.get('purchases/recommendations', params: {'demandDays': 30, 'leadTimeDays': 7});
+  return PurchaseRecommendationSummary.fromJson(res.data);
+});
+
+final expenseClassificationProvider = FutureProvider.autoDispose.family<ExpenseClassificationResponse, ({String description, double amount})>((ref, params) async {
+  final dio = ref.read(dioClientProvider);
+  final res = await dio.get('expense-classification/predict', params: {'description': params.description, 'amount': params.amount});
+  return ExpenseClassificationResponse.fromJson(res.data);
+});
+
+final accountingAnomaliesProvider = FutureProvider.autoDispose<AccountingAnomalyReport>((ref) async {
+  final dio = ref.read(dioClientProvider);
+  final res = await dio.get('accounting-assistant/anomalies', params: {'daysBack': 30});
+  return AccountingAnomalyReport.fromJson(res.data);
+});

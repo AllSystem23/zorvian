@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
 
 final class PeriodItem {
@@ -51,20 +52,15 @@ final class _AccountingPeriodsPageState extends ConsumerState<AccountingPeriodsP
     final yearCtl = TextEditingController(text: now.year.toString());
     final monthCtl = TextEditingController(text: now.month.toString());
 
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Abrir Período'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: yearCtl, decoration: const InputDecoration(labelText: 'Año'), keyboardType: TextInputType.number),
-            TextField(controller: monthCtl, decoration: const InputDecoration(labelText: 'Mes'), keyboardType: TextInputType.number),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Abrir')),
+    final ok = await ZModal.show<bool>(context,
+      title: 'Abrir Período',
+      confirmText: 'Abrir',
+      cancelText: 'Cancelar',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ZTextField(controller: yearCtl, label: 'Año', keyboardType: TextInputType.number),
+          ZTextField(controller: monthCtl, label: 'Mes', keyboardType: TextInputType.number),
         ],
       ),
     );
@@ -78,21 +74,16 @@ final class _AccountingPeriodsPageState extends ConsumerState<AccountingPeriodsP
       });
       _load();
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+      if (mounted) ZToast.error(context, 'Error: $e');
     }
   }
 
   Future<void> _closePeriod(String id) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Cerrar Período'),
-        content: const Text('¿Está seguro? No podrá agregar asientos a este período.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Cerrir')),
-        ],
-      ),
+    final confirm = await ZModal.confirm(context,
+      title: 'Cerrar Período',
+      message: '¿Está seguro? No podrá agregar asientos a este período.',
+      confirmText: 'Cerrir',
+      cancelText: 'Cancelar',
     );
     if (confirm != true) return;
     try {

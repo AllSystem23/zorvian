@@ -6,9 +6,10 @@ namespace Zorvian.Application.Services;
 
 public interface IAutoAccountingService
 {
-    Task<Guid> GenerateSaleEntryAsync(Guid saleId, List<SaleDetail> details, decimal discount, decimal paidAmount, string saleType);
-    Task<Guid> GenerateCostOfSaleEntryAsync(Guid saleId, decimal totalCost);
-    Task<Guid> GeneratePurchaseEntryAsync(Guid purchaseId, List<PurchaseDetail> details, decimal discount, decimal total);
+    Task<Guid> GenerateSaleEntryAsync(Guid saleId, List<SaleDetail> details, decimal discount, decimal paidAmount, string saleType, Guid? costCenterId = null);
+    Task<Guid> GenerateCostOfSaleEntryAsync(Guid saleId, decimal totalCost, Guid? costCenterId = null);
+    Task<Guid> GeneratePurchaseEntryAsync(Guid purchaseId, List<PurchaseDetail> details, decimal discount, decimal total, Guid? costCenterId = null);
+    Task<Guid> ReversePurchaseEntryAsync(Guid purchaseId, List<PurchaseDetail> details, decimal total, Guid? costCenterId = null);
     Task<Guid> GenerateSupplierPaymentEntryAsync(Guid paymentId, Guid purchaseId, decimal amount, Guid companyId, Guid branchId);
     Task<Guid> GenerateSupplierCreditNoteEntryAsync(Guid creditNoteId, Guid supplierId, Guid? purchaseId, decimal total, Guid companyId, Guid branchId);
     Task<Guid> GenerateInventoryEntryAsync(Guid movementId, Guid productId, string movementType, int quantity, decimal unitCost);
@@ -20,6 +21,7 @@ public interface IAutoAccountingService
     Task<Guid> GenerateDisposalEntryAsync(Guid assetId, decimal cost, decimal accumulatedDepreciation, decimal saleAmount, decimal gainOrLoss, string disposalType, Guid companyId, Guid branchId);
     Task<Guid> GenerateRevaluationEntryAsync(Guid assetId, decimal previousValue, decimal newValue, decimal accumulatedDepreciation, Guid companyId, Guid branchId);
     Task<Guid> GenerateWarrantyCostEntryAsync(Guid costId, string costCategory, decimal totalCost, string paidBy, Guid? providerId, Guid warrantyId, Guid companyId, Guid branchId);
+    Task<Guid> GenerateCreditNoteEntryAsync(Guid creditNoteId, Guid saleId, string saleType, List<CreditNoteDetail> details, decimal subtotal, decimal tax);
 }
 
 public class AutoAccountingService : IAutoAccountingService
@@ -89,7 +91,7 @@ public class AutoAccountingService : IAutoAccountingService
         return account?.Id ?? throw new InvalidOperationException($"Account not found for code: {code}");
     }
 
-    public async Task<Guid> GenerateSaleEntryAsync(Guid saleId, List<SaleDetail> details, decimal discount, decimal paidAmount, string saleType)
+    public async Task<Guid> GenerateSaleEntryAsync(Guid saleId, List<SaleDetail> details, decimal discount, decimal paidAmount, string saleType, Guid? costCenterId = null)
     {
         var periodId = await GetPeriodIdAsync();
         var companyId = CompanyId;
@@ -113,13 +115,18 @@ public class AutoAccountingService : IAutoAccountingService
 
         var entryDetails = new List<AccountingEntryDetail>();
 
+        AccountingEntryDetail MakeDetail(Guid accountId, decimal debit, decimal credit, string desc)
+        {
+            return new() { AccountId = accountId, DebitAmount = debit, CreditAmount = credit, Description = desc, CompanyId = companyId, CostCenterId = costCenterId };
+        }
+
         if (saleType == "cash")
         {
-            entryDetails.Add(new() { AccountId = cashAccountId, DebitAmount = total, CreditAmount = 0, Description = "Venta al contado" });
+            entryDetails.Add(MakeDetail(cashAccountId, total, 0, "Venta al contado"));
         }
         else
         {
-            entryDetails.Add(new() { AccountId = arAccountId, DebitAmount = total, CreditAmount = 0, Description = "Venta al crédito" });
+            entryDetails.Add(MakeDetail(arAccountId, total, 0, "Venta al crédito"));
         }
 
         foreach (var group in groupedDetails)
@@ -130,8 +137,8 @@ public class AutoAccountingService : IAutoAccountingService
             var salesAccountId = await GetAccountIdByCodeAsync(salesAccountCode);
             var vatAccountId = await GetAccountIdByCodeAsync(vatAccountCode);
 
-            entryDetails.Add(new() { AccountId = salesAccountId, DebitAmount = 0, CreditAmount = (group.Subtotal - group.Discount), Description = $"Ventas {group.TaxCategory?.Name}" });
-            entryDetails.Add(new() { AccountId = vatAccountId, DebitAmount = 0, CreditAmount = group.Tax, Description = $"IVA {group.TaxCategory?.Name}" });
+            entryDetails.Add(MakeDetail(salesAccountId, 0, group.Subtotal - group.Discount, $"Ventas {group.TaxCategory?.Name}"));
+            entryDetails.Add(MakeDetail(vatAccountId, 0, group.Tax, $"IVA {group.TaxCategory?.Name}"));
         }
 
         var entry = new AccountingEntry
@@ -144,10 +151,11 @@ public class AutoAccountingService : IAutoAccountingService
             Status = "posted",
             AccountingPeriodId = periodId,
             CompanyId = companyId,
+            CostCenterId = costCenterId,
             TotalDebit = entryDetails.Sum(d => d.DebitAmount),
             TotalCredit = entryDetails.Sum(d => d.CreditAmount),
             PostedAt = DateTime.UtcNow,
-            Details = entryDetails.Select(d => { d.CompanyId = companyId; return d; }).ToList(),
+            Details = entryDetails,
         };
 
         await _entryRepo.AddAsync(entry);
@@ -155,7 +163,7 @@ public class AutoAccountingService : IAutoAccountingService
         return entry.Id;
     }
 
-    public async Task<Guid> GenerateCostOfSaleEntryAsync(Guid saleId, decimal totalCost)
+    public async Task<Guid> GenerateCostOfSaleEntryAsync(Guid saleId, decimal totalCost, Guid? costCenterId = null)
     {
         var periodId = await GetPeriodIdAsync();
         var costAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.CostOfSales);
@@ -171,13 +179,14 @@ public class AutoAccountingService : IAutoAccountingService
             Status = "posted",
             AccountingPeriodId = periodId,
             CompanyId = CompanyId,
+            CostCenterId = costCenterId,
             TotalDebit = totalCost,
             TotalCredit = totalCost,
             PostedAt = DateTime.UtcNow,
             Details =
             [
-                new() { AccountId = costAccountId, DebitAmount = totalCost, CreditAmount = 0, Description = "Costo de venta", CompanyId = CompanyId },
-                new() { AccountId = invAccountId, DebitAmount = 0, CreditAmount = totalCost, Description = "Salida de inventario", CompanyId = CompanyId },
+                new() { AccountId = costAccountId, DebitAmount = totalCost, CreditAmount = 0, Description = "Costo de venta", CompanyId = CompanyId, CostCenterId = costCenterId },
+                new() { AccountId = invAccountId, DebitAmount = 0, CreditAmount = totalCost, Description = "Salida de inventario", CompanyId = CompanyId, CostCenterId = costCenterId },
             ],
         };
 
@@ -186,7 +195,7 @@ public class AutoAccountingService : IAutoAccountingService
         return entry.Id;
     }
 
-    public async Task<Guid> GeneratePurchaseEntryAsync(Guid purchaseId, List<PurchaseDetail> details, decimal discount, decimal total)
+    public async Task<Guid> GeneratePurchaseEntryAsync(Guid purchaseId, List<PurchaseDetail> details, decimal discount, decimal total, Guid? costCenterId = null)
     {
         var periodId = await GetPeriodIdAsync();
         var companyId = CompanyId;
@@ -201,9 +210,14 @@ public class AutoAccountingService : IAutoAccountingService
 
         var apAccountId = await GetAccountIdAsync(TransactionTypes.Purchase, AccountRoles.AccountsPayable);
 
+        AccountingEntryDetail MakeDetail(Guid accountId, decimal debit, decimal credit, string desc)
+        {
+            return new() { AccountId = accountId, DebitAmount = debit, CreditAmount = credit, Description = desc, CompanyId = companyId, CostCenterId = costCenterId };
+        }
+
         var entryDetails = new List<AccountingEntryDetail>();
 
-        entryDetails.Add(new() { AccountId = apAccountId, DebitAmount = 0, CreditAmount = total, Description = "Compra a proveedor" });
+        entryDetails.Add(MakeDetail(apAccountId, 0, total, "Compra a proveedor"));
 
         foreach (var group in groupedDetails)
         {
@@ -213,8 +227,8 @@ public class AutoAccountingService : IAutoAccountingService
             var invAccountId = await GetAccountIdByCodeAsync(invAccountCode);
             var vatAccountId = await GetAccountIdByCodeAsync(vatAccountCode);
 
-            entryDetails.Add(new() { AccountId = invAccountId, DebitAmount = group.Subtotal, CreditAmount = 0, Description = $"Inventario {group.TaxCategory?.Name}" });
-            entryDetails.Add(new() { AccountId = vatAccountId, DebitAmount = group.Tax, CreditAmount = 0, Description = $"IVA Crédito {group.TaxCategory?.Name}" });
+            entryDetails.Add(MakeDetail(invAccountId, group.Subtotal, 0, $"Inventario {group.TaxCategory?.Name}"));
+            entryDetails.Add(MakeDetail(vatAccountId, group.Tax, 0, $"IVA Crédito {group.TaxCategory?.Name}"));
         }
 
         var entry = new AccountingEntry
@@ -227,10 +241,75 @@ public class AutoAccountingService : IAutoAccountingService
             Status = "posted",
             AccountingPeriodId = periodId,
             CompanyId = companyId,
+            CostCenterId = costCenterId,
             TotalDebit = entryDetails.Sum(d => d.DebitAmount),
             TotalCredit = entryDetails.Sum(d => d.CreditAmount),
             PostedAt = DateTime.UtcNow,
-            Details = entryDetails.Select(d => { d.CompanyId = companyId; return d; }).ToList(),
+            Details = entryDetails,
+        };
+
+        await _entryRepo.AddAsync(entry);
+        await _entryRepo.SaveChangesAsync();
+        return entry.Id;
+    }
+
+    public async Task<Guid> ReversePurchaseEntryAsync(Guid purchaseId, List<PurchaseDetail> details, decimal total, Guid? costCenterId = null)
+    {
+        var periodId = await GetPeriodIdAsync();
+        var companyId = CompanyId;
+
+        var apAccountId = await GetAccountIdAsync(TransactionTypes.Purchase, AccountRoles.AccountsPayable);
+        var invAccountId = await GetAccountIdAsync(TransactionTypes.Purchase, AccountRoles.Inventory);
+
+        var groupedDetails = details
+            .GroupBy(d => d.Product.TaxCategory)
+            .Select(g => new {
+                TaxCategory = g.Key,
+                Subtotal = g.Sum(d => d.Subtotal),
+                Tax = g.Sum(d => d.Subtotal * (g.Key?.Rate ?? 0))
+            }).ToList();
+
+        AccountingEntryDetail MakeDetail(Guid accountId, decimal debit, decimal credit, string desc)
+        {
+            return new() { AccountId = accountId, DebitAmount = debit, CreditAmount = credit, Description = desc, CompanyId = companyId, CostCenterId = costCenterId };
+        }
+
+        var entryDetails = new List<AccountingEntryDetail>
+        {
+            MakeDetail(apAccountId, total, 0, "Anulación compra - proveedor")
+        };
+
+        foreach (var group in groupedDetails)
+        {
+            var invAccountCode = group.TaxCategory?.SalesAccountCode ?? "1.1.04";
+            var vatAccountCode = group.TaxCategory?.VatAccountCode ?? "1.1.05";
+
+            var invAcctId = await GetAccountIdByCodeAsync(invAccountCode);
+
+            entryDetails.Add(MakeDetail(invAcctId, 0, group.Subtotal, "Anulación compra - inventario"));
+
+            if (group.Tax > 0)
+            {
+                var vatAcctId = await GetAccountIdByCodeAsync(vatAccountCode);
+                entryDetails.Add(MakeDetail(vatAcctId, 0, group.Tax, "Anulación compra - IVA"));
+            }
+        }
+
+        var entry = new AccountingEntry
+        {
+            EntryNumber = await GenerateNumberAsync(),
+            EntryDate = DateTime.UtcNow,
+            Description = $"Anulación Compra #{purchaseId.ToString()[..8]}",
+            ReferenceType = "PurchaseReversal",
+            ReferenceId = purchaseId,
+            Status = "posted",
+            AccountingPeriodId = periodId,
+            CompanyId = companyId,
+            CostCenterId = costCenterId,
+            TotalDebit = entryDetails.Sum(d => d.DebitAmount),
+            TotalCredit = entryDetails.Sum(d => d.CreditAmount),
+            PostedAt = DateTime.UtcNow,
+            Details = entryDetails,
         };
 
         await _entryRepo.AddAsync(entry);
@@ -409,8 +488,8 @@ public class AutoAccountingService : IAutoAccountingService
             Status = "posted",
             AccountingPeriodId = periodId,
             CompanyId = CompanyId,
-            TotalDebit = isIncome ? movement.Amount : 0,
-            TotalCredit = isIncome ? 0 : movement.Amount,
+            TotalDebit = movement.Amount,
+            TotalCredit = movement.Amount,
             PostedAt = DateTime.UtcNow,
             Details =
             [
@@ -705,6 +784,70 @@ public class AutoAccountingService : IAutoAccountingService
                 new() { AccountId = expenseAccountId, DebitAmount = totalCost, CreditAmount = 0, Description = costCategory, CompanyId = companyId },
                 new() { AccountId = creditAccountId, DebitAmount = 0, CreditAmount = totalCost, Description = paidBy == "provider" ? "Cta x Cobrar proveedor" : "Caja/Banco", CompanyId = companyId },
             ],
+        };
+
+        await _entryRepo.AddAsync(entry);
+        await _entryRepo.SaveChangesAsync();
+        return entry.Id;
+    }
+
+    public async Task<Guid> GenerateCreditNoteEntryAsync(Guid creditNoteId, Guid saleId, string saleType, List<CreditNoteDetail> details, decimal subtotal, decimal tax)
+    {
+        var periodId = await GetPeriodIdAsync();
+        var companyId = CompanyId;
+        var total = subtotal + tax;
+
+        var incomeAccountCode = "4.1.01";
+        var vatAccountCode = "2.1.02";
+        var costAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.CostOfSales);
+        var invAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.Inventory);
+
+        var taxCategory = details.FirstOrDefault()?.Product?.TaxCategory;
+        if (taxCategory != null)
+        {
+            incomeAccountCode = taxCategory.SalesAccountCode ?? incomeAccountCode;
+            vatAccountCode = taxCategory.VatAccountCode ?? vatAccountCode;
+        }
+
+        var salesAccountId = await GetAccountIdByCodeAsync(incomeAccountCode);
+        var vatAccountId = await GetAccountIdByCodeAsync(vatAccountCode);
+
+        AccountingEntryDetail MakeDetail(Guid accountId, decimal debit, decimal credit, string desc)
+        {
+            return new() { AccountId = accountId, DebitAmount = debit, CreditAmount = credit, Description = desc, CompanyId = companyId };
+        }
+
+        var totalCost = details.Sum(d => d.Quantity * (d.Product?.CostPrice ?? 0));
+        var entryDetails = new List<AccountingEntryDetail>
+        {
+            MakeDetail(salesAccountId, subtotal, 0, "Reversión venta - ingresos"),
+            MakeDetail(vatAccountId, tax, 0, "Reversión venta - IVA"),
+            MakeDetail(invAccountId, totalCost, 0, "Reversión inventario"),
+            MakeDetail(costAccountId, 0, totalCost, "Reversión costo de venta"),
+        };
+
+        var cashAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.Cash);
+        var arAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.AccountsReceivable);
+
+        if (saleType == "cash")
+            entryDetails.Add(MakeDetail(cashAccountId, 0, total, "Reversión venta - efectivo"));
+        else
+            entryDetails.Add(MakeDetail(arAccountId, 0, total, "Reversión venta - cuenta por cobrar"));
+
+        var entry = new AccountingEntry
+        {
+            EntryNumber = await GenerateNumberAsync(),
+            EntryDate = DateTime.UtcNow,
+            Description = $"Nota de Crédito #{creditNoteId.ToString()[..8]}",
+            ReferenceType = "CreditNote",
+            ReferenceId = creditNoteId,
+            Status = "posted",
+            AccountingPeriodId = periodId,
+            CompanyId = companyId,
+            TotalDebit = entryDetails.Sum(d => d.DebitAmount),
+            TotalCredit = entryDetails.Sum(d => d.CreditAmount),
+            PostedAt = DateTime.UtcNow,
+            Details = entryDetails,
         };
 
         await _entryRepo.AddAsync(entry);

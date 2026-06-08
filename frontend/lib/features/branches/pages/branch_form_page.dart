@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../shared/ds/ds.dart';
 
 class BranchFormPage extends ConsumerStatefulWidget {
   final String? branchId;
@@ -98,18 +99,14 @@ class _BranchFormPageState extends ConsumerState<BranchFormPage> {
   }
 
   Future<void> _delete() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Eliminar sucursal'),
-        content: const Text('¿Está seguro? Esta acción no se puede deshacer.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Eliminar')),
-        ],
-      ),
+    final confirm = await ZModal.confirm(
+      context,
+      title: 'Eliminar sucursal',
+      message: '¿Está seguro? Esta acción no se puede deshacer.',
+      confirmText: 'Eliminar',
+      cancelText: 'Cancelar',
     );
-    if (confirm != true) return;
+    if (!confirm) return;
 
     setState(() => _saving = true);
     try {
@@ -184,12 +181,11 @@ class _BranchFormPageState extends ConsumerState<BranchFormPage> {
                     ),
                   ],
                   const SizedBox(height: 24),
-                  FilledButton.icon(
-                    onPressed: _saving ? null : _save,
-                    icon: _saving
-                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.save),
-                    label: Text(_saving ? 'Guardando...' : 'Guardar'),
+                  ZButton(
+                    text: 'Guardar',
+                    onPressed: _save,
+                    isLoading: _saving,
+                    icon: Icons.save,
                   ),
                 ],
               ),

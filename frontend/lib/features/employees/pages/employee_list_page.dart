@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../shared/ds/ds.dart';
 import '../providers/employee_provider.dart';
 
 class EmployeeListPage extends ConsumerStatefulWidget {
@@ -20,6 +21,9 @@ class _EmployeeListPageState extends ConsumerState<EmployeeListPage> {
   void initState() {
     super.initState();
     Future.microtask(() => ref.read(employeeProvider.notifier).load());
+    _searchCtrl.addListener(() {
+      ref.read(employeeProvider.notifier).load(search: _searchCtrl.text);
+    });
   }
 
   @override
@@ -81,21 +85,11 @@ class _EmployeeListPageState extends ConsumerState<EmployeeListPage> {
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
-            child: TextField(
+              child: ZTextField(
               controller: _searchCtrl,
-              decoration: InputDecoration(
-                hintText: 'Buscar empleado...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchCtrl.text.isNotEmpty
-                    ? IconButton(icon: const Icon(Icons.clear), onPressed: () {
-                        _searchCtrl.clear();
-                        ref.read(employeeProvider.notifier).load();
-                      })
-                    : null,
-              ),
-              onChanged: (v) {
-                ref.read(employeeProvider.notifier).load(search: v);
-              },
+              label: 'Buscar',
+              hint: 'Buscar empleado...',
+              prefix: const Icon(Icons.search),
             ),
           ),
           if (state.loading)

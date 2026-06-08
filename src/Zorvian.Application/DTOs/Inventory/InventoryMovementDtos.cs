@@ -32,6 +32,7 @@ public sealed record InventoryMovementFilterRequest(
     string? MovementType,
     DateTime? FromDate,
     DateTime? ToDate,
+    string? Search,
     int? Page = 1,
     int? PageSize = 20
 );

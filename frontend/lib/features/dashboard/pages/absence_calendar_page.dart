@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../shared/ds/ds.dart';
 import '../providers/calendar_provider.dart';
 
 class AbsenceCalendarPage extends ConsumerStatefulWidget {
@@ -76,8 +77,11 @@ class _AbsenceCalendarPageState extends ConsumerState<AbsenceCalendarPage> {
                         return _isSameDay(day, s) || _isSameDay(day, end) || (day.isAfter(s) && day.isBefore(end));
                       });
                       final isToday = _isSameDay(day, DateTime.now());
-                      return GestureDetector(
-                        onTap: hasEvent ? () => _showDayEvents(context, day, events) : null,
+                      return Semantics(
+                        label: hasEvent ? '${day.day} — tiene eventos. Toca para ver' : '${day.day}',
+                        button: hasEvent,
+                        child: GestureDetector(
+                          onTap: hasEvent ? () => _showDayEvents(context, day, events) : null,
                         child: Container(
                           width: 36,
                           height: 36,
@@ -88,7 +92,8 @@ class _AbsenceCalendarPageState extends ConsumerState<AbsenceCalendarPage> {
                           ),
                           child: Center(child: Text('${day.day}', style: TextStyle(fontSize: 13, fontWeight: hasEvent ? FontWeight.bold : null))),
                         ),
-                      );
+                      ),
+                    );
                     }).toList(),
                   ),
                 ),
@@ -140,19 +145,17 @@ class _AbsenceCalendarPageState extends ConsumerState<AbsenceCalendarPage> {
       return _isSameDay(day, s) || _isSameDay(day, end) || (day.isAfter(s) && day.isBefore(end));
     }).toList();
 
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text('${day.day} de ${_monthName(day.month)}'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: dayEvents.map((e) => ListTile(
-            dense: true,
-            title: Text(e.employeeName),
-            subtitle: Text('${e.startDate} - ${e.endDate}'),
-          )).toList(),
-        ),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cerrar'))],
+    ZModal.show(
+      context,
+      title: '${day.day} de ${_monthName(day.month)}',
+      cancelText: 'Cerrar',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: dayEvents.map((e) => ListTile(
+          dense: true,
+          title: Text(e.employeeName),
+          subtitle: Text('${e.startDate} - ${e.endDate}'),
+        )).toList(),
       ),
     );
   }

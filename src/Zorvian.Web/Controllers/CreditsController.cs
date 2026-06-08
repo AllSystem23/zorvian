@@ -121,4 +121,38 @@ public sealed class CreditsController : ControllerBase
         var result = await _service.GetCollectionActionsAsync(id, page, pageSize);
         return Ok(result);
     }
+
+    [Audit("Credit", "Refinancing")]
+    [HttpPost("{id:guid}/refinancing")]
+    [RequirePermission(Permissions.CreditWrite)]
+    public async Task<IActionResult> CreateRefinancing(Guid id, [FromBody] CreateRefinancingRequest request)
+    {
+        try
+        {
+            var result = await _service.CreateRefinancingAsync(id, request);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [Audit("Credit", "ReadRefinancings")]
+    [HttpGet("{id:guid}/refinancings")]
+    [RequirePermission(Permissions.CreditRead)]
+    public async Task<IActionResult> GetRefinancings(Guid id)
+    {
+        var result = await _service.GetRefinancingsAsync(id);
+        return Ok(result);
+    }
+
+    [Audit("Credit", "OverdueDashboard")]
+    [HttpGet("overdue-dashboard")]
+    [RequirePermission(Permissions.CreditRead)]
+    public async Task<IActionResult> GetOverdueDashboard()
+    {
+        var result = await _service.GetOverdueDashboardAsync();
+        return Ok(result);
+    }
 }

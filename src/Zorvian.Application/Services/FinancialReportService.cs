@@ -10,16 +10,22 @@ public sealed class FinancialReportService
     private readonly IAccountingEntryRepository _entryRepo;
     private readonly IAccountingPeriodRepository _periodRepo;
     private readonly IAccountRepository _accountRepo;
+    private readonly ICostCenterRepository _costCenterRepo;
+    private readonly IBudgetRepository _budgetRepo;
     private readonly ITenantContext _tenant;
 
     public FinancialReportService(
         IAccountingEntryRepository entryRepo,
         IAccountingPeriodRepository periodRepo,
         IAccountRepository accountRepo,
+        ICostCenterRepository costCenterRepo,
+        IBudgetRepository budgetRepo,
         ITenantContext tenant)
     {
         _entryRepo = entryRepo; _periodRepo = periodRepo;
-        _accountRepo = accountRepo; _tenant = tenant;
+        _accountRepo = accountRepo; _costCenterRepo = costCenterRepo;
+        _budgetRepo = budgetRepo;
+        _tenant = tenant;
     }
 
     private Guid CompanyId => Guid.TryParse(_tenant.TenantId, out var id) ? id : throw new InvalidOperationException("Invalid tenant");
@@ -141,6 +147,83 @@ public sealed class FinancialReportService
         return new GeneralLedgerResponse(
             account.Code, account.Name, openingBalance,
             items.Sum(i => i.DebitAmount), items.Sum(i => i.CreditAmount), runningBalance,
+            items
+        );
+    }
+
+    public async Task<CostCenterExpenseReport> GetCostCenterExpenseReportAsync(Guid costCenterId, DateTime? fromDate, DateTime? toDate)
+    {
+        var posted = await _entryRepo.GetFilteredAsync(null, null, "posted", fromDate, toDate, CompanyId, 1, int.MaxValue);
+        var allEntries = await Task.WhenAll(posted.Select(async e => await _entryRepo.GetByIdAsync(e.Id)));
+        var relevantDetails = allEntries
+            .Where(e => e != null)
+            .SelectMany(e => e!.Details)
+            .Where(d => d.CostCenterId == costCenterId)
+            .ToList();
+
+        var accounts = await _accountRepo.GetAllAsync(CompanyId);
+        var expenseAccounts = accounts.Where(a => a.IsActive && (a.Type == AccountTypes.Expense || a.Type == AccountTypes.Cost)).ToList();
+
+        var costCenter = await _costCenterRepo.GetByIdAsync(costCenterId);
+        var costCenterName = costCenter?.Name ?? "";
+        var costCenterCode = costCenter?.Code ?? "";
+
+        var items = expenseAccounts.Select(a =>
+        {
+            var accountDetails = relevantDetails.Where(d => d.AccountId == a.Id).ToList();
+            var debit = accountDetails.Sum(d => d.DebitAmount);
+            var credit = accountDetails.Sum(d => d.CreditAmount);
+            var balance = a.NormalSide == "Debit" ? debit - credit : credit - debit;
+            return new CostCenterExpenseItem(a.Code, a.Name, debit, credit, balance);
+        }).Where(i => i.Balance != 0).ToList();
+
+        return new CostCenterExpenseReport(
+            costCenterId, costCenterName, costCenterCode,
+            DateTime.UtcNow,
+            items.Sum(i => i.DebitAmount),
+            items.Sum(i => i.CreditAmount),
+            items.Sum(i => i.Balance),
+            items
+        );
+    }
+
+    public async Task<BudgetVsActualReport> GetBudgetVsActualAsync(int year, int month)
+    {
+        var fromDate = new DateTime(year, month, 1);
+        var toDate = fromDate.AddMonths(1).AddDays(-1);
+
+        var budgets = await _budgetRepo.GetByPeriodAsync(year, month, CompanyId);
+        var posted = await _entryRepo.GetFilteredAsync(null, null, "posted", fromDate, toDate, CompanyId, 1, int.MaxValue);
+        var allEntries = await Task.WhenAll(posted.Select(async e => await _entryRepo.GetByIdAsync(e.Id)));
+        var details = allEntries.Where(e => e != null).SelectMany(e => e!.Details).ToList();
+
+        var accounts = await _accountRepo.GetAllAsync(CompanyId);
+        var accountLookup = accounts.ToDictionary(a => a.Id);
+
+        var items = budgets.Select(b =>
+        {
+            var accountDetails = details.Where(d => d.AccountId == b.AccountId
+                && (!b.CostCenterId.HasValue || d.CostCenterId == b.CostCenterId)).ToList();
+            var debit = accountDetails.Sum(d => d.DebitAmount);
+            var credit = accountDetails.Sum(d => d.CreditAmount);
+            var normalSide = accountLookup.TryGetValue(b.AccountId, out var acc) ? acc.NormalSide : "Debit";
+            var actual = normalSide == "Debit" ? debit - credit : credit - debit;
+            var variance = actual - b.BudgetedAmount;
+            var variancePercent = b.BudgetedAmount != 0 ? Math.Round(variance / b.BudgetedAmount * 100, 2) : 0;
+
+            return new BudgetVsActualItem(
+                b.Id, b.Year, b.Month,
+                b.AccountId, b.Account.Code, b.Account.Name,
+                b.CostCenterId, b.CostCenter?.Name,
+                b.BudgetedAmount, actual, variance, variancePercent
+            );
+        }).ToList();
+
+        return new BudgetVsActualReport(
+            year, month, DateTime.UtcNow,
+            items.Sum(i => i.BudgetedAmount),
+            items.Sum(i => i.ActualAmount),
+            items.Sum(i => i.Variance),
             items
         );
     }

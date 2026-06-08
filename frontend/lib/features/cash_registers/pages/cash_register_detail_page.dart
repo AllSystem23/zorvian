@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
 import '../providers/cash_register_provider.dart';
 
@@ -16,14 +18,17 @@ final class _CashRegisterDetailPageState extends ConsumerState<CashRegisterDetai
   String? _error;
   List<CashMovement> _movements = [];
   bool _movementsLoading = false;
+  Map<String, dynamic>? _arqueo;
+  bool _arqueoLoading = false;
   late TabController _tabCtrl;
 
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 2, vsync: this);
+    _tabCtrl = TabController(length: 3, vsync: this);
     _load();
     _loadMovements();
+    _loadArqueo();
   }
 
   @override
@@ -57,21 +62,16 @@ final class _CashRegisterDetailPageState extends ConsumerState<CashRegisterDetai
 
   Future<void> _closeRegister() async {
     final balanceCtrl = TextEditingController();
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Cerrar Caja'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Saldo esperado: \$${((_data?['expectedBalance'] as num?)?.toDouble() ?? 0).toStringAsFixed(0)}'),
-            const SizedBox(height: 12),
-            TextField(controller: balanceCtrl, decoration: const InputDecoration(labelText: 'Saldo Real', border: OutlineInputBorder(), prefixText: '\$ '), keyboardType: TextInputType.number),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Cerrar')),
+    final result = await ZModal.show<bool>(context,
+      title: 'Cerrar Caja',
+      confirmText: 'Cerrar',
+      cancelText: 'Cancelar',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('Saldo esperado: \$${((_data?['expectedBalance'] as num?)?.toDouble() ?? 0).toStringAsFixed(0)}'),
+          const SizedBox(height: 12),
+          ZTextField(controller: balanceCtrl, label: 'Saldo Real', keyboardType: TextInputType.number, prefix: const Text('\$ ')),
         ],
       ),
     );
@@ -82,9 +82,20 @@ final class _CashRegisterDetailPageState extends ConsumerState<CashRegisterDetai
         'closingBalance': double.tryParse(balanceCtrl.text) ?? 0,
       });
       await _load();
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Caja cerrada')));
+      if (mounted) ZToast.success(context, 'Caja cerrada');
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) ZToast.error(context, 'Error: $e');
+    }
+  }
+
+  Future<void> _loadArqueo() async {
+    try {
+      setState(() => _arqueoLoading = true);
+      final dio = ref.read(dioClientProvider);
+      final r = await dio.get('cash-registers/${widget.registerId}/arqueo');
+      setState(() { _arqueo = r.data as Map<String, dynamic>?; _arqueoLoading = false; });
+    } catch (_) {
+      setState(() { _arqueo = null; _arqueoLoading = false; });
     }
   }
 
@@ -92,31 +103,26 @@ final class _CashRegisterDetailPageState extends ConsumerState<CashRegisterDetai
     final typeCtrl = TextEditingController();
     final amountCtrl = TextEditingController();
     final conceptCtrl = TextEditingController();
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Agregar Movimiento'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DropdownButtonFormField<String>(
-              initialValue: 'income',
-              items: const [
-                DropdownMenuItem(value: 'income', child: Text('Ingreso')),
-                DropdownMenuItem(value: 'expense', child: Text('Egreso')),
-              ],
-              onChanged: (v) => typeCtrl.text = v ?? 'income',
-              decoration: const InputDecoration(labelText: 'Tipo', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 12),
-            TextField(controller: amountCtrl, decoration: const InputDecoration(labelText: 'Monto', border: OutlineInputBorder(), prefixText: '\$ '), keyboardType: TextInputType.number),
-            const SizedBox(height: 12),
-            TextField(controller: conceptCtrl, decoration: const InputDecoration(labelText: 'Concepto', border: OutlineInputBorder())),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Agregar')),
+    final result = await ZModal.show<bool>(context,
+      title: 'Agregar Movimiento',
+      confirmText: 'Agregar',
+      cancelText: 'Cancelar',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DropdownButtonFormField<String>(
+            initialValue: 'income',
+            items: const [
+              DropdownMenuItem(value: 'income', child: Text('Ingreso')),
+              DropdownMenuItem(value: 'expense', child: Text('Egreso')),
+            ],
+            onChanged: (v) => typeCtrl.text = v ?? 'income',
+            decoration: const InputDecoration(labelText: 'Tipo', border: OutlineInputBorder()),
+          ),
+          const SizedBox(height: 12),
+          ZTextField(controller: amountCtrl, label: 'Monto', keyboardType: TextInputType.number, prefix: const Text('\$ ')),
+          const SizedBox(height: 12),
+          ZTextField(controller: conceptCtrl, label: 'Concepto'),
         ],
       ),
     );
@@ -130,9 +136,9 @@ final class _CashRegisterDetailPageState extends ConsumerState<CashRegisterDetai
       });
       await _loadMovements();
       await _load();
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Movimiento registrado')));
+      if (mounted) ZToast.success(context, 'Movimiento registrado');
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) ZToast.error(context, 'Error: $e');
     }
   }
 
@@ -151,38 +157,40 @@ final class _CashRegisterDetailPageState extends ConsumerState<CashRegisterDetai
         actions: [
           if (isOpen) ...[
             IconButton(icon: const Icon(Icons.payments), onPressed: _addMovement, tooltip: 'Agregar Movimiento'),
+            IconButton(icon: const Icon(Icons.calculate), onPressed: () async {
+              final r = await context.push('/cash-registers/${widget.registerId}/arqueo');
+              if (r == true) { await _load(); await _loadArqueo(); }
+            }, tooltip: 'Arqueo de Caja'),
             IconButton(icon: const Icon(Icons.lock), onPressed: _closeRegister, tooltip: 'Cerrar Caja'),
           ],
         ],
       ),
       body: Column(
         children: [
-          Card(
+          ZCard(
             margin: const EdgeInsets.all(12),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(children: [
-                    Expanded(child: Text(d['code'] ?? '', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold))),
-                    Chip(label: Text(d['status'] ?? '', style: const TextStyle(fontSize: 11, color: Colors.white)), backgroundColor: isOpen ? Colors.green : Colors.grey, materialTapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                  ]),
-                  const SizedBox(height: 8),
-                  _row('Saldo Inicial', '\$${(d['openingBalance'] as num?)?.toStringAsFixed(0) ?? '0'}'),
-                  _row('Total Ingresos', '\$${(d['totalIncome'] as num?)?.toStringAsFixed(0) ?? '0'}'),
-                  _row('Total Egresos', '\$${(d['totalExpense'] as num?)?.toStringAsFixed(0) ?? '0'}'),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  Expanded(child: Text(d['code'] ?? '', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold))),
+                  Chip(label: Text(d['status'] ?? '', style: const TextStyle(fontSize: 11, color: Colors.white)), backgroundColor: isOpen ? Colors.green : Colors.grey, materialTapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                ]),
+                const SizedBox(height: 8),
+                _row('Saldo Inicial', '\$${(d['openingBalance'] as num?)?.toStringAsFixed(0) ?? '0'}'),
+                _row('Total Ingresos', '\$${(d['totalIncome'] as num?)?.toStringAsFixed(0) ?? '0'}'),
+                _row('Total Egresos', '\$${(d['totalExpense'] as num?)?.toStringAsFixed(0) ?? '0'}'),
+                const Divider(),
+                _row('Saldo Esperado', '\$${(d['expectedBalance'] as num?)?.toStringAsFixed(0) ?? '0'}'),
+                _row('Saldo Real', '\$${(d['closingBalance'] as num?)?.toStringAsFixed(0) ?? '0'}'),
+                _row('Diferencia', '\$${(d['difference'] as num?)?.toStringAsFixed(0) ?? '0'}',
+                  color: ((d['difference'] as num?)?.abs() ?? 0) > 0.01 ? Colors.red : Colors.green, bold: true),
+                if (d['employeeName'] != null) ...[
                   const Divider(),
-                  _row('Saldo Esperado', '\$${(d['expectedBalance'] as num?)?.toStringAsFixed(0) ?? '0'}'),
-                  _row('Saldo Real', '\$${(d['closingBalance'] as num?)?.toStringAsFixed(0) ?? '0'}'),
-                  _row('Diferencia', '\$${(d['difference'] as num?)?.toStringAsFixed(0) ?? '0'}',
-                    color: ((d['difference'] as num?)?.abs() ?? 0) > 0.01 ? Colors.red : Colors.green, bold: true),
-                  if (d['employeeName'] != null) ...[
-                    const Divider(),
-                    _row('Empleado', d['employeeName'] as String),
-                  ],
+                  _row('Empleado', d['employeeName'] as String),
                 ],
-              ),
+              ],
             ),
           ),
           TabBar(
@@ -190,6 +198,7 @@ final class _CashRegisterDetailPageState extends ConsumerState<CashRegisterDetai
             tabs: const [
               Tab(text: 'Movimientos'),
               Tab(text: 'Resumen'),
+              Tab(text: 'Arqueo'),
             ],
           ),
           Expanded(
@@ -198,6 +207,7 @@ final class _CashRegisterDetailPageState extends ConsumerState<CashRegisterDetai
               children: [
                 _movementsTab(theme),
                 _summaryTab(d, theme),
+                _arqueoTab(theme),
               ],
             ),
           ),
@@ -213,10 +223,10 @@ final class _CashRegisterDetailPageState extends ConsumerState<CashRegisterDetai
           padding: const EdgeInsets.all(12),
           child: SizedBox(
             width: double.infinity,
-            child: FilledButton.icon(
-              icon: const Icon(Icons.add),
-              label: const Text('Agregar Movimiento'),
+            child: ZButton(
+              text: 'Agregar Movimiento',
               onPressed: _addMovement,
+              icon: Icons.add,
             ),
           ),
         ),
@@ -232,7 +242,7 @@ final class _CashRegisterDetailPageState extends ConsumerState<CashRegisterDetai
                         itemBuilder: (_, i) {
                           final m = _movements[i];
                           final isIncome = m.movementType == 'income';
-                          return Card(
+                          return ZCard(
                             margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                             child: ListTile(
                               leading: CircleAvatar(
@@ -273,6 +283,62 @@ final class _CashRegisterDetailPageState extends ConsumerState<CashRegisterDetai
         if (d['closedAt'] != null) _row('Cerrado', (d['closedAt'] as String).substring(0, 10)),
         if (d['notes'] != null) _row('Notas', d['notes'] as String),
       ],
+    );
+  }
+
+  Widget _arqueoTab(ThemeData theme) {
+    if (_arqueoLoading) return const Center(child: CircularProgressIndicator());
+    if (_arqueo == null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('No se ha realizado arqueo'),
+            const SizedBox(height: 12),
+            if (_data?['status'] == 'open')
+              ZButton(
+                text: 'Realizar Arqueo',
+                icon: Icons.calculate,
+                onPressed: () async {
+                  final r = await context.push('/cash-registers/${widget.registerId}/arqueo');
+                  if (r == true) { await _load(); await _loadArqueo(); }
+                },
+              ),
+          ],
+        ),
+      );
+    }
+    final a = _arqueo!;
+    final denoms = (a['denominations'] as List?) ?? [];
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        ZCard(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Arqueo', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                _row('Saldo Esperado', '\$${(a['expectedBalance'] as num?)?.toStringAsFixed(2) ?? '0.00'}'),
+                _row('Total Contado', '\$${(a['countedTotal'] as num?)?.toStringAsFixed(2) ?? '0.00'}'),
+                _row('Diferencia', '\$${(a['difference'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
+                  color: ((a['difference'] as num?)?.abs() ?? 0) > 0.01 ? Colors.red : Colors.green, bold: true),
+                if (a['employeeName'] != null) _row('Realizado por', a['employeeName'] as String),
+                if (a['notes'] != null) _row('Notas', a['notes'] as String),
+                if (denoms.isNotEmpty) ...[
+                  const Divider(),
+                  Text('Denominaciones', style: theme.textTheme.titleSmall),
+                  const SizedBox(height: 4),
+                  ...denoms.map((d) => _row(
+                    d['denominationType'] == 'bill' ? 'Billete \$${(d['denominationValue'] as num).toStringAsFixed(2)}' : 'Moneda \$${(d['denominationValue'] as num).toStringAsFixed(2)}',
+                    '${d['quantity']} = \$${(d['total'] as num).toStringAsFixed(2)}',
+                  )),
+                ],
+              ],
+            ),
+          ),
+        ],
     );
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:nexora/shared/ds/ds.dart';
 import '../providers/warranty_provider.dart';
 
 final class WarrantyListPage extends ConsumerStatefulWidget {
@@ -11,55 +12,27 @@ final class WarrantyListPage extends ConsumerStatefulWidget {
 
 final class _WarrantyListPageState extends ConsumerState<WarrantyListPage> {
   final _searchCtrl = TextEditingController();
-  String _searchQuery = '';
+  int _currentPage = 1;
 
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => ref.read(warrantyProvider.notifier).load());
+    Future.microtask(() => _load());
   }
 
-  List<WarrantyItem> _filter(List<WarrantyItem> items) {
-    if (_searchQuery.isEmpty) return items;
-    final q = _searchQuery.toLowerCase();
-    return items.where((w) =>
-      w.clientName.toLowerCase().contains(q) ||
-      w.productName.toLowerCase().contains(q) ||
-      w.warrantyNumber.toLowerCase().contains(q) ||
-      w.status.toLowerCase().contains(q)
-    ).toList();
-  }
+  void _load() => ref.read(warrantyProvider.notifier).load(page: _currentPage);
 
   Color _statusColor(String status) => switch (status) {
-    'Registered' => Colors.blue,
-    'PendingReview' => Colors.orange,
-    'InDiagnosis' => Colors.purple,
-    'SentToWorkshop' => Colors.indigo,
-    'InRepair' => Colors.deepOrange,
-    'PendingParts' => Colors.amber,
-    'Repaired' => Colors.teal,
-    'ReplacementApproved' => Colors.cyan,
-    'ReadyForDelivery' => Colors.green,
-    'Delivered' => Colors.green,
-    'Closed' => Colors.grey,
-    'Cancelled' => Colors.red,
-    _ => Colors.grey,
-  };
-
-  String _statusLabel(String status) => switch (status) {
-    'Registered' => 'Registrada',
-    'PendingReview' => 'Pendiente Revisión',
-    'InDiagnosis' => 'En Diagnóstico',
-    'SentToWorkshop' => 'En Taller',
-    'InRepair' => 'En Reparación',
-    'PendingParts' => 'Pendiente Repuestos',
-    'Repaired' => 'Reparada',
-    'ReplacementApproved' => 'Reemplazo Aprobado',
-    'ReadyForDelivery' => 'Lista para Entrega',
-    'Delivered' => 'Entregada',
-    'Closed' => 'Cerrada',
-    'Cancelled' => 'Cancelada',
-    _ => status,
+    'Registered' => ZColors.brandPrimary,
+    'PendingReview' => ZColors.warning,
+    'InDiagnosis' => ZColors.brandSecondary,
+    'SentToWorkshop' => ZColors.brandSecondary,
+    'Repaired' => ZColors.success,
+    'ReplacementApproved' => ZColors.success,
+    'Delivered' => ZColors.success,
+    'Closed' => ZColors.neutral900,
+    'Cancelled' => ZColors.danger,
+    _ => ZColors.brandSecondary,
   };
 
   @override
@@ -72,7 +45,7 @@ final class _WarrantyListPageState extends ConsumerState<WarrantyListPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(warrantyProvider);
     final theme = Theme.of(context);
-    final filtered = _filter(state.items);
+    
     return Scaffold(
       appBar: AppBar(title: const Text('Garantías')),
       body: state.loading
@@ -81,52 +54,38 @@ final class _WarrantyListPageState extends ConsumerState<WarrantyListPage> {
               ? Center(child: Text(state.error!, style: TextStyle(color: theme.colorScheme.error)))
               : Column(
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                      child: TextField(
-                        controller: _searchCtrl,
-                        decoration: InputDecoration(
-                          hintText: 'Buscar por cliente, producto, folio o estado...',
-                          prefixIcon: const Icon(Icons.search),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? IconButton(icon: const Icon(Icons.clear), onPressed: () { _searchCtrl.clear(); setState(() => _searchQuery = ''); })
-                              : null,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                        ),
-                        onChanged: (v) => setState(() => _searchQuery = v),
+                    Expanded(
+                      child: ZDataTable<WarrantyItem>(
+                        columns: const [
+                          DataColumn(label: Text('Producto')),
+                          DataColumn(label: Text('Cliente')),
+                          DataColumn(label: Text('Estado')),
+                        ],
+                        rows: state.items,
+                        rowMapper: (item) => DataRow(cells: [
+                          DataCell(Text(item.productName)),
+                          DataCell(Text(item.clientName)),
+                          DataCell(Chip(
+                              label: Text(item.status), 
+                              backgroundColor: _statusColor(item.status).withAlpha(30)
+                          )),
+                        ]),
                       ),
                     ),
-                    Expanded(
-                      child: filtered.isEmpty
-                          ? Center(child: Text(_searchQuery.isNotEmpty ? 'Sin resultados' : 'No hay garantías'))
-                          : RefreshIndicator(
-                              onRefresh: () => ref.read(warrantyProvider.notifier).load(),
-                              child: ListView.separated(
-                                itemCount: filtered.length,
-                                separatorBuilder: (_, _) => const Divider(height: 1),
-                                itemBuilder: (_, i) {
-                                  final w = filtered[i];
-                                  final stColor = _statusColor(w.status);
-                                  return ListTile(
-                                    leading: CircleAvatar(
-                                      backgroundColor: stColor.withAlpha(30),
-                                      child: Icon(Icons.verified, color: stColor),
-                                    ),
-                                    title: Text('${w.productName} - ${w.clientName}', style: const TextStyle(fontWeight: FontWeight.w600)),
-                                    subtitle: Text('${w.warrantyNumber}' + (w.endDate != null ? ' · Exp: ${w.endDate!.substring(0, 10)}' : '')),
-                                    trailing: Chip(label: Text(_statusLabel(w.status), style: TextStyle(fontSize: 11, color: stColor)), materialTapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                                  );
-                                },
-                              ),
-                            ),
-                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(icon: const Icon(Icons.chevron_left), onPressed: _currentPage > 1 ? () { _currentPage--; _load(); } : null),
+                        Text('Página $_currentPage'),
+                        IconButton(icon: const Icon(Icons.chevron_right), onPressed: state.items.length >= 20 ? () { _currentPage++; _load(); } : null),
+                      ],
+                    )
                   ],
                 ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final result = await context.push<bool>('/warranties/new');
-          if (result == true) ref.read(warrantyProvider.notifier).load();
+          if (result == true) _load();
         },
         child: const Icon(Icons.add),
       ),

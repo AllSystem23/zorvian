@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../shared/ds/ds.dart';
 
 class InviteUserPage extends ConsumerStatefulWidget {
   const InviteUserPage({super.key});
@@ -36,15 +36,10 @@ class _InviteUserPageState extends ConsumerState<InviteUserPage> {
 
       if (mounted) {
         final code = response.data['code'];
-        showDialog(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: const Text('Invitación creada'),
-            content: SelectableText('Código: $code\n\nComparte este código con el usuario.'),
-            actions: [
-              TextButton(onPressed: () => context.pop(), child: const Text('Aceptar')),
-            ],
-          ),
+        ZModal.showInfo(
+          context,
+          title: 'Invitación creada',
+          message: 'Código: $code\n\nComparte este código con el usuario.',
         );
       }
     } catch (e) {
@@ -76,9 +71,10 @@ class _InviteUserPageState extends ConsumerState<InviteUserPage> {
                 decoration: const InputDecoration(labelText: 'Rol'),
               ),
               const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _loading ? null : _generateInvite,
-                child: _loading ? const CircularProgressIndicator() : const Text('Generar invitación'),
+              ZButton(
+                text: 'Generar invitación',
+                onPressed: _generateInvite,
+                isLoading: _loading,
               ),
             ],
           ),

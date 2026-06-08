@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/error/error_notifier.dart';
 import '../providers/payroll_provider.dart';
+import '../../../shared/ds/ds.dart';
 
 class DeductionTypesPage extends ConsumerStatefulWidget {
   const DeductionTypesPage({super.key});
@@ -35,39 +36,34 @@ class _DeductionTypesPageState extends ConsumerState<DeductionTypesPage> {
     final rateCtrl = TextEditingController();
     final method = ValueNotifier<String>('percentage');
 
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Nuevo tipo de deducción'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: codeCtrl, decoration: const InputDecoration(labelText: 'Código', isDense: true)),
-              const SizedBox(height: 8),
-              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Nombre', isDense: true)),
-              const SizedBox(height: 8),
-              ValueListenableBuilder(
-                valueListenable: method,
-                builder: (_, v, _) => DropdownButtonFormField<String>(
-                  initialValue: v,
-                  decoration: const InputDecoration(labelText: 'Método', isDense: true),
-                  items: const [
-                    DropdownMenuItem(value: 'percentage', child: Text('Porcentaje')),
-                    DropdownMenuItem(value: 'fixed', child: Text('Monto fijo')),
-                  ],
-                  onChanged: (val) => method.value = val ?? 'percentage',
-                ),
+    final result = await ZModal.show<bool>(context,
+      title: 'Nuevo tipo de deducción',
+      confirmText: 'Crear',
+      cancelText: 'Cancelar',
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ZTextField(controller: codeCtrl, label: 'Código'),
+            const SizedBox(height: 8),
+            ZTextField(controller: nameCtrl, label: 'Nombre'),
+            const SizedBox(height: 8),
+            ValueListenableBuilder(
+              valueListenable: method,
+              builder: (_, v, _) => DropdownButtonFormField<String>(
+                initialValue: v,
+                decoration: const InputDecoration(labelText: 'Método', isDense: true),
+                items: const [
+                  DropdownMenuItem(value: 'percentage', child: Text('Porcentaje')),
+                  DropdownMenuItem(value: 'fixed', child: Text('Monto fijo')),
+                ],
+                onChanged: (val) => method.value = val ?? 'percentage',
               ),
-              if (method.value == 'percentage')
-                TextField(controller: rateCtrl, decoration: const InputDecoration(labelText: 'Tasa (%)', isDense: true), keyboardType: TextInputType.number),
-            ],
-          ),
+            ),
+            if (method.value == 'percentage')
+              ZTextField(controller: rateCtrl, label: 'Tasa (%)', keyboardType: TextInputType.number),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Crear')),
-        ],
       ),
     );
     if (result != true) return;
@@ -88,16 +84,12 @@ class _DeductionTypesPageState extends ConsumerState<DeductionTypesPage> {
   }
 
   Future<void> _delete(String id, String name) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Eliminar deducción'),
-        content: Text('¿Eliminar "$name"?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('Eliminar', style: TextStyle(color: Colors.red))),
-        ],
-      ),
+    final confirmed = await ZModal.confirm(context,
+      title: 'Eliminar deducción',
+      message: '¿Eliminar "$name"?',
+      confirmText: 'Eliminar',
+      cancelText: 'Cancelar',
+      confirmColor: Colors.red,
     );
     if (confirmed != true) return;
 
@@ -133,7 +125,7 @@ class _DeductionTypesPageState extends ConsumerState<DeductionTypesPage> {
                       const SizedBox(height: 16),
                       const Text('No hay tipos de deducción'),
                       const SizedBox(height: 8),
-                      FilledButton.tonalIcon(onPressed: _create, icon: const Icon(Icons.add), label: const Text('Crear primera')),
+                      ZButton(text: 'Crear primera', onPressed: _create, icon: Icons.add, fullWidth: false),
                     ],
                   ),
                 )
@@ -142,7 +134,8 @@ class _DeductionTypesPageState extends ConsumerState<DeductionTypesPage> {
                   itemCount: _items.length,
                   itemBuilder: (_, i) {
                     final item = _items[i];
-                    return Card(
+                    return ZCard(
+                      padding: EdgeInsets.zero,
                       child: ListTile(
                         title: Text(item['name'] ?? ''),
                         subtitle: Text('${item['code'] ?? ''} · ${item['calculationMethod'] == 'percentage' ? '${item['rate']}%' : 'Monto fijo'}'),

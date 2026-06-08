@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/reports_provider.dart';
+import '../../../shared/ds/ds.dart';
 
 class ReportsPage extends ConsumerStatefulWidget {
   const ReportsPage({super.key});
@@ -58,41 +59,33 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Filtros', style: Theme.of(context).textTheme.titleMedium),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _yearController,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Año',
-                                    border: OutlineInputBorder(),
-                                  ),
-                                  keyboardType: TextInputType.number,
-                                ),
+                  ZCard(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Filtros', style: Theme.of(context).textTheme.titleMedium),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ZTextField(
+                                controller: _yearController,
+                                label: 'Año',
+                                keyboardType: TextInputType.number,
                               ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: TextField(
-                                  controller: _monthController,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Mes (1-12)',
-                                    border: OutlineInputBorder(),
-                                  ),
-                                  keyboardType: TextInputType.number,
-                                ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: ZTextField(
+                                controller: _monthController,
+                                label: 'Mes (1-12)',
+                                keyboardType: TextInputType.number,
                               ),
-                            ],
-                          ),
-                        ],
-                      ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -154,8 +147,9 @@ class _ReportCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
+    return ZCard(child: Semantics(
+      label: label,
+      button: true,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
@@ -170,6 +164,7 @@ class _ReportCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }

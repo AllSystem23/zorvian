@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../shared/ds/ds.dart';
 
 class PermissionDetailPage extends ConsumerStatefulWidget {
   final String permissionId;
@@ -73,18 +74,29 @@ class _PermissionDetailPageState extends ConsumerState<PermissionDetailPage> {
 
   Future<String?> _askComment(String title) {
     final ctrl = TextEditingController();
-    return showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: ctrl,
-          decoration: const InputDecoration(hintText: 'Comentario (opcional)'),
-          maxLines: 3,
-        ),
-        actions: [
-          TextButton(onPressed: () { ctrl.dispose(); Navigator.pop(ctx); }, child: const Text('Cancelar')),
-          TextButton(onPressed: () { final txt = ctrl.text; ctrl.dispose(); Navigator.pop(ctx, txt); }, child: const Text('Confirmar')),
+    return ZModal.show<String>(context,
+      title: title,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ZTextField(
+            controller: ctrl,
+            label: '',
+            hint: 'Comentario (opcional)',
+            maxLines: 3,
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+              const SizedBox(width: 8),
+              ZButton(
+                onPressed: () => Navigator.pop(context, ctrl.text),
+                text: 'Confirmar',
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -138,45 +150,43 @@ class _PermissionDetailPageState extends ConsumerState<PermissionDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(p['leaveTypeName'] as String? ?? '', style: theme.textTheme.titleLarge),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: _statusColor(status).withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Text(
-                          _statusLabel(status),
-                          style: TextStyle(color: _statusColor(status), fontWeight: FontWeight.w600),
-                        ),
+          ZCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(p['leaveTypeName'] as String? ?? '', style: theme.textTheme.titleLarge),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: _statusColor(status).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _infoRow('Empleado', '${p['employeeName'] ?? ''} (${p['employeeCode'] ?? ''})'),
-                  _infoRow('Período', '${p['startDate'] ?? ''} → ${p['endDate'] ?? ''}'),
-                  _infoRow('Días totales', '${p['totalDays'] ?? 0}'),
-                  _infoRow('Días hábiles', '${p['businessDays'] ?? 0}'),
-                  _infoRow('Pagado', p['isPaid'] == true ? 'Sí' : 'No'),
-                  if (p['reason'] != null && (p['reason'] as String).isNotEmpty)
-                    _infoRow('Motivo', p['reason'] as String),
-                  if (p['rejectionReason'] != null)
-                    _infoRow('Motivo de rechazo', p['rejectionReason'] as String, color: Colors.red),
-                ],
-              ),
+                      child: Text(
+                        _statusLabel(status),
+                        style: TextStyle(color: _statusColor(status), fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _infoRow('Empleado', '${p['employeeName'] ?? ''} (${p['employeeCode'] ?? ''})'),
+                _infoRow('Período', '${p['startDate'] ?? ''} → ${p['endDate'] ?? ''}'),
+                _infoRow('Días totales', '${p['totalDays'] ?? 0}'),
+                _infoRow('Días hábiles', '${p['businessDays'] ?? 0}'),
+                _infoRow('Pagado', p['isPaid'] == true ? 'Sí' : 'No'),
+                if (p['reason'] != null && (p['reason'] as String).isNotEmpty)
+                  _infoRow('Motivo', p['reason'] as String),
+                if (p['rejectionReason'] != null)
+                  _infoRow('Motivo de rechazo', p['rejectionReason'] as String, color: Colors.red),
+              ],
             ),
           ),
           if (p['supportingDocumentUrl'] != null && (p['supportingDocumentUrl'] as String).isNotEmpty)
-            Card(
+            ZCard(
               child: ListTile(
                 leading: const Icon(Icons.attach_file),
                 title: Text(p['supportingDocumentFileName'] as String? ?? 'Documento'),

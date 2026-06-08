@@ -198,7 +198,7 @@ public sealed class SaleServiceTests
 
         var client = new Client { Id = _clientId, CreditLimit = 100000m, Status = "active", CompanyId = _companyId, BranchId = _branchId };
         _clientRepo.Setup(r => r.GetByIdAsync(_clientId)).ReturnsAsync(client);
-        _creditRepo.Setup(r => r.GetFilteredAsync(_clientId, It.IsAny<string>(), _branchId, 1, int.MaxValue))
+        _creditRepo.Setup(r => r.GetFilteredAsync(_clientId, It.IsAny<string>(), null, _branchId, 1, int.MaxValue))
             .ReturnsAsync(new List<Credit>());
 
         _companyRepo.Setup(r => r.GetByTenantIdAsync(_companyId.ToString())).ReturnsAsync(company);

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
 import '../providers/credit_provider.dart';
 
@@ -16,17 +18,20 @@ final class _CreditDetailPageState extends ConsumerState<CreditDetailPage> with 
   String? _error;
   List<LateFee> _lateFees = [];
   List<CollectionAction> _collectionActions = [];
+  List<CreditRefinancing> _refinancings = [];
   bool _lateFeesLoading = false;
   bool _actionsLoading = false;
+  bool _refinancingsLoading = false;
   late TabController _tabCtrl;
 
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 4, vsync: this);
+    _tabCtrl = TabController(length: 5, vsync: this);
     _loadDetail();
     _loadLateFees();
     _loadActions();
+    _loadRefinancings();
   }
 
   @override
@@ -68,6 +73,24 @@ final class _CreditDetailPageState extends ConsumerState<CreditDetailPage> with 
     }
   }
 
+  Future<void> _loadRefinancings() async {
+    try {
+      setState(() => _refinancingsLoading = true);
+      final dio = ref.read(dioClientProvider);
+      final r = await dio.get('credits/${widget.creditId}/refinancings');
+      final data = r.data;
+      final list = data is List ? data : [];
+      setState(() { _refinancings = list.map((e) => CreditRefinancing.fromJson(e as Map<String, dynamic>)).toList(); _refinancingsLoading = false; });
+    } catch (_) {
+      setState(() => _refinancingsLoading = false);
+    }
+  }
+
+  Future<void> _refinance() async {
+    final result = await context.push<bool>('/credits/${widget.creditId}/refinancing');
+    if (result == true) { await _loadDetail(); await _loadRefinancings(); }
+  }
+
   Future<void> _calculateLateFees() async {
     setState(() => _lateFeesLoading = true);
     try {
@@ -82,31 +105,26 @@ final class _CreditDetailPageState extends ConsumerState<CreditDetailPage> with 
   Future<void> _registerPayment() async {
     final amountCtrl = TextEditingController();
     final method = ValueNotifier('cash');
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Registrar Pago'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: amountCtrl, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Monto', prefixText: '\$ ')),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: method.value,
-              items: const [
-                DropdownMenuItem(value: 'cash', child: Text('Efectivo')),
-                DropdownMenuItem(value: 'card', child: Text('Tarjeta')),
-                DropdownMenuItem(value: 'transfer', child: Text('Transferencia')),
-                DropdownMenuItem(value: 'check', child: Text('Cheque')),
-              ],
-              onChanged: (v) => method.value = v ?? 'cash',
-              decoration: const InputDecoration(labelText: 'Método de pago'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Pagar')),
+    final result = await ZModal.show<bool>(context,
+      title: 'Registrar Pago',
+      confirmText: 'Pagar',
+      cancelText: 'Cancelar',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ZTextField(controller: amountCtrl, label: 'Monto', keyboardType: TextInputType.number, prefix: const Text('\$ ')),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            initialValue: method.value,
+            items: const [
+              DropdownMenuItem(value: 'cash', child: Text('Efectivo')),
+              DropdownMenuItem(value: 'card', child: Text('Tarjeta')),
+              DropdownMenuItem(value: 'transfer', child: Text('Transferencia')),
+              DropdownMenuItem(value: 'check', child: Text('Cheque')),
+            ],
+            onChanged: (v) => method.value = v ?? 'cash',
+            decoration: const InputDecoration(labelText: 'Método de pago'),
+          ),
         ],
       ),
     );
@@ -119,9 +137,9 @@ final class _CreditDetailPageState extends ConsumerState<CreditDetailPage> with 
         'creditId': widget.creditId,
       });
       await _loadDetail();
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pago registrado')));
+      if (mounted) ZToast.success(context, 'Pago registrado');
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) ZToast.error(context, 'Error: $e');
     }
   }
 
@@ -131,36 +149,31 @@ final class _CreditDetailPageState extends ConsumerState<CreditDetailPage> with 
     final contactCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
     final promiseAmtCtrl = TextEditingController();
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Nueva Acción de Cobranza'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<String>(
-                items: const [
-                  DropdownMenuItem(value: 'call', child: Text('Llamada')),
-                  DropdownMenuItem(value: 'visit', child: Text('Visita')),
-                  DropdownMenuItem(value: 'message', child: Text('Mensaje')),
-                  DropdownMenuItem(value: 'promise', child: Text('Acuerdo de pago')),
-                ],
-                onChanged: (v) => typeCtrl.text = v ?? '',
-                decoration: const InputDecoration(labelText: 'Tipo'),
-              ),
-              const SizedBox(height: 8),
-              TextField(controller: descCtrl, decoration: const InputDecoration(labelText: 'Descripción'), maxLines: 2),
-              TextField(controller: contactCtrl, decoration: const InputDecoration(labelText: 'Contacto')),
-              TextField(controller: phoneCtrl, decoration: const InputDecoration(labelText: 'Teléfono'), keyboardType: TextInputType.phone),
-              TextField(controller: promiseAmtCtrl, decoration: const InputDecoration(labelText: 'Monto prometido'), keyboardType: TextInputType.number),
-            ],
-          ),
+    final result = await ZModal.show<bool>(context,
+      title: 'Nueva Acción de Cobranza',
+      confirmText: 'Guardar',
+      cancelText: 'Cancelar',
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            DropdownButtonFormField<String>(
+              items: const [
+                DropdownMenuItem(value: 'call', child: Text('Llamada')),
+                DropdownMenuItem(value: 'visit', child: Text('Visita')),
+                DropdownMenuItem(value: 'message', child: Text('Mensaje')),
+                DropdownMenuItem(value: 'promise', child: Text('Acuerdo de pago')),
+              ],
+              onChanged: (v) => typeCtrl.text = v ?? '',
+              decoration: const InputDecoration(labelText: 'Tipo'),
+            ),
+            const SizedBox(height: 8),
+            ZTextField(controller: descCtrl, label: 'Descripción', maxLines: 2),
+            ZTextField(controller: contactCtrl, label: 'Contacto'),
+            ZTextField(controller: phoneCtrl, label: 'Teléfono', keyboardType: TextInputType.phone),
+            ZTextField(controller: promiseAmtCtrl, label: 'Monto prometido', keyboardType: TextInputType.number),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Guardar')),
-        ],
       ),
     );
     if (result != true || typeCtrl.text.isEmpty) return;
@@ -174,9 +187,9 @@ final class _CreditDetailPageState extends ConsumerState<CreditDetailPage> with 
         'promiseAmount': promiseAmtCtrl.text.isNotEmpty ? promiseAmtCtrl.text : null,
       });
       await _loadActions();
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Acción registrada')));
+      if (mounted) ZToast.success(context, 'Acción registrada');
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) ZToast.error(context, 'Error: $e');
     }
   }
 
@@ -201,37 +214,36 @@ final class _CreditDetailPageState extends ConsumerState<CreditDetailPage> with 
           IconButton(icon: const Icon(Icons.payments), onPressed: _registerPayment, tooltip: 'Registrar Pago'),
           IconButton(icon: const Icon(Icons.gavel), onPressed: _addCollectionAction, tooltip: 'Acción de Cobranza'),
           IconButton(icon: const Icon(Icons.warning_amber), onPressed: _calculateLateFees, tooltip: 'Calcular Mora'),
+          IconButton(icon: const Icon(Icons.swap_horiz), onPressed: _refinance, tooltip: 'Refinanciar'),
         ],
       ),
       body: Column(
         children: [
-          Card(
+          ZCard(
             margin: const EdgeInsets.all(12),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(children: [
-                    Expanded(child: Text(d.clientName, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold))),
-                    Chip(label: Text(d.status, style: const TextStyle(fontSize: 11, color: Colors.white)), backgroundColor: stColor, materialTapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                  ]),
-                  const SizedBox(height: 8),
-                  Row(children: [
-                    Expanded(child: _row('Financiado', '\$${d.financedAmount.toStringAsFixed(0)}')),
-                    Expanded(child: _row('Saldo', '\$${d.balance.toStringAsFixed(0)}', bold: true, color: d.balance > 0 ? Colors.red : Colors.green)),
-                  ]),
-                  Row(children: [
-                    Expanded(child: _row('Pagado', '\$${d.paidAmount.toStringAsFixed(0)}')),
-                    Expanded(child: _row('Interés', '\$${d.interestAmount.toStringAsFixed(0)}')),
-                  ]),
-                  Row(children: [
-                    Expanded(child: _row('Cuotas', '${d.installmentCount} x \$${d.installmentAmount.toStringAsFixed(0)}')),
-                    Expanded(child: _row('Tasa', '${d.interestRate.toStringAsFixed(1)}%')),
-                  ]),
-                  if (d.nextDueDate != null) _row('Próximo vencimiento', d.nextDueDate!),
-                ],
-              ),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  Expanded(child: Text(d.clientName, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold))),
+                  Chip(label: Text(d.status, style: const TextStyle(fontSize: 11, color: Colors.white)), backgroundColor: stColor, materialTapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                ]),
+                const SizedBox(height: 8),
+                Row(children: [
+                  Expanded(child: _row('Financiado', '\$${d.financedAmount.toStringAsFixed(0)}')),
+                  Expanded(child: _row('Saldo', '\$${d.balance.toStringAsFixed(0)}', bold: true, color: d.balance > 0 ? Colors.red : Colors.green)),
+                ]),
+                Row(children: [
+                  Expanded(child: _row('Pagado', '\$${d.paidAmount.toStringAsFixed(0)}')),
+                  Expanded(child: _row('Interés', '\$${d.interestAmount.toStringAsFixed(0)}')),
+                ]),
+                Row(children: [
+                  Expanded(child: _row('Cuotas', '${d.installmentCount} x \$${d.installmentAmount.toStringAsFixed(0)}')),
+                  Expanded(child: _row('Tasa', '${d.interestRate.toStringAsFixed(1)}%')),
+                ]),
+                if (d.nextDueDate != null) _row('Próximo vencimiento', d.nextDueDate!),
+              ],
             ),
           ),
           TabBar(
@@ -241,6 +253,7 @@ final class _CreditDetailPageState extends ConsumerState<CreditDetailPage> with 
               Tab(text: 'Mora'),
               Tab(text: 'Cobranza'),
               Tab(text: 'Pagos'),
+              Tab(text: 'Refinanciación'),
             ],
           ),
           Expanded(
@@ -251,6 +264,7 @@ final class _CreditDetailPageState extends ConsumerState<CreditDetailPage> with 
                 _lateFeesTab(theme),
                 _collectionActionsTab(theme),
                 _paymentsTab(theme),
+                _refinancingsTab(theme),
               ],
             ),
           ),
@@ -308,7 +322,7 @@ final class _CreditDetailPageState extends ConsumerState<CreditDetailPage> with 
                     itemCount: _lateFees.length,
                     itemBuilder: (_, i) {
                       final lf = _lateFees[i];
-                      return Card(
+                      return ZCard(
                         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         child: ListTile(
                           title: Text('${lf.daysOverdue} días de atraso', style: TextStyle(fontWeight: FontWeight.w600)),
@@ -338,10 +352,10 @@ final class _CreditDetailPageState extends ConsumerState<CreditDetailPage> with 
           padding: const EdgeInsets.all(12),
           child: SizedBox(
             width: double.infinity,
-            child: FilledButton.icon(
-              icon: const Icon(Icons.add),
-              label: const Text('Nueva Acción'),
+            child: ZButton(
+              text: 'Nueva Acción',
               onPressed: _addCollectionAction,
+              icon: Icons.add,
             ),
           ),
         ),
@@ -357,7 +371,7 @@ final class _CreditDetailPageState extends ConsumerState<CreditDetailPage> with 
                         itemBuilder: (_, i) {
                           final a = _collectionActions[i];
                           final icon = switch (a.actionType) { 'call' => Icons.phone, 'visit' => Icons.person_pin, 'message' => Icons.message, 'promise' => Icons.handshake, _ => Icons.notifications };
-                          return Card(
+                          return ZCard(
                             margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                             child: ListTile(
                               leading: CircleAvatar(child: Icon(icon, size: 18)),
@@ -392,6 +406,40 @@ final class _CreditDetailPageState extends ConsumerState<CreditDetailPage> with 
         ),
       ),
     );
+  }
+
+  Widget _refinancingsTab(ThemeData theme) {
+    return _refinancingsLoading
+        ? const Center(child: CircularProgressIndicator())
+        : _refinancings.isEmpty
+            ? const Center(child: Text('Sin refinanciamientos previos'))
+            : RefreshIndicator(
+                onRefresh: _loadRefinancings,
+                child: ListView.builder(
+                  itemCount: _refinancings.length,
+                  itemBuilder: (_, i) {
+                    final r = _refinancings[i];
+                    return ZCard(
+                      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Refinanciamiento ${i + 1}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                            const Divider(),
+                            _row('Saldo anterior', '\$${r.previousBalance.toStringAsFixed(0)}'),
+                            _row('Tasa anterior', '${r.previousInterestRate.toStringAsFixed(1)}%'),
+                            _row('Nuevo monto', '\$${r.newFinancedAmount.toStringAsFixed(0)}'),
+                            _row('Nueva tasa', '${r.newInterestRate.toStringAsFixed(1)}%'),
+                            _row('Nuevas cuotas', '${r.newInstallmentCount} x \$${r.newInstallmentAmount.toStringAsFixed(0)}'),
+                            _row('Nuevo total', '\$${r.newTotalAmount.toStringAsFixed(0)}'),
+                            if (r.reason.isNotEmpty) _row('Motivo', r.reason),
+                          ],
+                        ),
+                      );
+                  },
+                ),
+              );
   }
 
   Widget _row(String label, String value, {bool bold = false, Color? color}) {

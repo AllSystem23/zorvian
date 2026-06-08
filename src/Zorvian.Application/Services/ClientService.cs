@@ -82,8 +82,8 @@ public sealed class ClientService
         var client = await _repo.GetByIdAsync(clientId);
         if (client is null) return null;
 
-        var sales = await _saleRepo.GetFilteredAsync(clientId, null, null, null, null, Guid.Empty, 1, 50);
-        var credits = await _creditRepo.GetFilteredAsync(clientId, null, Guid.Empty, 1, 50);
+        var sales = await _saleRepo.GetFilteredAsync(clientId, null, null, null, null, null, Guid.Empty, 1, 50);
+        var credits = await _creditRepo.GetFilteredAsync(clientId, null, null, Guid.Empty, 1, 50);
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var activeCredits = credits.Where(c => c.Status == "active" || c.Status == "defaulted").ToList();

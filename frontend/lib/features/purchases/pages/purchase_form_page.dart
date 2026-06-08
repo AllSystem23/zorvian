@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../suppliers/providers/supplier_provider.dart';
 import '../../products/providers/product_provider.dart';
 import '../../../shared/printing/qr_code_dialog.dart';
+import '../../../shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
 import '../providers/purchase_provider.dart';
 
@@ -139,49 +140,46 @@ final class _PurchaseFormPageState extends ConsumerState<PurchaseFormPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Proveedor', style: TextStyle(fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    initialValue: _selectedSupplier,
-                    decoration: const InputDecoration(
-                      hintText: 'Seleccionar proveedor...',
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    ),
-                    items: suppliers.items
-                        .where((c) => c.id.isNotEmpty)
-                        .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
-                        .toList(),
-                    onChanged: (v) => setState(() => _selectedSupplier = v),
+          ZCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Proveedor', style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  initialValue: _selectedSupplier,
+                  decoration: const InputDecoration(
+                    hintText: 'Seleccionar proveedor...',
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _dateCtrl,
-                    decoration: const InputDecoration(labelText: 'Fecha', border: OutlineInputBorder()),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _invoiceRefCtrl,
-                    decoration: const InputDecoration(labelText: 'Referencia de factura', border: OutlineInputBorder()),
-                  ),
-                ],
-              ),
+                  items: suppliers.items
+                      .where((c) => c.id.isNotEmpty)
+                      .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
+                      .toList(),
+                  onChanged: (v) => setState(() => _selectedSupplier = v),
+                ),
+                const SizedBox(height: 12),
+                ZTextField(
+                  controller: _dateCtrl,
+                  label: 'Fecha',
+                ),
+                const SizedBox(height: 12),
+                ZTextField(
+                  controller: _invoiceRefCtrl,
+                  label: 'Referencia de factura',
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 12),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Productos (${_cart.length})', style: TextStyle(fontWeight: FontWeight.w600, color: theme.colorScheme.primary)),
+          ZCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Productos (${_cart.length})', style: TextStyle(fontWeight: FontWeight.w600, color: theme.colorScheme.primary)),
                   const SizedBox(height: 8),
                   TextField(
                     controller: _searchCtrl,
@@ -220,11 +218,10 @@ final class _PurchaseFormPageState extends ConsumerState<PurchaseFormPage> {
                   const SizedBox(height: 8),
                   ..._cart.asMap().entries.map((e) {
                     final i = e.value;
-                    return Card(
+                    return ZCard(
                       margin: const EdgeInsets.only(bottom: 8),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
@@ -268,20 +265,17 @@ final class _PurchaseFormPageState extends ConsumerState<PurchaseFormPage> {
                               ],
                             ),
                             Text('Subtotal: \$${i.subtotal.toStringAsFixed(2)}', style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.w500)),
-                          ],
-                        ),
+                        ],
                       ),
                     );
                   }),
                 ],
               ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
+            const SizedBox(height: 12),
+          ZCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
                 children: [
                   _row('Subtotal', subtotal, theme),
                   TextField(
@@ -295,20 +289,18 @@ final class _PurchaseFormPageState extends ConsumerState<PurchaseFormPage> {
                   _row('Total', total, theme, bold: true),
                 ],
               ),
-            ),
           ),
           const SizedBox(height: 12),
-          TextField(
+          ZTextField(
             controller: _notesCtrl,
-            decoration: const InputDecoration(labelText: 'Notas', border: OutlineInputBorder()),
+            label: 'Notas',
             maxLines: 2,
           ),
           const SizedBox(height: 24),
-          FilledButton(
-            onPressed: _saving ? null : _save,
-            child: _saving
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Text('Guardar Compra'),
+          ZButton(
+            text: 'Guardar Compra',
+            onPressed: _save,
+            isLoading: _saving,
           ),
           const SizedBox(height: 40),
         ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../shared/ds/ds.dart';
 import '../providers/supplier_provider.dart';
 
 final class SupplierListPage extends ConsumerStatefulWidget {
@@ -32,16 +33,11 @@ final class _SupplierListPageState extends ConsumerState<SupplierListPage> {
   }
 
   Future<void> _confirmDelete(String id, String name) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Eliminar proveedor'),
-        content: Text('¿Eliminar $name?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Eliminar', style: TextStyle(color: Colors.red))),
-        ],
-      ),
+    final ok = await ZModal.confirm(context,
+      title: 'Eliminar proveedor',
+      message: '¿Eliminar $name?',
+      confirmText: 'Eliminar',
+      cancelText: 'Cancelar',
     );
     if (ok != true) return;
     try {
@@ -49,7 +45,7 @@ final class _SupplierListPageState extends ConsumerState<SupplierListPage> {
       await dio.delete('suppliers/$id');
       ref.read(supplierProvider.notifier).load();
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error al eliminar proveedor')));
+      if (mounted) ZToast.error(context, 'Error al eliminar proveedor');
     }
   }
 

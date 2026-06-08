@@ -213,6 +213,87 @@ final class CollectionAction {
   );
 }
 
+final class CreditRefinancing {
+  final String id;
+  final double previousBalance;
+  final double previousInterestRate;
+  final int previousInstallmentCount;
+  final double newFinancedAmount;
+  final double newInterestRate;
+  final int newInstallmentCount;
+  final double newInstallmentAmount;
+  final double newTotalAmount;
+  final String newStartDate;
+  final String newEndDate;
+  final String reason;
+
+  const CreditRefinancing({
+    required this.id, required this.previousBalance, required this.previousInterestRate,
+    required this.previousInstallmentCount, required this.newFinancedAmount,
+    required this.newInterestRate, required this.newInstallmentCount,
+    required this.newInstallmentAmount, required this.newTotalAmount,
+    required this.newStartDate, required this.newEndDate, required this.reason,
+  });
+
+  factory CreditRefinancing.fromJson(Map<String, dynamic> j) => CreditRefinancing(
+    id: j['id'] as String? ?? '',
+    previousBalance: (j['previousBalance'] as num?)?.toDouble() ?? 0,
+    previousInterestRate: (j['previousInterestRate'] as num?)?.toDouble() ?? 0,
+    previousInstallmentCount: j['previousInstallmentCount'] as int? ?? 0,
+    newFinancedAmount: (j['newFinancedAmount'] as num?)?.toDouble() ?? 0,
+    newInterestRate: (j['newInterestRate'] as num?)?.toDouble() ?? 0,
+    newInstallmentCount: j['newInstallmentCount'] as int? ?? 0,
+    newInstallmentAmount: (j['newInstallmentAmount'] as num?)?.toDouble() ?? 0,
+    newTotalAmount: (j['newTotalAmount'] as num?)?.toDouble() ?? 0,
+    newStartDate: j['newStartDate'] as String? ?? '',
+    newEndDate: j['newEndDate'] as String? ?? '',
+    reason: j['reason'] as String? ?? '',
+  );
+}
+
+final class OverdueAgingBucket {
+  final String label;
+  final int creditCount;
+  final int installmentCount;
+  final double totalBalance;
+  final double totalAmount;
+  const OverdueAgingBucket({required this.label, required this.creditCount, required this.installmentCount, required this.totalBalance, required this.totalAmount});
+  factory OverdueAgingBucket.fromJson(Map<String, dynamic> j) => OverdueAgingBucket(
+    label: j['label'] as String? ?? '',
+    creditCount: j['creditCount'] as int? ?? 0,
+    installmentCount: j['installmentCount'] as int? ?? 0,
+    totalBalance: (j['totalBalance'] as num?)?.toDouble() ?? 0,
+    totalAmount: (j['totalAmount'] as num?)?.toDouble() ?? 0,
+  );
+}
+
+final class OverdueDashboard {
+  final int totalOverdueCredits;
+  final int totalActiveCredits;
+  final double totalPortfolio;
+  final double totalOverdueBalance;
+  final double recoveryRate;
+  final List<OverdueAgingBucket> agingBuckets;
+  final List<OverdueInstallment> criticalOverdue;
+
+  const OverdueDashboard({
+    required this.totalOverdueCredits, required this.totalActiveCredits,
+    required this.totalPortfolio, required this.totalOverdueBalance,
+    required this.recoveryRate, required this.agingBuckets,
+    required this.criticalOverdue,
+  });
+
+  factory OverdueDashboard.fromJson(Map<String, dynamic> j) => OverdueDashboard(
+    totalOverdueCredits: j['totalOverdueCredits'] as int? ?? 0,
+    totalActiveCredits: j['totalActiveCredits'] as int? ?? 0,
+    totalPortfolio: (j['totalPortfolio'] as num?)?.toDouble() ?? 0,
+    totalOverdueBalance: (j['totalOverdueBalance'] as num?)?.toDouble() ?? 0,
+    recoveryRate: (j['recoveryRate'] as num?)?.toDouble() ?? 0,
+    agingBuckets: (j['agingBuckets'] as List?)?.map((e) => OverdueAgingBucket.fromJson(e)).toList() ?? [],
+    criticalOverdue: (j['criticalOverdue'] as List?)?.map((e) => OverdueInstallment.fromJson(e)).toList() ?? [],
+  );
+}
+
 final class CreditState {
   final List<CreditItem> items;
   final bool loading;
@@ -225,11 +306,13 @@ final class CreditState {
 final class CreditNotifier extends Notifier<CreditState> {
   @override
   CreditState build() => const CreditState();
-  Future<void> load() async {
+  Future<void> load({String? search}) async {
     state = state.copyWith(loading: true, error: null);
     try {
       final dio = ref.read(dioClientProvider);
-      final r = await dio.get('credits');
+      final params = <String, dynamic>{};
+      if (search != null && search.isNotEmpty) params['search'] = search;
+      final r = await dio.get('credits', params: params);
       final data = r.data;
       final list = data is List ? data : (data is Map && data['items'] is List ? data['items'] : []);
       state = CreditState(items: (list as List).map((e) => CreditItem.fromJson(e as Map<String, dynamic>)).toList());

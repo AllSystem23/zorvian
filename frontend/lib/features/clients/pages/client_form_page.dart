@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../shared/ds/ds.dart';
 
 final class ClientFormPage extends ConsumerStatefulWidget {
   final String? clientId;
@@ -149,11 +150,10 @@ final class _ClientFormPageState extends ConsumerState<ClientFormPage> {
               const SizedBox(height: 12),
               SwitchListTile(title: const Text('Activo'), value: _isActive, onChanged: (v) => setState(() => _isActive = v)),
               const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _loading ? null : _save,
-                child: _loading
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : Text(_isEditing ? 'Actualizar' : 'Crear cliente'),
+              ZButton(
+                text: _isEditing ? 'Actualizar' : 'Crear cliente',
+                onPressed: _save,
+                isLoading: _loading,
               ),
             ],
           ),

@@ -142,3 +142,147 @@ class BiPayrollSummary {
 class BiPayrollDept { final String department; final double amount; final int employeeCount; BiPayrollDept({required this.department, required this.amount, required this.employeeCount}); factory BiPayrollDept.fromJson(Map<String, dynamic> j) => BiPayrollDept(department: j['department'] ?? '', amount: (j['amount'] ?? 0).toDouble(), employeeCount: j['employeeCount'] ?? 0); }
 
 class BiPayrollTrend { final String period; final double grossPay, deductions, netPay, employerCosts; BiPayrollTrend({required this.period, required this.grossPay, required this.deductions, required this.netPay, required this.employerCosts}); factory BiPayrollTrend.fromJson(Map<String, dynamic> j) => BiPayrollTrend(period: j['period'] ?? '', grossPay: (j['grossPay'] ?? 0).toDouble(), deductions: (j['deductions'] ?? 0).toDouble(), netPay: (j['netPay'] ?? 0).toDouble(), employerCosts: (j['employerCosts'] ?? 0).toDouble()); }
+
+class BiSalesPredictionDaily {
+  final String date, dayOfWeek;
+  final double predictedSales, lowerBound, upperBound;
+  BiSalesPredictionDaily({required this.date, required this.dayOfWeek, required this.predictedSales, required this.lowerBound, required this.upperBound});
+  factory BiSalesPredictionDaily.fromJson(Map<String, dynamic> j) => BiSalesPredictionDaily(
+    date: j['date'] ?? '',
+    dayOfWeek: j['dayOfWeek'] ?? '',
+    predictedSales: (j['predictedSales'] ?? 0).toDouble(),
+    lowerBound: (j['lowerBound'] ?? 0).toDouble(),
+    upperBound: (j['upperBound'] ?? 0).toDouble(),
+  );
+}
+
+class BiMonthlySalesPrediction {
+  final double totalPredicted, dailyAverage;
+  final List<BiSalesPredictionDaily> predictions;
+  BiMonthlySalesPrediction({required this.totalPredicted, required this.dailyAverage, required this.predictions});
+  factory BiMonthlySalesPrediction.fromJson(Map<String, dynamic> j) => BiMonthlySalesPrediction(
+    totalPredicted: (j['totalPredicted'] ?? 0).toDouble(),
+    dailyAverage: (j['dailyAverage'] ?? 0).toDouble(),
+    predictions: (j['predictions'] as List?)?.map((e) => BiSalesPredictionDaily.fromJson(e)).toList() ?? [],
+  );
+}
+
+class BiMonthlyProjection {
+  final int month, year, remainingDays;
+  final double salesSoFar, predictedTotal, projectedTotal;
+  BiMonthlyProjection({required this.month, required this.year, required this.salesSoFar, required this.predictedTotal, required this.projectedTotal, required this.remainingDays});
+  factory BiMonthlyProjection.fromJson(Map<String, dynamic> j) => BiMonthlyProjection(
+    month: j['month'] ?? 0,
+    year: j['year'] ?? 0,
+    salesSoFar: (j['salesSoFar'] ?? 0).toDouble(),
+    predictedTotal: (j['predictedTotal'] ?? 0).toDouble(),
+    projectedTotal: (j['projectedTotal'] ?? 0).toDouble(),
+    remainingDays: j['remainingDays'] ?? 0,
+  );
+}
+
+class PurchaseRecommendationItem {
+  final String productId, productCode, productName, priority;
+  final String? categoryName, supplierName;
+  final String? supplierId;
+  final int currentStock, minStock, recommendedQuantity, lastMonthSold;
+  final double costPrice, averageDailyDemand, daysUntilStockout;
+  PurchaseRecommendationItem({
+    required this.productId, required this.productCode, required this.productName, required this.priority,
+    this.categoryName, this.supplierName, this.supplierId,
+    required this.currentStock, required this.minStock, required this.recommendedQuantity, required this.lastMonthSold,
+    required this.costPrice, required this.averageDailyDemand, required this.daysUntilStockout,
+  });
+  factory PurchaseRecommendationItem.fromJson(Map<String, dynamic> j) => PurchaseRecommendationItem(
+    productId: j['productId'] ?? '',
+    productCode: j['productCode'] ?? '',
+    productName: j['productName'] ?? '',
+    priority: j['priority'] ?? 'low',
+    categoryName: j['categoryName'],
+    supplierName: j['supplierName'],
+    supplierId: j['supplierId']?.toString(),
+    currentStock: j['currentStock'] ?? 0,
+    minStock: j['minStock'] ?? 0,
+    recommendedQuantity: j['recommendedQuantity'] ?? 0,
+    lastMonthSold: j['lastMonthSold'] ?? 0,
+    costPrice: (j['costPrice'] ?? 0).toDouble(),
+    averageDailyDemand: (j['averageDailyDemand'] ?? 0).toDouble(),
+    daysUntilStockout: (j['daysUntilStockout'] ?? 0).toDouble(),
+  );
+}
+
+class PurchaseRecommendationSummary {
+  final int totalProducts, criticalCount, warningCount, healthyCount;
+  final double totalRecommendedCost;
+  final List<PurchaseRecommendationItem> recommendations;
+  PurchaseRecommendationSummary({
+    required this.totalProducts, required this.criticalCount, required this.warningCount, required this.healthyCount,
+    required this.totalRecommendedCost, required this.recommendations,
+  });
+  factory PurchaseRecommendationSummary.fromJson(Map<String, dynamic> j) => PurchaseRecommendationSummary(
+    totalProducts: j['totalProducts'] ?? 0,
+    criticalCount: j['criticalCount'] ?? 0,
+    warningCount: j['warningCount'] ?? 0,
+    healthyCount: j['healthyCount'] ?? 0,
+    totalRecommendedCost: (j['totalRecommendedCost'] ?? 0).toDouble(),
+    recommendations: (j['recommendations'] as List?)?.map((e) => PurchaseRecommendationItem.fromJson(e)).toList() ?? [],
+  );
+}
+
+class ExpenseClassificationResult {
+  final String accountId, accountCode, accountName;
+  final double confidence;
+  ExpenseClassificationResult({required this.accountId, required this.accountCode, required this.accountName, required this.confidence});
+  factory ExpenseClassificationResult.fromJson(Map<String, dynamic> j) => ExpenseClassificationResult(
+    accountId: j['accountId']?.toString() ?? '',
+    accountCode: j['accountCode'] ?? '',
+    accountName: j['accountName'] ?? '',
+    confidence: (j['confidence'] ?? 0).toDouble(),
+  );
+}
+
+class ExpenseClassificationResponse {
+  final String description;
+  final double amount;
+  final List<ExpenseClassificationResult> suggestions;
+  ExpenseClassificationResponse({required this.description, required this.amount, required this.suggestions});
+  factory ExpenseClassificationResponse.fromJson(Map<String, dynamic> j) => ExpenseClassificationResponse(
+    description: j['description'] ?? '',
+    amount: (j['amount'] ?? 0).toDouble(),
+    suggestions: (j['suggestions'] as List?)?.map((e) => ExpenseClassificationResult.fromJson(e)).toList() ?? [],
+  );
+}
+
+class AccountingAnomaly {
+  final String accountingEntryId, entryNumber, description, referenceType, anomalyType, detail, severity;
+  final String entryDate;
+  final double totalDebit, totalCredit;
+  AccountingAnomaly({
+    required this.accountingEntryId, required this.entryNumber, required this.description,
+    required this.referenceType, required this.anomalyType, required this.detail,
+    required this.severity, required this.entryDate, required this.totalDebit, required this.totalCredit,
+  });
+  factory AccountingAnomaly.fromJson(Map<String, dynamic> j) => AccountingAnomaly(
+    accountingEntryId: j['accountingEntryId']?.toString() ?? '',
+    entryNumber: j['entryNumber'] ?? '',
+    description: j['description'] ?? '',
+    referenceType: j['referenceType'] ?? '',
+    anomalyType: j['anomalyType'] ?? '',
+    detail: j['detail'] ?? '',
+    severity: j['severity'] ?? 'low',
+    entryDate: j['entryDate'] ?? '',
+    totalDebit: (j['totalDebit'] ?? 0).toDouble(),
+    totalCredit: (j['totalCredit'] ?? 0).toDouble(),
+  );
+}
+
+class AccountingAnomalyReport {
+  final int totalEntriesAnalyzed, anomalyCount;
+  final List<AccountingAnomaly> anomalies;
+  AccountingAnomalyReport({required this.totalEntriesAnalyzed, required this.anomalyCount, required this.anomalies});
+  factory AccountingAnomalyReport.fromJson(Map<String, dynamic> j) => AccountingAnomalyReport(
+    totalEntriesAnalyzed: j['totalEntriesAnalyzed'] ?? 0,
+    anomalyCount: j['anomalyCount'] ?? 0,
+    anomalies: (j['anomalies'] as List?)?.map((e) => AccountingAnomaly.fromJson(e)).toList() ?? [],
+  );
+}

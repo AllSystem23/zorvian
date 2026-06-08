@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../shared/ds/ds.dart';
 
 final leaveTypesProvider = FutureProvider.autoDispose<List<dynamic>>((ref) async {
   final dio = ref.read(dioClientProvider);
@@ -36,7 +37,7 @@ class LeaveTypesPage extends ConsumerWidget {
                 itemCount: types.length,
                 itemBuilder: (_, i) {
                   final t = types[i] as Map<String, dynamic>;
-                  return Card(
+                  return ZCard(
                     child: ListTile(
                       leading: Icon(
                         t['requiresAttachment'] == true ? Icons.attachment : Icons.event_note,

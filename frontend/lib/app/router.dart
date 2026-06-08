@@ -54,6 +54,13 @@ import '../features/products/pages/product_list_page.dart';
 import '../features/products/pages/product_form_page.dart';
 import '../features/categories/pages/category_list_page.dart';
 import '../features/brands/pages/brand_list_page.dart';
+import '../features/cost_centers/pages/cost_center_list_page.dart';
+import '../features/cost_centers/pages/cost_center_form_page.dart';
+import '../features/budgets/pages/budget_list_page.dart';
+import '../features/budgets/pages/budget_form_page.dart';
+import '../features/budgets/pages/budget_vs_actual_page.dart';
+import '../features/credit_notes/pages/credit_note_list_page.dart';
+import '../features/credit_notes/pages/credit_note_form_page.dart';
 import '../features/suppliers/pages/supplier_list_page.dart';
 import '../features/suppliers/pages/supplier_form_page.dart';
 import '../features/inventory_movements/pages/inventory_movement_list_page.dart';
@@ -61,16 +68,24 @@ import '../features/credits/pages/credit_list_page.dart';
 import '../features/credits/pages/credit_detail_page.dart';
 import '../features/cash_registers/pages/cash_register_list_page.dart';
 import '../features/cash_registers/pages/cash_register_detail_page.dart';
+import '../features/cash_registers/pages/cash_register_arqueo_page.dart';
+import '../features/dashboard_v2/dashboard_v2_page.dart';
 import '../features/warranties/pages/warranty_list_page.dart';
 import '../features/warranties/pages/warranty_form_page.dart';
 import '../features/purchases/pages/purchase_list_page.dart';
 import '../features/purchases/pages/purchase_form_page.dart';
 import '../features/purchases/pages/purchase_detail_page.dart';
 import '../features/purchases/pages/inventory_adjustment_page.dart';
+import '../features/approval/pages/approval_flow_list_page.dart';
+import '../features/approval/pages/approval_flow_form_page.dart';
+import '../features/approval/pages/approval_pending_page.dart';
+import '../features/credits/pages/credit_refinancing_form_page.dart';
+import '../features/credits/pages/overdue_dashboard_page.dart';
 import '../features/bi/pages/executive_dashboard_page.dart' as bi;
 import '../features/bi/pages/financial_dashboard_page.dart';
 import '../features/bi/pages/commercial_dashboard_page.dart';
 import '../features/bi/pages/operational_dashboard_page.dart';
+import '../features/chat/pages/chat_page.dart';
 
 final _routeRoles = <String, List<String>>{
   '/dashboard': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
@@ -91,16 +106,25 @@ final _routeRoles = <String, List<String>>{
   '/products': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/categories': ['SuperAdmin', 'CompanyAdmin'],
   '/brands': ['SuperAdmin', 'CompanyAdmin'],
+  '/cost-centers': ['SuperAdmin', 'CompanyAdmin'],
+  '/budgets': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
+  '/budgets/vs-actual': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
+  '/credit-notes': ['SuperAdmin', 'CompanyAdmin', 'Supervisor'],
+  '/approval-flows': ['SuperAdmin', 'CompanyAdmin'],
+  '/approval-pending': ['SuperAdmin', 'CompanyAdmin', 'Supervisor'],
   '/suppliers': ['SuperAdmin', 'CompanyAdmin', 'Supervisor'],
   '/inventory-movements': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/credits': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
+  '/credits/overdue-dashboard': ['SuperAdmin', 'CompanyAdmin', 'Supervisor'],
   '/cash-registers': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/warranties': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/branches': ['SuperAdmin', 'CompanyAdmin', 'Supervisor', 'Rrhh', 'Employee'],
   '/bi/executive': ['SuperAdmin', 'CompanyAdmin'],
   '/bi/financial': ['SuperAdmin', 'CompanyAdmin'],
   '/bi/commercial': ['SuperAdmin', 'CompanyAdmin', 'Supervisor', 'Employee'],
+  '/dashboard-v2': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee', 'Accountant'],
   '/bi/operational': ['SuperAdmin', 'CompanyAdmin', 'Rrhh'],
+  '/chat': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
 };
 
 bool _hasAccess(String role, String location) {
@@ -165,6 +189,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/dashboard',
             name: 'dashboard',
             builder: (_, _) => const DashboardPage(),
+          ),
+          GoRoute(
+            path: '/dashboard-v2',
+            name: 'dashboard-v2',
+            builder: (_, _) => const DashboardV2Page(),
           ),
           GoRoute(
             path: '/executive-dashboard',
@@ -356,6 +385,51 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, _) => const BrandListPage(),
           ),
           GoRoute(
+            path: '/cost-centers',
+            name: 'cost-centers',
+            builder: (_, _) => const CostCenterListPage(),
+            routes: [
+              GoRoute(path: 'new', name: 'cost-center-new', builder: (_, _) => const CostCenterFormPage()),
+              GoRoute(path: ':costCenterId/edit', name: 'cost-center-edit', builder: (_, state) => CostCenterFormPage(costCenterId: state.pathParameters['costCenterId']!)),
+            ],
+          ),
+          GoRoute(
+            path: '/budgets',
+            name: 'budgets',
+            builder: (_, _) => const BudgetListPage(),
+            routes: [
+              GoRoute(path: 'new', name: 'budget-new', builder: (_, _) => const BudgetFormPage()),
+              GoRoute(path: ':budgetId/edit', name: 'budget-edit', builder: (_, state) => BudgetFormPage(budgetId: state.pathParameters['budgetId']!)),
+            ],
+          ),
+          GoRoute(
+            path: '/budgets/vs-actual',
+            name: 'budget-vs-actual',
+            builder: (_, _) => const BudgetVsActualPage(),
+          ),
+          GoRoute(
+            path: '/credit-notes',
+            name: 'credit-notes',
+            builder: (_, _) => const CreditNoteListPage(),
+            routes: [
+              GoRoute(path: 'new/:saleId', name: 'credit-note-new', builder: (_, state) => CreditNoteFormPage(saleId: state.pathParameters['saleId']!)),
+            ],
+          ),
+          GoRoute(
+            path: '/approval-flows',
+            name: 'approval-flows',
+            builder: (_, _) => const ApprovalFlowListPage(),
+            routes: [
+              GoRoute(path: 'new', name: 'approval-flow-new', builder: (_, _) => const ApprovalFlowFormPage()),
+              GoRoute(path: ':flowId/edit', name: 'approval-flow-edit', builder: (_, state) => ApprovalFlowFormPage(flowId: state.pathParameters['flowId']!)),
+            ],
+          ),
+          GoRoute(
+            path: '/approval-pending',
+            name: 'approval-pending',
+            builder: (_, _) => const ApprovalPendingPage(),
+          ),
+          GoRoute(
             path: '/suppliers',
             name: 'suppliers',
             builder: (_, _) => const SupplierListPage(),
@@ -375,14 +449,24 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, _) => const CreditListPage(),
             routes: [
               GoRoute(path: ':creditId', name: 'credit-detail', builder: (_, state) => CreditDetailPage(creditId: state.pathParameters['creditId']!)),
+              GoRoute(path: ':creditId/refinancing', name: 'credit-refinancing', builder: (_, state) => CreditRefinancingFormPage(creditId: state.pathParameters['creditId']!)),
             ],
+          ),
+          GoRoute(
+            path: '/credits/overdue-dashboard',
+            name: 'overdue-dashboard',
+            builder: (_, _) => const OverdueDashboardPage(),
           ),
           GoRoute(
             path: '/cash-registers',
             name: 'cash-registers',
             builder: (_, _) => const CashRegisterListPage(),
             routes: [
-              GoRoute(path: ':registerId', name: 'cash-register-detail', builder: (_, state) => CashRegisterDetailPage(registerId: state.pathParameters['registerId']!)),
+              GoRoute(path: ':registerId', name: 'cash-register-detail', builder: (_, state) => CashRegisterDetailPage(registerId: state.pathParameters['registerId']!),
+                routes: [
+                  GoRoute(path: 'arqueo', name: 'cash-register-arqueo', builder: (_, state) => CashRegisterArqueoPage(registerId: state.pathParameters['registerId']!)),
+                ],
+              ),
             ],
           ),
           GoRoute(
@@ -429,6 +513,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, _) => const OperationalDashboardPage(),
           ),
         ],
+      ),
+      GoRoute(
+        path: '/chat',
+        name: 'chat',
+        builder: (_, _) => const ChatPage(),
       ),
     ],
   );

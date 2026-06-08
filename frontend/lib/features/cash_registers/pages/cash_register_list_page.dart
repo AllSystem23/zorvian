@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
 import '../providers/cash_register_provider.dart';
 
@@ -38,21 +39,16 @@ final class _CashRegisterListPageState extends ConsumerState<CashRegisterListPag
   Future<void> _openRegister() async {
     final codeCtrl = TextEditingController();
     final balanceCtrl = TextEditingController();
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Abrir Caja'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: codeCtrl, decoration: const InputDecoration(labelText: 'Código', border: OutlineInputBorder())),
-            const SizedBox(height: 12),
-            TextField(controller: balanceCtrl, decoration: const InputDecoration(labelText: 'Saldo Inicial', border: OutlineInputBorder(), prefixText: '\$ '), keyboardType: TextInputType.number),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Abrir')),
+    final result = await ZModal.show<bool>(context,
+      title: 'Abrir Caja',
+      confirmText: 'Abrir',
+      cancelText: 'Cancelar',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ZTextField(controller: codeCtrl, label: 'Código'),
+          const SizedBox(height: 12),
+          ZTextField(controller: balanceCtrl, label: 'Saldo Inicial', keyboardType: TextInputType.number, prefix: const Text('\$ ')),
         ],
       ),
     );
@@ -65,9 +61,9 @@ final class _CashRegisterListPageState extends ConsumerState<CashRegisterListPag
         'branchId': '00000000-0000-0000-0000-000000000000',
       });
       await ref.read(cashRegisterProvider.notifier).load();
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Caja abierta')));
+      if (mounted) ZToast.success(context, 'Caja abierta');
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) ZToast.error(context, 'Error: $e');
     }
   }
 

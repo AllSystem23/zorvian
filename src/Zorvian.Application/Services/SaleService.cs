@@ -178,8 +178,8 @@ public sealed class SaleService
 
         if (client.CreditLimit.HasValue)
         {
-            var activeCredits = await _creditRepo.GetFilteredAsync(request.ClientId, "active", request.BranchId, 1, int.MaxValue);
-            activeCredits.AddRange(await _creditRepo.GetFilteredAsync(request.ClientId, "overdue", request.BranchId, 1, int.MaxValue));
+            var activeCredits = await _creditRepo.GetFilteredAsync(request.ClientId, "active", null, request.BranchId, 1, int.MaxValue);
+            activeCredits.AddRange(await _creditRepo.GetFilteredAsync(request.ClientId, "overdue", null, request.BranchId, 1, int.MaxValue));
             var currentExposure = activeCredits.Sum(c => c.Balance);
             if (currentExposure + financedAmount > client.CreditLimit.Value)
                 throw new InvalidOperationException(
@@ -325,8 +325,8 @@ public sealed class SaleService
         var page = filter.Page ?? 1;
         var pageSize = filter.PageSize ?? 20;
 
-        var items = await _saleRepo.GetFilteredAsync(filter.ClientId, filter.SaleType, filter.Status, filter.FromDate, filter.ToDate, Guid.Empty, page, pageSize);
-        var total = await _saleRepo.GetFilteredCountAsync(filter.ClientId, filter.SaleType, filter.Status, filter.FromDate, filter.ToDate, Guid.Empty);
+        var items = await _saleRepo.GetFilteredAsync(filter.ClientId, filter.SaleType, filter.Status, filter.FromDate, filter.ToDate, filter.Search, Guid.Empty, page, pageSize);
+        var total = await _saleRepo.GetFilteredCountAsync(filter.ClientId, filter.SaleType, filter.Status, filter.FromDate, filter.ToDate, filter.Search, Guid.Empty);
 
         return new PagedResult<SaleListResponse>(
             _mapper.Map<List<SaleListResponse>>(items),

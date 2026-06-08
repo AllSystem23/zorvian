@@ -6,6 +6,7 @@ import '../../../core/widgets/bi/bi_line_chart.dart';
 import '../../../core/widgets/bi/bi_bar_chart.dart';
 import '../../../core/widgets/bi/bi_gauge.dart';
 import '../providers/bi_provider.dart';
+import '../../../../shared/ds/ds.dart';
 
 class ExecutiveDashboardPage extends ConsumerWidget {
   const ExecutiveDashboardPage({super.key});
@@ -25,12 +26,9 @@ class ExecutiveDashboardPage extends ConsumerWidget {
           padding: const EdgeInsets.all(16),
           children: [
             if (executiveState.error case final err?)
-              Card(
-                color: Theme.of(context).colorScheme.errorContainer,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text('Error: $err', style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer)),
-                ),
+              ZCard(
+                padding: const EdgeInsets.all(16),
+                child: Text('Error: $err'),
               ),
             if (executiveState.loading)
               const Center(child: CircularProgressIndicator())
@@ -41,7 +39,7 @@ class ExecutiveDashboardPage extends ConsumerWidget {
             const SizedBox(height: 8),
             salesTrendAsync.when(
               loading: () => const SizedBox(height: 200, child: Center(child: CircularProgressIndicator())),
-              error: (e, _) => Card(child: Padding(padding: const EdgeInsets.all(16), child: Text('Error: $e'))),
+              error: (e, _) => ZCard(padding: const EdgeInsets.all(16), child: Text('Error: $e')),
               data: (months) => SizedBox(
                 height: 200,
                 child: BiLineChart(
@@ -59,7 +57,7 @@ class ExecutiveDashboardPage extends ConsumerWidget {
             const SizedBox(height: 8),
             arAgingAsync.when(
               loading: () => const SizedBox(height: 200, child: Center(child: CircularProgressIndicator())),
-              error: (e, _) => Card(child: Padding(padding: const EdgeInsets.all(16), child: Text('Error: $e'))),
+              error: (e, _) => ZCard(padding: const EdgeInsets.all(16), child: Text('Error: $e')),
               data: (aging) => SizedBox(
                 height: 200,
                 child: BiBarChart(
@@ -78,7 +76,7 @@ class ExecutiveDashboardPage extends ConsumerWidget {
             const SizedBox(height: 8),
             ratiosAsync.when(
               loading: () => const SizedBox(height: 200, child: Center(child: CircularProgressIndicator())),
-              error: (e, _) => Card(child: Padding(padding: const EdgeInsets.all(16), child: Text('Error: $e'))),
+              error: (e, _) => ZCard(padding: const EdgeInsets.all(16), child: Text('Error: $e')),
               data: (ratios) => Wrap(
                 spacing: 16, runSpacing: 16,
                 children: [

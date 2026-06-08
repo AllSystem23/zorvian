@@ -11,7 +11,6 @@ final class PurchaseListPage extends ConsumerStatefulWidget {
 
 final class _PurchaseListPageState extends ConsumerState<PurchaseListPage> {
   final _searchCtrl = TextEditingController();
-  String _searchQuery = '';
 
   @override
   void initState() {
@@ -19,14 +18,8 @@ final class _PurchaseListPageState extends ConsumerState<PurchaseListPage> {
     Future.microtask(() => ref.read(purchaseProvider.notifier).load());
   }
 
-  List<PurchaseItem> _filter(List<PurchaseItem> items) {
-    if (_searchQuery.isEmpty) return items;
-    final q = _searchQuery.toLowerCase();
-    return items.where((s) =>
-      s.supplierName.toLowerCase().contains(q) ||
-      s.purchaseNumber.toLowerCase().contains(q) ||
-      s.status.toLowerCase().contains(q)
-    ).toList();
+  void _onSearch(String v) {
+    ref.read(purchaseProvider.notifier).load(search: v.isNotEmpty ? v : null);
   }
 
   @override
@@ -39,7 +32,7 @@ final class _PurchaseListPageState extends ConsumerState<PurchaseListPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(purchaseProvider);
     final theme = Theme.of(context);
-    final filtered = _filter(state.items);
+    final items = state.items;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Compras')),
@@ -60,25 +53,25 @@ final class _PurchaseListPageState extends ConsumerState<PurchaseListPage> {
                         decoration: InputDecoration(
                           hintText: 'Buscar por proveedor, número o estado...',
                           prefixIcon: const Icon(Icons.search),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? IconButton(icon: const Icon(Icons.clear), onPressed: () { _searchCtrl.clear(); setState(() => _searchQuery = ''); })
+                          suffixIcon: _searchCtrl.text.isNotEmpty
+                              ? IconButton(icon: const Icon(Icons.clear), onPressed: () { _searchCtrl.clear(); _onSearch(''); })
                               : null,
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           contentPadding: const EdgeInsets.symmetric(vertical: 0),
                         ),
-                        onChanged: (v) => setState(() => _searchQuery = v),
+                        onChanged: _onSearch,
                       ),
                     ),
                     Expanded(
-                      child: filtered.isEmpty
-                          ? Center(child: Text(_searchQuery.isNotEmpty ? 'Sin resultados' : 'No hay compras'))
+                      child: items.isEmpty
+                          ? Center(child: Text(_searchCtrl.text.isNotEmpty ? 'Sin resultados' : 'No hay compras'))
                           : RefreshIndicator(
                               onRefresh: () => ref.read(purchaseProvider.notifier).load(),
                               child: ListView.separated(
-                                itemCount: filtered.length,
+                                itemCount: items.length,
                                 separatorBuilder: (_, _) => const Divider(height: 1),
                                 itemBuilder: (_, i) {
-                                  final s = filtered[i];
+                                  final s = items[i];
                                   final statusColor = switch (s.status) {
                                     'completed' => Colors.green,
                                     'cancelled' => Colors.red,

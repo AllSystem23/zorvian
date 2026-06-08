@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../shared/ds/ds.dart';
 import '../providers/permission_provider.dart';
 
 class PermissionFormPage extends ConsumerStatefulWidget {
@@ -253,9 +254,11 @@ class _PermissionFormPageState extends ConsumerState<PermissionFormPage> {
                       if (_uploading)
                         const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
                       else if (_uploadedUrl == null)
-                        TextButton(
+                        ZButton(
+                          text: 'Subir',
                           onPressed: _uploadFile,
-                          child: const Text('Subir'),
+                          type: ZButtonType.ghost,
+                          fullWidth: false,
                         )
                       else
                         const Icon(Icons.check_circle, color: Colors.green),
@@ -263,11 +266,10 @@ class _PermissionFormPageState extends ConsumerState<PermissionFormPage> {
                   ),
               ],
               const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _loading ? null : _submit,
-                child: _loading
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text('Solicitar permiso'),
+              ZButton(
+                text: 'Solicitar permiso',
+                onPressed: _submit,
+                isLoading: _loading,
               ),
             ],
           ),

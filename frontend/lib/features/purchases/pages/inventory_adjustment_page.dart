@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../products/providers/product_provider.dart';
 import '../../inventory_movements/providers/inventory_movement_provider.dart';
 import '../../../shared/printing/qr_code_dialog.dart';
+import '../../../shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
 
 final class _SelectedProduct {
@@ -108,29 +109,28 @@ final class _InventoryAdjustmentPageState extends ConsumerState<InventoryAdjustm
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Producto', style: TextStyle(fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _searchCtrl,
-                    decoration: InputDecoration(
-                      hintText: 'Buscar producto...',
-                      prefixIcon: const Icon(Icons.search),
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.qr_code_scanner, size: 20),
-                        tooltip: 'Escanear código',
-                        onPressed: () => showScannerDialog(context, onScan: _scanProduct),
-                      ),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
+          ZCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Producto', style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: _searchCtrl,
+                  decoration: InputDecoration(
+                    hintText: 'Buscar producto...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.qr_code_scanner, size: 20),
+                      tooltip: 'Escanear código',
+                      onPressed: () => showScannerDialog(context, onScan: _scanProduct),
                     ),
-                    onChanged: (v) => setState(() => _searchQuery = v),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
                   ),
+                  onChanged: (v) => setState(() => _searchQuery = v),
+                ),
                   if (_searchQuery.isNotEmpty && _product == null)
                     ...filtered.map((p) => ListTile(
                       dense: true,
@@ -169,59 +169,55 @@ final class _InventoryAdjustmentPageState extends ConsumerState<InventoryAdjustm
                           ),
                         ],
                       ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Tipo de Movimiento', style: TextStyle(fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    initialValue: _type,
-                    decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
-                    items: const [
-                      DropdownMenuItem(value: 'entry', child: Text('Entrada')),
-                      DropdownMenuItem(value: 'exit', child: Text('Salida')),
-                      DropdownMenuItem(value: 'adjustment_positive', child: Text('Ajuste (+)')),
-                      DropdownMenuItem(value: 'adjustment_negative', child: Text('Ajuste (-)')),
-                    ],
-                    onChanged: (v) => setState(() => _type = v!),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _qtyCtrl,
-                    decoration: const InputDecoration(labelText: 'Cantidad', border: OutlineInputBorder()),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _costCtrl,
-                    decoration: const InputDecoration(labelText: 'Costo unitario', border: OutlineInputBorder()),
-                    keyboardType: TextInputType.number,
                   ),
                 ],
               ),
             ),
+            const SizedBox(height: 12),
+            ZCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Tipo de Movimiento', style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  initialValue: _type,
+                  decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                  items: const [
+                    DropdownMenuItem(value: 'entry', child: Text('Entrada')),
+                    DropdownMenuItem(value: 'exit', child: Text('Salida')),
+                    DropdownMenuItem(value: 'adjustment_positive', child: Text('Ajuste (+)')),
+                    DropdownMenuItem(value: 'adjustment_negative', child: Text('Ajuste (-)')),
+                  ],
+                  onChanged: (v) => setState(() => _type = v!),
+                ),
+                const SizedBox(height: 12),
+                ZTextField(
+                  controller: _qtyCtrl,
+                  label: 'Cantidad',
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 12),
+                ZTextField(
+                  controller: _costCtrl,
+                  label: 'Costo unitario',
+                  keyboardType: TextInputType.number,
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 12),
-          TextField(
+          ZTextField(
             controller: _notesCtrl,
-            decoration: const InputDecoration(labelText: 'Notas', border: OutlineInputBorder()),
+            label: 'Notas',
             maxLines: 2,
           ),
           const SizedBox(height: 24),
-          FilledButton(
-            onPressed: _saving ? null : _save,
-            child: _saving
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Text('Registrar Movimiento'),
+          ZButton(
+            text: 'Registrar Movimiento',
+            onPressed: _save,
+            isLoading: _saving,
           ),
           const SizedBox(height: 40),
         ],

@@ -39,7 +39,11 @@ public sealed class WarrantyRepository : IWarrantyRepository
     {
         var query = _db.Set<Warranty>().AsQueryable();
         if (clientId.HasValue) query = query.Where(w => w.ClientId == clientId.Value);
-        if (!string.IsNullOrEmpty(status)) query = query.Where(w => w.Status.ToDbValue() == status);
+        if (!string.IsNullOrEmpty(status))
+        {
+            if (Enum.TryParse<WarrantyStatus>(status, ignoreCase: true, out var statusEnum))
+                query = query.Where(w => w.Status == statusEnum);
+        }
         if (branchId != Guid.Empty) query = query.Where(w => w.BranchId == branchId);
         
         return await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
@@ -49,7 +53,11 @@ public sealed class WarrantyRepository : IWarrantyRepository
     {
         var query = _db.Set<Warranty>().AsQueryable();
         if (clientId.HasValue) query = query.Where(w => w.ClientId == clientId.Value);
-        if (!string.IsNullOrEmpty(status)) query = query.Where(w => w.Status.ToDbValue() == status);
+        if (!string.IsNullOrEmpty(status))
+        {
+            if (Enum.TryParse<WarrantyStatus>(status, ignoreCase: true, out var statusEnum))
+                query = query.Where(w => w.Status == statusEnum);
+        }
         if (branchId != Guid.Empty) query = query.Where(w => w.BranchId == branchId);
         
         return await query.CountAsync();
@@ -72,7 +80,9 @@ public sealed class WarrantyRepository : IWarrantyRepository
 
     public async Task<int> GetCountByStatusAsync(string status)
     {
-        return await _db.Set<Warranty>().CountAsync(w => w.Status.ToDbValue() == status);
+        if (!Enum.TryParse<WarrantyStatus>(status, ignoreCase: true, out var statusEnum))
+            return 0;
+        return await _db.Set<Warranty>().CountAsync(w => w.Status == statusEnum);
     }
 
     public async Task<int> GetBreachedSlaCountAsync()

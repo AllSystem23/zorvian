@@ -11,7 +11,6 @@ final class SaleListPage extends ConsumerStatefulWidget {
 
 final class _SaleListPageState extends ConsumerState<SaleListPage> {
   final _searchCtrl = TextEditingController();
-  String _searchQuery = '';
 
   @override
   void initState() {
@@ -19,15 +18,8 @@ final class _SaleListPageState extends ConsumerState<SaleListPage> {
     Future.microtask(() => ref.read(saleProvider.notifier).load());
   }
 
-  List<SaleItem> _filter(List<SaleItem> items) {
-    if (_searchQuery.isEmpty) return items;
-    final q = _searchQuery.toLowerCase();
-    return items.where((s) =>
-      s.clientName.toLowerCase().contains(q) ||
-      s.invoiceNumber.toLowerCase().contains(q) ||
-      s.saleType.toLowerCase().contains(q) ||
-      s.status.toLowerCase().contains(q)
-    ).toList();
+  void _onSearch(String v) {
+    ref.read(saleProvider.notifier).load(search: v.isNotEmpty ? v : null);
   }
 
   @override
@@ -40,7 +32,7 @@ final class _SaleListPageState extends ConsumerState<SaleListPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(saleProvider);
     final theme = Theme.of(context);
-    final filtered = _filter(state.items);
+    final items = state.items;
     return Scaffold(
       appBar: AppBar(title: const Text('Ventas')),
       floatingActionButton: FloatingActionButton(
@@ -58,27 +50,27 @@ final class _SaleListPageState extends ConsumerState<SaleListPage> {
                       child: TextField(
                         controller: _searchCtrl,
                         decoration: InputDecoration(
-                          hintText: 'Buscar por cliente, factura, tipo o estado...',
+                          hintText: 'Buscar por cliente o factura...',
                           prefixIcon: const Icon(Icons.search),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? IconButton(icon: const Icon(Icons.clear), onPressed: () { _searchCtrl.clear(); setState(() => _searchQuery = ''); })
+                          suffixIcon: _searchCtrl.text.isNotEmpty
+                              ? IconButton(icon: const Icon(Icons.clear), onPressed: () { _searchCtrl.clear(); _onSearch(''); })
                               : null,
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           contentPadding: const EdgeInsets.symmetric(vertical: 0),
                         ),
-                        onChanged: (v) => setState(() => _searchQuery = v),
+                        onChanged: _onSearch,
                       ),
                     ),
                     Expanded(
-                      child: filtered.isEmpty
-                          ? Center(child: Text(_searchQuery.isNotEmpty ? 'Sin resultados' : 'No hay ventas'))
+                      child: items.isEmpty
+                          ? Center(child: Text(_searchCtrl.text.isNotEmpty ? 'Sin resultados' : 'No hay ventas'))
                           : RefreshIndicator(
                               onRefresh: () => ref.read(saleProvider.notifier).load(),
                               child: ListView.separated(
-                                itemCount: filtered.length,
+                                itemCount: items.length,
                                 separatorBuilder: (_, _) => const Divider(height: 1),
                                 itemBuilder: (_, i) {
-                                  final s = filtered[i];
+                                  final s = items[i];
                                   final statusColor = switch (s.status) {
                                     'completed' => Colors.green,
                                     'cancelled' => Colors.red,

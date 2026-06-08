@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/attendance_provider.dart';
+import '../../../shared/ds/ds.dart';
 
 class AttendanceHistoryPage extends ConsumerStatefulWidget {
   const AttendanceHistoryPage({super.key});
@@ -59,7 +60,7 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
                     ...summary.records.reversed.take(31).map((r) {
                       final statusColor = r.status == 'present' ? Colors.green : Colors.orange;
                       final statusText = r.status == 'present' ? 'A tiempo' : 'Tarde';
-                      return Card(
+                      return ZCard(
                         child: ListTile(
                           leading: Icon(r.checkInTime != null ? Icons.access_time : Icons.cancel, color: statusColor),
                           title: Text(r.date),
@@ -91,17 +92,15 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 22),
-            const SizedBox(height: 4),
-            Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
-            Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-          ],
-        ),
+    return ZCard(
+      padding: const EdgeInsets.all(10),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(height: 4),
+          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+          Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+        ],
       ),
     );
   }

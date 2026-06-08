@@ -10,7 +10,6 @@ final class InventoryMovementListPage extends ConsumerStatefulWidget {
 
 final class _InventoryMovementListPageState extends ConsumerState<InventoryMovementListPage> {
   final _searchCtrl = TextEditingController();
-  String _searchQuery = '';
 
   @override
   void initState() {
@@ -18,15 +17,8 @@ final class _InventoryMovementListPageState extends ConsumerState<InventoryMovem
     Future.microtask(() => ref.read(inventoryMovementProvider.notifier).load());
   }
 
-  List<InventoryMovementItem> _filter(List<InventoryMovementItem> items) {
-    if (_searchQuery.isEmpty) return items;
-    final q = _searchQuery.toLowerCase();
-    return items.where((m) =>
-      m.productName.toLowerCase().contains(q) ||
-      m.productCode.toLowerCase().contains(q) ||
-      m.type.toLowerCase().contains(q) ||
-      (m.reference?.toLowerCase().contains(q) ?? false)
-    ).toList();
+  void _onSearch(String v) {
+    ref.read(inventoryMovementProvider.notifier).load(search: v.isNotEmpty ? v : null);
   }
 
   @override
@@ -39,7 +31,7 @@ final class _InventoryMovementListPageState extends ConsumerState<InventoryMovem
   Widget build(BuildContext context) {
     final state = ref.watch(inventoryMovementProvider);
     final theme = Theme.of(context);
-    final filtered = _filter(state.items);
+    final items = state.items;
     return Scaffold(
       appBar: AppBar(title: const Text('Kardex - Movimientos')),
       body: state.loading
@@ -55,25 +47,25 @@ final class _InventoryMovementListPageState extends ConsumerState<InventoryMovem
                         decoration: InputDecoration(
                           hintText: 'Buscar por producto, código, tipo o referencia...',
                           prefixIcon: const Icon(Icons.search),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? IconButton(icon: const Icon(Icons.clear), onPressed: () { _searchCtrl.clear(); setState(() => _searchQuery = ''); })
+                          suffixIcon: _searchCtrl.text.isNotEmpty
+                              ? IconButton(icon: const Icon(Icons.clear), onPressed: () { _searchCtrl.clear(); _onSearch(''); })
                               : null,
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                           contentPadding: const EdgeInsets.symmetric(vertical: 0),
                         ),
-                        onChanged: (v) => setState(() => _searchQuery = v),
+                        onChanged: _onSearch,
                       ),
                     ),
                     Expanded(
-                      child: filtered.isEmpty
-                          ? Center(child: Text(_searchQuery.isNotEmpty ? 'Sin resultados' : 'No hay movimientos'))
+                      child: items.isEmpty
+                          ? Center(child: Text(_searchCtrl.text.isNotEmpty ? 'Sin resultados' : 'No hay movimientos'))
                           : RefreshIndicator(
                               onRefresh: () => ref.read(inventoryMovementProvider.notifier).load(),
                               child: ListView.separated(
-                                itemCount: filtered.length,
+                                itemCount: items.length,
                                 separatorBuilder: (_, _) => const Divider(height: 1),
                                 itemBuilder: (_, i) {
-                                  final m = filtered[i];
+                                  final m = items[i];
                                   final isIn = m.type == 'in';
                                   final color = isIn ? Colors.green : Colors.red;
                                   return ListTile(
