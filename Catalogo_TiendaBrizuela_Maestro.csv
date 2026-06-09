@@ -1,0 +1,72 @@
+Code,Name,Nature,Level,Type,Module,IsAuto
+1.00.00.000.0000,ACTIVOS,D,1,Balance,General,False
+1.01.00.000.0000,ACTIVOS CORRIENTES,D,2,Balance,General,False
+1.01.01.000.0000,EFECTIVO Y EQUIVALENTES,D,3,Balance,Bancos,False
+1.01.01.001.0000,Caja General,D,4,Balance,Ventas,True
+1.01.01.002.0000,Caja Chica,D,4,Balance,Tesoreria,False
+1.01.01.003.0000,BANCO LAFISE BANCENTRO,D,4,Balance,Bancos,False
+1.01.01.003.0001,LAFISE - C$ Corriente,D,5,Balance,Bancos,True
+1.01.01.003.0002,LAFISE - US$ Corriente,D,5,Balance,Bancos,True
+1.01.01.004.0000,BANCO BANPRO,D,4,Balance,Bancos,False
+1.01.01.004.0001,BANPRO - C$ Corriente,D,5,Balance,Bancos,True
+1.01.01.005.0000,BANCO BAC CREDOMATIC,D,4,Balance,Bancos,False
+1.01.01.005.0001,BAC - C$ Corriente,D,5,Balance,Bancos,True
+1.01.02.000.0000,CUENTAS POR COBRAR,D,3,Balance,Cobranza,False
+1.01.02.001.0000,Clientes Locales Corrientes,D,4,Balance,Ventas,True
+1.01.02.002.0000,Clientes en Mora,D,4,Balance,Cobranza,True
+1.01.02.003.0000,Intereses por Cobrar,D,4,Balance,Cobranza,True
+1.01.02.004.0000,Cuentas Intercompañia (Activo),D,4,Balance,Consolidacion,True
+1.01.03.000.0000,INVENTARIOS,D,3,Balance,Inventarios,False
+1.01.03.001.0000,Inventario Electrodomesticos,D,4,Balance,Inventarios,True
+1.01.03.002.0000,Inventario Muebles,D,4,Balance,Inventarios,True
+1.01.03.003.0000,Inventario Tecnologia,D,4,Balance,Inventarios,True
+1.01.03.004.0000,Inventario Repuestos Garantia,D,4,Balance,Garantias,True
+1.01.03.005.0000,Mercancia en Transito,D,4,Balance,Compras,True
+1.01.04.000.0000,IMPUESTOS Y ANTICIPOS,D,3,Balance,Compras,False
+1.01.04.001.0000,IVA Credito Fiscal (15%),D,4,Balance,Compras,True
+1.01.04.002.0000,Anticipo IR Ventas (Retenciones),D,4,Balance,Ventas,True
+2.00.00.000.0000,PASIVOS,A,1,Balance,General,False
+2.01.00.000.0000,PASIVOS CORRIENTES,A,2,Balance,General,False
+2.01.01.000.0000,PROVEEDORES Y CTAS POR PAGAR,A,3,Balance,Compras,False
+2.01.01.001.0000,Proveedores Nacionales,A,4,Balance,Compras,True
+2.01.02.000.0000,CUENTAS INTERCOMPAÑIA (PASIVO),A,3,Balance,Consolidacion,True
+2.01.03.000.0000,OBLIGACIONES FISCALES,A,3,Balance,Impuestos,False
+2.01.03.001.0000,IVA Debito Fiscal (15%),A,4,Balance,Ventas,True
+2.01.03.002.0000,IR Retenido por Pagar (2%),A,4,Balance,Compras,True
+2.01.03.003.0000,INSS Patronal por Pagar,A,4,Balance,Nomina,True
+2.01.03.004.0000,INSS Laboral por Pagar (7%),A,4,Balance,Nomina,True
+2.01.03.005.0000,INATEC por Pagar (2%),A,4,Balance,Nomina,True
+2.01.04.000.0000,PROVISIONES LABORALES,A,3,Balance,Nomina,False
+2.01.04.001.0000,Aguinaldo por Pagar,A,4,Balance,Nomina,True
+2.01.04.002.0000,Vacaciones por Pagar,A,4,Balance,Nomina,True
+3.00.00.000.0000,PATRIMONIO,A,1,Balance,General,False
+3.01.01.000.0000,Capital Social,A,4,Balance,Legal,False
+3.01.02.000.0000,Utilidades Acumuladas,A,4,Balance,Contabilidad,False
+3.01.03.000.0000,Resultado del Ejercicio,A,4,Balance,Contabilidad,True
+4.00.00.000.0000,INGRESOS,A,1,EstadoResultados,General,False
+4.01.01.000.0000,VENTAS DE MERCANCIA,A,3,EstadoResultados,Ventas,False
+4.01.01.001.0000,Ventas Electrodomesticos,A,4,EstadoResultados,Ventas,True
+4.01.01.002.0000,Ventas Muebles,A,4,EstadoResultados,Ventas,True
+4.01.01.003.0000,Ventas Tecnologia,A,4,EstadoResultados,Ventas,True
+4.01.02.000.0000,INGRESOS FINANCIEROS,A,3,EstadoResultados,Cobranza,True
+4.01.02.001.0000,Intereses por Financiamiento,A,4,EstadoResultados,Cobranza,True
+4.01.02.002.0000,Recargos por Mora,A,4,EstadoResultados,Cobranza,True
+5.00.00.000.0000,COSTOS DE VENTAS,D,1,EstadoResultados,General,False
+5.01.01.000.0000,COSTO DE MERCANCIA VENDIDA,D,3,EstadoResultados,Inventarios,False
+5.01.01.001.0000,Costo Electrodomesticos,D,4,EstadoResultados,Inventarios,True
+5.01.01.002.0000,Costo Muebles,D,4,EstadoResultados,Inventarios,True
+5.01.01.003.0000,Costo Tecnologia,D,4,EstadoResultados,Inventarios,True
+5.01.01.004.0000,Costo Repuestos (Garantia),D,4,EstadoResultados,Garantias,True
+6.00.00.000.0000,GASTOS OPERATIVOS,D,1,EstadoResultados,General,False
+6.01.01.000.0000,GASTOS DE ADMINISTRACION,D,3,EstadoResultados,General,False
+6.01.01.001.0000,Sueldos y Salarios Admin,D,4,EstadoResultados,Nomina,True
+6.01.01.002.0000,Gasto INSS Patronal,D,4,EstadoResultados,Nomina,True
+6.01.01.003.0000,Gasto INATEC,D,4,EstadoResultados,Nomina,True
+6.01.02.000.0000,GASTOS DE VENTAS,D,3,EstadoResultados,Ventas,False
+6.01.02.001.0000,Comisiones sobre Ventas,D,4,EstadoResultados,Ventas,True
+6.01.02.002.0000,Publicidad y Propaganda,D,4,EstadoResultados,Ventas,True
+6.01.03.000.0000,GASTOS DE COBRANZA,D,3,EstadoResultados,Cobranza,False
+6.01.04.000.0000,GASTOS DE GARANTIA,D,3,EstadoResultados,Garantias,True
+8.00.00.000.0000,CUENTAS DE ORDEN,D,1,Orden,General,False
+8.01.01.000.0000,Garantias Vigentes de Clientes,D,4,Orden,Garantias,True
+8.01.02.000.0000,Cheques Emitidos Pend. Cobro,D,4,Orden,Bancos,True

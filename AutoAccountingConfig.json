@@ -1,0 +1,50 @@
+{
+  "AccountingRules": {
+    "Nomina": {
+      "Rules": [
+        {
+          "Condition": "EmployeeCount < 50",
+          "TasaInssPatronal": 0.215,
+          "TasaInatec": 0.02,
+          "Accounts": {
+            "Debit": "6.01.01.002.0000",
+            "Credit": "2.01.03.003.0000"
+          }
+        },
+        {
+          "Condition": "EmployeeCount >= 50",
+          "TasaInssPatronal": 0.225,
+          "TasaInatec": 0.02,
+          "Accounts": {
+            "Debit": "6.01.01.002.0000",
+            "Credit": "2.01.03.003.0000"
+          }
+        }
+      ]
+    },
+    "Ventas": {
+      "Mappings": [
+        { "Category": "Electrodomesticos", "Income": "4.01.01.001.0000", "Cost": "5.01.01.001.0000", "Inventory": "1.01.03.001.0000" },
+        { "Category": "Muebles", "Income": "4.01.01.002.0000", "Cost": "5.01.01.002.0000", "Inventory": "1.01.03.002.0000" },
+        { "Category": "Tecnologia", "Income": "4.01.01.003.0000", "Cost": "5.01.01.003.0000", "Inventory": "1.01.03.003.0000" }
+      ],
+      "Taxes": {
+        "IVA": { "Rate": 0.15, "Account": "2.01.03.001.0000" },
+        "RetencionIR": { "Rate": 0.02, "Account": "1.01.04.002.0000" }
+      }
+    },
+    "Bancos": {
+      "Integrations": [
+        { "Bank": "LAFISE", "Currency": "NIO", "Account": "1.01.01.003.0001" },
+        { "Bank": "LAFISE", "Currency": "USD", "Account": "1.01.01.003.0002" },
+        { "Bank": "BANPRO", "Currency": "NIO", "Account": "1.01.01.004.0001" },
+        { "Bank": "BAC", "Currency": "NIO", "Account": "1.01.01.005.0001" }
+      ]
+    },
+    "Intercompany": {
+      "AutoMirror": true,
+      "AssetAccount": "1.01.02.004.0000",
+      "LiabilityAccount": "2.01.02.000.0000"
+    }
+  }
+}
