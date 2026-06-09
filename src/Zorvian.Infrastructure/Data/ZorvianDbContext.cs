@@ -52,6 +52,7 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<BonusRecord> BonusRecords => Set<BonusRecord>();
     public DbSet<ApiKey> ApiKeys => Set<ApiKey>();
     public DbSet<WebhookSubscription> WebhookSubscriptions => Set<WebhookSubscription>();
+    public DbSet<WebhookDeliveryLog> WebhookDeliveryLogs => Set<WebhookDeliveryLog>();
     public DbSet<PolicyDocument> PolicyDocuments => Set<PolicyDocument>();
     public DbSet<PolicyChunk> PolicyChunks => Set<PolicyChunk>();
     public DbSet<Objective> Objectives => Set<Objective>();
@@ -137,6 +138,15 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<AssetDisposal> AssetDisposals => Set<AssetDisposal>();
     public DbSet<Location> Locations => Set<Location>();
 
+    // Multimoneda
+    public DbSet<ExchangeRate> ExchangeRates => Set<ExchangeRate>();
+
+    // Constructor de Reportes
+    public DbSet<CustomReport> CustomReports => Set<CustomReport>();
+
+    // Offline-First Sync
+    public DbSet<SyncJournal> SyncJournals => Set<SyncJournal>();
+
     // New Module: Contabilidad
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<AccountingEntry> AccountingEntries => Set<AccountingEntry>();
@@ -147,6 +157,14 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<TaxCategory> TaxCategories => Set<TaxCategory>();
     public DbSet<CostCenter> CostCenters => Set<CostCenter>();
     public DbSet<Budget> Budgets => Set<Budget>();
+    
+    // New Module: Tesorería
+    public DbSet<Bank> Banks => Set<Bank>();
+    public DbSet<BankAccount> BankAccounts => Set<BankAccount>();
+    public DbSet<Checkbook> Checkbooks => Set<Checkbook>();
+    public DbSet<Check> Checks => Set<Check>();
+    public DbSet<CheckAuditTrail> CheckAuditTrails => Set<CheckAuditTrail>();
+    public DbSet<CheckPrintTemplate> CheckPrintTemplates => Set<CheckPrintTemplate>();
     
     // New Module: Nómina Avanzada
     public DbSet<SickLeaveRecord> SickLeaveRecords => Set<SickLeaveRecord>();
@@ -246,6 +264,26 @@ public sealed class ZorvianDbContext : DbContext
             e.Property(c => c.Currency).HasMaxLength(3);
             e.Property(c => c.Timezone).HasMaxLength(50);
             e.HasQueryFilter(c => (c.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !c.IsDeleted);
+        });
+
+        builder.Entity<ExchangeRate>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.FromCurrency).HasMaxLength(3).IsRequired();
+            e.Property(x => x.ToCurrency).HasMaxLength(3).IsRequired();
+            e.Property(x => x.Rate).HasColumnType("decimal(18,6)");
+            e.HasIndex(x => new { x.FromCurrency, x.ToCurrency, x.EffectiveDate });
+            e.HasQueryFilter(x => x.TenantId == _tenantContext.TenantId.ToString() && !x.IsDeleted);
+        });
+
+        builder.Entity<CustomReport>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(255).IsRequired();
+            e.Property(x => x.Description).HasMaxLength(1000);
+            e.Property(x => x.Module).HasMaxLength(50).IsRequired();
+            e.HasIndex(x => new { x.Module, x.CompanyId });
+            e.HasQueryFilter(x => x.TenantId == _tenantContext.TenantId.ToString() && !x.IsDeleted);
         });
 
         builder.Entity<User>(e =>
@@ -646,6 +684,16 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(w => w.TenantId == _tenantContext.TenantId.ToString() && !w.IsDeleted);
         });
 
+        builder.Entity<WebhookDeliveryLog>(e =>
+        {
+            e.HasKey(w => w.Id);
+            e.Property(w => w.EventType).HasMaxLength(100).IsRequired();
+            e.Property(w => w.TargetUrl).HasMaxLength(500).IsRequired();
+            e.Property(w => w.ErrorMessage).HasMaxLength(1000);
+            e.Property(w => w.PayloadJson);
+            e.HasQueryFilter(w => w.TenantId == _tenantContext.TenantId.ToString() && !w.IsDeleted);
+        });
+
         builder.Entity<PolicyDocument>(e =>
         {
             e.HasKey(p => p.Id);
@@ -721,6 +769,8 @@ public sealed class ZorvianDbContext : DbContext
             e.Property(q => q.Tax).HasColumnType("decimal(18,2)");
             e.Property(q => q.Discount).HasColumnType("decimal(18,2)");
             e.Property(q => q.Total).HasColumnType("decimal(18,2)");
+            e.Property(q => q.CurrencyCode).HasMaxLength(3);
+            e.Property(q => q.ExchangeRateToReporting).HasColumnType("decimal(18,6)");
             e.HasOne(q => q.Client)
                 .WithMany(c => c.Quotes)
                 .HasForeignKey(q => q.ClientId)
@@ -763,6 +813,8 @@ public sealed class ZorvianDbContext : DbContext
             e.Property(s => s.Total).HasColumnType("decimal(18,2)");
             e.Property(s => s.PaidAmount).HasColumnType("decimal(18,2)");
             e.Property(s => s.Balance).HasColumnType("decimal(18,2)");
+            e.Property(s => s.CurrencyCode).HasMaxLength(3);
+            e.Property(s => s.ExchangeRateToReporting).HasColumnType("decimal(18,6)");
             e.HasOne(s => s.Client)
                 .WithMany(c => c.Sales)
                 .HasForeignKey(s => s.ClientId)
@@ -935,6 +987,8 @@ public sealed class ZorvianDbContext : DbContext
             e.Property(c => c.InterestAmount).HasColumnType("decimal(18,2)");
             e.Property(c => c.Status).HasMaxLength(20).IsRequired();
             e.Property(c => c.Notes).HasMaxLength(500);
+            e.Property(c => c.CurrencyCode).HasMaxLength(3);
+            e.Property(c => c.ExchangeRateToReporting).HasColumnType("decimal(18,6)");
             e.HasOne(c => c.Client)
                 .WithMany(cl => cl.Credits)
                 .HasForeignKey(c => c.ClientId)
@@ -1167,6 +1221,8 @@ public sealed class ZorvianDbContext : DbContext
             e.Property(en => en.Status).HasMaxLength(20).IsRequired();
             e.Property(en => en.TotalDebit).HasColumnType("decimal(18,2)");
             e.Property(en => en.TotalCredit).HasColumnType("decimal(18,2)");
+            e.Property(en => en.CurrencyCode).HasMaxLength(3);
+            e.Property(en => en.ExchangeRateToReporting).HasColumnType("decimal(18,6)");
             e.HasOne(en => en.AccountingPeriod)
                 .WithMany(p => p.Entries)
                 .HasForeignKey(en => en.AccountingPeriodId)
@@ -1250,6 +1306,52 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(b => b.TenantId == _tenantContext.TenantId.ToString() && !b.IsDeleted);
         });
 
+        // ---- New Module: Tesorería ----
+        builder.Entity<Bank>(e =>
+        {
+            e.HasKey(b => b.Id);
+            e.Property(b => b.Name).HasMaxLength(100).IsRequired();
+            e.HasQueryFilter(b => b.TenantId == _tenantContext.TenantId.ToString() && !b.IsDeleted);
+        });
+
+        builder.Entity<BankAccount>(e =>
+        {
+            e.HasKey(ba => ba.Id);
+            e.Property(ba => ba.AccountNumber).HasMaxLength(50).IsRequired();
+            e.HasOne(ba => ba.Bank).WithMany().HasForeignKey(ba => ba.BankId);
+            e.HasQueryFilter(ba => ba.TenantId == _tenantContext.TenantId.ToString() && !ba.IsDeleted);
+        });
+
+        builder.Entity<Checkbook>(e =>
+        {
+            e.HasKey(cb => cb.Id);
+            e.Property(cb => cb.Series).HasMaxLength(20).IsRequired();
+            e.HasOne(cb => cb.BankAccount).WithMany().HasForeignKey(cb => cb.BankAccountId);
+            e.HasQueryFilter(cb => cb.TenantId == _tenantContext.TenantId.ToString() && !cb.IsDeleted);
+        });
+
+        builder.Entity<Check>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.Property(c => c.Beneficiary).HasMaxLength(200).IsRequired();
+            e.HasOne(c => c.BankAccount).WithMany().HasForeignKey(c => c.BankAccountId);
+            e.HasQueryFilter(c => c.TenantId == _tenantContext.TenantId.ToString() && !c.IsDeleted);
+        });
+
+        builder.Entity<CheckAuditTrail>(e =>
+        {
+            e.HasKey(cat => cat.Id);
+            e.HasOne(cat => cat.Check).WithMany().HasForeignKey(cat => cat.CheckId);
+            e.HasQueryFilter(cat => cat.TenantId == _tenantContext.TenantId.ToString() && !cat.IsDeleted);
+        });
+
+        builder.Entity<CheckPrintTemplate>(e =>
+        {
+            e.HasKey(cpt => cpt.Id);
+            e.HasOne(cpt => cpt.Bank).WithMany().HasForeignKey(cpt => cpt.BankId);
+            e.HasQueryFilter(cpt => cpt.TenantId == _tenantContext.TenantId.ToString() && !cpt.IsDeleted);
+        });
+
         builder.Entity<ApprovalFlowConfig>(e =>
         {
             e.HasKey(a => a.Id);
@@ -1314,6 +1416,8 @@ public sealed class ZorvianDbContext : DbContext
             e.Property(p => p.Balance).HasColumnType("decimal(18,2)");
             e.Property(p => p.WithholdingRate).HasColumnType("decimal(5,2)");
             e.Property(p => p.WithholdingAmount).HasColumnType("decimal(18,2)");
+            e.Property(p => p.CurrencyCode).HasMaxLength(3);
+            e.Property(p => p.ExchangeRateToReporting).HasColumnType("decimal(18,6)");
             e.HasOne(p => p.Supplier)
                 .WithMany()
                 .HasForeignKey(p => p.SupplierId)

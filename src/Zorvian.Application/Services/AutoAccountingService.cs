@@ -91,6 +91,21 @@ public class AutoAccountingService : IAutoAccountingService
         return account?.Id ?? throw new InvalidOperationException($"Account not found for code: {code}");
     }
 
+    private decimal EvaluateFormula(string? formula, object context)
+    {
+        if (string.IsNullOrEmpty(formula)) return 0;
+        var properties = context.GetType().GetProperties();
+        foreach (var prop in properties)
+        {
+            if (formula.Equals(prop.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                var value = prop.GetValue(context);
+                return value is decimal d ? d : 0m;
+            }
+        }
+        return 0;
+    }
+
     public async Task<Guid> GenerateSaleEntryAsync(Guid saleId, List<SaleDetail> details, decimal discount, decimal paidAmount, string saleType, Guid? costCenterId = null)
     {
         var periodId = await GetPeriodIdAsync();
@@ -110,9 +125,7 @@ public class AutoAccountingService : IAutoAccountingService
         var totalTax = groupedDetails.Sum(g => g.Tax);
         var total = (totalSubtotal - totalDiscount) + totalTax;
 
-        var arAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.AccountsReceivable);
-        var cashAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.Cash);
-
+        var context = new { Total = total, Subtotal = totalSubtotal, Tax = totalTax, Discount = totalDiscount, PaidAmount = paidAmount };
         var entryDetails = new List<AccountingEntryDetail>();
 
         AccountingEntryDetail MakeDetail(Guid accountId, decimal debit, decimal credit, string desc)
@@ -120,25 +133,42 @@ public class AutoAccountingService : IAutoAccountingService
             return new() { AccountId = accountId, DebitAmount = debit, CreditAmount = credit, Description = desc, CompanyId = companyId, CostCenterId = costCenterId };
         }
 
-        if (saleType == "cash")
+        var rules = await _ruleRepo.GetByEventTypeAsync(TransactionTypes.Sale, companyId);
+        if (rules != null && rules.Any())
         {
-            entryDetails.Add(MakeDetail(cashAccountId, total, 0, "Venta al contado"));
+            foreach (var rule in rules.OrderBy(r => r.SortOrder))
+            {
+                var amount = EvaluateFormula(rule.Formula, context);
+                if (amount <= 0) continue;
+
+                var accountId = await GetAccountIdAsync(TransactionTypes.Sale, rule.AccountRole);
+                var isDebit = rule.LineType.Equals("Debit", StringComparison.OrdinalIgnoreCase);
+                
+                entryDetails.Add(MakeDetail(accountId, isDebit ? amount : 0, isDebit ? 0 : amount, $"Sale {rule.AccountRole}"));
+            }
         }
         else
         {
-            entryDetails.Add(MakeDetail(arAccountId, total, 0, "Venta al crédito"));
-        }
+            // Legacy/Fallback Logic
+            var arAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.AccountsReceivable);
+            var cashAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.Cash);
 
-        foreach (var group in groupedDetails)
-        {
-            var salesAccountCode = group.TaxCategory?.SalesAccountCode ?? "4.1.01";
-            var vatAccountCode = group.TaxCategory?.VatAccountCode ?? "2.1.02";
+            if (saleType == "cash")
+                entryDetails.Add(MakeDetail(cashAccountId, total, 0, "Venta al contado"));
+            else
+                entryDetails.Add(MakeDetail(arAccountId, total, 0, "Venta al crédito"));
 
-            var salesAccountId = await GetAccountIdByCodeAsync(salesAccountCode);
-            var vatAccountId = await GetAccountIdByCodeAsync(vatAccountCode);
+            foreach (var group in groupedDetails)
+            {
+                var salesAccountCode = group.TaxCategory?.SalesAccountCode ?? "4.1.01";
+                var vatAccountCode = group.TaxCategory?.VatAccountCode ?? "2.1.02";
 
-            entryDetails.Add(MakeDetail(salesAccountId, 0, group.Subtotal - group.Discount, $"Ventas {group.TaxCategory?.Name}"));
-            entryDetails.Add(MakeDetail(vatAccountId, 0, group.Tax, $"IVA {group.TaxCategory?.Name}"));
+                var salesAccountId = await GetAccountIdByCodeAsync(salesAccountCode);
+                var vatAccountId = await GetAccountIdByCodeAsync(vatAccountCode);
+
+                entryDetails.Add(MakeDetail(salesAccountId, 0, group.Subtotal - group.Discount, $"Ventas {group.TaxCategory?.Name}"));
+                entryDetails.Add(MakeDetail(vatAccountId, 0, group.Tax, $"IVA {group.TaxCategory?.Name}"));
+            }
         }
 
         var entry = new AccountingEntry
@@ -166,8 +196,36 @@ public class AutoAccountingService : IAutoAccountingService
     public async Task<Guid> GenerateCostOfSaleEntryAsync(Guid saleId, decimal totalCost, Guid? costCenterId = null)
     {
         var periodId = await GetPeriodIdAsync();
-        var costAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.CostOfSales);
-        var invAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.Inventory);
+        var companyId = CompanyId;
+
+        var context = new { TotalCost = totalCost };
+        var entryDetails = new List<AccountingEntryDetail>();
+
+        AccountingEntryDetail MakeDetail(Guid accountId, decimal debit, decimal credit, string desc)
+        {
+            return new() { AccountId = accountId, DebitAmount = debit, CreditAmount = credit, Description = desc, CompanyId = companyId, CostCenterId = costCenterId };
+        }
+
+        var rules = await _ruleRepo.GetByEventTypeAsync(TransactionTypes.CostOfSale, companyId);
+        if (rules != null && rules.Any())
+        {
+            foreach (var rule in rules.OrderBy(r => r.SortOrder))
+            {
+                var amount = EvaluateFormula(rule.Formula, context);
+                if (amount <= 0) continue;
+
+                var accountId = await GetAccountIdAsync(TransactionTypes.Sale, rule.AccountRole);
+                var isDebit = rule.LineType.Equals("Debit", StringComparison.OrdinalIgnoreCase);
+                entryDetails.Add(MakeDetail(accountId, isDebit ? amount : 0, isDebit ? 0 : amount, $"CostOfSale {rule.AccountRole}"));
+            }
+        }
+        else
+        {
+            var costAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.CostOfSales);
+            var invAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.Inventory);
+            entryDetails.Add(MakeDetail(costAccountId, totalCost, 0, "Costo de venta"));
+            entryDetails.Add(MakeDetail(invAccountId, 0, totalCost, "Salida de inventario"));
+        }
 
         var entry = new AccountingEntry
         {
@@ -178,16 +236,12 @@ public class AutoAccountingService : IAutoAccountingService
             ReferenceId = saleId,
             Status = "posted",
             AccountingPeriodId = periodId,
-            CompanyId = CompanyId,
+            CompanyId = companyId,
             CostCenterId = costCenterId,
-            TotalDebit = totalCost,
-            TotalCredit = totalCost,
+            TotalDebit = entryDetails.Sum(d => d.DebitAmount),
+            TotalCredit = entryDetails.Sum(d => d.CreditAmount),
             PostedAt = DateTime.UtcNow,
-            Details =
-            [
-                new() { AccountId = costAccountId, DebitAmount = totalCost, CreditAmount = 0, Description = "Costo de venta", CompanyId = CompanyId, CostCenterId = costCenterId },
-                new() { AccountId = invAccountId, DebitAmount = 0, CreditAmount = totalCost, Description = "Salida de inventario", CompanyId = CompanyId, CostCenterId = costCenterId },
-            ],
+            Details = entryDetails,
         };
 
         await _entryRepo.AddAsync(entry);
@@ -208,27 +262,46 @@ public class AutoAccountingService : IAutoAccountingService
                 Tax = g.Sum(d => d.Subtotal * (g.Key?.Rate ?? 0))
             }).ToList();
 
-        var apAccountId = await GetAccountIdAsync(TransactionTypes.Purchase, AccountRoles.AccountsPayable);
+        var totalSubtotal = groupedDetails.Sum(g => g.Subtotal);
+        var totalTax = groupedDetails.Sum(g => g.Tax);
+
+        var context = new { Total = total, Subtotal = totalSubtotal, Tax = totalTax, Discount = discount };
+        var entryDetails = new List<AccountingEntryDetail>();
 
         AccountingEntryDetail MakeDetail(Guid accountId, decimal debit, decimal credit, string desc)
         {
             return new() { AccountId = accountId, DebitAmount = debit, CreditAmount = credit, Description = desc, CompanyId = companyId, CostCenterId = costCenterId };
         }
 
-        var entryDetails = new List<AccountingEntryDetail>();
-
-        entryDetails.Add(MakeDetail(apAccountId, 0, total, "Compra a proveedor"));
-
-        foreach (var group in groupedDetails)
+        var rules = await _ruleRepo.GetByEventTypeAsync(TransactionTypes.Purchase, companyId);
+        if (rules != null && rules.Any())
         {
-            var invAccountCode = group.TaxCategory?.SalesAccountCode ?? "1.1.04";
-            var vatAccountCode = group.TaxCategory?.VatAccountCode ?? "1.1.05";
+            foreach (var rule in rules.OrderBy(r => r.SortOrder))
+            {
+                var amount = EvaluateFormula(rule.Formula, context);
+                if (amount <= 0) continue;
 
-            var invAccountId = await GetAccountIdByCodeAsync(invAccountCode);
-            var vatAccountId = await GetAccountIdByCodeAsync(vatAccountCode);
+                var accountId = await GetAccountIdAsync(TransactionTypes.Purchase, rule.AccountRole);
+                var isDebit = rule.LineType.Equals("Debit", StringComparison.OrdinalIgnoreCase);
+                entryDetails.Add(MakeDetail(accountId, isDebit ? amount : 0, isDebit ? 0 : amount, $"Purchase {rule.AccountRole}"));
+            }
+        }
+        else
+        {
+            var apAccountId = await GetAccountIdAsync(TransactionTypes.Purchase, AccountRoles.AccountsPayable);
+            entryDetails.Add(MakeDetail(apAccountId, 0, total, "Compra a proveedor"));
 
-            entryDetails.Add(MakeDetail(invAccountId, group.Subtotal, 0, $"Inventario {group.TaxCategory?.Name}"));
-            entryDetails.Add(MakeDetail(vatAccountId, group.Tax, 0, $"IVA Crédito {group.TaxCategory?.Name}"));
+            foreach (var group in groupedDetails)
+            {
+                var invAccountCode = group.TaxCategory?.SalesAccountCode ?? "1.1.04";
+                var vatAccountCode = group.TaxCategory?.VatAccountCode ?? "1.1.05";
+
+                var invAccountId = await GetAccountIdByCodeAsync(invAccountCode);
+                var vatAccountId = await GetAccountIdByCodeAsync(vatAccountCode);
+
+                entryDetails.Add(MakeDetail(invAccountId, group.Subtotal, 0, $"Inventario {group.TaxCategory?.Name}"));
+                entryDetails.Add(MakeDetail(vatAccountId, group.Tax, 0, $"IVA Crédito {group.TaxCategory?.Name}"));
+            }
         }
 
         var entry = new AccountingEntry
@@ -258,9 +331,6 @@ public class AutoAccountingService : IAutoAccountingService
         var periodId = await GetPeriodIdAsync();
         var companyId = CompanyId;
 
-        var apAccountId = await GetAccountIdAsync(TransactionTypes.Purchase, AccountRoles.AccountsPayable);
-        var invAccountId = await GetAccountIdAsync(TransactionTypes.Purchase, AccountRoles.Inventory);
-
         var groupedDetails = details
             .GroupBy(d => d.Product.TaxCategory)
             .Select(g => new {
@@ -269,29 +339,48 @@ public class AutoAccountingService : IAutoAccountingService
                 Tax = g.Sum(d => d.Subtotal * (g.Key?.Rate ?? 0))
             }).ToList();
 
+        var totalSubtotal = groupedDetails.Sum(g => g.Subtotal);
+        var totalTax = groupedDetails.Sum(g => g.Tax);
+
+        var context = new { Total = total, Subtotal = totalSubtotal, Tax = totalTax };
+        var entryDetails = new List<AccountingEntryDetail>();
+
         AccountingEntryDetail MakeDetail(Guid accountId, decimal debit, decimal credit, string desc)
         {
             return new() { AccountId = accountId, DebitAmount = debit, CreditAmount = credit, Description = desc, CompanyId = companyId, CostCenterId = costCenterId };
         }
 
-        var entryDetails = new List<AccountingEntryDetail>
+        var rules = await _ruleRepo.GetByEventTypeAsync(TransactionTypes.PurchaseReversal, companyId);
+        if (rules != null && rules.Any())
         {
-            MakeDetail(apAccountId, total, 0, "Anulación compra - proveedor")
-        };
-
-        foreach (var group in groupedDetails)
-        {
-            var invAccountCode = group.TaxCategory?.SalesAccountCode ?? "1.1.04";
-            var vatAccountCode = group.TaxCategory?.VatAccountCode ?? "1.1.05";
-
-            var invAcctId = await GetAccountIdByCodeAsync(invAccountCode);
-
-            entryDetails.Add(MakeDetail(invAcctId, 0, group.Subtotal, "Anulación compra - inventario"));
-
-            if (group.Tax > 0)
+            foreach (var rule in rules.OrderBy(r => r.SortOrder))
             {
-                var vatAcctId = await GetAccountIdByCodeAsync(vatAccountCode);
-                entryDetails.Add(MakeDetail(vatAcctId, 0, group.Tax, "Anulación compra - IVA"));
+                var amount = EvaluateFormula(rule.Formula, context);
+                if (amount <= 0) continue;
+
+                var accountId = await GetAccountIdAsync(TransactionTypes.Purchase, rule.AccountRole);
+                var isDebit = rule.LineType.Equals("Debit", StringComparison.OrdinalIgnoreCase);
+                entryDetails.Add(MakeDetail(accountId, isDebit ? amount : 0, isDebit ? 0 : amount, $"PurchaseReversal {rule.AccountRole}"));
+            }
+        }
+        else
+        {
+            var apAccountId = await GetAccountIdAsync(TransactionTypes.Purchase, AccountRoles.AccountsPayable);
+            entryDetails.Add(MakeDetail(apAccountId, total, 0, "Anulación compra - proveedor"));
+
+            foreach (var group in groupedDetails)
+            {
+                var invAccountCode = group.TaxCategory?.SalesAccountCode ?? "1.1.04";
+                var vatAccountCode = group.TaxCategory?.VatAccountCode ?? "1.1.05";
+
+                var invAcctId = await GetAccountIdByCodeAsync(invAccountCode);
+                entryDetails.Add(MakeDetail(invAcctId, 0, group.Subtotal, "Anulación compra - inventario"));
+
+                if (group.Tax > 0)
+                {
+                    var vatAcctId = await GetAccountIdByCodeAsync(vatAccountCode);
+                    entryDetails.Add(MakeDetail(vatAcctId, 0, group.Tax, "Anulación compra - IVA"));
+                }
             }
         }
 
@@ -320,21 +409,45 @@ public class AutoAccountingService : IAutoAccountingService
     public async Task<Guid> GenerateInventoryEntryAsync(Guid movementId, Guid productId, string movementType, int quantity, decimal unitCost)
     {
         var periodId = await GetPeriodIdAsync();
-        var invAccountId = await GetAccountIdAsync(TransactionTypes.InventoryMovement, AccountRoles.Inventory);
-        var adjAccountId = await GetAccountIdAsync(TransactionTypes.InventoryMovement, AccountRoles.InventoryAdjustment);
+        var companyId = CompanyId;
+        var amount = (decimal)quantity * unitCost;
 
-        var amount = quantity * unitCost;
-        AccountingEntryDetail detail1, detail2;
+        var context = new { Amount = amount, Quantity = (decimal)quantity, UnitCost = unitCost };
+        var entryDetails = new List<AccountingEntryDetail>();
 
-        if (movementType == "entry" || movementType == "adjustment_positive" || movementType == "purchase")
+        AccountingEntryDetail MakeDetail(Guid accountId, decimal debit, decimal credit, string desc)
         {
-            detail1 = new() { AccountId = invAccountId, DebitAmount = amount, CreditAmount = 0, Description = "Entrada de inventario", CompanyId = CompanyId };
-            detail2 = new() { AccountId = adjAccountId, DebitAmount = 0, CreditAmount = amount, Description = "Ajuste de inventario", CompanyId = CompanyId };
+            return new() { AccountId = accountId, DebitAmount = debit, CreditAmount = credit, Description = desc, CompanyId = companyId };
+        }
+
+        var rules = await _ruleRepo.GetByEventTypeAsync(TransactionTypes.InventoryMovement, companyId);
+        if (rules != null && rules.Any())
+        {
+            foreach (var rule in rules.OrderBy(r => r.SortOrder))
+            {
+                var val = EvaluateFormula(rule.Formula, context);
+                if (val <= 0) continue;
+
+                var accountId = await GetAccountIdAsync(TransactionTypes.InventoryMovement, rule.AccountRole);
+                var isDebit = rule.LineType.Equals("Debit", StringComparison.OrdinalIgnoreCase);
+                entryDetails.Add(MakeDetail(accountId, isDebit ? val : 0, isDebit ? 0 : val, $"Inventory {rule.AccountRole}"));
+            }
         }
         else
         {
-            detail1 = new() { AccountId = adjAccountId, DebitAmount = amount, CreditAmount = 0, Description = "Ajuste de inventario", CompanyId = CompanyId };
-            detail2 = new() { AccountId = invAccountId, DebitAmount = 0, CreditAmount = amount, Description = "Salida de inventario", CompanyId = CompanyId };
+            var invAccountId = await GetAccountIdAsync(TransactionTypes.InventoryMovement, AccountRoles.Inventory);
+            var adjAccountId = await GetAccountIdAsync(TransactionTypes.InventoryMovement, AccountRoles.InventoryAdjustment);
+
+            if (movementType == "entry" || movementType == "adjustment_positive" || movementType == "purchase")
+            {
+                entryDetails.Add(MakeDetail(invAccountId, amount, 0, "Entrada de inventario"));
+                entryDetails.Add(MakeDetail(adjAccountId, 0, amount, "Ajuste de inventario"));
+            }
+            else
+            {
+                entryDetails.Add(MakeDetail(adjAccountId, amount, 0, "Ajuste de inventario"));
+                entryDetails.Add(MakeDetail(invAccountId, 0, amount, "Salida de inventario"));
+            }
         }
 
         var entry = new AccountingEntry
@@ -346,11 +459,11 @@ public class AutoAccountingService : IAutoAccountingService
             ReferenceId = movementId,
             Status = "posted",
             AccountingPeriodId = periodId,
-            CompanyId = CompanyId,
+            CompanyId = companyId,
             TotalDebit = amount,
             TotalCredit = amount,
             PostedAt = DateTime.UtcNow,
-            Details = [detail1, detail2],
+            Details = entryDetails,
         };
 
         await _entryRepo.AddAsync(entry);
@@ -361,11 +474,39 @@ public class AutoAccountingService : IAutoAccountingService
     public async Task<Guid> GenerateCreditPaymentEntryAsync(Guid paymentId, Guid creditId, decimal principalAmount, decimal interestAmount, Guid companyId, Guid branchId)
     {
         var periodId = await GetPeriodIdAsync();
-        var cashAccountId = await GetAccountIdAsync(TransactionTypes.CreditPayment, AccountRoles.Cash);
-        var arAccountId = await GetAccountIdAsync(TransactionTypes.CreditPayment, AccountRoles.AccountsReceivable);
-        var interestAccountId = await GetAccountIdAsync(TransactionTypes.CreditPayment, AccountRoles.InterestIncome);
-
         var totalAmount = principalAmount + interestAmount;
+
+        var context = new { Total = totalAmount, Principal = principalAmount, Interest = interestAmount };
+        var entryDetails = new List<AccountingEntryDetail>();
+
+        AccountingEntryDetail MakeDetail(Guid accountId, decimal debit, decimal credit, string desc)
+        {
+            return new() { AccountId = accountId, DebitAmount = debit, CreditAmount = credit, Description = desc, CompanyId = companyId };
+        }
+
+        var rules = await _ruleRepo.GetByEventTypeAsync(TransactionTypes.CreditPayment, companyId);
+        if (rules != null && rules.Any())
+        {
+            foreach (var rule in rules.OrderBy(r => r.SortOrder))
+            {
+                var val = EvaluateFormula(rule.Formula, context);
+                if (val <= 0) continue;
+
+                var accountId = await GetAccountIdAsync(TransactionTypes.CreditPayment, rule.AccountRole);
+                var isDebit = rule.LineType.Equals("Debit", StringComparison.OrdinalIgnoreCase);
+                entryDetails.Add(MakeDetail(accountId, isDebit ? val : 0, isDebit ? 0 : val, $"CreditPayment {rule.AccountRole}"));
+            }
+        }
+        else
+        {
+            var cashAccountId = await GetAccountIdAsync(TransactionTypes.CreditPayment, AccountRoles.Cash);
+            var arAccountId = await GetAccountIdAsync(TransactionTypes.CreditPayment, AccountRoles.AccountsReceivable);
+            var interestAccountId = await GetAccountIdAsync(TransactionTypes.CreditPayment, AccountRoles.InterestIncome);
+
+            entryDetails.Add(MakeDetail(cashAccountId, totalAmount, 0, "Ingreso de efectivo"));
+            entryDetails.Add(MakeDetail(arAccountId, 0, principalAmount, "Pago de capital"));
+            entryDetails.Add(MakeDetail(interestAccountId, 0, interestAmount, "Intereses ganados"));
+        }
 
         var entry = new AccountingEntry
         {
@@ -382,12 +523,7 @@ public class AutoAccountingService : IAutoAccountingService
             TotalDebit = totalAmount,
             TotalCredit = totalAmount,
             PostedAt = DateTime.UtcNow,
-            Details =
-            [
-                new() { AccountId = cashAccountId, DebitAmount = totalAmount, CreditAmount = 0, Description = "Ingreso de efectivo", CompanyId = companyId },
-                new() { AccountId = arAccountId, DebitAmount = 0, CreditAmount = principalAmount, Description = "Pago de capital", CompanyId = companyId },
-                new() { AccountId = interestAccountId, DebitAmount = 0, CreditAmount = interestAmount, Description = "Intereses ganados", CompanyId = companyId },
-            ],
+            Details = entryDetails,
         };
 
         await _entryRepo.AddAsync(entry);
@@ -472,12 +608,54 @@ public class AutoAccountingService : IAutoAccountingService
             ?? throw new InvalidOperationException("Movement not found");
 
         var periodId = await GetPeriodIdAsync();
-        
-        var cashAccountId = await GetAccountIdAsync(TransactionTypes.CashMovement, AccountRoles.Cash);
-        var contraAccountId = await GetAccountIdAsync(TransactionTypes.CashMovement, AccountRoles.ContraAccount);
+        var companyId = CompanyId;
 
-        var isIncome = movement.MovementType == "Income";
-        
+        var context = new { Amount = movement.Amount };
+        var entryDetails = new List<AccountingEntryDetail>();
+
+        AccountingEntryDetail MakeDetail(Guid accountId, decimal debit, decimal credit, string desc)
+        {
+            return new() { AccountId = accountId, DebitAmount = debit, CreditAmount = credit, Description = desc, CompanyId = companyId };
+        }
+
+        var rules = await _ruleRepo.GetByEventTypeAsync(TransactionTypes.CashMovement, companyId);
+        if (rules != null && rules.Any())
+        {
+            foreach (var rule in rules.OrderBy(r => r.SortOrder))
+            {
+                var val = EvaluateFormula(rule.Formula, context);
+                if (val <= 0) continue;
+
+                var accountId = await GetAccountIdAsync(TransactionTypes.CashMovement, rule.AccountRole);
+                var isDebit = rule.LineType.Equals("Debit", StringComparison.OrdinalIgnoreCase);
+                entryDetails.Add(MakeDetail(accountId, isDebit ? val : 0, isDebit ? 0 : val, $"CashMovement {rule.AccountRole}"));
+            }
+        }
+        else
+        {
+            var cashAccountId = await GetAccountIdAsync(TransactionTypes.CashMovement, AccountRoles.Cash);
+            var contraAccountId = await GetAccountIdAsync(TransactionTypes.CashMovement, AccountRoles.ContraAccount);
+
+            var isIncome = movement.MovementType.Equals("Income", StringComparison.OrdinalIgnoreCase);
+
+            entryDetails.Add(new()
+            {
+                AccountId = isIncome ? cashAccountId : contraAccountId,
+                DebitAmount = isIncome ? movement.Amount : 0,
+                CreditAmount = isIncome ? 0 : movement.Amount,
+                Description = movement.Concept,
+                CompanyId = companyId
+            });
+            entryDetails.Add(new()
+            {
+                AccountId = isIncome ? contraAccountId : cashAccountId,
+                DebitAmount = isIncome ? 0 : movement.Amount,
+                CreditAmount = isIncome ? movement.Amount : 0,
+                Description = movement.Concept,
+                CompanyId = companyId
+            });
+        }
+
         var entry = new AccountingEntry
         {
             EntryNumber = await GenerateNumberAsync(),
@@ -487,25 +665,11 @@ public class AutoAccountingService : IAutoAccountingService
             ReferenceId = movementId,
             Status = "posted",
             AccountingPeriodId = periodId,
-            CompanyId = CompanyId,
+            CompanyId = companyId,
             TotalDebit = movement.Amount,
             TotalCredit = movement.Amount,
             PostedAt = DateTime.UtcNow,
-            Details =
-            [
-                new() { 
-                    AccountId = isIncome ? cashAccountId : contraAccountId, 
-                    DebitAmount = isIncome ? movement.Amount : 0, 
-                    CreditAmount = isIncome ? 0 : movement.Amount, 
-                    Description = movement.Concept, CompanyId = CompanyId 
-                },
-                new() { 
-                    AccountId = isIncome ? contraAccountId : cashAccountId, 
-                    DebitAmount = isIncome ? 0 : movement.Amount, 
-                    CreditAmount = isIncome ? movement.Amount : 0, 
-                    Description = movement.Concept, CompanyId = CompanyId 
-                },
-            ],
+            Details = entryDetails,
         };
 
         await _entryRepo.AddAsync(entry);

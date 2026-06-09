@@ -40,6 +40,9 @@ final class _PurchaseFormPageState extends ConsumerState<PurchaseFormPage> {
   final _dateCtrl = TextEditingController(text: DateTime.now().toIso8601String().substring(0, 10));
   final List<_CartItem> _cart = [];
   bool _saving = false;
+  String _currencyCode = 'NIO';
+
+  static const _currencies = ['NIO', 'USD'];
 
   @override
   void initState() {
@@ -92,6 +95,9 @@ final class _PurchaseFormPageState extends ConsumerState<PurchaseFormPage> {
         'invoiceReference': _invoiceRefCtrl.text.isNotEmpty ? _invoiceRefCtrl.text : null,
         'discount': double.tryParse(_discountCtrl.text) ?? 0,
         'notes': _notesCtrl.text.isNotEmpty ? _notesCtrl.text : null,
+        'branchId': '00000000-0000-0000-0000-000000000000',
+        'currencyCode': _currencyCode,
+        'exchangeRateToReporting': _currencyCode == 'NIO' ? null : 36.5,
         'details': _cart.map((c) => {
           'productId': c.productId,
           'quantity': int.tryParse(c.quantity) ?? 0,
@@ -159,6 +165,16 @@ final class _PurchaseFormPageState extends ConsumerState<PurchaseFormPage> {
                       .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
                       .toList(),
                   onChanged: (v) => setState(() => _selectedSupplier = v),
+                ),
+                const SizedBox(height: 12),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  key: ValueKey(_currencyCode),
+                  initialValue: _currencyCode,
+                  isExpanded: true,
+                  items: _currencies.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                  onChanged: (v) => setState(() => _currencyCode = v ?? 'NIO'),
+                  decoration: const InputDecoration(labelText: 'Moneda', border: OutlineInputBorder()),
                 ),
                 const SizedBox(height: 12),
                 ZTextField(

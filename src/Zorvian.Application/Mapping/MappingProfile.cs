@@ -255,7 +255,8 @@ public sealed class MappingProfile : Profile
         CreateMap<Product, ProductResponse>()
             .ForMember(d => d.CategoryName, o => o.MapFrom(s => s.Category != null ? s.Category.Name : null))
             .ForMember(d => d.BrandName, o => o.MapFrom(s => s.Brand != null ? s.Brand.Name : null))
-            .ForMember(d => d.SupplierName, o => o.MapFrom(s => s.Supplier != null ? s.Supplier.Name : null));
+            .ForMember(d => d.SupplierName, o => o.MapFrom(s => s.Supplier != null ? s.Supplier.Name : null))
+            .ForMember(d => d.TaxCategoryName, o => o.MapFrom(s => s.TaxCategory != null ? s.TaxCategory.Name : null));
         CreateMap<Product, ProductListResponse>()
             .ForMember(d => d.CategoryName, o => o.MapFrom(s => s.Category != null ? s.Category.Name : null));
 

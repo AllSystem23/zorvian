@@ -8,10 +8,11 @@ final class PurchaseItem {
   final String createdAt;
   final String status;
   final double total;
+  final String currencyCode;
 
   const PurchaseItem({
     required this.id, required this.purchaseNumber, required this.supplierName,
-    required this.createdAt, required this.status, required this.total,
+    required this.createdAt, required this.status, required this.total, this.currencyCode = 'NIO',
   });
 
   factory PurchaseItem.fromJson(Map<String, dynamic> j) => PurchaseItem(
@@ -21,6 +22,7 @@ final class PurchaseItem {
     createdAt: j['createdAt'] as String? ?? '',
     status: j['status'] as String? ?? '',
     total: (j['total'] as num?)?.toDouble() ?? 0,
+    currencyCode: j['currencyCode'] as String? ?? 'NIO',
   );
 }
 
@@ -61,6 +63,7 @@ final class PurchaseDetail {
   final double discount;
   final double total;
   final String? notes;
+  final String currencyCode;
   final List<PurchaseDetailItem> details;
 
   const PurchaseDetail({
@@ -68,7 +71,7 @@ final class PurchaseDetail {
     required this.supplierName, required this.createdAt, this.purchaseDate,
     this.invoiceReference, required this.status, required this.subtotal,
     required this.tax, required this.discount, required this.total,
-    this.notes, required this.details,
+    this.notes, this.currencyCode = 'NIO', required this.details,
   });
 
   factory PurchaseDetail.fromJson(Map<String, dynamic> j) => PurchaseDetail(
@@ -85,6 +88,7 @@ final class PurchaseDetail {
     discount: (j['discount'] as num?)?.toDouble() ?? 0,
     total: (j['total'] as num?)?.toDouble() ?? 0,
     notes: j['notes'] as String?,
+    currencyCode: j['currencyCode'] as String? ?? 'NIO',
     details: (j['details'] as List?)?.map((e) => PurchaseDetailItem.fromJson(e)).toList() ?? [],
   );
 }

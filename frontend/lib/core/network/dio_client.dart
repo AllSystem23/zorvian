@@ -98,11 +98,14 @@ class DioClient {
   Future<Response<T>> get<T>(String path, {Map<String, dynamic>? params, Options? options}) =>
       _dio.get<T>(path, queryParameters: params, options: options);
 
-  Future<Response<T>> post<T>(String path, {dynamic data, Options? options}) =>
-      _dio.post<T>(path, data: data, options: options);
+  Future<Response<T>> post<T>(String path, {dynamic data, Map<String, dynamic>? queryParameters, Options? options}) =>
+      _dio.post<T>(path, data: data, queryParameters: queryParameters, options: options);
 
-  Future<Response<T>> put<T>(String path, {dynamic data}) =>
-      _dio.put<T>(path, data: data);
+  Future<Response<T>> put<T>(String path, {dynamic data, Map<String, dynamic>? queryParameters}) =>
+      _dio.put<T>(path, data: data, queryParameters: queryParameters);
+
+  Future<Response<T>> patch<T>(String path, {dynamic data}) =>
+      _dio.patch<T>(path, data: data);
 
   Future<Response<T>> delete<T>(String path) =>
       _dio.delete<T>(path);

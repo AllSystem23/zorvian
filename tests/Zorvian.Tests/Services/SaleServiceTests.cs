@@ -33,7 +33,7 @@ public sealed class SaleServiceTests
 
         var mockEntryRepo = new Mock<IAccountingEntryRepository>();
         var mockPeriodRepo = new Mock<IAccountingPeriodRepository>();
-        var mockLinkRepo = new Mock<IAccountLinkRepository>(); // Setup properly
+        var mockLinkRepo = new Mock<IAccountLinkRepository>();
         mockLinkRepo.Setup(r => r.GetByTransactionTypeAndRoleAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid>()))
             .ReturnsAsync(new AccountLink { AccountId = Guid.NewGuid() });
             
@@ -47,6 +47,7 @@ public sealed class SaleServiceTests
             .ReturnsAsync(new Account { Id = Guid.NewGuid() });
             
         var mockCashRepo = new Mock<ICashMovementRepository>();
+        var mockWebhookService = new Mock<IWebhookService>();
         
         var autoAccounting = new AutoAccountingService(
             mockEntryRepo.Object, mockPeriodRepo.Object, mockLinkRepo.Object, mockRuleRepo.Object, 
@@ -60,6 +61,7 @@ public sealed class SaleServiceTests
             _clientRepo.Object,
             _creditRepo.Object,
             autoAccounting,
+            mockWebhookService.Object,
             _tenant.Object,
             _mapper.Object);
     }
@@ -105,7 +107,7 @@ public sealed class SaleServiceTests
         _companyRepo.Setup(r => r.GetByTenantIdAsync(_companyId.ToString())).ReturnsAsync(company);
 
         var request = new CreateCashSaleRequest(
-            _clientId, _employeeId, 0, null, _branchId,
+            _clientId, _employeeId, 0, null, _branchId, "NIO", 1.0m,
             new List<SaleDetailItem>
             {
                 new(Guid.NewGuid(), "Product A", 2, 500m, 0, 1000m),
@@ -127,7 +129,7 @@ public sealed class SaleServiceTests
 
         var expectedResponse = new SaleResponse(
             saleId, "INV-001", _clientId, "Client", _employeeId, "Employee",
-            sale.SaleDate, "cash", 1000m, 160m, 0, 1160m, 1160m, 0, "completed", null,
+            sale.SaleDate, "cash", 1000m, 160m, 0, 1160m, 1160m, 0, "completed", null, "NIO", 1.0m,
             new List<SaleDetailItem>(), null);
 
         _saleRepo.Setup(r => r.GetByIdAsync(saleId)).ReturnsAsync(sale);
@@ -154,7 +156,7 @@ public sealed class SaleServiceTests
         _companyRepo.Setup(r => r.GetSettingsAsync(company.Id)).ReturnsAsync(settings);
 
         var request = new CreateCashSaleRequest(
-            _clientId, _employeeId, 0, null, _branchId,
+            _clientId, _employeeId, 0, null, _branchId, "NIO", 1.0m,
             new List<SaleDetailItem>
             {
                 new(Guid.NewGuid(), "Product A", 2, 500m, 0, 1000m),
@@ -167,7 +169,7 @@ public sealed class SaleServiceTests
 
         var expectedResponse = new SaleResponse(
             saleId, "INV-001", _clientId, "Client", _employeeId, "Employee",
-            sale.SaleDate, "cash", 1000m, 0, 0, 1000m, 1000m, 0, "completed", null,
+            sale.SaleDate, "cash", 1000m, 0, 0, 1000m, 1000m, 0, "completed", null, "NIO", 1.0m,
             new List<SaleDetailItem>(), null);
 
         _saleRepo.Setup(r => r.GetByIdAsync(saleId)).ReturnsAsync(sale);
@@ -205,7 +207,7 @@ public sealed class SaleServiceTests
         _companyRepo.Setup(r => r.GetSettingsAsync(company.Id)).ReturnsAsync(settings);
 
         var request = new CreateCreditSaleRequest(
-            _clientId, _employeeId, 0, null, _branchId,
+            _clientId, _employeeId, 0, null, _branchId, "NIO", 1.0m,
             new List<SaleDetailItem>
             {
                 new(Guid.NewGuid(), "Product A", 1, 3000m, 0, 3000m),
@@ -224,7 +226,7 @@ public sealed class SaleServiceTests
 
         var expectedResponse = new SaleResponse(
             saleId, "INV-002", _clientId, "Client", _employeeId, "Employee",
-            sale.SaleDate, "credit", 3000m, 0, 0, 3000m, 500m, 2500m, "pending", null,
+            sale.SaleDate, "credit", 3000m, 0, 0, 3000m, 500m, 2500m, "pending", null, "NIO", 1.0m,
             new List<SaleDetailItem>(), Guid.NewGuid());
 
         _saleRepo.Setup(r => r.GetByIdAsync(saleId)).ReturnsAsync(sale);
@@ -239,7 +241,7 @@ public sealed class SaleServiceTests
         capturedSale.Should().NotBeNull();
         capturedSale!.Credit.Should().NotBeNull();
         capturedSale.Credit.InstallmentCount.Should().Be(3);
-        capturedSale.Credit.FinancedAmount.Should().Be(2500m);
+        capturedSale.Credit.FinancedAmount.Should().Be(2950m);
         capturedSale.Credit.Installments.Should().HaveCount(3);
         _saleRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
     }
@@ -264,7 +266,7 @@ public sealed class SaleServiceTests
 
         var expected = new SaleResponse(
             saleId, "INV-001", _clientId, "Client", _employeeId, "Employee",
-            sale.SaleDate, "cash", 1000m, 160m, 0, 1160m, 1160m, 0, "completed", null,
+            sale.SaleDate, "cash", 1000m, 160m, 0, 1160m, 1160m, 0, "completed", null, "NIO", 1.0m,
             new List<SaleDetailItem>(), null);
 
         _mapper.Setup(m => m.Map<SaleResponse>(sale)).Returns(expected);

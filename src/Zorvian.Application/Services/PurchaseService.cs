@@ -15,6 +15,7 @@ public sealed class PurchaseService
     private readonly ICompanyRepository _companyRepo;
     private readonly ISupplierRepository _supplierRepo;
     private readonly IAutoAccountingService _autoAccounting;
+    private readonly IWebhookService _webhook;
     private readonly ITenantContext _tenant;
     private readonly IMapper _mapper;
     private readonly IApprovalEngine _approvalEngine;
@@ -26,6 +27,7 @@ public sealed class PurchaseService
         ICompanyRepository companyRepo,
         ISupplierRepository supplierRepo,
         IAutoAccountingService autoAccounting,
+        IWebhookService webhook,
         ITenantContext tenant,
         IMapper mapper,
         IApprovalEngine approvalEngine)
@@ -36,6 +38,7 @@ public sealed class PurchaseService
         _companyRepo = companyRepo;
         _supplierRepo = supplierRepo;
         _autoAccounting = autoAccounting;
+        _webhook = webhook;
         _tenant = tenant;
         _mapper = mapper;
         _approvalEngine = approvalEngine;
@@ -45,6 +48,9 @@ public sealed class PurchaseService
     {
         if (!Guid.TryParse(_tenant.TenantId, out var companyId))
             throw new InvalidOperationException("Invalid tenant");
+
+        var settings = await _companyRepo.GetSettingsAsync(companyId);
+        var defaultTaxRate = settings?.TaxRate ?? 0.15m;
 
         var supplier = await _supplierRepo.GetByIdAsync(request.SupplierId)
             ?? throw new InvalidOperationException("Supplier not found");
@@ -59,7 +65,7 @@ public sealed class PurchaseService
 
             var lineSubtotal = detail.Quantity * detail.UnitCost;
             subtotal += lineSubtotal;
-            var rate = product.TaxCategory?.Rate ?? 0m;
+            var rate = product.TaxCategory?.Rate ?? defaultTaxRate;
             totalTax += (lineSubtotal - detail.Discount) * rate;
         }
 
@@ -103,10 +109,13 @@ public sealed class PurchaseService
         {
             purchase.Status = "pending_approval";
             await _purchaseRepo.SaveChangesAsync();
+            await _webhook.PublishAsync(purchase.TenantId, "purchase.pending_approval", new { PurchaseId = purchase.Id, PurchaseNumber = purchase.PurchaseNumber, Total = total });
             return await GetByIdAsync(purchase.Id) ?? throw new InvalidOperationException("Failed to create purchase");
         }
 
         await CompletePurchaseAsync(purchase, request);
+
+        await _webhook.PublishAsync(purchase.TenantId, "purchase.created", new { PurchaseId = purchase.Id, PurchaseNumber = purchase.PurchaseNumber, Total = total });
 
         return await GetByIdAsync(purchase.Id) ?? throw new InvalidOperationException("Failed to create purchase");
     }
@@ -195,6 +204,9 @@ public sealed class PurchaseService
 
         if (request.Details != null && request.Details.Count > 0)
         {
+            var settings = await _companyRepo.GetSettingsAsync(companyId);
+            var defaultTaxRate = settings?.TaxRate ?? 0.15m;
+
             decimal subtotal = 0;
             decimal totalTax = 0;
 
@@ -205,7 +217,7 @@ public sealed class PurchaseService
 
                 var lineSubtotal = detail.Quantity * detail.UnitCost;
                 subtotal += lineSubtotal;
-                var rate = product.TaxCategory?.Rate ?? 0m;
+                var rate = product.TaxCategory?.Rate ?? defaultTaxRate;
                 totalTax += (lineSubtotal - detail.Discount) * rate;
             }
 
@@ -333,6 +345,8 @@ public sealed class PurchaseService
             purchase.WithholdingType,
             purchase.WithholdingAmount,
             purchase.Notes,
+            purchase.CurrencyCode,
+            purchase.ExchangeRateToReporting,
             purchase.Details.Select(d => new PurchaseDetailItem(
                 d.ProductId,
                 d.Product?.Name ?? "",
@@ -354,7 +368,7 @@ public sealed class PurchaseService
 
         return new PagedResult<PurchaseListResponse>(
             items.Select(p => new PurchaseListResponse(
-                p.Id, p.PurchaseNumber, p.Supplier?.Name ?? "", p.CreatedAt, p.Status, p.Total, p.PaidAmount, p.Balance
+                p.Id, p.PurchaseNumber, p.Supplier?.Name ?? "", p.CreatedAt, p.Status, p.Total, p.PaidAmount, p.Balance, p.CurrencyCode
             )).ToList(),
             total, page, pageSize
         );

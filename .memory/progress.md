@@ -1,50 +1,15 @@
-# Progress
+# Progreso
 
-## 2026-06-07
+## 2026-06-09 Auditoría y correcciones
 
-### Fase 5.1.1 — Predicción de ventas ML.NET (COMPLETED)
-
-**Backend:**
-- `SalesPredictionController` con 3 endpoints
-- `SalesPredictionTrainingJob` (Hangfire recurrente domingo 3AM)
-- DI registration en `Program.cs`
-- `dotnet build` = 0 errors, 0 warnings
-
-**Frontend:**
-- Modelos: `BiSalesPredictionDaily`, `BiMonthlySalesPrediction`, `BiMonthlyProjection`
-- 3 providers `FutureProvider.autoDispose`
-- `SalesPredictionSection` (line chart 30 días + KPI cards + tabla 7 días)
-- Integrado en `CommercialDashboardPage`
-- `flutter analyze` = No issues found
-
-### Fase 5.1.2 — Recomendación de compras (COMPLETED)
-
-**Backend:**
-- `PurchaseRecommendationDto` + `PurchaseRecommendationSummaryDto`
-- `PurchaseRecommendationService` (demanda 30d, stock bajo, días hasta agotar, prioridad critical/warning)
-- `PurchaseRecommendationController` — `GET /zorvian/v1/purchases/recommendations`
-- DI registration en `Program.cs`
-- `dotnet build` = 0 errors, 0 warnings
-
-**Frontend:**
-- Modelos: `PurchaseRecommendationItem`, `PurchaseRecommendationSummary` en `bi_models.dart`
-- Provider: `purchaseRecommendationProvider`
-- Widget: `PurchaseRecommendationSection` (badges críticos/advertencia/saludables + tiles producto)
-- Integrado en `CommercialDashboardPage` después del pronóstico
-- `flutter analyze` = No issues found
-
-### Fase 5.1.3 — Clasificación automática de gastos (COMPLETED)
-
-**Backend:**
-- `ExpenseClassificationService` (ML.NET SDCA multiclass text classifier + amount feature)
-- `ExpenseClassificationTrainingJob` (Hangfire recurrente domingo 4AM, entrena con últimos 5000 asientos)
-- `ExpenseClassificationController` — `GET /zorvian/v1/expense-classification/predict?description=...&amount=...`
-- DI registration + recurring job en `Program.cs`
-- `dotnet build` = 0 errors, 0 warnings
-
-**Frontend:**
-- Modelos: `ExpenseClassificationResult`, `ExpenseClassificationResponse` en `bi_models.dart`
-- Provider: `expenseClassificationProvider` (Family con record params, debounced 500ms)
-- Widget: `ExpenseClassifierSection` (TextField con sugerencias en vivo + barra de confianza)
-- Integrado en `CommercialDashboardPage` después de recomendaciones de compra
-- `flutter analyze` = No issues found
+### Completado
+- Auditadas 52 afirmaciones de `AUDITORIA_INTEGRAL_ZORVIAN_ERP.md` contra código real
+- Clasificadas como True (mayoría) / False (algunas)
+- Eliminados paquetes NuGet no usados: MediatR, Serilog
+- Creado `TenantSessionInterceptor` + script `RLS_Enable.sql`
+- Verificado que credenciales ya están externalizadas (User Secrets)
+- Revisados y corregidos pipelines CI/CD
+- Frontend Flutter: 136 issues de `flutter analyze` → 0 issues
+- Backend .NET: 0 errores, 0 advertencias de compilación
+- Backend tests: 344/344 passing
+- Frontend tests: 11/11 passing

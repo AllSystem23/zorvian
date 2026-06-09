@@ -110,6 +110,12 @@ public sealed class CashRegisterService
 
         await _movementRepo.SaveChangesAsync();
 
+        // Audit recommendation: Generate accounting entry for cash movements
+        if (movement.ApprovalStatus == "approved")
+        {
+            await _accountingService.GenerateCashMovementEntryAsync(movement.Id);
+        }
+
         return _mapper.Map<CashMovementResponse>(movement);
     }
 

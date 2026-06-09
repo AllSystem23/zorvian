@@ -11,11 +11,13 @@ public sealed class SeedService
 {
     private readonly ZorvianDbContext _db;
     private readonly IFirebaseAuthService _firebase;
+    private readonly IFiscalService _fiscal;
 
-    public SeedService(ZorvianDbContext db, IFirebaseAuthService firebase)
+    public SeedService(ZorvianDbContext db, IFirebaseAuthService firebase, IFiscalService fiscal)
     {
         _db = db;
         _firebase = firebase;
+        _fiscal = fiscal;
     }
 
     public async Task SeedAsync(string tenantId)
@@ -35,6 +37,8 @@ public sealed class SeedService
         };
         _db.Companies.Add(company);
         await _db.SaveChangesAsync();
+
+        await _fiscal.SetupDefaultTaxesAsync(company.Id, "NIC");
 
         var settings = new CompanySettings { CompanyId = company.Id };
         _db.CompanySettings.Add(settings);

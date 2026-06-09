@@ -18,6 +18,8 @@ public sealed class AccountingEntry : BaseEntity
     public string? PostedBy { get; set; }
     public Guid? CostCenterId { get; set; }
     public CostCenter? CostCenter { get; set; }
+    public string CurrencyCode { get; set; } = "NIO";
+    public decimal? ExchangeRateToReporting { get; set; }
 
     public ICollection<AccountingEntryDetail> Details { get; set; } = [];
 }

@@ -53,6 +53,9 @@ final class _NewSalePageState extends ConsumerState<NewSalePage> {
 
   bool _taxEnabled = true;
   double _taxRate = 0.15;
+  String _currencyCode = 'NIO';
+
+  static const _currencies = ['NIO', 'USD'];
 
   @override
   void initState() {
@@ -93,26 +96,27 @@ final class _NewSalePageState extends ConsumerState<NewSalePage> {
         'subtotal': c.subtotal,
       }).toList();
 
+      final basePayload = {
+        'clientId': _selectedClient!.id,
+        'employeeId': '00000000-0000-0000-0000-000000000000',
+        'discount': _discount,
+        'notes': null,
+        'branchId': '00000000-0000-0000-0000-000000000000',
+        'currencyCode': _currencyCode,
+        'exchangeRateToReporting': _currencyCode == 'NIO' ? null : 36.5,
+        'details': details,
+      };
+
       if (_isCredit) {
         await dio.post('sales/credit', data: {
-          'clientId': _selectedClient!.id,
-          'employeeId': '00000000-0000-0000-0000-000000000000',
-          'discount': _discount,
-          'notes': null,
-          'branchId': '00000000-0000-0000-0000-000000000000',
-          'details': details,
+          ...basePayload,
           'downPayment': double.tryParse(_downPaymentCtrl.text) ?? 0,
           'installmentCount': int.tryParse(_installmentCtrl.text) ?? 6,
           'interestRate': double.tryParse(_interestCtrl.text) ?? 10,
         });
       } else {
         await dio.post('sales/cash', data: {
-          'clientId': _selectedClient!.id,
-          'employeeId': '00000000-0000-0000-0000-000000000000',
-          'discount': _discount,
-          'notes': null,
-          'branchId': '00000000-0000-0000-0000-000000000000',
-          'details': details,
+          ...basePayload,
           'payment': {'amount': _total, 'paymentMethod': 'cash', 'referenceNumber': null, 'cashRegisterId': null},
         });
       }
@@ -164,6 +168,15 @@ final class _NewSalePageState extends ConsumerState<NewSalePage> {
                   onChanged: (v) => setState(() => _selectedClient = v),
                   decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'Seleccionar cliente'),
                 ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            key: ValueKey(_currencyCode),
+            initialValue: _currencyCode,
+            isExpanded: true,
+            items: _currencies.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+            onChanged: (v) => setState(() => _currencyCode = v ?? 'NIO'),
+            decoration: const InputDecoration(labelText: 'Moneda', border: OutlineInputBorder()),
+          ),
           const SizedBox(height: 16),
           SwitchListTile(
             title: const Text('Venta a Crédito'),

@@ -20,9 +20,10 @@ public class CompaniesControllerTests
         // Mock de las dependencias de CompanyService para crear una instancia real
         var mockRepo = new Mock<ICompanyRepository>();
         var mockTenant = new Mock<ITenantContext>();
+        var mockFiscal = new Mock<IFiscalService>();
         mockTenant.Setup(t => t.TenantId).Returns(Guid.NewGuid().ToString());
 
-        var service = new CompanyService(mockRepo.Object, mockTenant.Object);
+        var service = new CompanyService(mockRepo.Object, mockTenant.Object, mockFiscal.Object);
         _controller = new CompaniesController(service);
         
         // Setup User con permisos insuficientes

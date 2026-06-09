@@ -24,6 +24,8 @@ public sealed class Credit : BaseEntity
     public string? Notes { get; set; }
     public Guid CompanyId { get; set; }
     public Guid BranchId { get; set; }
+    public string CurrencyCode { get; set; } = "NIO";
+    public decimal? ExchangeRateToReporting { get; set; }
 
     public ICollection<CreditInstallment> Installments { get; set; } = [];
     public ICollection<CreditPayment> Payments { get; set; } = [];

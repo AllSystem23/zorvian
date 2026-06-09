@@ -6,6 +6,7 @@ obj/
 *.sln.docstates
 .vs/
 *.log
+publish/
 
 # Flutter/Dart
 .dart_tool/
@@ -37,19 +38,26 @@ Thumbs.db
 # OpenCode memory
 .memory/
 
-# Environment
+# Environment & Secrets
 .env
+.env.*
 *.env.local
 appsettings.Local.json
-appsettings.Development.json
-appsettings.json
 login_test.json
 
-# Secrets
+# IMPORTANT: appsettings.json with secrets should NEVER be committed
+# Use appsettings.Development.json and appsettings.Production.json with placeholder values
+# Real secrets must come from Environment Variables or Secret Manager
+
+# Service Account Keys (NEVER commit)
 *.key
 *.pem
-serviceAccountKey.json
+*-firebase-adminsdk-*.json
 *-firebase-admin.json
+serviceAccountKey.json
+*-service-account.json
 
-# Firebase service account
-nexora-hr-firebase-adminsdk-fbsvc-dbd7abf513.json
+# NuGet
+*.nupkg
+*.snupkg
+packages/

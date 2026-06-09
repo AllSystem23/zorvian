@@ -64,6 +64,17 @@ public sealed class QuotesController : ControllerBase
         return Ok(quote);
     }
 
+    [Audit("Quote", "Update")]
+    [HttpPatch("{id:guid}/status")]
+    [RequirePermission(Permissions.SaleWrite)]
+    public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateStatusRequest request)
+    {
+        var updated = await _service.UpdateStatusAsync(id, request.Status);
+        if (!updated)
+            return NotFound(new { error = "Quote not found" });
+        return NoContent();
+    }
+
     [Audit("Quote", "Delete")]
     [HttpDelete("{id:guid}")]
     [RequirePermission(Permissions.SaleWrite)]

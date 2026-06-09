@@ -16,6 +16,7 @@ public sealed class SaleService
     private readonly IClientRepository _clientRepo;
     private readonly ICreditRepository _creditRepo;
     private readonly IAutoAccountingService _autoAccounting;
+    private readonly IWebhookService _webhook;
     private readonly ITenantContext _tenant;
     private readonly IMapper _mapper;
 
@@ -27,6 +28,7 @@ public sealed class SaleService
         IClientRepository clientRepo,
         ICreditRepository creditRepo,
         IAutoAccountingService autoAccounting,
+        IWebhookService webhook,
         ITenantContext tenant,
         IMapper mapper)
     {
@@ -37,6 +39,7 @@ public sealed class SaleService
         _clientRepo = clientRepo;
         _creditRepo = creditRepo;
         _autoAccounting = autoAccounting;
+        _webhook = webhook;
         _tenant = tenant;
         _mapper = mapper;
     }
@@ -44,6 +47,8 @@ public sealed class SaleService
     public async Task<SaleResponse> CreateCashSaleAsync(CreateCashSaleRequest request)
     {
         var companyId = Guid.Parse(_tenant.TenantId);
+        var settings = await _companyRepo.GetSettingsAsync(companyId);
+        var defaultTaxRate = settings?.TaxRate ?? 0.15m;
 
         decimal subtotal = 0;
         decimal totalTax = 0;
@@ -57,8 +62,8 @@ public sealed class SaleService
             var lineSubtotal = detail.Quantity * detail.UnitPrice;
             subtotal += lineSubtotal;
             
-            // Apply product-level tax
-            var rate = product.TaxCategory?.Rate ?? 0m; 
+            // Apply product-level tax or fallback to company default
+            var rate = product.TaxCategory?.Rate ?? defaultTaxRate; 
             totalTax += (lineSubtotal - detail.Discount) * rate;
         }
 
@@ -145,12 +150,16 @@ public sealed class SaleService
             sale.Id, sale.Details.ToList(), request.Discount, request.Payment.Amount, "cash");
         await _autoAccounting.GenerateCostOfSaleEntryAsync(sale.Id, totalCost);
 
+        await _webhook.PublishAsync(sale.TenantId, "sale.created", new { SaleId = sale.Id, InvoiceNumber = sale.InvoiceNumber, Total = sale.Total, PaymentMethod = "cash" });
+
         return await GetByIdAsync(sale.Id) ?? throw new InvalidOperationException("Failed to create sale");
     }
 
     public async Task<SaleResponse> CreateCreditSaleAsync(CreateCreditSaleRequest request)
     {
         var companyId = Guid.Parse(_tenant.TenantId);
+        var settings = await _companyRepo.GetSettingsAsync(companyId);
+        var defaultTaxRate = settings?.TaxRate ?? 0.15m;
 
         decimal subtotal = 0;
         decimal totalTax = 0;
@@ -162,7 +171,7 @@ public sealed class SaleService
 
             var lineSubtotal = detail.Quantity * detail.UnitPrice;
             subtotal += lineSubtotal;
-            var rate = product.TaxCategory?.Rate ?? 0m;
+            var rate = product.TaxCategory?.Rate ?? defaultTaxRate;
             totalTax += (lineSubtotal - detail.Discount) * rate;
         }
 
@@ -310,6 +319,8 @@ public sealed class SaleService
         await _autoAccounting.GenerateSaleEntryAsync(
             sale.Id, sale.Details.ToList(), request.Discount, request.DownPayment, "credit");
         await _autoAccounting.GenerateCostOfSaleEntryAsync(sale.Id, totalCost);
+
+        await _webhook.PublishAsync(sale.TenantId, "sale.created", new { SaleId = sale.Id, InvoiceNumber = sale.InvoiceNumber, Total = sale.Total, PaymentMethod = "credit" });
 
         return await GetByIdAsync(sale.Id) ?? throw new InvalidOperationException("Failed to create credit sale");
     }

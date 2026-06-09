@@ -10,13 +10,14 @@ public sealed class CompanyServiceTests
 {
     private readonly Mock<ICompanyRepository> _repo = new();
     private readonly Mock<ITenantContext> _tenant = new();
+    private readonly Mock<IFiscalService> _fiscal = new();
     private readonly CompanyService _sut;
     private readonly string _tenantId = Guid.NewGuid().ToString();
 
     public CompanyServiceTests()
     {
         _tenant.Setup(t => t.TenantId).Returns(_tenantId);
-        _sut = new CompanyService(_repo.Object, _tenant.Object);
+        _sut = new CompanyService(_repo.Object, _tenant.Object, _fiscal.Object);
     }
 
     [Fact]

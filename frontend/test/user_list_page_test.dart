@@ -21,8 +21,8 @@ void main() {
 
     // Verify AppBar title
     expect(find.text('Gestión de Usuarios'), findsOneWidget);
-    // Verify DataTable is rendered (internally used by ZDataTable)
-    expect(find.byType(DataTable), findsOneWidget);
+    // Verify empty state is shown (no users in mock)
+    expect(find.text('Sin datos'), findsOneWidget);
   });
 }
 

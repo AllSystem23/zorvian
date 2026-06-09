@@ -1,0 +1,55 @@
+# Zorvian ERP — Docker Ignore
+# ═══════════════════════════════════════════
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vs
+.vscode
+.idea
+*.swp
+*.swo
+
+# Build outputs
+**/bin/
+**/obj/
+**/publish/
+**/build/
+
+# Flutter
+frontend/.dart_tool
+frontend/build
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+
+# Tests
+tests/
+
+# Documentation
+*.md
+LICENSE
+
+# Firebase
+.firebase
+*-firebase-adminsdk-*.json
+
+# Environment
+.env
+.env.*
+*.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# NuGet
+*.nupkg
+packages/
+
+# Node (if any)
+node_modules/
+
+# Logs
+*.log

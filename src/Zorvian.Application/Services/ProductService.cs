@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AutoMapper;
 using Zorvian.Application.DTOs.Common;
 using Zorvian.Application.DTOs.Inventory;
@@ -13,13 +14,15 @@ public sealed class ProductService
     private readonly IInventoryMovementRepository _movementRepo;
     private readonly ITenantContext _tenant;
     private readonly IMapper _mapper;
+    private readonly ISyncService _sync;
 
-    public ProductService(IProductRepository repo, IInventoryMovementRepository movementRepo, ITenantContext tenant, IMapper mapper)
+    public ProductService(IProductRepository repo, IInventoryMovementRepository movementRepo, ITenantContext tenant, IMapper mapper, ISyncService sync)
     {
         _repo = repo;
         _movementRepo = movementRepo;
         _tenant = tenant;
         _mapper = mapper;
+        _sync = sync;
     }
 
     public async Task<ProductResponse> CreateAsync(CreateProductRequest request)
@@ -45,6 +48,9 @@ public sealed class ProductService
 
         await _repo.SaveChangesAsync();
 
+        await _sync.JournalAsync("Product", product.Id.ToString(), "created",
+            JsonSerializer.Serialize(_mapper.Map<ProductResponse>(product)), _tenant.TenantId.ToString());
+
         return await GetByIdAsync(product.Id) ?? throw new InvalidOperationException("Failed to create product");
     }
 
@@ -56,7 +62,11 @@ public sealed class ProductService
         _mapper.Map(request, product);
         await _repo.SaveChangesAsync();
 
-        return _mapper.Map<ProductResponse>(product);
+        var response = _mapper.Map<ProductResponse>(product);
+        await _sync.JournalAsync("Product", product.Id.ToString(), "updated",
+            JsonSerializer.Serialize(response), _tenant.TenantId.ToString());
+
+        return response;
     }
 
     public async Task<ProductResponse?> GetByIdAsync(Guid id)
@@ -106,6 +116,10 @@ public sealed class ProductService
 
         await _repo.DeleteAsync(product);
         await _repo.SaveChangesAsync();
+
+        await _sync.JournalAsync("Product", id.ToString(), "deleted",
+            null, _tenant.TenantId.ToString());
+
         return true;
     }
 }

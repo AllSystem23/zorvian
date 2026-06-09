@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
+using Zorvian.Core.Enums;
 using Zorvian.Infrastructure.Data;
 
 namespace Zorvian.Infrastructure.Repositories;
@@ -22,7 +23,7 @@ public sealed class QuoteRepository : IQuoteRepository
                 .ThenInclude(d => d.Product)
             .FirstOrDefaultAsync(q => q.Id == id);
 
-    public async Task<List<Quote>> GetFilteredAsync(Guid? clientId, string? status, DateTime? fromDate, DateTime? toDate, string? search, Guid branchId, int page, int pageSize)
+    public async Task<List<Quote>> GetFilteredAsync(Guid? clientId, QuoteStatus? status, DateTime? fromDate, DateTime? toDate, string? search, Guid branchId, int page, int pageSize)
     {
         var query = _db.Set<Quote>()
             .Include(q => q.Client)
@@ -34,8 +35,8 @@ public sealed class QuoteRepository : IQuoteRepository
 
         if (clientId.HasValue)
             query = query.Where(q => q.ClientId == clientId.Value);
-        if (!string.IsNullOrWhiteSpace(status))
-            query = query.Where(q => q.Status == status);
+        if (status.HasValue)
+            query = query.Where(q => q.Status == status.Value);
         if (fromDate.HasValue)
             query = query.Where(q => q.QuoteDate >= DateOnly.FromDateTime(fromDate.Value));
         if (toDate.HasValue)
@@ -55,7 +56,7 @@ public sealed class QuoteRepository : IQuoteRepository
             .ToListAsync();
     }
 
-    public async Task<int> GetFilteredCountAsync(Guid? clientId, string? status, DateTime? fromDate, DateTime? toDate, string? search, Guid branchId)
+    public async Task<int> GetFilteredCountAsync(Guid? clientId, QuoteStatus? status, DateTime? fromDate, DateTime? toDate, string? search, Guid branchId)
     {
         var query = _db.Set<Quote>()
             .Include(q => q.Client)
@@ -64,8 +65,8 @@ public sealed class QuoteRepository : IQuoteRepository
 
         if (clientId.HasValue)
             query = query.Where(q => q.ClientId == clientId.Value);
-        if (!string.IsNullOrWhiteSpace(status))
-            query = query.Where(q => q.Status == status);
+        if (status.HasValue)
+            query = query.Where(q => q.Status == status.Value);
         if (fromDate.HasValue)
             query = query.Where(q => q.QuoteDate >= DateOnly.FromDateTime(fromDate.Value));
         if (toDate.HasValue)
@@ -94,6 +95,16 @@ public sealed class QuoteRepository : IQuoteRepository
     {
         _db.Set<Quote>().Update(quote);
         return Task.CompletedTask;
+    }
+
+    public async Task UpdateStatusAsync(Guid id, QuoteStatus status)
+    {
+        var quote = await _db.Set<Quote>().FindAsync(id);
+        if (quote != null)
+        {
+            quote.Status = status;
+            quote.UpdatedAt = DateTime.UtcNow;
+        }
     }
 
     public Task DeleteAsync(Quote quote)

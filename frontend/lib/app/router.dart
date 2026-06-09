@@ -50,6 +50,7 @@ import '../features/sales/pages/sale_form_page.dart';
 import '../features/quotes/pages/quote_list_page.dart';
 import '../features/quotes/pages/quote_form_page.dart';
 import '../features/quotes/pages/quote_detail_page.dart';
+import '../features/quotes/pages/quote_kanban_page.dart';
 import '../features/products/pages/product_list_page.dart';
 import '../features/products/pages/product_form_page.dart';
 import '../features/categories/pages/category_list_page.dart';
@@ -86,6 +87,14 @@ import '../features/bi/pages/financial_dashboard_page.dart';
 import '../features/bi/pages/commercial_dashboard_page.dart';
 import '../features/bi/pages/operational_dashboard_page.dart';
 import '../features/chat/pages/chat_page.dart';
+import '../features/exchange_rates/pages/exchange_rate_list_page.dart';
+import '../features/exchange_rates/pages/exchange_rate_form_page.dart';
+import '../features/custom_reports/pages/custom_report_list_page.dart';
+import '../features/custom_reports/pages/custom_report_builder_page.dart';
+import '../features/custom_reports/pages/custom_report_result_page.dart';
+import '../features/webhooks/pages/webhook_list_page.dart';
+import '../features/webhooks/pages/webhook_form_page.dart';
+import '../features/webhooks/pages/webhook_logs_page.dart';
 
 final _routeRoles = <String, List<String>>{
   '/dashboard': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
@@ -125,6 +134,9 @@ final _routeRoles = <String, List<String>>{
   '/dashboard-v2': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee', 'Accountant'],
   '/bi/operational': ['SuperAdmin', 'CompanyAdmin', 'Rrhh'],
   '/chat': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
+  '/exchange-rates': ['SuperAdmin', 'CompanyAdmin'],
+  '/custom-reports': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
+  '/webhooks': ['SuperAdmin', 'CompanyAdmin'],
 };
 
 bool _hasAccess(String role, String location) {
@@ -361,6 +373,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, _) => const QuoteListPage(),
             routes: [
               GoRoute(path: 'new', name: 'quote-new', builder: (_, _) => const QuoteFormPage()),
+              GoRoute(path: 'kanban', name: 'quote-kanban', builder: (_, _) => const QuoteKanbanPage()),
               GoRoute(path: ':quoteId', name: 'quote-detail', builder: (_, state) => QuoteDetailPage(quoteId: state.pathParameters['quoteId']!)),
               GoRoute(path: ':quoteId/edit', name: 'quote-edit', builder: (_, state) => QuoteFormPage(quoteId: state.pathParameters['quoteId'])),
             ],
@@ -511,6 +524,84 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/bi/operational',
             name: 'bi-operational',
             builder: (_, _) => const OperationalDashboardPage(),
+          ),
+          GoRoute(
+            path: '/exchange-rates',
+            name: 'exchange-rates',
+            builder: (_, _) => const ExchangeRateListPage(),
+            routes: [
+              GoRoute(
+                path: 'new',
+                name: 'exchange-rate-new',
+                builder: (_, _) => const ExchangeRateFormPage(),
+              ),
+              GoRoute(
+                path: ':exchangeRateId/edit',
+                name: 'exchange-rate-edit',
+                builder: (_, state) => ExchangeRateFormPage(
+                  exchangeRateId: state.pathParameters['exchangeRateId']!,
+                ),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: '/custom-reports',
+            name: 'custom-reports',
+            builder: (_, _) => const CustomReportListPage(),
+            routes: [
+              GoRoute(
+                path: 'new',
+                name: 'custom-report-new',
+                builder: (_, _) => const CustomReportBuilderPage(),
+              ),
+              GoRoute(
+                path: ':reportId/edit',
+                name: 'custom-report-edit',
+                builder: (_, state) => CustomReportBuilderPage(
+                  reportId: state.pathParameters['reportId']!,
+                ),
+              ),
+              GoRoute(
+                path: 'result',
+                name: 'custom-reports-result',
+                builder: (_, state) {
+                  final extra = state.extra as Map<String, dynamic>;
+                  return CustomReportResultPage(
+                    reportName: extra['reportName'] as String? ?? '',
+                    module: extra['module'] as String? ?? 'sales',
+                    fields: extra['fields'] as List<dynamic>? ?? [],
+                    columns: (extra['columns'] as List<dynamic>?)?.cast<String>() ?? [],
+                    rows: (extra['rows'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [],
+                  );
+                },
+              ),
+            ],
+          ),
+          GoRoute(
+            path: '/webhooks',
+            name: 'webhooks',
+            builder: (_, _) => const WebhookListPage(),
+            routes: [
+              GoRoute(
+                path: 'new',
+                name: 'webhook-new',
+                builder: (_, _) => const WebhookFormPage(),
+              ),
+              GoRoute(
+                path: ':webhookId/edit',
+                name: 'webhook-edit',
+                builder: (_, state) => WebhookFormPage(
+                  webhookId: state.pathParameters['webhookId']!,
+                ),
+              ),
+              GoRoute(
+                path: ':webhookId/logs',
+                name: 'webhook-logs',
+                builder: (_, state) => WebhookLogsPage(
+                  webhookId: state.pathParameters['webhookId']!,
+                ),
+              ),
+            ],
           ),
         ],
       ),

@@ -25,6 +25,8 @@ public static class TransactionTypes
     public const string FixedAssetRevaluation = "FixedAssetRevaluation";
     public const string FixedAssetMaintenance = "FixedAssetMaintenance";
     public const string WarrantyCost = "WarrantyCost";
+    public const string CostOfSale = "CostOfSale";
+    public const string PurchaseReversal = "PurchaseReversal";
 }
 
 public static class AccountRoles

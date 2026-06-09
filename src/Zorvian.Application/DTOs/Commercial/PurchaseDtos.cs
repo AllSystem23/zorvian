@@ -28,6 +28,8 @@ public sealed record PurchaseResponse(
     string? WithholdingType,
     decimal? WithholdingAmount,
     string? Notes,
+    string CurrencyCode,
+    decimal? ExchangeRateToReporting,
     List<PurchaseDetailItem> Details
 );
 
@@ -39,7 +41,8 @@ public sealed record PurchaseListResponse(
     string Status,
     decimal Total,
     decimal PaidAmount,
-    decimal Balance
+    decimal Balance,
+    string CurrencyCode
 );
 
 public sealed record CreatePurchaseRequest(
@@ -52,6 +55,8 @@ public sealed record CreatePurchaseRequest(
     decimal Discount,
     string? Notes,
     Guid BranchId,
+    string? CurrencyCode,
+    decimal? ExchangeRateToReporting,
     List<PurchaseDetailItem> Details
 );
 

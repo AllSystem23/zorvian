@@ -16,6 +16,8 @@ public sealed record CreateSaleRequest(
     decimal Discount,
     string? Notes,
     Guid BranchId,
+    string? CurrencyCode,
+    decimal? ExchangeRateToReporting,
     List<SaleDetailItem> Details
 );
 
@@ -32,6 +34,8 @@ public sealed record CreateCashSaleRequest(
     decimal Discount,
     string? Notes,
     Guid BranchId,
+    string? CurrencyCode,
+    decimal? ExchangeRateToReporting,
     List<SaleDetailItem> Details,
     SalePaymentInfo Payment
 );
@@ -42,6 +46,8 @@ public sealed record CreateCreditSaleRequest(
     decimal Discount,
     string? Notes,
     Guid BranchId,
+    string? CurrencyCode,
+    decimal? ExchangeRateToReporting,
     List<SaleDetailItem> Details,
     decimal DownPayment,
     int InstallmentCount,
@@ -65,6 +71,8 @@ public sealed record SaleResponse(
     decimal Balance,
     string Status,
     string? Notes,
+    string CurrencyCode,
+    decimal? ExchangeRateToReporting,
     List<SaleDetailItem> Details,
     Guid? CreditId
 );
@@ -77,7 +85,8 @@ public sealed record SaleListResponse(
     string SaleType,
     decimal Total,
     decimal Balance,
-    string Status
+    string Status,
+    string CurrencyCode
 );
 
 public sealed record SaleFilterRequest(

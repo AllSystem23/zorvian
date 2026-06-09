@@ -3,6 +3,7 @@ using Zorvian.Application.DTOs.Commercial;
 using Zorvian.Application.DTOs.Common;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
+using Zorvian.Core.Enums;
 using Zorvian.Core.Interfaces;
 
 namespace Zorvian.Application.Services;
@@ -96,6 +97,16 @@ public sealed class QuoteService
         if (quote is null) return false;
 
         await _repo.DeleteAsync(quote);
+        await _repo.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> UpdateStatusAsync(Guid id, QuoteStatus status)
+    {
+        var quote = await _repo.GetByIdAsync(id);
+        if (quote is null) return false;
+
+        await _repo.UpdateStatusAsync(id, status);
         await _repo.SaveChangesAsync();
         return true;
     }

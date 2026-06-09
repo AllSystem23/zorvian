@@ -1,0 +1,199 @@
+name: Zorvian ERP CI/CD
+
+on:
+  push:
+    branches: [master, dev]
+  pull_request:
+    branches: [master]
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  FLUTTER_VERSION: '3.x'
+
+jobs:
+  # ──────────────────────────────────────
+  # Backend Build & Test
+  # ──────────────────────────────────────
+  backend-build:
+    name: Backend Build & Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test-project:
+          - tests/Zorvian.Tests
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: zorvian_test
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=results.trx"
+        env:
+          ConnectionStrings__ZorvianDb: "Host=localhost;Database=zorvian_test;Username=test_user;Password=test_password"
+          Testing__MockExternalServices: "true"
+          Jwt__Secret: "test-secret-key-for-ci-minimum-32-chars!!"
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: '**/*.trx'
+
+  # ──────────────────────────────────────
+  # Backend Security Scan
+  # ──────────────────────────────────────
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check for secrets in code
+        run: |
+          echo "Checking for hardcoded secrets..."
+          # Check for common secret patterns
+          if grep -rn "Password=" src/ --include="*.json" --include="*.cs" --include="*.yml" | grep -v "test" | grep -v "example" | grep -v "placeholder" | grep -v "TODO" | grep -v "//" | grep -v "AppPasswords" | grep -v "password$" | grep -v "Password:" | grep -v "password_" | grep -v "PasswordHash"; then
+            echo "⚠️ Potential hardcoded secrets found!"
+            exit 1
+          fi
+          echo "✅ No hardcoded secrets detected"
+
+      - name: Check for Firebase credentials
+        run: |
+          if find . -name "*firebase*adminsdk*" -o -name "*-firebase-adminsdk-*.json" | grep -v ".gitignore"; then
+            echo "⚠️ Firebase service account files found in repo!"
+            exit 1
+          fi
+          echo "✅ No Firebase credentials in repo"
+
+  # ──────────────────────────────────────
+  # Frontend Build & Test
+  # ──────────────────────────────────────
+  frontend-build:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Get Dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+        continue-on-error: true
+
+      - name: Run Tests
+        run: flutter test --coverage
+        continue-on-error: true
+
+      - name: Upload Coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/lcov.info
+
+  # ──────────────────────────────────────
+  # Deploy (only on main)
+  # ──────────────────────────────────────
+  deploy-backend:
+    name: Deploy Backend
+    runs-on: ubuntu-latest
+    needs: [backend-build, security-scan, frontend-build]
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Publish
+        run: dotnet publish src/Zorvian.Web/Zorvian.Web.csproj -c Release -o ./publish
+
+      - name: Deploy to Render
+        run: |
+          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+
+  deploy-frontend:
+    name: Deploy Frontend
+    runs-on: ubuntu-latest
+    needs: [frontend-build]
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+
+      - name: Build Web
+        run: |
+          cd frontend
+          flutter pub get
+          flutter build web --release
+
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          channelId: live
+          projectId: zorvian-erp

@@ -1,13 +1,107 @@
 {
   "@@locale": "en",
   "appTitle": "Zorvian ERP",
-  "login": "Login",
-  "email": "Email",
-  "password": "Password",
-  "welcome": "Welcome to Zorvian ERP",
-  "employees": "Employees",
-  "payroll": "Payroll",
-  "vacations": "Vacations",
-  "attendance": "Attendance",
-  "settings": "Settings"
+  "common_save": "Save",
+  "common_cancel": "Cancel",
+  "common_delete": "Delete",
+  "common_edit": "Edit",
+  "common_create": "Create",
+  "common_search": "Search",
+  "common_filter": "Filter",
+  "common_clear": "Clear",
+  "common_apply": "Apply",
+  "common_close": "Close",
+  "common_yes": "Yes",
+  "common_no": "No",
+  "common_confirm": "Confirm",
+  "common_loading": "Loading...",
+  "common_no_data": "No data available",
+  "common_error": "An error occurred",
+  "common_retry": "Retry",
+  "common_required_field": "This field is required",
+  "common_optional": "Optional",
+
+  "@@auth": {
+    "login_title": "Sign In",
+    "login_email": "Email",
+    "login_password": "Password",
+    "login_button": "Sign In",
+    "login_forgot_password": "Forgot password?",
+    "login_no_account": "Don't have an account?",
+    "login_sign_up": "Sign up",
+    "login_invalid_credentials": "Invalid email or password",
+    "login_session_expired": "Your session has expired. Please sign in again."
+  },
+
+  "@@navigation": {
+    "nav_dashboard": "Dashboard",
+    "nav_employees": "Employees",
+    "nav_payroll": "Payroll",
+    "nav_attendance": "Attendance",
+    "nav_vacations": "Vacations",
+    "nav_clients": "Clients",
+    "nav_sales": "Sales",
+    "nav_quotes": "Quotes",
+    "nav_products": "Products",
+    "nav_inventory": "Inventory",
+    "nav_purchases": "Purchases",
+    "nav_suppliers": "Suppliers",
+    "nav_credits": "Credits",
+    "nav_cash": "Cash",
+    "nav_accounting": "Accounting",
+    "nav_warranties": "Warranties",
+    "nav_reports": "Reports",
+    "nav_settings": "Settings",
+    "nav_audit": "Audit",
+    "nav_logout": "Sign out"
+  },
+
+  "@@employees": {
+    "employees_title": "Employees",
+    "employees_new": "New Employee",
+    "employees_first_name": "First Name",
+    "employees_last_name": "Last Name",
+    "employees_email": "Email",
+    "employees_phone": "Phone",
+    "employees_identification": "Identification",
+    "employees_position": "Position",
+    "employees_department": "Department",
+    "employees_hire_date": "Hire Date",
+    "employees_status": "Status",
+    "employees_salary": "Salary",
+    "employees_active": "Active",
+    "employees_inactive": "Inactive",
+    "employees_terminated": "Terminated"
+  },
+
+  "@@sales": {
+    "sales_title": "Sales",
+    "sales_new": "New Sale",
+    "sales_invoice": "Invoice",
+    "sales_client": "Client",
+    "sales_date": "Date",
+    "sales_total": "Total",
+    "sales_status": "Status",
+    "sales_paid": "Paid",
+    "sales_pending": "Pending",
+    "sales_cancelled": "Cancelled"
+  },
+
+  "@@errors": {
+    "error_network": "Network error. Check your connection.",
+    "error_unauthorized": "You are not authorized to perform this action.",
+    "error_not_found": "Resource not found.",
+    "error_server": "Server error. Please try again later.",
+    "error_validation": "Validation failed. Check the entered data.",
+    "error_session_expired": "Your session has expired."
+  },
+
+  "@@countries": {
+    "country_NI": "Nicaragua",
+    "country_CR": "Costa Rica",
+    "country_GT": "Guatemala",
+    "country_HN": "Honduras",
+    "country_SV": "El Salvador",
+    "country_PA": "Panama"
+  }
 }

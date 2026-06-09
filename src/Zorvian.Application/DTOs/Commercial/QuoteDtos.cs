@@ -1,3 +1,5 @@
+using Zorvian.Core.Enums;
+
 namespace Zorvian.Application.DTOs.Commercial;
 
 public sealed record QuoteDetailItem(
@@ -16,6 +18,8 @@ public sealed record CreateQuoteRequest(
     decimal Discount,
     string? Notes,
     Guid BranchId,
+    string? CurrencyCode,
+    decimal? ExchangeRateToReporting,
     List<QuoteDetailItem> Details
 );
 
@@ -32,8 +36,10 @@ public sealed record QuoteResponse(
     decimal Tax,
     decimal Discount,
     decimal Total,
-    string Status,
+    QuoteStatus Status,
     string? Notes,
+    string CurrencyCode,
+    decimal? ExchangeRateToReporting,
     List<QuoteDetailItem> Details
 );
 
@@ -49,10 +55,14 @@ public sealed record UpdateQuoteRequest(
 
 public sealed record QuoteFilterRequest(
     Guid? ClientId,
-    string? Status,
+    QuoteStatus? Status,
     DateTime? FromDate,
     DateTime? ToDate,
     string? Search,
     int? Page = 1,
     int? PageSize = 20
+);
+
+public sealed record UpdateStatusRequest(
+    QuoteStatus Status
 );

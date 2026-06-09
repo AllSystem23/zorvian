@@ -21,6 +21,8 @@ public sealed record CreditResponse(
     DateOnly? NextDueDate,
     string Status,
     string? Notes,
+    string CurrencyCode,
+    decimal? ExchangeRateToReporting,
     List<CreditInstallmentResponse> Installments
 );
 
@@ -33,7 +35,8 @@ public sealed record CreditListResponse(
     decimal PaidAmount,
     DateOnly StartDate,
     DateOnly EndDate,
-    string Status
+    string Status,
+    string CurrencyCode
 );
 
 public sealed record CreditInstallmentResponse(

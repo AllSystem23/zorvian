@@ -19,6 +19,8 @@ public sealed class Sale : BaseEntity
     public string? Notes { get; set; }
     public Guid CompanyId { get; set; }
     public Guid BranchId { get; set; }
+    public string CurrencyCode { get; set; } = "NIO";
+    public decimal? ExchangeRateToReporting { get; set; }
 
     public ICollection<SaleDetail> Details { get; set; } = [];
     public ICollection<SalePayment> Payments { get; set; } = [];

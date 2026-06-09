@@ -229,4 +229,63 @@ public class AutoAccountingServiceTests
         Assert.NotNull(captured);
         Assert.Contains(captured.Details, d => d.AccountId == expenseAccountId);
     }
+
+    [Fact]
+    public async Task GenerateSaleEntryAsync_ShouldUseRules_WhenDefined()
+    {
+        // ARRANGE
+        var saleId = Guid.NewGuid();
+        var companyId = Guid.NewGuid();
+        var tenant = new Mock<ITenantContext>();
+        tenant.Setup(t => t.TenantId).Returns(companyId.ToString());
+
+        var entryRepo = new Mock<IAccountingEntryRepository>();
+        var periodRepo = new Mock<IAccountingPeriodRepository>();
+        var linkRepo = new Mock<IAccountLinkRepository>();
+        var ruleRepo = new Mock<IAccountingRuleRepository>();
+        var accountRepo = new Mock<IAccountRepository>();
+        var payrollRepo = new Mock<IPayrollRepository>();
+        var cashRepo = new Mock<ICashMovementRepository>();
+
+        var rules = new List<AccountingRule>
+        {
+            new() { EventType = TransactionTypes.Sale, LineType = "Debit", AccountRole = "Cash", Formula = "Total", SortOrder = 1, CompanyId = companyId },
+            new() { EventType = TransactionTypes.Sale, LineType = "Credit", AccountRole = "SalesRevenue", Formula = "Subtotal", SortOrder = 2, CompanyId = companyId }
+        };
+
+        ruleRepo.Setup(r => r.GetByEventTypeAsync(TransactionTypes.Sale, companyId)).ReturnsAsync(rules);
+
+        var cashAccId = Guid.NewGuid();
+        var salesAccId = Guid.NewGuid();
+
+        linkRepo.Setup(r => r.GetByTransactionTypeAndRoleAsync(TransactionTypes.Sale, "Cash", companyId))
+            .ReturnsAsync(new AccountLink { AccountId = cashAccId });
+        linkRepo.Setup(r => r.GetByTransactionTypeAndRoleAsync(TransactionTypes.Sale, "SalesRevenue", companyId))
+            .ReturnsAsync(new AccountLink { AccountId = salesAccId });
+
+        periodRepo.Setup(r => r.GetCurrentOpenAsync(companyId)).ReturnsAsync(new AccountingPeriod { Id = Guid.NewGuid(), Status = "open" });
+
+        var sut = new AutoAccountingService(
+            entryRepo.Object, periodRepo.Object, linkRepo.Object, ruleRepo.Object,
+            accountRepo.Object, tenant.Object, payrollRepo.Object, cashRepo.Object);
+
+        var details = new List<SaleDetail>
+        {
+            new() { Subtotal = 100m, Discount = 0, Product = new Product { TaxCategory = new TaxCategory { Rate = 0.15m } } }
+        };
+
+        AccountingEntry? captured = null;
+        entryRepo.Setup(r => r.AddAsync(It.IsAny<AccountingEntry>()))
+            .Callback<AccountingEntry>(e => { captured = e; if (e.Id == Guid.Empty) e.Id = Guid.NewGuid(); })
+            .Returns(Task.CompletedTask);
+
+        // ACT
+        await sut.GenerateSaleEntryAsync(saleId, details, 0, 115m, "cash");
+
+        // ASSERT
+        Assert.NotNull(captured);
+        Assert.Equal(2, captured.Details.Count);
+        Assert.Contains(captured.Details, d => d.AccountId == cashAccId && d.DebitAmount == 115m); // Total: 100 + 15
+        Assert.Contains(captured.Details, d => d.AccountId == salesAccId && d.CreditAmount == 100m); // Subtotal
+    }
 }

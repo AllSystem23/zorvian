@@ -11,6 +11,7 @@ class ZTextField extends StatelessWidget {
   final int maxLines;
   final Widget? prefix;
   final Widget? suffix;
+  final ValueChanged<String>? onChanged;
 
   const ZTextField({
     super.key,
@@ -23,6 +24,7 @@ class ZTextField extends StatelessWidget {
     this.maxLines = 1,
     this.prefix,
     this.suffix,
+    this.onChanged,
   });
 
   @override
@@ -43,6 +45,7 @@ class ZTextField extends StatelessWidget {
           keyboardType: keyboardType,
           obscureText: obscureText,
           maxLines: maxLines,
+          onChanged: onChanged,
           decoration: InputDecoration(
             hintText: hint,
             prefixIcon: prefix != null ? Padding(padding: const EdgeInsets.only(left: ZSpacing.md, right: ZSpacing.sm), child: prefix) : null,

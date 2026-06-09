@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../auth/auth_provider.dart';
+import '../../../core/offline/product_repository.dart';
 
 final class ProductItem {
   final String id;
@@ -56,10 +56,9 @@ final class ProductNotifier extends Notifier<ProductState> {
   Future<void> load() async {
     state = state.copyWith(loading: true, error: null);
     try {
-      final dio = ref.read(dioClientProvider);
-      final r = await dio.get('products');
-      final data = r.data;
-      state = ProductState(items: (data['items'] as List).map((e) => ProductItem.fromJson(e)).toList());
+      final repo = ref.read(productRepositoryProvider);
+      final items = await repo.getAll();
+      state = ProductState(items: items);
     } catch (_) {
       state = state.copyWith(error: 'Error al cargar productos', loading: false);
     }

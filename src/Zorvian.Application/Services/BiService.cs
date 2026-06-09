@@ -1,8 +1,11 @@
 using Zorvian.Application.DTOs.Accounting;
 using Zorvian.Application.DTOs.Bi;
+using Zorvian.Application.DTOs.Common;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
+using Zorvian.Core.Enums;
 using Zorvian.Core.Interfaces;
+
 
 namespace Zorvian.Application.Services;
 
@@ -20,7 +23,9 @@ public sealed class BiService
     private readonly ISupplierRepository _supplierRepo;
     private readonly IQuoteRepository _quoteRepo;
     private readonly IDashboardRepository _dashRepo;
+    private readonly ICompanyRepository _companyRepo;
     private readonly ITenantContext _tenant;
+    private string? _companyCurrencyCache;
 
     public BiService(
         ISaleRepository saleRepo, IPurchaseRepository purchaseRepo,
@@ -29,27 +34,37 @@ public sealed class BiService
         IAccountingEntryRepository entryRepo, IAccountingPeriodRepository periodRepo,
         IClientRepository clientRepo, ISupplierRepository supplierRepo,
         IQuoteRepository quoteRepo, IDashboardRepository dashRepo,
-        ITenantContext tenant)
+        ICompanyRepository companyRepo, ITenantContext tenant)
     {
         _saleRepo = saleRepo; _purchaseRepo = purchaseRepo;
         _creditRepo = creditRepo; _productRepo = productRepo;
         _cashRepo = cashRepo; _accountRepo = accountRepo;
         _entryRepo = entryRepo; _periodRepo = periodRepo;
         _clientRepo = clientRepo; _supplierRepo = supplierRepo;
-        _quoteRepo = quoteRepo; _dashRepo = dashRepo; _tenant = tenant;
+        _quoteRepo = quoteRepo; _dashRepo = dashRepo;
+        _companyRepo = companyRepo; _tenant = tenant;
     }
 
     private Guid CompanyId =>
         Guid.TryParse(_tenant.TenantId, out var id) ? id : throw new InvalidOperationException("Invalid tenant");
     private Guid NullBranch => Guid.Empty;
 
+    private async Task<string> GetCompanyCurrencyAsync()
+    {
+        if (_companyCurrencyCache != null) return _companyCurrencyCache;
+        var company = await _companyRepo.GetByIdAsync(CompanyId);
+        _companyCurrencyCache = company?.Currency ?? "NIO";
+        return _companyCurrencyCache;
+    }
+
     public async Task<BiExecutiveResponse> GetExecutiveAsync()
     {
+        var cc = await GetCompanyCurrencyAsync();
         var todaySales = await _saleRepo.GetTodaySalesAsync(NullBranch);
         var yesterday = DateTime.UtcNow.Date.AddDays(-1);
         var yesterdaySales = await _saleRepo.GetFilteredAsync(
             null, null, null, yesterday, yesterday.AddDays(1), null, NullBranch, 1, int.MaxValue);
-        var yesterdayTotal = yesterdaySales.Sum(s => s.Total);
+        var yesterdayTotal = yesterdaySales.Sum(s => CurrencyConverter.ToReporting(s.Total, s.CurrencyCode, s.ExchangeRateToReporting, cc));
         var salesChange = yesterdayTotal > 0 ? (double)((todaySales - yesterdayTotal) / yesterdayTotal) * 100 : 0;
 
         var lastMonthSales = await _saleRepo.GetFilteredAsync(
@@ -57,7 +72,7 @@ public sealed class BiService
             new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1).AddMonths(-1),
             new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1),
             null, NullBranch, 1, int.MaxValue);
-        var lastMonthTotal = lastMonthSales.Sum(s => s.Total);
+        var lastMonthTotal = lastMonthSales.Sum(s => CurrencyConverter.ToReporting(s.Total, s.CurrencyCode, s.ExchangeRateToReporting, cc));
         var monthSales = await _saleRepo.GetMonthSalesAsync(NullBranch);
         var monthChange = lastMonthTotal > 0 ? (double)((monthSales - lastMonthTotal) / lastMonthTotal) * 100 : 0;
 
@@ -71,7 +86,7 @@ public sealed class BiService
             var day = weekStart.AddDays(i);
             var daySales = await _saleRepo.GetFilteredAsync(
                 null, null, null, day, day.AddDays(1), null, NullBranch, 1, int.MaxValue);
-            weekSales.Add(daySales.Sum(s => s.Total));
+            weekSales.Add(daySales.Sum(s => CurrencyConverter.ToReporting(s.Total, s.CurrencyCode, s.ExchangeRateToReporting, cc)));
         }
 
         var activeCredits = await _creditRepo.GetActiveCreditsCountAsync(NullBranch);
@@ -131,6 +146,7 @@ public sealed class BiService
 
     public async Task<BiSalesTrendResponse> GetSalesTrendAsync(int months = 12)
     {
+        var cc = await GetCompanyCurrencyAsync();
         var toDate = DateTime.UtcNow;
         var fromDate = toDate.AddMonths(-months);
         var sales = await _saleRepo.GetFilteredAsync(null, null, null, fromDate, toDate, null, NullBranch, 1, int.MaxValue);
@@ -139,8 +155,8 @@ public sealed class BiService
             .GroupBy(s => new { s.CreatedAt.Year, s.CreatedAt.Month })
             .Select(g => new BiMonthSales(
                 g.Key.Year, g.Key.Month,
-                g.Sum(s => s.Total), g.Count(),
-                g.Count() > 0 ? g.Sum(s => s.Total) / g.Count() : 0,
+                g.Sum(s => CurrencyConverter.ToReporting(s.Total, s.CurrencyCode, s.ExchangeRateToReporting, cc)), g.Count(),
+                g.Count() > 0 ? g.Sum(s => CurrencyConverter.ToReporting(s.Total, s.CurrencyCode, s.ExchangeRateToReporting, cc)) / g.Count() : 0,
                 0, 0))
             .OrderBy(m => m.Year).ThenBy(m => m.Month)
             .ToList();
@@ -169,7 +185,7 @@ public sealed class BiService
         from ??= DateTime.UtcNow.AddMonths(-3);
         to ??= DateTime.UtcNow;
         var quotes = await _quoteRepo.GetFilteredAsync(null, null, from, to, null, NullBranch, 1, int.MaxValue);
-        var converted = quotes.Where(q => q.Status == "approved").ToList();
+        var converted = quotes.Where(q => q.Status == QuoteStatus.Accepted).ToList();
         var total = quotes.Count;
         var rate = total > 0 ? (double)converted.Count / total * 100 : 0;
         var avgDays = converted.Any()
@@ -181,9 +197,10 @@ public sealed class BiService
 
     public async Task<BiArAgingResponse> GetArAgingAsync()
     {
+        var cc = await GetCompanyCurrencyAsync();
         var credits = await _creditRepo.GetFilteredAsync(null, null, null, NullBranch, 1, int.MaxValue);
         var openCredits = credits.Where(c => c.Status == "active" || c.Status == "overdue").ToList();
-        var totalPortfolio = openCredits.Sum(c => c.Balance);
+        var totalPortfolio = openCredits.Sum(c => CurrencyConverter.ToReporting(c.Balance, c.CurrencyCode, c.ExchangeRateToReporting, cc));
         var now = DateOnly.FromDateTime(DateTime.UtcNow);
 
         var current = 0m; var d30 = 0m; var d60 = 0m; var d90 = 0m; var d90p = 0m;
@@ -198,18 +215,20 @@ public sealed class BiService
 
             foreach (var inst in pendingInst)
             {
+                var amt = CurrencyConverter.ToReporting(inst.Amount, credit.CurrencyCode, credit.ExchangeRateToReporting, cc);
                 var daysOverdue = (now.ToDateTime(TimeOnly.MinValue) - inst.DueDate.ToDateTime(TimeOnly.MinValue)).Days;
-                if (daysOverdue <= 0) { cCur += inst.Amount; current += inst.Amount; }
-                else if (daysOverdue <= 30) { c30 += inst.Amount; d30 += inst.Amount; }
-                else if (daysOverdue <= 60) { c60 += inst.Amount; d60 += inst.Amount; }
-                else if (daysOverdue <= 90) { c90 += inst.Amount; d90 += inst.Amount; }
-                else { c90p += inst.Amount; d90p += inst.Amount; }
+                if (daysOverdue <= 0) { cCur += amt; current += amt; }
+                else if (daysOverdue <= 30) { c30 += amt; d30 += amt; }
+                else if (daysOverdue <= 60) { c60 += amt; d60 += amt; }
+                else if (daysOverdue <= 90) { c90 += amt; d90 += amt; }
+                else { c90p += amt; d90p += amt; }
             }
 
-            if (credit.Client != null && (cCur + c30 + c60 + c90 + c90p) > 0)
+            var clientTotal = cCur + c30 + c60 + c90 + c90p;
+            if (credit.Client != null && clientTotal > 0)
             {
                 byClient.Add(new BiClientAgingItem(
-                    $"{credit.Client.FirstName} {credit.Client.LastName}", cCur + c30 + c60 + c90 + c90p,
+                    $"{credit.Client.FirstName} {credit.Client.LastName}", clientTotal,
                     cCur, c30, c60, c90, c90p));
             }
         }
@@ -226,9 +245,10 @@ public sealed class BiService
 
     public async Task<BiApAgingResponse> GetApAgingAsync()
     {
+        var cc = await GetCompanyCurrencyAsync();
         var purchases = await _purchaseRepo.GetFilteredAsync(null, null, null, null, null, NullBranch, 1, int.MaxValue);
         var pending = purchases.Where(p => p.Status == "pending" || p.Status == "completed").ToList();
-        var totalPayable = pending.Sum(p => p.Balance);
+        var totalPayable = pending.Sum(p => CurrencyConverter.ToReporting(p.Balance, p.CurrencyCode, p.ExchangeRateToReporting, cc));
         var now = DateTime.UtcNow;
 
         var current = 0m; var d30 = 0m; var d60 = 0m; var d90 = 0m; var d90p = 0m;
@@ -236,22 +256,23 @@ public sealed class BiService
 
         foreach (var purchase in pending.Where(p => p.Balance > 0))
         {
-            if (purchase.DueDate == null) { current += purchase.Balance; continue; }
+            var bal = CurrencyConverter.ToReporting(purchase.Balance, purchase.CurrencyCode, purchase.ExchangeRateToReporting, cc);
+            if (purchase.DueDate == null) { current += bal; continue; }
             var due = purchase.DueDate.Value.ToDateTime(TimeOnly.MinValue);
             var daysOverdue = (now - due).Days;
 
             var sCur = 0m; var s30 = 0m; var s60 = 0m; var s90 = 0m; var s90p = 0m;
 
-            if (daysOverdue <= 0) { sCur = purchase.Balance; current += purchase.Balance; }
-            else if (daysOverdue <= 30) { s30 = purchase.Balance; d30 += purchase.Balance; }
-            else if (daysOverdue <= 60) { s60 = purchase.Balance; d60 += purchase.Balance; }
-            else if (daysOverdue <= 90) { s90 = purchase.Balance; d90 += purchase.Balance; }
-            else { s90p = purchase.Balance; d90p += purchase.Balance; }
+            if (daysOverdue <= 0) { sCur = bal; current += bal; }
+            else if (daysOverdue <= 30) { s30 = bal; d30 += bal; }
+            else if (daysOverdue <= 60) { s60 = bal; d60 += bal; }
+            else if (daysOverdue <= 90) { s90 = bal; d90 += bal; }
+            else { s90p = bal; d90p += bal; }
 
             if (purchase.Supplier != null)
             {
                 bySupplier.Add(new BiSupplierAgingItem(
-                    purchase.Supplier.Name, purchase.Balance, sCur, s30, s60, s90, s90p));
+                    purchase.Supplier.Name, bal, sCur, s30, s60, s90, s90p));
             }
         }
 

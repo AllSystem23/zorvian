@@ -9,11 +9,13 @@ public sealed class CompanyService
 {
     private readonly ICompanyRepository _repo;
     private readonly ITenantContext _tenant;
+    private readonly IFiscalService _fiscalService;
 
-    public CompanyService(ICompanyRepository repo, ITenantContext tenant)
+    public CompanyService(ICompanyRepository repo, ITenantContext tenant, IFiscalService fiscalService)
     {
         _repo = repo;
         _tenant = tenant;
+        _fiscalService = fiscalService;
     }
 
     public async Task<CompanyResponse> CreateAsync(CreateCompanyRequest request)
@@ -50,6 +52,10 @@ public sealed class CompanyService
         await _repo.AddSettingsAsync(settings);
         await _repo.SaveChangesAsync();
 
+        // Setup default taxes based on country
+        var countryCode = MapCountryToCode(request.Country);
+        await _fiscalService.SetupDefaultTaxesAsync(company.Id, countryCode);
+
         return new CompanyResponse(
             company.Id,
             company.Name,
@@ -63,6 +69,17 @@ public sealed class CompanyService
             company.Timezone,
             company.MaxEmployees
         );
+    }
+
+    private static string MapCountryToCode(string country)
+    {
+        return country.ToLower() switch
+        {
+            "nicaragua" => "NIC",
+            "costa rica" => "CRI",
+            "panamá" or "panama" => "PAN",
+            _ => "NIC" // Default to NIC
+        };
     }
 
     public async Task<CompanyResponse?> GetCurrentAsync()

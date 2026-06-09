@@ -119,6 +119,16 @@ final class QuoteNotifier extends Notifier<QuoteState> {
       state = state.copyWith(error: 'Error al cargar cotizaciones', loading: false);
     }
   }
+
+  Future<void> updateStatus(String quoteId, String newStatus) async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      await dio.patch('quotes/$quoteId/status', data: {'status': newStatus});
+      await load();
+    } catch (e) {
+      // Handle error
+    }
+  }
 }
 
 final quoteProvider = NotifierProvider<QuoteNotifier, QuoteState>(QuoteNotifier.new);

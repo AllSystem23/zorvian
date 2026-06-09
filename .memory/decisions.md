@@ -1,26 +1,35 @@
-# Decisions
+# Decisiones Técnicas
 
-## 2026-06-07 SalesPrediction ML.NET pattern sigue Absenteeism
+## 2026-06-09 RLS + Query Filters para multi-tenancy
 
-**Contexto:** Necesitábamos un servicio de predicción de ventas; existía ya `AbsenteeismPredictionService` como referencia.
+**Contexto:** La auditoría recomendó implementar RLS en PostgreSQL para aislar datos entre tenants.
 
-**Decisión:** Seguir el mismo patrón:
-- Infrastructure: `SalesPredictionService` (FastTreeRegression, 8 features)
-- Web: `SalesPredictionController` (endpoints next-week, next-month, monthly-total)
-- Web: `SalesPredictionTrainingJob` (Hangfire recurrente)
+**Decisión:** Implementar ambos: `HasQueryFilter` en EF Core (filtro a nivel aplicación) + `TenantSessionInterceptor` + script RLS (filtro a nivel base de datos).
 
-**Razón:** Consistencia arquitectónica, menor riesgo, patrón probado.
+**Razón:** Defensa en profundidad — si un query evade el filtro de EF Core, RLS en PostgreSQL lo bloquea.
 
-**Consecuencias:** Fácil de mantener; ambos modelos comparten paradigma ML.NET.
+**Consecuencias:** El interceptor `TenantSessionInterceptor` ejecuta `SET app.tenant_id = '{tenant}'` al abrir cada conexión. El script `RLS_Enable.sql` habilita RLS en tablas con columna TenantId.
 
----
+## 2026-06-09 Mantener drift/web.dart con ignore
 
-## 2026-06-07 ZSkipLink implementado con altura 1→44px on focus
+**Contexto:** `flutter analyze` marcaba como deprecado `drift/web.dart` (reemplazo: `drift/wasm.dart`).
 
-**Contexto:** Necesitábamos skip link accesible visible solo al hacer Tab.
+**Decisión:** Mantener `drift/web.dart` con `// ignore_for_file: deprecated_member_use`.
 
-**Decisión:** Skip link ocupa 1px normalmente, al enfocarse crece a 44px (tap target mínimo WCAG).
+**Razón:** `WasmDatabase` requiere sql.js wasm + setup complejo para web. La migración no es drop-in replacement.
 
-**Razón:** No ocupa espacio visual pero es funcional para teclado.
+## 2026-06-09 Package:nexora como prefijo de imports
 
-**Consecuencias:** Cumple WCAG 2.2 AA 2.4.1 Bypass Blocks.
+**Contexto:** Había imports relativos rotos que referenciaban archivos inexistentes.
+
+**Decisión:** Usar `package:nexora/...` como prefijo consistente en lugar de rutas relativas.
+
+**Razón:** Elimina errores de resolución al mover archivos y es el estándar de Dart.
+
+## 2026-06-09 DioClient expone métodos directamente
+
+**Contexto:** El provider `dioClientProvider` devuelve `DioClient`, y algunos componentes intentaban acceder a `.dio` (getter inexistente).
+
+**Decisión:** `DioClient` expone `get/post/put/delete` directamente, sin getter `.dio`.
+
+**Razón:** Es un wrapper que centraliza headers, interceptors y manejo de errores. No hay razón para exponer el `Dio` interno.

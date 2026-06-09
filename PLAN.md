@@ -221,11 +221,11 @@
 
 | # | Tarea | Área | Prioridad | Est. | Depende |
 |---|---|---|---|---|---|
-| 7.1 | Entidad `CustomReport` (Name, Fields[], Filters[], GroupBy) | Backend | 🟡 Alta | 4h | — |
-| 7.2 | Motor de consultas dinámicas para reportes personalizados | Backend | 🟡 Alta | 8h | 7.1 |
-| 7.3 | Export PDF/Excel desde constructor | Backend | 🟡 Alta | 4h | 7.2 |
-| 7.4 | UI: Report Builder drag-and-drop | Frontend | 🟡 Alta | 2 sem | 7.2 |
-| 7.5 | Reportes guardados por usuario/rol | Ambos | 🟡 Media | 2d | 7.4 |
+| [x] 7.1 | Entidad `CustomReport` (Name, Fields[], Filters[], GroupBy) | Backend | 🟡 Alta | 4h | — |
+| [x] 7.2 | Motor de consultas dinámicas para reportes personalizados | Backend | 🟡 Alta | 8h | 7.1 |
+| [x] 7.3 | Export PDF/Excel desde constructor | Backend | 🟡 Alta | 4h | 7.2 |
+| [x] 7.4 | UI: Report Builder drag-and-drop | Frontend | 🟡 Alta | 2 sem | 7.2 |
+| [x] 7.5 | Reportes guardados por usuario/rol | Ambos | 🟡 Media | 2d | 7.4 |
 
 ---
 
@@ -235,15 +235,15 @@
 
 | # | Tarea | Área | Prioridad | Est. | Depende |
 |---|---|---|---|---|---|
-| 8.1.1 | Drift/Isar para caché local | Frontend | 🟡 Media | 3 sem | — |
-| 8.1.2 | Sincronización bidireccional con backend | Ambos | 🟡 Media | 3 sem | 8.1.1 |
+| [x] 8.1.1 | Drift para caché local (products + mutations + sync state) | Frontend | 🟡 Media | 3 sem | — |
+| [x] 8.1.2 | Sincronización bidireccional con backend (SyncJournal, SyncEngine) | Ambos | 🟡 Media | 3 sem | 8.1.1 |
 
 ### 8.2 API Pública + Webhooks
 
 | # | Tarea | Área | Prioridad | Est. | Depende |
 |---|---|---|---|---|---|
-| 8.2.1 | Documentación OpenAPI completa | Backend | 🟡 Alta | 1 sem | — |
-| 8.2.2 | Webhooks con firma HMAC y reintentos | Backend | 🟡 Media | 2 sem | — |
+| [x] 8.2.1 | Documentación OpenAPI completa | Backend | 🟡 Alta | 1 sem | — |
+| [x] 8.2.2 | Webhooks con firma HMAC y reintentos | Backend | 🟡 Media | 2 sem | — |
 
 ---
 
@@ -257,8 +257,8 @@
 | F4 | UX/UI + Design System | 9-12 | 🔴 CRÍTICA ← EN CURSO |
 | F5 | Inteligencia Artificial | 13-15 | 🟡 MEDIA |
 | F6 | Multimoneda + Multi-idioma | 16-17 | 🟡 ALTA |
-| F7 | Constructor de Reportes | 18-19 | 🟡 ALTA |
-| F8 | Core Avanzado | 20-22 | 🟡 MEDIA |
+| F7 | Constructor de Reportes | 18-19 | 🟡 ALTA ✅ |
+| F8 | Core Avanzado | 20-22 | 🟡 MEDIA ✅ |
 
 ---
 
@@ -273,6 +273,7 @@
 | 2026-06-01 | Arquitectura Módulos | Entity/repo/service/controller | MediatR/CQRS puro |
 | 2026-06-01 | Multisucursal | BranchId en todas las entidades operativas | Schema por sucursal |
 | 2026-06-07 | Plan Maestro | Fases priorizadas por impacto vs Master Prompt | — |
+| 2026-06-08 | Offline-First | Drift (SQLite local) + connectivity_plus + SyncEngine vía SyncJournal | Isar (menos maduro, code gen diferente) |
 
 ---
 

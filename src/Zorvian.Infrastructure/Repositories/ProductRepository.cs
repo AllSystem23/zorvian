@@ -19,6 +19,7 @@ public sealed class ProductRepository : IProductRepository
             .Include(p => p.Category)
             .Include(p => p.Brand)
             .Include(p => p.Supplier)
+            .Include(p => p.TaxCategory)
             .FirstOrDefaultAsync(p => p.Id == id);
 
     public async Task<Product?> GetByCodeAsync(string code, Guid branchId) =>
@@ -26,6 +27,7 @@ public sealed class ProductRepository : IProductRepository
             .Include(p => p.Category)
             .Include(p => p.Brand)
             .Include(p => p.Supplier)
+            .Include(p => p.TaxCategory)
             .FirstOrDefaultAsync(p => p.Code == code && p.BranchId == branchId);
 
     public async Task<List<Product>> GetFilteredAsync(string? search, Guid? categoryId, Guid? brandId, bool? lowStock, bool? isActive, Guid branchId, int page, int pageSize)
@@ -34,6 +36,7 @@ public sealed class ProductRepository : IProductRepository
             .Include(p => p.Category)
             .Include(p => p.Brand)
             .Include(p => p.Supplier)
+            .Include(p => p.TaxCategory)
             .Where(p => p.BranchId == branchId)
             .AsQueryable();
 

@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
     <RootNamespace>Zorvian.Core</RootNamespace>
     <AssemblyName>Zorvian.Core</AssemblyName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
 </Project>

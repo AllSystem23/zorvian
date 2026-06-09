@@ -12,7 +12,9 @@ public sealed class FinancialReportService
     private readonly IAccountRepository _accountRepo;
     private readonly ICostCenterRepository _costCenterRepo;
     private readonly IBudgetRepository _budgetRepo;
+    private readonly ICompanyRepository _companyRepo;
     private readonly ITenantContext _tenant;
+    private string? _companyCurrencyCache;
 
     public FinancialReportService(
         IAccountingEntryRepository entryRepo,
@@ -20,26 +22,45 @@ public sealed class FinancialReportService
         IAccountRepository accountRepo,
         ICostCenterRepository costCenterRepo,
         IBudgetRepository budgetRepo,
+        ICompanyRepository companyRepo,
         ITenantContext tenant)
     {
         _entryRepo = entryRepo; _periodRepo = periodRepo;
         _accountRepo = accountRepo; _costCenterRepo = costCenterRepo;
         _budgetRepo = budgetRepo;
+        _companyRepo = companyRepo;
         _tenant = tenant;
     }
 
     private Guid CompanyId => Guid.TryParse(_tenant.TenantId, out var id) ? id : throw new InvalidOperationException("Invalid tenant");
 
+    private async Task<string> GetCompanyCurrencyAsync()
+    {
+        if (_companyCurrencyCache != null) return _companyCurrencyCache;
+        var company = await _companyRepo.GetByIdAsync(CompanyId);
+        _companyCurrencyCache = company?.Currency ?? "NIO";
+        return _companyCurrencyCache;
+    }
+
+    private static decimal Convert(decimal amount, AccountingEntry entry, string cc) =>
+        CurrencyConverter.ToReporting(amount, entry.CurrencyCode, entry.ExchangeRateToReporting, cc);
+
+    private static decimal ConvertSum(IEnumerable<AccountingEntryDetail> details, IReadOnlyDictionary<Guid, AccountingEntry> entryMap, Func<AccountingEntryDetail, decimal> selector, string cc) =>
+        details.Sum(d => Convert(selector(d), entryMap[d.AccountingEntryId], cc));
+
     public async Task<TrialBalanceResponse> GetTrialBalanceAsync(Guid periodId)
     {
+        var cc = await GetCompanyCurrencyAsync();
         var period = await _periodRepo.GetByIdAsync(periodId)
             ?? throw new InvalidOperationException("Period not found");
         if (period.CompanyId != CompanyId)
             throw new InvalidOperationException("Period not found for this company");
 
         var posted = await _entryRepo.GetFilteredAsync(periodId, null, "posted", null, null, CompanyId, 1, int.MaxValue);
-        var allEntries = await Task.WhenAll(posted.Select(async e => await _entryRepo.GetByIdAsync(e.Id)));
-        var details = allEntries.Where(e => e != null).SelectMany(e => e!.Details).ToList();
+        var allEntries = (await Task.WhenAll(posted.Select(async e => await _entryRepo.GetByIdAsync(e.Id))))
+            .Where(e => e != null).Cast<AccountingEntry>().ToList();
+        var entryMap = allEntries.ToDictionary(e => e.Id);
+        var details = allEntries.SelectMany(e => e.Details).ToList();
 
         var accounts = await _accountRepo.GetAllAsync(CompanyId);
         var leafAccounts = accounts.Where(a => a.Level >= 2 && a.IsActive).ToList();
@@ -47,8 +68,8 @@ public sealed class FinancialReportService
         var items = leafAccounts.Select(a =>
         {
             var relatedDetails = details.Where(d => d.AccountId == a.Id).ToList();
-            var debitMovements = relatedDetails.Sum(d => d.DebitAmount);
-            var creditMovements = relatedDetails.Sum(d => d.CreditAmount);
+            var debitMovements = ConvertSum(relatedDetails, entryMap, d => d.DebitAmount, cc);
+            var creditMovements = ConvertSum(relatedDetails, entryMap, d => d.CreditAmount, cc);
             var openingBalance = a.OpeningBalance;
             var endingBalance = a.NormalSide == "Debit"
                 ? openingBalance + debitMovements - creditMovements
@@ -118,14 +139,14 @@ public sealed class FinancialReportService
 
     public async Task<GeneralLedgerResponse> GetGeneralLedgerAsync(Guid accountId, DateTime? fromDate, DateTime? toDate)
     {
+        var cc = await GetCompanyCurrencyAsync();
         var account = await _accountRepo.GetByIdAsync(accountId)
             ?? throw new InvalidOperationException("Account not found");
 
         var posted = await _entryRepo.GetFilteredAsync(null, null, "posted", fromDate, toDate, CompanyId, 1, int.MaxValue);
-        var allEntries = await Task.WhenAll(posted.Select(async e => await _entryRepo.GetByIdAsync(e.Id)));
-        var relevant = allEntries
-            .Where(e => e != null && e.Details.Any(d => d.AccountId == accountId))
-            .OrderBy(e => e!.EntryDate)
+        var allEntries = (await Task.WhenAll(posted.Select(async e => await _entryRepo.GetByIdAsync(e.Id))))
+            .Where(e => e != null).Cast<AccountingEntry>()
+            .OrderBy(e => e.EntryDate)
             .ToList();
 
         var openingBalance = account.OpeningBalance;
@@ -133,14 +154,16 @@ public sealed class FinancialReportService
         var isDebitNormal = account.NormalSide == "Debit";
 
         var items = new List<GeneralLedgerItem>();
-        foreach (var entry in relevant)
+        foreach (var entry in allEntries.Where(e => e.Details.Any(d => d.AccountId == accountId)))
         {
-            var detail = entry!.Details.First(d => d.AccountId == accountId);
-            runningBalance += isDebitNormal ? detail.DebitAmount - detail.CreditAmount : detail.CreditAmount - detail.DebitAmount;
+            var detail = entry.Details.First(d => d.AccountId == accountId);
+            var debit = Convert(detail.DebitAmount, entry, cc);
+            var credit = Convert(detail.CreditAmount, entry, cc);
+            runningBalance += isDebitNormal ? debit - credit : credit - debit;
 
             items.Add(new GeneralLedgerItem(
                 entry.EntryDate, entry.EntryNumber, entry.Description, entry.ReferenceType,
-                detail.DebitAmount, detail.CreditAmount, runningBalance
+                debit, credit, runningBalance
             ));
         }
 
@@ -153,11 +176,13 @@ public sealed class FinancialReportService
 
     public async Task<CostCenterExpenseReport> GetCostCenterExpenseReportAsync(Guid costCenterId, DateTime? fromDate, DateTime? toDate)
     {
+        var cc = await GetCompanyCurrencyAsync();
         var posted = await _entryRepo.GetFilteredAsync(null, null, "posted", fromDate, toDate, CompanyId, 1, int.MaxValue);
-        var allEntries = await Task.WhenAll(posted.Select(async e => await _entryRepo.GetByIdAsync(e.Id)));
+        var allEntries = (await Task.WhenAll(posted.Select(async e => await _entryRepo.GetByIdAsync(e.Id))))
+            .Where(e => e != null).Cast<AccountingEntry>().ToList();
+        var entryMap = allEntries.ToDictionary(e => e.Id);
         var relevantDetails = allEntries
-            .Where(e => e != null)
-            .SelectMany(e => e!.Details)
+            .SelectMany(e => e.Details)
             .Where(d => d.CostCenterId == costCenterId)
             .ToList();
 
@@ -171,8 +196,8 @@ public sealed class FinancialReportService
         var items = expenseAccounts.Select(a =>
         {
             var accountDetails = relevantDetails.Where(d => d.AccountId == a.Id).ToList();
-            var debit = accountDetails.Sum(d => d.DebitAmount);
-            var credit = accountDetails.Sum(d => d.CreditAmount);
+            var debit = ConvertSum(accountDetails, entryMap, d => d.DebitAmount, cc);
+            var credit = ConvertSum(accountDetails, entryMap, d => d.CreditAmount, cc);
             var balance = a.NormalSide == "Debit" ? debit - credit : credit - debit;
             return new CostCenterExpenseItem(a.Code, a.Name, debit, credit, balance);
         }).Where(i => i.Balance != 0).ToList();
@@ -189,13 +214,16 @@ public sealed class FinancialReportService
 
     public async Task<BudgetVsActualReport> GetBudgetVsActualAsync(int year, int month)
     {
+        var cc = await GetCompanyCurrencyAsync();
         var fromDate = new DateTime(year, month, 1);
         var toDate = fromDate.AddMonths(1).AddDays(-1);
 
         var budgets = await _budgetRepo.GetByPeriodAsync(year, month, CompanyId);
         var posted = await _entryRepo.GetFilteredAsync(null, null, "posted", fromDate, toDate, CompanyId, 1, int.MaxValue);
-        var allEntries = await Task.WhenAll(posted.Select(async e => await _entryRepo.GetByIdAsync(e.Id)));
-        var details = allEntries.Where(e => e != null).SelectMany(e => e!.Details).ToList();
+        var allEntries = (await Task.WhenAll(posted.Select(async e => await _entryRepo.GetByIdAsync(e.Id))))
+            .Where(e => e != null).Cast<AccountingEntry>().ToList();
+        var entryMap = allEntries.ToDictionary(e => e.Id);
+        var details = allEntries.SelectMany(e => e.Details).ToList();
 
         var accounts = await _accountRepo.GetAllAsync(CompanyId);
         var accountLookup = accounts.ToDictionary(a => a.Id);
@@ -204,8 +232,8 @@ public sealed class FinancialReportService
         {
             var accountDetails = details.Where(d => d.AccountId == b.AccountId
                 && (!b.CostCenterId.HasValue || d.CostCenterId == b.CostCenterId)).ToList();
-            var debit = accountDetails.Sum(d => d.DebitAmount);
-            var credit = accountDetails.Sum(d => d.CreditAmount);
+            var debit = ConvertSum(accountDetails, entryMap, d => d.DebitAmount, cc);
+            var credit = ConvertSum(accountDetails, entryMap, d => d.CreditAmount, cc);
             var normalSide = accountLookup.TryGetValue(b.AccountId, out var acc) ? acc.NormalSide : "Debit";
             var actual = normalSide == "Debit" ? debit - credit : credit - debit;
             var variance = actual - b.BudgetedAmount;

@@ -517,7 +517,8 @@ stateDiagram-v2
 | approval_chain | json | Configuración de flujos de aprobación |
 | working_hours | json | Horario laboral por defecto |
 | timezone | string | Zona horaria de la empresa |
-| currency | string | Moneda local |
+| currency | string | Moneda local (NIO, USD, GTQ, HNL, CRC, SVC, PAB) |
+| country | string | País (NI, CR, GT, HN, SV, PA) |
 | date_format | string | Formato de fecha regional |
 
 ---
@@ -684,6 +685,7 @@ flowchart TD
 | Guatemala | 15 días | 84 días | 2 días |
 | Honduras | 20 días (crece) | 12 semanas | 5 días |
 | El Salvador | 15 días | 12 semanas | 5 días |
+| Panamá | 15 días (crece c/5 años) | 14 semanas (100% salario) | 3 días hábiles |
 
 ---
 

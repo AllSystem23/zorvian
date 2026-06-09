@@ -1,3 +1,5 @@
+using Zorvian.Core.Enums;
+
 namespace Zorvian.Core.Entities;
 
 public sealed class Quote : BaseEntity
@@ -13,10 +15,12 @@ public sealed class Quote : BaseEntity
     public decimal Tax { get; set; }
     public decimal Discount { get; set; }
     public decimal Total { get; set; }
-    public string Status { get; set; } = "pending";
+    public QuoteStatus Status { get; set; } = QuoteStatus.Pending;
     public string? Notes { get; set; }
     public Guid CompanyId { get; set; }
     public Guid BranchId { get; set; }
+    public string CurrencyCode { get; set; } = "NIO";
+    public decimal? ExchangeRateToReporting { get; set; }
 
     public ICollection<QuoteDetail> Details { get; set; } = [];
 }

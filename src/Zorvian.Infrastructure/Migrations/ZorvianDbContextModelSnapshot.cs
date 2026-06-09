@@ -36,6 +36,9 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("CostCenterId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -94,6 +97,8 @@ namespace Zorvian.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CostCenterId");
 
                     b.HasIndex("ParentId");
 
@@ -173,12 +178,20 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("CostCenterId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CreatedBy")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
 
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
@@ -195,6 +208,9 @@ namespace Zorvian.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<decimal?>("ExchangeRateToReporting")
+                        .HasColumnType("decimal(18,6)");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
@@ -238,6 +254,8 @@ namespace Zorvian.Infrastructure.Migrations
 
                     b.HasIndex("AccountingPeriodId");
 
+                    b.HasIndex("CostCenterId");
+
                     b.HasIndex("EntryDate");
 
                     b.HasIndex("EntryNumber")
@@ -259,6 +277,9 @@ namespace Zorvian.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CostCenterId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
@@ -299,6 +320,8 @@ namespace Zorvian.Infrastructure.Migrations
                     b.HasIndex("AccountId");
 
                     b.HasIndex("AccountingEntryId");
+
+                    b.HasIndex("CostCenterId");
 
                     b.ToTable("AccountingEntryDetails");
                 });
@@ -555,6 +578,255 @@ namespace Zorvian.Infrastructure.Migrations
                     b.HasIndex("RequestId", "RequestType");
 
                     b.ToTable("ApprovalFlows");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.ApprovalFlowConfig", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Module")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Module", "EventType", "CompanyId")
+                        .IsUnique();
+
+                    b.ToTable("ApprovalFlowConfigs");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.ApprovalFlowStep", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ApprovalFlowConfigId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ApproverRole")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal?>("MaxAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("MinAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("StepOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovalFlowConfigId");
+
+                    b.ToTable("ApprovalFlowSteps");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.ApprovalRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("CurrentStep")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Module")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("ReferenceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RequestedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("TotalSteps")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ApprovalRequests");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.ApprovalRequestAction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ActedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ActedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("ApprovalRequestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("StepOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovalRequestId");
+
+                    b.ToTable("ApprovalRequestActions");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.AssetDisposal", b =>
@@ -1219,6 +1491,121 @@ namespace Zorvian.Infrastructure.Migrations
                     b.ToTable("Brands");
                 });
 
+            modelBuilder.Entity("Zorvian.Core.Entities.Budget", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("BudgetedAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CostCenterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("CostCenterId");
+
+                    b.HasIndex("Year", "Month", "AccountId", "CostCenterId", "CompanyId")
+                        .IsUnique();
+
+                    b.ToTable("Budgets");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.CashArqueoDenomination", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ArqueoId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DenominationType")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<decimal>("DenominationValue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ArqueoId");
+
+                    b.ToTable("CashArqueoDenominations");
+                });
+
             modelBuilder.Entity("Zorvian.Core.Entities.CashMovement", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1383,6 +1770,70 @@ namespace Zorvian.Infrastructure.Migrations
                     b.HasIndex("BranchId", "Status");
 
                     b.ToTable("CashRegisters");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.CashRegisterArqueo", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CashRegisterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("CountedTotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("Difference")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("ExpectedBalance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CashRegisterId")
+                        .IsUnique();
+
+                    b.HasIndex("EmployeeId");
+
+                    b.ToTable("CashRegisterArqueos");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.Category", b =>
@@ -1852,6 +2303,63 @@ namespace Zorvian.Infrastructure.Migrations
                     b.ToTable("CompanySettings");
                 });
 
+            modelBuilder.Entity("Zorvian.Core.Entities.CostCenter", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code", "CompanyId")
+                        .IsUnique();
+
+                    b.ToTable("CostCenters");
+                });
+
             modelBuilder.Entity("Zorvian.Core.Entities.CountryTaxConfig", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1974,6 +2482,11 @@ namespace Zorvian.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1982,6 +2495,9 @@ namespace Zorvian.Infrastructure.Migrations
 
                     b.Property<DateOnly>("EndDate")
                         .HasColumnType("date");
+
+                    b.Property<decimal?>("ExchangeRateToReporting")
+                        .HasColumnType("decimal(18,6)");
 
                     b.Property<decimal>("FinancedAmount")
                         .HasColumnType("decimal(18,2)");
@@ -2122,6 +2638,146 @@ namespace Zorvian.Infrastructure.Migrations
                     b.ToTable("CreditInstallments");
                 });
 
+            modelBuilder.Entity("Zorvian.Core.Entities.CreditNote", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CreditNoteNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("IssueDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("SaleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("Tax")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Total")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreditNoteNumber")
+                        .IsUnique();
+
+                    b.HasIndex("SaleId");
+
+                    b.ToTable("CreditNotes");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.CreditNoteDetail", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CreditNoteId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Subtotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("Tax")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Total")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreditNoteId");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("CreditNoteDetails");
+                });
+
             modelBuilder.Entity("Zorvian.Core.Entities.CreditPayment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2199,6 +2855,169 @@ namespace Zorvian.Infrastructure.Migrations
                     b.HasIndex("EmployeeId");
 
                     b.ToTable("CreditPayments");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.CreditRefinancing", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CreditId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateOnly>("NewEndDate")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("NewFinancedAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("NewInstallmentAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("NewInstallmentCount")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("NewInterestAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("NewInterestRate")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<DateOnly>("NewStartDate")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("NewTotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("PreviousBalance")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("PreviousInstallmentAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("PreviousInstallmentCount")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("PreviousInterestRate")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreditId");
+
+                    b.ToTable("CreditRefinancings");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.CustomReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("FieldsJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("FiltersJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("GroupByField")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Module")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("SortByField")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SortOrder")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Module", "CompanyId");
+
+                    b.ToTable("CustomReports");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.DeductionType", b =>
@@ -3020,6 +3839,61 @@ namespace Zorvian.Infrastructure.Migrations
                     b.HasIndex("EntityType", "EntityId", "CreatedAt");
 
                     b.ToTable("EntityHistories");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.ExchangeRate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("EffectiveDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FromCurrency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("Rate")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ToCurrency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FromCurrency", "ToCurrency", "EffectiveDate");
+
+                    b.ToTable("ExchangeRates");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.FixedAsset", b =>
@@ -4623,6 +5497,11 @@ namespace Zorvian.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -4631,6 +5510,9 @@ namespace Zorvian.Infrastructure.Migrations
 
                     b.Property<DateOnly?>("DueDate")
                         .HasColumnType("date");
+
+                    b.Property<decimal?>("ExchangeRateToReporting")
+                        .HasColumnType("decimal(18,6)");
 
                     b.Property<string>("InvoiceReference")
                         .HasMaxLength(100)
@@ -4785,6 +5667,11 @@ namespace Zorvian.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -4793,6 +5680,9 @@ namespace Zorvian.Infrastructure.Migrations
 
                     b.Property<Guid?>("EmployeeId")
                         .HasColumnType("uuid");
+
+                    b.Property<decimal?>("ExchangeRateToReporting")
+                        .HasColumnType("decimal(18,6)");
 
                     b.Property<DateOnly?>("ExpirationDate")
                         .HasColumnType("date");
@@ -5142,6 +6032,11 @@ namespace Zorvian.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -5150,6 +6045,9 @@ namespace Zorvian.Infrastructure.Migrations
 
                     b.Property<Guid>("EmployeeId")
                         .HasColumnType("uuid");
+
+                    b.Property<decimal?>("ExchangeRateToReporting")
+                        .HasColumnType("decimal(18,6)");
 
                     b.Property<string>("InvoiceNumber")
                         .IsRequired()
@@ -5751,6 +6649,58 @@ namespace Zorvian.Infrastructure.Migrations
                     b.ToTable("SupplierPayments");
                 });
 
+            modelBuilder.Entity("Zorvian.Core.Entities.SyncJournal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EntityId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("EntityName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Operation")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PayloadJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SyncJournals");
+                });
+
             modelBuilder.Entity("Zorvian.Core.Entities.TaxCategory", b =>
                 {
                     b.Property<Guid>("Id")
@@ -6178,6 +7128,15 @@ namespace Zorvian.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<DateTime?>("SlaBreachedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("SlaDueAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("SlaHours")
+                        .HasColumnType("integer");
+
                     b.Property<DateOnly>("StartDate")
                         .HasColumnType("date");
 
@@ -6378,6 +7337,9 @@ namespace Zorvian.Infrastructure.Migrations
 
                     b.Property<DateOnly?>("ResolutionDate")
                         .HasColumnType("date");
+
+                    b.Property<string>("ResolutionType")
+                        .HasColumnType("text");
 
                     b.Property<DateTime?>("SlaBreachedAt")
                         .HasColumnType("timestamp with time zone");
@@ -7128,6 +8090,78 @@ namespace Zorvian.Infrastructure.Migrations
                     b.ToTable("WarrantyStateHistories");
                 });
 
+            modelBuilder.Entity("Zorvian.Core.Entities.WebhookDeliveryLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Attempt")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("ExecutedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("HttpStatusCode")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("MaxRetries")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("NextRetryAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PayloadJson")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("SubscriptionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Success")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("TargetUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("WebhookDeliveryLogs");
+                });
+
             modelBuilder.Entity("Zorvian.Core.Entities.WebhookSubscription", b =>
                 {
                     b.Property<Guid>("Id")
@@ -7158,6 +8192,12 @@ namespace Zorvian.Infrastructure.Migrations
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
+
+                    b.Property<int>("MaxRetries")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("RetryIntervalSeconds")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Secret")
                         .IsRequired()
@@ -7352,10 +8392,17 @@ namespace Zorvian.Infrastructure.Migrations
 
             modelBuilder.Entity("Zorvian.Core.Entities.Account", b =>
                 {
+                    b.HasOne("Zorvian.Core.Entities.CostCenter", "CostCenter")
+                        .WithMany()
+                        .HasForeignKey("CostCenterId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Zorvian.Core.Entities.Account", "Parent")
                         .WithMany("Children")
                         .HasForeignKey("ParentId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CostCenter");
 
                     b.Navigation("Parent");
                 });
@@ -7379,7 +8426,14 @@ namespace Zorvian.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Zorvian.Core.Entities.CostCenter", "CostCenter")
+                        .WithMany()
+                        .HasForeignKey("CostCenterId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("AccountingPeriod");
+
+                    b.Navigation("CostCenter");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.AccountingEntryDetail", b =>
@@ -7396,9 +8450,16 @@ namespace Zorvian.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Zorvian.Core.Entities.CostCenter", "CostCenter")
+                        .WithMany()
+                        .HasForeignKey("CostCenterId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Account");
 
                     b.Navigation("AccountingEntry");
+
+                    b.Navigation("CostCenter");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.ApprovalFlow", b =>
@@ -7423,6 +8484,28 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Navigation("PayrollRun");
 
                     b.Navigation("Request");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.ApprovalFlowStep", b =>
+                {
+                    b.HasOne("Zorvian.Core.Entities.ApprovalFlowConfig", "ApprovalFlowConfig")
+                        .WithMany("Steps")
+                        .HasForeignKey("ApprovalFlowConfigId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ApprovalFlowConfig");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.ApprovalRequestAction", b =>
+                {
+                    b.HasOne("Zorvian.Core.Entities.ApprovalRequest", "ApprovalRequest")
+                        .WithMany("Actions")
+                        .HasForeignKey("ApprovalRequestId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ApprovalRequest");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.AssetDisposal", b =>
@@ -7543,6 +8626,35 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Navigation("Company");
                 });
 
+            modelBuilder.Entity("Zorvian.Core.Entities.Budget", b =>
+                {
+                    b.HasOne("Zorvian.Core.Entities.Account", "Account")
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Zorvian.Core.Entities.CostCenter", "CostCenter")
+                        .WithMany()
+                        .HasForeignKey("CostCenterId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Account");
+
+                    b.Navigation("CostCenter");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.CashArqueoDenomination", b =>
+                {
+                    b.HasOne("Zorvian.Core.Entities.CashRegisterArqueo", "Arqueo")
+                        .WithMany("Denominations")
+                        .HasForeignKey("ArqueoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Arqueo");
+                });
+
             modelBuilder.Entity("Zorvian.Core.Entities.CashMovement", b =>
                 {
                     b.HasOne("Zorvian.Core.Entities.CashRegister", "CashRegister")
@@ -7567,6 +8679,25 @@ namespace Zorvian.Infrastructure.Migrations
                         .WithMany("CashRegisters")
                         .HasForeignKey("EmployeeId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.CashRegisterArqueo", b =>
+                {
+                    b.HasOne("Zorvian.Core.Entities.CashRegister", "CashRegister")
+                        .WithMany()
+                        .HasForeignKey("CashRegisterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Zorvian.Core.Entities.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CashRegister");
 
                     b.Navigation("Employee");
                 });
@@ -7656,6 +8787,36 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Navigation("Credit");
                 });
 
+            modelBuilder.Entity("Zorvian.Core.Entities.CreditNote", b =>
+                {
+                    b.HasOne("Zorvian.Core.Entities.Sale", "Sale")
+                        .WithMany()
+                        .HasForeignKey("SaleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Sale");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.CreditNoteDetail", b =>
+                {
+                    b.HasOne("Zorvian.Core.Entities.CreditNote", "CreditNote")
+                        .WithMany("Details")
+                        .HasForeignKey("CreditNoteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Zorvian.Core.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreditNote");
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("Zorvian.Core.Entities.CreditPayment", b =>
                 {
                     b.HasOne("Zorvian.Core.Entities.Credit", "Credit")
@@ -7679,6 +8840,17 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Navigation("CreditInstallment");
 
                     b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.CreditRefinancing", b =>
+                {
+                    b.HasOne("Zorvian.Core.Entities.Credit", "Credit")
+                        .WithMany("Refinancings")
+                        .HasForeignKey("CreditId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Credit");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.Department", b =>
@@ -8801,6 +9973,16 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Navigation("Entries");
                 });
 
+            modelBuilder.Entity("Zorvian.Core.Entities.ApprovalFlowConfig", b =>
+                {
+                    b.Navigation("Steps");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.ApprovalRequest", b =>
+                {
+                    b.Navigation("Actions");
+                });
+
             modelBuilder.Entity("Zorvian.Core.Entities.Brand", b =>
                 {
                     b.Navigation("Products");
@@ -8809,6 +9991,11 @@ namespace Zorvian.Infrastructure.Migrations
             modelBuilder.Entity("Zorvian.Core.Entities.CashRegister", b =>
                 {
                     b.Navigation("Movements");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.CashRegisterArqueo", b =>
+                {
+                    b.Navigation("Denominations");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.Category", b =>
@@ -8845,6 +10032,13 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Navigation("Installments");
 
                     b.Navigation("Payments");
+
+                    b.Navigation("Refinancings");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.CreditNote", b =>
+                {
+                    b.Navigation("Details");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.Department", b =>

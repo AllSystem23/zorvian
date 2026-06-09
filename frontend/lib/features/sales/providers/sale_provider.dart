@@ -10,11 +10,12 @@ final class SaleItem {
   final double total;
   final double balance;
   final String status;
+  final String currencyCode;
 
   const SaleItem({
     required this.id, required this.invoiceNumber, required this.clientName,
     required this.saleDate, required this.saleType, required this.total,
-    required this.balance, required this.status,
+    required this.balance, required this.status, this.currencyCode = 'NIO',
   });
 
   factory SaleItem.fromJson(Map<String, dynamic> j) => SaleItem(
@@ -26,6 +27,7 @@ final class SaleItem {
     total: (j['total'] as num?)?.toDouble() ?? 0,
     balance: (j['balance'] as num?)?.toDouble() ?? 0,
     status: j['status'] as String? ?? '',
+    currencyCode: j['currencyCode'] as String? ?? 'NIO',
   );
 }
 
@@ -64,6 +66,7 @@ final class SaleDetail {
   final double balance;
   final String status;
   final String? notes;
+  final String currencyCode;
   final List<SaleDetailItem> details;
   final String? creditId;
 
@@ -72,7 +75,7 @@ final class SaleDetail {
     required this.saleDate, required this.saleType, required this.subtotal,
     required this.tax, required this.discount, required this.total,
     required this.paidAmount, required this.balance, required this.status,
-    this.notes, required this.details, this.creditId,
+    this.notes, this.currencyCode = 'NIO', required this.details, this.creditId,
   });
 
   factory SaleDetail.fromJson(Map<String, dynamic> j) => SaleDetail(
@@ -89,6 +92,7 @@ final class SaleDetail {
     balance: (j['balance'] as num?)?.toDouble() ?? 0,
     status: j['status'] as String? ?? '',
     notes: j['notes'] as String?,
+    currencyCode: j['currencyCode'] as String? ?? 'NIO',
     details: (j['details'] as List?)?.map((e) => SaleDetailItem.fromJson(e as Map<String, dynamic>)).toList() ?? [],
     creditId: j['creditId'] as String?,
   );

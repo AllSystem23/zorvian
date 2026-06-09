@@ -5,6 +5,7 @@ import '../l10n/app_localizations.dart';
 import '../auth/auth_provider.dart';
 import '../core/theme/theme_provider.dart';
 import '../core/widgets/error_handler_widget.dart';
+import '../core/services/keyboard_shortcut_service.dart';
 import '../features/biometrics/pages/biometric_unlock_page.dart';
 import 'router.dart';
 import 'theme.dart';
@@ -52,7 +53,9 @@ class _ZorvianAppState extends ConsumerState<ZorvianApp> {
           Locale('en', ''),
         ],
         routerConfig: router,
-        builder: (context, child) => ErrorHandlerWidget(child: child!),
+        builder: (context, child) => KeyboardShortcutService(
+          child: ErrorHandlerWidget(child: child!),
+        ),
       ),
     );
   }

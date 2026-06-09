@@ -72,16 +72,16 @@ public sealed class AccountingIntegrationTests : IDisposable
                 s.Id, s.InvoiceNumber ?? "", s.ClientId, "", Guid.Empty, "",
                 s.SaleDate, s.SaleType, s.Subtotal, s.Tax, s.Discount, s.Total,
                 s.PaidAmount, s.Balance, s.Status ?? "", s.Notes,
-                new List<SaleDetailItem>(), null));
+                "NIO", null, new List<SaleDetailItem>(), null));
 
         var saleService = new SaleService(
             saleRepo, productRepo, movementRepo, new Mock<ICompanyRepository>().Object,
             clientRepo, new Mock<ICreditRepository>().Object,
-            _autoAccounting, _tenant.Object, mapper.Object);
+            _autoAccounting, new Mock<IWebhookService>().Object, _tenant.Object, mapper.Object);
 
         var result = await saleService.CreateCashSaleAsync(new CreateCashSaleRequest(
             client.Id, Guid.NewGuid(), 0, null, _branchId,
-            new List<SaleDetailItem> { new(product.Id, "P1", 5, 100, 0, 500) },
+            "NIO", null, new List<SaleDetailItem> { new(product.Id, "P1", 5, 100, 0, 500) },
             new SalePaymentInfo(575, "cash", "REF", Guid.NewGuid())));
 
         Assert.NotNull(result);
@@ -198,12 +198,13 @@ public sealed class AccountingIntegrationTests : IDisposable
 
         var purchaseService = new PurchaseService(
             purchaseRepo, productRepo, movementRepo, new Mock<ICompanyRepository>().Object,
-            supplierRepo, _autoAccounting, _tenant.Object, new Mock<AutoMapper.IMapper>().Object, _approvalEngine.Object);
+            supplierRepo, _autoAccounting, new Mock<IWebhookService>().Object, _tenant.Object,
+            new Mock<AutoMapper.IMapper>().Object, _approvalEngine.Object);
 
         var result = await purchaseService.CreateAsync(new CreatePurchaseRequest(
             supplier.Id, DateTime.UtcNow, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30)),
             "INV-001", null, null, 0, null, _branchId,
-            new List<PurchaseDetailItem> { new(product.Id, "P1", 20, 50, 0, 1000) }));
+            "NIO", null, new List<PurchaseDetailItem> { new(product.Id, "P1", 20, 50, 0, 1000) }));
 
         Assert.NotNull(result);
         VerifyAccountingEntries(result.Id, "Purchase");
@@ -222,12 +223,13 @@ public sealed class AccountingIntegrationTests : IDisposable
 
         var purchaseService = new PurchaseService(
             purchaseRepo, productRepo, movementRepo, new Mock<ICompanyRepository>().Object,
-            supplierRepo, _autoAccounting, _tenant.Object, new Mock<AutoMapper.IMapper>().Object, _approvalEngine.Object);
+            supplierRepo, _autoAccounting, new Mock<IWebhookService>().Object, _tenant.Object,
+            new Mock<AutoMapper.IMapper>().Object, _approvalEngine.Object);
 
         var purchase = await purchaseService.CreateAsync(new CreatePurchaseRequest(
             supplier.Id, DateTime.UtcNow, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30)),
             "INV-002", null, null, 0, null, _branchId,
-            new List<PurchaseDetailItem> { new(product.Id, "P1", 10, 100, 0, 1000) }));
+            "NIO", null, new List<PurchaseDetailItem> { new(product.Id, "P1", 10, 100, 0, 1000) }));
         Assert.NotNull(purchase);
 
         var cancelled = await purchaseService.CancelAsync(purchase.Id);

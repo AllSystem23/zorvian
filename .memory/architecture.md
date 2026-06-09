@@ -1,31 +1,13 @@
-# Architecture
+# Arquitectura
 
-## Structure
+## Backend (.NET)
+- Clean Architecture: Core → Application → Infrastructure → Web
+- Multi-tenancy via TenantId + Query Filters (EF Core) + RLS (PostgreSQL)
+- JWT Bearer authentication
+- Rate limiting, security headers middleware
 
-```
-src/
-├── Zorvian.Core/         — Entities, Interfaces, Enums
-├── Zorvian.Application/  — DTOs, Services, AutoMapper profiles
-├── Zorvian.Infrastructure/ — EF Core DbContext, Repositories, ML Services
-├── Zorvian.Web/          — Controllers, Jobs, Middleware, Program.cs
-
-frontend/
-├── lib/
-│   ├── core/
-│   │   ├── api/          — DioClient, interceptors
-│   │   ├── widgets/bi/   — BiKpiCard, BiLineChart, BiBarChart, BiPieChart, BiGauge, SalesPredictionSection
-│   │   └── ...
-│   ├── features/bi/      — Dashboard pages (executive, financial, commercial, operational)
-│   │   ├── models/       — bi_models.dart
-│   │   ├── providers/    — bi_provider.dart
-│   │   └── pages/        — dashboard pages
-│   └── shared/ds/        — Design system tokens + components
-```
-
-## BI Module
-
-- 4 dashboard pages: Executive, Financial, Commercial, Operational
-- Providers: FutureProvider.autoDispose pattern
-- Charts: fl_chart (LineChart, BarChart, PieChart), CustomPaint (Gauge)
-- KPI cards: BiKpiCard with sparkline support
-- Sales prediction: 3 providers → API → ML.NET → visualization
+## Frontend (Flutter)
+- Feature-first structure bajo `lib/features/`
+- DS (Design System) compartido en `lib/shared/ds/`
+- Providers por feature con Riverpod
+- Servicios core: network (Dio + interceptors), offline (sync engine), utilidades

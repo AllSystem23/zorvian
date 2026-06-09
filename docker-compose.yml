@@ -1,0 +1,85 @@
+# ══════════════════════════════════════════════════════════════
+# Zorvian ERP — Local Development Docker Compose
+# ══════════════════════════════════════════════════════════════
+# Usage:
+#   docker-compose up -d          → Start all services
+#   docker-compose logs -f api    → Follow API logs
+#   docker-compose down           → Stop all services
+#   docker-compose up -d --build  → Rebuild and start
+# ══════════════════════════════════════════════════════════════
+
+services:
+  # ── PostgreSQL Database ──
+  postgres:
+    image: postgres:16-alpine
+    container_name: zorvian-db
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: zorvian_erp
+      POSTGRES_USER: zorvian
+      POSTGRES_PASSWORD: zorvian_dev_2026
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U zorvian -d zorvian_erp" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis (for caching & rate limiting) ──
+  redis:
+    image: redis:7-alpine
+    container_name: zorvian-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend API ──
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: zorvian-api
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__ZorvianDb=Host=postgres;Database=zorvian_erp;Username=zorvian;Password=zorvian_dev_2026
+      - Jwt__Secret=dev-secret-key-change-in-production-minimum-32-chars
+      - Firebase__ProjectId=
+      - Firebase__CredentialsFilePath=
+      - Firebase__WebApiKey=
+      - Testing__MockExternalServices=false
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./src/Zorvian.Web:/app/logs
+
+  # ── Frontend (Flutter Web) ──
+  frontend:
+    image: ghcr.io/cirruslabs/flutter:stable
+    container_name: zorvian-frontend
+    working_dir: /app
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+    command: >
+      sh -c "flutter pub get && flutter run -d web-server --web-port=3000 --web-hostname=0.0.0.0"
+    environment:
+      - FLUTTER_WEB_BASE_URL=http://localhost:8080
+
+volumes:
+  postgres_data:
+  redis_data:
