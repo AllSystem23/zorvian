@@ -273,6 +273,14 @@ public static class DependencyInjectionExtensions
 
         // Approval
         services.AddScoped<ApprovalFlowConfigService>();
+        services.AddScoped<IRegionalTaxConfigurationRepository, RegionalTaxConfigurationRepository>();
+        services.AddScoped<AccountingRuleTemplateRepository, AccountingRuleTemplateRepository>();
+        services.AddScoped<IEmployeePayrollExemptionRepository, EmployeePayrollExemptionRepository>();
+        services.AddScoped<IRegionalDashboardRepository, RegionalDashboardRepository>();
+        services.AddScoped<IRegionalTaxConfigService, RegionalTaxConfigService>();
+        services.AddScoped<IPayrollLocalizationService, PayrollLocalizationService>();
+        services.AddScoped<ISettlementPdfService, SettlementPdfService>();
+        services.AddScoped<RegionalFinancialDashboardService, RegionalFinancialDashboardService>();
         services.AddScoped<IApprovalEngine, ApprovalEngine>();
 
         // Accounting
@@ -282,14 +290,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<AccountingPeriodService>();
         services.AddScoped<AccountLinkService>();
         services.AddScoped<AutoAccountingService>(sp => new AutoAccountingService(
-            sp.GetRequiredService<IAccountingEntryRepository>(),
-            sp.GetRequiredService<IAccountingPeriodRepository>(),
-            sp.GetRequiredService<IAccountLinkRepository>(),
-            sp.GetRequiredService<IAccountingRuleRepository>(),
-            sp.GetRequiredService<IAccountRepository>(),
-            sp.GetRequiredService<ITenantContext>(),
-            sp.GetRequiredService<IPayrollRepository>(),
-            sp.GetRequiredService<ICashMovementRepository>()));
+            sp.GetRequiredService<IAccountingRuleTemplateRepository>()));
         services.AddScoped<IAutoAccountingService>(sp => sp.GetRequiredService<AutoAccountingService>());
         services.AddScoped<FinancialReportService>();
         services.AddScoped<CostCenterService>();

@@ -132,14 +132,17 @@ public sealed class FinancialReportsController : ControllerBase
         }
         catch (Exception ex) { return BadRequest(new { error = ex.Message }); }
     }
-
-    [HttpPost("assistant/feedback")]
-    public async Task<IActionResult> AssistantFeedback([FromBody] FinancialAssistantFeedbackRequest request)
+[HttpPost("assistant/feedback")]
+public async Task<IActionResult> AssistantFeedback([FromBody] FinancialAssistantFeedbackRequest request)
+{
+    try
     {
-        try
-        {
-            await _assistantService.SaveFeedbackAsync(request);
-            return Ok();
-        }
-        catch (Exception ex) { return BadRequest(new { error = ex.Message }); }
+        await _assistantService.SaveFeedbackAsync(request);
+        return Ok();
     }
+    catch (Exception ex) 
+    { 
+        return BadRequest(new { error = ex.Message }); 
+    }
+}
+}

@@ -11,15 +11,8 @@ namespace Zorvian.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<int>(
-                name: "Status",
-                table: "Quotes",
-                type: "integer",
-                maxLength: 20,
-                nullable: false,
-                oldClrType: typeof(string),
-                oldType: "character varying(20)",
-                oldMaxLength: 20);
+            migrationBuilder.Sql(@"ALTER TABLE ""Quotes"" ALTER COLUMN ""Status"" TYPE integer USING ""Status""::integer;");
+
 
             migrationBuilder.CreateTable(
                 name: "Banks",

@@ -279,6 +279,40 @@
 
 ## Notas
 
-- Estimaciones en horas/días de desarrollo real.
-- Multiplicar por ~1.5 para incluir code review + tests + bugs.
-- Priorización basada en: impacto empresarial + esfuerzo + dependencias.
+
+---
+
+## FASE 9 — LOCALIZACIÓN CENTROAMERICANA (PGCZ-CA) (SEMANA 23-26)
+
+Este módulo regionaliza Zorvian ERP para Nicaragua, Costa Rica, Honduras, Guatemala, El Salvador y Panamá.
+
+### 9.1 Diseño y Modelado
+- [ ] Definir estructura del PGCZ-CA (Segmentación X.XX.XX.XXX.XXXX).
+- [ ] Diseñar entidades configurables (RegionalTaxConfiguration, PayrollConcept, AccountingRuleTemplate).
+- [ ] Mapear NIIF a la estructura de cuentas.
+
+### 9.2 Implementación de Motores (Backend)
+- [x] Crear servicios de configuración regional.
+- [x] Desarrollar motor de fórmulas para PLE (Payroll Localization Engine).
+- [x] Desarrollar motor de reglas para AutoAccountingService.
+
+### 9.3 Localización por País
+- [x] Configurar Nicaragua (INSS, INATEC, IR, IVA).
+- [x] Configurar Costa Rica (CCSS, INS, IVA).
+- [x] Configurar Honduras (IHSS, RAP, ISR, ISV).
+- [x] Configurar Guatemala (IGSS, ISR, IVA).
+- [x] Configurar El Salvador (ISSS, AFP, ISR, IVA).
+- [x] Configurar Panamá (CSS, Seguro Educativo, ITBMS, ISR).
+
+### 9.4 Inteligencia Artificial y Dashboard
+- [x] Implementar indicadores financieros regionales.
+- [x] Integrar capacidades de consulta mediante IA.
+
+---
+
+### FASE 10 — INTERFAZ DE LIQUIDACIONES Y REPORTABILIDAD (SEMANA 27-28)
+- [x] Diseño de UI/UX
+- [x] Generación de reportes (Backend)
+- [x] Implementación de UI (Frontend - Flutter) [Completo].
+
+

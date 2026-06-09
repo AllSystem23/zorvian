@@ -6,6 +6,7 @@ using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
+using Zorvian.Infrastructure.Repositories;
 using Zorvian.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,6 +23,7 @@ public sealed class SaleServiceTests
     private readonly Mock<ITenantContext> _tenant = new();
     private readonly Mock<IMapper> _mapper = new();
     private readonly SaleService _sut;
+    private readonly ZorvianDbContext _db;
     private readonly Guid _branchId = Guid.NewGuid();
     private readonly Guid _clientId = Guid.NewGuid();
     private readonly Guid _employeeId = Guid.NewGuid();
@@ -29,6 +31,13 @@ public sealed class SaleServiceTests
 
     public SaleServiceTests()
     {
+        var options = new DbContextOptionsBuilder<ZorvianDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+        
+        var tenantMock = new Mock<ITenantContext>();
+        tenantMock.Setup(t => t.TenantId).Returns(_companyId.ToString());
+        _db = new ZorvianDbContext(options, tenantMock.Object);
         _tenant.Setup(t => t.TenantId).Returns(_companyId.ToString());
 
         var mockEntryRepo = new Mock<IAccountingEntryRepository>();
@@ -51,7 +60,7 @@ public sealed class SaleServiceTests
         
         var autoAccounting = new AutoAccountingService(
             mockEntryRepo.Object, mockPeriodRepo.Object, mockLinkRepo.Object, mockRuleRepo.Object, 
-            mockAccountRepo.Object, mockTenantContext.Object, mockPayrollRepo.Object, mockCashRepo.Object);
+            mockAccountRepo.Object, mockTenantContext.Object, mockPayrollRepo.Object, mockCashRepo.Object, new AccountingRuleTemplateRepository(_db));
 
         _sut = new SaleService(
             _saleRepo.Object,

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Zorvian.Infrastructure.Data;
@@ -11,9 +12,11 @@ using Zorvian.Infrastructure.Data;
 namespace Zorvian.Infrastructure.Migrations
 {
     [DbContext(typeof(ZorvianDbContext))]
-    partial class ZorvianDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260609204910_AddRegionalLocalizationEntities")]
+    partial class AddRegionalLocalizationEntities
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -4048,59 +4051,6 @@ namespace Zorvian.Infrastructure.Migrations
                     b.HasIndex("EmployeeId");
 
                     b.ToTable("EmployeeLoans");
-                });
-
-            modelBuilder.Entity("Zorvian.Core.Entities.EmployeePayrollExemption", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CompanyId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("DeletedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("EmployeeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("ExpiryDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("boolean");
-
-                    b.Property<Guid>("PayrollConceptId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("TenantId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EmployeeId");
-
-                    b.HasIndex("PayrollConceptId");
-
-                    b.ToTable("EmployeePayrollExemptions");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.EmployeeSalary", b =>
@@ -9643,25 +9593,6 @@ namespace Zorvian.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Employee");
-                });
-
-            modelBuilder.Entity("Zorvian.Core.Entities.EmployeePayrollExemption", b =>
-                {
-                    b.HasOne("Zorvian.Core.Entities.Employee", "Employee")
-                        .WithMany()
-                        .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Zorvian.Core.Entities.PayrollConcept", "PayrollConcept")
-                        .WithMany()
-                        .HasForeignKey("PayrollConceptId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Employee");
-
-                    b.Navigation("PayrollConcept");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.EmployeeSalary", b =>

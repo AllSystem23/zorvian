@@ -37,9 +37,7 @@ namespace Zorvian.Infrastructure.Migrations
                 AS $$
                 BEGIN
                     RAISE EXCEPTION
-                        'AUD-004: AuditLogs es inmutable. Operación % sobre tabla AuditLogs está bloqueada por la política de inmutabilidad. ' ||
-                        'Para cumplir con requisitos de auditoría, ningún registro de auditoría puede ser modificado ni eliminado. ' ||
-                        'Si necesita archivar registros antiguos, créelos en una tabla de archivo separada.',
+                        'AUD-004: AuditLogs es inmutable. Operación % sobre tabla AuditLogs está bloqueada por la política de inmutabilidad. Para cumplir con requisitos de auditoría, ningún registro de auditoría puede ser modificado ni eliminado. Si necesita archivar registros antiguos, créelos en una tabla de archivo separada.',
                         TG_OP
                         USING ERRCODE = 'P0001';
                     -- No se retorna ninguna fila: se cancela la operación.

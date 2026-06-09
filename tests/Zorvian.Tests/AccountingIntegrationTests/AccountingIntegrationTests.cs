@@ -8,6 +8,7 @@ using Zorvian.Application.Services;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
 using Zorvian.Infrastructure.Data;
+using Zorvian.Infrastructure.Repositories;
 using Xunit;
 
 namespace Zorvian.Tests.AccountingIntegrationTests;
@@ -47,8 +48,8 @@ public sealed class AccountingIntegrationTests : IDisposable
         var payrollRepo = new Mock<IPayrollRepository>();
 
         _autoAccounting = new AutoAccountingService(
-            entryRepo, periodRepo.Object, linkRepo, ruleRepo.Object,
-            accountRepo, _tenant.Object, payrollRepo.Object, new CashMovementRepo(_db));
+            new EntryRepo(_db, _companyId), periodRepo.Object, new LinkRepo(_db), ruleRepo.Object,
+            new AccRepo(_db), _tenant.Object, payrollRepo.Object, new CashMovementRepo(_db), new AccountingRuleTemplateRepository(_db));
 
         _approvalEngine.Setup(e => e.EvaluateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<string>()))
             .ReturnsAsync(new Zorvian.Application.DTOs.Approval.ApprovalEvaluationResult(false, null, null));

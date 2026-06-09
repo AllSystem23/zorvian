@@ -39,6 +39,20 @@ public sealed class SeedService
         await _db.SaveChangesAsync();
 
         await _fiscal.SetupDefaultTaxesAsync(company.Id, "NIC");
+        
+        // Seed Country Specific Localization
+        if (company.Country == "Nicaragua")
+            await SeedNicaraguaLocalizationAsync(company.Id);
+        else if (company.Country == "Costa Rica")
+            await SeedCostaRicaLocalizationAsync(company.Id);
+        else if (company.Country == "Honduras")
+            await SeedHondurasLocalizationAsync(company.Id);
+        else if (company.Country == "Guatemala")
+            await SeedGuatemalaLocalizationAsync(company.Id);
+        else if (company.Country == "El Salvador")
+            await SeedElSalvadorLocalizationAsync(company.Id);
+        else if (company.Country == "Panamá")
+            await SeedPanamaLocalizationAsync(company.Id);
 
         var settings = new CompanySettings { CompanyId = company.Id };
         _db.CompanySettings.Add(settings);
@@ -232,6 +246,153 @@ public sealed class SeedService
         }
 
         _db.UserRoles.Add(new UserRole { UserId = userId, RoleId = role.Id });
+        await _db.SaveChangesAsync();
+    }
+
+    private async Task SeedNicaraguaLocalizationAsync(Guid companyId)
+    {
+        // 1. Seed Tax Configuration
+        var taxes = new List<RegionalTaxConfiguration>
+        {
+            new() { CountryCode = "NIC", TaxType = "IVA", Rate = 0.15m, EffectiveDate = DateTime.UtcNow, CompanyId = companyId },
+            new() { CountryCode = "NIC", TaxType = "IR", Rate = 0.02m, EffectiveDate = DateTime.UtcNow, CompanyId = companyId }
+        };
+        await _db.RegionalTaxConfigurations.AddRangeAsync(taxes);
+
+        // 2. Seed Payroll Concepts
+        var payrollConcepts = new List<PayrollConcept>
+        {
+            new() { CountryCode = "NIC", Code = "INSS_PAT", Name = "INSS Patronal", CalculationFormula = "Salary * 0.225", CompanyId = companyId },
+            new() { CountryCode = "NIC", Code = "INSS_LAB", Name = "INSS Laboral", CalculationFormula = "Salary * 0.07", CompanyId = companyId },
+            new() { CountryCode = "NIC", Code = "INATEC_PAT", Name = "INATEC Patronal", CalculationFormula = "Salary * 0.02", CompanyId = companyId }
+        };
+        await _db.PayrollConcepts.AddRangeAsync(payrollConcepts);
+
+        await _db.SaveChangesAsync();
+    }
+
+    private async Task SeedHondurasLocalizationAsync(Guid companyId)
+    {
+        // 1. Seed Tax Configuration (Honduras - ISV 15%)
+        var taxes = new List<RegionalTaxConfiguration>
+        {
+            new() { CountryCode = "HN", TaxType = "ISV", Rate = 0.15m, EffectiveDate = DateTime.UtcNow, CompanyId = companyId }
+        };
+        await _db.RegionalTaxConfigurations.AddRangeAsync(taxes);
+
+        // 2. Seed Payroll Concepts (Honduras)
+        var payrollConcepts = new List<PayrollConcept>
+        {
+            // IHSS: EM (5% Patronal, 2.5% Laboral) + IVM (3.5% Patronal, 2.5% Laboral)
+            new() { CountryCode = "HN", Code = "IHSS_EM_PAT", Name = "IHSS EM Patronal", CalculationFormula = "Salary * 0.05", CompanyId = companyId },
+            new() { CountryCode = "HN", Code = "IHSS_IVM_PAT", Name = "IHSS IVM Patronal", CalculationFormula = "Salary * 0.035", CompanyId = companyId },
+            new() { CountryCode = "HN", Code = "IHSS_EM_LAB", Name = "IHSS EM Laboral", CalculationFormula = "Salary * 0.025", CompanyId = companyId },
+            new() { CountryCode = "HN", Code = "IHSS_IVM_LAB", Name = "IHSS IVM Laboral", CalculationFormula = "Salary * 0.025", CompanyId = companyId },
+            
+            // RAP
+            new() { CountryCode = "HN", Code = "RAP_RESERVA_PAT", Name = "RAP Reserva Laboral", CalculationFormula = "Salary * 0.04", CompanyId = companyId },
+            new() { CountryCode = "HN", Code = "RAP_FOVIIF_PAT", Name = "RAP FOVIIF Patronal", CalculationFormula = "Salary * 0.015", CompanyId = companyId },
+            new() { CountryCode = "HN", Code = "RAP_FOVIIF_LAB", Name = "RAP FOVIIF Laboral", CalculationFormula = "Salary * 0.015", CompanyId = companyId }
+        };
+        await _db.PayrollConcepts.AddRangeAsync(payrollConcepts);
+
+        await _db.SaveChangesAsync();
+    }
+
+    private async Task SeedElSalvadorLocalizationAsync(Guid companyId)
+    {
+        // 1. Seed Tax Configuration (El Salvador - IVA 13%)
+        var taxes = new List<RegionalTaxConfiguration>
+        {
+            new() { CountryCode = "SV", TaxType = "IVA", Rate = 0.13m, EffectiveDate = DateTime.UtcNow, CompanyId = companyId }
+        };
+        await _db.RegionalTaxConfigurations.AddRangeAsync(taxes);
+
+        // 2. Seed Payroll Concepts (El Salvador)
+        var payrollConcepts = new List<PayrollConcept>
+        {
+            // ISSS (7.5% Patronal, 3% Laboral), AFP (8.75% Patronal, 7.25% Laboral), INSAFORP (1% Patronal)
+            new() { CountryCode = "SV", Code = "ISSS_PAT", Name = "ISSS Patronal", CalculationFormula = "Salary * 0.075", CompanyId = companyId },
+            new() { CountryCode = "SV", Code = "ISSS_LAB", Name = "ISSS Laboral", CalculationFormula = "Salary * 0.03", CompanyId = companyId },
+            new() { CountryCode = "SV", Code = "AFP_PAT", Name = "AFP Patronal", CalculationFormula = "Salary * 0.0875", CompanyId = companyId },
+            new() { CountryCode = "SV", Code = "AFP_LAB", Name = "AFP Laboral", CalculationFormula = "Salary * 0.0725", CompanyId = companyId },
+            new() { CountryCode = "SV", Code = "INSAFORP_PAT", Name = "INSAFORP Patronal", CalculationFormula = "Salary * 0.01", CompanyId = companyId }
+        };
+        await _db.PayrollConcepts.AddRangeAsync(payrollConcepts);
+
+        await _db.SaveChangesAsync();
+    }
+
+    private async Task SeedCostaRicaLocalizationAsync(Guid companyId)
+    {
+        // 1. Seed Tax Configuration (Costa Rica - IVA 13%)
+        var taxes = new List<RegionalTaxConfiguration>
+        {
+            new() { CountryCode = "CR", TaxType = "IVA", Rate = 0.13m, EffectiveDate = DateTime.UtcNow, CompanyId = companyId }
+        };
+        await _db.RegionalTaxConfigurations.AddRangeAsync(taxes);
+
+        // 2. Seed Payroll Concepts (Costa Rica - 2026 CCSS rates)
+        var payrollConcepts = new List<PayrollConcept>
+        {
+            // Aporte Patronal total CCSS 2026: 26.83%
+            new() { CountryCode = "CR", Code = "CCSS_PAT", Name = "CCSS Patronal", CalculationFormula = "Salary * 0.2683", CompanyId = companyId },
+            // Aporte Laboral total CCSS 2026: 10.83%
+            new() { CountryCode = "CR", Code = "CCSS_LAB", Name = "CCSS Laboral", CalculationFormula = "Salary * 0.1083", CompanyId = companyId }
+        };
+        await _db.PayrollConcepts.AddRangeAsync(payrollConcepts);
+
+        // NOTA: El seguro de Riesgos del Trabajo (INS) no tiene una tasa fija.
+        // Debe configurarse en el sistema según el código de actividad económica (CAECR) de la empresa.
+
+        await _db.SaveChangesAsync();
+    }
+
+    private async Task SeedGuatemalaLocalizationAsync(Guid companyId)
+    {
+        // 1. Seed Tax Configuration (Guatemala - IVA 12%)
+        var taxes = new List<RegionalTaxConfiguration>
+        {
+            new() { CountryCode = "GT", TaxType = "IVA", Rate = 0.12m, EffectiveDate = DateTime.UtcNow, CompanyId = companyId }
+        };
+        await _db.RegionalTaxConfigurations.AddRangeAsync(taxes);
+
+        // 2. Seed Payroll Concepts (Guatemala - 2026 rates)
+        var payrollConcepts = new List<PayrollConcept>
+        {
+            // IGSS (10.67% Patronal + 4.83% Laboral), INTECAP (1%), IRTRA (1%)
+            new() { CountryCode = "GT", Code = "IGSS_PAT", Name = "IGSS Patronal", CalculationFormula = "Salary * 0.1067", CompanyId = companyId },
+            new() { CountryCode = "GT", Code = "INTECAP_PAT", Name = "INTECAP Patronal", CalculationFormula = "Salary * 0.01", CompanyId = companyId },
+            new() { CountryCode = "GT", Code = "IRTRA_PAT", Name = "IRTRA Patronal", CalculationFormula = "Salary * 0.01", CompanyId = companyId },
+            new() { CountryCode = "GT", Code = "IGSS_LAB", Name = "IGSS Laboral", CalculationFormula = "Salary * 0.0483", CompanyId = companyId }
+        };
+        await _db.PayrollConcepts.AddRangeAsync(payrollConcepts);
+
+        await _db.SaveChangesAsync();
+    }
+
+    private async Task SeedPanamaLocalizationAsync(Guid companyId)
+    {
+        // 1. Seed Tax Configuration (Panama - ITBMS 7%)
+        var taxes = new List<RegionalTaxConfiguration>
+        {
+            new() { CountryCode = "PA", TaxType = "ITBMS", Rate = 0.07m, EffectiveDate = DateTime.UtcNow, CompanyId = companyId }
+        };
+        await _db.RegionalTaxConfigurations.AddRangeAsync(taxes);
+
+        // 2. Seed Payroll Concepts (Panama)
+        var payrollConcepts = new List<PayrollConcept>
+        {
+            // CSS (13.25% Patronal, 9.75% Laboral)
+            new() { CountryCode = "PA", Code = "CSS_PAT", Name = "CSS Patronal", CalculationFormula = "Salary * 0.1325", CompanyId = companyId },
+            new() { CountryCode = "PA", Code = "CSS_LAB", Name = "CSS Laboral", CalculationFormula = "Salary * 0.0975", CompanyId = companyId },
+            
+            // Seguro Educativo
+            new() { CountryCode = "PA", Code = "SEG_EDU_PAT", Name = "Seguro Educativo Patronal", CalculationFormula = "Salary * 0.015", CompanyId = companyId },
+            new() { CountryCode = "PA", Code = "SEG_EDU_LAB", Name = "Seguro Educativo Laboral", CalculationFormula = "Salary * 0.0125", CompanyId = companyId }
+        };
+        await _db.PayrollConcepts.AddRangeAsync(payrollConcepts);
+
         await _db.SaveChangesAsync();
     }
 

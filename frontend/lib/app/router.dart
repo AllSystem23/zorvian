@@ -36,6 +36,7 @@ import '../features/permissions/pages/permission_form_page.dart';
 import '../features/permissions/pages/permission_list_page.dart';
 import '../features/onboarding/onboarding_page.dart';
 import '../features/payroll/pages/payroll_page.dart';
+import '../features/payroll/pages/settlement_form_page.dart';
 import '../features/payroll/pages/payroll_run_detail_page.dart';
 import '../features/payroll/pages/payroll_periods_page.dart';
 import '../features/payroll/pages/salaries_page.dart';
@@ -346,6 +347,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(path: 'runs/:runId', name: 'payroll-run-detail', builder: (_, state) => PayrollRunDetailPage(runId: state.pathParameters['runId']!)),
               GoRoute(path: 'salaries', name: 'payroll-salaries', builder: (_, _) => const SalariesPage()),
               GoRoute(path: 'deduction-types', name: 'payroll-deduction-types', builder: (_, _) => const DeductionTypesPage()),
+              GoRoute(path: 'settlement', name: 'payroll-settlement', builder: (_, _) => const SettlementFormPage()),
             ],
           ),
           GoRoute(

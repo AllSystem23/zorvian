@@ -13,6 +13,7 @@ public sealed class FinancialAssistantService
     private readonly EnhancedReportService _enhanced;
     private readonly IAccountingPeriodRepository _periodRepo;
     private readonly ITenantContext _tenant;
+    private readonly ICompanyRepository _companyRepo; // Nueva dependencia
     private static readonly string[] Separators = [" ", ",", ".", ":", ";", "\t", "\n"];
 
     public FinancialAssistantService(
@@ -20,15 +21,32 @@ public sealed class FinancialAssistantService
         BiService bi,
         EnhancedReportService enhanced,
         IAccountingPeriodRepository periodRepo,
-        ITenantContext tenant)
+        ITenantContext tenant,
+        ICompanyRepository companyRepo)
     {
         _reports = reports; _bi = bi;
         _enhanced = enhanced; _periodRepo = periodRepo;
         _tenant = tenant;
+        _companyRepo = companyRepo;
     }
 
     private Guid CompanyId =>
         Guid.TryParse(_tenant.TenantId, out var id) ? id : throw new InvalidOperationException("Invalid tenant");
+
+    private async Task<string> GetCountryCodeAsync()
+    {
+        var company = await _companyRepo.GetByIdAsync(CompanyId);
+        return company?.Country switch
+        {
+            "Nicaragua" => "NIC",
+            "Costa Rica" => "CR",
+            "Honduras" => "HN",
+            "Guatemala" => "GT",
+            "El Salvador" => "SV",
+            "Panamá" => "PA",
+            _ => "NIC"
+        };
+    }
 
     public async Task<FinancialAssistantResponse> AskAsync(string query)
     {

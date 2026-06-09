@@ -158,6 +158,10 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<TaxCategory> TaxCategories => Set<TaxCategory>();
     public DbSet<CostCenter> CostCenters => Set<CostCenter>();
     public DbSet<Budget> Budgets => Set<Budget>();
+    public DbSet<RegionalTaxConfiguration> RegionalTaxConfigurations => Set<RegionalTaxConfiguration>();
+    public DbSet<PayrollConcept> PayrollConcepts => Set<PayrollConcept>();
+    public DbSet<AccountingRuleTemplate> AccountingRuleTemplates => Set<AccountingRuleTemplate>();
+    public DbSet<EmployeePayrollExemption> EmployeePayrollExemptions => Set<EmployeePayrollExemption>();
     
     // New Module: Tesorería
     public DbSet<Bank> Banks => Set<Bank>();
@@ -2000,6 +2004,38 @@ public sealed class ZorvianDbContext : DbContext
                 .OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(ev => new { ev.WarrantyId, ev.OccurredAt });
             e.HasQueryFilter(ev => ev.TenantId == _tenantContext.TenantId.ToString() && !ev.IsDeleted);
+        });
+
+        builder.Entity<RegionalTaxConfiguration>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.CountryCode).HasMaxLength(3).IsRequired();
+            e.Property(x => x.TaxType).HasMaxLength(50).IsRequired();
+            e.Property(x => x.Rate).HasColumnType("decimal(18,4)").IsRequired();
+            e.HasIndex(x => new { x.CountryCode, x.TaxType, x.EffectiveDate, x.CompanyId });
+            e.HasQueryFilter(x => x.TenantId == _tenantContext.TenantId.ToString() && !x.IsDeleted);
+        });
+
+        builder.Entity<PayrollConcept>(e =>
+        {
+            e.HasKey(pc => pc.Id);
+            e.Property(pc => pc.CountryCode).HasMaxLength(3).IsRequired();
+            e.Property(pc => pc.Code).HasMaxLength(50).IsRequired();
+            e.Property(pc => pc.Name).HasMaxLength(255).IsRequired();
+            e.Property(pc => pc.CalculationFormula).HasMaxLength(500).IsRequired();
+            e.HasOne(pc => pc.AccountMapping).WithMany().HasForeignKey(pc => pc.AccountMappingId).OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(pc => new { pc.CountryCode, pc.Code, pc.CompanyId }).IsUnique();
+            e.HasQueryFilter(pc => pc.TenantId == _tenantContext.TenantId.ToString() && !pc.IsDeleted);
+        });
+
+        builder.Entity<AccountingRuleTemplate>(e =>
+        {
+            e.HasKey(ar => ar.Id);
+            e.Property(ar => ar.CountryCode).HasMaxLength(3).IsRequired();
+            e.Property(ar => ar.ProcessTrigger).HasMaxLength(100).IsRequired();
+            e.Property(ar => ar.EntryStructureJson).IsRequired();
+            e.HasIndex(ar => new { ar.CountryCode, ar.ProcessTrigger, ar.CompanyId });
+            e.HasQueryFilter(ar => ar.TenantId == _tenantContext.TenantId.ToString() && !ar.IsDeleted);
         });
 
         builder.Entity<WarrantyAttachment>(e =>
