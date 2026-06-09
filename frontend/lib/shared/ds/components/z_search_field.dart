@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:nexora/core/utils/debouncer.dart';
+import 'package:zorvian/core/utils/debouncer.dart';
 
 /// Search field with built-in debouncing
 class ZSearchField extends StatefulWidget {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:nexora/shared/ds/ds.dart';
+import 'package:zorvian/shared/ds/ds.dart';
 import '../providers/warranty_provider.dart';
 
 final class WarrantyListPage extends ConsumerStatefulWidget {

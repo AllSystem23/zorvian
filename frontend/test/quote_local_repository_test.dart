@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/native.dart';
-import 'package:nexora/core/offline/app_database.dart';
-import 'package:nexora/features/quotes/data/quote_local_repository.dart';
+import 'package:zorvian/core/offline/app_database.dart';
+import 'package:zorvian/features/quotes/data/quote_local_repository.dart';
 
 void main() {
   late AppDatabase database;

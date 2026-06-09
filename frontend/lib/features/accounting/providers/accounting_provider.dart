@@ -152,28 +152,52 @@ final class AccountLinkItem {
   );
 }
 
+final class AccountingPeriodItem {
+  final String id;
+  final int year;
+  final int month;
+  final String name;
+  final String status;
+
+  const AccountingPeriodItem({
+    required this.id, required this.year, required this.month,
+    required this.name, required this.status,
+  });
+
+  factory AccountingPeriodItem.fromJson(Map<String, dynamic> j) => AccountingPeriodItem(
+    id: j['id'] as String? ?? '',
+    year: (j['year'] as num?)?.toInt() ?? 0,
+    month: (j['month'] as num?)?.toInt() ?? 0,
+    name: j['name'] as String? ?? '',
+    status: j['status'] as String? ?? '',
+  );
+}
+
 final class AccountingState {
   final List<AccountItem> accounts;
   final List<AccountingEntryItem> entries;
   final List<AccountLinkItem> links;
+  final List<AccountingPeriodItem> periods;
   final bool loading;
   final String? error;
 
   const AccountingState({
     this.accounts = const [], this.entries = const [], this.links = const [],
-    this.loading = false, this.error,
+    this.periods = const [], this.loading = false, this.error,
   });
 
   AccountingState copyWith({
     List<AccountItem>? accounts, List<AccountingEntryItem>? entries,
-    List<AccountLinkItem>? links, bool? loading, String? error,
+    List<AccountLinkItem>? links, List<AccountingPeriodItem>? periods,
+    bool? loading, String? error,
   }) => AccountingState(
     accounts: accounts ?? this.accounts, entries: entries ?? this.entries,
-    links: links ?? this.links, loading: loading ?? this.loading, error: error ?? this.error,
+    links: links ?? this.links, periods: periods ?? this.periods,
+    loading: loading ?? this.loading, error: error ?? this.error,
   );
 }
 
-final class AccountingNotifier extends Notifier<AccountingState> {
+class AccountingNotifier extends Notifier<AccountingState> {
   @override
   AccountingState build() => const AccountingState();
 
@@ -212,6 +236,17 @@ final class AccountingNotifier extends Notifier<AccountingState> {
       state = state.copyWith(links: data.map((e) => AccountLinkItem.fromJson(e)).toList());
     } catch (_) {
       state = state.copyWith(error: 'Error al cargar vínculos');
+    }
+  }
+
+  Future<void> loadPeriods() async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      final r = await dio.get('accounting-periods');
+      final data = r.data is List ? r.data as List : [];
+      state = state.copyWith(periods: data.map((e) => AccountingPeriodItem.fromJson(e)).toList());
+    } catch (_) {
+      state = state.copyWith(error: 'Error al cargar períodos');
     }
   }
 

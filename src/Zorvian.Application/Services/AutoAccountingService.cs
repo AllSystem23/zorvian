@@ -22,6 +22,13 @@ public interface IAutoAccountingService
     Task<Guid> GenerateRevaluationEntryAsync(Guid assetId, decimal previousValue, decimal newValue, decimal accumulatedDepreciation, Guid companyId, Guid branchId);
     Task<Guid> GenerateWarrantyCostEntryAsync(Guid costId, string costCategory, decimal totalCost, string paidBy, Guid? providerId, Guid warrantyId, Guid companyId, Guid branchId);
     Task<Guid> GenerateCreditNoteEntryAsync(Guid creditNoteId, Guid saleId, string saleType, List<CreditNoteDetail> details, decimal subtotal, decimal tax);
+    Task<Guid> GenerateCheckEntryAsync(Guid checkId, decimal amount, string checkType, Guid? bankAccountId, Guid? payeeId, Guid? costCenterId = null);
+    Task<Guid> GenerateBankDepositEntryAsync(Guid bankMovementId, decimal amount, Guid bankAccountId, Guid? costCenterId = null);
+    Task<Guid> GenerateBankTransferEntryAsync(Guid bankMovementId, decimal amount, Guid fromAccountId, Guid toAccountId, Guid? costCenterId = null);
+    Task<Guid> GenerateBankCommissionEntryAsync(Guid bankMovementId, decimal commission, Guid bankAccountId, Guid? costCenterId = null);
+    Task<Guid> GenerateCollectionEntryAsync(Guid paymentId, decimal amount, decimal interest, decimal lateFee, Guid invoiceId, Guid? costCenterId = null);
+    Task<Guid> GenerateAdvanceToSupplierEntryAsync(Guid advanceId, decimal amount, Guid supplierId, Guid? costCenterId = null);
+    Task<Guid> GenerateSupplierAdvanceApplicationEntryAsync(Guid applicationId, decimal amount, Guid advanceId, Guid purchaseId, Guid? costCenterId = null);
 }
 
 public class AutoAccountingService : IAutoAccountingService
@@ -1008,6 +1015,310 @@ public class AutoAccountingService : IAutoAccountingService
             Status = "posted",
             AccountingPeriodId = periodId,
             CompanyId = companyId,
+            TotalDebit = entryDetails.Sum(d => d.DebitAmount),
+            TotalCredit = entryDetails.Sum(d => d.CreditAmount),
+            PostedAt = DateTime.UtcNow,
+            Details = entryDetails,
+        };
+
+        await _entryRepo.AddAsync(entry);
+        await _entryRepo.SaveChangesAsync();
+        return entry.Id;
+    }
+
+    public async Task<Guid> GenerateCheckEntryAsync(Guid checkId, decimal amount, string checkType, Guid? bankAccountId, Guid? payeeId, Guid? costCenterId = null)
+    {
+        var periodId = await GetPeriodIdAsync();
+        var companyId = CompanyId;
+
+        AccountingEntryDetail MakeDetail(Guid accountId, decimal debit, decimal credit, string desc)
+        {
+            return new() { AccountId = accountId, DebitAmount = debit, CreditAmount = credit, Description = desc, CompanyId = companyId, CostCenterId = costCenterId };
+        }
+
+        var entryDetails = new List<AccountingEntryDetail>();
+        var bankAccId = bankAccountId ?? await GetAccountIdAsync(TransactionTypes.Check, AccountRoles.Bank);
+
+        switch (checkType.ToLowerInvariant())
+        {
+            case "issuance":
+            case "payment":
+                var apAccountId = await GetAccountIdAsync(TransactionTypes.Check, AccountRoles.AccountsPayable);
+                entryDetails.Add(MakeDetail(apAccountId, amount, 0, $"Emisión cheque #{checkId.ToString()[..8]}"));
+                entryDetails.Add(MakeDetail(bankAccId, 0, amount, "Cargo bancario por cheque"));
+                break;
+            case "cancellation":
+                var canceledApId = await GetAccountIdAsync(TransactionTypes.Check, AccountRoles.AccountsPayable);
+                var canceledBankId = await GetAccountIdAsync(TransactionTypes.Check, AccountRoles.Bank);
+                entryDetails.Add(MakeDetail(canceledBankId, amount, 0, $"Cancelación cheque #{checkId.ToString()[..8]}"));
+                entryDetails.Add(MakeDetail(canceledApId, 0, amount, "Reversión CxP por cancelación cheque"));
+                break;
+            case "reconciliation":
+                var reclassAccId = await GetAccountIdByCodeAsync("1.1.03");
+                entryDetails.Add(MakeDetail(reclassAccId, amount, 0, $"Conciliación cheque #{checkId.ToString()[..8]}"));
+                entryDetails.Add(MakeDetail(bankAccId, 0, amount, "Ajuste conciliación bancaria"));
+                break;
+            default:
+                throw new ArgumentException($"Unknown check type: {checkType}");
+        }
+
+        var entry = new AccountingEntry
+        {
+            EntryNumber = await GenerateNumberAsync(),
+            EntryDate = DateTime.UtcNow,
+            Description = $"Cheque {(checkType == "issuance" ? "Emitido" : checkType == "payment" ? "Pago" : checkType == "cancellation" ? "Cancelado" : "Conciliado")} #{checkId.ToString()[..8]}",
+            ReferenceType = "Check",
+            ReferenceId = checkId,
+            Status = "posted",
+            AccountingPeriodId = periodId,
+            CompanyId = companyId,
+            CostCenterId = costCenterId,
+            TotalDebit = entryDetails.Sum(d => d.DebitAmount),
+            TotalCredit = entryDetails.Sum(d => d.CreditAmount),
+            PostedAt = DateTime.UtcNow,
+            Details = entryDetails,
+        };
+
+        await _entryRepo.AddAsync(entry);
+        await _entryRepo.SaveChangesAsync();
+        return entry.Id;
+    }
+
+    public async Task<Guid> GenerateBankDepositEntryAsync(Guid bankMovementId, decimal amount, Guid bankAccountId, Guid? costCenterId = null)
+    {
+        var periodId = await GetPeriodIdAsync();
+        var companyId = CompanyId;
+
+        AccountingEntryDetail MakeDetail(Guid accountId, decimal debit, decimal credit, string desc)
+        {
+            return new() { AccountId = accountId, DebitAmount = debit, CreditAmount = credit, Description = desc, CompanyId = companyId, CostCenterId = costCenterId };
+        }
+
+        var cashAccountId = await GetAccountIdByCodeAsync("1.1.01");
+        var entryDetails = new List<AccountingEntryDetail>
+        {
+            MakeDetail(bankAccountId, amount, 0, "Depósito bancario"),
+            MakeDetail(cashAccountId, 0, amount, "Salida de efectivo por depósito"),
+        };
+
+        var entry = new AccountingEntry
+        {
+            EntryNumber = await GenerateNumberAsync(),
+            EntryDate = DateTime.UtcNow,
+            Description = $"Depósito Bancario #{bankMovementId.ToString()[..8]}",
+            ReferenceType = "BankDeposit",
+            ReferenceId = bankMovementId,
+            Status = "posted",
+            AccountingPeriodId = periodId,
+            CompanyId = companyId,
+            CostCenterId = costCenterId,
+            TotalDebit = entryDetails.Sum(d => d.DebitAmount),
+            TotalCredit = entryDetails.Sum(d => d.CreditAmount),
+            PostedAt = DateTime.UtcNow,
+            Details = entryDetails,
+        };
+
+        await _entryRepo.AddAsync(entry);
+        await _entryRepo.SaveChangesAsync();
+        return entry.Id;
+    }
+
+    public async Task<Guid> GenerateBankTransferEntryAsync(Guid bankMovementId, decimal amount, Guid fromAccountId, Guid toAccountId, Guid? costCenterId = null)
+    {
+        var periodId = await GetPeriodIdAsync();
+        var companyId = CompanyId;
+
+        AccountingEntryDetail MakeDetail(Guid accountId, decimal debit, decimal credit, string desc)
+        {
+            return new() { AccountId = accountId, DebitAmount = debit, CreditAmount = credit, Description = desc, CompanyId = companyId, CostCenterId = costCenterId };
+        }
+
+        var entryDetails = new List<AccountingEntryDetail>
+        {
+            MakeDetail(fromAccountId, 0, amount, "Transferencia bancaria - origen"),
+            MakeDetail(toAccountId, amount, 0, "Transferencia bancaria - destino"),
+        };
+
+        var entry = new AccountingEntry
+        {
+            EntryNumber = await GenerateNumberAsync(),
+            EntryDate = DateTime.UtcNow,
+            Description = $"Transferencia Bancaria #{bankMovementId.ToString()[..8]}",
+            ReferenceType = "BankTransfer",
+            ReferenceId = bankMovementId,
+            Status = "posted",
+            AccountingPeriodId = periodId,
+            CompanyId = companyId,
+            CostCenterId = costCenterId,
+            TotalDebit = entryDetails.Sum(d => d.DebitAmount),
+            TotalCredit = entryDetails.Sum(d => d.CreditAmount),
+            PostedAt = DateTime.UtcNow,
+            Details = entryDetails,
+        };
+
+        await _entryRepo.AddAsync(entry);
+        await _entryRepo.SaveChangesAsync();
+        return entry.Id;
+    }
+
+    public async Task<Guid> GenerateBankCommissionEntryAsync(Guid bankMovementId, decimal commission, Guid bankAccountId, Guid? costCenterId = null)
+    {
+        var periodId = await GetPeriodIdAsync();
+        var companyId = CompanyId;
+
+        AccountingEntryDetail MakeDetail(Guid accountId, decimal debit, decimal credit, string desc)
+        {
+            return new() { AccountId = accountId, DebitAmount = debit, CreditAmount = credit, Description = desc, CompanyId = companyId, CostCenterId = costCenterId };
+        }
+
+        var bankExpenseAccountId = await GetAccountIdByCodeAsync("5.1.01");
+        var entryDetails = new List<AccountingEntryDetail>
+        {
+            MakeDetail(bankExpenseAccountId, commission, 0, "Comisión bancaria"),
+            MakeDetail(bankAccountId, 0, commission, "Cargo por comisión bancaria"),
+        };
+
+        var entry = new AccountingEntry
+        {
+            EntryNumber = await GenerateNumberAsync(),
+            EntryDate = DateTime.UtcNow,
+            Description = $"Comisión Bancaria #{bankMovementId.ToString()[..8]}",
+            ReferenceType = "BankCommission",
+            ReferenceId = bankMovementId,
+            Status = "posted",
+            AccountingPeriodId = periodId,
+            CompanyId = companyId,
+            CostCenterId = costCenterId,
+            TotalDebit = entryDetails.Sum(d => d.DebitAmount),
+            TotalCredit = entryDetails.Sum(d => d.CreditAmount),
+            PostedAt = DateTime.UtcNow,
+            Details = entryDetails,
+        };
+
+        await _entryRepo.AddAsync(entry);
+        await _entryRepo.SaveChangesAsync();
+        return entry.Id;
+    }
+
+    public async Task<Guid> GenerateCollectionEntryAsync(Guid paymentId, decimal amount, decimal interest, decimal lateFee, Guid invoiceId, Guid? costCenterId = null)
+    {
+        var periodId = await GetPeriodIdAsync();
+        var companyId = CompanyId;
+
+        AccountingEntryDetail MakeDetail(Guid accountId, decimal debit, decimal credit, string desc)
+        {
+            return new() { AccountId = accountId, DebitAmount = debit, CreditAmount = credit, Description = desc, CompanyId = companyId, CostCenterId = costCenterId };
+        }
+
+        var cashAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.Cash);
+        var arAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.AccountsReceivable);
+        var interestIncomeAccountId = await GetAccountIdByCodeAsync("4.3.01");
+        var lateFeeIncomeAccountId = await GetAccountIdByCodeAsync("4.3.02");
+
+        var total = amount + interest + lateFee;
+        var entryDetails = new List<AccountingEntryDetail>
+        {
+            MakeDetail(cashAccountId, total, 0, $"Cobranza factura #{invoiceId.ToString()[..8]}"),
+            MakeDetail(arAccountId, 0, amount, "Aplicación a cuenta por cobrar"),
+        };
+
+        if (interest > 0)
+            entryDetails.Add(MakeDetail(interestIncomeAccountId, 0, interest, "Intereses por cobranza"));
+
+        if (lateFee > 0)
+            entryDetails.Add(MakeDetail(lateFeeIncomeAccountId, 0, lateFee, "Recargos por mora"));
+
+        var entry = new AccountingEntry
+        {
+            EntryNumber = await GenerateNumberAsync(),
+            EntryDate = DateTime.UtcNow,
+            Description = $"Cobranza Recibo #{paymentId.ToString()[..8]}",
+            ReferenceType = "Collection",
+            ReferenceId = paymentId,
+            Status = "posted",
+            AccountingPeriodId = periodId,
+            CompanyId = companyId,
+            CostCenterId = costCenterId,
+            TotalDebit = entryDetails.Sum(d => d.DebitAmount),
+            TotalCredit = entryDetails.Sum(d => d.CreditAmount),
+            PostedAt = DateTime.UtcNow,
+            Details = entryDetails,
+        };
+
+        await _entryRepo.AddAsync(entry);
+        await _entryRepo.SaveChangesAsync();
+        return entry.Id;
+    }
+
+    public async Task<Guid> GenerateAdvanceToSupplierEntryAsync(Guid advanceId, decimal amount, Guid supplierId, Guid? costCenterId = null)
+    {
+        var periodId = await GetPeriodIdAsync();
+        var companyId = CompanyId;
+
+        AccountingEntryDetail MakeDetail(Guid accountId, decimal debit, decimal credit, string desc)
+        {
+            return new() { AccountId = accountId, DebitAmount = debit, CreditAmount = credit, Description = desc, CompanyId = companyId, CostCenterId = costCenterId };
+        }
+
+        var advancesAccountId = await GetAccountIdByCodeAsync("1.1.06");
+        var cashAccountId = await GetAccountIdAsync(TransactionTypes.Purchase, AccountRoles.Cash);
+        var entryDetails = new List<AccountingEntryDetail>
+        {
+            MakeDetail(advancesAccountId, amount, 0, $"Anticipo a proveedor #{supplierId.ToString()[..8]}"),
+            MakeDetail(cashAccountId, 0, amount, "Pago de anticipo"),
+        };
+
+        var entry = new AccountingEntry
+        {
+            EntryNumber = await GenerateNumberAsync(),
+            EntryDate = DateTime.UtcNow,
+            Description = $"Anticipo a Proveedor #{advanceId.ToString()[..8]}",
+            ReferenceType = "AdvanceToSupplier",
+            ReferenceId = advanceId,
+            Status = "posted",
+            AccountingPeriodId = periodId,
+            CompanyId = companyId,
+            CostCenterId = costCenterId,
+            TotalDebit = entryDetails.Sum(d => d.DebitAmount),
+            TotalCredit = entryDetails.Sum(d => d.CreditAmount),
+            PostedAt = DateTime.UtcNow,
+            Details = entryDetails,
+        };
+
+        await _entryRepo.AddAsync(entry);
+        await _entryRepo.SaveChangesAsync();
+        return entry.Id;
+    }
+
+    public async Task<Guid> GenerateSupplierAdvanceApplicationEntryAsync(Guid applicationId, decimal amount, Guid advanceId, Guid purchaseId, Guid? costCenterId = null)
+    {
+        var periodId = await GetPeriodIdAsync();
+        var companyId = CompanyId;
+
+        AccountingEntryDetail MakeDetail(Guid accountId, decimal debit, decimal credit, string desc)
+        {
+            return new() { AccountId = accountId, DebitAmount = debit, CreditAmount = credit, Description = desc, CompanyId = companyId, CostCenterId = costCenterId };
+        }
+
+        var advancesAccountId = await GetAccountIdByCodeAsync("1.1.06");
+        var apAccountId = await GetAccountIdAsync(TransactionTypes.Purchase, AccountRoles.AccountsPayable);
+        var entryDetails = new List<AccountingEntryDetail>
+        {
+            MakeDetail(apAccountId, amount, 0, $"Aplicación anticipo a compra #{purchaseId.ToString()[..8]}"),
+            MakeDetail(advancesAccountId, 0, amount, "Cancelación anticipo"),
+        };
+
+        var entry = new AccountingEntry
+        {
+            EntryNumber = await GenerateNumberAsync(),
+            EntryDate = DateTime.UtcNow,
+            Description = $"Aplicación Anticipo #{advanceId.ToString()[..8]} a Compra #{purchaseId.ToString()[..8]}",
+            ReferenceType = "AdvanceApplication",
+            ReferenceId = applicationId,
+            Status = "posted",
+            AccountingPeriodId = periodId,
+            CompanyId = companyId,
+            CostCenterId = costCenterId,
             TotalDebit = entryDetails.Sum(d => d.DebitAmount),
             TotalCredit = entryDetails.Sum(d => d.CreditAmount),
             PostedAt = DateTime.UtcNow,

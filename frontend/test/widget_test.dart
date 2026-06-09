@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nexora/app/app.dart';
+import 'package:zorvian/app/app.dart';
 
 void main() {
   testWidgets('App renders login page', (WidgetTester tester) async {

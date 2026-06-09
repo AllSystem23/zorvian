@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nexora/features/quotes/pages/quote_kanban_page.dart';
+import 'package:zorvian/features/quotes/pages/quote_kanban_page.dart';
 
 void main() {
   testWidgets('QuoteKanbanPage renders columns and items', (WidgetTester tester) async {

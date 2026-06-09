@@ -7,22 +7,21 @@ class LocalNotificationService {
 
   Future<void> initialize() async {
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
+    const iosSettings = DarwinInitializationSettings();
+    await _plugin.initialize(
+      settings: const InitializationSettings(
+        android: androidSettings,
+        iOS: iosSettings,
+      ),
+      onDidReceiveNotificationResponse: (details) {},
     );
-    const settings = InitializationSettings(
-      android: androidSettings,
-      iOS: iosSettings,
-    );
-    await _plugin.initialize(settings);
+
   }
 
   Future<void> showNotification({
     required int id,
     required String title,
-    required String body,
+    required String? body,
     String? payload,
   }) async {
     const androidDetails = AndroidNotificationDetails(
@@ -37,6 +36,12 @@ class LocalNotificationService {
       android: androidDetails,
       iOS: iosDetails,
     );
-    await _plugin.show(id, title, body, details, payload: payload);
+    await _plugin.show(
+      id: id,
+      title: title,
+      body: body,
+      notificationDetails: details,
+      payload: payload,
+    );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../../../core/mixins/auto_refresh_mixin.dart';
 import '../../../core/widgets/bi/bi_line_chart.dart';
 import '../../../core/widgets/bi/bi_bar_chart.dart';
 import '../../../core/widgets/bi/bi_kpi_card.dart';
@@ -10,11 +11,22 @@ import '../../../core/widgets/bi/expense_classifier_section.dart';
 import '../providers/bi_provider.dart';
 import '../../../../shared/ds/ds.dart';
 
-class CommercialDashboardPage extends ConsumerWidget {
+class CommercialDashboardPage extends ConsumerStatefulWidget {
   const CommercialDashboardPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CommercialDashboardPage> createState() => _CommercialDashboardPageState();
+}
+
+class _CommercialDashboardPageState extends ConsumerState<CommercialDashboardPage> with AutoRefreshMixin<CommercialDashboardPage> {
+  @override
+  void initState() {
+    super.initState();
+    startAutoRefresh(providers: [biSalesTrendProvider(12)]);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final salesTrendAsync = ref.watch(biSalesTrendProvider(12));
 
     return Scaffold(

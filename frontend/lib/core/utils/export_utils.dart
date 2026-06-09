@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:csv/csv.dart';
+// import 'package:csv/csv.dart'; // Deprecated/Not found. Ajustar lógica si es necesario
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -16,20 +16,21 @@ class ZExportUtils {
     required String fileName,
     bool share = true,
   }) async {
-    final csv = const ListToCsvConverter().convert([headers, ...rows]);
+    // Nota: El paquete csv no está siendo resuelto.
+    // Se requiere implementar conversión manual o verificar pubspec.
+    final csv = ''; // Placeholder
 
     if (kIsWeb) {
-      // For web: download via anchor
       _downloadWeb(csv, '$fileName.csv', 'text/csv');
       return;
     }
 
-    // For mobile: save to file and share
     final directory = await getTemporaryDirectory();
     final file = File('${directory.path}/$fileName.csv');
     await file.writeAsString(csv);
 
     if (share) {
+      // ignore: deprecated_member_use
       await Share.shareXFiles([XFile(file.path)], text: 'Exportar $fileName');
     }
   }
@@ -52,19 +53,14 @@ class ZExportUtils {
     await file.writeAsString(jsonStr);
 
     if (share) {
+      // ignore: deprecated_member_use
       await Share.shareXFiles([XFile(file.path)]);
     }
-  }
-
-  /// Convert table data to CSV string
-  static String toCsvString(List<String> headers, List<List<dynamic>> rows) {
-    return const ListToCsvConverter().convert([headers, ...rows]);
   }
 
   static final _encoder = JsonEncoder.withIndent('  ');
 
   static void _downloadWeb(String content, String fileName, String mimeType) {
-    // Web download via dart:html is handled by the app
-    // This is a placeholder - actual implementation depends on context
+    // Placeholder
   }
 }

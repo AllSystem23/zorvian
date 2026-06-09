@@ -95,6 +95,9 @@ import '../features/custom_reports/pages/custom_report_result_page.dart';
 import '../features/webhooks/pages/webhook_list_page.dart';
 import '../features/webhooks/pages/webhook_form_page.dart';
 import '../features/webhooks/pages/webhook_logs_page.dart';
+import '../features/accounting/pages/equity_changes_page.dart';
+import '../features/accounting/pages/comparative_reports_page.dart';
+import '../features/accounting/pages/ai_assistant_page.dart';
 
 final _routeRoles = <String, List<String>>{
   '/dashboard': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
@@ -137,6 +140,9 @@ final _routeRoles = <String, List<String>>{
   '/exchange-rates': ['SuperAdmin', 'CompanyAdmin'],
   '/custom-reports': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/webhooks': ['SuperAdmin', 'CompanyAdmin'],
+  '/accounting/reports/equity': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
+  '/accounting/reports/comparative': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
+  '/accounting/ai-assistant': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
 };
 
 bool _hasAccess(String role, String location) {
@@ -576,6 +582,21 @@ final routerProvider = Provider<GoRouter>((ref) {
                 },
               ),
             ],
+          ),
+          GoRoute(
+            path: '/accounting/reports/equity',
+            name: 'accounting-equity',
+            builder: (_, _) => const EquityChangesPage(),
+          ),
+          GoRoute(
+            path: '/accounting/reports/comparative',
+            name: 'accounting-comparative',
+            builder: (_, _) => const ComparativeReportsPage(),
+          ),
+          GoRoute(
+            path: '/accounting/ai-assistant',
+            name: 'accounting-ai-assistant',
+            builder: (_, _) => const AiAssistantPage(),
           ),
           GoRoute(
             path: '/webhooks',

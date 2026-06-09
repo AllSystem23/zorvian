@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nexora/features/custom_reports/pages/custom_report_builder_page.dart';
+import 'package:zorvian/features/custom_reports/pages/custom_report_builder_page.dart';
 
 void main() {
   testWidgets('CustomReportBuilderPage renders initial form fields', (WidgetTester tester) async {

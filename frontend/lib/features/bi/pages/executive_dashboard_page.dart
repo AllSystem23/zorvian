@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../../../core/mixins/auto_refresh_mixin.dart';
 import '../../../core/widgets/bi/bi_kpi_card.dart';
 import '../../../core/widgets/bi/bi_line_chart.dart';
 import '../../../core/widgets/bi/bi_bar_chart.dart';
@@ -8,11 +9,27 @@ import '../../../core/widgets/bi/bi_gauge.dart';
 import '../providers/bi_provider.dart';
 import '../../../../shared/ds/ds.dart';
 
-class ExecutiveDashboardPage extends ConsumerWidget {
+class ExecutiveDashboardPage extends ConsumerStatefulWidget {
   const ExecutiveDashboardPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ExecutiveDashboardPage> createState() => _ExecutiveDashboardPageState();
+}
+
+class _ExecutiveDashboardPageState extends ConsumerState<ExecutiveDashboardPage> with AutoRefreshMixin<ExecutiveDashboardPage> {
+  @override
+  void initState() {
+    super.initState();
+    startAutoRefresh(providers: [
+      biProvider,
+      biSalesTrendProvider(12),
+      biArAgingProvider,
+      biFinancialRatiosProvider,
+    ]);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final executiveState = ref.watch(biProvider);
     final salesTrendAsync = ref.watch(biSalesTrendProvider(12));
     final arAgingAsync = ref.watch(biArAgingProvider);
@@ -21,7 +38,12 @@ class ExecutiveDashboardPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Panel Ejecutivo')),
       body: RefreshIndicator(
-        onRefresh: () async => ref.invalidate(biProvider),
+        onRefresh: () async {
+          ref.invalidate(biProvider);
+          ref.invalidate(biSalesTrendProvider(12));
+          ref.invalidate(biArAgingProvider);
+          ref.invalidate(biFinancialRatiosProvider);
+        },
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [

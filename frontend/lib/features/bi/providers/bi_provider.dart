@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nexora/auth/auth_provider.dart';
-import 'package:nexora/features/bi/models/bi_models.dart';
+import 'package:zorvian/auth/auth_provider.dart';
+import 'package:zorvian/features/bi/models/bi_models.dart';
 
 class BiState {
   final BiExecutive? executive;

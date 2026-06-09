@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../shared/ds/ds.dart';
 import '../providers/treasury_provider.dart';
 
 class CheckIssuancePage extends ConsumerStatefulWidget {
@@ -12,7 +13,6 @@ class CheckIssuancePage extends ConsumerStatefulWidget {
 class _CheckIssuancePageState extends ConsumerState<CheckIssuancePage> {
   final _formKey = GlobalKey<FormState>();
   
-  // Controladores para los campos del cheque
   final _beneficiaryController = TextEditingController();
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -21,59 +21,74 @@ class _CheckIssuancePageState extends ConsumerState<CheckIssuancePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Emitir Cheque')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              TextFormField(
-                controller: _beneficiaryController,
-                decoration: const InputDecoration(labelText: 'Beneficiario'),
-                validator: (value) => value!.isEmpty ? 'Requerido' : null,
-              ),
-              TextFormField(
-                controller: _amountController,
-                decoration: const InputDecoration(labelText: 'Monto'),
-                keyboardType: TextInputType.number,
-                validator: (value) => value!.isEmpty ? 'Requerido' : null,
-              ),
-              TextFormField(
-                controller: _descriptionController,
-                decoration: const InputDecoration(labelText: 'Concepto'),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () async {
-                  if (_formKey.currentState!.validate()) {
-                    final treasuryService = ref.read(treasuryServiceProvider);
-                    try {
-                      await treasuryService.issueCheck({
-                        'beneficiary': _beneficiaryController.text,
-                        'amount': double.parse(_amountController.text),
-                        'description': _descriptionController.text,
-                        'issueDate': DateTime.now().toIso8601String(),
-                      });
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Cheque emitido exitosamente')),
-                        );
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Error: $e')),
-                        );
-                      }
-                    }
-                  }
-                },
-                child: const Text('Guardar Cheque'),
-              ),
-            ],
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(ZSpacing.md),
+        child: ZCard(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                ZTextField(
+                  controller: _beneficiaryController,
+                  label: 'Beneficiario',
+                ),
+                const SizedBox(height: ZSpacing.sm),
+                ZTextField(
+                  controller: _amountController,
+                  label: 'Monto',
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: ZSpacing.sm),
+                ZTextField(
+                  controller: _descriptionController,
+                  label: 'Concepto',
+                ),
+                const SizedBox(height: ZSpacing.lg),
+                ZButton(
+                  text: 'Guardar Cheque',
+                  onPressed: _submit,
+                  icon: Icons.save,
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _submit() async {
+    if (_formKey.currentState!.validate()) {
+      final treasuryService = ref.read(treasuryServiceProvider);
+      try {
+        final response = await treasuryService.issueCheck({
+          'beneficiary': _beneficiaryController.text,
+          'amount': double.parse(_amountController.text),
+          'description': _descriptionController.text,
+          'issueDate': DateTime.now().toIso8601String(),
+        });
+        
+        final checkId = response['id'];
+        
+        await treasuryService.generateCheckEntry({
+          'checkId': checkId,
+          'amount': double.parse(_amountController.text),
+          'checkType': 'Issuance',
+          'payeeId': _beneficiaryController.text,
+        });
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Cheque emitido y contabilizado exitosamente')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: $e')),
+          );
+        }
+      }
+    }
   }
 }

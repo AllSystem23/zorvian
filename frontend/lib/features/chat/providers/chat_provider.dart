@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nexora/auth/auth_provider.dart';
+import 'package:zorvian/auth/auth_provider.dart';
 
 class ChatMessage {
   final String role;

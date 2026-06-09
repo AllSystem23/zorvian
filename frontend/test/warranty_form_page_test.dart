@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nexora/features/warranties/pages/warranty_form_page.dart';
-import 'package:nexora/shared/ds/ds.dart';
+import 'package:zorvian/features/warranties/pages/warranty_form_page.dart';
+import 'package:zorvian/shared/ds/ds.dart';
 
 void main() {
   testWidgets('WarrantyFormPage renders correctly with ZTextFields', (WidgetTester tester) async {

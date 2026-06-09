@@ -12,7 +12,27 @@ class TreasuryService {
   final DioClient _client;
   TreasuryService(this._client);
 
-  Future<void> issueCheck(Map<String, dynamic> checkData) async {
-    await _client.post('treasury/issue', data: checkData);
+  Future<dynamic> issueCheck(Map<String, dynamic> checkData) async {
+    return await _client.post('treasury/checks/issue', data: checkData);
+  }
+
+  Future<void> generateBankDepositEntry(Map<String, dynamic> entryData) async {
+    await _client.post('treasury/bank-deposits/accounting-entry', data: entryData);
+  }
+
+  Future<void> generateCheckEntry(Map<String, dynamic> entryData) async {
+    await _client.post('treasury/checks/accounting-entry', data: entryData);
+  }
+
+  Future<void> generateBankTransferEntry(Map<String, dynamic> entryData) async {
+    await _client.post('treasury/bank-transfers/accounting-entry', data: entryData);
+  }
+
+  Future<void> generateBankCommissionEntry(Map<String, dynamic> entryData) async {
+    await _client.post('treasury/bank-commissions/accounting-entry', data: entryData);
+  }
+
+  Future<void> generateCollectionEntry(Map<String, dynamic> entryData) async {
+    await _client.post('treasury/collections/accounting-entry', data: entryData);
   }
 }

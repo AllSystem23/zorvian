@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nexora/shared/ds/ds.dart';
+import 'package:zorvian/shared/ds/ds.dart';
 
 void main() {
   test('ZAssets paths are correctly defined', () {

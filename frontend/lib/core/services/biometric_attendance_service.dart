@@ -38,10 +38,6 @@ class BiometricAttendanceService {
     try {
       final authenticated = await _auth.authenticate(
         localizedReason: reason,
-        options: const AuthenticationOptions(
-          biometricOnly: false,
-          stickyAuth: true,
-        ),
       );
       return BiometricResult(
         success: authenticated,

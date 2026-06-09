@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:nexora/core/utils/country_config.dart';
+import 'package:zorvian/core/utils/country_config.dart';
 import '../ds.dart';
 
 /// Reusable country selector widget

@@ -1,16 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/mixins/auto_refresh_mixin.dart';
 import '../../../core/widgets/bi/bi_bar_chart.dart';
 import '../../../core/widgets/bi/bi_pie_chart.dart';
 import '../../../core/widgets/bi/bi_kpi_card.dart';
 import '../providers/bi_provider.dart';
 import '../../../../shared/ds/ds.dart';
 
-class OperationalDashboardPage extends ConsumerWidget {
+class OperationalDashboardPage extends ConsumerStatefulWidget {
   const OperationalDashboardPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<OperationalDashboardPage> createState() => _OperationalDashboardPageState();
+}
+
+class _OperationalDashboardPageState extends ConsumerState<OperationalDashboardPage> with AutoRefreshMixin<OperationalDashboardPage> {
+  @override
+  void initState() {
+    super.initState();
+    startAutoRefresh(providers: [
+      biInventorySummaryProvider,
+      biPayrollSummaryProvider,
+    ]);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final inventoryAsync = ref.watch(biInventorySummaryProvider);
     final payrollAsync = ref.watch(biPayrollSummaryProvider);
 

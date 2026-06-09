@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nexora/features/admin/pages/user_list_page.dart';
-import 'package:nexora/features/admin/providers/user_provider.dart';
+import 'package:zorvian/features/admin/pages/user_list_page.dart';
+import 'package:zorvian/features/admin/providers/user_provider.dart';
 
 void main() {
   testWidgets('UserListPage renders correctly', (WidgetTester tester) async {

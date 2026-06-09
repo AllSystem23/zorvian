@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nexora/shared/ds/ds.dart';
+import 'package:zorvian/shared/ds/ds.dart';
 import '../providers/user_provider.dart';
 import '../models/user_model.dart';
 

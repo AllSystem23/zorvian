@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/mixins/auto_refresh_mixin.dart';
 import '../../../core/widgets/bi/bi_bar_chart.dart';
 import '../../../core/widgets/bi/bi_pie_chart.dart';
 import '../../../core/widgets/bi/bi_gauge.dart';
@@ -7,16 +8,39 @@ import '../../../core/widgets/bi/anomaly_detection_section.dart';
 import '../providers/bi_provider.dart';
 import '../../../../shared/ds/ds.dart';
 
-class FinancialDashboardPage extends ConsumerWidget {
+class FinancialDashboardPage extends ConsumerStatefulWidget {
   const FinancialDashboardPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<FinancialDashboardPage> createState() => _FinancialDashboardPageState();
+}
+// ... imports
+class _FinancialDashboardPageState extends ConsumerState<FinancialDashboardPage> with AutoRefreshMixin<FinancialDashboardPage> {
+  @override
+  void initState() {
+    super.initState();
+    startAutoRefresh(providers: [
+      biProvider, // Ahora incluimos biProvider para obtener las alertas
+      biFinancialRatiosProvider,
+      biComparativeIncomeProvider,
+      biCashFlowProvider,
+      biArAgingProvider,
+      biApAgingProvider,
+    ]);
+    // Cargar datos ejecutivos al iniciar para tener alertas disponibles
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(biProvider.notifier).loadExecutive();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final ratiosAsync = ref.watch(biFinancialRatiosProvider);
     final comparativeAsync = ref.watch(biComparativeIncomeProvider);
     final cashFlowAsync = ref.watch(biCashFlowProvider);
     final arAgingAsync = ref.watch(biArAgingProvider);
     final apAgingAsync = ref.watch(biApAgingProvider);
+    final executiveState = ref.watch(biProvider); 
 
     return Scaffold(
       appBar: AppBar(title: const Text('Panel Financiero')),
@@ -27,11 +51,23 @@ class FinancialDashboardPage extends ConsumerWidget {
           ref.invalidate(biCashFlowProvider);
           ref.invalidate(biArAgingProvider);
           ref.invalidate(biApAgingProvider);
+          ref.invalidate(biProvider);
         },
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Text('Ratios Financieros', style: Theme.of(context).textTheme.titleMedium),
+            // Sección de Alertas
+            if (executiveState.executive?.alerts.isNotEmpty ?? false) ...[
+              Text('Alertas Críticas', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.red)),
+              const SizedBox(height: 8),
+              ...executiveState.executive!.alerts.map((alert) => ZAlertCard(
+                message: alert.message,
+                severity: alert.severity,
+              )),
+              const SizedBox(height: 16),
+            ],
+            // ... resto de los gráficos ...
+
             const SizedBox(height: 8),
             ratiosAsync.when(
               loading: () => const SizedBox(height: 150, child: Center(child: CircularProgressIndicator())),

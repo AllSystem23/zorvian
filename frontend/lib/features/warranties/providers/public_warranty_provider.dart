@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:nexora/core/network/public_dio_client.dart';
-import 'package:nexora/features/warranties/models/warranty_model.dart';
+import 'package:zorvian/core/network/public_dio_client.dart';
+import 'package:zorvian/features/warranties/models/warranty_model.dart';
 
 class PublicWarrantyProvider extends ChangeNotifier {
   WarrantyModel? _warranty;

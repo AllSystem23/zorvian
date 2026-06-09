@@ -89,6 +89,7 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>();
+    public DbSet<IntercompanyTransaction> IntercompanyTransactions => Set<IntercompanyTransaction>();
 
     // New Module: Créditos
     public DbSet<Credit> Credits => Set<Credit>();

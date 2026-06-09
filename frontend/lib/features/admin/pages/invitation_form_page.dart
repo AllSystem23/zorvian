@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:nexora/shared/ds/ds.dart';
-import 'package:nexora/auth/auth_provider.dart';
+import 'package:zorvian/shared/ds/ds.dart';
+import 'package:zorvian/auth/auth_provider.dart';
 
 class InvitationFormPage extends ConsumerStatefulWidget {
   const InvitationFormPage({super.key});

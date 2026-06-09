@@ -27,6 +27,13 @@ public static class TransactionTypes
     public const string WarrantyCost = "WarrantyCost";
     public const string CostOfSale = "CostOfSale";
     public const string PurchaseReversal = "PurchaseReversal";
+    public const string Check = "Check";
+    public const string BankDeposit = "BankDeposit";
+    public const string BankTransfer = "BankTransfer";
+    public const string BankCommission = "BankCommission";
+    public const string Collection = "Collection";
+    public const string AdvanceToSupplier = "AdvanceToSupplier";
+    public const string AdvanceApplication = "AdvanceApplication";
 }
 
 public static class AccountRoles
@@ -57,4 +64,7 @@ public static class AccountRoles
     public const string WarrantyPartsExpense = "WarrantyPartsExpense";
     public const string WarrantyLaborExpense = "WarrantyLaborExpense";
     public const string WarrantyProviderReceivable = "WarrantyProviderReceivable";
+    public const string LateFeeIncome = "LateFeeIncome";
+    public const string BankExpense = "BankExpense";
+    public const string CashEquivalents = "CashEquivalents";
 }

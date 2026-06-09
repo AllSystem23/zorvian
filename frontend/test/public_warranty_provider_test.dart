@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nexora/features/warranties/providers/public_warranty_provider.dart';
+import 'package:zorvian/features/warranties/providers/public_warranty_provider.dart';
 
 void main() {
   test('PublicWarrantyProvider initializes correctly', () {

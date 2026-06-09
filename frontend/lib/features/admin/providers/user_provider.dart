@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:nexora/auth/auth_provider.dart';
-import 'package:nexora/features/admin/models/user_model.dart';
+import 'package:zorvian/auth/auth_provider.dart';
+import 'package:zorvian/features/admin/models/user_model.dart';
 
 class UserState {
   final List<UserModel> users;

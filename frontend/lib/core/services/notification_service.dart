@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:nexora/shared/ds/ds.dart';
+import 'package:zorvian/shared/ds/ds.dart';
 
 /// Enum for notification types
 enum NotificationType { success, error, warning, info }

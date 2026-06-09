@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:nexora/core/utils/country_config.dart';
-import 'package:nexora/core/utils/formatters.dart';
+import 'package:zorvian/core/utils/country_config.dart';
+import 'package:zorvian/core/utils/formatters.dart';
 import '../ds.dart';
 
 /// Currency converter widget with real-time conversion

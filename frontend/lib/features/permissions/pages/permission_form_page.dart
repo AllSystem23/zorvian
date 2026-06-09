@@ -68,7 +68,6 @@ class _PermissionFormPageState extends ConsumerState<PermissionFormPage> {
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
-      withData: false,
     );
     if (result == null || result.files.isEmpty) return;
     setState(() => _selectedFile = result.files.first);

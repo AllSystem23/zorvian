@@ -277,6 +277,7 @@ public static class DependencyInjectionExtensions
 
         // Accounting
         services.AddScoped<AccountService>();
+        services.AddScoped<IConsolidationService, ConsolidationService>();
         services.AddScoped<AccountingEntryService>();
         services.AddScoped<AccountingPeriodService>();
         services.AddScoped<AccountLinkService>();
@@ -321,6 +322,8 @@ public static class DependencyInjectionExtensions
         services.AddScoped<AccountingAssistantService>();
         services.AddScoped<PurchaseRecommendationService>();
         services.AddScoped<OcrProcessingJob>();
+        services.AddScoped<EnhancedReportService>();
+        services.AddScoped<FinancialAssistantService>();
 
         return services;
     }
