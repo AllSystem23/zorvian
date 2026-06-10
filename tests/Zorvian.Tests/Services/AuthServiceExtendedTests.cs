@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Moq;
 using Zorvian.Application.DTOs.Auth;
 using Zorvian.Application.Interfaces;
@@ -15,6 +16,7 @@ public sealed class AuthServiceExtendedTests
     private readonly Mock<IJwtService> _jwt = new();
     private readonly Mock<IMfaService> _mfa = new();
     private readonly Mock<ITenantContext> _tenant = new();
+    private readonly Mock<ILogger<AuthService>> _logger = new();
     private readonly AuthService _sut;
 
     public AuthServiceExtendedTests()
@@ -22,7 +24,7 @@ public sealed class AuthServiceExtendedTests
         _mfa.Setup(m => m.GenerateMfaToken(It.IsAny<Guid>())).Returns("mfa-test-token");
         _mfa.Setup(m => m.ValidateMfaToken(It.IsAny<string>())).Returns((Guid?)null);
         _tenant.Setup(t => t.TenantId).Returns(Guid.NewGuid().ToString());
-        _sut = new AuthService(_authRepo.Object, _firebase.Object, _jwt.Object, _mfa.Object, _tenant.Object);
+        _sut = new AuthService(_authRepo.Object, _firebase.Object, _jwt.Object, _mfa.Object, _tenant.Object, _logger.Object);
     }
 
     private User MakeUser() => new()

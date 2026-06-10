@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Zorvian.Application.DTOs.Auth;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
@@ -12,14 +13,16 @@ public sealed class AuthService
     private readonly IJwtService _jwt;
     private readonly IMfaService _mfa;
     private readonly ITenantContext _tenant;
+    private readonly ILogger<AuthService> _logger;
 
-    public AuthService(IAuthRepository authRepo, IFirebaseAuthService firebase, IJwtService jwt, IMfaService mfa, ITenantContext tenant)
+    public AuthService(IAuthRepository authRepo, IFirebaseAuthService firebase, IJwtService jwt, IMfaService mfa, ITenantContext tenant, ILogger<AuthService> logger)
     {
         _authRepo = authRepo;
         _firebase = firebase;
         _jwt = jwt;
         _mfa = mfa;
         _tenant = tenant;
+        _logger = logger;
     }
 
     public async Task<AuthResponse?> LoginAsync(LoginRequest request)
@@ -70,61 +73,69 @@ public sealed class AuthService
 
     public async Task<LoginStep1Result?> LoginWithPasswordStep1Async(LoginPasswordRequest request)
     {
-        var fbUser = await _firebase.SignInWithPasswordAsync(request.Email, request.Password);
-
-        User? user = null;
-
-        if (fbUser is not null)
+        try
         {
-            user = await _authRepo.GetUserByFirebaseUidAsync(fbUser.Uid);
+            var fbUser = await _firebase.SignInWithPasswordAsync(request.Email, request.Password);
 
-            if (user is null)
+            User? user = null;
+
+            if (fbUser is not null)
             {
-                var email = fbUser.Email;
-                if (string.IsNullOrEmpty(email)) email = request.Email;
+                user = await _authRepo.GetUserByFirebaseUidAsync(fbUser.Uid);
 
-                user = await _authRepo.GetUserByEmailAsync(email ?? "");
-                if (user is not null)
+                if (user is null)
                 {
-                    user.FirebaseUid = fbUser.Uid;
-                    if (!string.IsNullOrEmpty(fbUser.Name)) user.DisplayName = fbUser.Name;
-                    if (!string.IsNullOrEmpty(fbUser.Picture)) user.AvatarUrl = fbUser.Picture;
-                    await _authRepo.SaveChangesAsync();
-                }
-                else
-                {
-                    user = new User
+                    var email = fbUser.Email;
+                    if (string.IsNullOrEmpty(email)) email = request.Email;
+
+                    user = await _authRepo.GetUserByEmailAsync(email ?? "");
+                    if (user is not null)
                     {
-                        FirebaseUid = fbUser.Uid,
-                        Email = email,
-                        DisplayName = fbUser.Name,
-                        AvatarUrl = fbUser.Picture,
-                        TenantId = _tenant.TenantId,
-                    };
-                    await _authRepo.AddUserAsync(user);
-                    await _authRepo.SaveChangesAsync();
+                        user.FirebaseUid = fbUser.Uid;
+                        if (!string.IsNullOrEmpty(fbUser.Name)) user.DisplayName = fbUser.Name;
+                        if (!string.IsNullOrEmpty(fbUser.Picture)) user.AvatarUrl = fbUser.Picture;
+                        await _authRepo.SaveChangesAsync();
+                    }
+                    else
+                    {
+                        user = new User
+                        {
+                            FirebaseUid = fbUser.Uid,
+                            Email = email,
+                            DisplayName = fbUser.Name,
+                            AvatarUrl = fbUser.Picture,
+                            TenantId = _tenant.TenantId,
+                        };
+                        await _authRepo.AddUserAsync(user);
+                        await _authRepo.SaveChangesAsync();
 
-                    user = await _authRepo.GetUserByFirebaseUidAsync(fbUser.Uid);
-                    if (user is null) return null;
+                        user = await _authRepo.GetUserByFirebaseUidAsync(fbUser.Uid);
+                        if (user is null) return null;
+                    }
                 }
             }
+            else
+            {
+                user = await _authRepo.GetUserByEmailAsync(request.Email);
+                if (user is null || user.PasswordHash is null) return null;
+
+                if (!PasswordHelper.Verify(request.Password, user.PasswordHash)) return null;
+            }
+
+            if (user.IsMfaEnabled)
+            {
+                var mfaToken = _mfa.GenerateMfaToken(user.Id);
+                return LoginStep1Result.MfaRequired(new MfaRequiredResponse(mfaToken));
+            }
+
+            var authResponse = await GenerateAuthResponse(user, request.DeviceFingerprint);
+            return LoginStep1Result.Completed(authResponse);
         }
-        else
+        catch (Exception ex)
         {
-            user = await _authRepo.GetUserByEmailAsync(request.Email);
-            if (user is null || user.PasswordHash is null) return null;
-
-            if (!PasswordHelper.Verify(request.Password, user.PasswordHash)) return null;
+            _logger.LogError(ex, "LoginWithPasswordStep1Async failed for {Email}", request.Email);
+            throw;
         }
-
-        if (user.IsMfaEnabled)
-        {
-            var mfaToken = _mfa.GenerateMfaToken(user.Id);
-            return LoginStep1Result.MfaRequired(new MfaRequiredResponse(mfaToken));
-        }
-
-        var authResponse = await GenerateAuthResponse(user, request.DeviceFingerprint);
-        return LoginStep1Result.Completed(authResponse);
     }
 
     public async Task<AuthResponse?> CompleteMfaLoginAsync(string mfaToken, string code, string? deviceFingerprint = null)
