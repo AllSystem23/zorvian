@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using Hangfire;
@@ -7,6 +8,7 @@ using Hangfire.MemoryStorage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Zorvian.Application.Interfaces;
@@ -33,6 +35,30 @@ public static class ServiceCollectionExtensions
     {
         if (!mockExternal)
         {
+            var projectId = configuration["Firebase:ProjectId"];
+            var loggerFactory = LoggerFactory.Create(b => b.AddConsole());
+            var logger = loggerFactory.CreateLogger("FirebaseInit");
+
+            var credJson = configuration["Firebase:CredentialsJson"];
+            if (!string.IsNullOrEmpty(credJson))
+            {
+                try
+                {
+                    var googleCred = GoogleCredential.FromJson(credJson).CreateScoped();
+                    FirebaseApp.Create(new AppOptions
+                    {
+                        Credential = googleCred,
+                        ProjectId = projectId,
+                    });
+                    logger.LogInformation("FirebaseApp initialized from CredentialsJson");
+                    return services;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Failed to init FirebaseApp from CredentialsJson, trying file...");
+                }
+            }
+
             var credPath = configuration["Firebase:CredentialsFilePath"] ?? string.Empty;
             var fbCredFile = Path.Combine(AppContext.BaseDirectory, credPath);
             if (!File.Exists(fbCredFile))
@@ -42,8 +68,15 @@ public static class ServiceCollectionExtensions
                 FirebaseApp.Create(new AppOptions
                 {
                     Credential = CredentialFactory.FromFile<ServiceAccountCredential>(fbCredFile).ToGoogleCredential().CreateScoped(),
-                    ProjectId = configuration["Firebase:ProjectId"],
+                    ProjectId = projectId,
                 });
+                logger.LogInformation("FirebaseApp initialized from file: {Path}", fbCredFile);
+            }
+            else
+            {
+                logger.LogWarning("Firebase credentials not found at {Path1} or {Path2}", 
+                    Path.Combine(AppContext.BaseDirectory, credPath),
+                    Path.Combine("/etc/secrets", credPath));
             }
         }
         return services;
