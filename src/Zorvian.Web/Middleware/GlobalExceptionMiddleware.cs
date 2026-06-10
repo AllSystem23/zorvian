@@ -85,6 +85,7 @@ public sealed class GlobalExceptionMiddleware
             await WriteResponse(context, new
             {
                 message = "Error interno del servidor. Intente más tarde.",
+                detail = $"{ex.GetType().Name}: {ex.Message}",
                 traceId = context.TraceIdentifier
             });
         }
