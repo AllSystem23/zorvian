@@ -14,7 +14,7 @@ public sealed class TenantMiddleware
 
     public async Task InvokeAsync(HttpContext context, ITenantContext tenantContext, ITenantContextWriter tenantWriter, ILogger<TenantMiddleware> logger)
     {
-        if (string.IsNullOrEmpty(tenantContext.TenantId))
+        if (tenantContext.TenantId.Value == Guid.Empty)
         {
             var tenantId = context.User?.FindFirst("tenant_id")?.Value;
 
