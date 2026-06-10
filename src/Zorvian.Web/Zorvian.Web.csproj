@@ -35,6 +35,10 @@
   <ItemGroup>
     <ProjectReference Include="..\Zorvian.Application\Zorvian.Application.csproj" />
     <ProjectReference Include="..\Zorvian.Infrastructure\Zorvian.Infrastructure.csproj" />
+  <ItemGroup>
+    <Content Include="nexora-hr-firebase-adminsdk-fbsvc-dbd7abf513.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>
