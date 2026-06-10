@@ -31,7 +31,9 @@ public sealed class AuthService
 
         if (user is null)
         {
-            user = await _authRepo.GetUserByEmailAsync(fbUser.Email ?? "");
+            var email = fbUser.Email ?? "";
+
+            user = await _authRepo.GetUserByEmailAsync(email ?? "");
             if (user is not null)
             {
                 user.FirebaseUid = fbUser.Uid;
@@ -44,7 +46,7 @@ public sealed class AuthService
                 user = new User
                 {
                     FirebaseUid = fbUser.Uid,
-                    Email = fbUser.Email,
+                    Email = email,
                     DisplayName = fbUser.Name,
                     AvatarUrl = fbUser.Picture,
                     TenantId = _tenant.TenantId,
@@ -78,7 +80,10 @@ public sealed class AuthService
 
             if (user is null)
             {
-                user = await _authRepo.GetUserByEmailAsync(fbUser.Email ?? "");
+                var email = fbUser.Email;
+                if (string.IsNullOrEmpty(email)) email = request.Email;
+
+                user = await _authRepo.GetUserByEmailAsync(email ?? "");
                 if (user is not null)
                 {
                     user.FirebaseUid = fbUser.Uid;
@@ -91,7 +96,7 @@ public sealed class AuthService
                     user = new User
                     {
                         FirebaseUid = fbUser.Uid,
-                        Email = fbUser.Email,
+                        Email = email,
                         DisplayName = fbUser.Name,
                         AvatarUrl = fbUser.Picture,
                         TenantId = _tenant.TenantId,
