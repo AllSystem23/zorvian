@@ -92,7 +92,7 @@ app.UseCorrelationId();
 app.UseSecurityHeaders();
 app.UseGlobalExceptionMiddleware();
 app.UseRequestLogging();
-app.UseRateLimitingMiddleware(maxRequests: 120, windowSeconds: 60);
+//app.UseRateLimitingMiddleware(maxRequests: 120, windowSeconds: 60); // Desactivado temporalmente para pruebas
 
 if (!app.Environment.IsEnvironment("Testing"))
 {
