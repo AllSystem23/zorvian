@@ -10,7 +10,7 @@ COPY src/Zorvian.Web/Zorvian.Web.csproj src/Zorvian.Web/
 COPY src/Zorvian.Application/Zorvian.Application.csproj src/Zorvian.Application/
 COPY src/Zorvian.Core/Zorvian.Core.csproj src/Zorvian.Core/
 COPY src/Zorvian.Infrastructure/Zorvian.Infrastructure.csproj src/Zorvian.Infrastructure/
-RUN dotnet restore src/Zorvian.Web/Zorvian.Web.csproj --runtime linux-x64
+RUN dotnet restore src/Zorvian.Web/Zorvian.Web.csproj --runtime linux-x64 /p:PublishReadyToRun=true
 
 # ── Stage 2: Build & Publish ──
 FROM restore AS build
