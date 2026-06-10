@@ -15,9 +15,9 @@ class DioClient {
 
   DioClient(this._storage, {this.onError, this.onUnauthorized}) {
     _dio = Dio(BaseOptions(
-      baseUrl: _normalizeBaseUrl(const String.fromEnvironment('API_URL', defaultValue: 'http://localhost:5192/zorvian/v1/')),
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
+      baseUrl: _normalizeBaseUrl(const String.fromEnvironment('API_URL', defaultValue: 'https://nexora-9yal.onrender.com/zorvian/v1')),
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 60),
       headers: {'Content-Type': 'application/json'},
     ));
 
@@ -71,8 +71,8 @@ class DioClient {
       
       // Usamos baseUrl directamente para evitar concatenaciones mal formadas
       final response = await Dio(BaseOptions(
-        connectTimeout: const Duration(seconds: 10),
-        receiveTimeout: const Duration(seconds: 10),
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 60),
       )).post(
         '${_dio.options.baseUrl}auth/refresh',
         data: {'refreshToken': refresh},

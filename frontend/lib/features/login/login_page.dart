@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../auth/auth_provider.dart';
-import '../../core/widgets/responsive_layout.dart';
+
 import '../../shared/ds/ds.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -14,45 +14,11 @@ class LoginPage extends ConsumerStatefulWidget {
 }
 
 class _LoginPageState extends ConsumerState<LoginPage> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
-  String? _error;
-  bool _loading = false;
-  bool _obscurePassword = true;
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _login() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
-    try {
-      final success = await ref.read(authProvider.notifier).loginWithPassword(
-            _emailController.text.trim(),
-            _passwordController.text,
-          );
-      if (!success && mounted) {
-        setState(() => _error = 'Error al conectar con el servidor');
-      }
-    } catch (_) {
-      if (mounted) setState(() => _error = 'Error de conexión');
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    debugPrint('LoginPage build reconstruido');
+    final isDesktop = MediaQuery.sizeOf(context).width > 600;
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -66,14 +32,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             ],
           ),
         ),
-        child: ResponsiveBuilder(
-          builder: (context, size) {
-            if (size == ScreenSize.desktop) {
-              return _buildDesktopLayout();
-            }
-            return _buildMobileLayout();
-          },
-        ),
+        child: isDesktop ? _buildDesktopLayout() : _buildMobileLayout(),
       ),
     );
   }
@@ -121,7 +80,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         Expanded(
           flex: 2,
           child: Center(
-            child: _buildGlassCard(constraints: const BoxConstraints(maxWidth: 450)),
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 450),
+              child: const LoginForm(),
+            ),
           ),
         ),
       ],
@@ -142,80 +104,129 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 excludeFromSemantics: true,
               ),
               const SizedBox(height: 48),
-              _buildGlassCard(),
+              const LoginForm(),
             ],
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildGlassCard({BoxConstraints? constraints}) {
+class LoginForm extends ConsumerStatefulWidget {
+  const LoginForm({super.key});
+
+  @override
+  ConsumerState<LoginForm> createState() => _LoginFormState();
+}
+
+class _LoginFormState extends ConsumerState<LoginForm> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _emailFocusNode = FocusNode();
+  final _passwordFocusNode = FocusNode();
+  final _formKey = GlobalKey<FormState>();
+  String? _error;
+  bool _loading = false;
+  bool _obscurePassword = true;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _emailFocusNode.dispose();
+    _passwordFocusNode.dispose();
+    super.dispose();
+  }
+
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final success = await ref.read(authProvider.notifier).loginWithPassword(
+            _emailController.text.trim(),
+            _passwordController.text,
+          );
+      if (!success && mounted) {
+        setState(() => _error = 'Error al conectar con el servidor');
+      }
+    } catch (_) {
+      if (mounted) setState(() => _error = 'Error de conexión');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    debugPrint('LoginForm build reconstruido');
     final theme = Theme.of(context);
 
-    return Container(
-      constraints: constraints,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-          child: Container(
-            padding: const EdgeInsets.all(40),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-            ),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text(
-                    'Iniciar Sesión',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+        child: Container(
+          padding: const EdgeInsets.all(40),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+          ),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Iniciar Sesión',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Ingresa tus credenciales para continuar',
-                    style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
-                  ),
-                  const SizedBox(height: 32),
-                  if (_error != null) _buildErrorBanner(theme),
-                  _buildTextField(
-                    key: const Key('email_field'),
-                    controller: _emailController,
-                    label: 'Correo electrónico',
-                    icon: Icons.email_outlined,
-                  ),
-                  const SizedBox(height: 20),
-                  _buildTextField(
-                    key: const Key('password_field'),
-                    controller: _passwordController,
-                    label: 'Contraseña',
-                    icon: Icons.lock_outlined,
-                    isPassword: true,
-                  ),
-                  const SizedBox(height: 32),
-                  ZButton(
-                    text: 'Entrar al Sistema',
-                    onPressed: _login,
-                    isLoading: _loading,
-                  ),
-                  const SizedBox(height: 20),
-                  ZButton(
-                    text: '¿No tienes cuenta? Solicita acceso',
-                    onPressed: () => context.push('/register'),
-                    type: ZButtonType.ghost,
-                    fullWidth: false,
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Ingresa tus credenciales para continuar',
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+                ),
+                const SizedBox(height: 32),
+                if (_error != null) _buildErrorBanner(theme),
+                _buildTextField(
+                  controller: _emailController,
+                  focusNode: _emailFocusNode,
+                  label: 'Correo electrónico',
+                  icon: Icons.email_outlined,
+                ),
+                const SizedBox(height: 20),
+                _buildTextField(
+                  controller: _passwordController,
+                  focusNode: _passwordFocusNode,
+                  label: 'Contraseña',
+                  icon: Icons.lock_outlined,
+                  isPassword: true,
+                ),
+                const SizedBox(height: 32),
+                ZButton(
+                  text: 'Entrar al Sistema',
+                  onPressed: _login,
+                  isLoading: _loading,
+                ),
+                const SizedBox(height: 20),
+                ZButton(
+                  text: '¿No tienes cuenta? Solicita acceso',
+                  onPressed: () => context.push('/register'),
+                  type: ZButtonType.ghost,
+                  fullWidth: false,
+                ),
+              ],
             ),
           ),
         ),
@@ -224,13 +235,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   Widget _buildTextField({
+    Key? key,
     required TextEditingController controller,
     required String label,
     required IconData icon,
     bool isPassword = false,
+    FocusNode? focusNode,
   }) {
     return ZTextField(
+      key: key,
       controller: controller,
+      focusNode: focusNode,
       label: label,
       obscureText: isPassword && _obscurePassword,
       prefix: Icon(icon),

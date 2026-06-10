@@ -25,7 +25,7 @@ class SettlementService {
     final dio = Dio(); // Using a clean Dio for blob download or configured one
     
     // Getting base URL from environment or hardcoded as in DioClient
-    const baseUrl = String.fromEnvironment('API_URL', defaultValue: 'http://localhost:5192/zorvian/v1/');
+    const baseUrl = String.fromEnvironment('API_URL', defaultValue: 'https://nexora-9yal.onrender.com/zorvian/v1/');
     final url = '${baseUrl}payroll/settlement/generate-pdf';
 
     final response = await dio.post(

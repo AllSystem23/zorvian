@@ -274,7 +274,7 @@ public static class DependencyInjectionExtensions
         // Approval
         services.AddScoped<ApprovalFlowConfigService>();
         services.AddScoped<IRegionalTaxConfigurationRepository, RegionalTaxConfigurationRepository>();
-        services.AddScoped<AccountingRuleTemplateRepository, AccountingRuleTemplateRepository>();
+        services.AddScoped<IAccountingRuleTemplateRepository, AccountingRuleTemplateRepository>();
         services.AddScoped<IEmployeePayrollExemptionRepository, EmployeePayrollExemptionRepository>();
         services.AddScoped<IRegionalDashboardRepository, RegionalDashboardRepository>();
         services.AddScoped<IRegionalTaxConfigService, RegionalTaxConfigService>();

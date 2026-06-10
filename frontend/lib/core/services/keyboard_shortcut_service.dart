@@ -22,8 +22,8 @@ class _KeyboardShortcutServiceState extends State<KeyboardShortcutService> {
     super.dispose();
   }
 
-  void _handleKey(KeyEvent event) {
-    if (event is! KeyDownEvent) return;
+  bool _handleKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return false;
 
     final isMac = Theme.of(context).platform == TargetPlatform.macOS;
     final modifier = isMac
@@ -33,7 +33,9 @@ class _KeyboardShortcutServiceState extends State<KeyboardShortcutService> {
     // Cmd/Ctrl + K → Command Palette
     if (modifier && event.logicalKey == LogicalKeyboardKey.keyK) {
       ZCommandPalette.show(context);
+      return true;
     }
+    return false;
   }
 
   @override
@@ -42,8 +44,10 @@ class _KeyboardShortcutServiceState extends State<KeyboardShortcutService> {
       focusNode: _focusNode,
       autofocus: true,
       onKeyEvent: (node, event) {
-        _handleKey(event);
-        return KeyEventResult.handled;
+        if (_handleKey(event)) {
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
       },
       child: widget.child,
     );

@@ -12,6 +12,7 @@ class ZTextField extends StatelessWidget {
   final Widget? prefix;
   final Widget? suffix;
   final ValueChanged<String>? onChanged;
+  final FocusNode? focusNode;
 
   const ZTextField({
     super.key,
@@ -25,6 +26,7 @@ class ZTextField extends StatelessWidget {
     this.prefix,
     this.suffix,
     this.onChanged,
+    this.focusNode,
   });
 
   @override
@@ -41,6 +43,7 @@ class ZTextField extends StatelessWidget {
           ),
         TextFormField(
           controller: controller,
+          focusNode: focusNode,
           validator: validator,
           keyboardType: keyboardType,
           obscureText: obscureText,
