@@ -347,7 +347,14 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(path: 'runs/:runId', name: 'payroll-run-detail', builder: (_, state) => PayrollRunDetailPage(runId: state.pathParameters['runId']!)),
               GoRoute(path: 'salaries', name: 'payroll-salaries', builder: (_, _) => const SalariesPage()),
               GoRoute(path: 'deduction-types', name: 'payroll-deduction-types', builder: (_, _) => const DeductionTypesPage()),
-              GoRoute(path: 'settlement', name: 'payroll-settlement', builder: (_, _) => const SettlementFormPage()),
+              GoRoute(
+                path: 'settlement/:employeeId/:companyId',
+                name: 'payroll-settlement',
+                builder: (_, state) => SettlementFormPage(
+                  employeeId: state.pathParameters['employeeId']!,
+                  companyId: state.pathParameters['companyId']!,
+                ),
+              ),
             ],
           ),
           GoRoute(

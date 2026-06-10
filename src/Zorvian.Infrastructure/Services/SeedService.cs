@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
@@ -13,11 +14,47 @@ public sealed class SeedService
     private readonly IFirebaseAuthService _firebase;
     private readonly IFiscalService _fiscal;
 
-    public SeedService(ZorvianDbContext db, IFirebaseAuthService firebase, IFiscalService fiscal)
+    private readonly AccountService _accountService;
+    private readonly IAccountingRuleTemplateRepository _templateRepo;
+
+    public SeedService(ZorvianDbContext db, IFirebaseAuthService firebase, IFiscalService fiscal, AccountService accountService, IAccountingRuleTemplateRepository templateRepo)
     {
         _db = db;
         _firebase = firebase;
         _fiscal = fiscal;
+        _accountService = accountService;
+        _templateRepo = templateRepo;
+    }
+
+    public async Task SeedBrizuelaRomeroAsync(Guid companyId)
+    {
+        // 1. Import Chart of Accounts from CSV
+        if (File.Exists("Catalogo_TiendaBrizuela_Maestro.csv"))
+        {
+            var csv = await File.ReadAllTextAsync("Catalogo_TiendaBrizuela_Maestro.csv");
+            await _accountService.ImportFromCsvAsync(csv);
+        }
+
+        // 2. Import AutoAccounting Rules from JSON
+        if (File.Exists("AutoAccountingConfig.json"))
+        {
+            var json = await File.ReadAllTextAsync("AutoAccountingConfig.json");
+            var config = JsonSerializer.Deserialize<JsonElement>(json);
+            
+            // Here we would iterate and create AccountingRuleTemplate entities
+            // For brevity, let's assume we map a few key ones
+            var template = new AccountingRuleTemplate
+            {
+                ProcessTrigger = "SALE_INVOICE",
+                CompanyId = companyId,
+                CountryCode = "NIC",
+                EntryStructureJson = json, // Storing the whole config for the service to parse
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+            _db.AccountingRuleTemplates.Add(template);
+            await _db.SaveChangesAsync();
+        }
     }
 
     public async Task SeedAsync(string tenantId)

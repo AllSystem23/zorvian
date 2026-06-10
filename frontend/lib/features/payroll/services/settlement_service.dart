@@ -1,36 +1,59 @@
-import 'dart:convert';
 import 'dart:typed_data';
-import 'package:http/http.dart' as http;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/constants/api_constants.dart';
+import 'package:dio/dio.dart';
 import '../../../auth/auth_provider.dart';
 
-final settlementServiceProvider = Provider<SettlementService>((ref) {
-  return SettlementService(ref.read(authProvider.notifier));
-});
-
 class SettlementService {
-  final AuthNotifier _auth;
+  final Ref _ref;
 
-  SettlementService(this._auth);
+  SettlementService(this._ref);
 
-  Future<Uint8List> generateSettlementPdf(Map<String, dynamic> requestData) async {
-    final token = await _auth.getToken();
-    final url = Uri.parse('${ApiConstants.baseUrl}/payroll/settlement/generate-pdf');
+  Future<Uint8List> generateSettlementPdf({
+    required String employeeId,
+    required String companyId,
+    required String terminationType,
+    required DateTime lastDay,
+    required double baseSalary,
+    required double accruedVacations,
+    required double accruedAguinaldo,
+    required double indemnization,
+  }) async {
+    final storage = _ref.read(secureStorageProvider);
+    final token = await storage.getAccessToken();
     
-    final response = await http.post(
+    // Base URL is managed by DioClient, but here we might need it for a direct call or use dio instance
+    final dio = Dio(); // Using a clean Dio for blob download or configured one
+    
+    // Getting base URL from environment or hardcoded as in DioClient
+    const baseUrl = String.fromEnvironment('API_URL', defaultValue: 'http://localhost:5192/zorvian/v1/');
+    final url = '${baseUrl}payroll/settlement/generate-pdf';
+
+    final response = await dio.post(
       url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
+      data: {
+        'employeeId': employeeId,
+        'companyId': companyId,
+        'terminationType': terminationType,
+        'lastDay': lastDay.toIso8601String(),
+        'baseSalary': baseSalary,
+        'accruedVacations': accruedVacations,
+        'accruedAguinaldo': accruedAguinaldo,
+        'indemnization': indemnization,
       },
-      body: jsonEncode(requestData),
+      options: Options(
+        responseType: ResponseType.bytes,
+        headers: {
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      ),
     );
 
     if (response.statusCode == 200) {
-      return response.bodyBytes;
+      return Uint8List.fromList(response.data);
     } else {
-      throw Exception('Failed to generate PDF: ${response.statusCode}');
+      throw Exception('Error generating PDF: ${response.statusCode}');
     }
   }
 }
+
+final settlementServiceProvider = Provider((ref) => SettlementService(ref));

@@ -2,14 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:universal_html/html.dart' as html;
-import '../../../shared/ds/components/z_text_field.dart';
-import '../../../shared/ds/components/z_select.dart';
-import '../../../shared/ds/components/z_button.dart';
+import '../../../shared/ds/ds.dart';
 import '../services/settlement_service.dart';
 
 class SettlementFormPage extends ConsumerStatefulWidget {
-  final Guid employeeId;
-  final Guid companyId;
+  final String employeeId;
+  final String companyId;
 
   const SettlementFormPage({super.key, required this.employeeId, required this.companyId});
 
@@ -19,96 +17,134 @@ class SettlementFormPage extends ConsumerStatefulWidget {
 
 class _SettlementFormPageState extends ConsumerState<SettlementFormPage> {
   final _formKey = GlobalKey<FormState>();
-  final _salaryController = TextEditingController();
-  DateTime? _hireDate;
-  DateTime? _terminationDate;
   String _terminationType = 'Resignation';
+  DateTime _lastDay = DateTime.now();
+  final _baseSalaryController = TextEditingController();
+  final _vacationsController = TextEditingController();
+  final _aguinaldoController = TextEditingController();
+  final _indemnizationController = TextEditingController();
+  bool _isGenerating = false;
 
-  final List<String> _terminationTypes = ['Resignation', 'UnjustifiedDismissal', 'JustifiedDismissal', 'EndOfContract'];
-
-  Future<void> _selectDate(BuildContext context, bool isHireDate) async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null) {
-      setState(() {
-        if (isHireDate) _hireDate = picked; else _terminationDate = picked;
-      });
-    }
+  @override
+  void dispose() {
+    _baseSalaryController.dispose();
+    _vacationsController.dispose();
+    _aguinaldoController.dispose();
+    _indemnizationController.dispose();
+    super.dispose();
   }
 
   Future<void> _generatePdf() async {
-    if (!_formKey.currentState!.validate() || _hireDate == null || _terminationDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Por favor complete todos los campos')));
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isGenerating = true);
 
     try {
-      final requestData = {
-        'companyId': widget.companyId.toString(),
-        'employeeId': widget.employeeId.toString(),
-        'terminationType': _terminationType,
-        'hireDate': _hireDate!.toIso8601String(),
-        'terminationDate': _terminationDate!.toIso8601String(),
-        'salary': double.parse(_salaryController.text),
-      };
+      final pdfBytes = await ref.read(settlementServiceProvider).generateSettlementPdf(
+        employeeId: widget.employeeId,
+        companyId: widget.companyId,
+        terminationType: _terminationType,
+        lastDay: _lastDay,
+        baseSalary: double.parse(_baseSalaryController.text),
+        accruedVacations: double.parse(_vacationsController.text),
+        accruedAguinaldo: double.parse(_aguinaldoController.text),
+        indemnization: double.parse(_indemnizationController.text),
+      );
 
-      final pdfBytes = await ref.read(settlementServiceProvider).generateSettlementPdf(requestData);
-      
-      // Download
       final blob = html.Blob([pdfBytes], 'application/pdf');
       final url = html.Url.createObjectUrlFromBlob(blob);
       html.AnchorElement(href: url)
-        ..setAttribute("download", "Liquidacion_${widget.employeeId}.pdf")
+        ..setAttribute('download', 'Liquidacion_${widget.employeeId}.pdf')
         ..click();
       html.Url.revokeObjectUrl(url);
 
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Documento generado exitosamente')),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al generar el documento: $e'), backgroundColor: ZColors.danger),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isGenerating = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Cálculo de Liquidación')),
+      appBar: AppBar(title: const Text('Generar Liquidación')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(ZSpacing.md),
         child: Form(
           key: _formKey,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ZTextField(
-                label: 'Salario Mensual',
-                controller: _salaryController,
-                keyboardType: TextInputType.number,
-                validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                title: Text(_hireDate == null ? 'Fecha Contratación' : 'Contratación: ${DateFormat('yyyy-MM-dd').format(_hireDate!)}'),
-                trailing: const Icon(Icons.calendar_today),
-                onTap: () => _selectDate(context, true),
-              ),
-              ListTile(
-                title: Text(_terminationDate == null ? 'Fecha Salida' : 'Salida: ${DateFormat('yyyy-MM-dd').format(_terminationDate!)}'),
-                trailing: const Icon(Icons.calendar_today),
-                onTap: () => _selectDate(context, false),
-              ),
-              const SizedBox(height: 16),
+              const Text('Información de Liquidación', style: ZTypography.headlineSmall),
+              const SizedBox(height: ZSpacing.md),
               DropdownButtonFormField<String>(
                 value: _terminationType,
-                items: _terminationTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
-                onChanged: (v) => setState(() => _terminationType = v!),
                 decoration: const InputDecoration(labelText: 'Tipo de Terminación'),
+                items: const [
+                  DropdownMenuItem(value: 'Resignation', child: Text('Renuncia Voluntaria')),
+                  DropdownMenuItem(value: 'DismissalWithCause', child: Text('Despido con Causa')),
+                  DropdownMenuItem(value: 'DismissalWithoutCause', child: Text('Despido Injustificado')),
+                ],
+                onChanged: (val) => setState(() => _terminationType = val!),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: ZSpacing.md),
+              ListTile(
+                title: const Text('Último Día Laborado'),
+                subtitle: Text(DateFormat('dd/MM/yyyy').format(_lastDay)),
+                trailing: const Icon(Icons.calendar_today),
+                onTap: () async {
+                  final date = await showDatePicker(
+                    context: context,
+                    initialDate: _lastDay,
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                  );
+                  if (date != null) setState(() => _lastDay = date);
+                },
+              ),
+              const SizedBox(height: ZSpacing.md),
+              ZTextField(
+                controller: _baseSalaryController,
+                label: 'Salario Base (Últimos 6 meses avg)',
+                keyboardType: TextInputType.number,
+                validator: (v) => v!.isEmpty ? 'Requerido' : null,
+              ),
+              const SizedBox(height: ZSpacing.md),
+              ZTextField(
+                controller: _vacationsController,
+                label: 'Monto Vacaciones Acumuladas',
+                keyboardType: TextInputType.number,
+                validator: (v) => v!.isEmpty ? 'Requerido' : null,
+              ),
+              const SizedBox(height: ZSpacing.md),
+              ZTextField(
+                controller: _aguinaldoController,
+                label: 'Monto Aguinaldo Proporcional',
+                keyboardType: TextInputType.number,
+                validator: (v) => v!.isEmpty ? 'Requerido' : null,
+              ),
+              const SizedBox(height: ZSpacing.md),
+              ZTextField(
+                controller: _indemnizationController,
+                label: 'Monto Indemnización (Antigüedad)',
+                keyboardType: TextInputType.number,
+                validator: (v) => v!.isEmpty ? 'Requerido' : null,
+              ),
+              const SizedBox(height: ZSpacing.lg),
               ZButton(
-                label: 'Generar Finiquito PDF',
+                text: 'Generar Finiquito PDF',
                 onPressed: _generatePdf,
+                isLoading: _isGenerating,
               ),
             ],
           ),

@@ -33,6 +33,19 @@ public sealed class SeedController : ControllerBase
     }
 
     /// <summary>
+    /// Ejecuta la siembra específica para Tienda Brizuela Romero.
+    /// </summary>
+    [HttpPost("brizuela-romero")]
+    public async Task<IActionResult> SeedBrizuela()
+    {
+        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+            return BadRequest(new { error = "Invalid company context" });
+
+        await _seed.SeedBrizuelaRomeroAsync(companyId);
+        return Ok(new { message = "Catálogo y reglas de Tienda Brizuela Romero cargados exitosamente" });
+    }
+
+    /// <summary>
     /// Crea el usuario Super Admin en Firebase Authentication y en la base de datos.
     /// Endpoint público para bootstrap inicial.
     /// </summary>

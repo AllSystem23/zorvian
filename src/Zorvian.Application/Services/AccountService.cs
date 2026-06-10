@@ -83,7 +83,86 @@ public sealed class AccountService
         return MapWithBalance(account);
     }
 
+    public async Task ImportFromCsvAsync(string csvContent)
+    {
+        var companyId = CompanyId;
+        var lines = csvContent.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries).Skip(1);
+
+        var tempIds = new Dictionary<string, Guid>();
+
+        foreach (var line in lines)
+        {
+            var parts = line.Split(',');
+            if (parts.Length < 7) continue;
+
+            var code = parts[0].Trim();
+            var name = parts[1].Trim();
+            var nature = parts[2].Trim() == "D" ? AccountSide.Debit : AccountSide.Credit;
+            var level = int.Parse(parts[3].Trim());
+            var isAuto = bool.Parse(parts[6].Trim());
+
+            var account = new Account
+            {
+                Id = Guid.NewGuid(),
+                Code = code,
+                Name = name,
+                NormalSide = nature,
+                Level = level,
+                CompanyId = companyId,
+                IsActive = true,
+                Type = MapType(code),
+                IsSystem = isAuto,
+                TenantId = _tenant.TenantId ?? companyId.ToString(),
+                CreatedBy = "System",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            tempIds[code] = account.Id;
+
+            // Resolve ParentId
+            var parentCode = GetParentCode(code);
+            if (parentCode != null && tempIds.TryGetValue(parentCode, out var parentId))
+            {
+                account.ParentId = parentId;
+            }
+
+            await _repo.AddAsync(account);
+        }
+
+        await _repo.SaveChangesAsync();
+    }
+
+    private string MapType(string code)
+    {
+        if (code.StartsWith("1")) return AccountTypes.Asset;
+        if (code.StartsWith("2")) return AccountTypes.Liability;
+        if (code.StartsWith("3")) return AccountTypes.Equity;
+        if (code.StartsWith("4")) return AccountTypes.Income;
+        if (code.StartsWith("5")) return AccountTypes.Cost;
+        if (code.StartsWith("6")) return AccountTypes.Expense;
+        return AccountTypes.Asset;
+    }
+
+    private string? GetParentCode(string code)
+    {
+        var parts = code.Split('.');
+        if (parts.Length <= 1) return null;
+
+        for (int i = parts.Length - 1; i >= 0; i--)
+        {
+            if (parts[i] != "00" && parts[i] != "0" && parts[i] != "000" && parts[i] != "0000")
+            {
+                var parentParts = (string[])parts.Clone();
+                parentParts[i] = new string('0', parts[i].Length);
+                var potentialParent = string.Join(".", parentParts);
+                if (potentialParent != code) return potentialParent;
+            }
+        }
+        return null;
+    }
+
     public async Task SeedDefaultChartOfAccountsAsync()
+
     {
         var companyId = CompanyId;
         var count = (await _repo.GetAllAsync(companyId)).Count;
