@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using FirebaseAdmin.Auth;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Zorvian.Application.Interfaces;
 
 namespace Zorvian.Infrastructure.Identity;
@@ -10,10 +11,12 @@ public sealed class FirebaseAuthService : IFirebaseAuthService
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly string _webApiKey;
+    private readonly ILogger<FirebaseAuthService> _logger;
 
-    public FirebaseAuthService(IHttpClientFactory httpClientFactory, IConfiguration configuration)
+    public FirebaseAuthService(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<FirebaseAuthService> logger)
     {
         _httpClientFactory = httpClientFactory;
+        _logger = logger;
         _webApiKey = configuration["Firebase:WebApiKey"] ?? throw new InvalidOperationException("Firebase:WebApiKey not configured");
     }
     public async Task<FirebaseUser?> VerifyIdTokenAsync(string idToken)
@@ -28,8 +31,9 @@ public sealed class FirebaseAuthService : IFirebaseAuthService
 
             return new FirebaseUser(uid, email ?? "", name ?? "", picture);
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "VerifyIdTokenAsync failed");
             return null;
         }
     }
@@ -54,8 +58,9 @@ public sealed class FirebaseAuthService : IFirebaseAuthService
             var record = await FirebaseAuth.DefaultInstance.GetUserByEmailAsync(email);
             return new FirebaseUserCreated(record.Uid, record.Email);
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "GetUserByEmailAsync failed for {Email}", email);
             return null;
         }
     }
@@ -69,20 +74,32 @@ public sealed class FirebaseAuthService : IFirebaseAuthService
                 "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword");
             request.Headers.Add("X-Goog-Api-Key", _webApiKey);
             request.Content = JsonContent.Create(new { email, password, returnSecureToken = true });
+
+            _logger.LogInformation("Calling Firebase REST API signInWithPassword");
+
             var response = await httpClient.SendAsync(request);
 
             if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning("Firebase REST API returned {StatusCode}: {Body}", response.StatusCode, body);
                 return null;
+            }
 
             var fbResponse = await response.Content.ReadFromJsonAsync<JsonElement>();
             var idToken = fbResponse.GetProperty("idToken").GetString();
 
-            if (idToken is null) return null;
+            if (idToken is null)
+            {
+                _logger.LogWarning("Firebase REST API succeeded but no idToken in response");
+                return null;
+            }
 
             return await VerifyIdTokenAsync(idToken);
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "SignInWithPasswordAsync exception");
             return null;
         }
     }
