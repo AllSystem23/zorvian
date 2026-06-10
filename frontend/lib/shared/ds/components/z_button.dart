@@ -37,11 +37,11 @@ class ZButton extends StatelessWidget {
           style: _getStyle(context),
           child: isLoading
               ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : Row(
+              child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     if (icon != null) ...[Icon(icon, size: 18), const SizedBox(width: ZSpacing.sm)],
-                    Text(text),
+                    Flexible(child: Text(text)),
                   ],
                 ),
         ),

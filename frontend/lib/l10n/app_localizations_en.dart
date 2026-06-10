@@ -12,29 +12,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'Zorvian ERP';
 
   @override
-  String get login => 'Iniciar Sesión';
+  String get login => 'Login';
 
   @override
-  String get email => 'Correo Electrónico';
+  String get email => 'Email';
 
   @override
-  String get password => 'Contraseña';
+  String get password => 'Password';
 
   @override
-  String get welcome => 'Bienvenido a Zorvian ERP';
+  String get welcome => 'Welcome to Zorvian ERP';
 
   @override
-  String get employees => 'Empleados';
+  String get employees => 'Employees';
 
   @override
-  String get payroll => 'Nómina';
+  String get payroll => 'Payroll';
 
   @override
-  String get vacations => 'Vacaciones';
+  String get vacations => 'Vacations';
 
   @override
-  String get attendance => 'Asistencia';
+  String get attendance => 'Attendance';
 
   @override
-  String get settings => 'Configuración';
+  String get settings => 'Settings';
 }

@@ -1,6 +1,16 @@
 {
   "@@locale": "en",
   "appTitle": "Zorvian ERP",
+  "login": "Login",
+  "email": "Email",
+  "password": "Password",
+  "welcome": "Welcome to Zorvian ERP",
+  "employees": "Employees",
+  "payroll": "Payroll",
+  "vacations": "Vacations",
+  "attendance": "Attendance",
+  "settings": "Settings",
+
   "common_save": "Save",
   "common_cancel": "Cancel",
   "common_delete": "Delete",
