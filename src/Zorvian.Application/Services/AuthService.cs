@@ -133,8 +133,9 @@ public sealed class AuthService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "LoginWithPasswordStep1Async failed for {Email}. Exception: {Type} {Message}", request.Email, ex.GetType().Name, ex.Message);
-            throw;
+            var innerMsg = ex.InnerException != null ? $" | Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}" : " | No inner exception";
+            _logger.LogError(ex, "LoginWithPasswordStep1Async failed for {Email}. Exception: {Type} {Message}{Inner}", request.Email, ex.GetType().Name, ex.Message, innerMsg);
+            throw new InvalidOperationException($"Login failed: {ex.GetType().Name}: {ex.Message}{innerMsg}", ex);
         }
     }
 
