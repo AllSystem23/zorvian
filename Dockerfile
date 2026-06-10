@@ -25,14 +25,15 @@ RUN dotnet publish src/Zorvian.Web/Zorvian.Web.csproj \
     /p:PublishReadyToRun=false
 
 # ── Stage 3: Runtime ──
-FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
 
 # Security: run as non-root user
-RUN addgroup -S zorvian && adduser -S zorvian -G zorvian
+RUN addgroup --system zorvian && adduser --system --ingroup zorvian zorvian
 
 # Install only what's needed for health checks
-RUN apk add --no-cache curl \
-    && rm -rf /var/cache/apk/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
