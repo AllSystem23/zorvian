@@ -8,30 +8,40 @@ namespace Zorvian.Infrastructure.Repositories;
 public sealed class DashboardRepository : IDashboardRepository
 {
     private readonly ZorvianDbContext _db;
+    private readonly Zorvian.Core.Interfaces.ITenantContext _tenant;
 
-    public DashboardRepository(ZorvianDbContext db)
+    public DashboardRepository(ZorvianDbContext db, Zorvian.Core.Interfaces.ITenantContext tenant)
     {
         _db = db;
+        _tenant = tenant;
+    }
+
+    private bool NeedsBypass => _tenant.TenantId.Value == Guid.Empty;
+
+    private IQueryable<T> Query<T>() where T : class
+    {
+        var set = _db.Set<T>().AsQueryable();
+        return NeedsBypass ? set.IgnoreQueryFilters().Where(e => !EF.Property<bool>(e, "IsDeleted")) : set;
     }
 
     public async Task<int> GetTotalEmployeesAsync()
     {
-        return await _db.Employees.CountAsync();
+        return await Query<Employee>().CountAsync();
     }
 
     public async Task<int> GetActiveEmployeesAsync()
     {
-        return await _db.Employees.CountAsync(e => e.Status == "active");
+        return await Query<Employee>().CountAsync(e => e.Status == "active");
     }
 
     public async Task<int> GetInactiveEmployeesAsync()
     {
-        return await _db.Employees.CountAsync(e => e.Status != "active");
+        return await Query<Employee>().CountAsync(e => e.Status != "active");
     }
 
     public async Task<List<(string Name, int Count)>> GetEmployeesByDepartmentAsync()
     {
-        var data = await _db.Departments
+        var data = await Query<Department>()
             .Select(d => new
             {
                 d.Name,
@@ -44,20 +54,18 @@ public sealed class DashboardRepository : IDashboardRepository
 
     public async Task<int> GetPendingVacationRequestsAsync()
     {
-        return await _db.Set<VacationRequest>()
-            .CountAsync(v => v.Status == "pending");
+        return await Query<VacationRequest>().CountAsync(v => v.Status == "pending");
     }
 
     public async Task<int> GetPendingPermissionRequestsAsync()
     {
-        return await _db.Set<PermissionRequest>()
-            .CountAsync(p => p.Status == "pending");
+        return await Query<PermissionRequest>().CountAsync(p => p.Status == "pending");
     }
 
     public async Task<List<Employee>> GetEmployeesWithBirthdayThisMonthAsync()
     {
         var now = DateTime.UtcNow;
-        return await _db.Employees
+        return await Query<Employee>()
             .Where(e => e.DateOfBirth!.Value.Month == now.Month && e.Status == "active")
             .ToListAsync();
     }
@@ -65,14 +73,18 @@ public sealed class DashboardRepository : IDashboardRepository
     public async Task<List<Employee>> GetEmployeesWithAnniversaryThisMonthAsync()
     {
         var now = DateTime.UtcNow;
-        return await _db.Employees
+        return await Query<Employee>()
             .Where(e => e.HireDate.Month == now.Month && e.Status == "active")
             .ToListAsync();
     }
 
     public async Task<List<VacationRequest>> GetVacationsInRangeAsync(DateOnly start, DateOnly end)
     {
-        return await _db.Set<VacationRequest>()
+        var query = NeedsBypass
+            ? _db.Set<VacationRequest>().IgnoreQueryFilters().Where(v => !v.IsDeleted)
+            : _db.Set<VacationRequest>().AsQueryable();
+
+        return await query
             .Include(v => v.Employee)
             .Where(v => v.StartDate <= end && v.EndDate >= start
                 && (v.Status == "approved" || v.Status == "pending"))
@@ -81,7 +93,11 @@ public sealed class DashboardRepository : IDashboardRepository
 
     public async Task<List<PermissionRequest>> GetRecentPermissionsAsync(int count)
     {
-        return await _db.Set<PermissionRequest>()
+        var query = NeedsBypass
+            ? _db.Set<PermissionRequest>().IgnoreQueryFilters().Where(p => !p.IsDeleted)
+            : _db.Set<PermissionRequest>().AsQueryable();
+
+        return await query
             .Include(p => p.Employee)
             .Include(p => p.LeaveType)
             .OrderByDescending(p => p.CreatedAt)
@@ -91,7 +107,11 @@ public sealed class DashboardRepository : IDashboardRepository
 
     public async Task<List<VacationRequest>> GetRecentVacationsAsync(int count)
     {
-        return await _db.VacationRequests
+        var query = NeedsBypass
+            ? _db.VacationRequests.IgnoreQueryFilters().Where(v => !v.IsDeleted)
+            : _db.VacationRequests.AsQueryable();
+
+        return await query
             .Include(v => v.Employee)
             .OrderByDescending(v => v.CreatedAt)
             .Take(count)
@@ -100,13 +120,17 @@ public sealed class DashboardRepository : IDashboardRepository
 
     public async Task<List<(string Department, decimal Amount)>> GetPayrollCostByDepartmentAsync()
     {
-        var latestRun = await _db.PayrollRuns
-            .OrderByDescending(r => r.CreatedAt)
-            .FirstOrDefaultAsync();
+        var latestRun = NeedsBypass
+            ? await _db.PayrollRuns.IgnoreQueryFilters().Where(r => !r.IsDeleted).OrderByDescending(r => r.CreatedAt).FirstOrDefaultAsync()
+            : await _db.PayrollRuns.OrderByDescending(r => r.CreatedAt).FirstOrDefaultAsync();
 
         if (latestRun == null) return new List<(string, decimal)>();
 
-        return await _db.PayrollDetails
+        var detailsQuery = NeedsBypass
+            ? _db.PayrollDetails.IgnoreQueryFilters().Where(d => !d.IsDeleted)
+            : _db.PayrollDetails.AsQueryable();
+
+        return await detailsQuery
             .Where(d => d.PayrollRunId == latestRun.Id)
             .GroupBy(d => d.Employee!.Department!.Name)
             .Select(g => new ValueTuple<string, decimal>(g.Key, g.Sum(d => d.GrossPay)))
@@ -115,7 +139,11 @@ public sealed class DashboardRepository : IDashboardRepository
 
     public async Task<List<(string Period, decimal Amount)>> GetPayrollHistoryAsync(int count)
     {
-        return await _db.PayrollRuns
+        var query = NeedsBypass
+            ? _db.PayrollRuns.IgnoreQueryFilters().Where(r => !r.IsDeleted)
+            : _db.PayrollRuns.AsQueryable();
+
+        return await query
             .Include(r => r.PayrollPeriod)
             .OrderByDescending(r => r.CreatedAt)
             .Take(count)

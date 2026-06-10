@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../auth/auth_provider.dart';
-
 import '../../shared/ds/ds.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -129,6 +128,25 @@ class _LoginFormState extends ConsumerState<LoginForm> {
   String? _error;
   bool _loading = false;
   bool _obscurePassword = true;
+  bool _rememberMe = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    final storage = ref.read(secureStorageProvider);
+    final (email, password) = await storage.getRememberedCredentials();
+    if (email != null && mounted) {
+      _emailController.text = email;
+      if (password != null) {
+        _passwordController.text = password;
+      }
+      setState(() => _rememberMe = true);
+    }
+  }
 
   @override
   void dispose() {
@@ -152,7 +170,17 @@ class _LoginFormState extends ConsumerState<LoginForm> {
             _emailController.text.trim(),
             _passwordController.text,
           );
-      if (!success && mounted) {
+      if (success) {
+        final storage = ref.read(secureStorageProvider);
+        if (_rememberMe) {
+          await storage.saveRememberedCredentials(
+            _emailController.text.trim(),
+            _passwordController.text,
+          );
+        } else {
+          await storage.clearRememberedCredentials();
+        }
+      } else if (mounted) {
         setState(() => _error = 'Error al conectar con el servidor');
       }
     } catch (_) {
@@ -213,7 +241,19 @@ class _LoginFormState extends ConsumerState<LoginForm> {
                   icon: Icons.lock_outlined,
                   isPassword: true,
                 ),
-                const SizedBox(height: 32),
+                CheckboxListTile(
+                  value: _rememberMe,
+                  onChanged: (v) => setState(() => _rememberMe = v ?? false),
+                  title: const Text('Recordar credenciales',
+                      style: TextStyle(color: Colors.white, fontSize: 14)),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                  dense: true,
+                  activeColor: Colors.white,
+                  checkColor: const Color(0xFF0B1F3B),
+                  side: const BorderSide(color: Colors.white54),
+                ),
+                const SizedBox(height: 24),
                 ZButton(
                   text: 'Entrar al Sistema',
                   onPressed: _login,

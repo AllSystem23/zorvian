@@ -65,6 +65,9 @@ public static class DependencyInjectionExtensions
 
     public static IServiceCollection AddZorvianRepositories(this IServiceCollection services)
     {
+        // Badges
+        services.AddScoped<IBadgeRepository, BadgeRepository>();
+
         // Auth
         services.AddScoped<IAuthRepository, AuthRepository>();
 
@@ -175,6 +178,7 @@ public static class DependencyInjectionExtensions
     public static IServiceCollection AddZorvianApplicationServices(this IServiceCollection services)
     {
         // Core Services
+        services.AddScoped<IBadgeService, BadgeService>();
         services.AddScoped<AuthService>();
         services.AddScoped<SeedService>();
         services.AddScoped<CompanyService>();

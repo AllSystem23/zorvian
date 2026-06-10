@@ -70,7 +70,8 @@ public sealed class AuthRepository : IAuthRepository
         var query = _db.RefreshTokens
             .Include(rt => rt.User)
                 .ThenInclude(u => u.UserRoles)
-                .ThenInclude(ur => ur.Role);
+                .ThenInclude(ur => ur.Role)
+                .ThenInclude(r => r.RolePermissions);
 
         return await (NeedsBypass
             ? query.IgnoreQueryFilters().FirstOrDefaultAsync(rt => rt.Token == token)

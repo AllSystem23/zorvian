@@ -45,7 +45,7 @@ public sealed class JwtService : IJwtService
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         };
 
-        foreach (var permission in role.RolePermissions)
+        foreach (var permission in role.RolePermissions ?? [])
         {
             claims.Add(new Claim("permission", permission.PermissionCode));
         }

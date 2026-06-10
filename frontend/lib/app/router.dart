@@ -99,6 +99,17 @@ import '../features/webhooks/pages/webhook_logs_page.dart';
 import '../features/accounting/pages/equity_changes_page.dart';
 import '../features/accounting/pages/comparative_reports_page.dart';
 import '../features/accounting/pages/ai_assistant_page.dart';
+import '../features/accounting/pages/trial_balance_page.dart';
+import '../features/accounting/pages/income_statement_page.dart';
+import '../features/accounting/pages/chart_of_accounts_page.dart';
+import '../features/accounting/pages/accounting_periods_page.dart';
+import '../features/accounting/pages/accounting_entries_page.dart';
+import '../features/accounting/pages/account_links_page.dart';
+import '../features/treasury/pages/check_issuance_page.dart';
+import '../features/treasury/pages/bank_transfer_page.dart';
+import '../features/treasury/pages/bank_deposit_page.dart';
+import '../features/treasury/pages/bank_commission_page.dart';
+import '../features/treasury/pages/bank_collection_page.dart';
 
 final _routeRoles = <String, List<String>>{
   '/dashboard': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
@@ -144,6 +155,13 @@ final _routeRoles = <String, List<String>>{
   '/accounting/reports/equity': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
   '/accounting/reports/comparative': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
   '/accounting/ai-assistant': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
+  '/accounting/trial-balance': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
+  '/accounting/income-statement': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
+  '/accounting/chart-of-accounts': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
+  '/accounting/periods': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
+  '/accounting/entries': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
+  '/accounting/account-links': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
+  '/treasury': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
 };
 
 bool _hasAccess(String role, String location) {
@@ -498,6 +516,31 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           GoRoute(
+            path: '/treasury/checks',
+            name: 'treasury-checks',
+            builder: (_, _) => const CheckIssuancePage(),
+          ),
+          GoRoute(
+            path: '/treasury/transfers',
+            name: 'treasury-transfers',
+            builder: (_, _) => const BankTransferPage(),
+          ),
+          GoRoute(
+            path: '/treasury/deposits',
+            name: 'treasury-deposits',
+            builder: (_, _) => const BankDepositPage(),
+          ),
+          GoRoute(
+            path: '/treasury/commissions',
+            name: 'treasury-commissions',
+            builder: (_, _) => const BankCommissionPage(),
+          ),
+          GoRoute(
+            path: '/treasury/collections',
+            name: 'treasury-collections',
+            builder: (_, _) => const BankCollectionPage(),
+          ),
+          GoRoute(
             path: '/warranties',
             name: 'warranties',
             builder: (_, _) => const WarrantyListPage(),
@@ -606,6 +649,36 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/accounting/ai-assistant',
             name: 'accounting-ai-assistant',
             builder: (_, _) => const AiAssistantPage(),
+          ),
+          GoRoute(
+            path: '/accounting/trial-balance',
+            name: 'accounting-trial-balance',
+            builder: (_, _) => const TrialBalancePage(),
+          ),
+          GoRoute(
+            path: '/accounting/income-statement',
+            name: 'accounting-income-statement',
+            builder: (_, _) => const IncomeStatementPage(),
+          ),
+          GoRoute(
+            path: '/accounting/chart-of-accounts',
+            name: 'accounting-chart-of-accounts',
+            builder: (_, _) => const ChartOfAccountsPage(),
+          ),
+          GoRoute(
+            path: '/accounting/periods',
+            name: 'accounting-periods',
+            builder: (_, _) => const AccountingPeriodsPage(),
+          ),
+          GoRoute(
+            path: '/accounting/entries',
+            name: 'accounting-entries',
+            builder: (_, _) => const AccountingEntriesPage(),
+          ),
+          GoRoute(
+            path: '/accounting/account-links',
+            name: 'accounting-account-links',
+            builder: (_, _) => const AccountLinksPage(),
           ),
           GoRoute(
             path: '/webhooks',
