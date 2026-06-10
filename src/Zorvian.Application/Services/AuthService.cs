@@ -31,19 +31,30 @@ public sealed class AuthService
 
         if (user is null)
         {
-            user = new User
+            user = await _authRepo.GetUserByEmailAsync(fbUser.Email ?? "");
+            if (user is not null)
             {
-                FirebaseUid = fbUser.Uid,
-                Email = fbUser.Email,
-                DisplayName = fbUser.Name,
-                AvatarUrl = fbUser.Picture,
-                TenantId = _tenant.TenantId,
-            };
-            await _authRepo.AddUserAsync(user);
-            await _authRepo.SaveChangesAsync();
+                user.FirebaseUid = fbUser.Uid;
+                if (!string.IsNullOrEmpty(fbUser.Name)) user.DisplayName = fbUser.Name;
+                if (!string.IsNullOrEmpty(fbUser.Picture)) user.AvatarUrl = fbUser.Picture;
+                await _authRepo.SaveChangesAsync();
+            }
+            else
+            {
+                user = new User
+                {
+                    FirebaseUid = fbUser.Uid,
+                    Email = fbUser.Email,
+                    DisplayName = fbUser.Name,
+                    AvatarUrl = fbUser.Picture,
+                    TenantId = _tenant.TenantId,
+                };
+                await _authRepo.AddUserAsync(user);
+                await _authRepo.SaveChangesAsync();
 
-            user = await _authRepo.GetUserByFirebaseUidAsync(fbUser.Uid);
-            if (user is null) return null;
+                user = await _authRepo.GetUserByFirebaseUidAsync(fbUser.Uid);
+                if (user is null) return null;
+            }
         }
 
         return await GenerateAuthResponse(user, request.DeviceFingerprint);
@@ -67,19 +78,30 @@ public sealed class AuthService
 
             if (user is null)
             {
-                user = new User
+                user = await _authRepo.GetUserByEmailAsync(fbUser.Email ?? "");
+                if (user is not null)
                 {
-                    FirebaseUid = fbUser.Uid,
-                    Email = fbUser.Email,
-                    DisplayName = fbUser.Name,
-                    AvatarUrl = fbUser.Picture,
-                    TenantId = _tenant.TenantId,
-                };
-                await _authRepo.AddUserAsync(user);
-                await _authRepo.SaveChangesAsync();
+                    user.FirebaseUid = fbUser.Uid;
+                    if (!string.IsNullOrEmpty(fbUser.Name)) user.DisplayName = fbUser.Name;
+                    if (!string.IsNullOrEmpty(fbUser.Picture)) user.AvatarUrl = fbUser.Picture;
+                    await _authRepo.SaveChangesAsync();
+                }
+                else
+                {
+                    user = new User
+                    {
+                        FirebaseUid = fbUser.Uid,
+                        Email = fbUser.Email,
+                        DisplayName = fbUser.Name,
+                        AvatarUrl = fbUser.Picture,
+                        TenantId = _tenant.TenantId,
+                    };
+                    await _authRepo.AddUserAsync(user);
+                    await _authRepo.SaveChangesAsync();
 
-                user = await _authRepo.GetUserByFirebaseUidAsync(fbUser.Uid);
-                if (user is null) return null;
+                    user = await _authRepo.GetUserByFirebaseUidAsync(fbUser.Uid);
+                    if (user is null) return null;
+                }
             }
         }
         else
