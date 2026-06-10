@@ -164,6 +164,21 @@ public sealed class AuthController : ControllerBase
         return Ok(new { status = "healthy", timestamp = DateTime.UtcNow });
     }
 
+    [HttpGet("diagnostics")]
+    [AllowAnonymous]
+    public IActionResult Diagnostics([FromServices] IFirebaseAuthService firebase)
+    {
+        try
+        {
+            var fbAuth = FirebaseAdmin.Auth.FirebaseAuth.DefaultInstance;
+            return Ok(new { firebaseInitialized = fbAuth != null, firebaseProject = FirebaseAdmin.FirebaseApp.DefaultInstance?.Options?.ProjectId });
+        }
+        catch (Exception ex)
+        {
+            return Ok(new { firebaseInitialized = false, error = ex.Message });
+        }
+    }
+
     private Guid? GetCurrentUserId()
     {
         var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;

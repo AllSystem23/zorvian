@@ -133,7 +133,7 @@ public sealed class AuthService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "LoginWithPasswordStep1Async failed for {Email}", request.Email);
+            _logger.LogError(ex, "LoginWithPasswordStep1Async failed for {Email}. Exception: {Type} {Message}", request.Email, ex.GetType().Name, ex.Message);
             throw;
         }
     }
