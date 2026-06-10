@@ -82,10 +82,15 @@ public sealed class GlobalExceptionMiddleware
                 context.Request.Method, context.Request.Path, context.TraceIdentifier);
 
             context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+            var inner = ex.InnerException;
+            var detail = $"{ex.GetType().Name}: {ex.Message}";
+            if (inner is not null)
+                detail += $" | Inner: {inner.GetType().Name}: {inner.Message}";
+
             await WriteResponse(context, new
             {
                 message = "Error interno del servidor. Intente más tarde.",
-                detail = $"{ex.GetType().Name}: {ex.Message}",
+                detail,
                 traceId = context.TraceIdentifier
             });
         }
