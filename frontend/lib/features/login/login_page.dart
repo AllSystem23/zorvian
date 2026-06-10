@@ -188,12 +188,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   const SizedBox(height: 32),
                   if (_error != null) _buildErrorBanner(theme),
                   _buildTextField(
+                    key: const Key('email_field'),
                     controller: _emailController,
                     label: 'Correo electrónico',
                     icon: Icons.email_outlined,
                   ),
                   const SizedBox(height: 20),
                   _buildTextField(
+                    key: const Key('password_field'),
                     controller: _passwordController,
                     label: 'Contraseña',
                     icon: Icons.lock_outlined,
