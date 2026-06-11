@@ -29,26 +29,23 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() async {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(dashboardProvider.notifier).loadAll();
-      // Connect SignalR for real-time notifications
-      final auth = ref.read(authProvider);
-      if (auth.status == AuthStatus.authenticated) {
-        // Extraemos solo la raíz del dominio para SignalR
-        const apiUrl = String.fromEnvironment('API_URL', defaultValue: 'https://nexora-9yal.onrender.com/zorvian/v1');
-        final uri = Uri.parse(apiUrl);
-        final rootUrl = '${uri.scheme}://${uri.host}${uri.hasPort ? ':${uri.port}' : ''}';
-        
-        // print('DEBUG: Dashboard apiUrl: $apiUrl');
-        // print('DEBUG: Dashboard rootUrl for SignalR: $rootUrl');
-        
-        final storage = ref.read(secureStorageProvider);
-        final token = await storage.getAccessToken();
-        if (token != null) {
-          ref.read(signalRProvider.notifier).connect(rootUrl, token);
-        }
-      }
+      _connectSignalR();
     });
+  }
+
+  Future<void> _connectSignalR() async {
+    final auth = ref.read(authProvider);
+    if (auth.status != AuthStatus.authenticated) return;
+    const apiUrl = String.fromEnvironment('API_URL', defaultValue: 'https://nexora-9yal.onrender.com/zorvian/v1');
+    final uri = Uri.parse(apiUrl);
+    final rootUrl = '${uri.scheme}://${uri.host}${uri.hasPort ? ':${uri.port}' : ''}';
+    final storage = ref.read(secureStorageProvider);
+    final token = await storage.getAccessToken();
+    if (token != null) {
+      ref.read(signalRProvider.notifier).connect(rootUrl, token);
+    }
   }
 
   @override

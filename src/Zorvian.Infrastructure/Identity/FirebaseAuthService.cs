@@ -71,8 +71,7 @@ public sealed class FirebaseAuthService : IFirebaseAuthService
         {
             var httpClient = _httpClientFactory.CreateClient();
             var request = new HttpRequestMessage(HttpMethod.Post,
-                "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword");
-            request.Headers.Add("X-Goog-Api-Key", _webApiKey);
+                $"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={_webApiKey}");
             request.Content = JsonContent.Create(new { email, password, returnSecureToken = true });
 
             _logger.LogInformation("Calling Firebase REST API signInWithPassword");
