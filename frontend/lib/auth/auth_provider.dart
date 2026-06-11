@@ -1,4 +1,5 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/error/error_notifier.dart';
 import '../core/network/dio_client.dart';
@@ -172,9 +173,22 @@ class AuthNotifier extends Notifier<AuthState> {
       final dio = ref.read(dioClientProvider);
       await dio.post('notifications/register-device', data: {
         'token': fcmToken,
-        'platform': 'web', // Change to 'android' or 'ios' for mobile
+        'platform': _devicePlatform(),
       });
     } catch (_) {}
+  }
+
+  String _devicePlatform() {
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.iOS:
+        return 'ios';
+      case TargetPlatform.android:
+        return 'android';
+      case TargetPlatform.macOS:
+        return 'macos';
+      default:
+        return 'web';
+    }
   }
 }
 

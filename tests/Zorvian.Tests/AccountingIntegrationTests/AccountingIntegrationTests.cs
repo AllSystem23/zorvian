@@ -418,6 +418,7 @@ public sealed class AccountingIntegrationTests : IDisposable
         public Task<AccountingEntry?> GetByIdAsync(Guid id) => db.Set<AccountingEntry>().Include(e => e.Details).FirstOrDefaultAsync(e => e.Id == id);
         public Task UpdateAsync(AccountingEntry entry) { db.Set<AccountingEntry>().Update(entry); return Task.CompletedTask; }
         public Task<string> GenerateEntryNumberAsync(Guid companyId) => Task.FromResult("AS-" + Guid.NewGuid().ToString("N")[..8]);
+        public Task<bool> HasEntriesForAccountAsync(Guid accountId) => db.Set<AccountingEntry>().AnyAsync(e => e.Details.Any(d => d.AccountId == accountId));
         public Task<List<AccountingEntry>> GetFilteredAsync(Guid? companyId, string? status, string? referenceType, DateTime? fromDate, DateTime? toDate, Guid branchId, int page, int pageSize) => throw new NotImplementedException();
         public Task<int> GetFilteredCountAsync(Guid? companyId, string? status, string? referenceType, DateTime? fromDate, DateTime? toDate, Guid branchId)
         {
@@ -452,8 +453,10 @@ public sealed class AccountingIntegrationTests : IDisposable
         public Task<List<Account>> GetActiveAsync(Guid companyId) => throw new NotImplementedException();
         public Task<bool> CodeExistsAsync(string code, Guid companyId) => throw new NotImplementedException();
         public Task<int> GetMaxLevelAsync(Guid? parentId, Guid companyId) => throw new NotImplementedException();
+        public Task<bool> HasChildrenAsync(Guid id) => db.Set<Account>().AnyAsync(a => a.ParentId == id);
         public Task AddAsync(Account account) => throw new NotImplementedException();
         public Task UpdateAsync(Account account) => throw new NotImplementedException();
+        public Task DeleteAsync(Account account) { db.Set<Account>().Remove(account); return Task.CompletedTask; }
         public Task SaveChangesAsync() => throw new NotImplementedException();
     }
 

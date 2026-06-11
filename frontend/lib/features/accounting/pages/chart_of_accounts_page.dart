@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/accounting_provider.dart';
-import '../../../shared/ds/ds.dart';
-import '../../../auth/auth_provider.dart';
 
 final class ChartOfAccountsPage extends ConsumerStatefulWidget {
   const ChartOfAccountsPage({super.key});
@@ -128,7 +126,8 @@ final class _ChartOfAccountsPageState extends ConsumerState<ChartOfAccountsPage>
             tooltip: 'Sembrar catálogo por defecto',
             onPressed: () async {
               await ref.read(accountingProvider.notifier).seedAccounts();
-              if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Catálogo sembrado')));
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Catálogo sembrado')));
             },
           ),
         ],
@@ -282,7 +281,7 @@ final class _AccountFormDialogState extends ConsumerState<_AccountFormDialog> {
                 maxLines: 2,
               ),
               DropdownButtonFormField<String>(
-                value: _type,
+                initialValue: _type,
                 decoration: const InputDecoration(labelText: 'Tipo'),
                 items: types.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
                 onChanged: (v) {
@@ -290,7 +289,7 @@ final class _AccountFormDialogState extends ConsumerState<_AccountFormDialog> {
                 },
               ),
               DropdownButtonFormField<String>(
-                value: _normalSide,
+                initialValue: _normalSide,
                 decoration: const InputDecoration(labelText: 'Naturaleza'),
                 items: sides.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                 onChanged: (v) {

@@ -172,9 +172,9 @@ class _AttendancePageState extends ConsumerState<AttendancePage> {
   Widget _buildSummaryRow(AttendanceSummary summary) {
     return Row(
       children: [
-        Expanded(child: _SummaryCard(label: 'Presentes', value: '${summary.presentDays}', color: Colors.green)),
+        Expanded(child: _SummaryCard(label: 'Presentes', value: summary.presentDays.toString(), color: Colors.green)),
         const SizedBox(width: 8),
-        Expanded(child: _SummaryCard(label: 'Tardes', value: '${summary.lateDays}', color: Colors.orange)),
+        Expanded(child: _SummaryCard(label: 'Tardes', value: summary.lateDays.toString(), color: Colors.orange)),
         const SizedBox(width: 8),
         Expanded(child: _SummaryCard(label: 'Horas', value: summary.totalHours.toStringAsFixed(1), color: Colors.blue)),
       ],

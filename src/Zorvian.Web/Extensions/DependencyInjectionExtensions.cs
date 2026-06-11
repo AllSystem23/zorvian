@@ -377,7 +377,6 @@ public static class DependencyInjectionExtensions
         services.AddSingleton<ExpenseClassificationService>();
         services.AddScoped<AccountingAssistantService>();
         services.AddScoped<PurchaseRecommendationService>();
-        services.AddScoped<OcrProcessingJob>();
         services.AddScoped<EnhancedReportService>();
         services.AddScoped<FinancialAssistantService>();
         services.AddScoped<IAiDocumentService>(sp => new AiDocumentService(
@@ -399,6 +398,8 @@ public static class DependencyInjectionExtensions
         services.AddScoped<WebhookDeliveryJob>();
         services.AddScoped<AuditLogCleanupJob>();
         services.AddScoped<DatabaseBackupJob>();
+        services.AddScoped<VacationAutomatedJob>();
+        services.AddScoped<OcrProcessingJob>();
         return services;
     }
 }

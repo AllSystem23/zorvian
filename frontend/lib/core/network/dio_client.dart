@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../storage/secure_storage.dart';
 
 typedef OnErrorCallback = void Function(int? statusCode, String message);
@@ -67,7 +68,7 @@ class DioClient {
       final refresh = await _storage.getRefreshToken();
       if (refresh == null) return false;
 
-      print('DEBUG: Attempting refresh with token: $refresh');
+      if (kDebugMode) debugPrint('DEBUG: Attempting refresh with token: $refresh');
       
       // Usamos baseUrl directamente para evitar concatenaciones mal formadas
       final response = await Dio(BaseOptions(
@@ -78,7 +79,7 @@ class DioClient {
         data: {'refreshToken': refresh},
       );
 
-      print('DEBUG: Refresh response: ${response.statusCode}');
+      if (kDebugMode) debugPrint('DEBUG: Refresh response: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         await _storage.saveTokens(
@@ -89,7 +90,7 @@ class DioClient {
       }
     } catch (e) {
       if (e is DioException) {
-        print('DEBUG: Refresh error: ${e.response?.statusCode} - ${e.response?.data}');
+        if (kDebugMode) debugPrint('DEBUG: Refresh error: ${e.response?.statusCode} - ${e.response?.data}');
       }
     }
     return false;

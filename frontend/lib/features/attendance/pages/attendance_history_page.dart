@@ -35,11 +35,11 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
                     // Summary cards
                     Row(
                       children: [
-                        Expanded(child: _StatCard(label: 'Presentes', value: '${summary.presentDays}', icon: Icons.check_circle, color: Colors.green)),
+                        Expanded(child: _StatCard(label: 'Presentes', value: summary.presentDays.toString(), icon: Icons.check_circle, color: Colors.green)),
                         const SizedBox(width: 8),
-                        Expanded(child: _StatCard(label: 'Tardes', value: '${summary.lateDays}', icon: Icons.warning, color: Colors.orange)),
+                        Expanded(child: _StatCard(label: 'Tardes', value: summary.lateDays.toString(), icon: Icons.warning, color: Colors.orange)),
                         const SizedBox(width: 8),
-                        Expanded(child: _StatCard(label: 'Ausentes', value: '${summary.absentDays}', icon: Icons.cancel, color: Colors.red)),
+                        Expanded(child: _StatCard(label: 'Ausentes', value: summary.absentDays.toString(), icon: Icons.cancel, color: Colors.red)),
                       ],
                     ),
                     const SizedBox(height: 8),
@@ -49,7 +49,7 @@ class _AttendanceHistoryPageState extends ConsumerState<AttendanceHistoryPage> {
                         const SizedBox(width: 8),
                         Expanded(child: _StatCard(label: 'Promedio/día', value: summary.averageHoursPerDay.toStringAsFixed(1), icon: Icons.trending_up, color: Colors.purple)),
                         const SizedBox(width: 8),
-                        Expanded(child: _StatCard(label: 'Registros', value: '${summary.records.length}', icon: Icons.list, color: Colors.teal)),
+                        Expanded(child: _StatCard(label: 'Registros', value: summary.records.length.toString(), icon: Icons.list, color: Colors.teal)),
                       ],
                     ),
                     const SizedBox(height: 24),

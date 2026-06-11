@@ -1,7 +1,7 @@
 using FluentAssertions;
 using Moq;
 using Zorvian.Application.Interfaces;
-using Zorvian.Application.Services;
+using Zorvian.Application.Jobs;
 using Zorvian.Core.Entities;
 using Xunit;
 

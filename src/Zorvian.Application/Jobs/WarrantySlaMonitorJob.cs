@@ -1,7 +1,7 @@
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Interfaces;
 
-namespace Zorvian.Application.Services;
+namespace Zorvian.Application.Jobs;
 
 public sealed class WarrantySlaMonitorJob
 {

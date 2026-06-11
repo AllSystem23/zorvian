@@ -12,6 +12,7 @@ final class AccountItem {
   final String? parentName;
   final int level;
   final bool isActive;
+  final bool isSystem;
   final double openingBalance;
   final double currentBalance;
   final List<AccountItem> children;
@@ -19,7 +20,7 @@ final class AccountItem {
   const AccountItem({
     required this.id, required this.code, required this.name, this.description,
     required this.type, required this.normalSide, this.parentId, this.parentName,
-    required this.level, required this.isActive, required this.openingBalance,
+    required this.level, required this.isActive, this.isSystem = false, required this.openingBalance,
     required this.currentBalance, this.children = const [],
   });
 
@@ -34,6 +35,7 @@ final class AccountItem {
     parentName: j['parentName'] as String?,
     level: (j['level'] as num?)?.toInt() ?? 0,
     isActive: j['isActive'] as bool? ?? true,
+    isSystem: j['isSystem'] as bool? ?? false,
     openingBalance: (j['openingBalance'] as num?)?.toDouble() ?? 0,
     currentBalance: (j['currentBalance'] as num?)?.toDouble() ?? 0,
     children: (j['children'] as List?)?.map((e) => AccountItem.fromJson(e)).toList() ?? [],

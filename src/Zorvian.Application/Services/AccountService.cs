@@ -13,23 +13,45 @@ public sealed class AccountService
     private readonly IAccountingEntryRepository _entryRepo;
     private readonly ITenantContext _tenant;
     private readonly IMapper _mapper;
+    private readonly ICompanyRepository _companyRepo;
+    private Guid? _cachedCompanyId;
 
-    public AccountService(IAccountRepository repo, IAccountingEntryRepository entryRepo, ITenantContext tenant, IMapper mapper)
+    public AccountService(IAccountRepository repo, IAccountingEntryRepository entryRepo, ITenantContext tenant, IMapper mapper, ICompanyRepository companyRepo)
     {
-        _repo = repo; _entryRepo = entryRepo; _tenant = tenant; _mapper = mapper;
+        _repo = repo; _entryRepo = entryRepo; _tenant = tenant; _mapper = mapper; _companyRepo = companyRepo;
     }
 
-    private Guid CompanyId => Guid.TryParse(_tenant.TenantId, out var id) ? id : throw new InvalidOperationException("Invalid tenant");
+    private async Task<Guid> GetCompanyIdAsync()
+    {
+        if (_cachedCompanyId.HasValue) return _cachedCompanyId.Value;
+
+        if (Guid.TryParse(_tenant.TenantId, out var id))
+        {
+            _cachedCompanyId = id;
+            return id;
+        }
+
+        var company = await _companyRepo.GetByTenantIdAsync(_tenant.TenantId ?? "");
+        if (company is not null)
+        {
+            _cachedCompanyId = company.Id;
+            return company.Id;
+        }
+
+        throw new InvalidOperationException("Invalid tenant");
+    }
 
     public async Task<List<AccountResponse>> GetAllAsync()
     {
-        var accounts = await _repo.GetAllAsync(CompanyId);
+        var companyId = await GetCompanyIdAsync();
+        var accounts = await _repo.GetAllAsync(companyId);
         return accounts.Select(a => MapWithBalance(a)).ToList();
     }
 
     public async Task<List<AccountResponse>> GetTreeAsync()
     {
-        var all = await _repo.GetAllAsync(CompanyId);
+        var companyId = await GetCompanyIdAsync();
+        var all = await _repo.GetAllAsync(companyId);
         var roots = all.Where(a => a.ParentId == null).OrderBy(a => a.Code).ToList();
         return roots.Select(r => BuildTree(r, all)).ToList();
     }
@@ -54,11 +76,12 @@ public sealed class AccountService
 
     public async Task<AccountResponse> CreateAsync(CreateAccountRequest request)
     {
-        if (await _repo.CodeExistsAsync(request.Code, CompanyId))
+        var companyId = await GetCompanyIdAsync();
+        if (await _repo.CodeExistsAsync(request.Code, companyId))
             throw new InvalidOperationException($"Account code '{request.Code}' already exists");
 
         var account = _mapper.Map<Account>(request);
-        account.CompanyId = CompanyId;
+        account.CompanyId = companyId;
         if (request.ParentId.HasValue)
         {
             var parent = await _repo.GetByIdAsync(request.ParentId.Value)
@@ -74,9 +97,10 @@ public sealed class AccountService
     public async Task<AccountResponse> UpdateAsync(Guid id, UpdateAccountRequest request)
     {
         var account = await _repo.GetByIdAsync(id) ?? throw new InvalidOperationException("Account not found");
+        var companyId = await GetCompanyIdAsync();
         if (request.Code != null)
         {
-            if (await _repo.CodeExistsAsync(request.Code, CompanyId) && request.Code != account.Code)
+            if (await _repo.CodeExistsAsync(request.Code, companyId) && request.Code != account.Code)
                 throw new InvalidOperationException($"Account code '{request.Code}' already exists");
             account.Code = request.Code;
         }
@@ -118,7 +142,7 @@ public sealed class AccountService
 
     public async Task ImportFromCsvAsync(string csvContent)
     {
-        var companyId = CompanyId;
+        var companyId = await GetCompanyIdAsync();
         var lines = csvContent.Split(new[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries).Skip(1);
 
         var tempIds = new Dictionary<string, Guid>();
@@ -197,7 +221,7 @@ public sealed class AccountService
     public async Task SeedDefaultChartOfAccountsAsync()
 
     {
-        var companyId = CompanyId;
+        var companyId = await GetCompanyIdAsync();
         var count = (await _repo.GetAllAsync(companyId)).Count;
         if (count > 0) return;
 

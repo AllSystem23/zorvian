@@ -29,7 +29,7 @@ public static class JobExtensions
     /// </summary>
     public static void EnqueueNow(this IBackgroundJobClient client, Func<Task> job)
     {
-        client.Enqueue<IBackgroundJob>(b => b.RunAsync());
+        client.Enqueue(() => job());
     }
 
     /// <summary>
@@ -55,22 +55,4 @@ public static class JobExtensions
     }
 }
 
-/// <summary>
-/// Job priorities for Hangfire
-/// </summary>
-public enum JobPriority
-{
-    Critical = 0,
-    High = 1,
-    Normal = 5,
-    Low = 10,
-    Background = 20
-}
 
-/// <summary>
-/// Marker interface for background jobs
-/// </summary>
-public interface IBackgroundJob
-{
-    Task RunAsync();
-}

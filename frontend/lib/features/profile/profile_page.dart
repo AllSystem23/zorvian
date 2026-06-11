@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -10,7 +11,7 @@ final profileProvider = FutureProvider.autoDispose<Map<String, dynamic>?>((ref) 
   final dio = ref.read(dioClientProvider);
   try {
     final r = await dio.get('employees/me');
-    print('Profile loaded: ${r.data?.runtimeType}');
+    if (kDebugMode) debugPrint('Profile loaded: ${r.data?.runtimeType}');
     if (r.data == null || (r.data is Map && r.data.isEmpty)) return null;
     return r.data as Map<String, dynamic>;
   } catch (e) {
