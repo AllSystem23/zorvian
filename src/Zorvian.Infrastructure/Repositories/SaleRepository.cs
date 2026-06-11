@@ -109,7 +109,7 @@ public sealed class SaleRepository : ISaleRepository
         var startOfMonth = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         return await _db.Set<Sale>()
             .Where(s => s.BranchId == branchId && s.SaleDate >= startOfMonth)
-            .AverageAsync(s => s.Total);
+            .AverageAsync(s => (decimal?)s.Total) ?? 0m;
     }
 
     public async Task<int> GetTodaySalesCountAsync(Guid branchId)

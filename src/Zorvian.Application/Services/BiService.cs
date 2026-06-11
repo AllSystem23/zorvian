@@ -46,7 +46,7 @@ public sealed class BiService
     }
 
     private Guid CompanyId =>
-        Guid.TryParse(_tenant.TenantId, out var id) ? id : throw new InvalidOperationException("Invalid tenant");
+        Guid.TryParse(_tenant.TenantId, out var id) ? id : Guid.Empty;
     private Guid NullBranch => Guid.Empty;
 
     private async Task<string> GetCompanyCurrencyAsync()
