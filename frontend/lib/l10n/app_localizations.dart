@@ -157,6 +157,120 @@ abstract class AppLocalizations {
   /// In es, this message translates to:
   /// **'Configuración'**
   String get settings;
+
+  /// No description provided for @common_save.
+  ///
+  /// In es, this message translates to:
+  /// **'Guardar'**
+  String get common_save;
+
+  /// No description provided for @common_cancel.
+  ///
+  /// In es, this message translates to:
+  /// **'Cancelar'**
+  String get common_cancel;
+
+  /// No description provided for @common_delete.
+  ///
+  /// In es, this message translates to:
+  /// **'Eliminar'**
+  String get common_delete;
+
+  /// No description provided for @common_edit.
+  ///
+  /// In es, this message translates to:
+  /// **'Editar'**
+  String get common_edit;
+
+  /// No description provided for @common_create.
+  ///
+  /// In es, this message translates to:
+  /// **'Crear'**
+  String get common_create;
+
+  /// No description provided for @common_search.
+  ///
+  /// In es, this message translates to:
+  /// **'Buscar'**
+  String get common_search;
+
+  /// No description provided for @common_filter.
+  ///
+  /// In es, this message translates to:
+  /// **'Filtrar'**
+  String get common_filter;
+
+  /// No description provided for @common_clear.
+  ///
+  /// In es, this message translates to:
+  /// **'Limpiar'**
+  String get common_clear;
+
+  /// No description provided for @common_apply.
+  ///
+  /// In es, this message translates to:
+  /// **'Aplicar'**
+  String get common_apply;
+
+  /// No description provided for @common_close.
+  ///
+  /// In es, this message translates to:
+  /// **'Cerrar'**
+  String get common_close;
+
+  /// No description provided for @common_yes.
+  ///
+  /// In es, this message translates to:
+  /// **'Sí'**
+  String get common_yes;
+
+  /// No description provided for @common_no.
+  ///
+  /// In es, this message translates to:
+  /// **'No'**
+  String get common_no;
+
+  /// No description provided for @common_confirm.
+  ///
+  /// In es, this message translates to:
+  /// **'Confirmar'**
+  String get common_confirm;
+
+  /// No description provided for @common_loading.
+  ///
+  /// In es, this message translates to:
+  /// **'Cargando...'**
+  String get common_loading;
+
+  /// No description provided for @common_no_data.
+  ///
+  /// In es, this message translates to:
+  /// **'No hay datos disponibles'**
+  String get common_no_data;
+
+  /// No description provided for @common_error.
+  ///
+  /// In es, this message translates to:
+  /// **'Ocurrió un error'**
+  String get common_error;
+
+  /// No description provided for @common_retry.
+  ///
+  /// In es, this message translates to:
+  /// **'Reintentar'**
+  String get common_retry;
+
+  /// No description provided for @common_required_field.
+  ///
+  /// In es, this message translates to:
+  /// **'Este campo es obligatorio'**
+  String get common_required_field;
+
+  /// No description provided for @common_optional.
+  ///
+  /// In es, this message translates to:
+  /// **'Opcional'**
+  String get common_optional;
 }
 
 class _AppLocalizationsDelegate
