@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Zorvian.Infrastructure.Data;
@@ -11,9 +12,11 @@ using Zorvian.Infrastructure.Data;
 namespace Zorvian.Infrastructure.Migrations
 {
     [DbContext(typeof(ZorvianDbContext))]
-    partial class ZorvianDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260611195118_FixUserTenantIdConverter")]
+    partial class FixUserTenantIdConverter
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

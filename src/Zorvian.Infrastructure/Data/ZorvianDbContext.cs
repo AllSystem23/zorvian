@@ -354,6 +354,7 @@ public sealed class ZorvianDbContext : DbContext
             e.Property(u => u.FirebaseUid).HasMaxLength(128).IsRequired();
             e.Property(u => u.Email).HasMaxLength(255).IsRequired();
             e.Property(u => u.DisplayName).HasMaxLength(255).IsRequired();
+            e.Property(u => u.TenantId).HasConversion<string>().HasMaxLength(50).IsRequired();
             e.HasOne(u => u.Employee)
                 .WithMany()
                 .HasForeignKey(u => u.EmployeeId)
