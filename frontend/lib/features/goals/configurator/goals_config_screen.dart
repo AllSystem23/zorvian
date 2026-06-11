@@ -16,7 +16,7 @@ class _GoalsConfigScreenState extends ConsumerState<GoalsConfigScreen> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   String _goalType = 'Ventas';
-  String _metricType = 'amount';
+  final String _metricType = 'amount';
   String _frequency = 'monthly';
   bool _isSaving = false;
 
@@ -54,7 +54,7 @@ class _GoalsConfigScreenState extends ConsumerState<GoalsConfigScreen> {
         _descriptionController.clear();
       }
     } catch (e) {
-      if (mounted) ZToast.show(context, 'Error al crear meta', isError: true);
+      if (mounted) ZToast.show(context, 'Error al crear meta', type: ZToastType.error);
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -79,32 +79,32 @@ class _GoalsConfigScreenState extends ConsumerState<GoalsConfigScreen> {
                   ZTextField(
                     label: 'Nombre de la Meta',
                     controller: _nameController,
-                    placeholder: 'Ej: Ventas Mensuales',
+                    hint: 'Ej: Ventas Mensuales',
                   ),
                   const SizedBox(height: ZSpacing.md),
                   ZTextField(
                     label: 'Descripción',
                     controller: _descriptionController,
-                    placeholder: 'Opcional',
+                    hint: 'Opcional',
                     maxLines: 2,
                   ),
                   const SizedBox(height: ZSpacing.md),
                   Row(
                     children: [
                       Expanded(
-                        child: ZSelect(
+                        child: ZSelect<String>(
                           label: 'Tipo de Meta',
                           value: _goalType,
-                          options: const ['Ventas', 'Nuevos Clientes', 'Servicio', 'Calidad'],
+                          items: const ['Ventas', 'Nuevos Clientes', 'Servicio', 'Calidad'].map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
                           onChanged: (val) => setState(() => _goalType = val!),
                         ),
                       ),
                       const SizedBox(width: ZSpacing.md),
                       Expanded(
-                        child: ZSelect(
+                        child: ZSelect<String>(
                           label: 'Frecuencia',
                           value: _frequency,
-                          options: const ['monthly', 'quarterly', 'annual'],
+                          items: const ['monthly', 'quarterly', 'annual'].map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
                           onChanged: (val) => setState(() => _frequency = val!),
                         ),
                       ),
@@ -112,8 +112,8 @@ class _GoalsConfigScreenState extends ConsumerState<GoalsConfigScreen> {
                   ),
                   const SizedBox(height: ZSpacing.lg),
                   ZButton(
-                    label: 'Guardar Definición',
-                    onPressed: _isSaving ? null : _saveGoal,
+                    text: 'Guardar Definición',
+                    onPressed: _isSaving ? () {} : _saveGoal,
                     isLoading: _isSaving,
                     fullWidth: true,
                   ),
@@ -125,28 +125,27 @@ class _GoalsConfigScreenState extends ConsumerState<GoalsConfigScreen> {
             const SizedBox(height: ZSpacing.md),
             definitionsAsync.when(
               data: (definitions) => definitions.isEmpty 
-                ? const ZEmptyState(title: 'No hay metas definidas', message: 'Crea la primera meta arriba.')
+                ? const ZEmptyState(icon: Icons.flag_outlined, title: 'No hay metas definidas', subtitle: 'Crea la primera meta arriba.')
                 : ListView.separated(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: definitions.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: ZSpacing.md),
+                    separatorBuilder: (_, _) => const SizedBox(height: ZSpacing.md),
                     itemBuilder: (context, index) {
                       final def = definitions[index];
                       return ZCard(
                         child: ListTile(
                           title: Text(def.name, style: ZTypography.titleMedium),
                           subtitle: Text('${def.goalType} - ${def.frequency}'),
-                          trailing: ZBadge(label: def.status, isSuccess: def.status == 'active'),
+                          trailing: ZBadge(text: def.status, type: def.status == 'active' ? ZBadgeType.success : ZBadgeType.neutral),
                         ),
                       );
                     },
                   ),
               loading: () => const ZSkeleton(height: 200),
               error: (err, _) => ZAlertCard(
-                title: 'Error',
                 message: 'No se pudieron cargar las metas: $err',
-                isError: true,
+                severity: 'high',
               ),
             ),
           ],

@@ -38,7 +38,7 @@ class ProviderDetailPage extends ConsumerWidget {
                           Text(provider.businessName, style: ZTypography.titleLarge),
                           Text(provider.serviceCategory, style: ZTypography.bodyMedium.copyWith(color: ZColors.neutral500)),
                           const SizedBox(height: ZSpacing.sm),
-                          ZBadge(label: provider.status, isSuccess: provider.status == 'active'),
+                          ZBadge(text: provider.status, type: provider.status == 'active' ? ZBadgeType.success : ZBadgeType.neutral),
                         ],
                       ),
                     ),
@@ -69,22 +69,22 @@ class ProviderDetailPage extends ConsumerWidget {
                 children: [
                   Text('Contratos de Servicios', style: ZTypography.titleMedium),
                   ZButton(
-                    label: 'Nuevo Contrato',
+                    text: 'Nuevo Contrato',
                     onPressed: () {},
-                    variant: ZButtonVariant.outline,
-                    size: ZButtonSize.small,
+                    type: ZButtonType.secondary,
+                    fullWidth: false,
                   ),
                 ],
               ),
               const SizedBox(height: ZSpacing.md),
               contractsAsync.when(
                 data: (contracts) => contracts.isEmpty
-                    ? const ZEmptyState(title: 'Sin contratos', message: 'Este prestador no tiene contratos activos.')
+                    ? ZEmptyState(icon: Icons.assignment, title: 'Sin contratos', subtitle: 'Este prestador no tiene contratos activos.')
                     : ListView.separated(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: contracts.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: ZSpacing.md),
+                        separatorBuilder: (_, _) => const SizedBox(height: ZSpacing.md),
                         itemBuilder: (context, index) {
                           final contract = contracts[index];
                           return ZCard(
@@ -92,7 +92,7 @@ class ProviderDetailPage extends ConsumerWidget {
                               leading: const Icon(Icons.description_outlined),
                               title: Text(contract.contractName),
                               subtitle: Text('Monto: ${contract.totalContractAmount} ${contract.currency}'),
-                              trailing: ZBadge(label: contract.status),
+                              trailing: ZBadge(text: contract.status),
                               onTap: () {
                                 // TODO: Navegar a detalle de contrato
                               },

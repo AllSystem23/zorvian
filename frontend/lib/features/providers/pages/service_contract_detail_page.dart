@@ -38,9 +38,9 @@ class ServiceContractDetailPage extends ConsumerWidget {
               
               Row(
                 children: [
-                  Expanded(child: ZStatCard(label: 'Monto Total', value: '${contract.totalContractAmount} ${contract.currency}')),
+                  Expanded(child: ZStatCard(title: 'Monto Total', value: '${contract.totalContractAmount} ${contract.currency}')),
                   const SizedBox(width: ZSpacing.md),
-                  Expanded(child: ZBadge(label: contract.status, isSuccess: contract.status == 'active')),
+                  Expanded(child: ZBadge(text: contract.status, type: contract.status == 'active' ? ZBadgeType.success : ZBadgeType.neutral)),
                 ],
               ),
               const SizedBox(height: ZSpacing.xl),
@@ -53,7 +53,7 @@ class ServiceContractDetailPage extends ConsumerWidget {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: milestones.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: ZSpacing.md),
+                  separatorBuilder: (_, _) => const SizedBox(height: ZSpacing.md),
                   itemBuilder: (context, index) {
                     final milestone = milestones[index];
                     return ZCard(
@@ -64,7 +64,7 @@ class ServiceContractDetailPage extends ConsumerWidget {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(milestone.name, style: ZTypography.labelLarge.copyWith(fontWeight: FontWeight.bold)),
-                              ZBadge(label: milestone.status),
+                              ZBadge(text: milestone.status),
                             ],
                           ),
                           const SizedBox(height: ZSpacing.sm),
@@ -76,12 +76,12 @@ class ServiceContractDetailPage extends ConsumerWidget {
                               Text('Monto: ${milestone.amount} ${contract.currency}'),
                               if (milestone.status == 'pending')
                                 ZButton(
-                                  label: 'Aprobar Hito',
+                                  text: 'Aprobar Hito',
                                   onPressed: () async {
                                     await ref.read(providerRepositoryProvider).approveMilestone(milestone.id);
                                     ref.invalidate(contractMilestonesProvider(id));
                                   },
-                                  size: ZButtonSize.small,
+                                  fullWidth: false,
                                 ),
                             ],
                           ),

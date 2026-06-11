@@ -35,7 +35,6 @@ class _DocumentCenterPageState extends ConsumerState<DocumentCenterPage>
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(documentProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -146,9 +145,9 @@ class _TemplateTile extends ConsumerWidget {
         title: Text(template.name, style: ZTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
         subtitle: Row(
           children: [
-            ZBadge(label: template.category.categoryLabel, color: _categoryColor(template.category)),
+            ZBadge(text: template.category.categoryLabel, type: _badgeType(template.category)),
             const SizedBox(width: 8),
-            ZBadge(label: template.countryCode == 'ALL' ? 'Global' : template.countryCode),
+            ZBadge(text: template.countryCode == 'ALL' ? 'Global' : template.countryCode),
             if (template.version != null) ...[
               const SizedBox(width: 8),
               Text('v${template.version}', style: ZTypography.labelSmall.copyWith(color: ZColors.neutral400)),
@@ -197,7 +196,7 @@ class _TemplateTile extends ConsumerWidget {
                 if (error == null) {
                   ZToast.show(context, '✅ Documento generado y enviado a firma.');
                 } else {
-                  ZToast.show(context, error, isError: true);
+                  ZToast.show(context, error, type: ZToastType.error);
                 }
               }
             },
@@ -218,19 +217,19 @@ class _TemplateTile extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Icon(icon, color: color, size: 20),
     );
   }
 
-  Color _categoryColor(String category) => switch (category) {
-    'HR' => ZColors.brandAccent,
-    'Sales' => const Color(0xFF059669),
-    'Legal' => const Color(0xFFA855F7),
-    'Finance' => const Color(0xFFD97706),
-    _ => ZColors.neutral400,
+  ZBadgeType _badgeType(String category) => switch (category) {
+    'HR' => ZBadgeType.accent,
+    'Sales' => ZBadgeType.success,
+    'Legal' => ZBadgeType.info,
+    'Finance' => ZBadgeType.warning,
+    _ => ZBadgeType.neutral,
   };
 }
 
@@ -254,7 +253,7 @@ class _GeneratedDocumentsTab extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.all(24),
       itemCount: documents.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, i) => _DocumentTile(document: documents[i]),
     );
   }
@@ -285,7 +284,7 @@ class _DocumentTile extends StatelessWidget {
             const SizedBox(height: 4),
             Row(
               children: [
-                ZBadge(label: document.status.statusLabel, color: statusColor),
+                ZBadge(text: document.status.statusLabel, type: ZBadgeType.neutral),
                 const SizedBox(width: 8),
                 Text(document.entityType, style: ZTypography.labelSmall.copyWith(color: ZColors.neutral500)),
               ],
@@ -301,10 +300,10 @@ class _DocumentTile extends StatelessWidget {
             ? ZButton(
                 text: 'Enviar',
                 onPressed: () {},
-                type: ZButtonType.outlined,
+                type: ZButtonType.secondary,
               )
             : null,
-        isThreeLine: true,
+        //isThreeLine: true,
       ),
     );
   }

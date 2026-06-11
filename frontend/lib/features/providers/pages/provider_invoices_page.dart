@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/ds/ds.dart';
 import '../providers/provider_state.dart';
+import '../data/provider_repository.dart';
 import '../../../core/entities/provider_invoice.dart';
 
 class ProviderInvoicesPage extends ConsumerWidget {
@@ -27,9 +28,9 @@ class ProviderInvoicesPage extends ConsumerWidget {
 
                 return Row(
                   children: [
-                    Expanded(child: ZStatCard(label: 'Facturas Pendientes', value: pendingCount.toString())),
+                    Expanded(child: ZStatCard(title: 'Facturas Pendientes', value: pendingCount.toString())),
                     const SizedBox(width: ZSpacing.md),
-                    Expanded(child: ZStatCard(label: 'Total por Pagar', value: 'C$ ${totalPending.toStringAsFixed(2)}')),
+                    Expanded(child: ZStatCard(title: 'Total por Pagar', value: 'C\$${totalPending.toStringAsFixed(2)}')),
                   ],
                 );
               },
@@ -43,32 +44,38 @@ class ProviderInvoicesPage extends ConsumerWidget {
             
             invoicesAsync.when(
               data: (invoices) => invoices.isEmpty
-                  ? const ZEmptyState(title: 'Sin facturas', message: 'No se han registrado facturas de prestadores.')
-                  : ZDataTable(
-                      columns: const ['Factura #', 'Monto', 'Estado', 'Vence', 'Acciones'],
-                      rows: invoices.map((i) => {
-                        'Factura #': Text(i.invoiceNumber, style: ZTypography.labelMedium.copyWith(fontWeight: FontWeight.bold)),
-                        'Monto': Text('${i.invoiceAmount} ${i.currency}'),
-                        'Estado': ZBadge(label: i.status, isSuccess: i.status == 'paid'),
-                        'Vence': Text(i.invoiceDate.toString().split(' ')[0]),
-                        'Acciones': IconButton(
-                          icon: const Icon(Icons.payment),
-                          onPressed: () async {
-                            await ref.read(providerRepositoryProvider).programPayment(i.id, DateTime.now(), 'AUTO-PAY');
-                            ref.invalidate(allInvoicesProvider);
-                          },
-                        ),
-                      }).toList(),
-                    ),
+                    ? ZEmptyState(icon: Icons.receipt_long, title: 'Sin facturas', subtitle: 'No se han registrado facturas de prestadores.')
+                    : ZDataTable<ProviderInvoice>(
+                        columns: const [
+                          DataColumn(label: Text('Factura #')),
+                          DataColumn(label: Text('Monto')),
+                          DataColumn(label: Text('Estado')),
+                          DataColumn(label: Text('Vence')),
+                          DataColumn(label: Text('Acciones')),
+                        ],
+                        rows: invoices,
+                        rowMapper: (i) => DataRow(cells: [
+                          DataCell(Text(i.invoiceNumber, style: ZTypography.labelMedium.copyWith(fontWeight: FontWeight.bold))),
+                          DataCell(Text('${i.invoiceAmount} ${i.currency}')),
+                          DataCell(ZBadge(text: i.status, type: i.status == 'paid' ? ZBadgeType.success : ZBadgeType.neutral)),
+                          DataCell(Text(i.invoiceDate.toString().split(' ')[0])),
+                          DataCell(IconButton(
+                            icon: const Icon(Icons.payment),
+                            onPressed: () async {
+                              await ref.read(providerRepositoryProvider).programPayment(i.id, DateTime.now(), 'AUTO-PAY');
+                              ref.invalidate(allInvoicesProvider);
+                            },
+                          )),
+                        ]),
+                      ),
               loading: () => const ZSkeleton(height: 300),
-              error: (err, _) => ZAlertCard(title: 'Error', message: 'Error al cargar facturas: $err', isError: true),
+              error: (err, _) => ZAlertCard(message: 'Error al cargar facturas: $err', severity: 'high'),
             ),
             
             const SizedBox(height: ZSpacing.xl),
             const ZAlertCard(
-              title: 'Recordatorio de Retenciones',
               message: 'Asegúrese de aplicar el 10% de IR a los prestadores de servicios profesionales antes de programar el pago.',
-              isInfo: true,
+              severity: 'low',
             ),
           ],
         ),
@@ -76,7 +83,7 @@ class ProviderInvoicesPage extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {},
         label: const Text('Registrar Factura'),
-        icon: const Icon(Icons.add_receipt_outlined),
+        icon: const Icon(Icons.post_add),
       ),
     );
   }

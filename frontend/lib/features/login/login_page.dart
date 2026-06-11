@@ -46,7 +46,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               height: 400,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: ZColors.brandAccent.withOpacity(0.05),
+                color: ZColors.brandAccent.withValues(alpha: 0.05),
               ),
               child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 100, sigmaY: 100), child: Container()),
             ),
@@ -59,7 +59,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: ZColors.brandTeal.withOpacity(0.03),
+                color: ZColors.brandTeal.withValues(alpha: 0.03),
               ),
               child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80), child: Container()),
             ),
@@ -252,15 +252,15 @@ class _LoginFormState extends ConsumerState<LoginForm> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 48),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.03),
+            color: Colors.white.withValues(alpha: 0.03),
             borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: Colors.white.withOpacity(0.08), width: 1.5),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1.5),
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Colors.white.withOpacity(0.05),
-                Colors.white.withOpacity(0.01),
+                Colors.white.withValues(alpha: 0.05),
+                Colors.white.withValues(alpha: 0.01),
               ],
             ),
           ),
@@ -317,7 +317,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
                     dense: true,
                     activeColor: ZColors.brandAccent,
                     checkColor: ZColors.brandPrimary,
-                    side: BorderSide(color: Colors.white.withOpacity(0.2)),
+                    side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
                   ),
                 ),
                 const SizedBox(height: 32),

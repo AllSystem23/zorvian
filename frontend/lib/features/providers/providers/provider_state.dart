@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/provider_repository.dart';
 import '../../../core/entities/service_provider.dart';
 import '../../../core/entities/service_contract.dart';
+import '../../../core/entities/provider_invoice.dart';
 
 final serviceProvidersProvider = FutureProvider<List<ServiceProvider>>((ref) async {
   final repository = ref.watch(providerRepositoryProvider);

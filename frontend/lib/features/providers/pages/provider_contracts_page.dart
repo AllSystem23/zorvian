@@ -26,9 +26,9 @@ class ProviderContractsPage extends ConsumerWidget {
 
                 return Row(
                   children: [
-                    Expanded(child: ZStatCard(label: 'Contratos Activos', value: activeCount.toString())),
+                    Expanded(child: ZStatCard(title: 'Contratos Activos', value: activeCount.toString())),
                     const SizedBox(width: ZSpacing.md),
-                    Expanded(child: ZStatCard(label: 'Compromiso Total', value: 'C$ ${totalAmount.toStringAsFixed(2)}')),
+                    Expanded(child: ZStatCard(title: 'Compromiso Total', value: 'C\$${totalAmount.toStringAsFixed(2)}')),
                   ],
                 );
               },
@@ -42,22 +42,29 @@ class ProviderContractsPage extends ConsumerWidget {
             
             contractsAsync.when(
               data: (contracts) => contracts.isEmpty
-                  ? const ZEmptyState(title: 'Sin contratos', message: 'No hay contratos de servicios registrados.')
-                  : ZDataTable(
-                      columns: const ['Contrato #', 'Prestador', 'Monto', 'Estado', 'Acciones'],
-                      rows: contracts.map((c) => {
-                        'Contrato #': Text(c.contractNumber, style: ZTypography.labelMedium.copyWith(fontWeight: FontWeight.bold)),
-                        'Prestador': Text(c.serviceProvider?.businessName ?? 'N/A'),
-                        'Monto': Text('${c.totalContractAmount} ${c.currency}'),
-                        'Estado': ZBadge(label: c.status, isSuccess: c.status == 'active'),
-                        'Acciones': IconButton(
-                          icon: const Icon(Icons.chevron_right),
-                          onPressed: () => context.push('/providers/contracts/${c.id}'),
-                        ),
-                      }).toList(),
-                    ),
+                    ? ZEmptyState(icon: Icons.assignment, title: 'Sin contratos', subtitle: 'No hay contratos de servicios registrados.')
+                    : ZDataTable<ServiceContract>(
+                        columns: const [
+                          DataColumn(label: Text('Contrato #')),
+                          DataColumn(label: Text('Prestador')),
+                          DataColumn(label: Text('Monto')),
+                          DataColumn(label: Text('Estado')),
+                          DataColumn(label: Text('Acciones')),
+                        ],
+                        rows: contracts,
+                        rowMapper: (c) => DataRow(cells: [
+                          DataCell(Text(c.contractNumber, style: ZTypography.labelMedium.copyWith(fontWeight: FontWeight.bold))),
+                          DataCell(Text(c.serviceProvider?.businessName ?? 'N/A')),
+                          DataCell(Text('${c.totalContractAmount} ${c.currency}')),
+                          DataCell(ZBadge(text: c.status, type: c.status == 'active' ? ZBadgeType.success : ZBadgeType.neutral)),
+                          DataCell(IconButton(
+                            icon: const Icon(Icons.chevron_right),
+                            onPressed: () => context.push('/providers/contracts/${c.id}'),
+                          )),
+                        ]),
+                      ),
               loading: () => const ZSkeleton(height: 400),
-              error: (err, _) => ZAlertCard(title: 'Error', message: 'Error al cargar contratos: $err', isError: true),
+              error: (err, _) => ZAlertCard(message: 'Error al cargar contratos: $err', severity: 'high'),
             ),
           ],
         ),

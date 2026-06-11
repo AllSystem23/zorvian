@@ -88,7 +88,7 @@ class _SettlementFormPageState extends ConsumerState<SettlementFormPage> {
               const Text('Información de Liquidación', style: ZTypography.headlineSmall),
               const SizedBox(height: ZSpacing.md),
               DropdownButtonFormField<String>(
-                value: _terminationType,
+                initialValue: _terminationType,
                 decoration: const InputDecoration(labelText: 'Tipo de Terminación'),
                 items: const [
                   DropdownMenuItem(value: 'Resignation', child: Text('Renuncia Voluntaria')),

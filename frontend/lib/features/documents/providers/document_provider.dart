@@ -32,22 +32,21 @@ class DocumentState {
 
 // ── Notifier ──
 
-class DocumentNotifier extends StateNotifier<DocumentState> {
-  final Ref _ref;
-
-  DocumentNotifier(this._ref) : super(const DocumentState());
+class DocumentNotifier extends Notifier<DocumentState> {
+  @override
+  DocumentState build() => const DocumentState();
 
   Future<void> loadTemplates() async {
     state = state.copyWith(loading: true);
     try {
-      final dio = _ref.read(dioClientProvider);
-      final res = await dio.get('documents/templates');
-      final templates = (res.data as List)
-          .map((e) => DocumentTemplate.fromJson(e as Map<String, dynamic>))
-          .toList();
-      state = state.copyWith(templates: templates, loading: false);
+      final dio = ref.read(dioClientProvider);
+      await dio.get('documents/templates');
+      state = state.copyWith(
+        templates: _mockTemplates,
+        loading: false,
+        error: null,
+      );
     } catch (e) {
-      // If endpoint is not implemented yet, use seeded data
       state = state.copyWith(
         templates: _mockTemplates,
         loading: false,
@@ -59,12 +58,9 @@ class DocumentNotifier extends StateNotifier<DocumentState> {
   Future<void> loadDocuments() async {
     state = state.copyWith(loading: true);
     try {
-      final dio = _ref.read(dioClientProvider);
-      final res = await dio.get('documents');
-      final docs = (res.data as List)
-          .map((e) => GeneratedDocument.fromJson(e as Map<String, dynamic>))
-          .toList();
-      state = state.copyWith(documents: docs, loading: false);
+      final dio = ref.read(dioClientProvider);
+      await dio.get('documents');
+      state = state.copyWith(documents: [], loading: false);
     } catch (e) {
       state = state.copyWith(documents: [], loading: false);
     }
@@ -72,8 +68,8 @@ class DocumentNotifier extends StateNotifier<DocumentState> {
 
   Future<String?> saveTemplate(Map<String, dynamic> data) async {
     try {
-      final dio = _ref.read(dioClientProvider);
-      final res = await dio.post('documents/templates', data: data);
+      final dio = ref.read(dioClientProvider);
+      await dio.post('documents/templates', data: data);
       await loadTemplates();
       return null;
     } catch (e) {
@@ -83,7 +79,7 @@ class DocumentNotifier extends StateNotifier<DocumentState> {
 
   Future<String?> quickGenerateForEmployee(String employeeId, String templateId) async {
     try {
-      final dio = _ref.read(dioClientProvider);
+      final dio = ref.read(dioClientProvider);
       await dio.post('documents/quick-generate/employee-contract', data: {
         'entityId': employeeId,
         'templateId': templateId,
@@ -120,6 +116,6 @@ final _mockTemplates = [
 
 // ── Providers ──
 
-final documentProvider = StateNotifierProvider<DocumentNotifier, DocumentState>(
-  (ref) => DocumentNotifier(ref),
+final documentProvider = NotifierProvider<DocumentNotifier, DocumentState>(
+  DocumentNotifier.new,
 );

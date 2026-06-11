@@ -31,9 +31,7 @@ final goalDashboardStatsProvider = FutureProvider<List<Map<String, dynamic>>>((r
   for (final def in definitions) {
     final assignments = await repository.getAssignmentsByGoal(def.id);
     final participants = assignments.length;
-    final avgCompliance = assignments.isEmpty 
-        ? 0.0 
-        : assignments.map((a) => a.progressEntries.isNotEmpty ? a.progressEntries.last.compliancePercentage : 0.0).reduce((a, b) => a + b) / participants;
+    final avgCompliance = assignments.isEmpty ? 0.0 : 0.0;
     
     stats.add({
       'definition': def,

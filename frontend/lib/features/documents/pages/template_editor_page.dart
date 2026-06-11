@@ -93,7 +93,7 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
         ZToast.show(context, '✅ Plantilla guardada correctamente');
         context.pop();
       } else {
-        ZToast.show(context, error, isError: true);
+        ZToast.show(context, error, type: ZToastType.error);
       }
     }
   }
@@ -371,9 +371,9 @@ class _VariableChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: ZColors.brandAccent.withOpacity(0.1),
+          color: ZColors.brandAccent.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: ZColors.brandAccent.withOpacity(0.3)),
+          border: Border.all(color: ZColors.brandAccent.withValues(alpha: 0.3)),
         ),
         child: Text(
           variable.replaceAll('{{ ', '').replaceAll(' }}', ''),

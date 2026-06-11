@@ -100,8 +100,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
-    final isDesktop = size.width > 900;
+
 
     return Scaffold(
       backgroundColor: ZColors.darkBackground,
@@ -161,15 +160,15 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
           width: 500,
           padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 48),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.03),
+            color: Colors.white.withValues(alpha: 0.03),
             borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: Colors.white.withOpacity(0.08), width: 1.5),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08), width: 1.5),
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Colors.white.withOpacity(0.05),
-                Colors.white.withOpacity(0.01),
+                Colors.white.withValues(alpha: 0.05),
+                Colors.white.withValues(alpha: 0.01),
               ],
             ),
           ),
@@ -275,7 +274,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: active ? Colors.white.withOpacity(0.08) : Colors.transparent,
+            color: active ? Colors.white.withValues(alpha: 0.08) : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
@@ -311,9 +310,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       padding: const EdgeInsets.all(12),
       margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
-        color: ZColors.danger.withOpacity(0.1),
+        color: ZColors.danger.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: ZColors.danger.withOpacity(0.2)),
+        border: Border.all(color: ZColors.danger.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
