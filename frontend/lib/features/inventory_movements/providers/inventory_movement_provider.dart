@@ -36,31 +36,25 @@ final class InventoryMovementItem {
   );
 }
 
-final class InventoryMovementState {
-  final List<InventoryMovementItem> items;
-  final bool loading;
-  final String? error;
-  const InventoryMovementState({this.items = const [], this.loading = false, this.error});
-  InventoryMovementState copyWith({List<InventoryMovementItem>? items, bool? loading, String? error}) =>
-    InventoryMovementState(items: items ?? this.items, loading: loading ?? this.loading, error: error ?? this.error);
-}
-
-final class InventoryMovementNotifier extends Notifier<InventoryMovementState> {
+final class InventoryMovementNotifier extends AsyncNotifier<List<InventoryMovementItem>> {
   @override
-  InventoryMovementState build() => const InventoryMovementState();
+  Future<List<InventoryMovementItem>> build() async {
+    return _fetch();
+  }
+
   Future<void> load({String? search}) async {
-    state = state.copyWith(loading: true, error: null);
-    try {
-      final dio = ref.read(dioClientProvider);
-      final params = <String, dynamic>{};
-      if (search != null && search.isNotEmpty) params['search'] = search;
-      final r = await dio.get('inventory-movements', params: params);
-      final data = r.data;
-      state = InventoryMovementState(items: (data['items'] as List).map((e) => InventoryMovementItem.fromJson(e)).toList());
-    } catch (_) {
-      state = state.copyWith(error: 'Error al cargar movimientos', loading: false);
-    }
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() => _fetch(search: search));
+  }
+
+  Future<List<InventoryMovementItem>> _fetch({String? search}) async {
+    final dio = ref.read(dioClientProvider);
+    final params = <String, dynamic>{};
+    if (search != null && search.isNotEmpty) params['search'] = search;
+    final r = await dio.get('inventory-movements', params: params);
+    final data = r.data;
+    return (data['items'] as List).map((e) => InventoryMovementItem.fromJson(e)).toList();
   }
 }
 
-final inventoryMovementProvider = NotifierProvider<InventoryMovementNotifier, InventoryMovementState>(InventoryMovementNotifier.new);
+final inventoryMovementProvider = AsyncNotifierProvider<InventoryMovementNotifier, List<InventoryMovementItem>>(InventoryMovementNotifier.new);

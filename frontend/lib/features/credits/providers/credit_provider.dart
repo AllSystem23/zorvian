@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
 
@@ -294,32 +295,24 @@ final class OverdueDashboard {
   );
 }
 
-final class CreditState {
-  final List<CreditItem> items;
-  final bool loading;
-  final String? error;
-  const CreditState({this.items = const [], this.loading = false, this.error});
-  CreditState copyWith({List<CreditItem>? items, bool? loading, String? error}) =>
-    CreditState(items: items ?? this.items, loading: loading ?? this.loading, error: error ?? this.error);
-}
-
-final class CreditNotifier extends Notifier<CreditState> {
+final class CreditNotifier extends AsyncNotifier<List<CreditItem>> {
   @override
-  CreditState build() => const CreditState();
+  FutureOr<List<CreditItem>> build() => _load();
+
+  Future<List<CreditItem>> _load({String? search}) async {
+    final dio = ref.read(dioClientProvider);
+    final params = <String, dynamic>{};
+    if (search != null && search.isNotEmpty) params['search'] = search;
+    final r = await dio.get('credits', params: params);
+    final data = r.data;
+    final list = data is List ? data : (data is Map && data['items'] is List ? data['items'] : []);
+    return (list as List).map((e) => CreditItem.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
   Future<void> load({String? search}) async {
-    state = state.copyWith(loading: true, error: null);
-    try {
-      final dio = ref.read(dioClientProvider);
-      final params = <String, dynamic>{};
-      if (search != null && search.isNotEmpty) params['search'] = search;
-      final r = await dio.get('credits', params: params);
-      final data = r.data;
-      final list = data is List ? data : (data is Map && data['items'] is List ? data['items'] : []);
-      state = CreditState(items: (list as List).map((e) => CreditItem.fromJson(e as Map<String, dynamic>)).toList());
-    } catch (_) {
-      state = state.copyWith(error: 'Error al cargar créditos', loading: false);
-    }
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() => _load(search: search));
   }
 }
 
-final creditProvider = NotifierProvider<CreditNotifier, CreditState>(CreditNotifier.new);
+final creditProvider = AsyncNotifierProvider<CreditNotifier, List<CreditItem>>(CreditNotifier.new);

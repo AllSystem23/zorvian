@@ -20,9 +20,8 @@ class _AttendancePageState extends ConsumerState<AttendancePage> {
   void initState() {
     super.initState();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      setState(() => _now = DateTime.now());
+      if (mounted) setState(() => _now = DateTime.now());
     });
-    Future.microtask(() => ref.read(attendanceProvider.notifier).load());
   }
 
   @override
@@ -34,8 +33,7 @@ class _AttendancePageState extends ConsumerState<AttendancePage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final state = ref.watch(attendanceProvider);
-    final today = state.todayRecord;
+    final asyncState = ref.watch(attendanceProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -51,71 +49,54 @@ class _AttendancePageState extends ConsumerState<AttendancePage> {
           ),
         ],
       ),
-      body: state.loading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: () => ref.read(attendanceProvider.notifier).load(),
-              child: ListView(
-                padding: const EdgeInsets.all(24),
-                children: [
-                  // Live clock
-                  Center(
-                    child: Text(
-                      '${_now.hour.toString().padLeft(2, '0')}:${_now.minute.toString().padLeft(2, '0')}:${_now.second.toString().padLeft(2, '0')}',
-                      style: theme.textTheme.displayLarge?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Center(
-                    child: Text(
-                      '${_now.day}/${_now.month}/${_now.year}',
-                      style: theme.textTheme.titleMedium?.copyWith(color: Colors.grey),
-                    ),
-                  ),
-                  const SizedBox(height: 48),
+      body: ZAsyncRenderer<AttendanceSummary>(
+        value: asyncState,
+        builder: (summary) {
+          final todayStr = '${_now.year.toString().padLeft(4, '0')}-${_now.month.toString().padLeft(2, '0')}-${_now.day.toString().padLeft(2, '0')}';
+          final today = summary.records.where((r) => r.date == todayStr).firstOrNull;
 
-                  // Check-in / Check-out status
-                  Center(
-                    child: today == null
-                        ? _buildBigButton(theme, 'Marcar Entrada', Icons.login, Colors.green, () => _doCheckIn())
-                        : today.checkOutTime == null
-                            ? Column(
-                                children: [
-                                  _buildStatusCard(theme, today),
-                                  const SizedBox(height: 24),
-                                  _buildBigButton(theme, 'Marcar Salida', Icons.logout, Colors.red, () => _doCheckOut()),
-                                ],
-                              )
-                            : _buildStatusCard(theme, today),
+          return RefreshIndicator(
+            onRefresh: () => ref.read(attendanceProvider.notifier).load(),
+            child: ListView(
+              padding: const EdgeInsets.all(24),
+              children: [
+                Center(
+                  child: Text(
+                    '${_now.hour.toString().padLeft(2, '0')}:${_now.minute.toString().padLeft(2, '0')}:${_now.second.toString().padLeft(2, '0')}',
+                    style: theme.textTheme.displayLarge?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
                   ),
-                  const SizedBox(height: 24),
+                ),
+                const SizedBox(height: 4),
+                Center(
+                  child: Text(
+                    '${_now.day}/${_now.month}/${_now.year}',
+                    style: theme.textTheme.titleMedium?.copyWith(color: Colors.grey),
+                  ),
+                ),
+                const SizedBox(height: 48),
 
-                  // Error display
-                  if (state.error != null)
-                    Card(
-                      color: Colors.red.shade50,
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.error_outline, color: Colors.red),
-                            const SizedBox(width: 8),
-                            Expanded(child: Text(state.error!, style: const TextStyle(color: Colors.red))),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                  // Weekly summary mini
-                  if (state.summary != null) ...[
-                    const SizedBox(height: 32),
-                    Text('Resumen del Mes', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 12),
-                    _buildSummaryRow(state.summary!),
-                  ],
-                ],
-              ),
+                Center(
+                  child: today == null
+                      ? _buildBigButton(theme, 'Marcar Entrada', Icons.login, Colors.green, () => ref.read(attendanceProvider.notifier).checkIn())
+                      : today.checkOutTime == null
+                          ? Column(
+                              children: [
+                                _buildStatusCard(theme, today),
+                                const SizedBox(height: 24),
+                                _buildBigButton(theme, 'Marcar Salida', Icons.logout, Colors.red, () => ref.read(attendanceProvider.notifier).checkOut()),
+                              ],
+                            )
+                          : _buildStatusCard(theme, today),
+                ),
+                const SizedBox(height: 32),
+                Text('Resumen del Mes', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                _buildSummaryRow(summary),
+              ],
             ),
+          );
+        },
+      ),
     );
   }
 
@@ -137,7 +118,7 @@ class _AttendancePageState extends ConsumerState<AttendancePage> {
   }
 
   Widget _buildBigButton(ThemeData theme, String label, IconData icon, Color color, VoidCallback onPressed) {
-    final checking = ref.watch(attendanceProvider).checking;
+    final checking = ref.watch(checkingProvider);
     return SizedBox(
       width: 200,
       height: 200,
@@ -145,12 +126,9 @@ class _AttendancePageState extends ConsumerState<AttendancePage> {
         elevation: 4,
         shape: const CircleBorder(),
         color: color,
-        child: Semantics(
-          label: label,
-          button: !checking,
-          child: InkWell(
-            customBorder: const CircleBorder(),
-            onTap: checking ? null : onPressed,
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: checking ? null : onPressed,
           child: Center(
             child: checking
                 ? const CircularProgressIndicator(color: Colors.white)
@@ -163,7 +141,6 @@ class _AttendancePageState extends ConsumerState<AttendancePage> {
                     ],
                   ),
           ),
-        ),
         ),
       ),
     );
@@ -179,20 +156,6 @@ class _AttendancePageState extends ConsumerState<AttendancePage> {
         Expanded(child: _SummaryCard(label: 'Horas', value: summary.totalHours.toStringAsFixed(1), color: Colors.blue)),
       ],
     );
-  }
-
-  Future<void> _doCheckIn() async {
-    final ok = await ref.read(attendanceProvider.notifier).checkIn();
-    if (ok) {
-      ref.read(attendanceProvider.notifier).load();
-    }
-  }
-
-  Future<void> _doCheckOut() async {
-    final ok = await ref.read(attendanceProvider.notifier).checkOut();
-    if (ok) {
-      ref.read(attendanceProvider.notifier).load();
-    }
   }
 }
 

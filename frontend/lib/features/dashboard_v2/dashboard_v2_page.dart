@@ -32,7 +32,6 @@ class _DashboardV2PageState extends ConsumerState<DashboardV2Page> {
   Widget build(BuildContext context) {
     final state = ref.watch(roleDashboardProvider);
     final auth = ref.watch(authProvider);
-    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -58,45 +57,26 @@ class _DashboardV2PageState extends ConsumerState<DashboardV2Page> {
           Expanded(
             child: ZMainContent(
               focusNode: _mainContentFocus,
-              child: _buildBody(state, theme),
+              child: ZAsyncRenderer(
+                value: state,
+                builder: (groups) => RefreshIndicator(
+                  onRefresh: () => ref.read(roleDashboardProvider.notifier).load(),
+                  child: ReorderableListView.builder(
+                    buildDefaultDragHandles: false,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: groups.length,
+                    onReorderItem: (oldIdx, newIdx) =>
+                        ref.read(roleDashboardProvider.notifier).reorderGroup(oldIdx, newIdx),
+                    itemBuilder: (context, index) {
+                      final group = groups[index];
+                      return _buildSection(context, group, index, groups.length);
+                    },
+                  ),
+                ),
+              ),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildBody(RoleDashboardState state, ThemeData theme) {
-    if (state.loading) {
-      return const ZLiveRegion(
-        label: 'Cargando dashboard...',
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
-    if (state.error != null) {
-      return ZLiveRegion(
-        label: 'Error al cargar dashboard: ${state.error}',
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Text(state.error!, style: TextStyle(color: theme.colorScheme.error)),
-          ),
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: () => ref.read(roleDashboardProvider.notifier).load(),
-      child: ReorderableListView.builder(
-        buildDefaultDragHandles: false,
-        padding: const EdgeInsets.all(16),
-        itemCount: state.groups.length,
-        onReorderItem: (oldIdx, newIdx) =>
-            ref.read(roleDashboardProvider.notifier).reorderGroup(oldIdx, newIdx),
-        itemBuilder: (context, index) {
-          final group = state.groups[index];
-          return _buildSection(context, group, index, state.groups.length);
-        },
       ),
     );
   }

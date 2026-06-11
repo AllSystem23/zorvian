@@ -68,35 +68,37 @@ class EmployeeListItem {
   );
 }
 
-class EmployeeNotifier extends Notifier<EmployeeListState> {
+class EmployeeNotifier extends AsyncNotifier<EmployeeListState> {
   @override
-  EmployeeListState build() => const EmployeeListState();
+  Future<EmployeeListState> build() async {
+    return _fetch(page: 1);
+  }
 
   Future<void> load({String? search, String? status, String? departmentId, int page = 1}) async {
-    state = state.copyWith(loading: true, error: null);
-    try {
-      final dio = ref.read(dioClientProvider);
-      final params = <String, dynamic>{
-        'page': page,
-        'pageSize': 20,
-        if (search != null && search.isNotEmpty) 'search': search,
-        if (status != null && status.isNotEmpty) 'status': status,
-        if (departmentId != null) 'departmentId': departmentId,
-      };
-      final response = await dio.get('employees', params: params);
-      final data = response.data;
-      state = EmployeeListState(
-        items: (data['items'] as List).map((e) => EmployeeListItem.fromJson(e)).toList(),
-        total: data['total'] as int,
-        page: data['page'] as int,
-        pageSize: data['pageSize'] as int,
-      );
-    } catch (e) {
-      state = state.copyWith(error: 'Error al cargar empleados', loading: false);
-    }
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() => _fetch(search: search, status: status, departmentId: departmentId, page: page));
+  }
+
+  Future<EmployeeListState> _fetch({String? search, String? status, String? departmentId, int page = 1}) async {
+    final dio = ref.read(dioClientProvider);
+    final params = <String, dynamic>{
+      'page': page,
+      'pageSize': 20,
+      if (search != null && search.isNotEmpty) 'search': search,
+      if (status != null && status.isNotEmpty) 'status': status,
+      if (departmentId != null) 'departmentId': departmentId,
+    };
+    final response = await dio.get('employees', params: params);
+    final data = response.data;
+    return EmployeeListState(
+      items: (data['items'] as List).map((e) => EmployeeListItem.fromJson(e)).toList(),
+      total: data['total'] as int,
+      page: data['page'] as int,
+      pageSize: data['pageSize'] as int,
+    );
   }
 }
 
-final employeeProvider = NotifierProvider<EmployeeNotifier, EmployeeListState>(
+final employeeProvider = AsyncNotifierProvider<EmployeeNotifier, EmployeeListState>(
   EmployeeNotifier.new,
 );

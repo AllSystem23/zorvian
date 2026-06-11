@@ -59,48 +59,53 @@ final class ApprovalRequestItem {
 final class ApprovalState {
   final List<ApprovalFlowItem> flows;
   final List<ApprovalRequestItem> pendingRequests;
-  final bool loading;
-  final String? error;
-  const ApprovalState({this.flows = const [], this.pendingRequests = const [], this.loading = false, this.error});
-  ApprovalState copyWith({List<ApprovalFlowItem>? flows, List<ApprovalRequestItem>? pendingRequests, bool? loading, String? error}) =>
-    ApprovalState(flows: flows ?? this.flows, pendingRequests: pendingRequests ?? this.pendingRequests, loading: loading ?? this.loading, error: error);
+  
+  const ApprovalState({this.flows = const [], this.pendingRequests = const []});
+  
+  ApprovalState copyWith({List<ApprovalFlowItem>? flows, List<ApprovalRequestItem>? pendingRequests}) =>
+    ApprovalState(flows: flows ?? this.flows, pendingRequests: pendingRequests ?? this.pendingRequests);
 }
 
-final class ApprovalNotifier extends Notifier<ApprovalState> {
+final class ApprovalNotifier extends AsyncNotifier<ApprovalState> {
   @override
-  ApprovalState build() => const ApprovalState();
+  Future<ApprovalState> build() async {
+    return const ApprovalState();
+  }
 
   Future<void> loadFlows() async {
-    state = state.copyWith(loading: true, error: null);
+    state = const AsyncValue.loading();
     try {
       final dio = ref.read(dioClientProvider);
       final r = await dio.get('approval-flows');
-      state = ApprovalState(flows: (r.data as List).map((e) => ApprovalFlowItem.fromJson(e)).toList());
-    } catch (_) {
-      state = state.copyWith(error: 'Error al cargar flujos', loading: false);
+      final flows = (r.data as List).map((e) => ApprovalFlowItem.fromJson(e)).toList();
+      state = AsyncValue.data(ApprovalState(flows: flows));
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
     }
   }
 
   Future<void> loadPending() async {
-    state = state.copyWith(loading: true, error: null);
+    state = const AsyncValue.loading();
     try {
       final dio = ref.read(dioClientProvider);
       final r = await dio.get('approval-requests/pending');
-      state = ApprovalState(pendingRequests: (r.data as List).map((e) => ApprovalRequestItem.fromJson(e)).toList());
-    } catch (_) {
-      state = state.copyWith(error: 'Error al cargar solicitudes', loading: false);
+      final pendingRequests = (r.data as List).map((e) => ApprovalRequestItem.fromJson(e)).toList();
+      state = AsyncValue.data(ApprovalState(pendingRequests: pendingRequests));
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
     }
   }
 
   Future<void> deleteFlow(String id) async {
+    final previousState = state;
     try {
       final dio = ref.read(dioClientProvider);
       await dio.delete('approval-flows/$id');
-      loadFlows();
-    } catch (_) {
-      state = state.copyWith(error: 'Error al eliminar flujo');
+      await loadFlows();
+    } catch (e) {
+      state = previousState;
     }
   }
 }
 
-final approvalProvider = NotifierProvider<ApprovalNotifier, ApprovalState>(ApprovalNotifier.new);
+final approvalProvider = AsyncNotifierProvider<ApprovalNotifier, ApprovalState>(ApprovalNotifier.new);

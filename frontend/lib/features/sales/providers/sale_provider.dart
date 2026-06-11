@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
 
@@ -98,33 +99,24 @@ final class SaleDetail {
   );
 }
 
-final class SaleState {
-  final List<SaleItem> items;
-  final bool loading;
-  final String? error;
-  const SaleState({this.items = const [], this.loading = false, this.error});
-  SaleState copyWith({List<SaleItem>? items, bool? loading, String? error}) =>
-    SaleState(items: items ?? this.items, loading: loading ?? this.loading, error: error ?? this.error);
-}
-
-final class SaleNotifier extends Notifier<SaleState> {
+final class SaleNotifier extends AsyncNotifier<List<SaleItem>> {
   @override
-  SaleState build() => const SaleState();
+  FutureOr<List<SaleItem>> build() => _load();
+
+  Future<List<SaleItem>> _load({String? search}) async {
+    final dio = ref.read(dioClientProvider);
+    final params = <String, dynamic>{};
+    if (search != null && search.isNotEmpty) params['search'] = search;
+    final r = await dio.get('sales', params: params);
+    final body = r.data;
+    final list = body is Map ? (body['items'] ?? []) : (body is List ? body : []);
+    return (list as List).map((e) => SaleItem.fromJson(e as Map<String, dynamic>)).toList();
+  }
 
   Future<void> load({String? search}) async {
-    state = state.copyWith(loading: true, error: null);
-    try {
-      final dio = ref.read(dioClientProvider);
-      final params = <String, dynamic>{};
-      if (search != null && search.isNotEmpty) params['search'] = search;
-      final r = await dio.get('sales', params: params);
-      final body = r.data;
-      final list = body is Map ? (body['items'] ?? []) : (body is List ? body : []);
-      state = SaleState(items: (list as List).map((e) => SaleItem.fromJson(e as Map<String, dynamic>)).toList());
-    } catch (_) {
-      state = state.copyWith(error: 'Error al cargar ventas', loading: false);
-    }
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() => _load(search: search));
   }
 }
 
-final saleProvider = NotifierProvider<SaleNotifier, SaleState>(SaleNotifier.new);
+final saleProvider = AsyncNotifierProvider<SaleNotifier, List<SaleItem>>(SaleNotifier.new);

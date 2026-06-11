@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/network/dio_client.dart';
 
 class AttendanceRecord {
   final String id;
@@ -55,115 +56,94 @@ class AttendanceSummary {
   );
 }
 
-class AttendanceState {
-  final AttendanceSummary? summary;
-  final AttendanceRecord? todayRecord;
-  final bool loading;
-  final bool checking;
-  final String? error;
-  final String? checkResult;
+class AttendanceService {
+  final DioClient _dio;
+  AttendanceService(this._dio);
 
-  const AttendanceState({
-    this.summary,
-    this.todayRecord,
-    this.loading = false,
-    this.checking = false,
-    this.error,
-    this.checkResult,
-  });
-
-  AttendanceState copyWith({
-    AttendanceSummary? summary,
-    AttendanceRecord? todayRecord,
-    bool? loading,
-    bool? checking,
-    String? error,
-    String? checkResult,
-  }) => AttendanceState(
-    summary: summary ?? this.summary,
-    todayRecord: todayRecord ?? this.todayRecord,
-    loading: loading ?? this.loading,
-    checking: checking ?? this.checking,
-    error: error ?? this.error,
-    checkResult: checkResult ?? this.checkResult,
-  );
-}
-
-class AttendanceNotifier extends Notifier<AttendanceState> {
-  @override
-  AttendanceState build() => const AttendanceState();
-
-  Future<void> load() async {
-    state = state.copyWith(loading: true, error: null);
-    try {
-      final dio = ref.read(dioClientProvider);
-      final r = await dio.get('attendance/my');
-      final summary = AttendanceSummary.fromJson(r.data);
-
-      // Find today's record if it exists
-      final today = DateTime.now();
-      final todayStr = '${today.year.toString().padLeft(4, '0')}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-      final todayRecord = summary.records.where((r) => r.date == todayStr).firstOrNull;
-
-      state = AttendanceState(summary: summary, todayRecord: todayRecord);
-    } catch (e) {
-      state = state.copyWith(error: 'Error al cargar asistencia', loading: false);
-    }
+  Future<AttendanceSummary> getMyAttendance() async {
+    final r = await _dio.get('attendance/my');
+    return AttendanceSummary.fromJson(r.data);
   }
 
-  Future<bool> checkInQR(String qrCode, {double? lat, double? lng}) async {
-    state = state.copyWith(checking: true, error: null, checkResult: null);
+  Future<AttendanceRecord> checkIn(Map<String, dynamic> data) async {
+    final r = await _dio.post('attendance/check-in', data: data);
+    return AttendanceRecord.fromJson(r.data);
+  }
+
+  Future<AttendanceRecord> checkOut(Map<String, dynamic> data) async {
+    final r = await _dio.post('attendance/check-out', data: data);
+    return AttendanceRecord.fromJson(r.data);
+  }
+}
+
+final attendanceServiceProvider = Provider<AttendanceService>((ref) {
+  final dio = ref.read(dioClientProvider);
+  return AttendanceService(dio);
+});
+
+class _CheckingNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+}
+
+final checkingProvider = NotifierProvider<_CheckingNotifier, bool>(_CheckingNotifier.new);
+
+class AttendanceNotifier extends AsyncNotifier<AttendanceSummary> {
+  @override
+  Future<AttendanceSummary> build() async {
+    return ref.read(attendanceServiceProvider).getMyAttendance();
+  }
+
+  Future<void> load() async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() => ref.read(attendanceServiceProvider).getMyAttendance());
+  }
+
+  Future<bool> checkInQR(String code) async {
+    ref.read(checkingProvider.notifier).state = true;
     try {
-      final dio = ref.read(dioClientProvider);
-      final body = <String, dynamic>{'qrCode': qrCode};
-      if (lat != null) body['latitude'] = lat;
-      if (lng != null) body['longitude'] = lng;
-      final r = await dio.post('attendance/qr-check-in', data: body);
-      final record = AttendanceRecord.fromJson(r.data);
-      state = state.copyWith(todayRecord: record, checking: false, checkResult: 'check-in');
+      final body = <String, dynamic>{'qrCode': code};
+      await ref.read(attendanceServiceProvider).checkIn(body);
+      await load();
       return true;
     } catch (e) {
-      state = state.copyWith(error: 'Error al registrar con QR', checking: false);
       return false;
+    } finally {
+      ref.read(checkingProvider.notifier).state = false;
     }
   }
 
   Future<bool> checkIn({double? lat, double? lng}) async {
-    state = state.copyWith(checking: true, error: null, checkResult: null);
+    ref.read(checkingProvider.notifier).state = true;
     try {
-      final dio = ref.read(dioClientProvider);
       final body = <String, dynamic>{};
       if (lat != null) body['latitude'] = lat;
       if (lng != null) body['longitude'] = lng;
-      final r = await dio.post('attendance/check-in', data: body);
-      final record = AttendanceRecord.fromJson(r.data);
-      state = state.copyWith(todayRecord: record, checking: false, checkResult: 'check-in');
+      await ref.read(attendanceServiceProvider).checkIn(body);
+      await load();
       return true;
     } catch (e) {
-      final msg = e.toString().contains('Ya existe') ? 'Ya registraste entrada hoy' : 'Error al marcar entrada';
-      state = state.copyWith(error: msg, checking: false);
       return false;
+    } finally {
+      ref.read(checkingProvider.notifier).state = false;
     }
   }
 
   Future<bool> checkOut({double? lat, double? lng}) async {
-    state = state.copyWith(checking: true, error: null, checkResult: null);
+    ref.read(checkingProvider.notifier).state = true;
     try {
-      final dio = ref.read(dioClientProvider);
       final body = <String, dynamic>{};
       if (lat != null) body['latitude'] = lat;
       if (lng != null) body['longitude'] = lng;
-      final r = await dio.post('attendance/check-out', data: body);
-      final record = AttendanceRecord.fromJson(r.data);
-      state = state.copyWith(todayRecord: record, checking: false, checkResult: 'check-out');
+      await ref.read(attendanceServiceProvider).checkOut(body);
+      await load();
       return true;
     } catch (e) {
-      state = state.copyWith(error: 'Error al marcar salida', checking: false);
       return false;
+    } finally {
+      ref.read(checkingProvider.notifier).state = false;
     }
   }
 }
 
-final attendanceProvider = NotifierProvider<AttendanceNotifier, AttendanceState>(
-  AttendanceNotifier.new,
-);
+final attendanceProvider = AsyncNotifierProvider<AttendanceNotifier, AttendanceSummary>(AttendanceNotifier.new);

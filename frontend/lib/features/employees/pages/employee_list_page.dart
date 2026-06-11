@@ -20,7 +20,7 @@ class _EmployeeListPageState extends ConsumerState<EmployeeListPage> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => ref.read(employeeProvider.notifier).load());
+    // Removed explicit load() as AsyncNotifier does it in build()
     _searchCtrl.addListener(() {
       ref.read(employeeProvider.notifier).load(search: _searchCtrl.text);
     });
@@ -68,7 +68,6 @@ class _EmployeeListPageState extends ConsumerState<EmployeeListPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(employeeProvider);
-    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -85,38 +84,38 @@ class _EmployeeListPageState extends ConsumerState<EmployeeListPage> {
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
-              child: ZTextField(
+            child: ZTextField(
               controller: _searchCtrl,
               label: 'Buscar',
               hint: 'Buscar empleado...',
               prefix: const Icon(Icons.search),
             ),
           ),
-          if (state.loading)
-            const Expanded(child: Center(child: CircularProgressIndicator()))
-          else if (state.error != null)
-            Expanded(child: Center(child: Text(state.error!, style: TextStyle(color: theme.colorScheme.error))))
-          else if (state.items.isEmpty)
-            const Expanded(child: Center(child: Text('No hay empleados registrados')))
-          else
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: () => ref.read(employeeProvider.notifier).load(),
-                child: ListView.separated(
-                  itemCount: state.items.length,
-                  separatorBuilder: (_, _) => const Divider(height: 1),
-                  itemBuilder: (_, i) {
-                    final e = state.items[i];
-                    return ListTile(
-                      title: Text(e.fullName, style: const TextStyle(fontWeight: FontWeight.w600)),
-                      subtitle: Text('${e.position} · ${e.departmentName}'),
-                      trailing: _StatusBadge(e.status),
-                      onTap: () => context.push('/employees/${e.id}'),
-                    );
-                  },
-                ),
-              ),
+          Expanded(
+            child: ZAsyncRenderer<EmployeeListState>(
+              value: state,
+              builder: (state) {
+                return state.items.isEmpty
+                    ? const Center(child: Text('No hay empleados registrados'))
+                    : RefreshIndicator(
+                        onRefresh: () => ref.read(employeeProvider.notifier).load(),
+                        child: ListView.separated(
+                          itemCount: state.items.length,
+                          separatorBuilder: (_, _) => const Divider(height: 1),
+                          itemBuilder: (_, i) {
+                            final e = state.items[i];
+                            return ListTile(
+                              title: Text(e.fullName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                              subtitle: Text('${e.position} · ${e.departmentName}'),
+                              trailing: _StatusBadge(e.status),
+                              onTap: () => context.push('/employees/${e.id}'),
+                            );
+                          },
+                        ),
+                      );
+              },
             ),
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(

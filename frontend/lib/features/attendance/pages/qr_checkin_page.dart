@@ -39,7 +39,7 @@ class _QRCheckInPageState extends ConsumerState<QRCheckInPage> {
           ));
           Navigator.pop(context);
         } else {
-          final err = ref.read(attendanceProvider).error ?? 'Error al registrar';
+          final err = ref.read(attendanceProvider).error?.toString() ?? 'Error al registrar';
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err), backgroundColor: Colors.red));
           setState(() => _processing = false);
         }

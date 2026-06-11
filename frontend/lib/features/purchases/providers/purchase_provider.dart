@@ -93,32 +93,25 @@ final class PurchaseDetail {
   );
 }
 
-final class PurchaseState {
-  final List<PurchaseItem> items;
-  final bool loading;
-  final String? error;
-  const PurchaseState({this.items = const [], this.loading = false, this.error});
-  PurchaseState copyWith({List<PurchaseItem>? items, bool? loading, String? error}) =>
-    PurchaseState(items: items ?? this.items, loading: loading ?? this.loading, error: error ?? this.error);
-}
-
-final class PurchaseNotifier extends Notifier<PurchaseState> {
+final class PurchaseNotifier extends AsyncNotifier<List<PurchaseItem>> {
   @override
-  PurchaseState build() => const PurchaseState();
+  Future<List<PurchaseItem>> build() async {
+    return _fetch();
+  }
 
   Future<void> load({String? search}) async {
-    state = state.copyWith(loading: true, error: null);
-    try {
-      final dio = ref.read(dioClientProvider);
-      final params = <String, dynamic>{};
-      if (search != null && search.isNotEmpty) params['search'] = search;
-      final r = await dio.get('purchases', params: params);
-      final data = r.data;
-      state = PurchaseState(items: (data['items'] as List).map((e) => PurchaseItem.fromJson(e)).toList());
-    } catch (_) {
-      state = state.copyWith(error: 'Error al cargar compras', loading: false);
-    }
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() => _fetch(search: search));
+  }
+
+  Future<List<PurchaseItem>> _fetch({String? search}) async {
+    final dio = ref.read(dioClientProvider);
+    final params = <String, dynamic>{};
+    if (search != null && search.isNotEmpty) params['search'] = search;
+    final r = await dio.get('purchases', params: params);
+    final data = r.data;
+    return (data['items'] as List).map((e) => PurchaseItem.fromJson(e)).toList();
   }
 }
 
-final purchaseProvider = NotifierProvider<PurchaseNotifier, PurchaseState>(PurchaseNotifier.new);
+final purchaseProvider = AsyncNotifierProvider<PurchaseNotifier, List<PurchaseItem>>(PurchaseNotifier.new);

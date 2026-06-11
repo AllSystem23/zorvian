@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zorvian/features/admin/pages/user_list_page.dart';
 import 'package:zorvian/features/admin/providers/user_provider.dart';
+import 'package:zorvian/features/admin/models/user_model.dart';
 
 void main() {
   testWidgets('UserListPage renders correctly', (WidgetTester tester) async {
@@ -28,9 +29,9 @@ void main() {
 
 class UserNotifierMock extends UserNotifier {
   @override
-  UserState build() => const UserState(users: []);
+  Future<List<UserModel>> build() async => [];
   @override
   Future<void> load() async {
-    state = const UserState(users: []);
+    state = const AsyncValue.data([]);
   }
 }

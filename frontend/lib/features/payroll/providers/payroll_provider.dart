@@ -109,3 +109,22 @@ final payrollServiceProvider = Provider<PayrollService>((ref) {
   final dio = ref.read(dioClientProvider);
   return PayrollService(dio);
 });
+
+class PayrollPeriodsNotifier extends AsyncNotifier<List<dynamic>> {
+  @override
+  Future<List<dynamic>> build() async {
+    return ref.read(payrollServiceProvider).getPeriods(null);
+  }
+
+  Future<void> load() async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() => ref.read(payrollServiceProvider).getPeriods(null));
+  }
+
+  Future<void> createPeriod(Map<String, dynamic> data) async {
+    await ref.read(payrollServiceProvider).createPeriod(data);
+    await load();
+  }
+}
+
+final payrollPeriodsProvider = AsyncNotifierProvider<PayrollPeriodsNotifier, List<dynamic>>(PayrollPeriodsNotifier.new);

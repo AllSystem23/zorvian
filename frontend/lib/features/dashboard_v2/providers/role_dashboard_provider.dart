@@ -31,50 +31,28 @@ class DashboardRoleKpiGroup {
   const DashboardRoleKpiGroup({required this.sectionLabel, required this.kpis});
 }
 
-class RoleDashboardState {
-  final List<DashboardRoleKpiGroup> groups;
-  final bool loading;
-  final String? error;
-
-  const RoleDashboardState({
-    this.groups = const [],
-    this.loading = false,
-    this.error,
-  });
-
-  RoleDashboardState copyWith({
-    List<DashboardRoleKpiGroup>? groups,
-    bool? loading,
-    String? error,
-  }) =>
-      RoleDashboardState(
-        groups: groups ?? this.groups,
-        loading: loading ?? this.loading,
-        error: error ?? this.error,
-      );
-}
-
-class RoleDashboardNotifier extends Notifier<RoleDashboardState> {
+class RoleDashboardNotifier extends AsyncNotifier<List<DashboardRoleKpiGroup>> {
   @override
-  RoleDashboardState build() => const RoleDashboardState();
+  Future<List<DashboardRoleKpiGroup>> build() async {
+    final role = ref.watch(authProvider).role ?? 'Employee';
+    return _kpisForRole(role);
+  }
 
   Future<void> load() async {
-    state = state.copyWith(loading: true, error: null);
-    try {
-      final role = ref.read(authProvider).role ?? 'Employee';
-      final groups = _kpisForRole(role);
-      state = state.copyWith(groups: groups, loading: false);
-    } catch (e) {
-      state = state.copyWith(error: 'Error al cargar dashboard: $e', loading: false);
-    }
+    state = const AsyncValue.loading();
+    final role = ref.read(authProvider).role ?? 'Employee';
+    state = await AsyncValue.guard(() async => _kpisForRole(role));
   }
 
   void reorderGroup(int oldIndex, int newIndex) {
-    final groups = [...state.groups];
-    final group = groups.removeAt(oldIndex);
-    groups.insert(newIndex, group);
-    state = state.copyWith(groups: groups);
+    state.whenData((groups) {
+      final newGroups = [...groups];
+      final group = newGroups.removeAt(oldIndex);
+      newGroups.insert(newIndex, group);
+      state = AsyncValue.data(newGroups);
+    });
   }
+
 
   List<DashboardRoleKpiGroup> _kpisForRole(String role) {
     switch (role) {
@@ -449,6 +427,6 @@ class RoleDashboardNotifier extends Notifier<RoleDashboardState> {
       ];
 }
 
-final roleDashboardProvider = NotifierProvider<RoleDashboardNotifier, RoleDashboardState>(
+final roleDashboardProvider = AsyncNotifierProvider<RoleDashboardNotifier, List<DashboardRoleKpiGroup>>(
   RoleDashboardNotifier.new,
 );

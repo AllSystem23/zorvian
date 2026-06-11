@@ -5,34 +5,12 @@ import '../../../core/error/error_notifier.dart';
 import '../providers/payroll_provider.dart';
 import '../../../shared/ds/ds.dart';
 
-class PayrollPeriodsPage extends ConsumerStatefulWidget {
+class PayrollPeriodsPage extends ConsumerWidget {
   const PayrollPeriodsPage({super.key});
 
   @override
-  ConsumerState<PayrollPeriodsPage> createState() => _PayrollPeriodsPageState();
-}
-
-class _PayrollPeriodsPageState extends ConsumerState<PayrollPeriodsPage> {
-  List<dynamic> _periods = [];
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    setState(() => _loading = true);
-    try {
-      final svc = ref.read(payrollServiceProvider);
-      _periods = await svc.getPeriods(null);
-    } catch (_) {}
-    setState(() => _loading = false);
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(payrollPeriodsProvider);
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
@@ -40,71 +18,72 @@ class _PayrollPeriodsPageState extends ConsumerState<PayrollPeriodsPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: () => _showCreateDialog(),
+            onPressed: () => _showCreateDialog(context, ref),
           ),
         ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: _periods.isEmpty
-                  ? ListView(
-                      children: [
-                        Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(32),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.calendar_month, size: 64, color: theme.colorScheme.outline),
-                                const SizedBox(height: 16),
-                                Text('Sin períodos', style: theme.textTheme.titleMedium),
-                                const SizedBox(height: 24),
-                                ZButton(text: 'Crear período', onPressed: () => _showCreateDialog(), icon: Icons.add, fullWidth: false),
-                              ],
-                            ),
-                          ),
+      body: ZAsyncRenderer<List<dynamic>>(
+        value: state,
+        builder: (periods) => RefreshIndicator(
+          onRefresh: () => ref.read(payrollPeriodsProvider.notifier).load(),
+          child: periods.isEmpty
+              ? ListView(
+                  children: [
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.calendar_month, size: 64, color: theme.colorScheme.outline),
+                            const SizedBox(height: 16),
+                            Text('Sin períodos', style: theme.textTheme.titleMedium),
+                            const SizedBox(height: 24),
+                            ZButton(text: 'Crear período', onPressed: () => _showCreateDialog(context, ref), icon: Icons.add, fullWidth: false),
+                          ],
                         ),
-                      ],
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _periods.length,
-                      itemBuilder: (_, i) {
-                        final p = _periods[i];
-                        final status = p['status'] as String? ?? 'open';
-                        final isOpen = status == 'open';
-                        return ZCard(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          padding: EdgeInsets.zero,
-                          child: ListTile(
-                            leading: Icon(isOpen ? Icons.lock_open : Icons.lock, color: isOpen ? Colors.green : Colors.grey),
-                            title: Text(p['name'] ?? ''),
-                            subtitle: Text('${p['startDate']} - ${p['endDate']}'),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (isOpen)
-                                  ZButton(
-                                    text: 'Generar',
-                                    onPressed: () => _generateRun(p['id']),
-                                    type: ZButtonType.secondary,
-                                    fullWidth: false,
-                                  ),
-                                const SizedBox(width: 8),
-                                Chip(label: Text(status == 'open' ? 'Abierto' : status == 'closed' ? 'Cerrado' : status, style: const TextStyle(fontSize: 11))),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
+                      ),
                     ),
-            ),
+                  ],
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: periods.length,
+                  itemBuilder: (_, i) {
+                    final p = periods[i];
+                    final status = p['status'] as String? ?? 'open';
+                    final isOpen = status == 'open';
+                    return ZCard(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: EdgeInsets.zero,
+                      child: ListTile(
+                        leading: Icon(isOpen ? Icons.lock_open : Icons.lock, color: isOpen ? Colors.green : Colors.grey),
+                        title: Text(p['name'] ?? ''),
+                        subtitle: Text('${p['startDate']} - ${p['endDate']}'),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (isOpen)
+                              ZButton(
+                                text: 'Generar',
+                                onPressed: () => _generateRun(context, ref, p['id']),
+                                type: ZButtonType.secondary,
+                                fullWidth: false,
+                              ),
+                            const SizedBox(width: 8),
+                            Chip(label: Text(status == 'open' ? 'Abierto' : status == 'closed' ? 'Cerrado' : status, style: const TextStyle(fontSize: 11))),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ),
     );
   }
 
-  void _showCreateDialog() {
+  void _showCreateDialog(BuildContext context, WidgetRef ref) {
     final nameCtrl = TextEditingController();
     final now = DateTime.now();
     int year = now.year;
@@ -112,7 +91,7 @@ class _PayrollPeriodsPageState extends ConsumerState<PayrollPeriodsPage> {
     int periodNumber = now.day <= 15 ? 1 : 2;
     DateOnly start = DateOnly(year, month, periodNumber == 1 ? 1 : 16);
     DateOnly end = DateOnly(year, month, periodNumber == 1 ? 15 : DateTime(year, month + 1, 0).day);
-    DateOnly payDate = end.add(Duration(days: periodNumber == 1 ? 7 : 5));
+    DateOnly payDate = end.add(const Duration(days: 7)); // Simplified
 
     ZModal.show(
       context,
@@ -122,8 +101,7 @@ class _PayrollPeriodsPageState extends ConsumerState<PayrollPeriodsPage> {
       onConfirm: () async {
         if (nameCtrl.text.isEmpty) return false;
         try {
-          final svc = ref.read(payrollServiceProvider);
-          await svc.createPeriod({
+          await ref.read(payrollPeriodsProvider.notifier).createPeriod({
             'name': nameCtrl.text,
             'year': year,
             'month': month,
@@ -132,7 +110,6 @@ class _PayrollPeriodsPageState extends ConsumerState<PayrollPeriodsPage> {
             'endDate': end.toISO(),
             'paymentDate': payDate.toISO(),
           });
-          _load();
           ref.read(errorNotifierProvider.notifier).showInfo('Período creado');
           return true;
         } catch (e) {
@@ -161,16 +138,15 @@ class _PayrollPeriodsPageState extends ConsumerState<PayrollPeriodsPage> {
     );
   }
 
-  Future<void> _generateRun(String periodId) async {
+  Future<void> _generateRun(BuildContext context, WidgetRef ref, String periodId) async {
     try {
       final svc = ref.read(payrollServiceProvider);
       final run = await svc.generateRun({'payrollPeriodId': periodId});
-      if (mounted) {
-        ref.read(errorNotifierProvider.notifier).showInfo('Corrida generada');
-        context.push('/payroll/runs/${run['id']}');
-      }
+      if (!context.mounted) return;
+      ref.read(errorNotifierProvider.notifier).showInfo('Corrida generada');
+      context.push('/payroll/runs/${run['id']}');
     } catch (e) {
-      if (mounted) ref.read(errorNotifierProvider.notifier).showError('Error al generar corrida');
+      ref.read(errorNotifierProvider.notifier).showError('Error al generar corrida');
     }
   }
 }

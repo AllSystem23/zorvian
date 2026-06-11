@@ -2,52 +2,41 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zorvian/auth/auth_provider.dart';
 import 'package:zorvian/features/admin/models/user_model.dart';
 
-class UserState {
-  final List<UserModel> users;
-  final bool loading;
-  final String? error;
-  const UserState({this.users = const [], this.loading = false, this.error});
-  UserState copyWith({List<UserModel>? users, bool? loading, String? error}) =>
-    UserState(users: users ?? this.users, loading: loading ?? this.loading, error: error ?? this.error);
-}
-
-class UserNotifier extends Notifier<UserState> {
+class UserNotifier extends AsyncNotifier<List<UserModel>> {
   @override
-  UserState build() => const UserState();
+  Future<List<UserModel>> build() async {
+    return _fetchUsers();
+  }
+
+  Future<List<UserModel>> _fetchUsers() async {
+    final dio = ref.read(dioClientProvider);
+    final r = await dio.get('users');
+    return (r.data as List).map((e) => UserModel.fromJson(e)).toList();
+  }
 
   Future<void> load() async {
-    state = state.copyWith(loading: true, error: null);
-    try {
-      final dio = ref.read(dioClientProvider);
-      final r = await dio.get('users');
-      final items = (r.data as List).map((e) => UserModel.fromJson(e)).toList();
-      state = state.copyWith(users: items, loading: false);
-    } catch (_) {
-      state = state.copyWith(error: 'Error al cargar usuarios', loading: false);
-    }
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(_fetchUsers);
   }
 
   Future<void> inviteUser(String email, String role) async {
-    state = state.copyWith(loading: true);
-    try {
-      final dio = ref.read(dioClientProvider);
+    final dio = ref.read(dioClientProvider);
+    await AsyncValue.guard(() async {
       await dio.post('invitations', data: {'email': email, 'role': role});
-      await load(); // Reload list after invitation
-    } catch (e) {
-      state = state.copyWith(error: 'Error al invitar usuario', loading: false);
-    }
+      return _fetchUsers();
+    });
+    // Assuming we want to refresh after action, but guard handles state.
+    // If _fetchUsers fails, state becomes error.
+    final result = await AsyncValue.guard(_fetchUsers);
+    state = result;
   }
 
   Future<void> updateUserRole(String userId, String roleId) async {
-    state = state.copyWith(loading: true);
-    try {
-      final dio = ref.read(dioClientProvider);
-      await dio.put('users/$userId/role', data: {'roleId': roleId});
-      await load(); // Reload list after update
-    } catch (e) {
-      state = state.copyWith(error: 'Error al actualizar rol', loading: false);
-    }
+    final dio = ref.read(dioClientProvider);
+    await dio.put('users/$userId/role', data: {'roleId': roleId});
+    final result = await AsyncValue.guard(_fetchUsers);
+    state = result;
   }
 }
 
-final userProvider = NotifierProvider<UserNotifier, UserState>(UserNotifier.new);
+final userProvider = AsyncNotifierProvider<UserNotifier, List<UserModel>>(UserNotifier.new);

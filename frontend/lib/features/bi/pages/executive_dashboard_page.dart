@@ -7,6 +7,7 @@ import '../../../core/widgets/bi/bi_line_chart.dart';
 import '../../../core/widgets/bi/bi_bar_chart.dart';
 import '../../../core/widgets/bi/bi_gauge.dart';
 import '../providers/bi_provider.dart';
+import '../models/bi_models.dart';
 import '../../../../shared/ds/ds.dart';
 
 class ExecutiveDashboardPage extends ConsumerStatefulWidget {
@@ -30,7 +31,7 @@ class _ExecutiveDashboardPageState extends ConsumerState<ExecutiveDashboardPage>
 
   @override
   Widget build(BuildContext context) {
-    final executiveState = ref.watch(biProvider);
+    final executiveAsync = ref.watch(biProvider);
     final salesTrendAsync = ref.watch(biSalesTrendProvider(12));
     final arAgingAsync = ref.watch(biArAgingProvider);
     final ratiosAsync = ref.watch(biFinancialRatiosProvider);
@@ -47,15 +48,10 @@ class _ExecutiveDashboardPageState extends ConsumerState<ExecutiveDashboardPage>
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            if (executiveState.error case final err?)
-              ZCard(
-                padding: const EdgeInsets.all(16),
-                child: Text('Error: $err'),
-              ),
-            if (executiveState.loading)
-              const Center(child: CircularProgressIndicator())
-            else if (executiveState.executive case final executive?)
-              _buildKpiGrid(context, executive),
+            ZAsyncRenderer<BiExecutive>(
+              value: executiveAsync,
+              builder: (executive) => _buildKpiGrid(context, executive),
+            ),
             const SizedBox(height: 24),
             Text('Tendencia de Ventas', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),

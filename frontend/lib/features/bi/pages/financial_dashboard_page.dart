@@ -6,6 +6,7 @@ import '../../../core/widgets/bi/bi_pie_chart.dart';
 import '../../../core/widgets/bi/bi_gauge.dart';
 import '../../../core/widgets/bi/anomaly_detection_section.dart';
 import '../providers/bi_provider.dart';
+import '../models/bi_models.dart';
 import '../../../../shared/ds/ds.dart';
 
 class FinancialDashboardPage extends ConsumerStatefulWidget {
@@ -27,10 +28,6 @@ class _FinancialDashboardPageState extends ConsumerState<FinancialDashboardPage>
       biArAgingProvider,
       biApAgingProvider,
     ]);
-    // Cargar datos ejecutivos al iniciar para tener alertas disponibles
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(biProvider.notifier).loadExecutive();
-    });
   }
 
   @override
@@ -40,7 +37,7 @@ class _FinancialDashboardPageState extends ConsumerState<FinancialDashboardPage>
     final cashFlowAsync = ref.watch(biCashFlowProvider);
     final arAgingAsync = ref.watch(biArAgingProvider);
     final apAgingAsync = ref.watch(biApAgingProvider);
-    final executiveState = ref.watch(biProvider); 
+    final executiveAsync = ref.watch(biProvider); 
 
     return Scaffold(
       appBar: AppBar(title: const Text('Panel Financiero')),
@@ -57,15 +54,25 @@ class _FinancialDashboardPageState extends ConsumerState<FinancialDashboardPage>
           padding: const EdgeInsets.all(16),
           children: [
             // Sección de Alertas
-            if (executiveState.executive?.alerts.isNotEmpty ?? false) ...[
-              Text('Alertas Críticas', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.red)),
-              const SizedBox(height: 8),
-              ...executiveState.executive!.alerts.map((alert) => ZAlertCard(
-                message: alert.message,
-                severity: alert.severity,
-              )),
-              const SizedBox(height: 16),
-            ],
+            ZAsyncRenderer<BiExecutive>(
+              value: executiveAsync,
+              builder: (executive) {
+                final alerts = executive.alerts;
+                if (alerts.isEmpty) return const SizedBox.shrink();
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Alertas Críticas', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.red)),
+                    const SizedBox(height: 8),
+                    ...alerts.map((alert) => ZAlertCard(
+                      message: alert.message,
+                      severity: alert.severity,
+                    )),
+                    const SizedBox(height: 16),
+                  ],
+                );
+              },
+            ),
             // ... resto de los gráficos ...
 
             const SizedBox(height: 8),
