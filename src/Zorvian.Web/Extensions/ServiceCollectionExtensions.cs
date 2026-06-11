@@ -35,6 +35,13 @@ public static class ServiceCollectionExtensions
     {
         if (!mockExternal)
         {
+            try
+            {
+                var _ = FirebaseApp.DefaultInstance;
+                return services;
+            }
+            catch { }
+
             var projectId = configuration["Firebase:ProjectId"];
             var loggerFactory = LoggerFactory.Create(b => b.AddConsole());
             var logger = loggerFactory.CreateLogger("FirebaseInit");
@@ -44,7 +51,8 @@ public static class ServiceCollectionExtensions
             {
                 try
                 {
-                    var googleCred = GoogleCredential.FromJson(credJson).CreateScoped();
+                    using var stream = new MemoryStream(Encoding.UTF8.GetBytes(credJson));
+                    var googleCred = CredentialFactory.FromStream<ServiceAccountCredential>(stream).ToGoogleCredential().CreateScoped();
                     FirebaseApp.Create(new AppOptions
                     {
                         Credential = googleCred,
@@ -130,8 +138,8 @@ public static class ServiceCollectionExtensions
                     ValidateAudience = true,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
-                    ValidIssuer = "nexora",
-                    ValidAudience = "nexora-api",
+                    ValidIssuer = "zorvian",
+                    ValidAudience = "zorvian-api",
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
                     ClockSkew = TimeSpan.Zero,
                 };
@@ -259,4 +267,5 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
+
 }

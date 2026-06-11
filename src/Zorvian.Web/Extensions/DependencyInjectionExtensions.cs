@@ -1,6 +1,7 @@
 using Zorvian.Application.Interfaces;
 using Zorvian.Application.Jobs;
 using Zorvian.Application.Services;
+using Zorvian.Application.Services.CommissionEngine;
 using Zorvian.Application.Services.DepreciationCalculators;
 using Zorvian.Application.Services.PayrollStrategies;
 using Zorvian.Core.Interfaces;
@@ -22,6 +23,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<TenantContext>();
         services.AddScoped<ITenantContext>(sp => sp.GetRequiredService<TenantContext>());
         services.AddScoped<ITenantContextWriter>(sp => sp.GetRequiredService<TenantContext>());
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<Zorvian.Infrastructure.Data.AuditInterceptor>();
         services.AddScoped<Zorvian.Infrastructure.Data.AuditImmutabilityInterceptor>();
         services.AddScoped<Zorvian.Infrastructure.Data.EntityHistoryInterceptor>();
@@ -60,11 +62,17 @@ public static class DependencyInjectionExtensions
             return new FirebaseStorageService(bucket);
         });
 
+        services.AddScoped<QuestPdfService>();
+
         return services;
     }
 
     public static IServiceCollection AddZorvianRepositories(this IServiceCollection services)
     {
+        // Collaborators
+        services.AddScoped<ICollaboratorRepository, CollaboratorRepository>();
+        services.AddScoped<ICollaboratorService, CollaboratorService>();
+
         // Badges
         services.AddScoped<IBadgeRepository, BadgeRepository>();
 
@@ -94,6 +102,18 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IVacationRepository, VacationRepository>();
         services.AddScoped<IPermissionRepository, PermissionRepository>();
         services.AddScoped<IPolicyRepository, PolicyRepository>();
+
+        // Documentary Engine
+        services.AddScoped<IDocumentTemplateRepository, DocumentTemplateRepository>();
+        services.AddScoped<IGeneratedDocumentRepository, GeneratedDocumentRepository>();
+        services.AddScoped<IDocumentSignatureRepository, DocumentSignatureRepository>();
+        services.AddScoped<ISignatureService, SignatureService>();
+
+        // Incentives & Goals
+        services.AddScoped<ICommissionRepository, CommissionRepository>();
+        services.AddScoped<IGoalRepository, GoalRepository>();
+        services.AddScoped<IKpiRepository, KpiRepository>();
+        services.AddScoped<IProviderRepository, ProviderRepository>();
 
         // Branches
         services.AddScoped<IBranchRepository, BranchRepository>();
@@ -160,6 +180,10 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IWarrantyStateHistoryRepository, WarrantyStateHistoryRepository>();
         services.AddScoped<IServiceWorkshopRepository, ServiceWorkshopRepository>();
 
+        // Electronic Invoicing & Partners
+        services.AddScoped<IPartnerRepository, PartnerRepository>();
+        services.AddScoped<IElectronicInvoiceRepository, ElectronicInvoiceRepository>();
+
         // Accounting
         services.AddScoped<IAccountRepository, AccountRepository>();
         services.AddScoped<IAccountingEntryRepository, AccountingEntryRepository>();
@@ -194,8 +218,27 @@ public static class DependencyInjectionExtensions
         services.AddScoped<PerformanceService>();
         services.AddScoped<IVacationRecommendationService, VacationRecommendationService>();
 
+        // Commissions Engine
+        services.AddScoped<RuleEvaluator>();
+        services.AddScoped<CommissionCalculator>();
+        services.AddScoped<ICommissionDataSource, CommissionDataSource>();
+        services.AddScoped<CommissionEngine>();
+
+        // Commissions, Goals, KPIs, Providers
+        services.AddScoped<CommissionService>();
+        services.AddScoped<ICommissionService>(sp => sp.GetRequiredService<CommissionService>());
+        services.AddScoped<GoalService>();
+        services.AddScoped<IGoalIntegrationService, GoalIntegrationService>();
+        services.AddScoped<KpiService>();
+        services.AddScoped<ProviderService>();
+
         // Payroll
         services.AddScoped<IPayrollCalculationStrategy, NicaraguaCalculationStrategy>();
+        services.AddScoped<IPayrollCalculationStrategy, HondurasCalculationStrategy>();
+        services.AddScoped<IPayrollCalculationStrategy, ElSalvadorCalculationStrategy>();
+        services.AddScoped<IPayrollCalculationStrategy, GuatemalaCalculationStrategy>();
+        services.AddScoped<IPayrollCalculationStrategy, CostaRicaCalculationStrategy>();
+        services.AddScoped<IPayrollCalculationStrategy, PanamaCalculationStrategy>();
         services.AddScoped<PayrollCalculationFactory>();
         services.AddScoped<PayrollService>(sp => new PayrollService(
             sp.GetRequiredService<IPayrollRepository>(),
@@ -228,6 +271,10 @@ public static class DependencyInjectionExtensions
         // Banking
         services.AddScoped<BankAccountService>();
         services.AddScoped<BankTransferService>();
+
+        // Electronic Invoicing
+        services.AddScoped<IPartnerService, PartnerService>();
+        services.AddScoped<IElectronicInvoiceService, ElectronicInvoiceService>();
 
         // Commercial
         services.AddScoped<ClientService>();
@@ -312,6 +359,10 @@ public static class DependencyInjectionExtensions
         services.AddScoped<WarrantyService>();
         services.AddScoped<WorkshopService>();
 
+        // Documentary Engine (Professional)
+        services.AddScoped<IDocumentService, Zorvian.Application.Services.Documentary.DocumentService>();
+        services.AddScoped<IDocumentGenerationService, Zorvian.Application.Services.Documentary.DocumentGenerationService>();
+
         // API Keys
         services.AddScoped<ApiKeyService>();
 
@@ -329,6 +380,9 @@ public static class DependencyInjectionExtensions
         services.AddScoped<OcrProcessingJob>();
         services.AddScoped<EnhancedReportService>();
         services.AddScoped<FinancialAssistantService>();
+        services.AddScoped<IAiDocumentService>(sp => new AiDocumentService(
+            sp.GetRequiredService<IConfiguration>()["GoogleAi:ProjectId"]!,
+            sp.GetRequiredService<IConfiguration>()["GoogleAi:Location"]!));
 
         return services;
     }

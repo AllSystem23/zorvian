@@ -20,6 +20,9 @@ build/
 .idea/
 .metadata
 
+# Flutter Firebase config (generated per-dev, contains project keys)
+firebase_options.dart
+
 # Firebase
 .firebase/
 firebase-debug.log
@@ -54,6 +57,7 @@ login_test.json
 *.pem
 *-firebase-adminsdk-*.json
 *-firebase-admin.json
+**/zorvian-hr-firebase-admin.json
 serviceAccountKey.json
 *-service-account.json
 

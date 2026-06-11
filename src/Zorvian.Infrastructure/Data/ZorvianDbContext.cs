@@ -65,6 +65,7 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<BenefitProvision> BenefitProvisions => Set<BenefitProvision>();
     public DbSet<EmployeeBankAccount> EmployeeBankAccounts => Set<EmployeeBankAccount>();
     public DbSet<Invitation> Invitations => Set<Invitation>();
+    public DbSet<Collaborator> Collaborators => Set<Collaborator>();
 
     // New Module: Multisucursal
     public DbSet<Branch> Branches => Set<Branch>();
@@ -175,6 +176,42 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<SickLeaveRecord> SickLeaveRecords => Set<SickLeaveRecord>();
     public DbSet<TerminationRecord> TerminationRecords => Set<TerminationRecord>();
 
+    // New Module: Compensaciones y Comisiones
+    public DbSet<CommissionScheme> CommissionSchemes => Set<CommissionScheme>();
+    public DbSet<CommissionRule> CommissionRules => Set<CommissionRule>();
+    public DbSet<CommissionAssignment> CommissionAssignments => Set<CommissionAssignment>();
+
+    // New Module: Metas e Incentivos
+    public DbSet<GoalDefinition> GoalDefinitions => Set<GoalDefinition>();
+    public DbSet<GoalAssignment> GoalAssignments => Set<GoalAssignment>();
+    public DbSet<GoalProgress> GoalProgressEntries => Set<GoalProgress>();
+    public DbSet<Incentive> Incentives => Set<Incentive>();
+    public DbSet<IncentivePayment> IncentivePayments => Set<IncentivePayment>();
+
+    // New Module: KPI y Desempeño
+    public DbSet<KpiDefinition> KpiDefinitions => Set<KpiDefinition>();
+    public DbSet<KpiRecord> KpiRecords => Set<KpiRecord>();
+    public DbSet<Ranking> Rankings => Set<Ranking>();
+
+    // New Module: Facturación Electrónica
+    public DbSet<ElectronicInvoice> ElectronicInvoices => Set<ElectronicInvoice>();
+    public DbSet<ElectronicInvoiceXml> ElectronicInvoiceXmls => Set<ElectronicInvoiceXml>();
+
+    // New Module: Partners (Canal)
+    public DbSet<Partner> Partners => Set<Partner>();
+
+    // New Module: Prestadores de Servicios
+    public DbSet<ServiceProvider> ServiceProviders => Set<ServiceProvider>();
+    public DbSet<ServiceContract> ServiceContracts => Set<ServiceContract>();
+    public DbSet<PaymentMilestone> PaymentMilestones => Set<PaymentMilestone>();
+    public DbSet<ProviderInvoice> ProviderInvoices => Set<ProviderInvoice>();
+
+    // New Module: Motor Documental
+    public DbSet<DocumentTemplate> DocumentTemplates => Set<DocumentTemplate>();
+    public DbSet<GeneratedDocument> GeneratedDocuments => Set<GeneratedDocument>();
+    public DbSet<DocumentVersion> DocumentVersions => Set<DocumentVersion>();
+    public DbSet<DocumentSignature> DocumentSignatures => Set<DocumentSignature>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         builder.Entity<PayrollConceptDefinition>(e =>
@@ -256,6 +293,19 @@ public sealed class ZorvianDbContext : DbContext
             e.HasIndex(i => i.Code).IsUnique();
             e.Property(i => i.Email).HasMaxLength(255).IsRequired();
             e.HasQueryFilter(i => (i.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !i.IsDeleted);
+        });
+
+        builder.Entity<Collaborator>(e =>
+        {
+            e.HasKey(c => c.Id);
+            e.Property(c => c.CollaboratorCode).HasMaxLength(50).IsRequired();
+            e.Property(c => c.FirstName).HasMaxLength(100).IsRequired();
+            e.Property(c => c.LastName).HasMaxLength(100).IsRequired();
+            e.Property(c => c.Email).HasMaxLength(255).IsRequired();
+            e.Property(c => c.CollaboratorType).HasMaxLength(30).IsRequired();
+            e.Property(c => c.Status).HasMaxLength(20).IsRequired();
+            e.HasIndex(c => c.CollaboratorCode).IsUnique();
+            e.HasQueryFilter(c => (c.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !c.IsDeleted);
         });
 
         builder.Entity<Company>(e =>
@@ -368,6 +418,8 @@ public sealed class ZorvianDbContext : DbContext
         {
             e.HasKey(em => em.Id);
             e.Property(em => em.EmployeeCode).HasMaxLength(50);
+            e.Property(em => em.CollaboratorCode).HasMaxLength(50);
+            e.Property(em => em.CollaboratorType).HasMaxLength(30).IsRequired().HasDefaultValue("employee");
             e.Property(em => em.FirstName).HasMaxLength(100).IsRequired();
             e.Property(em => em.LastName).HasMaxLength(100).IsRequired();
             e.Property(em => em.Email).HasMaxLength(255).IsRequired();
@@ -380,10 +432,21 @@ public sealed class ZorvianDbContext : DbContext
             e.Property(em => em.SalaryType).HasMaxLength(20);
             e.Property(em => em.Status).HasMaxLength(20).IsRequired();
             e.Property(em => em.PhotoUrl).HasMaxLength(500);
+            e.Property(em => em.Nationality).HasMaxLength(100);
+            e.Property(em => em.MaritalStatus).HasMaxLength(30);
+            e.Property(em => em.Address).HasMaxLength(500);
+            e.Property(em => em.City).HasMaxLength(100);
+            e.Property(em => em.EmergencyContact).HasMaxLength(200);
+            e.Property(em => em.EmergencyPhone).HasMaxLength(20);
             e.HasOne(em => em.Department)
                 .WithMany(d => d.Employees)
                 .HasForeignKey(em => em.DepartmentId)
                 .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(em => em.ServiceProviderDetails)
+                .WithOne(sp => sp.Employee)
+                .HasForeignKey<ServiceProvider>(sp => sp.EmployeeId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(em => new { em.CollaboratorType, em.Status });
             e.HasIndex(em => new { em.Status, em.DepartmentId });
             e.HasQueryFilter(em => (em.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !em.IsDeleted);
         });
@@ -646,28 +709,19 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(r => (r.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !r.IsDeleted);
         });
 
-        builder.Entity<PayrollDetail>(e =>
+        builder.Entity<CommissionRecord>(e =>
         {
-            e.HasKey(d => d.Id);
-            e.Property(d => d.BaseSalary).HasColumnType("decimal(18,2)");
-            e.Property(d => d.GrossPay).HasColumnType("decimal(18,2)");
-            e.Property(d => d.TotalDeductions).HasColumnType("decimal(18,2)");
-            e.Property(d => d.NetPay).HasColumnType("decimal(18,2)");
-            e.Property(d => d.InssDeduction).HasColumnType("decimal(18,2)");
-            e.Property(d => d.IrDeduction).HasColumnType("decimal(18,2)");
-            e.Property(d => d.OtherDeductions).HasColumnType("decimal(18,2)");
-            e.Property(d => d.InssCode).HasMaxLength(50);
-            e.Property(d => d.Details).HasMaxLength(2000);
-            e.HasOne(d => d.PayrollRun)
-                .WithMany(r => r.Details)
-                .HasForeignKey(d => d.PayrollRunId)
-                .OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(d => d.Employee)
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Amount).HasColumnType("decimal(18,2)");
+            e.Property(x => x.BaseAmount).HasColumnType("decimal(18,2)");
+            e.Property(x => x.SourceType).HasMaxLength(20).IsRequired();
+            e.Property(x => x.Status).HasMaxLength(20).IsRequired();
+            e.Property(x => x.Description).HasMaxLength(500);
+            e.HasOne(x => x.Employee)
                 .WithMany()
-                .HasForeignKey(d => d.EmployeeId)
+                .HasForeignKey(x => x.EmployeeId)
                 .OnDelete(DeleteBehavior.Restrict);
-            e.HasIndex(d => d.PayrollRunId);
-            e.HasQueryFilter(d => (d.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !d.IsDeleted);
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
         });
 
         builder.Entity<ApiKey>(e =>
@@ -2006,6 +2060,66 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(ev => (ev.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !ev.IsDeleted);
         });
 
+        // Commission Scheme
+        builder.Entity<CommissionScheme>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(255).IsRequired();
+            e.Property(x => x.Description).HasMaxLength(500);
+            e.Property(x => x.CommissionType).HasMaxLength(30).IsRequired();
+            e.Property(x => x.CalculationMethod).HasMaxLength(20).IsRequired();
+            e.Property(x => x.Status).HasMaxLength(20).IsRequired();
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        // Commission Rule
+        builder.Entity<CommissionRule>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.ConditionType).HasMaxLength(50).IsRequired();
+            e.Property(x => x.ConditionOperator).HasMaxLength(20).IsRequired();
+            e.Property(x => x.CalculationType).HasMaxLength(20).IsRequired();
+            e.Property(x => x.ApplyOn).HasMaxLength(20).IsRequired();
+            e.HasOne(x => x.CommissionScheme)
+                .WithMany(s => s.Rules)
+                .HasForeignKey(x => x.CommissionSchemeId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        // Commission Assignment
+        builder.Entity<CommissionAssignment>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.HasOne(x => x.CommissionScheme)
+                .WithMany(s => s.Assignments)
+                .HasForeignKey(x => x.CommissionSchemeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Employee)
+                .WithMany(emp => emp.CommissionAssignments)
+                .HasForeignKey(x => x.EmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(x => new { x.EmployeeId, x.CommissionSchemeId }).IsUnique();
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        // Goal Definition
+        builder.Entity<GoalDefinition>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(255).IsRequired();
+            e.Property(x => x.Description).HasMaxLength(500);
+            e.Property(x => x.GoalType).HasMaxLength(30).IsRequired();
+            e.Property(x => x.MetricType).HasMaxLength(20).IsRequired();
+            e.Property(x => x.Frequency).HasMaxLength(20).IsRequired();
+            e.Property(x => x.DataSource).HasMaxLength(50).IsRequired();
+            e.Property(x => x.CalculationFormula).HasMaxLength(500);
+            e.Property(x => x.GateDescription).HasMaxLength(500);
+            e.Property(x => x.GateFormula).HasMaxLength(500);
+            e.Property(x => x.Status).HasMaxLength(20).IsRequired();
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
         builder.Entity<RegionalTaxConfiguration>(e =>
         {
             e.HasKey(x => x.Id);
@@ -2081,6 +2195,97 @@ public sealed class ZorvianDbContext : DbContext
                 .OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(h => new { h.WarrantyId, h.ChangedAt });
             e.HasQueryFilter(h => (h.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !h.IsDeleted);
+        });
+
+        // ---- Facturación Electrónica ----
+        builder.Entity<ElectronicInvoice>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.CountryCode).HasMaxLength(3).IsRequired();
+            e.Property(x => x.InvoiceNumber).HasMaxLength(50).IsRequired();
+            e.Property(x => x.AuthorizationCode).HasMaxLength(100);
+            e.Property(x => x.Status).HasMaxLength(20).IsRequired();
+            e.HasOne(x => x.Sale).WithMany().HasForeignKey(x => x.SaleId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(x => x.InvoiceNumber);
+            e.HasIndex(x => new { x.SaleId, x.CountryCode });
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        builder.Entity<ElectronicInvoiceXml>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.XmlType).HasMaxLength(50).IsRequired();
+            e.HasOne(x => x.ElectronicInvoice).WithMany().HasForeignKey(x => x.ElectronicInvoiceId).OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        // ---- Partner Configuration ----
+        builder.Entity<Partner>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.Property(p => p.Code).HasMaxLength(50).IsRequired();
+            e.Property(p => p.Name).HasMaxLength(255).IsRequired();
+            e.Property(p => p.LegalName).HasMaxLength(255).IsRequired();
+            e.Property(p => p.TaxId).HasMaxLength(50).IsRequired();
+            e.Property(p => p.PartnerType).HasMaxLength(30).IsRequired();
+            e.Property(p => p.Email).HasMaxLength(255);
+            e.Property(p => p.Phone).HasMaxLength(20);
+            e.Property(p => p.Address).HasMaxLength(500);
+            e.Property(p => p.CountryCode).HasMaxLength(3).IsRequired();
+            e.Property(p => p.City).HasMaxLength(100);
+            e.Property(p => p.Status).HasMaxLength(20).IsRequired();
+            e.Property(p => p.ContactName).HasMaxLength(255);
+            e.Property(p => p.ContactEmail).HasMaxLength(255);
+            e.Property(p => p.ContactPhone).HasMaxLength(20);
+            e.Property(p => p.CommissionRate).HasMaxLength(20);
+            e.Property(p => p.ContractUrl).HasMaxLength(500);
+            e.Property(p => p.RevenueGenerated).HasColumnType("decimal(18,2)");
+            e.HasIndex(p => p.Code).IsUnique();
+            e.HasIndex(p => new { p.CountryCode, p.Status });
+            e.HasQueryFilter(p => (p.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !p.IsDeleted);
+        });
+
+        // ---- Motor Documental Configuration ----
+        builder.Entity<DocumentTemplate>(e =>
+        {
+            e.HasKey(t => t.Id);
+            e.Property(t => t.Name).HasMaxLength(255).IsRequired();
+            e.Property(t => t.Category).HasMaxLength(50).IsRequired();
+            e.Property(t => t.CountryCode).HasMaxLength(10).IsRequired();
+            e.Property(t => t.Module).HasMaxLength(50);
+            e.HasQueryFilter(t => (t.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !t.IsDeleted);
+        });
+
+        builder.Entity<GeneratedDocument>(e =>
+        {
+            e.HasKey(d => d.Id);
+            e.Property(d => d.Name).HasMaxLength(255).IsRequired();
+            e.Property(d => d.EntityType).HasMaxLength(100).IsRequired();
+            e.Property(d => d.Status).HasMaxLength(30).IsRequired();
+            e.HasOne(d => d.Template).WithMany(t => t.GeneratedDocuments).HasForeignKey(d => d.TemplateId).OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(d => (d.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !d.IsDeleted);
+        });
+
+        builder.Entity<DocumentVersion>(e =>
+        {
+            e.HasKey(v => v.Id);
+            e.Property(v => v.FilePath).HasMaxLength(500).IsRequired();
+            e.Property(v => v.FileHash).HasMaxLength(256);
+            e.Property(v => v.ChangesSummary).HasMaxLength(1000);
+            e.HasOne(v => v.Document).WithMany(d => d.Versions).HasForeignKey(v => v.DocumentId).OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(v => (v.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !v.IsDeleted);
+        });
+
+        builder.Entity<DocumentSignature>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.Property(s => s.SignerType).HasMaxLength(30).IsRequired();
+            e.Property(s => s.SignerRole).HasMaxLength(50).IsRequired();
+            e.Property(s => s.Status).HasMaxLength(30).IsRequired();
+            e.Property(s => s.IPAddress).HasMaxLength(50);
+            e.Property(s => s.SignatureToken).HasMaxLength(255);
+            e.HasOne(s => s.Document).WithMany(d => d.Signatures).HasForeignKey(s => s.DocumentId).OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(s => (s.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !s.IsDeleted);
         });
     }
 
