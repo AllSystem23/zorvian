@@ -206,7 +206,16 @@ public sealed class SeedService
         if (existingUser is not null)
         {
             if (existingUser.UserRoles.Any(ur => ur.Role.Name == RoleType.SuperAdmin))
+            {
+                if (existingUser.PasswordHash is null)
+                {
+                    var pwd = GenerateRandomPassword();
+                    existingUser.PasswordHash = PasswordHelper.Hash(pwd);
+                    await _db.SaveChangesAsync();
+                    return new SuperAdminResult(email, pwd, false);
+                }
                 return new SuperAdminResult(email, "El super admin ya existe", true);
+            }
 
             var ur = new UserRole
             {
@@ -253,6 +262,7 @@ public sealed class SeedService
             FirebaseUid = firebaseUid,
             Email = email,
             DisplayName = "Super Admin",
+            PasswordHash = PasswordHelper.Hash(password),
             TenantId = "superadmin",
             IsActive = true,
         };
