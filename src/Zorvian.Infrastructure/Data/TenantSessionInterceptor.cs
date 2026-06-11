@@ -23,7 +23,7 @@ public sealed class TenantSessionInterceptor : DbConnectionInterceptor
         {
             await using var cmd = npgsqlConn.CreateCommand();
             cmd.CommandText = "SET app.tenant_id = @tenantId;";
-            cmd.Parameters.AddWithValue("@tenantId", _tenantContext.TenantId ?? "");
+            cmd.Parameters.AddWithValue("@tenantId", _tenantContext.TenantId.ToString() ?? "");
             await cmd.ExecuteNonQueryAsync(cancellationToken);
         }
     }
@@ -36,7 +36,7 @@ public sealed class TenantSessionInterceptor : DbConnectionInterceptor
         {
             using var cmd = npgsqlConn.CreateCommand();
             cmd.CommandText = "SET app.tenant_id = @tenantId;";
-            cmd.Parameters.AddWithValue("@tenantId", _tenantContext.TenantId ?? "");
+            cmd.Parameters.AddWithValue("@tenantId", _tenantContext.TenantId.ToString() ?? "");
             cmd.ExecuteNonQuery();
         }
     }
