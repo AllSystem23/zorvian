@@ -2,6 +2,7 @@ using Moq;
 using Zorvian.Application.DTOs.Vacation;
 using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
+using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
 
 namespace Zorvian.Tests.Services;
@@ -12,6 +13,7 @@ public sealed class VacationServiceEdgeCaseTests
     private readonly Mock<IEmployeeRepository> _employeeRepo = new();
     private readonly Mock<INotificationService> _notif = new();
     private readonly Mock<ITenantContext> _tenant = new();
+    private readonly Mock<ICountryTaxConfigRepository> _taxConfigRepo = new();
     private readonly VacationService _sut;
 
     public VacationServiceEdgeCaseTests()
@@ -22,7 +24,8 @@ public sealed class VacationServiceEdgeCaseTests
             _repo.Object,
             _employeeRepo.Object,
             _tenant.Object,
-            _notif.Object);
+            _notif.Object,
+            _taxConfigRepo.Object);
     }
 
     [Fact]
@@ -35,9 +38,11 @@ public sealed class VacationServiceEdgeCaseTests
             TenantId = "tenant-123",
             HireDate = new DateOnly(2026, 1, 1),
             Status = "active",
+            CountryCode = "NIC"
         };
 
         _employeeRepo.Setup(r => r.GetByIdAsync(employeeId)).ReturnsAsync(employee);
+        _taxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC")).ReturnsAsync(new CountryTaxConfig { VacationDaysPerYear = 15 });
         _repo.Setup(r => r.GetVacationDaysSumAsync(employeeId, "taken")).ReturnsAsync(0);
         _repo.Setup(r => r.GetVacationDaysSumAsync(employeeId, "pending")).ReturnsAsync(0);
 
@@ -57,9 +62,11 @@ public sealed class VacationServiceEdgeCaseTests
             TenantId = "tenant-123",
             HireDate = new DateOnly(2025, 6, 1),
             Status = "active",
+            CountryCode = "NIC"
         };
 
         _employeeRepo.Setup(r => r.GetByIdAsync(employeeId)).ReturnsAsync(employee);
+        _taxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC")).ReturnsAsync(new CountryTaxConfig { VacationDaysPerYear = 15 });
         _repo.Setup(r => r.GetVacationDaysSumAsync(employeeId, "taken")).ReturnsAsync(5);
         _repo.Setup(r => r.GetVacationDaysSumAsync(employeeId, "pending")).ReturnsAsync(3);
 

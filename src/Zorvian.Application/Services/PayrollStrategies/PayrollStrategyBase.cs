@@ -1,12 +1,24 @@
+using Zorvian.Application.Interfaces;
+using Zorvian.Core.Entities;
+
 namespace Zorvian.Application.Services.PayrollStrategies;
 
 /// <summary>
 /// Base class for country-specific payroll calculation strategies.
 /// Implements common tax and social security logic with country-specific overrides.
 /// </summary>
-public abstract class PayrollCalculationStrategyBase
+public abstract class PayrollCalculationStrategyBase : IPayrollCalculationStrategy
 {
     public abstract string CountryCode { get; }
+
+    decimal IPayrollCalculationStrategy.CalculateInssEmployee(decimal grossPay, CountryTaxConfig config) =>
+        CalculateINSS(grossPay);
+
+    decimal IPayrollCalculationStrategy.CalculateIr(decimal grossPay, decimal inssEmployee, CountryTaxConfig config)
+    {
+        var taxableBase = grossPay - inssEmployee;
+        return CalculateIR(taxableBase);
+    }
 
     public virtual decimal CalculateINSS(decimal grossSalary)
     {

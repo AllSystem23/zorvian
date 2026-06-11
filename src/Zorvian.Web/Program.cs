@@ -92,7 +92,13 @@ app.UseCorrelationId();
 app.UseSecurityHeaders();
 app.UseGlobalExceptionMiddleware();
 app.UseRequestLogging();
-//app.UseRateLimitingMiddleware(maxRequests: 120, windowSeconds: 60); // Desactivado temporalmente para pruebas
+var rateLimitingEnabled = builder.Configuration.GetValue<bool>("RateLimiting:Enabled");
+if (rateLimitingEnabled)
+{
+    var permitLimit = builder.Configuration.GetValue<int>("RateLimiting:PermitLimit");
+    var windowMinutes = builder.Configuration.GetValue<int>("RateLimiting:WindowMinutes");
+    app.UseRateLimitingMiddleware(maxRequests: permitLimit, windowSeconds: windowMinutes * 60);
+}
 
 if (!app.Environment.IsEnvironment("Testing"))
 {
@@ -153,6 +159,7 @@ if (!mockExternal)
     recurringJobManager.AddOrUpdate<Zorvian.Web.Jobs.ExpenseClassificationTrainingJob>("expense-classification-training", j => j.RunAsync(), "0 4 * * 0");
     recurringJobManager.AddOrUpdate<Zorvian.Web.Jobs.AuditLogCleanupJob>("audit-log-cleanup", j => j.RunAsync(), "0 3 1 * *");
     recurringJobManager.AddOrUpdate<Zorvian.Web.Jobs.DatabaseBackupJob>("database-backup", j => j.RunAsync(), "0 2 * * *");
+    recurringJobManager.AddOrUpdate<Zorvian.Application.Jobs.VacationAutomatedJob>("vacation-accrual", j => j.RunAsync(), "0 0 1 * *");
 }
 
 // ── Auto-migrate in Production ──

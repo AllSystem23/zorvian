@@ -18,6 +18,7 @@ public sealed class WarrantyService
     private readonly IInventoryMovementService _inventoryService;
     private readonly ITenantContext _tenant;
     private readonly IMapper _mapper;
+    private readonly IGoalIntegrationService _goalIntegration;
 
     public WarrantyService(
         IWarrantyRepository repo, 
@@ -25,7 +26,8 @@ public sealed class WarrantyService
         IWarrantyProviderRepository providerRepo, 
         IInventoryMovementService inventoryService,
         ITenantContext tenant, 
-        IMapper mapper)
+        IMapper mapper,
+        IGoalIntegrationService goalIntegration)
     {
         _repo = repo;
         _workshopRepo = workshopRepo;
@@ -33,6 +35,7 @@ public sealed class WarrantyService
         _inventoryService = inventoryService;
         _tenant = tenant;
         _mapper = mapper;
+        _goalIntegration = goalIntegration;
     }
 
     public async Task<WarrantyResponse> CreateAsync(CreateWarrantyRequest request)
@@ -159,6 +162,11 @@ public sealed class WarrantyService
         
         claim.ResolutionType = "replaced";
         claim.ResolutionDate = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        if (claim.TechnicianId.HasValue)
+        {
+            await _goalIntegration.HandleCaseSolvedAsync(claim.TechnicianId.Value, claimId);
+        }
 
         await _repo.SaveChangesAsync();
         return _mapper.Map<WarrantyClaimResponse>(claim);

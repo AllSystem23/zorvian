@@ -13,17 +13,20 @@ public sealed class VacationService
     private readonly IEmployeeRepository _employeeRepo;
     private readonly ITenantContext _tenant;
     private readonly INotificationService _notification;
+    private readonly ICountryTaxConfigRepository _taxConfigRepo;
 
     public VacationService(
         IVacationRepository repo,
         IEmployeeRepository employeeRepo,
         ITenantContext tenant,
-        INotificationService notification)
+        INotificationService notification,
+        ICountryTaxConfigRepository taxConfigRepo)
     {
         _repo = repo;
         _employeeRepo = employeeRepo;
         _tenant = tenant;
         _notification = notification;
+        _taxConfigRepo = taxConfigRepo;
     }
 
     public async Task<VacationResponse> CreateAsync(CreateVacationRequest request)
@@ -226,13 +229,17 @@ public sealed class VacationService
     {
         var employee = await _employeeRepo.GetByIdAsync(employeeId)
             ?? throw new InvalidOperationException("Employee not found");
-
-        const decimal daysPerYear = 15;
+        
+        var config = await _taxConfigRepo.GetByCountryCodeAsync(employee.CountryCode)
+            ?? throw new InvalidOperationException($"Tax configuration not found for country: {employee.CountryCode}");
+        
+        var daysPerYear = config.VacationDaysPerYear;
+        
         var now = DateTime.UtcNow;
         var monthsEmployed = ((now.Year - employee.HireDate.Year) * 12) + now.Month - employee.HireDate.Month;
         if (now.Day < employee.HireDate.Day) monthsEmployed--;
 
-        var accruedDays = Math.Min(Math.Max(monthsEmployed, 0) * (daysPerYear / 12), daysPerYear * 2);
+        var accruedDays = Math.Min(Math.Max(monthsEmployed, 0) * ((decimal)daysPerYear / 12), (decimal)daysPerYear * 2);
 
         var takenDays = await _repo.GetVacationDaysSumAsync(employeeId, "taken");
         var pendingDays = await _repo.GetVacationDaysSumAsync(employeeId, "pending");

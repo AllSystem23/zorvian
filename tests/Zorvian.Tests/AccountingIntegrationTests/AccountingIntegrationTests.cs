@@ -78,7 +78,7 @@ public sealed class AccountingIntegrationTests : IDisposable
         var saleService = new SaleService(
             saleRepo, productRepo, movementRepo, new Mock<ICompanyRepository>().Object,
             clientRepo, new Mock<ICreditRepository>().Object,
-            _autoAccounting, new Mock<IWebhookService>().Object, _tenant.Object, mapper.Object);
+            _autoAccounting, new Mock<IWebhookService>().Object, _tenant.Object, mapper.Object, new Mock<IGoalIntegrationService>().Object);
 
         var result = await saleService.CreateCashSaleAsync(new CreateCashSaleRequest(
             client.Id, Guid.NewGuid(), 0, null, _branchId,

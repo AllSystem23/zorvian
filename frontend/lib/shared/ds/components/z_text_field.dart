@@ -31,15 +31,21 @@ class ZTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (label.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.only(bottom: ZSpacing.xs),
-            child: Text(label, style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: Theme.of(context).brightness == Brightness.dark ? ZColors.neutral300 : ZColors.neutral600,
-            )),
+            padding: const EdgeInsets.only(bottom: 8, left: 4),
+            child: Text(
+              label.toUpperCase(),
+              style: ZTypography.labelSmall.copyWith(
+                color: isDark ? ZColors.neutral400 : ZColors.neutral500,
+                letterSpacing: 1.2,
+              ),
+            ),
           ),
         TextFormField(
           controller: controller,
@@ -49,12 +55,41 @@ class ZTextField extends StatelessWidget {
           obscureText: obscureText,
           maxLines: maxLines,
           onChanged: onChanged,
+          style: ZTypography.bodyMedium.copyWith(
+            color: isDark ? Colors.white : ZColors.neutral900,
+          ),
           decoration: InputDecoration(
             hintText: hint,
-            prefixIcon: prefix != null ? Padding(padding: const EdgeInsets.only(left: ZSpacing.md, right: ZSpacing.sm), child: prefix) : null,
-            suffixIcon: suffix != null ? Padding(padding: const EdgeInsets.only(right: ZSpacing.md), child: suffix) : null,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(ZRadii.md)),
-            contentPadding: const EdgeInsets.symmetric(horizontal: ZSpacing.md, vertical: ZSpacing.md),
+            hintStyle: ZTypography.bodyMedium.copyWith(
+              color: isDark ? ZColors.neutral600 : ZColors.neutral400,
+            ),
+            prefixIcon: prefix != null
+                ? IconTheme(
+                    data: IconThemeData(
+                      color: isDark ? ZColors.neutral400 : ZColors.neutral500,
+                      size: 20,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: prefix,
+                    ),
+                  )
+                : null,
+            suffixIcon: suffix != null
+                ? IconTheme(
+                    data: IconThemeData(
+                      color: isDark ? ZColors.neutral400 : ZColors.neutral500,
+                      size: 20,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: suffix,
+                    ),
+                  )
+                : null,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+            // The actual border shape is handled by the theme, 
+            // but we ensure it stays consistent here if needed.
           ),
         ),
       ],

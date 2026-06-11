@@ -10,5 +10,7 @@ public interface IVacationRepository
     Task<decimal> GetVacationDaysSumAsync(Guid employeeId, string status);
     Task<int> GetOverlappingCountAsync(Guid departmentId, DateOnly start, DateOnly end, Guid excludeEmployeeId);
     Task AddAsync(VacationRequest request);
+    Task AddLeaveBalanceAsync(LeaveBalances balance);
+    Task<LeaveBalances?> GetLeaveBalanceAsync(Guid employeeId, int year);
     Task SaveChangesAsync();
 }

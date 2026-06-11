@@ -51,8 +51,8 @@ public sealed class JwtService : IJwtService
         }
 
         var token = new JwtSecurityToken(
-            issuer: "nexora",
-            audience: "nexora-api",
+            issuer: "zorvian",
+            audience: "zorvian-api",
             claims: claims,
             expires: DateTime.UtcNow.AddMinutes(
                 int.Parse(_config["Jwt:ExpirationMinutes"] ?? "60")),

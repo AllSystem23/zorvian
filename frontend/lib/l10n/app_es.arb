@@ -9,5 +9,109 @@
   "payroll": "Nómina",
   "vacations": "Vacaciones",
   "attendance": "Asistencia",
-  "settings": "Configuración"
+  "settings": "Configuración",
+
+  "common_save": "Guardar",
+  "common_cancel": "Cancelar",
+  "common_delete": "Eliminar",
+  "common_edit": "Editar",
+  "common_create": "Crear",
+  "common_search": "Buscar",
+  "common_filter": "Filtrar",
+  "common_clear": "Limpiar",
+  "common_apply": "Aplicar",
+  "common_close": "Cerrar",
+  "common_yes": "Sí",
+  "common_no": "No",
+  "common_confirm": "Confirmar",
+  "common_loading": "Cargando...",
+  "common_no_data": "No hay datos disponibles",
+  "common_error": "Ocurrió un error",
+  "common_retry": "Reintentar",
+  "common_required_field": "Este campo es obligatorio",
+  "common_optional": "Opcional",
+
+  "@@auth": {
+    "login_title": "Iniciar Sesión",
+    "login_email": "Correo Electrónico",
+    "login_password": "Contraseña",
+    "login_button": "Iniciar Sesión",
+    "login_forgot_password": "¿Olvidaste tu contraseña?",
+    "login_no_account": "¿No tienes cuenta?",
+    "login_sign_up": "Registrarse",
+    "login_invalid_credentials": "Correo o contraseña inválidos",
+    "login_session_expired": "Tu sesión ha expirado. Por favor inicia sesión nuevamente."
+  },
+
+  "@@navigation": {
+    "nav_dashboard": "Panel Principal",
+    "nav_employees": "Empleados",
+    "nav_payroll": "Nómina",
+    "nav_attendance": "Asistencia",
+    "nav_vacations": "Vacaciones",
+    "nav_clients": "Clientes",
+    "nav_sales": "Ventas",
+    "nav_quotes": "Cotizaciones",
+    "nav_products": "Productos",
+    "nav_inventory": "Inventario",
+    "nav_purchases": "Compras",
+    "nav_suppliers": "Proveedores",
+    "nav_credits": "Créditos",
+    "nav_cash": "Caja y Bancos",
+    "nav_accounting": "Contabilidad",
+    "nav_warranties": "Garantías",
+    "nav_reports": "Reportes",
+    "nav_settings": "Configuración",
+    "nav_audit": "Auditoría",
+    "nav_logout": "Cerrar Sesión"
+  },
+
+  "@@employees": {
+    "employees_title": "Empleados",
+    "employees_new": "Nuevo Empleado",
+    "employees_first_name": "Nombre",
+    "employees_last_name": "Apellido",
+    "employees_email": "Correo Electrónico",
+    "employees_phone": "Teléfono",
+    "employees_identification": "Identificación",
+    "employees_position": "Puesto",
+    "employees_department": "Departamento",
+    "employees_hire_date": "Fecha de Contratación",
+    "employees_status": "Estado",
+    "employees_salary": "Salario",
+    "employees_active": "Activo",
+    "employees_inactive": "Inactivo",
+    "employees_terminated": "Desvinculado"
+  },
+
+  "@@sales": {
+    "sales_title": "Ventas",
+    "sales_new": "Nueva Venta",
+    "sales_invoice": "Factura",
+    "sales_client": "Cliente",
+    "sales_date": "Fecha",
+    "sales_total": "Total",
+    "sales_status": "Estado",
+    "sales_paid": "Pagada",
+    "sales_pending": "Pendiente",
+    "sales_cancelled": "Cancelada"
+  },
+
+  "@@errors": {
+    "error_network": "Error de red. Verifica tu conexión.",
+    "error_unauthorized": "No estás autorizado para realizar esta acción.",
+    "error_not_found": "Recurso no encontrado.",
+    "error_server": "Error del servidor. Intenta de nuevo más tarde.",
+    "error_validation": "Error de validación. Revisa los datos ingresados.",
+    "error_session_expired": "Tu sesión ha expirado."
+  },
+
+  "@@countries": {
+    "country_NI": "Nicaragua",
+    "country_CR": "Costa Rica",
+    "country_GT": "Guatemala",
+    "country_HN": "Honduras",
+    "country_SV": "El Salvador",
+    "country_PA": "Panamá"
+  }
 }

@@ -13,7 +13,10 @@ public class LoadTests : IClassFixture<WebApplicationFactory<Program>>
 
     public LoadTests(WebApplicationFactory<Program> factory)
     {
-        _factory = factory;
+        _factory = factory.WithWebHostBuilder(builder =>
+        {
+            builder.UseSetting("Testing:MockExternalServices", "true");
+        });
     }
 
     [Fact]
@@ -21,7 +24,7 @@ public class LoadTests : IClassFixture<WebApplicationFactory<Program>>
     {
         // ARRANGE
         int concurrentRequests = 100;
-        var tenants = Enumerable.Range(1, 10).Select(i => $"tenant-{i}").ToList();
+        var tenants = Enumerable.Range(1, 10).Select(i => Guid.NewGuid().ToString()).ToList();
         var client = _factory.CreateClient();
 
         // ACT

@@ -39,6 +39,22 @@ public sealed class FiscalService : IFiscalService
                 new() { Name = "ITBMS Especial 15%", Rate = 0.15m, CompanyId = companyId, SalesAccountCode = "210101", VatAccountCode = "110301" },
                 new() { Name = "Exento", Rate = 0m, CompanyId = companyId, SalesAccountCode = "210101", VatAccountCode = "110301" }
             },
+            "HND" => new List<TaxCategory>
+            {
+                new() { Name = "ISV 15%", Rate = 0.15m, CompanyId = companyId, SalesAccountCode = "210101", VatAccountCode = "110301" },
+                new() { Name = "ISV 18%", Rate = 0.18m, CompanyId = companyId, SalesAccountCode = "210101", VatAccountCode = "110301" },
+                new() { Name = "Exento", Rate = 0m, CompanyId = companyId, SalesAccountCode = "210101", VatAccountCode = "110301" }
+            },
+            "SLV" => new List<TaxCategory>
+            {
+                new() { Name = "IVA 13%", Rate = 0.13m, CompanyId = companyId, SalesAccountCode = "210101", VatAccountCode = "110301" },
+                new() { Name = "Exento", Rate = 0m, CompanyId = companyId, SalesAccountCode = "210101", VatAccountCode = "110301" }
+            },
+            "GTM" => new List<TaxCategory>
+            {
+                new() { Name = "IVA 12%", Rate = 0.12m, CompanyId = companyId, SalesAccountCode = "210101", VatAccountCode = "110301" },
+                new() { Name = "Exento", Rate = 0m, CompanyId = companyId, SalesAccountCode = "210101", VatAccountCode = "110301" }
+            },
             _ => new List<TaxCategory>
             {
                 new() { Name = "IVA Estándar", Rate = 0.15m, CompanyId = companyId, SalesAccountCode = "210101", VatAccountCode = "110301" },

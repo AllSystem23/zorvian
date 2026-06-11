@@ -78,7 +78,10 @@ public sealed class CompanyService
             "nicaragua" => "NIC",
             "costa rica" => "CRI",
             "panamá" or "panama" => "PAN",
-            _ => "NIC" // Default to NIC
+            "honduras" => "HND",
+            "el salvador" => "SLV",
+            "guatemala" => "GTM",
+            _ => "NIC"
         };
     }
 

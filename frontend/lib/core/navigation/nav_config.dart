@@ -38,230 +38,79 @@ final class NavConfig {
   NavConfig._();
 
   static final List<NavModule> allModules = [
-    // ── Inicio ──
+    // ── GESTIÓN INSTITUCIONAL ──
     const NavModule(
-      id: 'inicio',
-      label: 'Inicio',
-      icon: Icons.home_outlined,
+      id: 'institucional',
+      label: 'Gestión Institucional',
+      icon: Icons.hub_outlined,
       children: [
-        NavItem(id: 'dashboard', label: 'Dashboard', icon: Icons.dashboard, route: '/dashboard'),
-        NavItem(id: 'dashboard-v2', label: 'Dashboard V2', icon: Icons.dashboard_customize, route: '/dashboard-v2'),
+        NavItem(id: 'dashboard', label: 'Dashboard General', icon: Icons.dashboard, route: '/dashboard'),
+        NavItem(id: 'asistente-ia', label: 'Asistente Z-IA', icon: Icons.smart_toy_outlined, route: '/accounting/ai-assistant'),
         NavItem(id: 'ejecutivo', label: 'Panel Ejecutivo', icon: Icons.analytics, route: '/executive-dashboard', roles: ['SuperAdmin', 'CompanyAdmin']),
-        NavItem(id: 'perfil', label: 'Perfil', icon: Icons.person, route: '/profile'),
-        NavItem(id: 'calendario-ausencias', label: 'Calendario Ausencias', icon: Icons.calendar_month, route: '/absence-calendar'),
+        NavItem(id: 'bi-central', label: 'Inteligencia de Negocios', icon: Icons.insights, route: '/bi/executive', roles: ['SuperAdmin', 'CompanyAdmin']),
+        NavItem(id: 'chat', label: 'Centro de Comunicación', icon: Icons.chat_bubble_outline, route: '/chat'),
+        NavItem(id: 'perfil', label: 'Mi Perfil', icon: Icons.person_outline, route: '/profile'),
       ],
     ),
 
-    // ── Asistencia ──
+    // ── GESTIÓN DE TALENTO ──
     const NavModule(
-      id: 'asistencia',
-      label: 'Asistencia',
-      icon: Icons.schedule_outlined,
+      id: 'talento',
+      label: 'Gestión de Talento',
+      icon: Icons.diversity_3_outlined,
       children: [
-        NavItem(id: 'marcaciones', label: 'Marcaciones', icon: Icons.access_time, route: '/attendance'),
-        NavItem(id: 'historial-asistencia', label: 'Historial', icon: Icons.history, route: '/attendance/history'),
-        NavItem(id: 'kiosko', label: 'Kiosko', icon: Icons.qr_code_scanner, route: '/attendance/kiosk'),
-        NavItem(id: 'qr-checkin', label: 'QR Check-in', icon: Icons.qr_code, route: '/attendance/qr'),
+        NavItem(id: 'empleados', label: 'Capital Humano', icon: Icons.people_outline, route: '/employees'),
+        NavItem(id: 'asistencia', label: 'Reloj y Asistencia', icon: Icons.schedule_outlined, route: '/attendance'),
+        NavItem(id: 'nomina', label: 'Gestión de Nómina', icon: Icons.receipt_long_outlined, route: '/payroll', roles: ['SuperAdmin', 'CompanyAdmin', 'Rrhh']),
+        NavItem(id: 'prestadores', label: 'Prestadores Externos', icon: Icons.business_center_outlined, route: '/providers'),
+        NavItem(id: 'vacaciones', label: 'Ausencias y Vacaciones', icon: Icons.beach_access_outlined, route: '/vacations'),
+        NavItem(id: 'metas', label: 'Metas e Incentivos', icon: Icons.emoji_events_outlined, route: '/goals/dashboard'),
       ],
     ),
 
-    // ── Recursos Humanos ──
+    // ── LOGÍSTICA Y SUMINISTROS ──
     const NavModule(
-      id: 'rrhh',
-      label: 'Recursos Humanos',
-      icon: Icons.badge_outlined,
+      id: 'logistica',
+      label: 'Logística y Suministros',
+      icon: Icons.local_shipping_outlined,
       children: [
-        NavItem(id: 'empleados', label: 'Empleados', icon: Icons.people, route: '/employees'),
-        NavItem(id: 'departamentos', label: 'Departamentos', icon: Icons.business, route: '/departments'),
-        NavItem(id: 'vacaciones', label: 'Vacaciones', icon: Icons.beach_access, route: '/vacations'),
-        NavItem(id: 'permisos', label: 'Permisos', icon: Icons.description, route: '/permissions'),
-        NavItem(id: 'tipos-ausencia', label: 'Tipos de Ausencia', icon: Icons.bookmark, route: '/leave-types'),
+        NavItem(id: 'inventario', label: 'Control de Inventario', icon: Icons.inventory_2_outlined, route: '/products'),
+        NavItem(id: 'activos-fijos', label: 'Activos Fijos', icon: Icons.account_balance_wallet_outlined, route: '/fixed-assets', roles: ['SuperAdmin', 'CompanyAdmin']),
+        NavItem(id: 'compras', label: 'Órdenes de Compra', icon: Icons.shopping_bag_outlined, route: '/purchases'),
+        NavItem(id: 'proveedores', label: 'Gestión de Proveedores', icon: Icons.local_shipping_outlined, route: '/suppliers'),
+        NavItem(id: 'garantias', label: 'Gestión de Garantías', icon: Icons.verified_user_outlined, route: '/warranties'),
+        NavItem(id: 'sucursales', label: 'Red de Sucursales', icon: Icons.store_mall_directory_outlined, route: '/branches'),
       ],
     ),
 
-    // ── Nómina ──
-    const NavModule(
-      id: 'nomina',
-      label: 'Nómina',
-      icon: Icons.receipt_long_outlined,
-      roles: ['SuperAdmin', 'CompanyAdmin', 'Rrhh'],
-      children: [
-        NavItem(id: 'nomina-dashboard', label: 'Dashboard', icon: Icons.dashboard, route: '/payroll'),
-        NavItem(id: 'periodos', label: 'Períodos', icon: Icons.date_range, route: '/payroll/periods'),
-        NavItem(id: 'ejecuciones', label: 'Ejecuciones', icon: Icons.play_circle, route: '/payroll/runs'),
-        NavItem(id: 'salarios', label: 'Salarios', icon: Icons.attach_money, route: '/payroll/salaries'),
-        NavItem(id: 'deducciones', label: 'Tipos Deducción', icon: Icons.remove_circle, route: '/payroll/deduction-types'),
-        NavItem(id: 'liquidaciones', label: 'Liquidaciones', icon: Icons.money_off, route: '/payroll/settlement'),
-      ],
-    ),
-
-    // ── Comercial ──
-    const NavModule(
-      id: 'comercial',
-      label: 'Comercial',
-      icon: Icons.shopping_cart_outlined,
-      children: [
-        NavItem(id: 'clientes', label: 'Clientes', icon: Icons.people, route: '/clients'),
-        NavItem(id: 'ventas', label: 'Ventas', icon: Icons.point_of_sale, route: '/sales'),
-        NavItem(id: 'cotizaciones', label: 'Cotizaciones', icon: Icons.description, route: '/quotes'),
-        NavItem(id: 'notas-credito', label: 'Notas de Crédito', icon: Icons.post_add, route: '/credit-notes'),
-      ],
-    ),
-
-    // ── Inventario ──
-    const NavModule(
-      id: 'inventario',
-      label: 'Inventario',
-      icon: Icons.inventory_2_outlined,
-      children: [
-        NavItem(id: 'productos', label: 'Productos', icon: Icons.inventory_2, route: '/products'),
-        NavItem(id: 'categorias', label: 'Categorías', icon: Icons.category, route: '/categories'),
-        NavItem(id: 'marcas', label: 'Marcas', icon: Icons.branding_watermark, route: '/brands'),
-        NavItem(id: 'movimientos', label: 'Movimientos', icon: Icons.swap_horiz, route: '/inventory-movements'),
-        NavItem(id: 'ajuste-inventario', label: 'Ajuste Inventario', icon: Icons.tune, route: '/inventory-adjustment'),
-      ],
-    ),
-
-    // ── Compras ──
-    const NavModule(
-      id: 'compras',
-      label: 'Compras',
-      icon: Icons.shopping_bag_outlined,
-      children: [
-        NavItem(id: 'proveedores', label: 'Proveedores', icon: Icons.local_shipping, route: '/suppliers'),
-        NavItem(id: 'ordenes-compra', label: 'Órdenes de Compra', icon: Icons.receipt, route: '/purchases'),
-      ],
-    ),
-
-    // ── Créditos ──
-    const NavModule(
-      id: 'creditos',
-      label: 'Créditos',
-      icon: Icons.credit_card_outlined,
-      children: [
-        NavItem(id: 'cartera-creditos', label: 'Cartera de Créditos', icon: Icons.account_balance_wallet, route: '/credits', badgeRef: 'credits-pending'),
-        NavItem(id: 'mora', label: 'Dashboard de Mora', icon: Icons.warning_amber, route: '/credits/overdue-dashboard', badgeRef: 'overdue-credits'),
-      ],
-    ),
-
-    // ── Caja ──
-    const NavModule(
-      id: 'caja',
-      label: 'Caja',
-      icon: Icons.monetization_on_outlined,
-      children: [
-        NavItem(id: 'movimientos-caja', label: 'Movimientos de Caja', icon: Icons.account_balance, route: '/cash-registers'),
-      ],
-    ),
-
-    // ── Tesorería ──
-    const NavModule(
-      id: 'tesoreria',
-      label: 'Tesorería',
-      icon: Icons.account_balance_outlined,
-      roles: ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
-      children: [
-        NavItem(id: 'cheques', label: 'Emitir Cheque', icon: Icons.payments, route: '/treasury/checks'),
-        NavItem(id: 'transferencias', label: 'Transferencias', icon: Icons.swap_horiz, route: '/treasury/transfers'),
-        NavItem(id: 'depositos', label: 'Depósitos', icon: Icons.account_balance, route: '/treasury/deposits'),
-        NavItem(id: 'comisiones', label: 'Comisiones Bancarias', icon: Icons.monetization_on, route: '/treasury/commissions'),
-        NavItem(id: 'cobranza-bancaria', label: 'Cobranza Bancaria', icon: Icons.payments, route: '/treasury/collections'),
-      ],
-    ),
-
-    // ── Garantías ──
-    const NavModule(
-      id: 'garantias',
-      label: 'Garantías',
-      icon: Icons.verified_outlined,
-      children: [
-        NavItem(id: 'gestion-garantias', label: 'Gestión de Garantías', icon: Icons.assignment, route: '/warranties', badgeRef: 'warranties-pending'),
-      ],
-    ),
-
-    // ── Sucursales ──
-    const NavModule(
-      id: 'sucursales',
-      label: 'Sucursales',
-      icon: Icons.store_mall_directory_outlined,
-      children: [
-        NavItem(id: 'sucursales-lista', label: 'Sucursales', icon: Icons.store_mall_directory, route: '/branches'),
-      ],
-    ),
-
-    // ── Finanzas ──
+    // ── OPERACIONES Y FINANZAS ──
     const NavModule(
       id: 'finanzas',
-      label: 'Finanzas',
+      label: 'Operaciones y Finanzas',
       icon: Icons.account_balance_outlined,
-      roles: ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
       children: [
-        NavItem(id: 'centros-costos', label: 'Centros de Costo', icon: Icons.account_tree, route: '/cost-centers'),
-        NavItem(id: 'presupuestos', label: 'Presupuestos', icon: Icons.account_balance, route: '/budgets'),
-        NavItem(id: 'presupuesto-vs-real', label: 'Presupuesto vs Real', icon: Icons.compare_arrows, route: '/budgets/vs-actual'),
-        NavItem(id: 'informe-equity', label: 'Cambios en Patrimonio', icon: Icons.show_chart, route: '/accounting/reports/equity'),
-        NavItem(id: 'informe-comparativo', label: 'Informes Comparativos', icon: Icons.bar_chart, route: '/accounting/reports/comparative'),
-        NavItem(id: 'asistente-contable', label: 'Asistente Contable IA', icon: Icons.smart_toy, route: '/accounting/ai-assistant'),
-        NavItem(id: 'balance-prueba', label: 'Balance de Prueba', icon: Icons.balance, route: '/accounting/trial-balance'),
-        NavItem(id: 'estado-resultados', label: 'Estado de Resultados', icon: Icons.trending_up, route: '/accounting/income-statement'),
-        NavItem(id: 'catalogo-cuentas', label: 'Catálogo de Cuentas', icon: Icons.list_alt, route: '/accounting/chart-of-accounts'),
-        NavItem(id: 'periodos-contables', label: 'Períodos Contables', icon: Icons.date_range, route: '/accounting/periods'),
-        NavItem(id: 'asientos-contables', label: 'Asientos Contables', icon: Icons.description, route: '/accounting/entries'),
-        NavItem(id: 'enlace-cuentas', label: 'Enlace de Cuentas', icon: Icons.link, route: '/accounting/account-links'),
+        NavItem(id: 'comercial', label: 'Ventas y Facturación', icon: Icons.point_of_sale_outlined, route: '/sales'),
+        NavItem(id: 'clientes', label: 'Cartera de Clientes', icon: Icons.people_alt_outlined, route: '/clients'),
+        NavItem(id: 'creditos', label: 'Créditos y Cobros', icon: Icons.credit_card_outlined, route: '/credits'),
+        NavItem(id: 'tesoreria', label: 'Tesorería y Bancos', icon: Icons.savings_outlined, route: '/treasury/checks', roles: ['SuperAdmin', 'CompanyAdmin', 'Accountant']),
+        NavItem(id: 'contabilidad', label: 'Contabilidad Central', icon: Icons.balance_outlined, route: '/accounting/trial-balance', roles: ['SuperAdmin', 'CompanyAdmin', 'Accountant']),
+        NavItem(id: 'caja', label: 'Movimientos de Caja', icon: Icons.monetization_on_outlined, route: '/cash-registers'),
       ],
     ),
 
-    // ── Inteligencia de Negocios ──
+    // ── SOPORTE Y CONTROL ──
     const NavModule(
-      id: 'bi',
-      label: 'Inteligencia de Negocios',
-      icon: Icons.insights_outlined,
+      id: 'soporte',
+      label: 'Soporte y Control',
+      icon: Icons.settings_suggest_outlined,
       roles: ['SuperAdmin', 'CompanyAdmin'],
       children: [
-        NavItem(id: 'bi-ejecutivo', label: 'Panel Ejecutivo', icon: Icons.dashboard, route: '/bi/executive'),
-        NavItem(id: 'bi-financiero', label: 'Panel Financiero', icon: Icons.account_balance, route: '/bi/financial'),
-        NavItem(id: 'bi-comercial', label: 'Panel Comercial', icon: Icons.trending_up, route: '/bi/commercial'),
-        NavItem(id: 'bi-operativo', label: 'Panel Operativo', icon: Icons.precision_manufacturing, route: '/bi/operational'),
-      ],
-    ),
-
-    // ── Administración ──
-    const NavModule(
-      id: 'admin',
-      label: 'Administración',
-      icon: Icons.admin_panel_settings_outlined,
-      roles: ['SuperAdmin', 'CompanyAdmin'],
-      children: [
-        NavItem(id: 'usuarios', label: 'Usuarios', icon: Icons.person_add, route: '/admin/users'),
-        NavItem(id: 'invitar-usuario', label: 'Invitar Usuario', icon: Icons.mail, route: '/admin/invite'),
-        NavItem(id: 'flujos-aprobacion', label: 'Flujos Aprobación', icon: Icons.approval, route: '/approval-flows'),
-        NavItem(id: 'pendientes-aprob', label: 'Pendientes Aprob.', icon: Icons.pending_actions, route: '/approval-pending', badgeRef: 'approvals-pending'),
-        NavItem(id: 'reportes', label: 'Reportes', icon: Icons.assessment, route: '/reports'),
-        NavItem(id: 'auditoria', label: 'Auditoría', icon: Icons.history, route: '/audit-logs'),
-        NavItem(id: 'configuracion', label: 'Configuración', icon: Icons.settings, route: '/settings'),
-      ],
-    ),
-
-    // ── Herramientas ──
-    const NavModule(
-      id: 'herramientas',
-      label: 'Herramientas',
-      icon: Icons.build_outlined,
-      roles: ['SuperAdmin', 'CompanyAdmin'],
-      children: [
-        NavItem(id: 'tasas-cambio', label: 'Tasas de Cambio', icon: Icons.currency_exchange, route: '/exchange-rates'),
-        NavItem(id: 'reportes-personalizados', label: 'Reportes Personalizados', icon: Icons.description, route: '/custom-reports'),
-        NavItem(id: 'webhooks', label: 'Webhooks', icon: Icons.webhook, route: '/webhooks'),
-      ],
-    ),
-
-    // ── Comunicación ──
-    const NavModule(
-      id: 'comunicacion',
-      label: 'Comunicación',
-      icon: Icons.forum_outlined,
-      children: [
-        NavItem(id: 'chat', label: 'Chat', icon: Icons.chat, route: '/chat'),
+        NavItem(id: 'documental', label: 'Motor Documental', icon: Icons.description_outlined, route: '/documents'),
+        NavItem(id: 'aprobaciones', label: 'Flujos de Aprobación', icon: Icons.fact_check_outlined, route: '/approval-pending'),
+        NavItem(id: 'administracion', label: 'Usuarios y Seguridad', icon: Icons.admin_panel_settings_outlined, route: '/admin/users'),
+        NavItem(id: 'configuracion', label: 'Ajustes del Sistema', icon: Icons.settings_outlined, route: '/settings'),
+        NavItem(id: 'auditoria', label: 'Logs de Auditoría', icon: Icons.history_outlined, route: '/audit-logs'),
+        NavItem(id: 'herramientas', label: 'Herramientas Pro', icon: Icons.build_outlined, route: '/exchange-rates'),
       ],
     ),
   ];

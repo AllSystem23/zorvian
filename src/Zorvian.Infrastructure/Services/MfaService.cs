@@ -93,8 +93,8 @@ public sealed class MfaService : IMfaService
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var token = new JwtSecurityToken(
-            issuer: "nexora",
-            audience: "nexora-api",
+            issuer: "zorvian",
+            audience: "zorvian-api",
             claims:
             [
                 new(JwtRegisteredClaimNames.Sub, userId.ToString()),
@@ -119,9 +119,9 @@ public sealed class MfaService : IMfaService
             var result = handler.ValidateToken(token, new TokenValidationParameters
             {
                 ValidateIssuer = true,
-                ValidIssuer = "nexora",
+                ValidIssuer = "zorvian",
                 ValidateAudience = true,
-                ValidAudience = "nexora-api",
+                ValidAudience = "zorvian-api",
                 ValidateLifetime = true,
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
                 ClockSkew = TimeSpan.Zero,

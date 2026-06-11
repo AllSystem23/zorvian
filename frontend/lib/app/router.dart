@@ -41,6 +41,14 @@ import '../features/payroll/pages/payroll_run_detail_page.dart';
 import '../features/payroll/pages/payroll_periods_page.dart';
 import '../features/payroll/pages/salaries_page.dart';
 import '../features/payroll/pages/deduction_types_page.dart';
+import '../features/goals/configurator/goals_config_screen.dart';
+import '../features/goals/dashboard/goals_dashboard_screen.dart';
+import '../features/goals/portal/my_goals_screen.dart';
+import '../features/providers/pages/provider_list_page.dart';
+import '../features/providers/pages/provider_detail_page.dart';
+import '../features/providers/pages/service_contract_detail_page.dart';
+import '../features/providers/pages/provider_contracts_page.dart';
+import '../features/providers/pages/provider_invoices_page.dart';
 import '../features/unauthorized/unauthorized_page.dart';
 import '../features/clients/pages/client_list_page.dart';
 import '../features/clients/pages/client_form_page.dart';
@@ -110,8 +118,13 @@ import '../features/treasury/pages/bank_transfer_page.dart';
 import '../features/treasury/pages/bank_deposit_page.dart';
 import '../features/treasury/pages/bank_commission_page.dart';
 import '../features/treasury/pages/bank_collection_page.dart';
+import '../features/documents/pages/document_center_page.dart';
+import '../features/documents/pages/template_editor_page.dart';
 
 final _routeRoles = <String, List<String>>{
+  '/goals/configurator': ['SuperAdmin', 'CompanyAdmin'],
+  '/goals/dashboard': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor'],
+  '/goals/my-goals': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/dashboard': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/executive-dashboard': ['SuperAdmin', 'CompanyAdmin'],
   '/employees': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor'],
@@ -142,6 +155,7 @@ final _routeRoles = <String, List<String>>{
   '/credits/overdue-dashboard': ['SuperAdmin', 'CompanyAdmin', 'Supervisor'],
   '/cash-registers': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/warranties': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
+  '/providers': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor'],
   '/branches': ['SuperAdmin', 'CompanyAdmin', 'Supervisor', 'Rrhh', 'Employee'],
   '/bi/executive': ['SuperAdmin', 'CompanyAdmin'],
   '/bi/financial': ['SuperAdmin', 'CompanyAdmin'],
@@ -256,6 +270,21 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(path: 'kiosk', name: 'attendance-kiosk', builder: (_, _) => const KioskPage()),
               GoRoute(path: 'qr', name: 'attendance-qr', builder: (_, _) => const QRCheckInPage()),
             ],
+          ),
+          GoRoute(
+            path: '/goals/configurator',
+            name: 'goals-configurator',
+            builder: (_, _) => const GoalsConfigScreen(),
+          ),
+          GoRoute(
+            path: '/goals/dashboard',
+            name: 'goals-dashboard',
+            builder: (_, _) => const GoalsDashboardScreen(),
+          ),
+          GoRoute(
+            path: '/goals/my-goals',
+            name: 'goals-my-goals',
+            builder: (_, _) => const MyGoalsScreen(),
           ),
           GoRoute(
             path: '/unauthorized',
@@ -550,6 +579,33 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           GoRoute(
+            path: '/providers',
+            name: 'providers',
+            builder: (_, _) => const ProviderListPage(),
+            routes: [
+              GoRoute(
+                path: 'contracts',
+                name: 'provider-contracts',
+                builder: (_, _) => const ProviderContractsPage(),
+              ),
+              GoRoute(
+                path: ':providerId',
+                name: 'provider-detail',
+                builder: (_, state) => ProviderDetailPage(id: state.pathParameters['providerId']!),
+              ),
+              GoRoute(
+                path: 'contracts/:contractId',
+                name: 'contract-detail',
+                builder: (_, state) => ServiceContractDetailPage(id: state.pathParameters['contractId']!),
+              ),
+              GoRoute(
+                path: 'payments',
+                name: 'provider-payments',
+                builder: (_, _) => const ProviderInvoicesPage(),
+              ),
+            ],
+          ),
+          GoRoute(
             path: '/purchases',
             name: 'purchases',
             builder: (_, _) => const PurchaseListPage(),
@@ -705,6 +761,22 @@ final routerProvider = Provider<GoRouter>((ref) {
                 ),
               ),
             ],
+          ),
+          // ── Document Management Module ──
+          GoRoute(
+            path: '/documents',
+            name: 'document-center',
+            builder: (_, _) => const DocumentCenterPage(),
+          ),
+          GoRoute(
+            path: '/documents/templates/new',
+            name: 'template-new',
+            builder: (_, _) => const TemplateEditorPage(),
+          ),
+          GoRoute(
+            path: '/documents/templates/:templateId/edit',
+            name: 'template-edit',
+            builder: (_, state) => TemplateEditorPage(templateId: state.pathParameters['templateId']!),
           ),
         ],
       ),

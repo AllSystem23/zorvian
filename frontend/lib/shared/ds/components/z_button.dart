@@ -51,38 +51,43 @@ class ZButton extends StatelessWidget {
 
   ButtonStyle _getStyle(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderRadius = BorderRadius.circular(12);
+    
     switch (type) {
       case ZButtonType.primary:
         return ElevatedButton.styleFrom(
-          backgroundColor: ZColors.brandAccent,
-          foregroundColor: ZColors.brandPrimary,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ZRadii.md)),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          backgroundColor: isDark ? ZColors.brandAccent : ZColors.brandPrimary,
+          foregroundColor: isDark ? ZColors.brandPrimary : Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: borderRadius),
+          textStyle: ZTypography.titleLarge,
         );
       case ZButtonType.secondary:
         return ElevatedButton.styleFrom(
-          backgroundColor: ZColors.surface,
-          foregroundColor: ZColors.brandPrimary,
+          backgroundColor: Colors.transparent,
+          foregroundColor: isDark ? Colors.white : ZColors.brandPrimary,
+          elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(ZRadii.md),
-            side: const BorderSide(color: ZColors.border),
+            borderRadius: borderRadius,
+            side: BorderSide(color: isDark ? ZColors.darkBorder : ZColors.border, width: 1.5),
           ),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          textStyle: ZTypography.titleLarge,
         );
       case ZButtonType.ghost:
         return ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           foregroundColor: isDark ? ZColors.neutral300 : ZColors.neutral600,
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ZRadii.md)),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          shape: RoundedRectangleBorder(borderRadius: borderRadius),
+          textStyle: ZTypography.titleMedium,
         );
       case ZButtonType.danger:
         return ElevatedButton.styleFrom(
           backgroundColor: ZColors.danger,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ZRadii.md)),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: borderRadius),
+          textStyle: ZTypography.titleLarge,
         );
     }
   }

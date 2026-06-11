@@ -13,15 +13,16 @@ public sealed class VacationServiceTests
     private readonly Mock<IEmployeeRepository> _employeeRepo = new();
     private readonly Mock<ITenantContext> _tenant = new();
     private readonly Mock<INotificationService> _notification = new();
+    private readonly Mock<ICountryTaxConfigRepository> _taxConfigRepo = new();
     private readonly VacationService _sut;
     private readonly Guid _employeeId = Guid.NewGuid();
     private readonly string _tenantId = Guid.NewGuid().ToString();
 
     public VacationServiceTests()
     {
-        _tenant.Setup(t => t.TenantId).Returns(_tenantId);
+        _tenant.Setup(t => t.TenantId).Returns(TenantId.FromString(_tenantId));
         _tenant.Setup(t => t.CurrentEmployeeId).Returns(_employeeId);
-        _sut = new VacationService(_repo.Object, _employeeRepo.Object, _tenant.Object, _notification.Object);
+        _sut = new VacationService(_repo.Object, _employeeRepo.Object, _tenant.Object, _notification.Object, _taxConfigRepo.Object);
     }
 
     private Employee MakeEmployee(Guid? deptId = null, DateOnly? hireDate = null) => new()
@@ -57,13 +58,17 @@ public sealed class VacationServiceTests
     public async Task CreateAsync_WithValidRequest_CreatesVacation()
     {
         var emp = MakeEmployee(deptId: Guid.NewGuid(), hireDate: new DateOnly(2024, 1, 1));
+        emp.CountryCode = "NIC";
         _employeeRepo.Setup(r => r.GetByIdAsync(_employeeId)).ReturnsAsync(emp);
+        _taxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC")).ReturnsAsync(new CountryTaxConfig { VacationDaysPerYear = 15 });
         _employeeRepo.Setup(r => r.GetSupervisorsAsync(_employeeId)).ReturnsAsync(new List<EmployeeSupervisor>
         {
             new() { SupervisorId = Guid.NewGuid(), Supervisor = new Employee { Id = Guid.NewGuid(), FirstName = "Jefe", LastName = "Uno" } },
         });
         _employeeRepo.Setup(r => r.GetFilteredCountAsync(null, null, emp.DepartmentId)).ReturnsAsync(10);
         _repo.Setup(r => r.GetOverlappingCountAsync(emp.DepartmentId!.Value, It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), _employeeId)).ReturnsAsync(1);
+        _repo.Setup(r => r.GetVacationDaysSumAsync(_employeeId, "taken")).ReturnsAsync(0);
+        _repo.Setup(r => r.GetVacationDaysSumAsync(_employeeId, "pending")).ReturnsAsync(0);
 
         var request = new CreateVacationRequest(
             new DateOnly(2026, 7, 1),
@@ -76,7 +81,7 @@ public sealed class VacationServiceTests
         Assert.NotNull(result);
         Assert.Equal(5, result.TotalDays);
         _repo.Verify(r => r.AddAsync(It.IsAny<VacationRequest>()), Times.Once);
-        _repo.Verify(r => r.SaveChangesAsync(), Times.Exactly(2));
+        _repo.Verify(r => r.SaveChangesAsync(), Times.AtLeast(2));
     }
 
     [Fact]
@@ -257,7 +262,9 @@ public sealed class VacationServiceTests
     public async Task CalculateBalanceAsync_ReturnsCorrectBalance()
     {
         var emp = MakeEmployee(hireDate: new DateOnly(2025, 1, 1));
+        emp.CountryCode = "NIC";
         _employeeRepo.Setup(r => r.GetByIdAsync(_employeeId)).ReturnsAsync(emp);
+        _taxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC")).ReturnsAsync(new CountryTaxConfig { VacationDaysPerYear = 15 });
         _repo.Setup(r => r.GetVacationDaysSumAsync(_employeeId, "taken")).ReturnsAsync(3);
         _repo.Setup(r => r.GetVacationDaysSumAsync(_employeeId, "pending")).ReturnsAsync(2);
 

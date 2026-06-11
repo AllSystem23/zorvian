@@ -17,18 +17,32 @@ class ZCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Container(
       margin: margin ?? EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(ZRadii.lg),
-        side: const BorderSide(color: ZColors.border),
+      constraints: minHeight != null ? BoxConstraints(minHeight: minHeight!) : null,
+      decoration: BoxDecoration(
+        color: isDark ? ZColors.darkSurface : ZColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? ZColors.darkBorder : ZColors.border,
+          width: 0.8,
+        ),
+        boxShadow: isDark ? [] : [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: Container(
-        width: double.infinity,
-        constraints: minHeight != null ? BoxConstraints(minHeight: minHeight!) : null,
-        padding: padding ?? const EdgeInsets.all(ZSpacing.lg),
-        child: child,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: padding ?? const EdgeInsets.all(24),
+          child: child,
+        ),
       ),
     );
   }

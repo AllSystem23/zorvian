@@ -134,9 +134,9 @@ public sealed class AttendanceService
 
     public async Task<AttendanceResponse> QRCheckInAsync(Guid employeeId, string tenantId, QRCheckInRequest request)
     {
-        // Expected format: nexora-checkin:{tenantId}:{yyyyMMddHHmmss}
+        // Expected format: zorvian-checkin:{tenantId}:{yyyyMMddHHmmss}
         var parts = request.QRCode.Split(':');
-        if (parts.Length != 3 || parts[0] != "nexora-checkin")
+        if (parts.Length != 3 || parts[0] != "zorvian-checkin")
             throw new InvalidOperationException("Código QR inválido");
 
         if (parts[1] != tenantId)

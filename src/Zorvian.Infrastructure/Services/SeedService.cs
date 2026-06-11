@@ -142,7 +142,7 @@ public sealed class SeedService
                 EmployeeCode = $"EMP-{2026}{(i + 1):D4}",
                 FirstName = firstNames[i],
                 LastName = lastNames[i],
-                Email = $"{firstNames[i].ToLower()}.{lastNames[i].ToLower()}@demo.nexora.app",
+                Email = $"{firstNames[i].ToLower()}.{lastNames[i].ToLower()}@demo.zorvian.app",
                 Phone = $"+505 8888-{rng.Next(1000, 9999)}",
                 DateOfBirth = new DateOnly(1980 + rng.Next(15, 30), rng.Next(1, 13), rng.Next(1, 29)),
                 Gender = i % 2 == 0 ? "M" : "F",

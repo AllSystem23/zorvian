@@ -14,19 +14,22 @@ public class InventoryMovementService : IInventoryMovementService
     private readonly IAutoAccountingService _autoAccounting;
     private readonly ITenantContext _tenant;
     private readonly IMapper _mapper;
+    private readonly IGoalIntegrationService _goalIntegration;
 
     public InventoryMovementService(
         IInventoryMovementRepository movementRepo,
         IProductRepository productRepo,
         IAutoAccountingService autoAccounting,
         ITenantContext tenant,
-        IMapper mapper)
+        IMapper mapper,
+        IGoalIntegrationService goalIntegration)
     {
         _movementRepo = movementRepo;
         _productRepo = productRepo;
         _autoAccounting = autoAccounting;
         _tenant = tenant;
         _mapper = mapper;
+        _goalIntegration = goalIntegration;
     }
 
     public async Task<InventoryMovementResponse> CreateAsync(CreateInventoryMovementRequest request)
@@ -55,6 +58,12 @@ public class InventoryMovementService : IInventoryMovementService
 
         await _autoAccounting.GenerateInventoryEntryAsync(
             movement.Id, movement.ProductId, movement.MovementType, movement.Quantity, request.UnitCost);
+
+        // Disparar evento para meta de entrega si es tipo salida
+        if (request.MovementType == "exit")
+        {
+            await _goalIntegration.HandleDeliveryAsync(movement.PerformedByEmployeeId ?? Guid.Empty, movement.Id, movement.Quantity);
+        }
 
         return _mapper.Map<InventoryMovementResponse>(movement);
     }

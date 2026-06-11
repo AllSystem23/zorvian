@@ -57,6 +57,7 @@ public sealed class SaleServiceTests
             
         var mockCashRepo = new Mock<ICashMovementRepository>();
         var mockWebhookService = new Mock<IWebhookService>();
+        var mockGoalIntegration = new Mock<IGoalIntegrationService>();
         
         var autoAccounting = new AutoAccountingService(
             mockEntryRepo.Object, mockPeriodRepo.Object, mockLinkRepo.Object, mockRuleRepo.Object, 
@@ -72,7 +73,8 @@ public sealed class SaleServiceTests
             autoAccounting,
             mockWebhookService.Object,
             _tenant.Object,
-            _mapper.Object);
+            _mapper.Object,
+            mockGoalIntegration.Object);
     }
     // ... (rest of the file remains same)
     private Company MakeCompany() => new()

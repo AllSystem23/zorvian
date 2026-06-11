@@ -45,7 +45,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
         _repository = templateRepo;
     }
 
-    private Guid CompanyId => Guid.TryParse(_tenant?.TenantId, out var id) ? id : throw new InvalidOperationException("Invalid tenant");
+    private Guid CompanyId => Guid.TryParse(_tenant?.TenantId?.ToString() ?? string.Empty, out var id) ? id : throw new InvalidOperationException("Invalid tenant");
 
     public async Task GenerateEntryAsync(string processTrigger, Guid companyId, string countryCode, object context)
     {

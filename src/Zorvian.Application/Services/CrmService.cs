@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
 
 namespace Zorvian.Application.Services;
@@ -44,6 +45,7 @@ public class Activity
 public class CrmService : ICrmService
 {
     private readonly ILogger<CrmService> _logger;
+    private readonly IGoalIntegrationService _goalIntegration;
 
     private static readonly string[] PipelineStages = { "prospecting", "qualified", "proposal", "negotiation", "won", "lost" };
     private static readonly Dictionary<string, int> DefaultProbabilities = new()
@@ -56,9 +58,10 @@ public class CrmService : ICrmService
         { "lost", 0 }
     };
 
-    public CrmService(ILogger<CrmService> logger)
+    public CrmService(ILogger<CrmService> logger, IGoalIntegrationService goalIntegration)
     {
         _logger = logger;
+        _goalIntegration = goalIntegration;
     }
 
     public async Task<Opportunity> CreateOpportunityAsync(string name, Guid clientId, decimal estimatedValue, string stage, Guid ownerId)
@@ -78,7 +81,9 @@ public class CrmService : ICrmService
         };
 
         _logger.LogInformation("[CRM] Created opportunity {Name} for client {ClientId}", name, clientId);
-        await Task.CompletedTask;
+        
+        await _goalIntegration.HandleNewClientAsync(ownerId, clientId);
+        
         return opportunity;
     }
 

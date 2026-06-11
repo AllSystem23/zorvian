@@ -15,23 +15,60 @@ class LoginPage extends ConsumerStatefulWidget {
 class _LoginPageState extends ConsumerState<LoginPage> {
   @override
   Widget build(BuildContext context) {
-    debugPrint('LoginPage build reconstruido');
-    final isDesktop = MediaQuery.sizeOf(context).width > 600;
+    final size = MediaQuery.sizeOf(context);
+    final isDesktop = size.width > 900;
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0B1F3B),
-              Color(0xFF1E3A5F),
-              Color(0xFF0B1F3B),
-            ],
+      backgroundColor: ZColors.darkBackground,
+      body: Stack(
+        children: [
+          // PREMIUM BACKGROUND GRADIENT
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment(0.7, -0.6),
+                  radius: 1.5,
+                  colors: [
+                    Color(0xFF1E293B),
+                    ZColors.darkBackground,
+                  ],
+                ),
+              ),
+            ),
           ),
-        ),
-        child: isDesktop ? _buildDesktopLayout() : _buildMobileLayout(),
+          // AMBIENT GLOWS
+          Positioned(
+            top: -100,
+            right: -100,
+            child: Container(
+              width: 400,
+              height: 400,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: ZColors.brandAccent.withOpacity(0.05),
+              ),
+              child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 100, sigmaY: 100), child: Container()),
+            ),
+          ),
+          Positioned(
+            bottom: -50,
+            left: -50,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: ZColors.brandTeal.withOpacity(0.03),
+              ),
+              child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80), child: Container()),
+            ),
+          ),
+          
+          SafeArea(
+            child: isDesktop ? _buildDesktopLayout() : _buildMobileLayout(),
+          ),
+        ],
       ),
     );
   }
@@ -40,36 +77,52 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     return Row(
       children: [
         Expanded(
-          flex: 3,
+          flex: 4,
           child: Padding(
-            padding: const EdgeInsets.all(64.0),
+            padding: const EdgeInsets.symmetric(horizontal: 80),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Image.asset(
-                  'assets/Zorvian.png',
-                  height: 120,
-                  fit: BoxFit.contain,
-                  excludeFromSemantics: true,
+                Hero(
+                  tag: 'logo',
+                  child: Image.asset(
+                    'assets/Zorvian.png',
+                    height: 140,
+                    fit: BoxFit.contain,
+                  ),
                 ),
-                const SizedBox(height: 32),
-                const Text(
-                  'Bienvenido a Zorvian ERP',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 48,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: -1.5,
+                const SizedBox(height: 48),
+                Text(
+                  'ZORVIAN ERP',
+                  style: ZTypography.labelSmall.copyWith(
+                    color: ZColors.brandAccent,
+                    letterSpacing: 4.0,
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
-                  'Gestión inteligente de recursos humanos y operaciones empresariales en una sola plataforma.',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 20,
-                    height: 1.5,
+                Text(
+                  'La Próxima Generación de\nGestión Empresarial.',
+                  style: ZTypography.displayLarge.copyWith(
+                    color: Colors.white,
+                    fontSize: 56,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  width: 60,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: ZColors.brandAccent,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 32),
+                Text(
+                  'Sistemas inteligentes diseñados para la eficiencia operativa absoluta y la toma de decisiones basada en datos.',
+                  style: ZTypography.bodyLarge.copyWith(
+                    color: ZColors.neutral400,
+                    fontSize: 18,
                   ),
                 ),
               ],
@@ -77,10 +130,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           ),
         ),
         Expanded(
-          flex: 2,
+          flex: 3,
           child: Center(
             child: Container(
-              constraints: const BoxConstraints(maxWidth: 450),
+              constraints: const BoxConstraints(maxWidth: 480),
+              margin: const EdgeInsets.only(right: 60),
               child: const LoginForm(),
             ),
           ),
@@ -92,20 +146,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Widget _buildMobileLayout() {
     return Center(
       child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            children: [
-              Image.asset(
-                'assets/Zorvian.png',
-                height: 100,
-                fit: BoxFit.contain,
-                excludeFromSemantics: true,
-              ),
-              const SizedBox(height: 48),
-              const LoginForm(),
-            ],
-          ),
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          children: [
+            Image.asset(
+              'assets/Zorvian.png',
+              height: 100,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(height: 56),
+            const LoginForm(),
+          ],
         ),
       ),
     );
@@ -192,19 +243,26 @@ class _LoginFormState extends ConsumerState<LoginForm> {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('LoginForm build reconstruido');
     final theme = Theme.of(context);
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(28),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
-          padding: const EdgeInsets.all(40),
+          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 48),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+            color: Colors.white.withOpacity(0.03),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: Colors.white.withOpacity(0.08), width: 1.5),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.white.withOpacity(0.05),
+                Colors.white.withOpacity(0.01),
+              ],
+            ),
           ),
           child: Form(
             key: _formKey,
@@ -212,59 +270,78 @@ class _LoginFormState extends ConsumerState<LoginForm> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
+                Text(
                   'Iniciar Sesión',
-                  style: TextStyle(
+                  style: ZTypography.displaySmall.copyWith(
                     color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
+                    letterSpacing: -0.5,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 Text(
-                  'Ingresa tus credenciales para continuar',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.6)),
+                  'Gestión Empresarial de Alto Nivel',
+                  style: ZTypography.bodyMedium.copyWith(
+                    color: ZColors.neutral400,
+                  ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 40),
                 if (_error != null) _buildErrorBanner(theme),
                 _buildTextField(
                   controller: _emailController,
                   focusNode: _emailFocusNode,
-                  label: 'Correo electrónico',
-                  icon: Icons.email_outlined,
+                  label: 'ID Corporativo / Email',
+                  icon: Icons.person_outline_rounded,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
                 _buildTextField(
                   controller: _passwordController,
                   focusNode: _passwordFocusNode,
                   label: 'Contraseña',
-                  icon: Icons.lock_outlined,
+                  icon: Icons.lock_outline_rounded,
                   isPassword: true,
                 ),
-                CheckboxListTile(
-                  value: _rememberMe,
-                  onChanged: (v) => setState(() => _rememberMe = v ?? false),
-                  title: const Text('Recordar credenciales',
-                      style: TextStyle(color: Colors.white, fontSize: 14)),
-                  controlAffinity: ListTileControlAffinity.leading,
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  activeColor: Colors.white,
-                  checkColor: const Color(0xFF0B1F3B),
-                  side: const BorderSide(color: Colors.white54),
+                const SizedBox(height: 16),
+                Theme(
+                  data: theme.copyWith(
+                    unselectedWidgetColor: ZColors.neutral500,
+                  ),
+                  child: CheckboxListTile(
+                    value: _rememberMe,
+                    onChanged: (v) => setState(() => _rememberMe = v ?? false),
+                    title: Text(
+                      'Recordar sesión en este dispositivo',
+                      style: ZTypography.bodySmall.copyWith(color: ZColors.neutral300),
+                    ),
+                    controlAffinity: ListTileControlAffinity.leading,
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    activeColor: ZColors.brandAccent,
+                    checkColor: ZColors.brandPrimary,
+                    side: BorderSide(color: Colors.white.withOpacity(0.2)),
+                  ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
                 ZButton(
-                  text: 'Entrar al Sistema',
+                  text: 'ACCEDER AL SISTEMA',
                   onPressed: _login,
                   isLoading: _loading,
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
                 ZButton(
                   text: '¿No tienes cuenta? Solicita acceso',
                   onPressed: () => context.push('/register'),
                   type: ZButtonType.ghost,
-                  fullWidth: false,
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () {}, // TODO: Implement password recovery flow
+                  child: Text(
+                    '¿Olvidaste tu contraseña?',
+                    style: ZTypography.labelSmall.copyWith(
+                      color: ZColors.neutral500,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               ],
             ),

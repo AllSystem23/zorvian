@@ -19,6 +19,7 @@ public sealed class SaleService
     private readonly IWebhookService _webhook;
     private readonly ITenantContext _tenant;
     private readonly IMapper _mapper;
+    private readonly IGoalIntegrationService _goalIntegration;
 
     public SaleService(
         ISaleRepository saleRepo,
@@ -30,7 +31,8 @@ public sealed class SaleService
         IAutoAccountingService autoAccounting,
         IWebhookService webhook,
         ITenantContext tenant,
-        IMapper mapper)
+        IMapper mapper,
+        IGoalIntegrationService goalIntegration)
     {
         _saleRepo = saleRepo;
         _productRepo = productRepo;
@@ -42,6 +44,7 @@ public sealed class SaleService
         _webhook = webhook;
         _tenant = tenant;
         _mapper = mapper;
+        _goalIntegration = goalIntegration;
     }
 
     public async Task<SaleResponse> CreateCashSaleAsync(CreateCashSaleRequest request)
@@ -149,6 +152,9 @@ public sealed class SaleService
         await _autoAccounting.GenerateSaleEntryAsync(
             sale.Id, sale.Details.ToList(), request.Discount, request.Payment.Amount, "cash");
         await _autoAccounting.GenerateCostOfSaleEntryAsync(sale.Id, totalCost);
+
+        // Registro de meta
+        await _goalIntegration.HandleNewSaleAsync(request.EmployeeId, total);
 
         await _webhook.PublishAsync(sale.TenantId, "sale.created", new { SaleId = sale.Id, InvoiceNumber = sale.InvoiceNumber, Total = sale.Total, PaymentMethod = "cash" });
 
@@ -319,6 +325,9 @@ public sealed class SaleService
         await _autoAccounting.GenerateSaleEntryAsync(
             sale.Id, sale.Details.ToList(), request.Discount, request.DownPayment, "credit");
         await _autoAccounting.GenerateCostOfSaleEntryAsync(sale.Id, totalCost);
+
+        // Registro de meta
+        await _goalIntegration.HandleNewSaleAsync(request.EmployeeId, total);
 
         await _webhook.PublishAsync(sale.TenantId, "sale.created", new { SaleId = sale.Id, InvoiceNumber = sale.InvoiceNumber, Total = sale.Total, PaymentMethod = "credit" });
 

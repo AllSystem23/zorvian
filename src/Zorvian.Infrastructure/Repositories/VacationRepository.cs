@@ -81,6 +81,17 @@ public sealed class VacationRepository : IVacationRepository
         await _db.VacationRequests.AddAsync(request);
     }
 
+    public async Task AddLeaveBalanceAsync(LeaveBalances balance)
+    {
+        await _db.LeaveBalances.AddAsync(balance);
+    }
+
+    public async Task<LeaveBalances?> GetLeaveBalanceAsync(Guid employeeId, int year)
+    {
+        return await _db.LeaveBalances
+            .FirstOrDefaultAsync(lb => lb.EmployeeId == employeeId && lb.Year == year);
+    }
+
     public async Task SaveChangesAsync()
     {
         await _db.SaveChangesAsync();

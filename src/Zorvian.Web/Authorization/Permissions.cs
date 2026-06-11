@@ -49,4 +49,18 @@ public static class Permissions
 
     public const string PurchaseRead = "purchase.read";
     public const string PurchaseWrite = "purchase.write";
+
+    public const string CommissionRead = "commission.read";
+    public const string CommissionWrite = "commission.write";
+    public const string CommissionProcess = "commission.process";
+
+    public const string GoalRead = "goal.read";
+    public const string GoalWrite = "goal.write";
+    public const string GoalEvaluate = "goal.evaluate";
+
+    public const string KpiRead = "kpi.read";
+    public const string KpiWrite = "kpi.write";
+
+    public const string ProviderRead = "provider.read";
+    public const string ProviderWrite = "provider.write";
 }

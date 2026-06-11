@@ -168,7 +168,7 @@ public sealed class AttendanceServiceTests
         var employee = MakeEmployee();
         var tenantId = "tenant-123";
         var qrTime = DateTime.UtcNow.AddSeconds(-5).ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture);
-        var qrCode = $"nexora-checkin:{tenantId}:{qrTime}";
+        var qrCode = $"zorvian-checkin:{tenantId}:{qrTime}";
 
         _employeeRepo.Setup(r => r.GetByIdAsync(employee.Id)).ReturnsAsync(employee);
         _repo.Setup(r => r.GetTodayRecordAsync(employee.Id)).ReturnsAsync((AttendanceRecord?)null);
@@ -199,7 +199,7 @@ public sealed class AttendanceServiceTests
     public async Task QRCheckInAsync_With_Wrong_Tenant_Should_Throw()
     {
         var qrTime = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
-        var qrCode = $"nexora-checkin:wrong-tenant:{qrTime}";
+        var qrCode = $"zorvian-checkin:wrong-tenant:{qrTime}";
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             _sut.QRCheckInAsync(_employeeId, "correct-tenant", new QRCheckInRequest(qrCode, null, null)));
@@ -211,7 +211,7 @@ public sealed class AttendanceServiceTests
     public async Task QRCheckInAsync_With_Expired_QR_Should_Throw()
     {
         var expiredTime = DateTime.UtcNow.AddMinutes(-5).ToString("yyyyMMddHHmmss");
-        var qrCode = $"nexora-checkin:tenant-123:{expiredTime}";
+        var qrCode = $"zorvian-checkin:tenant-123:{expiredTime}";
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             _sut.QRCheckInAsync(_employeeId, "tenant-123", new QRCheckInRequest(qrCode, null, null)));

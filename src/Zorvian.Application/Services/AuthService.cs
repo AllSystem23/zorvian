@@ -49,10 +49,10 @@ public sealed class AuthService
                 user = new User
                 {
                     FirebaseUid = fbUser.Uid,
-                    Email = email,
-                    DisplayName = fbUser.Name,
-                    AvatarUrl = fbUser.Picture,
-                    TenantId = _tenant.TenantId,
+                    Email = email ?? string.Empty,
+                    DisplayName = fbUser.Name ?? string.Empty,
+                    AvatarUrl = fbUser.Picture ?? string.Empty,
+                    TenantId = _tenant.TenantId ?? throw new InvalidOperationException("TenantId missing"),
                 };
                 await _authRepo.AddUserAsync(user);
                 await _authRepo.SaveChangesAsync();
@@ -101,10 +101,10 @@ public sealed class AuthService
                         user = new User
                         {
                             FirebaseUid = fbUser.Uid,
-                            Email = email,
-                            DisplayName = fbUser.Name,
-                            AvatarUrl = fbUser.Picture,
-                            TenantId = _tenant.TenantId,
+                            Email = email ?? string.Empty,
+                            DisplayName = fbUser.Name ?? string.Empty,
+                            AvatarUrl = fbUser.Picture ?? string.Empty,
+                            TenantId = _tenant.TenantId ?? throw new InvalidOperationException("TenantId missing"),
                         };
                         await _authRepo.AddUserAsync(user);
                         await _authRepo.SaveChangesAsync();
