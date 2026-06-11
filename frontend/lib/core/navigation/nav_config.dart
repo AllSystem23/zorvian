@@ -94,6 +94,7 @@ final class NavConfig {
         NavItem(id: 'creditos', label: 'Créditos y Cobros', icon: Icons.credit_card_outlined, route: '/credits'),
         NavItem(id: 'tesoreria', label: 'Tesorería y Bancos', icon: Icons.savings_outlined, route: '/treasury/checks', roles: ['SuperAdmin', 'CompanyAdmin', 'Accountant']),
         NavItem(id: 'contabilidad', label: 'Contabilidad Central', icon: Icons.balance_outlined, route: '/accounting/trial-balance', roles: ['SuperAdmin', 'CompanyAdmin', 'Accountant']),
+        NavItem(id: 'catalogo-cuentas', label: 'Catálogo de Cuentas', icon: Icons.account_tree_outlined, route: '/accounting/chart-of-accounts', roles: ['SuperAdmin', 'CompanyAdmin', 'Accountant']),
         NavItem(id: 'caja', label: 'Movimientos de Caja', icon: Icons.monetization_on_outlined, route: '/cash-registers'),
       ],
     ),

@@ -28,8 +28,13 @@ public sealed record CreateAccountRequest(
 );
 
 public sealed record UpdateAccountRequest(
+    string? Code,
     string? Name,
     string? Description,
+    string? Type,
+    string? NormalSide,
+    Guid? ParentId,
+    int? Level,
     bool? IsActive,
     decimal? OpeningBalance
 );

@@ -74,13 +74,46 @@ public sealed class AccountService
     public async Task<AccountResponse> UpdateAsync(Guid id, UpdateAccountRequest request)
     {
         var account = await _repo.GetByIdAsync(id) ?? throw new InvalidOperationException("Account not found");
+        if (request.Code != null)
+        {
+            if (await _repo.CodeExistsAsync(request.Code, CompanyId) && request.Code != account.Code)
+                throw new InvalidOperationException($"Account code '{request.Code}' already exists");
+            account.Code = request.Code;
+        }
         if (request.Name != null) account.Name = request.Name;
         if (request.Description != null) account.Description = request.Description;
+        if (request.Type != null) account.Type = request.Type;
+        if (request.NormalSide != null) account.NormalSide = request.NormalSide;
         if (request.IsActive.HasValue) account.IsActive = request.IsActive.Value;
         if (request.OpeningBalance.HasValue) account.OpeningBalance = request.OpeningBalance.Value;
+        if (request.Level.HasValue) account.Level = request.Level.Value;
+        if (request.ParentId.HasValue)
+        {
+            if (request.ParentId.Value == id)
+                throw new InvalidOperationException("Account cannot be its own parent");
+            var parent = await _repo.GetByIdAsync(request.ParentId.Value)
+                ?? throw new InvalidOperationException("Parent account not found");
+            account.ParentId = request.ParentId;
+            account.Level = parent.Level + 1;
+        }
         await _repo.UpdateAsync(account);
         await _repo.SaveChangesAsync();
         return MapWithBalance(account);
+    }
+
+    public async Task DeleteAsync(Guid id)
+    {
+        var account = await _repo.GetByIdAsync(id) ?? throw new InvalidOperationException("Account not found");
+        if (account.IsSystem)
+            throw new InvalidOperationException("Cannot delete a system account");
+        bool hasEntries = await _entryRepo.HasEntriesForAccountAsync(id);
+        if (hasEntries)
+            throw new InvalidOperationException("Cannot delete account with associated entries");
+        bool hasChildren = await _repo.HasChildrenAsync(id);
+        if (hasChildren)
+            throw new InvalidOperationException("Cannot delete account with child accounts");
+        await _repo.DeleteAsync(account);
+        await _repo.SaveChangesAsync();
     }
 
     public async Task ImportFromCsvAsync(string csvContent)

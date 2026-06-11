@@ -13,8 +13,10 @@ public interface IAccountRepository
     Task<List<Account>> GetActiveAsync(Guid companyId);
     Task<bool> CodeExistsAsync(string code, Guid companyId);
     Task<int> GetMaxLevelAsync(Guid? parentId, Guid companyId);
+    Task<bool> HasChildrenAsync(Guid id);
     Task AddAsync(Account account);
     Task UpdateAsync(Account account);
+    Task DeleteAsync(Account account);
     Task SaveChangesAsync();
 }
 
@@ -24,6 +26,7 @@ public interface IAccountingEntryRepository
     Task<List<AccountingEntry>> GetFilteredAsync(Guid? periodId, string? referenceType, string? status, DateTime? fromDate, DateTime? toDate, Guid companyId, int page, int pageSize);
     Task<int> GetFilteredCountAsync(Guid? periodId, string? referenceType, string? status, DateTime? fromDate, DateTime? toDate, Guid companyId);
     Task<string> GenerateEntryNumberAsync(Guid companyId);
+    Task<bool> HasEntriesForAccountAsync(Guid accountId);
     Task AddAsync(AccountingEntry entry);
     Task UpdateAsync(AccountingEntry entry);
     Task SaveChangesAsync();

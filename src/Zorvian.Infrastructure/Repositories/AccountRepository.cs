@@ -37,8 +37,12 @@ public sealed class AccountRepository : IAccountRepository
     public async Task<int> GetMaxLevelAsync(Guid? parentId, Guid companyId) =>
         await _db.Set<Account>().Where(a => a.ParentId == parentId && a.CompanyId == companyId).MaxAsync(a => (int?)a.Level) ?? 0;
 
+    public async Task<bool> HasChildrenAsync(Guid id) =>
+        await _db.Set<Account>().AnyAsync(a => a.ParentId == id);
+
     public async Task AddAsync(Account account) => await _db.Set<Account>().AddAsync(account);
     public Task UpdateAsync(Account account) { _db.Set<Account>().Update(account); return Task.CompletedTask; }
+    public Task DeleteAsync(Account account) { _db.Set<Account>().Remove(account); return Task.CompletedTask; }
     public async Task SaveChangesAsync() => await _db.SaveChangesAsync();
 }
 
@@ -82,6 +86,9 @@ public sealed class AccountingEntryRepository : IAccountingEntryRepository
         var count = await _db.Set<AccountingEntry>().CountAsync(e => e.CompanyId == companyId);
         return $"AS-{DateTime.UtcNow:yyyyMMdd}-{(count + 1):D4}";
     }
+
+    public async Task<bool> HasEntriesForAccountAsync(Guid accountId) =>
+        await _db.Set<AccountingEntryDetail>().AnyAsync(d => d.AccountId == accountId);
 
     public async Task AddAsync(AccountingEntry entry) => await _db.Set<AccountingEntry>().AddAsync(entry);
     public Task UpdateAsync(AccountingEntry entry) { _db.Set<AccountingEntry>().Update(entry); return Task.CompletedTask; }

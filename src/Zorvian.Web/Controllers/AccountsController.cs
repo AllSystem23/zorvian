@@ -51,6 +51,18 @@ public sealed class AccountsController : ControllerBase
         catch (InvalidOperationException ex) { return BadRequest(new { error = ex.Message }); }
     }
 
+    [HttpDelete("{id:guid}")]
+    [RequirePermission(Permissions.AccountingWrite)]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        try
+        {
+            await _service.DeleteAsync(id);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex) { return BadRequest(new { error = ex.Message }); }
+    }
+
     [HttpPost("seed")]
     [RequirePermission(Permissions.AccountingWrite)]
     public async Task<IActionResult> Seed()

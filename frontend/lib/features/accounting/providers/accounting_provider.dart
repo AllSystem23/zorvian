@@ -250,6 +250,24 @@ class AccountingNotifier extends Notifier<AccountingState> {
     }
   }
 
+  Future<void> createAccount(Map<String, dynamic> body) async {
+    final dio = ref.read(dioClientProvider);
+    await dio.post('accounts', data: body);
+    await loadAccounts();
+  }
+
+  Future<void> updateAccount(String id, Map<String, dynamic> body) async {
+    final dio = ref.read(dioClientProvider);
+    await dio.put('accounts/$id', data: body);
+    await loadAccounts();
+  }
+
+  Future<void> deleteAccount(String id) async {
+    final dio = ref.read(dioClientProvider);
+    await dio.delete('accounts/$id');
+    await loadAccounts();
+  }
+
   Future<void> seedAccounts() async {
     try {
       final dio = ref.read(dioClientProvider);
