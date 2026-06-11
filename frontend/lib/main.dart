@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'app/app.dart';
-import 'core/firebase_options.dart';
+import 'core/firebase_options.template.dart' as config;
 import 'core/services/local_notification_service.dart';
 import 'core/theme/theme_provider.dart';
 import 'features/biometrics/providers/biometric_provider.dart';
@@ -19,7 +19,7 @@ void main() async {
 
   try {
     await Firebase.initializeApp(
-      options: firebaseOptions,
+      options: config.firebaseOptions,
     );
   } catch (_) {}
 
