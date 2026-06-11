@@ -212,18 +212,13 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<DocumentVersion> DocumentVersions => Set<DocumentVersion>();
     public DbSet<DocumentSignature> DocumentSignatures => Set<DocumentSignature>();
 
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        configurationBuilder.Properties<TenantId>().HaveConversion<string>();
+    }
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
-        var tenantIdConverter = new ValueConverter<TenantId, string>(
-            v => v.ToString(),
-            v => TenantId.FromString(v));
-
-        foreach (var entity in builder.Model.GetEntityTypes())
-        {
-            foreach (var prop in entity.GetProperties().Where(p => p.ClrType == typeof(TenantId)))
-                prop.SetValueConverter(tenantIdConverter);
-        }
-
         builder.Entity<PayrollConceptDefinition>(e =>
         {
             e.HasKey(pcd => pcd.Id);
