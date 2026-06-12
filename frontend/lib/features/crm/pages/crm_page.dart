@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../shared/ds/ds.dart';
 import '../providers/crm_provider.dart';
 
@@ -510,7 +509,7 @@ class _AddContactSheetState extends ConsumerState<_AddContactSheet> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: _status,
+                initialValue: _status,
                 decoration: const InputDecoration(labelText: 'Estado'),
                 items: const [
                   DropdownMenuItem(value: 'lead', child: Text('Lead')),

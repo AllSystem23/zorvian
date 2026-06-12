@@ -508,13 +508,13 @@ class _CartItemTile extends StatelessWidget {
   }
 }
 
-class _CartSummary extends StatelessWidget {
+class _CartSummary extends ConsumerWidget {
   final PosState posState;
 
   const _CartSummary({required this.posState});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -552,7 +552,7 @@ class _CartSummary extends StatelessWidget {
           // Payment method selector
           _PaymentMethodSelector(
             selected: posState.paymentMethod,
-            onChanged: (m) => context.read(posProvider.notifier).setPaymentMethod(m),
+            onChanged: (m) => ref.read(posProvider.notifier).setPaymentMethod(m),
           ),
           const SizedBox(height: 12),
           // Submit button
@@ -587,14 +587,14 @@ class _CartSummary extends StatelessWidget {
   }
 }
 
-class _PaymentMethodSelector extends StatelessWidget {
+class _PaymentMethodSelector extends ConsumerWidget {
   final String selected;
   final ValueChanged<String> onChanged;
 
   const _PaymentMethodSelector({required this.selected, required this.onChanged});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final methods = [
       ('cash', 'Efectivo', Icons.payments_outlined),
       ('card', 'Tarjeta', Icons.credit_card_outlined),

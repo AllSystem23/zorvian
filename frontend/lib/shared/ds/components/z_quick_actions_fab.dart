@@ -252,6 +252,7 @@ class _ExpandableFABState extends State<_ExpandableFAB>
           final action = widget.actions[index];
           final delay = (widget.actions.length - 1 - index) * 0.1;
           return AnimatedBuilder(
+            animation: _animation,
             builder: (context, child) {
               final value = _animation.value.clamp(0.0, 1.0);
               final adjustedValue = (value - delay).clamp(0.0, 1.0);

@@ -76,8 +76,9 @@ class PosState {
   }
 }
 
-class PosNotifier extends StateNotifier<PosState> {
-  PosNotifier() : super(const PosState());
+class PosNotifier extends Notifier<PosState> {
+  @override
+  PosState build() => const PosState();
 
   void addItem(PosCartItem item) {
     final existing = state.items.indexWhere((i) => i.productId == item.productId);
@@ -150,7 +151,7 @@ class PosNotifier extends StateNotifier<PosState> {
   }
 }
 
-final posProvider = StateNotifierProvider<PosNotifier, PosState>((ref) {
+final posProvider = NotifierProvider<PosNotifier, PosState>(() {
   return PosNotifier();
 });
 

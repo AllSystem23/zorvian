@@ -112,8 +112,9 @@ class CrmState {
   }
 }
 
-class CrmNotifier extends StateNotifier<CrmState> {
-  CrmNotifier() : super(const CrmState());
+class CrmNotifier extends Notifier<CrmState> {
+  @override
+  CrmState build() => const CrmState();
 
   Future<void> loadContacts() async {
     state = state.copyWith(loading: true, error: null);
@@ -158,10 +159,10 @@ class CrmNotifier extends StateNotifier<CrmState> {
     }
   }
 
-  Future<bool> updateContact(String id, Map<String, dynamic> data) async {
+  Future<bool> updateContact(Map<String, dynamic> data) async {
     try {
       final dio = ref.read(dioClientProvider);
-      await dio.put('clients/$id', data: data);
+      await dio.put('clients/${data['id']}', data: data);
       await loadContacts();
       return true;
     } catch (e) {
@@ -183,6 +184,6 @@ class CrmNotifier extends StateNotifier<CrmState> {
   }
 }
 
-final crmProvider = StateNotifierProvider<CrmNotifier, CrmState>((ref) {
+final crmProvider = NotifierProvider<CrmNotifier, CrmState>(() {
   return CrmNotifier();
 });

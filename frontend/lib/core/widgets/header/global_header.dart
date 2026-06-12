@@ -99,7 +99,7 @@ class _CompanySelector extends ConsumerWidget {
         isDark: isDark,
         isLoading: true,
       ),
-      error: (_, __) => _SelectorChip(
+      error: (_, _) => _SelectorChip(
         icon: Icons.business_outlined,
         label: companyBranch.companyName ?? 'Empresa',
         isDark: isDark,
@@ -160,7 +160,7 @@ class _BranchSelector extends ConsumerWidget {
         isDark: isDark,
         isLoading: true,
       ),
-      error: (_, __) => _SelectorChip(
+      error: (_, _) => _SelectorChip(
         icon: Icons.storefront_outlined,
         label: companyBranch.branchName ?? 'Sucursal',
         isDark: isDark,

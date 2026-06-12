@@ -31,8 +31,9 @@ class CompanyBranchState {
   }
 }
 
-class CompanyBranchNotifier extends StateNotifier<CompanyBranchState> {
-  CompanyBranchNotifier() : super(const CompanyBranchState());
+class CompanyBranchNotifier extends Notifier<CompanyBranchState> {
+  @override
+  CompanyBranchState build() => const CompanyBranchState();
 
   void selectCompany(String id, String name) {
     state = state.copyWith(companyId: id, companyName: name);
@@ -44,7 +45,7 @@ class CompanyBranchNotifier extends StateNotifier<CompanyBranchState> {
 }
 
 final companyBranchProvider =
-    StateNotifierProvider<CompanyBranchNotifier, CompanyBranchState>((ref) {
+    NotifierProvider<CompanyBranchNotifier, CompanyBranchState>(() {
   return CompanyBranchNotifier();
 });
 
