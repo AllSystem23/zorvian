@@ -131,8 +131,27 @@ final class _SectionHeader extends StatelessWidget {
                   color: bgColor,
                   borderRadius: BorderRadius.circular(ZRadii.lg),
                 ),
-                child: Center(
-                  child: Icon(module.icon, size: 20, color: baseColor),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Center(
+                      child: Icon(module.icon, size: 20, color: baseColor),
+                    ),
+                    // ── Active indicator bar (left accent) ──
+                    if (hasActiveChild)
+                      Positioned(
+                        left: 0,
+                        top: 6,
+                        bottom: 6,
+                        child: Container(
+                          width: 3,
+                          decoration: BoxDecoration(
+                            color: isDark ? ZColors.brandAccent : ZColors.brandPrimary,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),

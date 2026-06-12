@@ -120,6 +120,8 @@ import '../features/treasury/pages/bank_commission_page.dart';
 import '../features/treasury/pages/bank_collection_page.dart';
 import '../features/documents/pages/document_center_page.dart';
 import '../features/documents/pages/template_editor_page.dart';
+import '../features/pos/pages/pos_page.dart';
+import '../features/crm/pages/crm_page.dart';
 
 final _routeRoles = <String, List<String>>{
   '/goals/configurator': ['SuperAdmin', 'CompanyAdmin'],
@@ -176,6 +178,8 @@ final _routeRoles = <String, List<String>>{
   '/accounting/entries': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
   '/accounting/account-links': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
   '/treasury': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
+  '/pos': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
+  '/crm': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
 };
 
 bool _hasAccess(String role, String location) {
@@ -778,12 +782,25 @@ final routerProvider = Provider<GoRouter>((ref) {
             name: 'template-edit',
             builder: (_, state) => TemplateEditorPage(templateId: state.pathParameters['templateId']!),
           ),
+          // ── POS (Point of Sale) ──
+          GoRoute(
+            path: '/pos',
+            name: 'pos',
+            builder: (_, _) => const PosPage(),
+          ),
+          // ── CRM (Customer Relationship Management) ──
+          GoRoute(
+            path: '/crm',
+            name: 'crm',
+            builder: (_, _) => const CRMPage(),
+          ),
+          // ── Chat now inside ShellRoute for sidebar/header ──
+          GoRoute(
+            path: '/chat',
+            name: 'chat',
+            builder: (_, _) => const ChatPage(),
+          ),
         ],
-      ),
-      GoRoute(
-        path: '/chat',
-        name: 'chat',
-        builder: (_, _) => const ChatPage(),
       ),
     ],
   );

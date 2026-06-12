@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../shared/ds/components/z_empty_state.dart';
 import '../providers/product_provider.dart';
 
 final class ProductListPage extends ConsumerStatefulWidget {
@@ -67,7 +68,13 @@ final class _ProductListPageState extends ConsumerState<ProductListPage> {
                     ),
                     Expanded(
                       child: filtered.isEmpty
-                          ? Center(child: Text(_searchQuery.isNotEmpty ? 'Sin resultados' : 'No hay productos'))
+                          ? _searchQuery.isNotEmpty
+                              ? const ZEmptyState.search()
+                              : ZEmptyState.list(
+                                  itemType: 'productos',
+                                  actionLabel: 'Nuevo Producto',
+                                  onAction: () => context.push('/products/new'),
+                                )
                           : RefreshIndicator(
                               onRefresh: () => ref.read(productProvider.notifier).load(),
                               child: ListView.separated(

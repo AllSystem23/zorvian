@@ -96,7 +96,11 @@ class _EmployeeListPageState extends ConsumerState<EmployeeListPage> {
               value: state,
               builder: (state) {
                 return state.items.isEmpty
-                    ? const Center(child: Text('No hay empleados registrados'))
+                    ? ZEmptyState.list(
+                        itemType: 'empleados',
+                        actionLabel: 'Nuevo Empleado',
+                        onAction: () => context.push('/employees/new'),
+                      )
                     : RefreshIndicator(
                         onRefresh: () => ref.read(employeeProvider.notifier).load(),
                         child: ListView.separated(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../shared/ds/components/z_async_renderer.dart';
+import '../../../shared/ds/components/z_empty_state.dart';
 import '../providers/sale_provider.dart';
 
 final class SaleListPage extends ConsumerStatefulWidget {
@@ -53,7 +54,13 @@ final class _SaleListPageState extends ConsumerState<SaleListPage> {
             ),
             Expanded(
               child: items.isEmpty
-                  ? Center(child: Text(_searchCtrl.text.isNotEmpty ? 'Sin resultados' : 'No hay ventas'))
+                  ? _searchCtrl.text.isNotEmpty
+                      ? const ZEmptyState.search()
+                      : ZEmptyState.list(
+                          itemType: 'ventas',
+                          actionLabel: 'Nueva Venta',
+                          onAction: () => context.push('/sales/new'),
+                        )
                   : RefreshIndicator(
                       onRefresh: () => ref.read(saleProvider.notifier).load(),
                       child: ListView.separated(

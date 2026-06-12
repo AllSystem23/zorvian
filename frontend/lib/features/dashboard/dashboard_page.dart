@@ -252,40 +252,40 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         const SizedBox(height: 12),
         FocusTraversalGroup(
           child: Row(
-            children: [
-              Expanded(child: _KpiCard(
-                icon: Icons.people,
-                label: 'Activos',
-                value: '${kpis.activeEmployees}',
-                color: const Color(0xFF4F46E5),
-              )),
-              const SizedBox(width: 8),
-              Expanded(child: _KpiCard(
-                icon: Icons.pending_actions,
-                label: 'Pendientes',
-                value: '${kpis.pendingVacationRequests + kpis.pendingPermissionRequests}',
-                color: const Color(0xFFD97706),
-              )),
-            ],
+              children: [
+                Expanded(child: _KpiCard(
+                  icon: Icons.people,
+                  label: 'Activos',
+                  value: '${kpis.activeEmployees}',
+                  color: ZColors.brandPrimary,
+                )),
+                const SizedBox(width: 8),
+                Expanded(child: _KpiCard(
+                  icon: Icons.pending_actions,
+                  label: 'Pendientes',
+                  value: '${kpis.pendingVacationRequests + kpis.pendingPermissionRequests}',
+                  color: ZColors.warning,
+                )),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        FocusTraversalGroup(
-          child: Row(
-            children: [
-              Expanded(child: _KpiCard(
-                icon: Icons.cake,
-                label: 'Cumpleaños',
-                value: '${kpis.birthdaysThisMonth}',
-                color: const Color(0xFF0891B2),
-              )),
-              const SizedBox(width: 8),
-              Expanded(child: _KpiCard(
-                icon: Icons.work_history,
-                label: 'Aniversarios',
-                value: '${kpis.workAnniversariesThisMonth}',
-                color: const Color(0xFF059669),
-              )),
+          const SizedBox(height: 8),
+          FocusTraversalGroup(
+            child: Row(
+              children: [
+                Expanded(child: _KpiCard(
+                  icon: Icons.cake,
+                  label: 'Cumpleaños',
+                  value: '${kpis.birthdaysThisMonth}',
+                  color: ZColors.info,
+                )),
+                const SizedBox(width: 8),
+                Expanded(child: _KpiCard(
+                  icon: Icons.work_history,
+                  label: 'Aniversarios',
+                  value: '${kpis.workAnniversariesThisMonth}',
+                  color: ZColors.success,
+                )),
             ],
           ),
         ),
@@ -303,18 +303,18 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           child: ResponsiveGrid(
             spacing: 12,
             children: [
-              _NavCard(icon: Icons.people, label: 'Empleados', color: const Color(0xFF4F46E5), route: '/employees'),
-              _NavCard(icon: Icons.calendar_month, label: 'Calendario', color: const Color(0xFF0891B2), route: '/absence-calendar'),
+              _NavCard(icon: Icons.people, label: 'Empleados', color: ZColors.brandPrimary, route: '/employees'),
+              _NavCard(icon: Icons.calendar_month, label: 'Calendario', color: ZColors.info, route: '/absence-calendar'),
               _NavCard(icon: Icons.business, label: 'Dptos.', color: const Color(0xFF7C3AED), route: '/departments'),
-              _NavCard(icon: Icons.beach_access, label: 'Vacaciones', color: const Color(0xFFD97706), route: '/vacations'),
-              _NavCard(icon: Icons.description, label: 'Permisos', color: const Color(0xFFDC2626), route: '/permissions'),
-              _NavCard(icon: Icons.schedule, label: 'Asistencia', color: const Color(0xFF059669), route: '/attendance'),
+              _NavCard(icon: Icons.beach_access, label: 'Vacaciones', color: ZColors.warning, route: '/vacations'),
+              _NavCard(icon: Icons.description, label: 'Permisos', color: ZColors.danger, route: '/permissions'),
+              _NavCard(icon: Icons.schedule, label: 'Asistencia', color: ZColors.success, route: '/attendance'),
               _NavCard(icon: Icons.person, label: 'Perfil', color: const Color(0xFF9333EA), route: '/profile'),
-              _NavCard(icon: Icons.assessment, label: 'Reportes', color: const Color(0xFF0D9488), route: '/reports'),
-              _NavCard(icon: Icons.admin_panel_settings, label: 'Admin', color: const Color(0xFF1E293B), route: '/admin/users'),
-              _NavCard(icon: Icons.settings, label: 'Config.', color: const Color(0xFF64748B), route: '/settings'),
-              _NavCard(icon: Icons.receipt_long, label: 'Nómina', color: const Color(0xFF059669), route: '/payroll'),
-              _NavCard(icon: Icons.tablet, label: 'Kiosko', color: const Color(0xFF0891B2), route: '/attendance/kiosk'),
+              _NavCard(icon: Icons.assessment, label: 'Reportes', color: ZColors.brandTeal, route: '/reports'),
+              _NavCard(icon: Icons.admin_panel_settings, label: 'Admin', color: ZColors.neutral800, route: '/admin/users'),
+              _NavCard(icon: Icons.settings, label: 'Config.', color: ZColors.neutral600, route: '/settings'),
+              _NavCard(icon: Icons.receipt_long, label: 'Nómina', color: ZColors.success, route: '/payroll'),
+              _NavCard(icon: Icons.tablet, label: 'Kiosko', color: ZColors.info, route: '/attendance/kiosk'),
             ],
           ),
         ),
@@ -324,7 +324,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   Widget _buildRecentRequestTile(RecentRequestItem item) {
     final icon = item.requestType == 'vacacion' ? Icons.beach_access : Icons.description;
-    final color = item.requestType == 'vacacion' ? const Color(0xFFD97706) : const Color(0xFFDC2626);
+    final color = item.requestType == 'vacacion' ? ZColors.warning : ZColors.danger;
     return ZCard(
       child: ListTile(
         leading: Icon(icon, color: color),
@@ -344,10 +344,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   Widget _statusChip(String status) {
     final (label, color) = switch (status) {
-      'approved' => ('Aprobado', Colors.green),
-      'rejected' => ('Rechazado', Colors.red),
-      'pending' => ('Pendiente', Colors.orange),
-      _ => (status, Colors.grey),
+      'approved' => ('Aprobado', ZColors.success),
+      'rejected' => ('Rechazado', ZColors.danger),
+      'pending' => ('Pendiente', ZColors.warning),
+      _ => (status, ZColors.neutral500),
     };
     return Chip(label: Text(label, style: TextStyle(fontSize: 11, color: color)), materialTapTargetSize: MaterialTapTargetSize.shrinkWrap);
   }

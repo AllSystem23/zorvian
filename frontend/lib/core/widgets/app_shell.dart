@@ -7,6 +7,9 @@ import '../navigation/nav_provider.dart';
 import '../theme/theme_provider.dart';
 import 'responsive_layout.dart';
 import 'sidebar/sidebar.dart';
+import 'header/global_header.dart';
+import 'header/breadcrumbs_bar.dart';
+import 'header/mobile_bottom_nav.dart';
 
 final class AppShell extends ConsumerStatefulWidget {
   final Widget child;
@@ -82,7 +85,6 @@ final class _DesktopLayout extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final collapsed = ref.watch(sidebarCollapsedProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Material(
@@ -94,16 +96,38 @@ final class _DesktopLayout extends ConsumerWidget {
             width: 1,
             color: isDark ? ZColors.darkBorder.withValues(alpha: 0.5) : ZColors.border,
           ),
+          // ── Right Side: Header + Breadcrumbs + Content ──
           Expanded(
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              padding: EdgeInsets.fromLTRB(
-                ZSpacing.xl,
-                ZSpacing.xl,
-                ZSpacing.xl,
-                collapsed ? ZSpacing.xl : ZSpacing.lg,
-              ),
-              child: child,
+            child: Stack(
+              children: [
+                Column(
+                  children: [
+                    // ── Global Header ──
+                    const GlobalHeader(),
+                    // ── Breadcrumbs Bar ──
+                    const BreadcrumbBar(),
+                    // ── Page Content ──
+                    Expanded(
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        padding: EdgeInsets.fromLTRB(
+                          ZSpacing.xl,
+                          ZSpacing.lg,
+                          ZSpacing.xl,
+                          ZSpacing.lg,
+                        ),
+                        child: child,
+                      ),
+                    ),
+                  ],
+                ),
+                // ── Floating Quick Actions FAB ──
+                Positioned(
+                  bottom: ZSpacing.xl,
+                  right: ZSpacing.xl,
+                  child: ZQuickActionsFAB(currentRoute: location),
+                ),
+              ],
             ),
           ),
         ],
@@ -123,11 +147,77 @@ final class _MobileLayout extends ConsumerWidget {
     required this.child,
   });
 
+  /// Returns a contextual page title based on the current location
+  static String _getPageTitle(String location) {
+    const Map<String, String> titles = {
+      '/dashboard': 'Dashboard',
+      '/dashboard-v2': 'Dashboard',
+      '/executive-dashboard': 'Panel Ejecutivo',
+      '/employees': 'Empleados',
+      '/attendance': 'Asistencia',
+      '/payroll': 'Nómina',
+      '/vacations': 'Vacaciones',
+      '/permissions': 'Permisos',
+      '/departments': 'Departamentos',
+      '/clients': 'Clientes',
+      '/sales': 'Ventas',
+      '/quotes': 'Cotizaciones',
+      '/products': 'Productos',
+      '/categories': 'Categorías',
+      '/brands': 'Marcas',
+      '/suppliers': 'Proveedores',
+      '/purchases': 'Compras',
+      '/inventory-movements': 'Inventario',
+      '/inventory-adjustment': 'Ajuste Inventario',
+      '/credits': 'Créditos',
+      '/cash-registers': 'Caja',
+      '/warranties': 'Garantías',
+      '/providers': 'Prestadores',
+      '/budgets': 'Presupuestos',
+      '/cost-centers': 'Centros de Costo',
+      '/credit-notes': 'Notas de Crédito',
+      '/approval-pending': 'Aprobaciones',
+      '/exchange-rates': 'Tipo de Cambio',
+      '/custom-reports': 'Reportes',
+      '/webhooks': 'Webhooks',
+      '/documents': 'Documentos',
+      '/chat': 'Comunicación',
+      '/profile': 'Mi Perfil',
+      '/settings': 'Configuración',
+      '/audit-logs': 'Auditoría',
+      '/admin/users': 'Usuarios',
+      '/bi/executive': 'BI Ejecutivo',
+      '/bi/financial': 'BI Financiero',
+      '/bi/commercial': 'BI Comercial',
+      '/bi/operational': 'BI Operacional',
+      '/accounting/trial-balance': 'Balance de Prueba',
+      '/accounting/income-statement': 'Estado de Resultados',
+      '/accounting/chart-of-accounts': 'Catálogo de Cuentas',
+      '/accounting/entries': 'Asientos Contables',
+      '/accounting/periods': 'Periodos Contables',
+      '/treasury/checks': 'Cheques',
+      '/treasury/transfers': 'Transferencias',
+      '/treasury/deposits': 'Depósitos',
+      '/goals/dashboard': 'Metas',
+      '/absence-calendar': 'Calendario',
+    };
+
+    // Try exact match first, then prefix match
+    return titles[location] ??
+        titles.entries
+            .where((e) => location.startsWith(e.key))
+            .map((e) => e.value)
+            .firstOrNull ??
+        'Zorvian ERP';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final pageTitle = _getPageTitle(location);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Zorvian ERP'),
+        title: Text(pageTitle),
         leading: Builder(
           builder: (ctx) => IconButton(
             icon: const Icon(Icons.menu),
@@ -149,8 +239,9 @@ final class _MobileLayout extends ConsumerWidget {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => ref.read(authProvider.notifier).logout(),
+            icon: const Icon(Icons.person_outline),
+            tooltip: 'Perfil',
+            onPressed: () => context.push('/profile'),
           ),
         ],
       ),
@@ -159,6 +250,8 @@ final class _MobileLayout extends ConsumerWidget {
           child: ZorvianSidebar(role: role, location: location, shellRef: ref),
         ),
       ),
+      bottomNavigationBar: const MobileBottomNav(),
+      floatingActionButton: ZQuickActionsFAB(currentRoute: location),
       body: child,
     );
   }
