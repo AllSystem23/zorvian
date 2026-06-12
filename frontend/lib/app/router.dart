@@ -122,6 +122,10 @@ import '../features/documents/pages/document_center_page.dart';
 import '../features/documents/pages/template_editor_page.dart';
 import '../features/pos/pages/pos_page.dart';
 import '../features/crm/pages/crm_page.dart';
+import '../features/crm/pages/lead_detail_page.dart';
+import '../features/crm/pages/lead_form_page.dart';
+import '../features/crm/pages/opportunity_detail_page.dart';
+import '../features/crm/pages/opportunity_form_page.dart';
 
 final _routeRoles = <String, List<String>>{
   '/goals/configurator': ['SuperAdmin', 'CompanyAdmin'],
@@ -793,6 +797,32 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/crm',
             name: 'crm',
             builder: (_, _) => const CRMPage(),
+            routes: [
+              GoRoute(
+                path: 'leads/:leadId',
+                name: 'lead-detail',
+                builder: (_, state) => LeadDetailPage(leadId: state.pathParameters['leadId']!),
+                routes: [
+                  GoRoute(
+                    path: 'edit',
+                    name: 'lead-edit',
+                    builder: (_, state) => LeadFormPage(leadId: state.pathParameters['leadId']!),
+                  ),
+                ],
+              ),
+              GoRoute(
+                path: 'opportunities/:opportunityId',
+                name: 'opportunity-detail',
+                builder: (_, state) => OpportunityDetailPage(opportunityId: state.pathParameters['opportunityId']!),
+                routes: [
+                  GoRoute(
+                    path: 'edit',
+                    name: 'opportunity-edit',
+                    builder: (_, state) => OpportunityFormPage(opportunityId: state.pathParameters['opportunityId']!),
+                  ),
+                ],
+              ),
+            ],
           ),
           // ── Chat now inside ShellRoute for sidebar/header ──
           GoRoute(

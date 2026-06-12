@@ -85,6 +85,35 @@ class PipelineStage {
   }
 }
 
+class CrmActivity {
+  final String id;
+  final String leadId;
+  final String type;
+  final String subject;
+  final String? description;
+  final DateTime createdAt;
+
+  CrmActivity({
+    required this.id,
+    required this.leadId,
+    required this.type,
+    required this.subject,
+    this.description,
+    required this.createdAt,
+  });
+
+  factory CrmActivity.fromJson(Map<String, dynamic> json) {
+    return CrmActivity(
+      id: json['id'],
+      leadId: json['leadId'] ?? '',
+      type: json['type'] ?? 'note',
+      subject: json['subject'] ?? '',
+      description: json['description'],
+      createdAt: DateTime.parse(json['createdAt']),
+    );
+  }
+}
+
 class Opportunity {
   final String id;
   final String title;
@@ -97,6 +126,7 @@ class Opportunity {
   final String? stageName;
   final String status;
   final String priority;
+  final String? contactPhone;
   final String? leadId;
   final String? clientId;
   final String? clientName;
@@ -114,6 +144,7 @@ class Opportunity {
     this.stageName,
     required this.status,
     required this.priority,
+    this.contactPhone,
     this.leadId,
     this.clientId,
     this.clientName,
@@ -133,6 +164,7 @@ class Opportunity {
       stageName: json['stageName'],
       status: json['status'] ?? 'open',
       priority: json['priority'] ?? 'medium',
+      contactPhone: json['contactPhone'],
       leadId: json['leadId'],
       clientId: json['clientId'],
       clientName: json['clientName'],

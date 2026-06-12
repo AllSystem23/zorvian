@@ -46,7 +46,7 @@ class LeadNotifier extends Notifier<LeadState> {
     state = state.copyWith(loading: true, error: null);
     try {
       final dio = ref.read(dioClientProvider);
-      final response = await dio.get('zorvian/v1/crm/leads', queryParameters: {
+      final response = await dio.get('zorvian/v1/crm/leads', params: {
         'page': page,
         'status': status,
         'pageSize': 20,
@@ -80,6 +80,30 @@ class LeadNotifier extends Notifier<LeadState> {
       return true;
     } catch (e) {
       state = state.copyWith(error: 'Error creando prospecto: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateLead(String id, Map<String, dynamic> data) async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      await dio.put('zorvian/v1/crm/leads/$id', data: data);
+      await loadLeads();
+      return true;
+    } catch (e) {
+      state = state.copyWith(error: 'Error actualizando prospecto: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteLead(String id) async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      await dio.delete('zorvian/v1/crm/leads/$id');
+      await loadLeads();
+      return true;
+    } catch (e) {
+      state = state.copyWith(error: 'Error eliminando prospecto: $e');
       return false;
     }
   }

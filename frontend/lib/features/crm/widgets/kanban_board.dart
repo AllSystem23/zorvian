@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../shared/ds/ds.dart';
 import '../models/crm_models.dart';
 import '../providers/opportunities_provider.dart';
@@ -48,7 +49,7 @@ class _KanbanColumn extends ConsumerWidget {
     final color = Color(int.parse(stage.color.replaceAll('#', '0xFF')));
 
     return DragTarget<Opportunity>(
-      onWillAccept: (data) => data?.stageId != stage.id,
+      onWillAcceptWithDetails: (details) => details.data.stageId != stage.id,
       onAcceptWithDetails: (details) {
         final opportunity = details.data;
         ref.read(opportunitiesProvider.notifier).updateOpportunityStage(opportunity.id, stage.id);
@@ -120,24 +121,27 @@ class _OpportunityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LongPressDraggable<Opportunity>(
-      data: opportunity,
-      feedback: Transform.rotate(
-        angle: 0.05,
-        child: SizedBox(
-          width: 260,
-          child: Material(
-            elevation: 8,
-            borderRadius: BorderRadius.circular(ZRadii.lg),
-            child: _buildCardContent(),
+    return InkWell(
+      onTap: () => context.push('/crm/opportunities/${opportunity.id}'),
+      child: LongPressDraggable<Opportunity>(
+        data: opportunity,
+        feedback: Transform.rotate(
+          angle: 0.05,
+          child: SizedBox(
+            width: 260,
+            child: Material(
+              elevation: 8,
+              borderRadius: BorderRadius.circular(ZRadii.lg),
+              child: _buildCardContent(),
+            ),
           ),
         ),
-      ),
-      childWhenDragging: Opacity(
-        opacity: 0.3,
+        childWhenDragging: Opacity(
+          opacity: 0.3,
+          child: _buildCardContent(),
+        ),
         child: _buildCardContent(),
       ),
-      child: _buildCardContent(),
     );
   }
 

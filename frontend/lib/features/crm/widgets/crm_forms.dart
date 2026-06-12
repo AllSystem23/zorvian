@@ -18,7 +18,7 @@ class _AddLeadSheetState extends ConsumerState<AddLeadSheet> {
   final _companyController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
-  String _source = 'Web';
+  final String _source = 'Web';
 
   @override
   void dispose() {
@@ -85,7 +85,7 @@ class _AddLeadSheetState extends ConsumerState<AddLeadSheet> {
             ),
             const SizedBox(height: 20),
             ZButton(
-              label: 'Crear Prospecto',
+              text: 'Crear Prospecto',
               onPressed: _submit,
             ),
             const SizedBox(height: 20),
@@ -179,7 +179,7 @@ class _AddOpportunitySheetState extends ConsumerState<AddOpportunitySheet> {
             ),
             const SizedBox(height: 20),
             ZButton(
-              label: 'Crear Oportunidad',
+              text: 'Crear Oportunidad',
               onPressed: _submit,
             ),
             const SizedBox(height: 20),

@@ -83,16 +83,37 @@ class OpportunityNotifier extends Notifier<OpportunityState> {
   Future<bool> updateOpportunityStage(String opportunityId, String newStageId) async {
     try {
       final dio = ref.read(dioClientProvider);
-      // Actualizamos solo el stageId en el backend
       await dio.put('zorvian/v1/crm/opportunities/$opportunityId', data: {
         'stageId': newStageId,
       });
-      
-      // Recargamos localmente para sincronizar
       await loadPipeline();
       return true;
     } catch (e) {
       state = state.copyWith(error: 'Error al mover oportunidad: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateOpportunity(String id, Map<String, dynamic> data) async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      await dio.put('zorvian/v1/crm/opportunities/$id', data: data);
+      await loadPipeline();
+      return true;
+    } catch (e) {
+      state = state.copyWith(error: 'Error actualizando oportunidad: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteOpportunity(String id) async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      await dio.delete('zorvian/v1/crm/opportunities/$id');
+      await loadPipeline();
+      return true;
+    } catch (e) {
+      state = state.copyWith(error: 'Error eliminando oportunidad: $e');
       return false;
     }
   }

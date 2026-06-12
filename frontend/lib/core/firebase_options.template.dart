@@ -1,15 +1,20 @@
-// Renombrar este archivo a firebase_options.dart
-// y reemplazar los valores con los de tu proyecto Firebase.
-// Ejecutar: firebase apps:sdkconfig web --project <tu-proyecto>
-// Luego copiar el resultado aquí.
+// ══════════════════════════════════════════════════════════════
+// Firebase Configuration Template
+// ══════════════════════════════════════════════════════════════
+//
+// En CI/CD se genera automáticamente desde secrets de GitHub.
+// Para desarrollo local:
+//   dart run scripts/generate_firebase_config.dart
+//
+// ══════════════════════════════════════════════════════════════
 
 import 'package:firebase_core/firebase_core.dart';
 
 const firebaseOptions = FirebaseOptions(
-  apiKey: 'TU_API_KEY',
-  authDomain: 'TU_PROYECTO.firebaseapp.com',
-  projectId: 'TU_PROYECTO',
-  storageBucket: 'TU_PROYECTO.firebasestorage.app',
-  messagingSenderId: 'TU_SENDER_ID',
-  appId: 'TU_APP_ID',
+  apiKey: '__FIREBASE_API_KEY__',
+  authDomain: '__FIREBASE_AUTH_DOMAIN__',
+  projectId: '__FIREBASE_PROJECT_ID__',
+  storageBucket: '__FIREBASE_STORAGE_BUCKET__',
+  messagingSenderId: '__FIREBASE_MESSAGING_SENDER_ID__',
+  appId: '__FIREBASE_APP_ID__',
 );

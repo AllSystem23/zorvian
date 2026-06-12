@@ -1,6 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
 
+/// @deprecated Use leadsProvider and opportunitiesProvider instead.
+/// This legacy provider uses the old 'clients' API endpoints.
+/// Kept for reference; not used by any current widget.
+///
 /// CRM Contact — Represents a client or lead with relationship data
 class CrmContact {
   final String id;

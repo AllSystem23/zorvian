@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../shared/ds/ds.dart';
 import '../providers/leads_provider.dart';
 import '../providers/opportunities_provider.dart';
+import '../widgets/crm_forms.dart';
 import '../widgets/kanban_board.dart';
 import '../widgets/leads_view.dart';
 
@@ -62,17 +62,22 @@ class _CRMPageState extends ConsumerState<CRMPage> with SingleTickerProviderStat
           LeadsView(),
         ],
       ),
-      floatingActionButton: ZQuickActionsFab(
-        actions: [
-          ZQuickAction(
-            icon: Icons.person_add_alt_1_outlined,
-            text: 'Nuevo Lead',
-            onTap: () => _showAddLeadSheet(context),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          FloatingActionButton.small(
+            heroTag: 'fab_lead',
+            onPressed: () => _showAddLeadSheet(context),
+            tooltip: 'Nuevo Lead',
+            child: const Icon(Icons.person_add_alt_1_outlined),
           ),
-          ZQuickAction(
-            icon: Icons.add_chart_outlined,
-            text: 'Nueva Oportunidad',
-            onTap: () => _showAddOpportunitySheet(context),
+          const SizedBox(height: 12),
+          FloatingActionButton.small(
+            heroTag: 'fab_opportunity',
+            onPressed: () => _showAddOpportunitySheet(context),
+            tooltip: 'Nueva Oportunidad',
+            child: const Icon(Icons.add_chart_outlined),
           ),
         ],
       ),
