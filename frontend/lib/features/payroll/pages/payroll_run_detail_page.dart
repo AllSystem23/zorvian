@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../core/error/error_notifier.dart';
+import '../../../core/widgets/responsive_layout.dart';
 import '../providers/payroll_provider.dart';
 import '../../../shared/ds/ds.dart';
 
@@ -38,22 +39,91 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final details = (_run?['details'] as List<dynamic>? ?? []);
 
     return Scaffold(
+      backgroundColor: isDark ? ZColors.darkBackground : ZColors.neutral50,
       appBar: AppBar(title: Text(_run?['periodName'] ?? 'Corrida de Nómina')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _run == null
               ? const Center(child: Text('Corrida no encontrada'))
-              : ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    _buildSummary(theme),
-                    const SizedBox(height: 24),
-                    Text('Detalle por Empleado', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 12),
-                    ...(_run!['details'] as List<dynamic>? ?? []).map((d) => _buildDetailCard(d, theme)),
-                  ],
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSummary(),
+                      // ── Actions ──
+                      if (_run!['status'] == 'draft' || _run!['status'] == 'approved') ...[
+                        const SizedBox(height: 16),
+                        ZCard(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              if (_run!['status'] == 'draft')
+                                Expanded(child: ZButton(text: 'Aprobar Nómina', onPressed: _approve, icon: Icons.check)),
+                              if (_isAdmin && _run!['status'] == 'draft') ...[
+                                const SizedBox(width: 8),
+                                Expanded(child: ZButton(text: 'Eliminar', onPressed: () => _confirmDelete(context), type: ZButtonType.danger, icon: Icons.delete_outline)),
+                              ],
+                              if (_run!['status'] == 'approved') ...[
+                                Expanded(child: ZButton(text: 'Marcar Pagado', onPressed: () => _confirmMarkAsPaid(context), icon: Icons.check_circle_outline, type: ZButtonType.secondary)),
+                                const SizedBox(width: 8),
+                                Expanded(child: ZButton(text: 'Anular', onPressed: () => _confirmCancel(context), icon: Icons.cancel, type: ZButtonType.danger)),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 32),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Detalle por Empleado', style: ZTypography.titleLarge),
+                          if (_run!['status'] == 'approved')
+                            ZButton(
+                              text: 'Exportar ACH',
+                              onPressed: _exportAch,
+                              icon: Icons.download,
+                              type: ZButtonType.secondary,
+                              fullWidth: false,
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        height: 500,
+                        child: ZDataTable<dynamic>(
+                          columns: const [
+                            ZColumn(id: 'name', label: 'Empleado'),
+                            ZColumn(id: 'salary', label: 'Salario Base', numeric: true),
+                            ZColumn(id: 'inss', label: 'INSS', numeric: true),
+                            ZColumn(id: 'ir', label: 'IR', numeric: true),
+                            ZColumn(id: 'net', label: 'Neto', numeric: true),
+                          ],
+                          rows: details,
+                          rowMapper: (d) => DataRow(cells: [
+                            DataCell(Text(d['employeeName'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600))),
+                            DataCell(Text('C\$ ${(d['baseSalary'] as num?)?.toStringAsFixed(2) ?? '0.00'}')),
+                            DataCell(Text('C\$ ${(d['inssDeduction'] as num?)?.toStringAsFixed(2) ?? '0.00'}')),
+                            DataCell(Text('C\$ ${(d['irDeduction'] as num?)?.toStringAsFixed(2) ?? '0.00'}')),
+                            DataCell(Row(
+                              children: [
+                                Text('C\$ ${(d['netPay'] as num?)?.toStringAsFixed(2) ?? '0.00'}', style: const TextStyle(fontWeight: FontWeight.bold, color: ZColors.brandPrimary)),
+                                if (_run!['status'] == 'draft')
+                                  IconButton(
+                                    icon: const Icon(Icons.edit, size: 16),
+                                    onPressed: () => _editDetail(d),
+                                  ),
+                              ],
+                            )),
+                          ]),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
     );
   }
@@ -63,215 +133,40 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
     return role == 'SuperAdmin' || role == 'CompanyAdmin';
   }
 
-  Widget _buildSummary(ThemeData theme) {
+  Widget _buildSummary() {
     final status = _run!['status'] as String? ?? 'draft';
-    final (label, color) = switch (status) {
-      'draft' => ('Borrador', Colors.grey),
-      'approved' => ('Aprobado', Colors.green),
-      'paid' => ('Pagado', Colors.blue),
-      'cancelled' => ('Cancelado', Colors.red),
-      _ => (status, Colors.grey),
+    final (label, variant) = switch (status) {
+      'draft' => ('Borrador', ZStatVariant.neutral),
+      'approved' => ('Aprobado', ZStatVariant.info),
+      'paid' => ('Pagado', ZStatVariant.success),
+      'cancelled' => ('Cancelado', ZStatVariant.danger),
+      _ => (status, ZStatVariant.neutral),
     };
 
-    return ZCard(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Resumen', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
-                Chip(label: Text(label, style: TextStyle(fontSize: 11, color: color)), materialTapTargetSize: MaterialTapTargetSize.shrinkWrap),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildSummaryRow('Salarios', 'C\$ ${_run!["totalSalaries"]?.toStringAsFixed(2) ?? "0.00"}'),
-            _buildSummaryRow('Deducciones', '- C\$ ${_run!["totalDeductions"]?.toStringAsFixed(2) ?? "0.00"}'),
-            const Divider(),
-            _buildSummaryRow('Neto a Pagar', 'C\$ ${_run!["totalNetPay"]?.toStringAsFixed(2) ?? "0.00"}', bold: true),
-            const SizedBox(height: 8),
-            _buildSummaryRow('Empleados', '${_run!["employeeCount"] ?? 0}'),
-            if (_run!['status'] == 'draft')
-              Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ZButton(
-                    text: 'Aprobar Nómina',
-                    onPressed: _approve,
-                    icon: Icons.check,
-                  ),
-                ),
-              ),
-            if (_isAdmin && _run!['status'] != 'cancelled')
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Row(
-                  children: [
-                    if (_run!['status'] == 'draft')
-                      Expanded(
-                        child: ZButton(
-                          text: 'Eliminar',
-                          onPressed: () => _confirmDelete(context),
-                          icon: Icons.delete_outline,
-                          type: ZButtonType.secondary,
-                          fullWidth: false,
-                        ),
-                      ),
-                    if (_run!['status'] == 'approved')
-                      Expanded(
-                        child: ZButton(
-                          text: 'Marcar Pagado',
-                          onPressed: () => _confirmMarkAsPaid(context),
-                          icon: Icons.check_circle_outline,
-                          type: ZButtonType.secondary,
-                          fullWidth: false,
-                        ),
-                      ),
-                    if (_run!['status'] != 'draft' && _run!['status'] != 'cancelled')
-                      Expanded(
-                        child: ZButton(
-                          text: 'Anular',
-                          onPressed: () => _confirmCancel(context),
-                          icon: Icons.cancel,
-                          type: ZButtonType.secondary,
-                          fullWidth: false,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            if (_run!['status'] == 'approved')
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: ZButton(
-                        text: 'Marcar Pagado',
-                        onPressed: () => _confirmMarkAsPaid(context),
-                        icon: Icons.check_circle_outline,
-                        type: ZButtonType.secondary,
-                        fullWidth: false,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: ZButton(
-                        text: 'Exportar ACH',
-                        onPressed: _exportAch,
-                        icon: Icons.download,
-                        type: ZButtonType.secondary,
-                        fullWidth: false,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        ),
-    );
-  }
-
-  Widget _buildSummaryRow(String label, String value, {bool bold = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: TextStyle(fontWeight: bold ? FontWeight.bold : FontWeight.normal, fontSize: 14)),
-          Text(value, style: TextStyle(fontWeight: bold ? FontWeight.bold : FontWeight.normal, fontSize: 14)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailCard(dynamic d, ThemeData theme) {
-    final isDraft = _run!['status'] == 'draft';
-    return ZCard(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                Icon(Icons.person, size: 18, color: theme.colorScheme.primary),
-                const SizedBox(width: 8),
-                Text(d['employeeName'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
-                const Spacer(),
-                if (_isAdmin && isDraft)
-                  IconButton(
-                    icon: Icon(Icons.edit, size: 16, color: theme.colorScheme.primary),
-                    onPressed: () => _editDetail(d),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                const SizedBox(width: 8),
-                Text('C\$ ${(d['netPay'] as num?)?.toStringAsFixed(2) ?? '0.00'}', style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(child: Text('Salario: C\$ ${(d['baseSalary'] as num?)?.toStringAsFixed(2) ?? '0.00'}', style: const TextStyle(fontSize: 12))),
-                Expanded(child: Text('INSS: C\$ ${(d['inssDeduction'] as num?)?.toStringAsFixed(2) ?? '0.00'}', style: const TextStyle(fontSize: 12))),
-              ],
-            ),
-            Row(
-              children: [
-                Expanded(child: Text('IR: C\$ ${(d['irDeduction'] as num?)?.toStringAsFixed(2) ?? '0.00'}', style: const TextStyle(fontSize: 12))),
-                Expanded(child: Text('Ded. total: C\$ ${(d['totalDeductions'] as num?)?.toStringAsFixed(2) ?? '0.00'}', style: const TextStyle(fontSize: 12))),
-              ],
-            ),
+            Text('Resumen de Nómina', style: ZTypography.titleLarge),
+            ZBadge(text: label.toUpperCase(), type: ZBadgeType.neutral),
           ],
         ),
-    );
-  }
-
-  Future<void> _editDetail(dynamic d) async {
-    final grossCtrl = TextEditingController(text: (d['grossPay'] as num?)?.toStringAsFixed(2) ?? '');
-    final inssCtrl = TextEditingController(text: (d['inssDeduction'] as num?)?.toStringAsFixed(2) ?? '');
-    final irCtrl = TextEditingController(text: (d['irDeduction'] as num?)?.toStringAsFixed(2) ?? '');
-    final otherCtrl = TextEditingController(text: (d['otherDeductions'] as num?)?.toStringAsFixed(2) ?? '');
-
-    final result = await ZModal.show<bool>(context,
-      title: d['employeeName'] ?? '',
-      confirmText: 'Guardar',
-      cancelText: 'Cancelar',
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        const SizedBox(height: 16),
+        ResponsiveGrid(
+          mobileColumns: 1,
+          tabletColumns: 2,
+          desktopColumns: 4,
           children: [
-            ZTextField(controller: grossCtrl, label: 'Sueldo bruto', keyboardType: TextInputType.number),
-            const SizedBox(height: 8),
-            ZTextField(controller: inssCtrl, label: 'INSS', keyboardType: TextInputType.number),
-            const SizedBox(height: 8),
-            ZTextField(controller: irCtrl, label: 'IR', keyboardType: TextInputType.number),
-            const SizedBox(height: 8),
-            ZTextField(controller: otherCtrl, label: 'Otras deducciones', keyboardType: TextInputType.number),
+            ZStatCard(title: 'Salarios', value: 'C\$ ${_run!["totalSalaries"]?.toStringAsFixed(2) ?? "0.00"}', icon: Icons.attach_money_outlined, variant: ZStatVariant.neutral),
+            ZStatCard(title: 'Deducciones', value: '- C\$ ${_run!["totalDeductions"]?.toStringAsFixed(2) ?? "0.00"}', icon: Icons.money_off_outlined, variant: ZStatVariant.danger),
+            ZStatCard(title: 'Neto a Pagar', value: 'C\$ ${_run!["totalNetPay"]?.toStringAsFixed(2) ?? "0.00"}', icon: Icons.payments_outlined, variant: ZStatVariant.success),
+            ZStatCard(title: 'Empleados', value: '${_run!["employeeCount"] ?? 0}', icon: Icons.people_outline, variant: ZStatVariant.info),
           ],
         ),
-      ),
+      ],
     );
-    if (result != true) return;
-
-    try {
-      final svc = ref.read(payrollServiceProvider);
-      await svc.updateDetail(d['id'], {
-        'grossPay': double.tryParse(grossCtrl.text),
-        'inssDeduction': double.tryParse(inssCtrl.text),
-        'irDeduction': double.tryParse(irCtrl.text),
-        'otherDeductions': double.tryParse(otherCtrl.text),
-      });
-      if (mounted) {
-        ref.read(errorNotifierProvider.notifier).showInfo('Detalle actualizado');
-        _load();
-      }
-    } catch (e) {
-      if (mounted) ref.read(errorNotifierProvider.notifier).showError('Error al actualizar');
-    }
   }
 
   Future<void> _approve() async {
@@ -359,6 +254,50 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
       if (mounted) ref.read(errorNotifierProvider.notifier).showInfo('Archivo ACH descargado');
     } catch (e) {
       if (mounted) ref.read(errorNotifierProvider.notifier).showError('Error al exportar ACH');
+    }
+  }
+
+  Future<void> _editDetail(dynamic d) async {
+    final grossCtrl = TextEditingController(text: (d['grossPay'] as num?)?.toStringAsFixed(2) ?? '');
+    final inssCtrl = TextEditingController(text: (d['inssDeduction'] as num?)?.toStringAsFixed(2) ?? '');
+    final irCtrl = TextEditingController(text: (d['irDeduction'] as num?)?.toStringAsFixed(2) ?? '');
+    final otherCtrl = TextEditingController(text: (d['otherDeductions'] as num?)?.toStringAsFixed(2) ?? '');
+
+    final result = await ZModal.show<bool>(context,
+      title: d['employeeName'] ?? '',
+      confirmText: 'Guardar',
+      cancelText: 'Cancelar',
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ZTextField(controller: grossCtrl, label: 'Sueldo bruto', keyboardType: TextInputType.number),
+            const SizedBox(height: 8),
+            ZTextField(controller: inssCtrl, label: 'INSS', keyboardType: TextInputType.number),
+            const SizedBox(height: 8),
+            ZTextField(controller: irCtrl, label: 'IR', keyboardType: TextInputType.number),
+            const SizedBox(height: 8),
+            ZTextField(controller: otherCtrl, label: 'Otras deducciones', keyboardType: TextInputType.number),
+          ],
+        ),
+      ),
+    );
+    if (result != true) return;
+
+    try {
+      final svc = ref.read(payrollServiceProvider);
+      await svc.updateDetail(d['id'], {
+        'grossPay': double.tryParse(grossCtrl.text),
+        'inssDeduction': double.tryParse(inssCtrl.text),
+        'irDeduction': double.tryParse(irCtrl.text),
+        'otherDeductions': double.tryParse(otherCtrl.text),
+      });
+      if (mounted) {
+        ref.read(errorNotifierProvider.notifier).showInfo('Detalle actualizado');
+        _load();
+      }
+    } catch (e) {
+      if (mounted) ref.read(errorNotifierProvider.notifier).showError('Error al actualizar');
     }
   }
 }

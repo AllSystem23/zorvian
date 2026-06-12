@@ -9,6 +9,7 @@ final class SidebarItem extends ConsumerWidget {
   final NavItem item;
   final bool selected;
   final bool collapsed;
+  final Color? moduleColor;
   final VoidCallback? onTap;
 
   const SidebarItem({
@@ -16,6 +17,7 @@ final class SidebarItem extends ConsumerWidget {
     required this.item,
     required this.selected,
     this.collapsed = false,
+    this.moduleColor,
     this.onTap,
   });
 
@@ -26,16 +28,15 @@ final class SidebarItem extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
     final badges = ref.watch(sidebarBadgesProvider);
     final badge = item.badgeRef.isNotEmpty ? (badges[item.badgeRef] ?? 0) : 0;
+    final modColor = moduleColor ?? ZColors.brandAccent;
 
     final bgColor = selected
-        ? (isDark ? ZColors.brandAccent.withValues(alpha: 0.15) : ZColors.brandAccent.withValues(alpha: 0.12))
+        ? modColor.withValues(alpha: isDark ? 0.15 : 0.12)
         : Colors.transparent;
 
     final fgColor = selected
-        ? (isDark ? ZColors.brandAccent : ZColors.brandPrimary)
+        ? modColor
         : (isDark ? ZColors.neutral300 : ZColors.neutral600);
-
-    final borderRadius = ZRadii.lg;
 
     return Padding(
       padding: EdgeInsets.symmetric(
@@ -46,11 +47,9 @@ final class SidebarItem extends ConsumerWidget {
         message: collapsed ? item.label : '',
         waitDuration: const Duration(milliseconds: 600),
         child: Semantics(
-          label: item.label,
-          button: true,
-          selected: selected,
+          label: item.label, button: true, selected: selected,
           child: InkWell(
-            borderRadius: BorderRadius.circular(borderRadius),
+            borderRadius: BorderRadius.circular(ZRadii.lg),
             onTap: onTap ?? () {
               ref.read(recentItemsProvider.notifier).add(item.route);
               context.go(item.route);
@@ -66,14 +65,40 @@ final class SidebarItem extends ConsumerWidget {
               ),
               decoration: BoxDecoration(
                 color: bgColor,
-                borderRadius: BorderRadius.circular(borderRadius),
+                borderRadius: BorderRadius.circular(ZRadii.lg),
               ),
               child: collapsed
-                  ? Center(
-                      child: Icon(item.icon, size: 20, color: fgColor),
+                  ? Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Center(child: Icon(item.icon, size: 20, color: fgColor)),
+                        if (badge > 0)
+                          Positioned(
+                            top: -2, right: -2,
+                            child: Container(
+                              width: 16, height: 16,
+                              decoration: BoxDecoration(
+                                color: ZColors.danger,
+                                borderRadius: BorderRadius.circular(ZRadii.full),
+                              ),
+                              child: Center(
+                                child: Text('$badge', style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w700)),
+                              ),
+                            ),
+                          ),
+                      ],
                     )
                   : Row(
                       children: [
+                        // Color indicator dot
+                        Container(
+                          width: 4, height: 4,
+                          decoration: BoxDecoration(
+                            color: selected ? modColor : ZColors.neutral300,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: ZSpacing.sm),
                         Icon(item.icon, size: 20, color: fgColor),
                         const SizedBox(width: ZSpacing.md),
                         Expanded(
@@ -93,14 +118,7 @@ final class SidebarItem extends ConsumerWidget {
                               color: ZColors.danger.withValues(alpha: 0.9),
                               borderRadius: BorderRadius.circular(ZRadii.full),
                             ),
-                            child: Text(
-                              '$badge',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
+                            child: Text('$badge', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700)),
                           ),
                         const SizedBox(width: 4),
                         GestureDetector(
@@ -143,12 +161,7 @@ final class SidebarSearchTile extends ConsumerWidget {
               children: [
                 Icon(Icons.search, size: 16, color: isDark ? ZColors.neutral400 : ZColors.neutral500),
                 const SizedBox(width: ZSpacing.sm),
-                Text(
-                  'Buscar...',
-                  style: ZTypography.bodySmall.copyWith(
-                    color: isDark ? ZColors.neutral400 : ZColors.neutral500,
-                  ),
-                ),
+                Text('Buscar...', style: ZTypography.bodySmall.copyWith(color: isDark ? ZColors.neutral400 : ZColors.neutral500)),
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
@@ -156,12 +169,7 @@ final class SidebarSearchTile extends ConsumerWidget {
                     border: Border.all(color: isDark ? ZColors.neutral600 : ZColors.neutral300),
                     borderRadius: BorderRadius.circular(ZRadii.xs),
                   ),
-                  child: Text(
-                    '⌘K',
-                    style: ZTypography.labelSmall.copyWith(
-                      color: isDark ? ZColors.neutral400 : ZColors.neutral500,
-                    ),
-                  ),
+                  child: Text('⌘K', style: ZTypography.labelSmall.copyWith(color: isDark ? ZColors.neutral400 : ZColors.neutral500)),
                 ),
               ],
             ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../shared/ds/ds.dart';
+import '../../../core/widgets/responsive_layout.dart';
 import '../models/document_models.dart';
 import '../providers/document_provider.dart';
 
@@ -37,15 +38,12 @@ class _DocumentCenterPageState extends ConsumerState<DocumentCenterPage>
     final state = ref.watch(documentProvider);
 
     return Scaffold(
+      backgroundColor: Theme.of(context).brightness == Brightness.dark ? ZColors.darkBackground : ZColors.neutral50,
       appBar: AppBar(
-        title: Row(
-          children: [
-            const Icon(Icons.description_outlined, size: 22),
-            const SizedBox(width: 8),
-            const Text('Motor Documental'),
-          ],
-        ),
+        title: const Text('Centro Documental'),
         actions: [
+          IconButton(icon: const Icon(Icons.search), onPressed: () => ZCommandPalette.show(context)),
+          const SizedBox(width: 8),
           FilledButton.icon(
             icon: const Icon(Icons.add, size: 18),
             label: const Text('Nueva Plantilla'),
@@ -56,8 +54,8 @@ class _DocumentCenterPageState extends ConsumerState<DocumentCenterPage>
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
-            Tab(icon: Icon(Icons.library_books_outlined, size: 18), text: 'Plantillas'),
-            Tab(icon: Icon(Icons.folder_open_outlined, size: 18), text: 'Documentos Generados'),
+            Tab(text: 'Plantillas'),
+            Tab(text: 'Documentos Generados'),
           ],
         ),
       ),
@@ -75,60 +73,17 @@ class _DocumentCenterPageState extends ConsumerState<DocumentCenterPage>
 }
 
 // ── Tab 1: Template Library ──
-
 class _TemplateLibraryTab extends StatelessWidget {
   final List<DocumentTemplate> templates;
-
   const _TemplateLibraryTab({required this.templates});
 
   @override
   Widget build(BuildContext context) {
-    if (templates.isEmpty) {
-      return const ZEmptyState(
-        icon: Icons.library_books_outlined,
-        title: 'Sin Plantillas',
-        subtitle: 'Crea tu primera plantilla documental para comenzar.',
-      );
-    }
-
-    final grouped = <String, List<DocumentTemplate>>{};
-    for (final t in templates) {
-      grouped.putIfAbsent(t.category, () => []).add(t);
-    }
-
+    if (templates.isEmpty) return const ZEmptyState(icon: Icons.library_books_outlined, title: 'Sin Plantillas');
+    
     return ListView(
       padding: const EdgeInsets.all(24),
-      children: [
-        for (final entry in grouped.entries) ...[
-          _CategoryHeader(label: entry.key.categoryLabel),
-          const SizedBox(height: 12),
-          ...entry.value.map((t) => _TemplateTile(template: t)),
-          const SizedBox(height: 24),
-        ],
-      ],
-    );
-  }
-}
-
-class _CategoryHeader extends StatelessWidget {
-  final String label;
-  const _CategoryHeader({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(
-          label.toUpperCase(),
-          style: ZTypography.labelSmall.copyWith(
-            color: ZColors.neutral500,
-            letterSpacing: 1.2,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(child: Divider(color: ZColors.neutral200)),
-      ],
+      children: templates.map((t) => _TemplateTile(template: t)).toList(),
     );
   }
 }
@@ -140,34 +95,20 @@ class _TemplateTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return ZCard(
+      margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
-        leading: _categoryIcon(template.category),
+        leading: Icon(Icons.description_outlined, color: ZColors.brandPrimary),
         title: Text(template.name, style: ZTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
         subtitle: Row(
           children: [
-            ZBadge(text: template.category.categoryLabel, type: _badgeType(template.category)),
+            ZBadge(text: template.category.toUpperCase(), type: ZBadgeType.neutral),
             const SizedBox(width: 8),
-            ZBadge(text: template.countryCode == 'ALL' ? 'Global' : template.countryCode),
-            if (template.version != null) ...[
-              const SizedBox(width: 8),
-              Text('v${template.version}', style: ZTypography.labelSmall.copyWith(color: ZColors.neutral400)),
-            ],
+            Text(template.countryCode, style: ZTypography.labelSmall),
           ],
         ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.edit_outlined, size: 18),
-              tooltip: 'Editar Plantilla',
-              onPressed: () => context.push('/documents/templates/${template.id}/edit'),
-            ),
-            IconButton(
-              icon: const Icon(Icons.play_circle_outline, size: 18, color: ZColors.brandAccent),
-              tooltip: 'Generar Documento',
-              onPressed: () => _generateDialog(context, ref),
-            ),
-          ],
+        trailing: IconButton(
+          icon: const Icon(Icons.play_circle_outline, color: ZColors.brandAccent),
+          onPressed: () => _generateDialog(context, ref),
         ),
       ),
     );
@@ -175,136 +116,67 @@ class _TemplateTile extends ConsumerWidget {
 
   void _generateDialog(BuildContext context, WidgetRef ref) {
     final entityCtrl = TextEditingController();
-    ZModal.show(context,
-      title: 'Generar Documento',
+    ZModal.show(context, title: 'Generar Documento',
+      child: Column(children: [
+        ZTextField(controller: entityCtrl, label: 'ID Entidad'),
+        const SizedBox(height: 16),
+        ZButton(text: 'Generar', onPressed: () async {
+          Navigator.pop(context);
+          await ref.read(documentProvider.notifier).quickGenerateForEmployee(entityCtrl.text.trim(), template.id);
+        })
+      ]),
+    );
+  }
+}
+
+// ── Tab 2: Generated Documents ──
+class _GeneratedDocumentsTab extends StatelessWidget {
+  final List<GeneratedDocument> documents;
+  const _GeneratedDocumentsTab({required this.documents});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Plantilla: ${template.name}', style: ZTypography.bodyMedium),
-          const SizedBox(height: 16),
-          ZTextField(controller: entityCtrl, label: 'ID del Empleado / Entidad'),
-          const SizedBox(height: 24),
-          ZButton(
-            text: 'GENERAR',
-            onPressed: () async {
-              if (entityCtrl.text.isEmpty) return;
-              Navigator.pop(context);
-              final error = await ref.read(documentProvider.notifier)
-                  .quickGenerateForEmployee(entityCtrl.text.trim(), template.id);
-              if (context.mounted) {
-                if (error == null) {
-                  ZToast.show(context, '✅ Documento generado y enviado a firma.');
-                } else {
-                  ZToast.show(context, error, type: ZToastType.error);
-                }
-              }
-            },
+          // Stat Overview
+          ResponsiveGrid(
+            mobileColumns: 1,
+            tabletColumns: 3,
+            desktopColumns: 3,
+            children: [
+              ZStatCard(title: 'Borradores', value: '${documents.where((d) => d.status == 'draft').length}', icon: Icons.edit_note),
+              ZStatCard(title: 'Pendientes de Firma', value: '${documents.where((d) => d.status == 'pending_signature').length}', icon: Icons.draw_outlined, variant: ZStatVariant.warning),
+              ZStatCard(title: 'Firmados', value: '${documents.where((d) => d.status == 'signed').length}', icon: Icons.verified_outlined, variant: ZStatVariant.success),
+            ],
+          ),
+          const SizedBox(height: 32),
+          Expanded(
+            child: ZDataTable<GeneratedDocument>(
+              columns: const [
+                ZColumn(id: 'name', label: 'Documento'),
+                ZColumn(id: 'type', label: 'Tipo'),
+                ZColumn(id: 'date', label: 'Fecha'),
+                ZColumn(id: 'status', label: 'Estado'),
+              ],
+              rows: documents,
+              rowMapper: (d) => DataRow(cells: [
+                DataCell(Text(d.name, style: const TextStyle(fontWeight: FontWeight.w600))),
+                DataCell(Text(d.entityType)),
+                DataCell(Text('${d.createdAt.day}/${d.createdAt.month}/${d.createdAt.year}')),
+                DataCell(ZBadge(text: d.status.toUpperCase(), type: _badgeType(d.status))),
+              ]),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _categoryIcon(String category) {
-    final (icon, color) = switch (category) {
-      'HR' => (Icons.badge_outlined, ZColors.brandAccent),
-      'Sales' => (Icons.point_of_sale_outlined, const Color(0xFF059669)),
-      'Legal' => (Icons.gavel_outlined, const Color(0xFFA855F7)),
-      'Finance' => (Icons.account_balance_outlined, const Color(0xFFD97706)),
-      _ => (Icons.description_outlined, ZColors.neutral500),
-    };
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Icon(icon, color: color, size: 20),
-    );
-  }
-
-  ZBadgeType _badgeType(String category) => switch (category) {
-    'HR' => ZBadgeType.accent,
-    'Sales' => ZBadgeType.success,
-    'Legal' => ZBadgeType.info,
-    'Finance' => ZBadgeType.warning,
+  ZBadgeType _badgeType(String status) => switch (status) {
+    'signed' => ZBadgeType.success,
+    'pending_signature' => ZBadgeType.warning,
     _ => ZBadgeType.neutral,
   };
-}
-
-// ── Tab 2: Generated Documents ──
-
-class _GeneratedDocumentsTab extends StatelessWidget {
-  final List<GeneratedDocument> documents;
-
-  const _GeneratedDocumentsTab({required this.documents});
-
-  @override
-  Widget build(BuildContext context) {
-    if (documents.isEmpty) {
-      return const ZEmptyState(
-        icon: Icons.folder_open_outlined,
-        title: 'Sin Documentos Generados',
-        subtitle: 'Los documentos generados a través del motor aparecerán aquí.',
-      );
-    }
-
-    return ListView.separated(
-      padding: const EdgeInsets.all(24),
-      itemCount: documents.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 12),
-      itemBuilder: (context, i) => _DocumentTile(document: documents[i]),
-    );
-  }
-}
-
-class _DocumentTile extends StatelessWidget {
-  final GeneratedDocument document;
-
-  const _DocumentTile({required this.document});
-
-  @override
-  Widget build(BuildContext context) {
-    final (statusColor, statusIcon) = switch (document.status) {
-      'draft' => (ZColors.neutral400, Icons.edit_note),
-      'pending_signature' => (const Color(0xFFD97706), Icons.draw_outlined),
-      'signed' => (const Color(0xFF059669), Icons.verified_outlined),
-      'archived' => (ZColors.neutral500, Icons.archive_outlined),
-      _ => (ZColors.neutral400, Icons.description),
-    };
-
-    return ZCard(
-      child: ListTile(
-        leading: Icon(statusIcon, color: statusColor, size: 28),
-        title: Text(document.name, style: ZTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                ZBadge(text: document.status.statusLabel, type: ZBadgeType.neutral),
-                const SizedBox(width: 8),
-                Text(document.entityType, style: ZTypography.labelSmall.copyWith(color: ZColors.neutral500)),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Creado: ${document.createdAt.day}/${document.createdAt.month}/${document.createdAt.year}',
-              style: ZTypography.labelSmall.copyWith(color: ZColors.neutral400),
-            ),
-          ],
-        ),
-        trailing: document.status == 'pending_signature'
-            ? ZButton(
-                text: 'Enviar',
-                onPressed: () {},
-                type: ZButtonType.secondary,
-              )
-            : null,
-        //isThreeLine: true,
-      ),
-    );
-  }
 }

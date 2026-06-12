@@ -16,8 +16,13 @@ public sealed class EmailService : IEmailService
 
     public async Task SendEmailAsync(string to, string subject, string body, bool isHtml = true)
     {
+        var from = _config["EmailSettings:From"] ?? throw new InvalidOperationException("EmailSettings:From is missing");
+        var host = _config["EmailSettings:Host"] ?? throw new InvalidOperationException("EmailSettings:Host is missing");
+        var username = _config["EmailSettings:Username"] ?? throw new InvalidOperationException("EmailSettings:Username is missing");
+        var password = _config["EmailSettings:Password"] ?? throw new InvalidOperationException("EmailSettings:Password is missing");
+
         var email = new MimeMessage();
-        email.From.Add(MailboxAddress.Parse(_config["EmailSettings:From"]));
+        email.From.Add(MailboxAddress.Parse(from));
         email.To.Add(MailboxAddress.Parse(to));
         email.Subject = subject;
 
@@ -29,11 +34,11 @@ public sealed class EmailService : IEmailService
 
         using var smtp = new SmtpClient();
         await smtp.ConnectAsync(
-            _config["EmailSettings:Host"],
+            host,
             int.Parse(_config["EmailSettings:Port"] ?? "587"),
             MailKit.Security.SecureSocketOptions.StartTls);
 
-        await smtp.AuthenticateAsync(_config["EmailSettings:Username"], _config["EmailSettings:Password"]);
+        await smtp.AuthenticateAsync(username, password);
         await smtp.SendAsync(email);
         await smtp.DisconnectAsync(true);
     }

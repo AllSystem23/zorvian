@@ -12,6 +12,8 @@ class UserListPage extends ConsumerStatefulWidget {
 }
 
 class _UserListPageState extends ConsumerState<UserListPage> {
+  List<UserModel> _selectedUsers = [];
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(userProvider);
@@ -26,15 +28,57 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                 value: state,
                 builder: (users) => ZDataTable<UserModel>(
                   columns: const [
-                    DataColumn(label: Text('Nombre')),
-                    DataColumn(label: Text('Email')),
-                    DataColumn(label: Text('Activo')),
+                    ZColumn(id: 'name', label: 'Nombre'),
+                    ZColumn(id: 'email', label: 'Email'),
+                    ZColumn(id: 'active', label: 'Estado'),
                   ],
                   rows: users,
+                  selectionEnabled: true,
+                  onSelectionChanged: (selected) {
+                    setState(() => _selectedUsers = selected);
+                  },
+                  bulkActions: [
+                    TextButton.icon(
+                      onPressed: () {
+                        debugPrint('Activando ${_selectedUsers.length} usuarios');
+                      },
+                      icon: const Icon(Icons.check_circle_outline, size: 18),
+                      label: const Text('Activar'),
+                    ),
+                    TextButton.icon(
+                      onPressed: () {},
+                      icon: const Icon(Icons.block_outlined, size: 18, color: ZColors.danger),
+                      label: const Text('Desactivar', style: TextStyle(color: ZColors.danger)),
+                    ),
+                    TextButton.icon(
+                      onPressed: () {},
+                      icon: const Icon(Icons.delete_outline, size: 18, color: ZColors.danger),
+                      label: const Text('Eliminar', style: TextStyle(color: ZColors.danger)),
+                    ),
+                  ],
+                  expandedRowBuilder: (user) => Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      children: [
+                        CircleAvatar(child: Text(user.displayName[0])),
+                        const SizedBox(width: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('ID: ${user.id}', style: ZTypography.labelSmall),
+                            Text('Última conexión: Hace 2 horas', style: ZTypography.labelSmall),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                   rowMapper: (item) => DataRow(cells: [
-                    DataCell(Text(item.displayName)),
+                    DataCell(Text(item.displayName, style: const TextStyle(fontWeight: FontWeight.w600))),
                     DataCell(Text(item.email)),
-                    DataCell(Icon(item.isActive ? Icons.check_circle : Icons.cancel, color: item.isActive ? ZColors.success : ZColors.danger)),
+                    DataCell(ZBadge(
+                      text: item.isActive ? 'ACTIVO' : 'INACTIVO',
+                      type: item.isActive ? ZBadgeType.success : ZBadgeType.danger,
+                    )),
                   ]),
                 ),
               ),

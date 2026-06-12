@@ -66,6 +66,7 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<EmployeeBankAccount> EmployeeBankAccounts => Set<EmployeeBankAccount>();
     public DbSet<Invitation> Invitations => Set<Invitation>();
     public DbSet<Collaborator> Collaborators => Set<Collaborator>();
+    public DbSet<UserTenant> UserTenants => Set<UserTenant>();
 
     // New Module: Multisucursal
     public DbSet<Branch> Branches => Set<Branch>();
@@ -2298,6 +2299,16 @@ public sealed class ZorvianDbContext : DbContext
             e.Property(s => s.SignatureToken).HasMaxLength(255);
             e.HasOne(s => s.Document).WithMany(d => d.Signatures).HasForeignKey(s => s.DocumentId).OnDelete(DeleteBehavior.Cascade);
             e.HasQueryFilter(s => (s.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !s.IsDeleted);
+        });
+
+        builder.Entity<UserTenant>(e =>
+        {
+            e.HasKey(ut => new { ut.UserId, ut.TenantId });
+            e.Property(ut => ut.TenantId).HasMaxLength(50).IsRequired();
+            e.HasOne(ut => ut.User)
+                .WithMany()
+                .HasForeignKey(ut => ut.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 

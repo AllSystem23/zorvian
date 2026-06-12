@@ -45,11 +45,11 @@ class ProviderContractsPage extends ConsumerWidget {
                     ? ZEmptyState(icon: Icons.assignment, title: 'Sin contratos', subtitle: 'No hay contratos de servicios registrados.')
                     : ZDataTable<ServiceContract>(
                         columns: const [
-                          DataColumn(label: Text('Contrato #')),
-                          DataColumn(label: Text('Prestador')),
-                          DataColumn(label: Text('Monto')),
-                          DataColumn(label: Text('Estado')),
-                          DataColumn(label: Text('Acciones')),
+                          ZColumn(id: 'contract', label: 'Contrato #'),
+                          ZColumn(id: 'provider', label: 'Prestador'),
+                          ZColumn(id: 'amount', label: 'Monto', numeric: true),
+                          ZColumn(id: 'status', label: 'Estado'),
+                          ZColumn(id: 'actions', label: ''),
                         ],
                         rows: contracts,
                         rowMapper: (c) => DataRow(cells: [

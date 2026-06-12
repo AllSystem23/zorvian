@@ -28,7 +28,6 @@ final class SidebarSection extends ConsumerWidget {
     final isSearching = searchQuery.isNotEmpty;
     final hasActiveChild = module.children.any((item) => location.startsWith(item.route));
 
-    // Auto-expand on search
     if (isSearching && !isExpanded) {
       ref.read(expandedModulesProvider.notifier).expand(module.id);
     }
@@ -38,7 +37,6 @@ final class SidebarSection extends ConsumerWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // ── Section Header (always visible) ──
         _SectionHeader(
           module: module,
           collapsed: collapsed,
@@ -53,8 +51,6 @@ final class SidebarSection extends ConsumerWidget {
             }
           },
         ),
-
-        // ── Child Items (animated) ──
         if (!collapsed)
           AnimatedCrossFade(
             firstChild: const SizedBox.shrink(),
@@ -67,6 +63,7 @@ final class SidebarSection extends ConsumerWidget {
                   item: item,
                   selected: location.startsWith(item.route),
                   collapsed: false,
+                  moduleColor: module.color,
                 );
               }).toList(),
             ),
@@ -97,17 +94,17 @@ final class _SectionHeader extends StatelessWidget {
     required this.onTap,
   });
 
+  Color _moduleColor() => module.color;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final modColor = _moduleColor();
 
-    final baseColor = hasActiveChild
-        ? (isDark ? ZColors.brandAccent : ZColors.brandPrimary)
-        : (isDark ? ZColors.neutral400 : ZColors.neutral500);
-
+    final baseColor = hasActiveChild ? modColor : (isDark ? ZColors.neutral400 : ZColors.neutral500);
     final bgColor = hasActiveChild
-        ? (isDark ? ZColors.neutral700.withValues(alpha: 0.3) : ZColors.brandPrimary.withValues(alpha: 0.05))
+        ? modColor.withValues(alpha: isDark ? 0.15 : 0.08)
         : Colors.transparent;
 
     if (collapsed) {
@@ -115,8 +112,7 @@ final class _SectionHeader extends StatelessWidget {
         message: module.label,
         waitDuration: const Duration(milliseconds: 600),
         child: Semantics(
-          label: module.label,
-          button: true,
+          label: module.label, button: true,
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 2),
             child: InkWell(
@@ -127,26 +123,18 @@ final class _SectionHeader extends StatelessWidget {
                   : ZColors.neutral200.withValues(alpha: 0.5),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: ZSpacing.md, horizontal: ZSpacing.sm),
-                decoration: BoxDecoration(
-                  color: bgColor,
-                  borderRadius: BorderRadius.circular(ZRadii.lg),
-                ),
+                decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(ZRadii.lg)),
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    Center(
-                      child: Icon(module.icon, size: 20, color: baseColor),
-                    ),
-                    // ── Active indicator bar (left accent) ──
+                    Center(child: Icon(module.icon, size: 20, color: baseColor)),
                     if (hasActiveChild)
                       Positioned(
-                        left: 0,
-                        top: 6,
-                        bottom: 6,
+                        left: 0, top: 6, bottom: 6,
                         child: Container(
                           width: 3,
                           decoration: BoxDecoration(
-                            color: isDark ? ZColors.brandAccent : ZColors.brandPrimary,
+                            color: modColor,
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
@@ -163,8 +151,7 @@ final class _SectionHeader extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: ZSpacing.sm),
       child: Semantics(
-        label: module.label,
-        button: true,
+        label: module.label, button: true,
         child: InkWell(
           borderRadius: BorderRadius.circular(ZRadii.lg),
           onTap: onTap,
@@ -172,16 +159,8 @@ final class _SectionHeader extends StatelessWidget {
               ? ZColors.neutral700.withValues(alpha: 0.5)
               : ZColors.neutral200.withValues(alpha: 0.5),
           child: Container(
-            padding: const EdgeInsets.only(
-              left: ZSpacing.md,
-              right: ZSpacing.sm,
-              top: ZSpacing.sm,
-              bottom: ZSpacing.sm,
-            ),
-            decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: BorderRadius.circular(ZRadii.lg),
-            ),
+            padding: const EdgeInsets.only(left: ZSpacing.md, right: ZSpacing.sm, top: ZSpacing.sm, bottom: ZSpacing.sm),
+            decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(ZRadii.lg)),
             child: Row(
               children: [
                 Icon(module.icon, size: 18, color: baseColor),

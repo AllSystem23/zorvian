@@ -18,14 +18,18 @@ class NotificationItem {
   }) : createdAt = createdAt ?? DateTime.now();
 }
 
+enum ZConnectionState { connected, disconnected, connecting, reconnecting }
+
 class NotificationState {
   final List<NotificationItem> notifications;
-  final bool connected;
+  final ZConnectionState connectionState;
 
   const NotificationState({
     this.notifications = const [],
-    this.connected = false,
+    this.connectionState = ZConnectionState.disconnected,
   });
+
+  bool get connected => connectionState == ZConnectionState.connected;
 }
 
 class SignalRNotifier extends Notifier<NotificationState> {
@@ -36,6 +40,7 @@ class SignalRNotifier extends Notifier<NotificationState> {
 
   Future<void> connect(String baseUrl, String token) async {
     await disconnect();
+    _setState(ZConnectionState.connecting);
 
     try {
       if (kDebugMode) debugPrint('DEBUG: SignalR connect called with baseUrl: $baseUrl');
@@ -57,13 +62,14 @@ class SignalRNotifier extends Notifier<NotificationState> {
       _connection!.on('ReceiveNotification', (args) async => _onNotification(args));
       _connection!.on('ReceiveApprovalNotification', (args) async => _onApprovalNotification(args));
 
-      _connection!.onclose(({error}) async => _setConnected(false));
-      _connection!.onreconnected(({connectionId}) async => _setConnected(true));
+      _connection!.onclose(({error}) async => _setState(ZConnectionState.disconnected));
+      _connection!.onreconnecting(({error}) async => _setState(ZConnectionState.reconnecting));
+      _connection!.onreconnected(({connectionId}) async => _setState(ZConnectionState.connected));
 
       await _connection!.start();
-      _setConnected(true);
+      _setState(ZConnectionState.connected);
     } catch (_) {
-      _setConnected(false);
+      _setState(ZConnectionState.disconnected);
     }
   }
 
@@ -72,7 +78,7 @@ class SignalRNotifier extends Notifier<NotificationState> {
       await _connection?.stop();
     } catch (_) {}
     _connection = null;
-    _setConnected(false);
+    _setState(ZConnectionState.disconnected);
   }
 
   void _onNotification(List<Object?>? args) {
@@ -89,7 +95,7 @@ class SignalRNotifier extends Notifier<NotificationState> {
     );
     state = NotificationState(
       notifications: [item, ...state.notifications].take(50).toList(),
-      connected: state.connected,
+      connectionState: state.connectionState,
     );
   }
 
@@ -104,19 +110,22 @@ class SignalRNotifier extends Notifier<NotificationState> {
     );
     state = NotificationState(
       notifications: [item, ...state.notifications].take(50).toList(),
-      connected: state.connected,
+      connectionState: state.connectionState,
     );
   }
 
-  void _setConnected(bool value) {
+  void _setState(ZConnectionState newState) {
     state = NotificationState(
       notifications: state.notifications,
-      connected: value,
+      connectionState: newState,
     );
   }
 
   void clearNotifications() {
-    state = const NotificationState();
+    state = NotificationState(
+      connectionState: state.connectionState,
+      notifications: const [],
+    );
   }
 
   int get unreadCount => state.notifications.length;

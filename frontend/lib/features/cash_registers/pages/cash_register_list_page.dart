@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../shared/ds/ds.dart';
+import 'package:zorvian/core/widgets/responsive_layout.dart';
 import '../../../auth/auth_provider.dart';
 import '../providers/cash_register_provider.dart';
 
@@ -72,67 +73,97 @@ final class _CashRegisterListPageState extends ConsumerState<CashRegisterListPag
     final state = ref.watch(cashRegisterProvider);
     final theme = Theme.of(context);
     final filtered = _filter(state.items);
+    
+    final totalExpected = state.items.fold(0.0, (sum, item) => sum + item.expectedBalance);
+    final totalDifference = state.items.fold(0.0, (sum, item) => sum + item.difference);
+    final activeRegisters = state.items.where((i) => i.isOpen).length;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Caja')),
-      floatingActionButton: FloatingActionButton(
+      appBar: AppBar(title: const Text('Control de Cajas')),
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: _openRegister,
-        child: const Icon(Icons.add),
+        icon: const Icon(Icons.add),
+        label: const Text('Abrir Caja'),
       ),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null
               ? Center(child: Text(state.error!, style: TextStyle(color: theme.colorScheme.error)))
-              : Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-                      child: TextField(
-                        controller: _searchCtrl,
-                        decoration: InputDecoration(
-                          hintText: 'Buscar por código o estado...',
-                          prefixIcon: const Icon(Icons.search),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? IconButton(icon: const Icon(Icons.clear), onPressed: () { _searchCtrl.clear(); setState(() => _searchQuery = ''); })
-                              : null,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                          contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                        ),
-                        onChanged: (v) => setState(() => _searchQuery = v),
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(ZSpacing.lg),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // ── Summary Stats ──
+                      ResponsiveGrid(
+                        mobileColumns: 1,
+                        tabletColumns: 3,
+                        desktopColumns: 3,
+                        children: [
+                          ZStatCard(
+                            title: 'Cajas Abiertas',
+                            value: '$activeRegisters',
+                            icon: Icons.lock_open_outlined,
+                            variant: ZStatVariant.success,
+                          ),
+                          ZStatCard(
+                            title: 'Saldo Esperado Total',
+                            value: 'C\$ ${totalExpected.toStringAsFixed(2)}',
+                            icon: Icons.account_balance_wallet_outlined,
+                            variant: ZStatVariant.primary,
+                          ),
+                          ZStatCard(
+                            title: 'Diferencia Acumulada',
+                            value: 'C\$ ${totalDifference.toStringAsFixed(2)}',
+                            icon: Icons.warning_amber_outlined,
+                            variant: totalDifference.abs() > 0 ? ZStatVariant.danger : ZStatVariant.neutral,
+                          ),
+                        ],
                       ),
-                    ),
-                    Expanded(
-                      child: filtered.isEmpty
-                          ? Center(child: Text(_searchQuery.isNotEmpty ? 'Sin resultados' : 'No hay registros de caja'))
-                          : RefreshIndicator(
-                              onRefresh: () => ref.read(cashRegisterProvider.notifier).load(),
-                              child: ListView.separated(
-                                itemCount: filtered.length,
-                                separatorBuilder: (_, _) => const Divider(height: 1),
-                                itemBuilder: (_, i) {
-                                  final c = filtered[i];
-                                  final diffColor = c.difference.abs() > 0.01 ? Colors.red : Colors.green;
-                                  return ListTile(
-                                    leading: CircleAvatar(
-                                      backgroundColor: (c.isOpen ? Colors.green : Colors.grey).withAlpha(30),
-                                      child: Icon(c.isOpen ? Icons.lock_open : Icons.lock, color: c.isOpen ? Colors.green : Colors.grey),
-                                    ),
-                                    title: Text(c.code, style: const TextStyle(fontWeight: FontWeight.w600)),
-                                    subtitle: Text('Esperado: \$${c.expectedBalance.toStringAsFixed(0)} · ${c.openedAt.length >= 10 ? c.openedAt.substring(0, 10) : c.openedAt}'),
-                                    trailing: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      crossAxisAlignment: CrossAxisAlignment.end,
-                                      children: [
-                                        Text('Dif: \$${c.difference.toStringAsFixed(0)}', style: TextStyle(fontSize: 12, color: diffColor, fontWeight: FontWeight.bold)),
-                                        Text(c.status, style: TextStyle(fontSize: 11, color: c.isOpen ? Colors.green : Colors.grey)),
-                                      ],
-                                    ),
-                                    onTap: () => context.push('/cash-registers/${c.id}'),
-                                  );
-                                },
-                              ),
-                            ),
-                    ),
-                  ],
+                      
+                      const SizedBox(height: ZSpacing.xl),
+                      
+                      Text('Historial de Arqueos y Movimientos', style: ZTypography.titleLarge),
+                      const SizedBox(height: ZSpacing.md),
+                      
+                      // ── Data Table ──
+                      SizedBox(
+                        height: 600,
+                        child: ZDataTable<CashRegisterItem>(
+                          columns: const [
+                            ZColumn(id: 'code', label: 'Código / Terminal'),
+                            ZColumn(id: 'date', label: 'Fecha Apertura'),
+                            ZColumn(id: 'expected', label: 'Esperado', numeric: true),
+                            ZColumn(id: 'diff', label: 'Diferencia', numeric: true),
+                            ZColumn(id: 'status', label: 'Estado'),
+                            ZColumn(id: 'actions', label: ''),
+                          ],
+                          rows: filtered,
+                          onSearch: (v) => setState(() => _searchQuery = v),
+                          rowMapper: (c) {
+                            final diffColor = c.difference.abs() > 0.01 ? ZColors.danger : ZColors.success;
+                            return DataRow(cells: [
+                              DataCell(Text(c.code, style: const TextStyle(fontWeight: FontWeight.bold))),
+                              DataCell(Text(c.openedAt.length >= 10 ? c.openedAt.substring(0, 10) : c.openedAt)),
+                              DataCell(Text('C\$ ${c.expectedBalance.toStringAsFixed(2)}')),
+                              DataCell(Text(
+                                'C\$ ${c.difference.toStringAsFixed(2)}',
+                                style: TextStyle(color: diffColor, fontWeight: FontWeight.bold),
+                              )),
+                              DataCell(ZBadge(
+                                text: c.status.toUpperCase(),
+                                type: c.isOpen ? ZBadgeType.success : ZBadgeType.neutral,
+                              )),
+                              DataCell(IconButton(
+                                icon: const Icon(Icons.chevron_right),
+                                onPressed: () => context.push('/cash-registers/${c.id}'),
+                              )),
+                            ]);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
     );
   }

@@ -165,6 +165,35 @@ class AuthNotifier extends Notifier<AuthState> {
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 
+  Future<bool> switchTenant(String tenantId) async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      final storage = ref.read(secureStorageProvider);
+      final response = await dio.post('auth/switch-tenant', data: {
+        'tenantId': tenantId,
+      });
+
+      final data = response.data;
+      await storage.saveTokens(data['accessToken'], data['refreshToken'])
+          .catchError((_) => null);
+
+      final user = data['user'];
+      state = AuthState(
+        status: AuthStatus.authenticated,
+        userId: user['id'],
+        email: user['email'],
+        displayName: user['displayName'],
+        role: user['role'],
+        tenantId: user['tenantId'],
+        employeeId: user['employeeId'],
+      );
+
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> _registerFCMToken(String? userId) async {
     if (userId == null) return;
     try {

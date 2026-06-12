@@ -114,4 +114,29 @@ public sealed class AuthRepository : IAuthRepository
     {
         await _db.SaveChangesAsync();
     }
+
+    public async Task<List<UserTenant>> GetUserTenantsAsync(Guid userId)
+    {
+        return await _db.UserTenants
+            .Where(ut => ut.UserId == userId && ut.IsActive)
+            .ToListAsync();
+    }
+
+    public async Task AddUserTenantAsync(UserTenant userTenant)
+    {
+        await _db.UserTenants.AddAsync(userTenant);
+    }
+
+    public async Task<bool> UserHasTenantAccessAsync(Guid userId, string tenantId)
+    {
+        return await _db.UserTenants
+            .AnyAsync(ut => ut.UserId == userId && ut.TenantId == tenantId && ut.IsActive);
+    }
+
+    public async Task<List<Company>> GetCompaniesByTenantIdsAsync(List<string> tenantIds)
+    {
+        return await _db.Companies
+            .Where(c => tenantIds.Contains(c.TenantId))
+            .ToListAsync();
+    }
 }

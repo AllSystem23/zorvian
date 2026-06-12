@@ -28,6 +28,7 @@ import '../features/employees/pages/employee_form_page.dart';
 import '../features/employees/pages/employee_list_page.dart';
 import '../features/login/register_page.dart';
 import '../features/login/login_page.dart';
+import '../features/login/forgot_password_page.dart';
 import '../features/vacations/pages/vacation_detail_page.dart';
 import '../features/vacations/pages/vacation_form_page.dart';
 import '../features/vacations/pages/vacation_list_page.dart';
@@ -35,6 +36,7 @@ import '../features/permissions/pages/permission_detail_page.dart';
 import '../features/permissions/pages/permission_form_page.dart';
 import '../features/permissions/pages/permission_list_page.dart';
 import '../features/onboarding/onboarding_page.dart';
+import '../features/splash/splash_page.dart';
 import '../features/payroll/pages/payroll_page.dart';
 import '../features/payroll/pages/settlement_form_page.dart';
 import '../features/payroll/pages/payroll_run_detail_page.dart';
@@ -60,6 +62,8 @@ import '../features/quotes/pages/quote_list_page.dart';
 import '../features/quotes/pages/quote_form_page.dart';
 import '../features/quotes/pages/quote_detail_page.dart';
 import '../features/quotes/pages/quote_kanban_page.dart';
+import '../features/products/pages/kardex_page.dart';
+import '../features/products/pages/inventory_dashboard_page.dart';
 import '../features/products/pages/product_list_page.dart';
 import '../features/products/pages/product_form_page.dart';
 import '../features/categories/pages/category_list_page.dart';
@@ -113,6 +117,7 @@ import '../features/accounting/pages/chart_of_accounts_page.dart';
 import '../features/accounting/pages/accounting_periods_page.dart';
 import '../features/accounting/pages/accounting_entries_page.dart';
 import '../features/accounting/pages/account_links_page.dart';
+import '../features/treasury/pages/treasury_dashboard_page.dart';
 import '../features/treasury/pages/check_issuance_page.dart';
 import '../features/treasury/pages/bank_transfer_page.dart';
 import '../features/treasury/pages/bank_deposit_page.dart';
@@ -198,18 +203,24 @@ final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
 
   return GoRouter(
-    initialLocation: '/login',
+    initialLocation: '/splash',
     debugLogDiagnostics: !kIsWeb && Platform.isWindows,
     redirect: (context, state) {
       final status = authState.status;
       final location = state.matchedLocation;
       final isLoginRoute = location == '/login';
       final isOnboardingRoute = location == '/onboarding';
+      final isSplashRoute = location == '/splash';
 
-      if (status == AuthStatus.unknown) return null;
+      if (status == AuthStatus.unknown && !isSplashRoute) return '/splash';
 
-      if (status == AuthStatus.unauthenticated && !isLoginRoute) {
+      if (status == AuthStatus.unauthenticated && !isLoginRoute && !isSplashRoute) {
         return '/login';
+      }
+
+      if (status == AuthStatus.authenticated && isSplashRoute) {
+        final hasCompany = authState.tenantId != null && authState.tenantId!.isNotEmpty;
+        return hasCompany ? '/dashboard' : '/onboarding';
       }
 
       if (status == AuthStatus.authenticated && isLoginRoute) {
@@ -217,7 +228,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         return hasCompany ? '/dashboard' : '/onboarding';
       }
 
-      if (status == AuthStatus.authenticated && !isLoginRoute && !isOnboardingRoute) {
+      if (status == AuthStatus.authenticated && !isLoginRoute && !isOnboardingRoute && !isSplashRoute) {
         if (!_hasAccess(authState.role ?? 'Employee', location)) {
           return '/unauthorized';
         }
@@ -232,9 +243,19 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => const LoginPage(),
       ),
       GoRoute(
+        path: '/splash',
+        name: 'splash',
+        builder: (_, _) => const SplashPage(),
+      ),
+      GoRoute(
         path: '/register',
         name: 'register',
         builder: (_, state) => RegisterPage(inviteCode: state.uri.queryParameters['code']),
+      ),
+      GoRoute(
+        path: '/forgot-password',
+        name: 'forgot-password',
+        builder: (_, _) => const ForgotPasswordPage(),
       ),
       GoRoute(
         path: '/onboarding',
@@ -451,10 +472,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/products',
             name: 'products',
-            builder: (_, _) => const ProductListPage(),
+            builder: (_, _) => const InventoryDashboardPage(),
             routes: [
+              GoRoute(path: 'list', name: 'product-list', builder: (_, _) => const ProductListPage()),
               GoRoute(path: 'new', name: 'product-new', builder: (_, _) => const ProductFormPage()),
               GoRoute(path: ':productId/edit', name: 'product-edit', builder: (_, state) => ProductFormPage(productId: state.pathParameters['productId']!)),
+              GoRoute(path: 'kardex', name: 'product-kardex', builder: (_, _) => const KardexPage()),
             ],
           ),
           GoRoute(
@@ -553,29 +576,36 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           GoRoute(
-            path: '/treasury/checks',
-            name: 'treasury-checks',
-            builder: (_, _) => const CheckIssuancePage(),
-          ),
-          GoRoute(
-            path: '/treasury/transfers',
-            name: 'treasury-transfers',
-            builder: (_, _) => const BankTransferPage(),
-          ),
-          GoRoute(
-            path: '/treasury/deposits',
-            name: 'treasury-deposits',
-            builder: (_, _) => const BankDepositPage(),
-          ),
-          GoRoute(
-            path: '/treasury/commissions',
-            name: 'treasury-commissions',
-            builder: (_, _) => const BankCommissionPage(),
-          ),
-          GoRoute(
-            path: '/treasury/collections',
-            name: 'treasury-collections',
-            builder: (_, _) => const BankCollectionPage(),
+            path: '/treasury',
+            name: 'treasury',
+            builder: (_, _) => const TreasuryDashboardPage(),
+            routes: [
+              GoRoute(
+                path: 'checks',
+                name: 'treasury-checks',
+                builder: (_, _) => const CheckIssuancePage(),
+              ),
+              GoRoute(
+                path: 'transfers',
+                name: 'treasury-transfers',
+                builder: (_, _) => const BankTransferPage(),
+              ),
+              GoRoute(
+                path: 'deposits',
+                name: 'treasury-deposits',
+                builder: (_, _) => const BankDepositPage(),
+              ),
+              GoRoute(
+                path: 'commissions',
+                name: 'treasury-commissions',
+                builder: (_, _) => const BankCommissionPage(),
+              ),
+              GoRoute(
+                path: 'collections',
+                name: 'treasury-collections',
+                builder: (_, _) => const BankCollectionPage(),
+              ),
+            ],
           ),
           GoRoute(
             path: '/warranties',

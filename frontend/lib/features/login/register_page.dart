@@ -114,7 +114,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                   center: Alignment(-0.7, 0.6),
                   radius: 1.5,
                   colors: [
-                    Color(0xFF1E293B),
+                    ZColors.neutral800,
                     ZColors.darkBackground,
                   ],
                 ),
@@ -260,6 +260,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
             text: _mode == RegisterMode.invite ? 'CREAR CUENTA SOLIDEZ' : 'ENVIAR SOLICITUD',
             onPressed: _submit,
             isLoading: _loading,
+            gradient: ZColors.accentGradient,
           ),
         ],
       ),

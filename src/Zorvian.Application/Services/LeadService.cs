@@ -43,14 +43,14 @@ public sealed class LeadService
         // 🚀 Automatización Híbrida: Email al Cliente
         if (!string.IsNullOrEmpty(lead.Email))
         {
-            _ = Task.Run(() => _emailService.SendWelcomeEmailAsync(lead.Email, lead.FirstName));
+            await _emailService.SendWelcomeEmailAsync(lead.Email, lead.FirstName);
         }
 
         // 🚀 Automatización Híbrida: Push al Vendedor
-        _ = Task.Run(() => _fcmService.SendToTenantAsync(
+        await _fcmService.SendToTenantAsync(
             lead.CompanyId.ToString(), 
             "¡Nuevo Lead Registrado!", 
-            $"{lead.FirstName} {lead.LastName} de {lead.CompanyName ?? "Independiente"} acaba de ingresar."));
+            $"{lead.FirstName} {lead.LastName} de {lead.CompanyName ?? "Independiente"} acaba de ingresar.");
 
         return lead;
     }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:dio/dio.dart';
 import '../../suppliers/providers/supplier_provider.dart';
 import '../../products/providers/product_provider.dart';
 import '../../../shared/printing/qr_code_dialog.dart';
@@ -40,6 +42,7 @@ final class _PurchaseFormPageState extends ConsumerState<PurchaseFormPage> {
   final _dateCtrl = TextEditingController(text: DateTime.now().toIso8601String().substring(0, 10));
   final List<_CartItem> _cart = [];
   bool _saving = false;
+  bool _analyzing = false;
   String _currencyCode = 'NIO';
 
   static const _currencies = ['NIO', 'USD'];
@@ -51,6 +54,40 @@ final class _PurchaseFormPageState extends ConsumerState<PurchaseFormPage> {
       ref.read(supplierProvider.notifier).load();
       ref.read(productProvider.notifier).load();
     });
+  }
+
+  Future<void> _analyzeWithAi() async {
+    final result = await FilePicker.pickFiles(type: FileType.image);
+    if (result == null || result.files.single.path == null) return;
+
+    setState(() => _analyzing = true);
+    try {
+      final dio = ref.read(dioClientProvider);
+      final file = await MultipartFile.fromFile(result.files.single.path!);
+      final formData = FormData.fromMap({'file': file});
+
+      final response = await dio.post('purchases/analyze', data: formData);
+      final data = response.data;
+
+      setState(() {
+        _invoiceRefCtrl.text = data['invoiceReference'] ?? '';
+        _dateCtrl.text = (data['purchaseDate'] as String).substring(0, 10);
+        _currencyCode = data['currencyCode'] ?? 'NIO';
+        _notesCtrl.text = data['notes'] ?? '';
+        _cart.clear();
+        for (final d in (data['details'] as List)) {
+          _scanProduct(d['productName']); // Simplification for demo
+          if (_cart.isNotEmpty) {
+            _cart.last.quantity = d['quantity'].toString();
+            _cart.last.unitCost = (d['unitCost'] as num).toDouble();
+          }
+        }
+      });
+    } catch (e) {
+      _err('Error al analizar factura con IA');
+    } finally {
+      if (mounted) setState(() => _analyzing = false);
+    }
   }
 
   void _scanProduct(String code) {
@@ -142,7 +179,17 @@ final class _PurchaseFormPageState extends ConsumerState<PurchaseFormPage> {
     final total = taxable + tax;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Nueva Compra')),
+      appBar: AppBar(
+        title: const Text('Nueva Compra'),
+        actions: [
+          IconButton(
+            icon: _analyzing ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.auto_awesome),
+            tooltip: 'Analizar factura con IA',
+            onPressed: _analyzing ? null : _analyzeWithAi,
+          ),
+          const SizedBox(width: 16),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -153,13 +200,10 @@ final class _PurchaseFormPageState extends ConsumerState<PurchaseFormPage> {
               children: [
                 const Text('Proveedor', style: TextStyle(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
-                DropdownButtonFormField<String>(
-                  initialValue: _selectedSupplier,
-                  decoration: const InputDecoration(
-                    hintText: 'Seleccionar proveedor...',
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  ),
+                ZDropdownFormField<String>(
+                  value: _selectedSupplier,
+                  label: 'Proveedor',
+                  prefixIcon: Icons.person_outline,
                   items: suppliers.items
                       .where((c) => c.id.isNotEmpty)
                       .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
@@ -167,14 +211,12 @@ final class _PurchaseFormPageState extends ConsumerState<PurchaseFormPage> {
                   onChanged: (v) => setState(() => _selectedSupplier = v),
                 ),
                 const SizedBox(height: 12),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  key: ValueKey(_currencyCode),
-                  initialValue: _currencyCode,
-                  isExpanded: true,
+                ZDropdownFormField<String>(
+                  value: _currencyCode,
+                  label: 'Moneda',
+                  prefixIcon: Icons.attach_money,
                   items: _currencies.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                   onChanged: (v) => setState(() => _currencyCode = v ?? 'NIO'),
-                  decoration: const InputDecoration(labelText: 'Moneda', border: OutlineInputBorder()),
                 ),
                 const SizedBox(height: 12),
                 ZTextField(

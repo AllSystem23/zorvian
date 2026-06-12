@@ -44,10 +44,10 @@ class GoalsDashboardScreen extends ConsumerWidget {
             statsAsync.when(
               data: (stats) => ZDataTable<Map<String, dynamic>>(
                 columns: const [
-                  DataColumn(label: Text('Meta')),
-                  DataColumn(label: Text('Participantes')),
-                  DataColumn(label: Text('Promedio')),
-                  DataColumn(label: Text('Estado')),
+                  ZColumn(id: 'goal', label: 'Meta'),
+                  ZColumn(id: 'participants', label: 'Participantes'),
+                  ZColumn(id: 'average', label: 'Promedio', numeric: true),
+                  ZColumn(id: 'status', label: 'Estado'),
                 ],
                 rows: stats,
                 rowMapper: (s) {

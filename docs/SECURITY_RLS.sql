@@ -127,18 +127,35 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STABLE;
 
--- Update all policies to allow super admin bypass
-DROP POLICY IF EXISTS super_admin_bypass_companies ON "Companies";
-CREATE POLICY super_admin_bypass_companies ON "Companies"
-    FOR ALL
-    USING (is_super_admin() OR "TenantId" = current_setting('app.tenant_id', true));
+-- Create a standard bypass policy for all tables
+-- This function creates the policy if it doesn't exist to avoid errors
+CREATE OR REPLACE PROCEDURE create_bypass_policy(table_name text)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    EXECUTE format('DROP POLICY IF EXISTS super_admin_bypass_%I ON %I', table_name, table_name);
+    EXECUTE format('CREATE POLICY super_admin_bypass_%I ON %I FOR ALL USING (is_super_admin() OR "TenantId" = current_setting(''app.tenant_id'', true))', table_name, table_name);
+END;
+$$;
 
-DROP POLICY IF EXISTS super_admin_bypass_employees ON "Employees";
-CREATE POLICY super_admin_bypass_employees ON "Employees"
-    FOR ALL
-    USING (is_super_admin() OR "TenantId" = current_setting('app.tenant_id', true));
+-- Apply bypass policies to all RLS enabled tables
+CALL create_bypass_policy('Companies');
+CALL create_bypass_policy('Employees');
+CALL create_bypass_policy('Sales');
+CALL create_bypass_policy('SaleDetails');
+CALL create_bypass_policy('Clients');
+CALL create_bypass_policy('Products');
+CALL create_bypass_policy('InventoryMovements');
+CALL create_bypass_policy('Purchases');
+CALL create_bypass_policy('Suppliers');
+CALL create_bypass_policy('Credits');
+CALL create_bypass_policy('CashMovements');
+CALL create_bypass_policy('AccountingEntries');
+CALL create_bypass_policy('AccountingEntryDetails');
+CALL create_bypass_policy('Warranties');
 
--- Repeat for other tables...
+-- Cleanup procedure
+DROP PROCEDURE create_bypass_policy;
 
 -- Step 4: Verify policies
 -- ====================================================================

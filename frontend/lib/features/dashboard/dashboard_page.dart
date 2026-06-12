@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../auth/auth_provider.dart';
 import '../../core/services/signalr_service.dart';
-import '../../core/theme/theme_provider.dart';
-import '../../core/widgets/command_palette.dart';
+import '../../core/widgets/bi/bi_bar_chart.dart';
+import '../../core/widgets/bi/bi_pie_chart.dart';
 import '../../core/widgets/responsive_layout.dart';
 import '../../shared/ds/ds.dart';
 import 'providers/dashboard_provider.dart';
@@ -19,6 +19,7 @@ class DashboardPage extends ConsumerStatefulWidget {
 
 class _DashboardPageState extends ConsumerState<DashboardPage> {
   final _mainContentFocus = FocusNode();
+  String _selectedPeriod = 'Este Mes';
 
   @override
   void dispose() {
@@ -50,242 +51,101 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final auth = ref.watch(authProvider);
     final dash = ref.watch(dashboardProvider);
-    final user = auth.displayName ?? 'Usuario';
+    final user = auth.displayName ?? auth.email?.split('@').first ?? 'Usuario';
 
     return CallbackShortcuts(
       bindings: {
-        SingleActivator(LogicalKeyboardKey.keyK, control: true, meta: true): () => CommandPalette.show(context),
-        SingleActivator(LogicalKeyboardKey.keyK, control: true): () => CommandPalette.show(context),
-        SingleActivator(LogicalKeyboardKey.slash, control: true): () => CommandPalette.show(context),
+        SingleActivator(LogicalKeyboardKey.keyK, control: true, meta: true): () => ZCommandPalette.show(context),
+        SingleActivator(LogicalKeyboardKey.keyK, control: true): () => ZCommandPalette.show(context),
+        SingleActivator(LogicalKeyboardKey.slash, control: true): () => ZCommandPalette.show(context),
       },
       child: Focus(
         autofocus: true,
-        child: Scaffold(
-      appBar: AppBar(
-        title: Row(
+        child: Column(
           children: [
-            Image.asset('assets/Zorvian.png', height: 28, excludeFromSemantics: true),
-            const SizedBox(width: 8),
-            Text('Hola, $user'),
-          ],
-        ),
-        actions: [
-          FocusTraversalGroup(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.search),
-                  tooltip: 'Buscar (Ctrl+K)',
-                  onPressed: () => CommandPalette.show(context),
-                ),
-                Consumer(
-                  builder: (_, ref, _) {
-                    final notifState = ref.watch(signalRProvider);
-                    final unread = notifState.notifications.length;
-                    return Stack(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.notifications_outlined),
-                          tooltip: 'Notificaciones',
-                          onPressed: unread > 0
-                              ? () => _showNotifications(context, ref)
-                              : null,
-                        ),
-                        if (unread > 0)
-                          Positioned(
-                            right: 8,
-                            top: 8,
-                            child: ZLiveRegion(
-                              label: '$unread notificaciones sin leer',
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Text(
-                                  '$unread',
-                                  style: const TextStyle(color: Colors.white, fontSize: 10),
-                                ),
-                              ),
+            ZSkipLink(targetFocus: _mainContentFocus),
+            Expanded(
+              child: dash.loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : dash.error != null
+                      ? Center(child: Text(dash.error!))
+                      : ZLiveRegion(
+                    label: dash.error != null ? 'Error al cargar dashboard' : 'Dashboard cargado correctamente',
+                    child: RefreshIndicator(
+                          onRefresh: () => ref.read(dashboardProvider.notifier).refresh(),
+                          child: ZMainContent(
+                            focusNode: _mainContentFocus,
+                            child: ListView(
+                              padding: const EdgeInsets.all(24),
+                              children: [
+                                _buildHeader(user),
+                                const SizedBox(height: 32),
+                                if (dash.kpis != null) ..._buildKpiSection(dash.kpis!),
+                                const SizedBox(height: 40),
+                                _buildModuleGrid(),
+                                const SizedBox(height: 40),
+                                if (dash.kpis != null) _buildAnalysisSection(dash.kpis!),
+                                const SizedBox(height: 40),
+                                _buildRecentActivitySection(dash),
+                              ],
                             ),
                           ),
-                      ],
-                    );
-                  },
-                ),
-                Consumer(
-                  builder: (context, ref, child) {
-                    final mode = ref.watch(themeModeProvider);
-                    return IconButton(
-                      icon: Icon(mode == ThemeMode.dark ? Icons.light_mode : Icons.dark_mode),
-                      tooltip: mode == ThemeMode.dark ? 'Modo claro' : 'Modo oscuro',
-                      onPressed: () => ref.read(themeModeProvider.notifier).toggle(),
-                    );
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.person_outline),
-                  tooltip: 'Perfil',
-                  onPressed: () => context.push('/profile'),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.logout),
-                  tooltip: 'Cerrar sesión',
-                  onPressed: () => ref.read(authProvider.notifier).logout(),
-                ),
-              ],
+                        ),
             ),
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          ZSkipLink(targetFocus: _mainContentFocus),
-          Expanded(
-            child: dash.loading
-                ? const Center(child: CircularProgressIndicator())
-                : dash.error != null
-                    ? Center(child: Text(dash.error!))
-                    : ZLiveRegion(
-                  label: dash.error != null ? 'Error al cargar dashboard' : 'Dashboard cargado correctamente',
-                  child: RefreshIndicator(
-                        onRefresh: () => ref.read(dashboardProvider.notifier).refresh(),
-                        child: ZMainContent(
-                          focusNode: _mainContentFocus,
-                          child: ListView(
-                            padding: const EdgeInsets.all(16),
-                            children: [
-                              if (dash.kpis != null) _buildKpiRow(dash.kpis!),
-                              const SizedBox(height: 24),
-                              _buildNavigationCards(context),
-                              const SizedBox(height: 24),
-                              Text('Solicitudes Recientes',
-                                style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 8),
-                              if (dash.recentRequests.isNotEmpty)
-                                ...dash.recentRequests.take(5).map(_buildRecentRequestTile)
-                              else
-                                ZCard(
-                                  padding: const EdgeInsets.all(24),
-                                  child: Center(child: Text('No hay solicitudes recientes',
-                                    style: const TextStyle(color: ZColors.neutral500))),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-          ),
-          ),
-        ],
-      ),
-      ),
-    ),
-  );
-  }
-
-  void _showNotifications(BuildContext context, WidgetRef ref) {
-    final list = ref.read(signalRProvider).notifications;
-    ZModal.show(context,
-      title: 'Notificaciones',
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: double.maxFinite,
-            child: list.isEmpty
-                ? const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Center(child: Text('Sin notificaciones')),
-                  )
-                : ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: list.length,
-                    separatorBuilder: (_, _) => const Divider(height: 1),
-                    itemBuilder: (_, i) {
-                      final n = list[i];
-                      return ListTile(
-                        dense: true,
-                        leading: Icon(
-                          n.type == 'approval' ? Icons.approval : Icons.notifications,
-                          color: n.type == 'approval' ? Colors.orange : Colors.blue,
-                        ),
-                        title: Text(n.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                        subtitle: Text(n.message, style: const TextStyle(fontSize: 12)),
-                      );
-                    },
-                  ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton(
-                onPressed: () {
-                  ref.read(signalRProvider.notifier).clearNotifications();
-                  Navigator.pop(context);
-                },
-                child: const Text('Limpiar'),
-              ),
-              const SizedBox(width: 8),
-              ZButton(
-                onPressed: () => Navigator.pop(context),
-                text: 'Cerrar',
-              ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildKpiRow(DashboardKpis kpis) {
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildHeader(String user) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Row(
       children: [
-        Text('Resumen', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 12),
-        FocusTraversalGroup(
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Bienvenido de nuevo,',
+                style: ZTypography.bodyMedium.copyWith(color: ZColors.neutral500),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                user,
+                style: ZTypography.displaySmall.copyWith(
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: isDark ? ZColors.darkSurface : Colors.white,
+            borderRadius: BorderRadius.circular(ZRadii.md),
+            border: Border.all(color: isDark ? ZColors.darkBorder : ZColors.border),
+            boxShadow: [ZShadows.sm],
+          ),
           child: Row(
-              children: [
-                Expanded(child: _KpiCard(
-                  icon: Icons.people,
-                  label: 'Activos',
-                  value: '${kpis.activeEmployees}',
-                  color: ZColors.brandPrimary,
-                )),
-                const SizedBox(width: 8),
-                Expanded(child: _KpiCard(
-                  icon: Icons.pending_actions,
-                  label: 'Pendientes',
-                  value: '${kpis.pendingVacationRequests + kpis.pendingPermissionRequests}',
-                  color: ZColors.warning,
-                )),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          FocusTraversalGroup(
-            child: Row(
-              children: [
-                Expanded(child: _KpiCard(
-                  icon: Icons.cake,
-                  label: 'Cumpleaños',
-                  value: '${kpis.birthdaysThisMonth}',
-                  color: ZColors.info,
-                )),
-                const SizedBox(width: 8),
-                Expanded(child: _KpiCard(
-                  icon: Icons.work_history,
-                  label: 'Aniversarios',
-                  value: '${kpis.workAnniversariesThisMonth}',
-                  color: ZColors.success,
-                )),
+            children: [
+              Icon(Icons.calendar_today_outlined, size: 16, color: ZColors.neutral500),
+              const SizedBox(width: 12),
+              DropdownButton<String>(
+                value: _selectedPeriod,
+                underline: const SizedBox(),
+                icon: const Icon(Icons.keyboard_arrow_down, size: 18),
+                style: ZTypography.labelMedium.copyWith(fontWeight: FontWeight.w600),
+                items: ['Hoy', 'Esta Semana', 'Este Mes', 'Este Trimestre']
+                    .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                    .toList(),
+                onChanged: (v) => setState(() => _selectedPeriod = v!),
+              ),
             ],
           ),
         ),
@@ -293,44 +153,204 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildNavigationCards(BuildContext context) {
+  List<Widget> _buildKpiSection(DashboardKpis kpis) {
+    return [
+      const _SectionHeader(title: 'Resumen Ejecutivo', icon: Icons.analytics_outlined),
+      const SizedBox(height: 16),
+      ResponsiveGrid(
+        spacing: 16,
+        runSpacing: 16,
+        mobileColumns: 1,
+        tabletColumns: 2,
+        desktopColumns: 4,
+        children: [
+          ZStatCard(
+            title: 'Colaboradores Activos',
+            value: '${kpis.activeEmployees}',
+            label: 'de ${kpis.totalEmployees} totales',
+            icon: Icons.people_outline,
+            variant: ZStatVariant.primary,
+            trend: 12.5,
+            trendUp: true,
+            sparklineData: const [45, 48, 47, 50, 52, 51, 54, 56, 55, 58, 60, 62],
+            onTap: () => context.push('/employees'),
+          ),
+          ZStatCard(
+            title: 'Solicitudes Pendientes',
+            value: '${kpis.pendingVacationRequests + kpis.pendingPermissionRequests}',
+            label: 'Vacaciones + Permisos',
+            icon: Icons.pending_actions_outlined,
+            variant: ZStatVariant.warning,
+            trend: 8.3,
+            trendUp: false,
+            sparklineData: const [12, 15, 14, 18, 16, 12, 10, 8, 9, 11, 13, 15],
+            onTap: () => context.push('/vacations'),
+          ),
+          ZStatCard(
+            title: 'Cumpleaños del Mes',
+            value: '${kpis.birthdaysThisMonth}',
+            label: 'celebraciones este mes',
+            icon: Icons.cake_outlined,
+            variant: ZStatVariant.info,
+            trend: 5.0,
+            trendUp: kpis.birthdaysThisMonth >= 3,
+            sparklineData: const [2, 4, 3, 5, 2, 6, 8, 4, 3, 5, 7, 4],
+            onTap: () => context.push('/employees'),
+          ),
+          ZStatCard(
+            title: 'Aniversarios',
+            value: '${kpis.workAnniversariesThisMonth}',
+            label: 'años de servicio este mes',
+            icon: Icons.work_history_outlined,
+            variant: ZStatVariant.success,
+            trend: 15.0,
+            trendUp: true,
+            sparklineData: const [1, 2, 1, 3, 2, 4, 2, 5, 3, 4, 5, 6],
+            onTap: () => context.push('/employees'),
+          ),
+        ],
+      ),
+    ];
+  }
+
+  Widget _buildModuleGrid() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Módulos', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 12),
-        FocusTraversalGroup(
-          child: ResponsiveGrid(
-            spacing: 12,
-            children: [
-              _NavCard(icon: Icons.people, label: 'Empleados', color: ZColors.brandPrimary, route: '/employees'),
-              _NavCard(icon: Icons.calendar_month, label: 'Calendario', color: ZColors.info, route: '/absence-calendar'),
-              _NavCard(icon: Icons.business, label: 'Dptos.', color: const Color(0xFF7C3AED), route: '/departments'),
-              _NavCard(icon: Icons.beach_access, label: 'Vacaciones', color: ZColors.warning, route: '/vacations'),
-              _NavCard(icon: Icons.description, label: 'Permisos', color: ZColors.danger, route: '/permissions'),
-              _NavCard(icon: Icons.schedule, label: 'Asistencia', color: ZColors.success, route: '/attendance'),
-              _NavCard(icon: Icons.person, label: 'Perfil', color: const Color(0xFF9333EA), route: '/profile'),
-              _NavCard(icon: Icons.assessment, label: 'Reportes', color: ZColors.brandTeal, route: '/reports'),
-              _NavCard(icon: Icons.admin_panel_settings, label: 'Admin', color: ZColors.neutral800, route: '/admin/users'),
-              _NavCard(icon: Icons.settings, label: 'Config.', color: ZColors.neutral600, route: '/settings'),
-              _NavCard(icon: Icons.receipt_long, label: 'Nómina', color: ZColors.success, route: '/payroll'),
-              _NavCard(icon: Icons.tablet, label: 'Kiosko', color: ZColors.info, route: '/attendance/kiosk'),
-            ],
-          ),
+        const _SectionHeader(title: 'Módulos del Sistema', icon: Icons.grid_view_outlined),
+        const SizedBox(height: 16),
+        ResponsiveGrid(
+          spacing: 16,
+          runSpacing: 16,
+          mobileColumns: 2,
+          tabletColumns: 4,
+          desktopColumns: 6,
+          children: const [
+            _ModuleCard(icon: Icons.people_alt_outlined, label: 'Capital Humano', color: ZColors.moduleHr, route: '/employees'),
+            _ModuleCard(icon: Icons.receipt_long_outlined, label: 'Nómina', color: ZColors.moduleHr, route: '/payroll'),
+            _ModuleCard(icon: Icons.shopping_cart_outlined, label: 'Ventas', color: ZColors.moduleSales, route: '/sales'),
+            _ModuleCard(icon: Icons.inventory_2_outlined, label: 'Inventario', color: ZColors.moduleInventory, route: '/products'),
+            _ModuleCard(icon: Icons.account_balance_outlined, label: 'Contabilidad', color: ZColors.moduleFinance, route: '/accounting/trial-balance'),
+            _ModuleCard(icon: Icons.payments_outlined, label: 'Tesorería', color: ZColors.moduleTreasury, route: '/cash-registers'),
+            _ModuleCard(icon: Icons.assignment_outlined, label: 'CRM', color: ZColors.moduleCrm, route: '/crm'),
+            _ModuleCard(icon: Icons.smart_toy_outlined, label: 'Z-IA Assistant', color: ZColors.moduleIa, route: '/accounting/ai-assistant'),
+            _ModuleCard(icon: Icons.bar_chart_outlined, label: 'Inteligencia BI', color: ZColors.moduleIa, route: '/bi/executive'),
+            _ModuleCard(icon: Icons.description_outlined, label: 'Documentos', color: ZColors.moduleAdmin, route: '/documents'),
+            _ModuleCard(icon: Icons.settings_outlined, label: 'Configuración', color: ZColors.moduleAdmin, route: '/settings'),
+            _ModuleCard(icon: Icons.admin_panel_settings_outlined, label: 'Administración', color: ZColors.moduleSecurity, route: '/admin/users'),
+          ],
         ),
       ],
     );
+  }
+
+  Widget _buildAnalysisSection(DashboardKpis kpis) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionHeader(title: 'Análisis de Talento', icon: Icons.insights_outlined),
+        const SizedBox(height: 16),
+        ResponsiveGrid(
+          spacing: 16,
+          runSpacing: 16,
+          mobileColumns: 1,
+          tabletColumns: 1,
+          desktopColumns: 2,
+          children: [
+            ZCard(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Distribución por Departamento', style: ZTypography.titleSmall),
+                  const SizedBox(height: 24),
+                  BiBarChart(
+                    items: kpis.employeesByDepartment
+                        .map((d) => BarChartItem(d.departmentName, d.count.toDouble(), color: ZColors.brandAccent))
+                        .toList(),
+                    height: 220,
+                  ),
+                ],
+              ),
+            ),
+            ZCard(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Estado de Fuerza Laboral', style: ZTypography.titleSmall),
+                  const SizedBox(height: 24),
+                  Center(
+                    child: BiPieChart(
+                      size: 180,
+                      items: [
+                        PieChartItem('Activos', _percentage(kpis.activeEmployees, kpis.totalEmployees), color: ZColors.success),
+                        PieChartItem('Inactivos', _percentage(kpis.inactiveEmployees, kpis.totalEmployees), color: ZColors.neutral400),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRecentActivitySection(DashboardState dash) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionHeader(title: 'Actividad Reciente', icon: Icons.history_outlined),
+        const SizedBox(height: 16),
+        if (dash.recentRequests.isNotEmpty)
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: dash.recentRequests.take(5).length,
+            separatorBuilder: (_, _) => const SizedBox(height: 12),
+            itemBuilder: (_, i) => _buildRecentRequestTile(dash.recentRequests[i]),
+          )
+        else
+          ZCard(
+            padding: const EdgeInsets.all(40),
+            child: Center(
+              child: Column(
+                children: [
+                  Icon(Icons.inbox_outlined, size: 48, color: ZColors.neutral300),
+                  const SizedBox(height: 16),
+                  Text('No hay actividad reciente registrada', style: TextStyle(color: ZColors.neutral500)),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  double _percentage(int part, int total) {
+    if (total == 0) return 0;
+    return (part / total * 100);
   }
 
   Widget _buildRecentRequestTile(RecentRequestItem item) {
-    final icon = item.requestType == 'vacacion' ? Icons.beach_access : Icons.description;
+    final icon = item.requestType == 'vacacion' ? Icons.beach_access_outlined : Icons.description_outlined;
     final color = item.requestType == 'vacacion' ? ZColors.warning : ZColors.danger;
+    
     return ZCard(
       child: ListTile(
-        leading: Icon(icon, color: color),
-        title: Text(item.employeeName),
-        subtitle: Text(item.description ?? item.requestType),
-        trailing: _statusChip(item.status),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        title: Text(item.employeeName, style: const TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: Text(item.description ?? item.requestType.toUpperCase(), style: const TextStyle(fontSize: 12)),
+        trailing: _statusBadge(item.status),
         onTap: () {
           if (item.requestType == 'vacacion') {
             context.push('/vacations/${item.id}');
@@ -342,69 +362,79 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _statusChip(String status) {
-    final (label, color) = switch (status) {
-      'approved' => ('Aprobado', ZColors.success),
-      'rejected' => ('Rechazado', ZColors.danger),
-      'pending' => ('Pendiente', ZColors.warning),
-      _ => (status, ZColors.neutral500),
+  Widget _statusBadge(String status) {
+    final (label, type) = switch (status) {
+      'approved' => ('Aprobado', ZBadgeType.success),
+      'rejected' => ('Rechazado', ZBadgeType.danger),
+      'pending' => ('Pendiente', ZBadgeType.warning),
+      _ => (status, ZBadgeType.neutral),
     };
-    return Chip(label: Text(label, style: TextStyle(fontSize: 11, color: color)), materialTapTargetSize: MaterialTapTargetSize.shrinkWrap);
+    return ZBadge(text: label, type: type);
   }
 }
 
-class _KpiCard extends StatelessWidget {
+class _SectionHeader extends StatelessWidget {
+  final String title;
   final IconData icon;
-  final String label;
-  final String value;
-  final Color color;
 
-  const _KpiCard({required this.icon, required this.label, required this.value, required this.color});
+  const _SectionHeader({required this.title, required this.icon});
 
   @override
   Widget build(BuildContext context) {
-    return ZCard(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 8),
-          Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color)),
-            Text(label, style: const TextStyle(fontSize: 12, color: ZColors.neutral500)),
-        ],
-      ),
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: ZColors.brandPrimary),
+        const SizedBox(width: 12),
+        Text(
+          title,
+          style: ZTypography.titleMedium.copyWith(fontWeight: FontWeight.bold),
+        ),
+      ],
     );
   }
 }
 
-class _NavCard extends StatelessWidget {
+class _ModuleCard extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color color;
-  final String? route;
+  final String route;
 
-  const _NavCard({required this.icon, required this.label, required this.color, this.route});
+  const _ModuleCard({required this.icon, required this.label, required this.color, required this.route});
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return ZCard(
-      child: Semantics(
-        label: 'Ir a $label',
-        button: true,
-        child: InkWell(
-          onTap: route != null ? () => context.push(route!) : null,
-          borderRadius: BorderRadius.circular(12),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 28, color: color),
-            const SizedBox(height: 8),
-            Text(label, style: const TextStyle(fontWeight: FontWeight.w600, color: ZColors.neutral700, fontSize: 12)),
-          ],
+      child: InkWell(
+        onTap: () => context.push(route),
+        borderRadius: BorderRadius.circular(ZRadii.lg),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(ZRadii.md),
+                ),
+                child: Icon(icon, size: 24, color: color),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: ZTypography.labelSmall.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? ZColors.neutral200 : ZColors.neutral700,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 }

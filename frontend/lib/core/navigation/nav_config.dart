@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../shared/ds/ds.dart';
 
 final class NavItem {
   final String id;
@@ -22,6 +23,8 @@ final class NavModule {
   final String id;
   final String label;
   final IconData icon;
+  final Color color;
+  final String group; // Operations, Financial, Talent, Intelligence, Admin
   final List<NavItem> children;
   final List<String> roles;
 
@@ -29,6 +32,8 @@ final class NavModule {
     required this.id,
     required this.label,
     required this.icon,
+    required this.color,
+    required this.group,
     required this.children,
     this.roles = const [],
   });
@@ -37,26 +42,34 @@ final class NavModule {
 final class NavConfig {
   NavConfig._();
 
-  static final List<NavModule> allModules = [
-    // ── INICIO ──
-    const NavModule(
-      id: 'inicio',
-      label: 'Inicio',
-      icon: Icons.home_outlined,
-      children: [
-        NavItem(id: 'dashboard', label: 'Dashboard General', icon: Icons.dashboard_outlined, route: '/dashboard'),
-        NavItem(id: 'ejecutivo', label: 'Panel Ejecutivo', icon: Icons.analytics_outlined, route: '/executive-dashboard', roles: ['SuperAdmin', 'CompanyAdmin']),
-        NavItem(id: 'bi-central', label: 'Inteligencia de Negocios', icon: Icons.insights_outlined, route: '/bi/executive', roles: ['SuperAdmin', 'CompanyAdmin']),
-        NavItem(id: 'calendario', label: 'Calendario de Ausencias', icon: Icons.calendar_month_outlined, route: '/absence-calendar'),
-        NavItem(id: 'perfil', label: 'Mi Perfil', icon: Icons.person_outline, route: '/profile'),
-      ],
-    ),
+  static const Map<String, String> groupLabels = {
+    'operations': 'OPERACIONES',
+    'financial': 'FINANCIERO',
+    'talent': 'TALENTO',
+    'intelligence': 'INTELIGENCIA',
+    'admin': 'CONFIGURACIÓN',
+  };
 
-    // ── VENTAS ──
+  static const Map<String, Color> groupColors = {
+    'operations': ZColors.moduleSales,
+    'financial': ZColors.moduleFinance,
+    'talent': ZColors.moduleHr,
+    'intelligence': ZColors.moduleIa,
+    'admin': ZColors.moduleAdmin,
+  };
+
+  static Color colorForModule(String moduleId) {
+    return allModules.firstWhere((m) => m.id == moduleId, orElse: () => allModules.first).color;
+  }
+
+  static final List<NavModule> allModules = [
+    // ── OPERACIONES ──
     const NavModule(
       id: 'ventas',
       label: 'Ventas',
       icon: Icons.point_of_sale_outlined,
+      color: ZColors.moduleSales,
+      group: 'operations',
       children: [
         NavItem(id: 'cotizaciones', label: 'Cotizaciones', icon: Icons.request_quote_outlined, route: '/quotes'),
         NavItem(id: 'comercial', label: 'Facturación / Ventas', icon: Icons.receipt_long_outlined, route: '/sales'),
@@ -69,11 +82,12 @@ final class NavConfig {
       ],
     ),
 
-    // ── INVENTARIO ──
     const NavModule(
       id: 'inventario',
       label: 'Inventario',
       icon: Icons.inventory_2_outlined,
+      color: ZColors.moduleInventory,
+      group: 'operations',
       children: [
         NavItem(id: 'productos', label: 'Productos', icon: Icons.shopping_bag_outlined, route: '/products'),
         NavItem(id: 'categorias', label: 'Categorías', icon: Icons.category_outlined, route: '/categories'),
@@ -84,22 +98,25 @@ final class NavConfig {
       ],
     ),
 
-    // ── COMPRAS ──
     const NavModule(
       id: 'compras',
       label: 'Compras',
       icon: Icons.shopping_cart_outlined,
+      color: ZColors.modulePurchases,
+      group: 'operations',
       children: [
         NavItem(id: 'compras-ordenes', label: 'Órdenes de Compra', icon: Icons.shopping_bag_outlined, route: '/purchases'),
         NavItem(id: 'proveedores', label: 'Proveedores', icon: Icons.local_shipping_outlined, route: '/suppliers'),
       ],
     ),
 
-    // ── FINANZAS ──
+    // ── FINANCIERO ──
     const NavModule(
       id: 'finanzas',
       label: 'Finanzas',
       icon: Icons.account_balance_outlined,
+      color: ZColors.moduleFinance,
+      group: 'financial',
       children: [
         NavItem(id: 'caja', label: 'Caja', icon: Icons.monetization_on_outlined, route: '/cash-registers'),
         NavItem(id: 'tesoreria', label: 'Tesorería y Bancos', icon: Icons.savings_outlined, route: '/treasury/checks', roles: ['SuperAdmin', 'CompanyAdmin', 'Accountant']),
@@ -111,11 +128,13 @@ final class NavConfig {
       ],
     ),
 
-    // ── TALENTO HUMANO ──
+    // ── TALENTO ──
     const NavModule(
       id: 'talento',
       label: 'Talento Humano',
       icon: Icons.diversity_3_outlined,
+      color: ZColors.moduleHr,
+      group: 'talent',
       children: [
         NavItem(id: 'empleados', label: 'Capital Humano', icon: Icons.people_outline, route: '/employees'),
         NavItem(id: 'asistencia', label: 'Reloj y Asistencia', icon: Icons.schedule_outlined, route: '/attendance'),
@@ -127,11 +146,13 @@ final class NavConfig {
       ],
     ),
 
-    // ── BI E INTELIGENCIA ──
+    // ── INTELIGENCIA ──
     const NavModule(
       id: 'bi',
       label: 'BI e Inteligencia',
       icon: Icons.insights_outlined,
+      color: ZColors.moduleIa,
+      group: 'intelligence',
       roles: ['SuperAdmin', 'CompanyAdmin'],
       children: [
         NavItem(id: 'asistente-ia', label: 'Asistente Z-IA', icon: Icons.smart_toy_outlined, route: '/accounting/ai-assistant'),
@@ -142,21 +163,24 @@ final class NavConfig {
       ],
     ),
 
-    // ── COMUNICACIÓN ──
     const NavModule(
       id: 'comunicacion',
       label: 'Comunicación',
       icon: Icons.forum_outlined,
+      color: ZColors.moduleCrm,
+      group: 'intelligence',
       children: [
         NavItem(id: 'chat', label: 'Centro de Comunicación', icon: Icons.chat_bubble_outline, route: '/chat'),
       ],
     ),
 
-    // ── ADMINISTRACIÓN ──
+    // ── CONFIGURACIÓN ──
     const NavModule(
       id: 'administracion',
       label: 'Administración',
       icon: Icons.admin_panel_settings_outlined,
+      color: ZColors.moduleAdmin,
+      group: 'admin',
       roles: ['SuperAdmin', 'CompanyAdmin'],
       children: [
         NavItem(id: 'usuarios', label: 'Usuarios y Seguridad', icon: Icons.manage_accounts_outlined, route: '/admin/users'),
@@ -174,9 +198,7 @@ final class NavConfig {
     final bypass = role == 'SuperAdmin';
 
     final filtered = allModules.where((module) {
-      if (!bypass && module.roles.isNotEmpty && !module.roles.contains(role)) {
-        return false;
-      }
+      if (!bypass && module.roles.isNotEmpty && !module.roles.contains(role)) return false;
       if (searchQuery != null && searchQuery.isNotEmpty) {
         final q = searchQuery.toLowerCase();
         final matchesModule = module.label.toLowerCase().contains(q);
@@ -193,11 +215,24 @@ final class NavConfig {
           final searchOk = item.label.toLowerCase().contains(searchQuery.toLowerCase());
           return roleOk && searchOk;
         }).toList();
-        return NavModule(id: module.id, label: module.label, icon: module.icon, children: filteredItems, roles: module.roles);
+        return NavModule(id: module.id, label: module.label, icon: module.icon, color: module.color, group: module.group, children: filteredItems, roles: module.roles);
       }
       return module;
     }).where((m) => m.children.isNotEmpty).toList();
 
     return filtered;
+  }
+
+  static List<NavModule> getModulesByGroup(List<NavModule> modules) {
+    final grouped = <String, List<NavModule>>{};
+    for (final m in modules) {
+      grouped.putIfAbsent(m.group, () => []).add(m);
+    }
+    final order = ['operations', 'financial', 'talent', 'intelligence', 'admin'];
+    final result = <NavModule>[];
+    for (final key in order) {
+      if (grouped.containsKey(key)) result.addAll(grouped[key]!);
+    }
+    return result;
   }
 }

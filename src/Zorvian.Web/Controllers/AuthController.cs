@@ -131,6 +131,14 @@ public sealed class AuthController : ControllerBase
         return NoContent();
     }
 
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+    {
+        await _authService.ForgotPasswordAsync(request.Email);
+        return Ok(new { message = "Si el correo está registrado, recibirás instrucciones para restablecer tu contraseña." });
+    }
+
     [HttpPost("revoke-all")]
     [Authorize]
     public async Task<IActionResult> RevokeAllSessions()
@@ -162,6 +170,31 @@ public sealed class AuthController : ControllerBase
     public IActionResult Health()
     {
         return Ok(new { status = "healthy", timestamp = DateTime.UtcNow });
+    }
+
+    [HttpGet("tenants")]
+    [Authorize]
+    public async Task<IActionResult> GetTenants()
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null) return Unauthorized();
+
+        var tenants = await _authService.GetUserTenantsAsync(userId.Value);
+        return Ok(tenants);
+    }
+
+    [HttpPost("switch-tenant")]
+    [Authorize]
+    public async Task<IActionResult> SwitchTenant([FromBody] SwitchTenantRequest request)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null) return Unauthorized();
+
+        var result = await _authService.SwitchTenantAsync(userId.Value, request.TenantId);
+        if (result is null)
+            return Unauthorized(new { error = "No tienes acceso a esta empresa" });
+
+        return Ok(result);
     }
 
     [HttpGet("diagnostics")]

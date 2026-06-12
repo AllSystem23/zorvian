@@ -47,11 +47,11 @@ class ProviderInvoicesPage extends ConsumerWidget {
                     ? ZEmptyState(icon: Icons.receipt_long, title: 'Sin facturas', subtitle: 'No se han registrado facturas de prestadores.')
                     : ZDataTable<ProviderInvoice>(
                         columns: const [
-                          DataColumn(label: Text('Factura #')),
-                          DataColumn(label: Text('Monto')),
-                          DataColumn(label: Text('Estado')),
-                          DataColumn(label: Text('Vence')),
-                          DataColumn(label: Text('Acciones')),
+                          ZColumn(id: 'invoice', label: 'Factura #'),
+                          ZColumn(id: 'amount', label: 'Monto', numeric: true),
+                          ZColumn(id: 'status', label: 'Estado'),
+                          ZColumn(id: 'due', label: 'Vence'),
+                          ZColumn(id: 'actions', label: ''),
                         ],
                         rows: invoices,
                         rowMapper: (i) => DataRow(cells: [

@@ -285,6 +285,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<ClientService>();
         services.AddScoped<QuoteService>();
         services.AddScoped<SaleService>();
+        services.AddScoped<IPurchaseIntelligenceService, PurchaseIntelligenceService>();
         
         // CRM
         services.AddScoped<LeadService>();

@@ -9668,6 +9668,26 @@ namespace Zorvian.Infrastructure.Migrations
                     b.ToTable("UserRoles");
                 });
 
+            modelBuilder.Entity("Zorvian.Core.Entities.UserTenant", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TenantId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("AssignedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("UserId", "TenantId");
+
+                    b.ToTable("UserTenants");
+                });
+
             modelBuilder.Entity("Zorvian.Core.Entities.VacationRequest", b =>
                 {
                     b.Property<Guid>("Id")
@@ -12754,6 +12774,17 @@ namespace Zorvian.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Role");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.UserTenant", b =>
+                {
+                    b.HasOne("Zorvian.Core.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("User");
                 });

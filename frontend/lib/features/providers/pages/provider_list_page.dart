@@ -62,10 +62,10 @@ class ProviderListPage extends ConsumerWidget {
                     )
                   : ZDataTable<ServiceProvider>(
                       columns: const [
-                        DataColumn(label: Text('Nombre/Razón Social')),
-                        DataColumn(label: Text('Categoría')),
-                        DataColumn(label: Text('Estado')),
-                        DataColumn(label: Text('Acciones')),
+                        ZColumn(id: 'name', label: 'Nombre/Razón Social'),
+                        ZColumn(id: 'category', label: 'Categoría'),
+                        ZColumn(id: 'status', label: 'Estado'),
+                        ZColumn(id: 'actions', label: ''),
                       ],
                       rows: providers,
                       rowMapper: (p) => DataRow(cells: [

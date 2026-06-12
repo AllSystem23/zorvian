@@ -57,9 +57,9 @@ final class _WarrantyListPageState extends ConsumerState<WarrantyListPage> {
                     Expanded(
                       child: ZDataTable<WarrantyItem>(
                         columns: const [
-                          DataColumn(label: Text('Producto')),
-                          DataColumn(label: Text('Cliente')),
-                          DataColumn(label: Text('Estado')),
+                          ZColumn(id: 'product', label: 'Producto'),
+                          ZColumn(id: 'client', label: 'Cliente'),
+                          ZColumn(id: 'status', label: 'Estado'),
                         ],
                         rows: state.items,
                         rowMapper: (item) => DataRow(cells: [

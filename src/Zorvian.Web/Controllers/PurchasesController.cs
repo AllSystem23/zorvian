@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Commercial;
+using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
 using Zorvian.Web.Filters;
 
@@ -12,10 +13,22 @@ namespace Zorvian.Web.Controllers;
 public sealed class PurchasesController : ControllerBase
 {
     private readonly PurchaseService _service;
+    private readonly IPurchaseIntelligenceService _aiService;
 
-    public PurchasesController(PurchaseService service)
+    public PurchasesController(PurchaseService service, IPurchaseIntelligenceService aiService)
     {
         _service = service;
+        _aiService = aiService;
+    }
+
+    [HttpPost("analyze")]
+    public async Task<IActionResult> AnalyzeInvoice(IFormFile file)
+    {
+        if (file == null || file.Length == 0) return BadRequest(new { error = "No file uploaded" });
+
+        using var stream = file.OpenReadStream();
+        var result = await _aiService.AnalyzeInvoiceAsync(stream);
+        return Ok(result);
     }
 
     [Audit("Purchase", "Create")]

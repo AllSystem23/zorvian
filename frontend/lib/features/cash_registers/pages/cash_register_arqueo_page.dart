@@ -111,45 +111,69 @@ final class _CashRegisterArqueoPageState extends ConsumerState<CashRegisterArque
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     if (_loading) return Scaffold(appBar: AppBar(title: const Text('Arqueo de Caja')), body: const Center(child: CircularProgressIndicator()));
     if (_error != null) return Scaffold(appBar: AppBar(title: const Text('Arqueo de Caja')), body: Center(child: Text(_error!)));
 
     final isOpen = _register?['status'] == 'open';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Arqueo de Caja')),
+      backgroundColor: Theme.of(context).brightness == Brightness.dark ? ZColors.darkBackground : ZColors.neutral50,
+      appBar: AppBar(title: const Text('Arqueo Físico de Caja')),
       body: _existingArqueo != null && !isOpen
-          ? _buildExistingArqueo(theme)
-          : _buildForm(theme),
+          ? _buildExistingArqueo()
+          : _buildForm(),
     );
   }
 
-  Widget _buildExistingArqueo(ThemeData theme) {
+  Widget _buildExistingArqueo() {
     final a = _existingArqueo!;
     final denoms = (a['denominations'] as List?) ?? [];
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
       children: [
         ZCard(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Arqueo Realizado', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 12),
-                _row('Saldo Esperado', '\$${(a['expectedBalance'] as num?)?.toStringAsFixed(2) ?? '0.00'}'),
-                _row('Total Contado', '\$${(a['countedTotal'] as num?)?.toStringAsFixed(2) ?? '0.00'}'),
-                _row('Diferencia', '\$${(a['difference'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
-                  color: ((a['difference'] as num?)?.abs() ?? 0) > 0.01 ? Colors.red : Colors.green),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Arqueo Realizado', style: ZTypography.titleLarge),
+                    ZBadge(text: 'REGISTRADO', type: ZBadgeType.neutral),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                _row('Saldo Esperado (Libros)', 'C\$ ${(a['expectedBalance'] as num?)?.toStringAsFixed(2) ?? '0.00'}'),
+                _row('Total Contado (Físico)', 'C\$ ${(a['countedTotal'] as num?)?.toStringAsFixed(2) ?? '0.00'}', bold: true),
+                _row('Diferencia Final', 'C\$ ${(a['difference'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
+                  color: ((a['difference'] as num?)?.abs() ?? 0) > 0.01 ? ZColors.danger : ZColors.success, bold: true),
+                const Divider(height: 32),
                 if (a['employeeName'] != null) _row('Realizado por', a['employeeName'] as String),
-                if (a['notes'] != null) _row('Notas', a['notes'] as String),
-                const Divider(),
-                Text('Denominaciones', style: theme.textTheme.titleSmall),
-                const SizedBox(height: 8),
-                ...denoms.map((d) => _row(
-                  '${d['denominationType'] == 'bill' ? 'Billete' : 'Moneda'} \$${(d['denominationValue'] as num).toStringAsFixed(2)}',
-                  '${d['quantity']} x \$${(d['denominationValue'] as num).toStringAsFixed(2)} = \$${(d['total'] as num).toStringAsFixed(2)}',
+                if (a['notes'] != null) ...[
+                  const SizedBox(height: 12),
+                  Text('Notas:', style: ZTypography.labelSmall.copyWith(color: ZColors.neutral500)),
+                  Text(a['notes'] as String, style: ZTypography.bodyMedium),
+                ],
+                const SizedBox(height: 24),
+                Text('DESGLOSE DE DENOMINACIONES', style: ZTypography.labelSmall.copyWith(color: ZColors.neutral500)),
+                const SizedBox(height: 12),
+                ...denoms.map((d) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Row(
+                    children: [
+                      Icon(d['denominationType'] == 'bill' ? Icons.money : Icons.copyright, size: 16, color: ZColors.neutral400),
+                      const SizedBox(width: 12),
+                      Text(
+                        d['denominationType'] == 'bill' ? 'Billete C\$ ${(d['denominationValue'] as num).toStringAsFixed(2)}' : 'Moneda C\$ ${(d['denominationValue'] as num).toStringAsFixed(2)}',
+                        style: ZTypography.bodyMedium,
+                      ),
+                      const Spacer(),
+                      Text('x${d['quantity']}', style: ZTypography.monoMedium),
+                      const SizedBox(width: 16),
+                      Text('C\$ ${(d['total'] as num).toStringAsFixed(2)}', style: ZTypography.titleSmall),
+                    ],
+                  ),
                 )),
               ],
             ),
@@ -158,59 +182,80 @@ final class _CashRegisterArqueoPageState extends ConsumerState<CashRegisterArque
     );
   }
 
-  Widget _buildForm(ThemeData theme) {
+  Widget _buildForm() {
     return Column(
       children: [
-        ZCard(
-          margin: const EdgeInsets.all(12),
-          padding: const EdgeInsets.all(16),
+        Container(
+          color: Theme.of(context).brightness == Brightness.dark ? ZColors.darkSurface : Colors.white,
+          padding: const EdgeInsets.all(24),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Arqueo de Caja', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                _row('Código', _register?['code'] ?? ''),
-                _row('Saldo Esperado', '\$${_expectedBalance.toStringAsFixed(2)}', bold: true),
-                const Divider(),
-                Text('Denominaciones', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-              ],
-            ),
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Total Contado', style: ZTypography.labelSmall.copyWith(color: ZColors.neutral500)),
+                        Text('C\$ ${_countedTotal.toStringAsFixed(2)}', style: ZTypography.displaySmall.copyWith(fontWeight: FontWeight.bold, color: ZColors.brandPrimary)),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: _difference.abs() > 0.01 ? ZColors.danger.withValues(alpha: 0.1) : ZColors.success.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(ZRadii.md),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text('DIFERENCIA', style: ZTypography.labelSmall.copyWith(color: _difference.abs() > 0.01 ? ZColors.danger : ZColors.success, fontSize: 8)),
+                        Text(
+                          'C\$ ${_difference.toStringAsFixed(2)}',
+                          style: ZTypography.titleMedium.copyWith(fontWeight: FontWeight.bold, color: _difference.abs() > 0.01 ? ZColors.danger : ZColors.success),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
+        ),
         Expanded(
           child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.all(24),
             children: [
-              ..._buildDenominationGroup('Billetes', _denominations.where((d) => d.type == 'bill').toList(), theme),
-              const SizedBox(height: 8),
-              ..._buildDenominationGroup('Monedas', _denominations.where((d) => d.type == 'coin').toList(), theme),
-              const SizedBox(height: 12),
+              _buildDenominationGroup('Billetes en Circulación', _denominations.where((d) => d.type == 'bill').toList()),
+              const SizedBox(height: 24),
+              _buildDenominationGroup('Monedas y Cambio', _denominations.where((d) => d.type == 'coin').toList()),
+              const SizedBox(height: 24),
               ZCard(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _row('Total Contado', '\$${_countedTotal.toStringAsFixed(2)}', bold: true),
-                      _row('Saldo Esperado', '\$${_expectedBalance.toStringAsFixed(2)}'),
-                      _row('Diferencia', '\$${_difference.toStringAsFixed(2)}',
-                        bold: true, color: _difference.abs() > 0.01 ? Colors.red : Colors.green),
-                      const SizedBox(height: 12),
-                      ZTextField(
-                        controller: _notesCtrl,
-                        label: 'Notas',
-                        maxLines: 2,
-                      ),
+                      Text('Observaciones del Arqueo', style: ZTypography.titleMedium),
                       const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _notesCtrl,
+                        maxLines: 3,
+                        decoration: const InputDecoration(
+                          hintText: 'Ej: Diferencia por redondeo en cambio, billetes deteriorados...',
+                        ),
+                      ),
+                      const SizedBox(height: 32),
                       ZButton(
-                        text: 'Realizar Arqueo',
+                        text: 'Finalizar y Registrar Arqueo',
                         onPressed: _submit,
                         isLoading: _saving,
-                        icon: Icons.check,
+                        icon: Icons.check_circle_outline,
                       ),
                     ],
                   ),
                 ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 40),
             ],
           ),
         ),
@@ -218,58 +263,81 @@ final class _CashRegisterArqueoPageState extends ConsumerState<CashRegisterArque
     );
   }
 
-  List<Widget> _buildDenominationGroup(String title, List<_DenominationInput> items, ThemeData theme) {
-    return [
-      Padding(
-        padding: const EdgeInsets.only(bottom: 4),
-        child: Text(title, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
-      ),
-      ZCard(
-        child: Column(
-          children: items.map((d) => Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            child: Row(
-              children: [
-                SizedBox(width: 100, child: Text(d.value >= 1 ? '\$${d.value.toStringAsFixed(0)}' : '\$${d.value.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w500))),
-                const Text('x', style: TextStyle(color: Colors.grey)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: d.controller,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      hintText: 'Cantidad',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                    ),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                ),
-                SizedBox(
-                  width: 100,
-                  child: Text(
-                    '= \$${((int.tryParse(d.controller.text) ?? 0) * d.value).toStringAsFixed(2)}',
-                    textAlign: TextAlign.right,
-                    style: const TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                ),
-              ],
-            ),
-          )).toList(),
+  Widget _buildDenominationGroup(String title, List<_DenominationInput> items) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 12),
+          child: Text(title.toUpperCase(), style: ZTypography.labelSmall.copyWith(color: ZColors.neutral500, letterSpacing: 1.2)),
         ),
-      ),
-    ];
+        ZCard(
+          padding: EdgeInsets.zero,
+          child: Column(
+            children: items.map((d) {
+              final isLast = items.last == d;
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                decoration: BoxDecoration(
+                  border: isLast ? null : Border(bottom: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? ZColors.darkBorder : ZColors.border)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(d.type == 'bill' ? Icons.money : Icons.copyright, size: 20, color: ZColors.neutral400),
+                    const SizedBox(width: 16),
+                    SizedBox(
+                      width: 120,
+                      child: Text(
+                        'C\$ ${d.value.toStringAsFixed(d.value >= 1 ? 0 : 2)}',
+                        style: ZTypography.bodyLarge.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    const Spacer(),
+                    SizedBox(
+                      width: 100,
+                      child: TextFormField(
+                        controller: d.controller,
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        decoration: InputDecoration(
+                          hintText: '0',
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                          fillColor: Theme.of(context).brightness == Brightness.dark ? ZColors.darkBackground : ZColors.neutral50,
+                        ),
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    SizedBox(
+                      width: 120,
+                      child: Text(
+                        'C\$ ${((int.tryParse(d.controller.text) ?? 0) * d.value).toStringAsFixed(2)}',
+                        textAlign: TextAlign.right,
+                        style: ZTypography.titleMedium.copyWith(fontWeight: FontWeight.bold, color: ZColors.brandPrimary),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _row(String label, String value, {bool bold = false, Color? color}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.grey)),
-          Text(value, style: TextStyle(fontWeight: bold ? FontWeight.bold : FontWeight.normal, color: color)),
+          Text(label, style: ZTypography.bodyMedium.copyWith(color: ZColors.neutral500)),
+          Text(value, style: ZTypography.bodyLarge.copyWith(
+            fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+            color: color,
+          )),
         ],
       ),
     );

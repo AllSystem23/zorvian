@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../auth/tenants_provider.dart';
 import '../../navigation/nav_provider.dart';
 import '../../providers/company_branch_provider.dart';
 import '../../services/signalr_service.dart';
@@ -38,6 +39,10 @@ final class GlobalHeader extends ConsumerWidget {
           // ── Logo (compact) ──
           _LogoCompact(),
           SizedBox(width: ZSpacing.md),
+
+          // ── Tenant Switcher ──
+          _TenantSwitcher(),
+          SizedBox(width: ZSpacing.sm),
 
           // ── Company Selector ──
           _CompanySelector(),
@@ -206,6 +211,48 @@ class _BranchSelector extends ConsumerWidget {
   }
 }
 
+/// Tenant switcher — shows available companies/tenants the user can access
+class _TenantSwitcher extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tenantsAsync = ref.watch(tenantsListProvider);
+
+    return tenantsAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (tenants) {
+        if (tenants.length <= 1) return const SizedBox.shrink();
+        final current = tenants.firstWhere((t) => t.isCurrent, orElse: () => tenants.first);
+        return MenuAnchor(
+          menuChildren: tenants.where((t) => !t.isCurrent).map((t) {
+            return MenuItemButton(
+              leadingIcon: const Icon(Icons.swap_horiz, size: 16),
+              child: Text(t.companyName),
+              onPressed: () async {
+                final success = await ref.read(authProvider.notifier).switchTenant(t.tenantId);
+                if (success) {
+                  ref.invalidate(tenantsListProvider);
+                }
+              },
+            );
+          }).toList(),
+          builder: (context, controller, child) {
+            return GestureDetector(
+              onTap: controller.open,
+              child: _SelectorChip(
+                icon: Icons.apartment_outlined,
+                label: current.companyName,
+                isDark: isDark,
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
 /// Reusable selector chip used by both company and branch selectors
 class _SelectorChip extends StatelessWidget {
   final IconData icon;
@@ -342,10 +389,15 @@ class _QuickActions extends ConsumerWidget {
     final auth = ref.watch(authProvider);
     final notifState = ref.watch(signalRProvider);
     final unreadCount = notifState.notifications.length;
+    final connState = notifState.connectionState;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // ── Connectivity Indicator ──
+        _ConnectivityDot(state: connState),
+        const SizedBox(width: ZSpacing.sm),
+
         // ── Notifications ──
         _HeaderIconButton(
           icon: Icons.notifications_outlined,
@@ -654,4 +706,40 @@ void _showNotificationPanel(BuildContext context, WidgetRef ref) {
       ),
     ),
   );
+}
+
+/// Small dot indicating SignalR / API connectivity status
+class _ConnectivityDot extends StatelessWidget {
+  final ZConnectionState state;
+
+  const _ConnectivityDot({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final (color, tooltip) = switch (state) {
+      ZConnectionState.connected => (ZColors.success, 'Sistema conectado y en línea'),
+      ZConnectionState.connecting => (ZColors.warning, 'Conectando al sistema...'),
+      ZConnectionState.reconnecting => (ZColors.warning, 'Reconectando al sistema...'),
+      ZConnectionState.disconnected => (ZColors.danger, 'Sistema desconectado. Notificaciones en pausa.'),
+    };
+
+    return Tooltip(
+      message: tooltip,
+      child: Container(
+        width: 8,
+        height: 8,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.4),
+              blurRadius: 4,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

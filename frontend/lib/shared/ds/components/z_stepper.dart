@@ -66,25 +66,43 @@ final class _StepCircle extends StatelessWidget {
   Widget build(BuildContext context) {
     final isActive = index <= currentStep;
     final isCurrent = index == currentStep;
+    final isCompleted = index < currentStep;
+    
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(
-          width: isCurrent ? 36 : 28,
-          height: isCurrent ? 36 : 28,
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          width: isCurrent ? 36 : 32,
+          height: isCurrent ? 36 : 32,
           decoration: BoxDecoration(
-            color: isActive ? ZColors.brandAccent : ZColors.neutral100,
+            color: isCompleted ? ZColors.success : (isActive ? ZColors.brandAccent : ZColors.neutral100),
             shape: BoxShape.circle,
-            border: isCurrent ? Border.all(color: ZColors.brandAccent, width: 3) : null,
+            boxShadow: isCurrent ? [BoxShadow(color: ZColors.brandAccent.withAlpha(50), blurRadius: 8, spreadRadius: 2)] : null,
+            border: isCurrent ? Border.all(color: Colors.white, width: 2) : null,
           ),
           child: Center(
-            child: isCurrent
-                ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: ZColors.brandPrimary))
-                : Text('${index + 1}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isActive ? ZColors.brandPrimary : ZColors.neutral400)),
+            child: isCompleted
+                ? const Icon(Icons.check, size: 18, color: Colors.white)
+                : Text(
+                    '${index + 1}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: isActive ? ZColors.brandPrimary : ZColors.neutral400,
+                    ),
+                  ),
           ),
         ),
-        const SizedBox(height: 4),
-        Text(label, style: TextStyle(fontSize: 11, color: isCurrent ? ZColors.brandPrimary : ZColors.neutral400, fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w400)),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: isCurrent ? ZColors.brandPrimary : ZColors.neutral400,
+            fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
+          ),
+        ),
       ],
     );
   }

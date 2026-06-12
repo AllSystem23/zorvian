@@ -51,6 +51,33 @@ Identifica qué documentos obligatorios faltan según las políticas corporativa
         return await PredictAsync(prompt);
     }
 
+    public async Task<string> AnalyzeFileAsync(Stream fileStream, string prompt, string mimeType)
+    {
+        using var ms = new MemoryStream();
+        await fileStream.CopyToAsync(ms);
+        var base64Data = Convert.ToBase64String(ms.ToArray());
+
+        var json = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            contents = new[] {
+                new {
+                    role = "user",
+                    parts = new object[] {
+                        new { text = prompt },
+                        new {
+                            inline_data = new {
+                                mime_type = mimeType,
+                                data = base64Data
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        return await PredictRawAsync(json);
+    }
+
     private async Task<string> PredictAsync(string prompt)
     {
         var json = System.Text.Json.JsonSerializer.Serialize(new
@@ -65,6 +92,11 @@ Identifica qué documentos obligatorios faltan según las políticas corporativa
             }
         });
 
+        return await PredictRawAsync(json);
+    }
+
+    private async Task<string> PredictRawAsync(string json)
+    {
         var instance = Google.Protobuf.WellKnownTypes.Value.Parser.ParseJson(json);
         var response = await _client.PredictAsync(_endpoint, new[] { instance }, null);
         

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../auth/auth_provider.dart';
+import '../../core/widgets/particle_background.dart';
 import '../../shared/ds/ds.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -30,12 +31,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   center: Alignment(0.7, -0.6),
                   radius: 1.5,
                   colors: [
-                    Color(0xFF1E293B),
+                    ZColors.neutral800,
                     ZColors.darkBackground,
                   ],
                 ),
               ),
             ),
+          ),
+          // PARTICLE BACKGROUND
+          const Positioned.fill(
+            child: ParticleBackground(),
           ),
           // AMBIENT GLOWS
           Positioned(
@@ -325,6 +330,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
                   text: 'ACCEDER AL SISTEMA',
                   onPressed: _login,
                   isLoading: _loading,
+                  gradient: ZColors.accentGradient,
                 ),
                 const SizedBox(height: 24),
                 ZButton(
@@ -334,7 +340,7 @@ class _LoginFormState extends ConsumerState<LoginForm> {
                 ),
                 const SizedBox(height: 8),
                 TextButton(
-                  onPressed: () {}, // TODO: Implement password recovery flow
+                  onPressed: () => context.push('/forgot-password'),
                   child: Text(
                     '¿Olvidaste tu contraseña?',
                     style: ZTypography.labelSmall.copyWith(
@@ -343,6 +349,8 @@ class _LoginFormState extends ConsumerState<LoginForm> {
                     textAlign: TextAlign.center,
                   ),
                 ),
+                const SizedBox(height: 16),
+                _buildCountryBadge(),
               ],
             ),
           ),
@@ -377,6 +385,28 @@ class _LoginFormState extends ConsumerState<LoginForm> {
             )
           : null,
       validator: (v) => v == null || v.isEmpty ? 'Este campo es obligatorio' : null,
+    );
+  }
+
+  Widget _buildCountryBadge() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.language, size: 14, color: ZColors.neutral500),
+          const SizedBox(width: 8),
+          Text(
+            'NI · CR · GT · HN · SV · PA',
+            style: TextStyle(fontSize: 11, color: ZColors.neutral500, letterSpacing: 1.5),
+          ),
+        ],
+      ),
     );
   }
 

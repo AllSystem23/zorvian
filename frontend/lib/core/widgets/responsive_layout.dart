@@ -92,27 +92,24 @@ class ResponsiveGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ResponsiveBuilder(
-      builder: (_, size) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
         int columns;
-        switch (size) {
-          case ScreenSize.mobile:
-            columns = mobileColumns;
-            break;
-          case ScreenSize.tablet:
-            columns = tabletColumns;
-            break;
-          case ScreenSize.desktop:
-            columns = desktopColumns;
-            break;
+        if (width < 576) {
+          columns = mobileColumns;
+        } else if (width < 992) {
+          columns = tabletColumns;
+        } else {
+          columns = desktopColumns;
         }
 
         return Wrap(
           spacing: spacing,
           runSpacing: runSpacing,
           children: children.map((child) {
-            final itemWidth = (MediaQuery.of(context).size.width - (spacing * (columns - 1))) / columns;
-            return SizedBox(width: itemWidth, child: child);
+            final itemWidth = (width - (spacing * (columns - 1))) / columns;
+            return SizedBox(width: itemWidth.floorToDouble(), child: child);
           }).toList(),
         );
       },

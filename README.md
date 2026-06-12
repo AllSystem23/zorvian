@@ -1,52 +1,86 @@
-# 🏛️ Zorvian ERP
+# Zorvian ERP
 
 **"Tan simple como una aplicación moderna, tan robusto como un ERP empresarial."**
 
 Zorvian ERP es un sistema ERP moderno multiplataforma construido con **Flutter** (frontend) y **ASP.NET Core 9** (backend), diseñado para empresas de Centroamérica y el Caribe.
 
-**Países soportados:** 🇳🇮 Nicaragua · 🇨🇷 Costa Rica · 🇬🇹 Guatemala · 🇭🇳 Honduras · 🇸🇻 El Salvador · 🇵🇦 Panamá
+**Países soportados:** Nicaragua · Costa Rica · Guatemala · Honduras · El Salvador · Panamá
 
 ---
 
-## 🚀 Stack Tecnológico
+## Identidad Visual
+
+| Rol | Color | Módulo |
+|-----|-------|--------|
+| Primario | `#1A0A3E` Deep Violet-Navy | Core / Plataforma |
+| Secundario | `#00E5FF` Cyan Eléctrico | Frontend / Ventas |
+| Éxito | `#00C853` Green Gemini | Transacciones exitosas |
+| Advertencia | `#FF6D00` Amber Alert | Pendientes |
+| Z-IA | `#B388FF` Purple Aura | Inteligencia Artificial |
+| CRM | `#00BCD4` Cyan Comercial | Clientes |
+| Finanzas | `#1B5E20` Green Bosque | Contabilidad |
+| Inventario | `#FF8F00` Amber Logístico | Bodegas |
+| RRHH | `#E040FB` Magenta Talento | Personas |
+
+---
+
+## Stack Tecnológico
 
 | Capa | Tecnología |
 |------|-----------|
 | **Frontend** | Flutter 3.x, Riverpod 2.x, GoRouter, Material 3 |
-| **Backend** | ASP.NET Core 9, Entity Framework Core 9 |
+| **Backend** | ASP.NET Core 9, Entity Framework Core 9, Clean Architecture |
 | **Base de Datos** | PostgreSQL 16 |
 | **Cache** | Redis 7 |
-| **Auth** | Firebase Auth + JWT |
-| **Realtime** | SignalR |
+| **Message Queue** | RabbitMQ |
+| **Auth** | Firebase Auth + JWT (multi-tenant) |
+| **Realtime** | SignalR (Redis Backplane) |
 | **Jobs** | Hangfire |
-| **AI** | Google AI (Embeddings, OCR, Predictions) |
+| **AI** | Vertex AI, ML.NET, XGBoost, pgvector |
+| **Observability** | Prometheus, Grafana, Sentry, OpenTelemetry |
 | **CI/CD** | GitHub Actions |
 | **Container** | Docker + Docker Compose |
+| **Edge** | CloudFlare WAF + CDN |
 
 ---
 
-## 📋 Módulos
+## Módulos
 
-| Módulo | Estado | Descripción |
-|--------|--------|-------------|
-| 🏢 **Multisucursal** | ✅ | Gestión de sucursales por empresa |
-| 🛒 **Comercial** | ✅ | Clientes, cotizaciones, ventas, notas de crédito |
-| 📦 **Inventario** | ✅ | Productos, kardex, ajustes, proveedores |
-| 💳 **Créditos** | ✅ | Cartera de créditos, mora, cobranza, refinanciamiento |
-| 💰 **Caja** | ✅ | Cajas registradoras, movimientos, arqueos |
-| 🏦 **Tesorería** | ✅ | Cheques, libros de cheques, conciliación |
-| 🧾 **Contabilidad** | ✅ | Catálogo, asientos automáticos, centros de costo, presupuestos |
-| 👥 **RRHH** | ✅ | Empleados, asistencia, vacaciones, permisos |
-| 💵 **Nómina** | ✅ | Cálculo INSS/IR, préstamos, embargos, ACH |
-| 🔧 **Garantías** | ✅ | SLA, proveedores, talleres, costos, rentabilidad |
-| 📊 **Activos Fijos** | ✅ | Depreciación, revaluación, baja, mantenimiento |
-| 🤖 **IA** | ✅ | Chatbot, OCR, predicciones de ausentismo y ventas |
-| 📈 **BI** | ✅ | Dashboards ejecutivo, financiero, comercial, operativo |
-| 🔗 **Webhooks** | ✅ | Suscripciones, entregas, logs |
+| Módulo | Estado | Color |
+|--------|--------|-------|
+| Multisucursal | ✅ | Admin |
+| Comercial | ✅ | CRM |
+| Inventario | ✅ | Inventario |
+| Créditos | ✅ | Finanzas |
+| Caja | ✅ | Tesorería |
+| Tesorería | ✅ | Tesorería |
+| Contabilidad | ✅ | Finanzas |
+| RRHH | ✅ | RRHH |
+| Nómina | ✅ | RRHH |
+| Garantías | ✅ | Inventario |
+| Activos Fijos | ✅ | Finanzas |
+| IA (Z-IA) | ✅ | Z-IA |
+| BI | ✅ | Z-IA |
+| Webhooks | ✅ | Admin |
 
 ---
 
-## 🏗️ Arquitectura
+## Diagramas de Arquitectura
+
+| Diagrama | Enlace |
+|----------|--------|
+| Arquitectura General | `docs/architecture_overview.md` |
+| Z-IA (IA + ML + OCR + Chatbot) | `docs/diagrams/z_ia_architecture.md` |
+| Pipeline CRM Completo | `docs/diagrams/crm_pipeline.md` |
+| Ciclo Contable | `docs/diagrams/accounting_cycle.md` |
+| Flujo de Tesorería | `docs/diagrams/treasury_flow.md` |
+| Kardex y Costeo de Inventario | `docs/diagrams/inventory_costing.md` |
+| Arquitectura Multi-Tenant | `docs/diagrams/multi_tenant.md` |
+| Auditoría Visual Completa | `docs/INFORME_AUDITORIA_VISUAL.md` |
+
+---
+
+## Arquitectura
 
 ```
 Zorvian ERP
@@ -55,47 +89,43 @@ Zorvian ERP
 │       ├── app/                 # Router, Theme, App Shell
 │       ├── auth/                # Auth Provider
 │       ├── core/                # Services, Network, Storage
-│       ├── features/            # Feature modules (30+)
-│       ├── shared/ds/           # Design System (22 components)
+│       ├── features/            # Feature modules (46)
+│       ├── shared/ds/           # Design System (45 componentes Z-*)
 │       └── l10n/                # Localization (es/en)
 ├── src/                         # ASP.NET Core Backend
-│   ├── Zorvian.Core/            # Entities, Enums, Interfaces
-│   ├── Zorvian.Application/     # Services, DTOs, Interfaces
-│   ├── Zorvian.Infrastructure/  # EF Core, Repos, External Services
-│   └── Zorvian.Web/             # Controllers, Middleware, Extensions
+│   ├── Zorvian.Core/            # 154 Entities, Enums, Interfaces
+│   ├── Zorvian.Application/    # 87 Services, DTOs, CQRS
+│   ├── Zorvian.Infrastructure/ # EF Core, 86 Repos, External Services
+│   └── Zorvian.Web/            # 86 Controllers, Middleware, SignalR
 ├── tests/                       # Unit & Integration Tests
+│   ├── Zorvian.Tests/          # Backend (xUnit + Moq)
+│   └── load/                   # k6 Load Testing
+├── docs/
+│   ├── architecture_overview.md
+│   ├── diagrams/               # Diagramas Mermaid por módulo
+│   ├── INFORME_AUDITORIA_VISUAL.md
+│   └── ...
 ├── Dockerfile                   # Multi-stage optimized build
-└── docker-compose.yml           # Local development stack
+└── docker-compose.yml           # Local dev stack
 ```
 
 ---
 
-## ⚡ Inicio Rápido
+## Inicio Rápido
 
-### Opción 1: Docker Compose (Recomendado)
+### Docker Compose (Recomendado)
 
 ```bash
-# Clonar el repositorio
 git clone https://github.com/AllSystem23/nexora.git
 cd nexora
-
-# Copiar variables de entorno
 cp src/Zorvian.Web/.env.example src/Zorvian.Web/.env
-
-# Iniciar servicios
 docker-compose up -d
-
-# Verificar
 curl http://localhost:8080/health
 ```
 
-### Opción 2: Desarrollo Local
+### Desarrollo Local
 
-**Requisitos:**
-- .NET 9 SDK
-- Flutter 3.x
-- PostgreSQL 16
-- Redis 7 (opcional)
+**Requisitos:** .NET 9 SDK, Flutter 3.x, PostgreSQL 16, Redis 7
 
 ```bash
 # Backend
@@ -111,20 +141,21 @@ flutter run -d chrome
 
 ---
 
-## 🔐 Seguridad
+## Seguridad
 
-- **Autenticación**: Firebase Auth + JWT tokens
+- **Autenticación**: Firebase Auth + JWT tokens multi-tenant
 - **Autorización**: RBAC con permisos granulares (RequirePermission)
-- **Multi-tenant**: Query Filters en EF Core con TenantId
-- **Auditoría**: Logs inmutables + Entity History
-- **Rate Limiting**: 120 req/min general, 5 req/15min para auth
+- **Multi-tenant**: Query Filters EF Core + RLS PostgreSQL
+- **Edge**: CloudFlare WAF + Rate Limiting
+- **Auditoría**: Logs inmutables + Elasticsearch
+- **Rate Limiting**: 120 req/min general, 5 req/15min auth
 - **Security Headers**: CSP, HSTS, X-Frame-Options, Permissions-Policy
-- **Circuit Breaker**: Polly con retry + circuit breaker para servicios externos
+- **Circuit Breaker**: Polly con retry + circuit breaker
 - **Validación**: FluentValidation + XSS protection
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ```bash
 # Backend tests
@@ -133,49 +164,39 @@ dotnet test
 # Frontend tests
 cd frontend
 flutter test --coverage
+
+# Load testing
+cd tests/load
+k6 run zorvian-load-test.js
 ```
 
 ---
 
-## 🚢 Deploy
+## Roadmap Visual 2026-2027
 
-### Producción
-
-```bash
-# Build
-docker build -t zorvian-api .
-
-# Run
-docker run -p 8080:8080 \
-  -e ConnectionStrings__ZorvianDb="your-connection-string" \
-  -e Jwt__Secret="your-jwt-secret" \
-  -e ASPNETCORE_ENVIRONMENT=Production \
-  zorvian-api
-```
-
-### CI/CD
-
-El pipeline de GitHub Actions ejecuta automáticamente:
-1. **Build** y **Test** del backend y frontend
-2. **Security Scan** para detectar credenciales
-3. **Deploy** a producción en push a `main`
+| Fase | Periodo | Entregable |
+|------|---------|------------|
+| 🔴 Foundation | Jul-Sep 2026 | Nueva paleta, diagramas C4 Z-IA, CRM, Contable |
+| 🟡 Expansión | Oct 2026-Ene 2027 | Tesorería, Multi-Tenant, Inventory, Dashboard Redesign |
+| 🟢 Enterprise | Feb-Jun 2027 | Seguridad C4, Sidebar/Header redesign, Disaster Recovery |
 
 ---
 
-## 📊 Calificación de Auditoría
+## Calificación de Auditoría Visual (Junio 2026)
 
-| Categoría | Calificación |
-|-----------|:------------:|
-| Arquitectura | 8.5/10 |
-| Frontend | 7.5/10 |
-| Backend | 8.5/10 |
-| Base de Datos | 7.5/10 |
-| Seguridad | 7.5/10 |
-| UX/UI | 8.0/10 |
-| **Global** | **7.8/10** |
+| Categoría | Puntaje |
+|-----------|:-------:|
+| Arquitectura Técnica | 8.0/10 |
+| Visual / Diagramas | 6.0/10 → **8.5/10** (post-mejora) |
+| Branding / Identidad | 5.5/10 → **9.0/10** (post-mejora) |
+| UX/UI Empresarial | 7.0/10 |
+| Cobertura Funcional | 8.0/10 |
+| Competitividad | 6.5/10 |
+| Documentación | 7.0/10 → **9.0/10** (post-mejora) |
+| **Global** | **6.9/10 → 8.5/10** (proyectado) |
 
 ---
 
-## 📄 Licencia
+## Licencia
 
 Uso interno — Zorvian ERP © 2026
