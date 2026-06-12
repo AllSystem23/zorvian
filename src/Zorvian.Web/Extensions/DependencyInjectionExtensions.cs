@@ -63,6 +63,7 @@ public static class DependencyInjectionExtensions
         });
 
         services.AddScoped<QuestPdfService>();
+        services.AddScoped<IEmailService, EmailService>();
 
         return services;
     }
@@ -122,6 +123,10 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IClientRepository, ClientRepository>();
         services.AddScoped<IQuoteRepository, QuoteRepository>();
         services.AddScoped<ISaleRepository, SaleRepository>();
+        
+        // CRM
+        services.AddScoped<ILeadRepository, LeadRepository>();
+        services.AddScoped<IOpportunityRepository, OpportunityRepository>();
 
         // Inventory
         services.AddScoped<ICategoryRepository, CategoryRepository>();
@@ -280,6 +285,10 @@ public static class DependencyInjectionExtensions
         services.AddScoped<ClientService>();
         services.AddScoped<QuoteService>();
         services.AddScoped<SaleService>();
+        
+        // CRM
+        services.AddScoped<LeadService>();
+        services.AddScoped<OpportunityService>();
 
         // Inventory
         services.AddScoped<CategoryService>();

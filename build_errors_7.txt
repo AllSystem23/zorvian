@@ -1,7 +1,0 @@
-﻿C:\Users\tbr_a\Documents\Zorvian ERP\src\Zorvian.Application\Services\Documentary\DocumentService.cs(67,13): error CS0117: 'DocumentVersion' no contiene una definici├│n para 'Content' [C:\Users\tbr_a\Documents\Zorvian ERP\src\Zorvian.Application\Zorvian.Application.csproj]
-
-ERROR al compilar.
-    0 Advertencia(s)
-    1 Errores
-
-Tiempo transcurrido 00:00:01.86

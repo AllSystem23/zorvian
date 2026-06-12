@@ -83,6 +83,12 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<ApprovalFlowStep> ApprovalFlowSteps => Set<ApprovalFlowStep>();
     public DbSet<ApprovalRequest> ApprovalRequests => Set<ApprovalRequest>();
     public DbSet<ApprovalRequestAction> ApprovalRequestActions => Set<ApprovalRequestAction>();
+    
+    // New Module: CRM
+    public DbSet<Lead> Leads => Set<Lead>();
+    public DbSet<Opportunity> Opportunities => Set<Opportunity>();
+    public DbSet<PipelineStage> PipelineStages => Set<PipelineStage>();
+    public DbSet<CommercialActivity> CommercialActivities => Set<CommercialActivity>();
 
     // New Module: Inventario
     public DbSet<Category> Categories => Set<Category>();

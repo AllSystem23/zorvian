@@ -9,37 +9,12 @@ namespace Zorvian.Application.Services;
 /// </summary>
 public interface ICrmService
 {
-    Task<Opportunity> CreateOpportunityAsync(string name, Guid clientId, decimal estimatedValue, string stage, Guid ownerId);
-    Task<Opportunity> UpdateStageAsync(Guid opportunityId, string newStage, string? notes = null);
-    Task<List<Opportunity>> GetOpportunitiesByStageAsync(string stage);
-    Task<List<Opportunity>> GetOpportunitiesByOwnerAsync(Guid ownerId);
+    Task<Zorvian.Core.Entities.Opportunity> CreateOpportunityAsync(string name, Guid clientId, decimal estimatedValue, string stage, Guid ownerId);
+    Task<Zorvian.Core.Entities.Opportunity> UpdateStageAsync(Guid opportunityId, string newStage, string? notes = null);
+    Task<List<Zorvian.Core.Entities.Opportunity>> GetOpportunitiesByStageAsync(string stage);
+    Task<List<Zorvian.Core.Entities.Opportunity>> GetOpportunitiesByOwnerAsync(Guid ownerId);
     Task<Dictionary<string, int>> GetPipelineStatisticsAsync();
-    Task<List<Activity>> GetOpportunityActivitiesAsync(Guid opportunityId);
-}
-
-public class Opportunity
-{
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public string Name { get; set; } = string.Empty;
-    public Guid ClientId { get; set; }
-    public decimal EstimatedValue { get; set; }
-    public string Stage { get; set; } = "prospecting"; // prospecting, qualified, proposal, negotiation, won, lost
-    public int Probability { get; set; } = 10; // 0-100%
-    public DateTime ExpectedCloseDate { get; set; }
-    public Guid OwnerId { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime? ClosedAt { get; set; }
-    public string? LostReason { get; set; }
-}
-
-public class Activity
-{
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid OpportunityId { get; set; }
-    public string Type { get; set; } = string.Empty; // call, email, meeting, note
-    public string Description { get; set; } = string.Empty;
-    public DateTime Date { get; set; } = DateTime.UtcNow;
-    public Guid UserId { get; set; }
+    Task<List<CommercialActivity>> GetOpportunityActivitiesAsync(Guid opportunityId);
 }
 
 public class CrmService : ICrmService
@@ -64,20 +39,20 @@ public class CrmService : ICrmService
         _goalIntegration = goalIntegration;
     }
 
-    public async Task<Opportunity> CreateOpportunityAsync(string name, Guid clientId, decimal estimatedValue, string stage, Guid ownerId)
+    public async Task<Zorvian.Core.Entities.Opportunity> CreateOpportunityAsync(string name, Guid clientId, decimal estimatedValue, string stage, Guid ownerId)
     {
         if (!PipelineStages.Contains(stage))
             throw new ArgumentException($"Invalid stage: {stage}. Valid stages: {string.Join(", ", PipelineStages)}");
 
-        var opportunity = new Opportunity
+        var opportunity = new Zorvian.Core.Entities.Opportunity
         {
-            Name = name,
+            Title = name,
             ClientId = clientId,
             EstimatedValue = estimatedValue,
-            Stage = stage,
+            Status = stage,
             Probability = DefaultProbabilities.GetValueOrDefault(stage, 10),
-            OwnerId = ownerId,
-            ExpectedCloseDate = DateTime.UtcNow.AddDays(30)
+            AssignedToId = ownerId,
+            ExpectedClosingDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30))
         };
 
         _logger.LogInformation("[CRM] Created opportunity {Name} for client {ClientId}", name, clientId);
@@ -87,7 +62,7 @@ public class CrmService : ICrmService
         return opportunity;
     }
 
-    public async Task<Opportunity> UpdateStageAsync(Guid opportunityId, string newStage, string? notes = null)
+    public async Task<Zorvian.Core.Entities.Opportunity> UpdateStageAsync(Guid opportunityId, string newStage, string? notes = null)
     {
         if (!PipelineStages.Contains(newStage))
             throw new ArgumentException($"Invalid stage: {newStage}");
@@ -98,28 +73,28 @@ public class CrmService : ICrmService
             throw new ArgumentException("Lost reason is required when marking as lost");
 
         await Task.CompletedTask;
-        return new Opportunity
+        return new Zorvian.Core.Entities.Opportunity
         {
             Id = opportunityId,
-            Stage = newStage,
+            Status = newStage,
             Probability = DefaultProbabilities.GetValueOrDefault(newStage, 10),
-            LostReason = newStage == "lost" ? notes : null,
-            ClosedAt = (newStage == "won" || newStage == "lost") ? DateTime.UtcNow : null
+            LossReason = newStage == "lost" ? notes : null,
+            ActualClosingDate = (newStage == "won" || newStage == "lost") ? DateOnly.FromDateTime(DateTime.UtcNow) : null
         };
     }
 
-    public async Task<List<Opportunity>> GetOpportunitiesByStageAsync(string stage)
+    public async Task<List<Zorvian.Core.Entities.Opportunity>> GetOpportunitiesByStageAsync(string stage)
     {
         _logger.LogInformation("[CRM] Querying opportunities by stage {Stage}", stage);
         await Task.CompletedTask;
-        return new List<Opportunity>();
+        return new List<Zorvian.Core.Entities.Opportunity>();
     }
 
-    public async Task<List<Opportunity>> GetOpportunitiesByOwnerAsync(Guid ownerId)
+    public async Task<List<Zorvian.Core.Entities.Opportunity>> GetOpportunitiesByOwnerAsync(Guid ownerId)
     {
         _logger.LogInformation("[CRM] Querying opportunities by owner {OwnerId}", ownerId);
         await Task.CompletedTask;
-        return new List<Opportunity>();
+        return new List<Zorvian.Core.Entities.Opportunity>();
     }
 
     public async Task<Dictionary<string, int>> GetPipelineStatisticsAsync()
@@ -133,10 +108,10 @@ public class CrmService : ICrmService
         return stats;
     }
 
-    public async Task<List<Activity>> GetOpportunityActivitiesAsync(Guid opportunityId)
+    public async Task<List<CommercialActivity>> GetOpportunityActivitiesAsync(Guid opportunityId)
     {
         _logger.LogInformation("[CRM] Getting activities for opportunity {Id}", opportunityId);
         await Task.CompletedTask;
-        return new List<Activity>();
+        return new List<CommercialActivity>();
     }
 }

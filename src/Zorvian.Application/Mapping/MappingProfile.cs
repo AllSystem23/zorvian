@@ -11,6 +11,7 @@ using Zorvian.Application.DTOs.Accounting;
 using Zorvian.Application.DTOs.FixedAssets;
 using Zorvian.Application.DTOs.Approval;
 using Zorvian.Core.Entities;
+using Zorvian.Core.Enums;
 
 namespace Zorvian.Application.Mapping;
 
@@ -136,6 +137,44 @@ public sealed class MappingProfile : Profile
             .ForMember(d => d.FullName, o => o.MapFrom(s => $"{s.FirstName} {s.LastName}".Trim()));
         CreateMap<Client, ClientListResponse>()
             .ForMember(d => d.FullName, o => o.MapFrom(s => $"{s.FirstName} {s.LastName}".Trim()));
+
+        // Lead
+        CreateMap<CreateLeadRequest, Lead>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.CompanyId, o => o.Ignore())
+            .ForMember(d => d.CreatedAt, o => o.Ignore())
+            .ForMember(d => d.Status, o => o.MapFrom(_ => Zorvian.Core.Enums.LeadStatus.New))
+            .ForMember(d => d.AssignedToId, o => o.Ignore());
+        CreateMap<UpdateLeadRequest, Lead>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.CompanyId, o => o.Ignore())
+            .ForMember(d => d.CreatedAt, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<Lead, LeadResponse>();
+
+        // Opportunity
+        CreateMap<CreateOpportunityRequest, Opportunity>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.CompanyId, o => o.Ignore())
+            .ForMember(d => d.CreatedAt, o => o.Ignore())
+            .ForMember(d => d.Status, o => o.MapFrom(_ => "open"))
+            .ForMember(d => d.Stage, o => o.Ignore())
+            .ForMember(d => d.Client, o => o.Ignore())
+            .ForMember(d => d.Lead, o => o.Ignore());
+        CreateMap<UpdateOpportunityRequest, Opportunity>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.CompanyId, o => o.Ignore())
+            .ForMember(d => d.CreatedAt, o => o.Ignore())
+            .ForMember(d => d.Stage, o => o.Ignore())
+            .ForMember(d => d.Client, o => o.Ignore())
+            .ForMember(d => d.Lead, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<Opportunity, OpportunityResponse>()
+            .ForMember(d => d.StageName, o => o.MapFrom(s => s.Stage != null ? s.Stage.Name : null))
+            .ForMember(d => d.ClientName, o => o.MapFrom(s => s.Client != null ? $"{s.Client.FirstName} {s.Client.LastName}".Trim() : (s.Lead != null ? $"{s.Lead.FirstName} {s.Lead.LastName}".Trim() : null)));
+
+        // PipelineStage
+        CreateMap<PipelineStage, PipelineStageResponse>();
 
         // Quote
         CreateMap<CreateQuoteRequest, Quote>()

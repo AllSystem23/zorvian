@@ -1,9 +1,0 @@
-﻿C:\Users\tbr_a\Documents\Zorvian ERP\src\Zorvian.Application\Services\Documentary\DocumentService.cs(67,13): error CS0117: 'DocumentVersion' no contiene una definici├│n para 'Content' [C:\Users\tbr_a\Documents\Zorvian ERP\src\Zorvian.Application\Zorvian.Application.csproj]
-C:\Users\tbr_a\Documents\Zorvian ERP\src\Zorvian.Application\Services\Documentary\DocumentService.cs(93,24): error CS0029: No se puede convertir impl├¡citamente el tipo 'string' en 'System.Guid' [C:\Users\tbr_a\Documents\Zorvian ERP\src\Zorvian.Application\Zorvian.Application.csproj]
-C:\Users\tbr_a\Documents\Zorvian ERP\src\Zorvian.Application\Services\Documentary\DocumentGenerationService.cs(66,42): error CS1061: "Client" no contiene una definici├│n para "Name" ni un m├®todo de extensi├│n accesible "Name" que acepte un primer argumento del tipo "Client" (┬┐falta alguna directiva using o una referencia de ensamblado?) [C:\Users\tbr_a\Documents\Zorvian ERP\src\Zorvian.Application\Zorvian.Application.csproj]
-
-ERROR al compilar.
-    0 Advertencia(s)
-    3 Errores
-
-Tiempo transcurrido 00:00:01.50
