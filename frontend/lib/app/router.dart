@@ -1,5 +1,3 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../auth/auth_provider.dart';
@@ -204,7 +202,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     initialLocation: '/splash',
-    debugLogDiagnostics: !kIsWeb && Platform.isWindows,
+    debugLogDiagnostics: true,
     redirect: (context, state) {
       final status = authState.status;
       final location = state.matchedLocation;
@@ -214,7 +212,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (status == AuthStatus.unknown && !isSplashRoute) return '/splash';
 
-      if (status == AuthStatus.unauthenticated && !isLoginRoute && !isSplashRoute) {
+      if (status == AuthStatus.unauthenticated && !isLoginRoute) {
         return '/login';
       }
 

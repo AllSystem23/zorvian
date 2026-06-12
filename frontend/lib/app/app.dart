@@ -24,7 +24,14 @@ class _ZorvianAppState extends ConsumerState<ZorvianApp> {
     ref.listenManual(authProvider, (_, next) {
       if (next.status == AuthStatus.authenticated || next.status == AuthStatus.unauthenticated) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          ref.read(routerProvider).refresh();
+          final router = ref.read(routerProvider);
+          router.refresh();
+          // Force a re-evaluation of the initial route based on new status
+          if (next.status == AuthStatus.unauthenticated) {
+            router.go('/login');
+          } else if (next.status == AuthStatus.authenticated) {
+            router.go('/dashboard');
+          }
         });
       }
     });
