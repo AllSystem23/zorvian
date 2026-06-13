@@ -25,7 +25,7 @@ public sealed class AccountLinkService
     public async Task<AccountLinkResponse> CreateAsync(CreateAccountLinkRequest request)
     {
         var account = await _accountRepo.GetByIdAsync(request.AccountId)
-            ?? throw new InvalidOperationException("Account not found");
+            ?? throw new KeyNotFoundException("Account not found");
 
         var link = new AccountLink
         {
@@ -42,7 +42,7 @@ public sealed class AccountLinkService
     public async Task DeleteAsync(Guid id)
     {
         var link = await _repo.GetByCompanyAsync(CompanyId).ContinueWith(t => t.Result.FirstOrDefault(l => l.Id == id))
-            ?? throw new InvalidOperationException("Link not found");
+            ?? throw new KeyNotFoundException("Link not found");
         await _repo.DeleteAsync(link);
         await _repo.SaveChangesAsync();
     }

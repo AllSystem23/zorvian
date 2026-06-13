@@ -51,7 +51,7 @@ namespace Zorvian.Application.Services
         public async Task UpdateCheckStatusAsync(Guid checkId, CheckStatus newStatus, Guid userId, string? remarks = null)
         {
             var check = await _checkRepository.GetByIdAsync(checkId);
-            if (check == null) throw new Exception("Check not found");
+            if (check == null) throw new KeyNotFoundException("Check not found");
 
             check.Status = newStatus;
             await _checkRepository.UpdateAsync(check);

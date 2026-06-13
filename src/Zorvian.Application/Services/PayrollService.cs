@@ -211,7 +211,7 @@ public sealed class PayrollService
     public async Task<PayrollRunResponse> GeneratePayrollAsync(GeneratePayrollRequest request)
     {
         var period = await _repo.GetPeriodByIdAsync(request.PayrollPeriodId)
-            ?? throw new InvalidOperationException("Payroll period not found");
+            ?? throw new KeyNotFoundException("Payroll period not found");
 
         var company = await _companyRepo.GetByTenantIdAsync(_tenant.TenantId) 
             ?? throw new InvalidOperationException("Company not found");

@@ -51,7 +51,7 @@ public sealed class PerformanceService
     public async Task<KeyResultResponse> UpdateKeyResultAsync(Guid krId, UpdateKeyResultRequest request)
     {
         var kr = await _db.KeyResults.FindAsync(krId);
-        if (kr == null) throw new InvalidOperationException("Key Result not found");
+        if (kr == null) throw new KeyNotFoundException("Key Result not found");
 
         kr.CurrentValue = request.CurrentValue;
         await _db.SaveChangesAsync();

@@ -532,7 +532,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
 
     public async Task<Guid> GeneratePayrollEntryAsync(Guid payrollRunId)
     {
-        var payrollRun = await _payrollRepo!.GetRunByIdAsync(payrollRunId) ?? throw new InvalidOperationException("Run not found");
+        var payrollRun = await _payrollRepo!.GetRunByIdAsync(payrollRunId) ?? throw new KeyNotFoundException("Run not found");
         var periodId = await GetPeriodIdAsync();
         var companyId = CompanyId;
 
@@ -604,7 +604,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
     public async Task<Guid> GenerateCashMovementEntryAsync(Guid movementId)
     {
         var movement = await _cashRepo!.GetByIdAsync(movementId)
-            ?? throw new InvalidOperationException("Movement not found");
+            ?? throw new KeyNotFoundException("Movement not found");
 
         var periodId = await GetPeriodIdAsync();
         var companyId = CompanyId;

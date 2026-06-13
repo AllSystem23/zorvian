@@ -20,7 +20,7 @@ public sealed class TerminationService
     public async Task<TerminationRecord?> CalculateAsync(Guid employeeId, TerminationReason reason, DateOnly terminationDate)
     {
         var employee = await _employeeRepo.GetByIdAsync(employeeId) 
-            ?? throw new InvalidOperationException("Employee not found");
+            ?? throw new KeyNotFoundException("Employee not found");
         
         // Fetch accrued benefits
         var provisions = await _benefitRepo.GetByEmployeeAsync(employeeId);

@@ -27,7 +27,7 @@ public sealed class AchExportService : IAchExportService
             .FirstOrDefaultAsync(r => r.Id == payrollRunId);
 
         if (run is null)
-            throw new InvalidOperationException("Corrida de nómina no encontrada");
+            throw new KeyNotFoundException("Corrida de nómina no encontrada");
 
         if (run.Status != "approved")
             throw new InvalidOperationException("La nómina debe estar aprobada para exportar ACH");

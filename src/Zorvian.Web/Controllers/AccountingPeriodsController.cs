@@ -34,11 +34,7 @@ public sealed class AccountingPeriodsController : ControllerBase
     [RequirePermission(Permissions.AccountingWrite)]
     public async Task<IActionResult> Close(Guid id)
     {
-        try
-        {
-            var period = await _service.CloseAsync(id);
-            return Ok(period);
-        }
-        catch (InvalidOperationException ex) { return BadRequest(new { error = ex.Message }); }
+        var period = await _service.CloseAsync(id);
+        return Ok(period);
     }
 }

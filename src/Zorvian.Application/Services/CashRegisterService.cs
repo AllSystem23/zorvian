@@ -35,7 +35,7 @@ public sealed class CashRegisterService
     public async Task<bool> ApproveMovementAsync(Guid movementId)
     {
         var movement = await _movementRepo.GetByIdAsync(movementId)
-            ?? throw new InvalidOperationException("Movement not found");
+            ?? throw new KeyNotFoundException("Movement not found");
 
         if (movement.ApprovalStatus == "approved")
             throw new InvalidOperationException("Movement already approved");
@@ -68,7 +68,7 @@ public sealed class CashRegisterService
     public async Task<CashRegisterResponse> CloseAsync(Guid id, CloseCashRegisterRequest request)
     {
         var register = await _registerRepo.GetByIdAsync(id)
-            ?? throw new InvalidOperationException("Cash register not found");
+            ?? throw new KeyNotFoundException("Cash register not found");
 
         if (register.Status != "open")
             throw new InvalidOperationException("Cash register is already closed");
@@ -93,7 +93,7 @@ public sealed class CashRegisterService
     public async Task<CashMovementResponse> AddMovementAsync(CreateCashMovementRequest request)
     {
         var register = await _registerRepo.GetByIdAsync(request.CashRegisterId)
-            ?? throw new InvalidOperationException("Cash register not found");
+            ?? throw new KeyNotFoundException("Cash register not found");
 
         if (register.Status != "open")
             throw new InvalidOperationException("Cash register is not open");
@@ -143,7 +143,7 @@ public sealed class CashRegisterService
     public async Task<CashRegisterArqueoResponse> CreateArqueoAsync(Guid cashRegisterId, CreateArqueoRequest request)
     {
         var register = await _registerRepo.GetByIdAsync(cashRegisterId)
-            ?? throw new InvalidOperationException("Cash register not found");
+            ?? throw new KeyNotFoundException("Cash register not found");
 
         if (register.Status != "open")
             throw new InvalidOperationException("Cash register is already closed");

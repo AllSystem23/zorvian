@@ -174,7 +174,7 @@ public sealed class PurchaseService
             throw new InvalidOperationException("Invalid tenant");
 
         var purchase = await _purchaseRepo.GetByIdAsync(id)
-            ?? throw new InvalidOperationException("Purchase not found");
+            ?? throw new KeyNotFoundException("Purchase not found");
 
         if (purchase.Status == "cancelled")
             throw new InvalidOperationException("Cannot update a cancelled purchase");
@@ -272,7 +272,7 @@ public sealed class PurchaseService
     public async Task<PurchaseResponse> CancelAsync(Guid id)
     {
         var purchase = await _purchaseRepo.GetByIdAsync(id)
-            ?? throw new InvalidOperationException("Purchase not found");
+            ?? throw new KeyNotFoundException("Purchase not found");
 
         if (purchase.Status == "cancelled")
             throw new InvalidOperationException("Purchase is already cancelled");
@@ -314,7 +314,7 @@ public sealed class PurchaseService
     public async Task CompleteAsync(Guid id)
     {
         var purchase = await _purchaseRepo.GetByIdAsync(id)
-            ?? throw new InvalidOperationException("Purchase not found");
+            ?? throw new KeyNotFoundException("Purchase not found");
 
         purchase.Status = "completed";
         await _purchaseRepo.UpdateAsync(purchase);

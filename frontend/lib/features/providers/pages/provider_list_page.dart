@@ -46,7 +46,7 @@ class ProviderListPage extends ConsumerWidget {
                 Text('Lista de Colaboradores Externos', style: ZTypography.titleLarge),
                 ZButton(
                   text: 'Nuevo Prestador',
-                  onPressed: () {}, // TODO: Implementar formulario
+                  onPressed: () => context.push('/providers/new'),
                   icon: Icons.add,
                 ),
               ],

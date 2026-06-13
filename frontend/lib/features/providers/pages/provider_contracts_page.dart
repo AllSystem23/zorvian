@@ -70,7 +70,7 @@ class ProviderContractsPage extends ConsumerWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {},
+        onPressed: () => context.push('/providers/contracts/new'),
         label: const Text('Nuevo Contrato'),
         icon: const Icon(Icons.add),
       ),

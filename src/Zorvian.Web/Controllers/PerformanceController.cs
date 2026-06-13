@@ -40,13 +40,6 @@ public sealed class PerformanceController : ControllerBase
     [HttpPut("key-results/{id:guid}")]
     public async Task<IActionResult> UpdateKeyResult(Guid id, [FromBody] UpdateKeyResultRequest request)
     {
-        try
-        {
-            return Ok(await _service.UpdateKeyResultAsync(id, request));
-        }
-        catch (InvalidOperationException ex)
-        {
-            return NotFound(new { error = ex.Message });
-        }
+        return Ok(await _service.UpdateKeyResultAsync(id, request));
     }
 }

@@ -96,7 +96,7 @@ public sealed class AccountService
 
     public async Task<AccountResponse> UpdateAsync(Guid id, UpdateAccountRequest request)
     {
-        var account = await _repo.GetByIdAsync(id) ?? throw new InvalidOperationException("Account not found");
+        var account = await _repo.GetByIdAsync(id) ?? throw new KeyNotFoundException("Account not found");
         var companyId = await GetCompanyIdAsync();
         if (request.Code != null)
         {
@@ -127,7 +127,7 @@ public sealed class AccountService
 
     public async Task DeleteAsync(Guid id)
     {
-        var account = await _repo.GetByIdAsync(id) ?? throw new InvalidOperationException("Account not found");
+        var account = await _repo.GetByIdAsync(id) ?? throw new KeyNotFoundException("Account not found");
         if (account.IsSystem)
             throw new InvalidOperationException("Cannot delete a system account");
         bool hasEntries = await _entryRepo.HasEntriesForAccountAsync(id);
@@ -309,7 +309,7 @@ public sealed class AccountingEntryService
     public async Task<AccountingEntryResponse> CreateManualEntryAsync(CreateManualEntryRequest request)
     {
         var period = await _periodRepo.GetByIdAsync(request.AccountingPeriodId)
-            ?? throw new InvalidOperationException("Period not found");
+            ?? throw new KeyNotFoundException("Period not found");
         if (period.Status != "open")
             throw new InvalidOperationException("Period is not open");
 
@@ -369,7 +369,7 @@ public sealed class AccountingEntryService
 
     public async Task<AccountingEntryResponse> PostEntryAsync(Guid id)
     {
-        var entry = await _entryRepo.GetByIdAsync(id) ?? throw new InvalidOperationException("Entry not found");
+        var entry = await _entryRepo.GetByIdAsync(id) ?? throw new KeyNotFoundException("Entry not found");
         if (entry.Status == "posted") throw new InvalidOperationException("Entry already posted");
         entry.Status = "posted";
         entry.PostedAt = DateTime.UtcNow;
@@ -421,7 +421,7 @@ public sealed class AccountingPeriodService
 
     public async Task<AccountingPeriodResponse> CloseAsync(Guid id)
     {
-        var period = await _repo.GetByIdAsync(id) ?? throw new InvalidOperationException("Period not found");
+        var period = await _repo.GetByIdAsync(id) ?? throw new KeyNotFoundException("Period not found");
         period.Status = "closed";
         period.ClosedAt = DateTime.UtcNow;
         await _repo.UpdateAsync(period);

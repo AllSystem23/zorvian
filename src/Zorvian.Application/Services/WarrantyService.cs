@@ -76,7 +76,7 @@ public sealed class WarrantyService
     public async Task<WarrantyClaimResponse> AddClaimAsync(CreateWarrantyClaimRequest request)
     {
         var warranty = await _repo.GetByIdAsync(request.WarrantyId)
-            ?? throw new InvalidOperationException("Warranty not found");
+            ?? throw new KeyNotFoundException("Warranty not found");
 
         var claim = _mapper.Map<WarrantyClaim>(request);
         claim.CompanyId = warranty.CompanyId;
@@ -93,7 +93,7 @@ public sealed class WarrantyService
     public async Task<WarrantyClaimResponse> AssignWorkshopAsync(Guid claimId, AssignWorkshopRequest request)
     {
         var claim = await _repo.GetClaimByIdAsync(claimId)
-            ?? throw new InvalidOperationException("Claim not found");
+            ?? throw new KeyNotFoundException("Claim not found");
 
         claim.WorkshopId = request.WorkshopId;
         claim.TechnicianId = request.TechnicianId;
@@ -110,7 +110,7 @@ public sealed class WarrantyService
     public async Task<WarrantyClaimResponse> ReferToProviderAsync(Guid claimId, ReferToProviderRequest request)
     {
         var claim = await _repo.GetClaimByIdAsync(claimId)
-            ?? throw new InvalidOperationException("Claim not found");
+            ?? throw new KeyNotFoundException("Claim not found");
 
         claim.ProviderId = request.ProviderId;
         claim.ProviderReferredAt = DateTime.UtcNow;
@@ -125,7 +125,7 @@ public sealed class WarrantyService
     public async Task<WarrantyClaimResponse> ProcessManufacturerReplacementAsync(Guid claimId, ProcessReplacementRequest request)
     {
         var claim = await _repo.GetClaimByIdAsync(claimId)
-            ?? throw new InvalidOperationException("Claim not found");
+            ?? throw new KeyNotFoundException("Claim not found");
 
         // 1. Salida del producto defectuoso
         await _inventoryService.CreateAsync(new CreateInventoryMovementRequest(

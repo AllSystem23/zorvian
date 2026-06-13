@@ -78,7 +78,7 @@ public sealed class FixedAssetService
     public async Task<FixedAssetResponse> UpdateAsync(Guid id, UpdateFixedAssetRequest request)
     {
         var asset = await _assetRepo.GetByIdAsync(id)
-            ?? throw new InvalidOperationException("Asset not found");
+            ?? throw new KeyNotFoundException("Asset not found");
 
         _mapper.Map(request, asset);
         await _assetRepo.UpdateAsync(asset);
@@ -113,7 +113,7 @@ public sealed class FixedAssetService
     public async Task<DepreciationEntryResponse> RunDepreciationAsync(Guid id, RunDepreciationRequest request)
     {
         var asset = await _assetRepo.GetByIdAsync(id)
-            ?? throw new InvalidOperationException("Asset not found");
+            ?? throw new KeyNotFoundException("Asset not found");
 
         if (asset.Status != "active")
             throw new InvalidOperationException($"Cannot depreciate asset with status '{asset.Status}'");
@@ -194,7 +194,7 @@ public sealed class FixedAssetService
     public async Task<AssetRevaluationResponse> RevalueAsync(Guid id, RevalueAssetRequest request)
     {
         var asset = await _assetRepo.GetByIdAsync(id)
-            ?? throw new InvalidOperationException("Asset not found");
+            ?? throw new KeyNotFoundException("Asset not found");
 
         var lastDepr = await _deprRepo.GetLastByAssetIdAsync(asset.Id);
         var accumulatedDep = lastDepr?.AccumulatedDepreciation ?? 0;
@@ -230,7 +230,7 @@ public sealed class FixedAssetService
     public async Task<AssetDisposalResponse> DisposeAsync(Guid id, DisposeAssetRequest request)
     {
         var asset = await _assetRepo.GetByIdAsync(id)
-            ?? throw new InvalidOperationException("Asset not found");
+            ?? throw new KeyNotFoundException("Asset not found");
 
         if (asset.Status == "disposed")
             throw new InvalidOperationException("Asset is already disposed");
@@ -274,7 +274,7 @@ public sealed class FixedAssetService
     public async Task<AssetMaintenanceResponse> AddMaintenanceAsync(Guid id, AddMaintenanceRequest request)
     {
         var asset = await _assetRepo.GetByIdAsync(id)
-            ?? throw new InvalidOperationException("Asset not found");
+            ?? throw new KeyNotFoundException("Asset not found");
 
         var maintenance = new AssetMaintenance
         {
@@ -298,8 +298,8 @@ public sealed class FixedAssetService
 
     public async Task<List<DepreciationScheduleItem>> GetDepreciationScheduleAsync(Guid id)
     {
-        var asset = await _assetRepo.GetByIdAsync(id)
-            ?? throw new InvalidOperationException("Asset not found");
+        var asset = await _assetRepo.GetByIdAsync(id);
+        if (asset is null) return [];
 
         var calc = _calcFactory.GetCalculator(asset.DepreciationMethod);
         var lastEntry = await _deprRepo.GetLastByAssetIdAsync(asset.Id);

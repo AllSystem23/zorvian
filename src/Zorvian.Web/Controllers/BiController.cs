@@ -65,43 +65,22 @@ public sealed class BiController : ControllerBase
     [HttpGet("financial-ratios")]
     public async Task<IActionResult> GetFinancialRatios([FromQuery] Guid? periodId)
     {
-        try
-        {
-            var result = await _bi.GetFinancialRatiosAsync(periodId);
-            return Ok(result);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        var result = await _bi.GetFinancialRatiosAsync(periodId);
+        return Ok(result);
     }
 
     [HttpGet("comparative-income")]
     public async Task<IActionResult> GetComparativeIncome([FromQuery] Guid? currentPeriodId, [FromQuery] Guid? previousPeriodId)
     {
-        try
-        {
-            var result = await _bi.GetComparativeIncomeAsync(currentPeriodId, previousPeriodId);
-            return Ok(result);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        var result = await _bi.GetComparativeIncomeAsync(currentPeriodId, previousPeriodId);
+        return Ok(result);
     }
 
     [HttpGet("cash-flow")]
     public async Task<IActionResult> GetCashFlow([FromQuery] Guid? periodId)
     {
-        try
-        {
-            var result = await _bi.GetCashFlowAsync(periodId);
-            return Ok(result);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        var result = await _bi.GetCashFlowAsync(periodId);
+        return Ok(result);
     }
 
     [HttpGet("inventory-summary")]

@@ -32,10 +32,10 @@ public sealed class VacationService
     public async Task<VacationResponse> CreateAsync(CreateVacationRequest request)
     {
         var employeeId = _tenant.CurrentEmployeeId
-            ?? throw new InvalidOperationException("Authenticated employee not found");
+            ?? throw new KeyNotFoundException("Authenticated employee not found");
 
         var employee = await _employeeRepo.GetByIdAsync(employeeId)
-            ?? throw new InvalidOperationException("Employee not found");
+            ?? throw new KeyNotFoundException("Employee not found");
 
         if (request.EndDate < request.StartDate)
             throw new InvalidOperationException("End date must be after start date");
@@ -139,7 +139,7 @@ public sealed class VacationService
     public async Task<VacationResponse?> ApproveAsync(Guid requestId, string? comments)
     {
         var approverId = _tenant.CurrentEmployeeId
-            ?? throw new InvalidOperationException("Authenticated employee not found");
+            ?? throw new KeyNotFoundException("Authenticated employee not found");
 
         var vacation = await _repo.GetByIdAsync(requestId);
         if (vacation is null) return null;
@@ -180,7 +180,7 @@ public sealed class VacationService
     public async Task<VacationResponse?> RejectAsync(Guid requestId, string reason)
     {
         var approverId = _tenant.CurrentEmployeeId
-            ?? throw new InvalidOperationException("Authenticated employee not found");
+            ?? throw new KeyNotFoundException("Authenticated employee not found");
 
         var vacation = await _repo.GetByIdAsync(requestId);
         if (vacation is null) return null;
@@ -228,7 +228,7 @@ public sealed class VacationService
     public async Task<VacationBalanceResponse> CalculateBalanceAsync(Guid employeeId)
     {
         var employee = await _employeeRepo.GetByIdAsync(employeeId)
-            ?? throw new InvalidOperationException("Employee not found");
+            ?? throw new KeyNotFoundException("Employee not found");
         
         var config = await _taxConfigRepo.GetByCountryCodeAsync(employee.CountryCode)
             ?? throw new InvalidOperationException($"Tax configuration not found for country: {employee.CountryCode}");

@@ -16,6 +16,21 @@ class ProviderRepository {
     return (response.data as List).map((e) => ServiceProvider.fromJson(e)).toList();
   }
 
+  Future<ServiceProvider> createProvider(Map<String, dynamic> data) async {
+    final response = await _apiClient.post('providers', data: data);
+    return ServiceProvider.fromJson(response.data);
+  }
+
+  Future<ServiceProvider> updateProvider(String id, Map<String, dynamic> data) async {
+    final response = await _apiClient.put('providers/$id', data: data);
+    return ServiceProvider.fromJson(response.data);
+  }
+
+  Future<ServiceContract> createContract(Map<String, dynamic> data) async {
+    final response = await _apiClient.post('providers/contracts', data: data);
+    return ServiceContract.fromJson(response.data);
+  }
+
   Future<List<ServiceContract>> getContracts() async {
     final response = await _apiClient.get('providers/contracts');
     return (response.data as List).map((e) => ServiceContract.fromJson(e)).toList();

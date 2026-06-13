@@ -41,10 +41,10 @@ public sealed class EnhancedReportService
     private static decimal Convert(decimal amount, AccountingEntry entry, string cc) =>
         CurrencyConverter.ToReporting(amount, entry.CurrencyCode, entry.ExchangeRateToReporting, cc);
 
-    public async Task<EquityChangeResponse> GetEquityChangesAsync(Guid periodId)
+    public async Task<EquityChangeResponse?> GetEquityChangesAsync(Guid periodId)
     {
-        var period = await _periodRepo.GetByIdAsync(periodId)
-            ?? throw new InvalidOperationException("Period not found");
+        var period = await _periodRepo.GetByIdAsync(periodId);
+        if (period is null) return null;
         var cc = await GetCompanyCurrencyAsync();
         var accounts = await _accountRepo.GetAllAsync(CompanyId);
         var equityAccounts = accounts.Where(a => a.Type == AccountTypes.Equity && a.IsActive).OrderBy(a => a.Code).ToList();
@@ -97,10 +97,10 @@ public sealed class EnhancedReportService
         return all.Where(p => p.Year == year && p.Month <= month && p.Status == "closed").OrderBy(p => p.Month);
     }
 
-    public async Task<CashFlowStatementResponse> GetCashFlowStatementAsync(Guid periodId)
+    public async Task<CashFlowStatementResponse?> GetCashFlowStatementAsync(Guid periodId)
     {
-        var period = await _periodRepo.GetByIdAsync(periodId)
-            ?? throw new InvalidOperationException("Period not found");
+        var period = await _periodRepo.GetByIdAsync(periodId);
+        if (period is null) return null;
         var cc = await GetCompanyCurrencyAsync();
         var posted = await _entryRepo.GetFilteredAsync(periodId, null, "posted", null, null, CompanyId, 1, int.MaxValue);
         var entries = (await Task.WhenAll(posted.Select(async e => await _entryRepo.GetByIdAsync(e.Id))))
@@ -186,10 +186,13 @@ public sealed class EnhancedReportService
         if (prevPeriod != null)
         {
             var prevTrial = await _reports.GetTrialBalanceAsync(prevPeriod.Id);
-            var cashCodes = new[] { "1.1.01", "1.1.02", "1.1.03", "1.1.04", "1.1.05" };
-            beginningCash = prevTrial.Items
-                .Where(i => cashCodes.Any(c => i.AccountCode.StartsWith(c)))
-                .Sum(i => i.EndingBalance);
+            if (prevTrial != null)
+            {
+                var cashCodes = new[] { "1.1.01", "1.1.02", "1.1.03", "1.1.04", "1.1.05" };
+                beginningCash = prevTrial.Items
+                    .Where(i => cashCodes.Any(c => i.AccountCode.StartsWith(c)))
+                    .Sum(i => i.EndingBalance);
+            }
         }
 
         return new CashFlowStatementResponse(
@@ -209,7 +212,8 @@ public sealed class EnhancedReportService
         var periodResults = await Task.WhenAll(periodIds.Select(async id => await _periodRepo.GetByIdAsync(id)));
         var periods = periodResults.Where(p => p is not null).Select(p => p!).ToArray();
 
-        var trialBalances = await Task.WhenAll(periodIds.Select(async id => await _reports.GetTrialBalanceAsync(id)));
+        var trialBalances = (await Task.WhenAll(periodIds.Select(async id => await _reports.GetTrialBalanceAsync(id))))
+            .Where(tb => tb != null).Cast<TrialBalanceResponse>().ToArray();
 
         var lineMap = new Dictionary<string, (string Name, string Type, List<decimal> Amounts, List<decimal> PctOfTotal)>();
         foreach (var (tb, period) in trialBalances.Zip(periods, (tb, p) => (tb, p)))

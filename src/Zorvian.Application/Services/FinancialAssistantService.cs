@@ -130,6 +130,10 @@ public sealed class FinancialAssistantService
                 "No se encontró un período contable abierto o válido. Usa 'período MM-YYYY' para especificar.", "low", null);
 
         var tb = await _reports.GetTrialBalanceAsync(period.Id);
+        if (tb == null)
+            return new FinancialAssistantResponse(
+                "No hay datos de balance de comprobación para este período.", "low", null);
+
         var data = tb.Items.Select(i => new FinancialAssistantDataPoint(
             $"{i.AccountCode} {i.AccountName}", i.EndingBalance, "decimal")).ToList();
 
@@ -146,6 +150,10 @@ public sealed class FinancialAssistantService
                 "No se encontró un período válido.", "low", null);
 
         var income = await _reports.GetIncomeStatementAsync(period.Id);
+        if (income == null)
+            return new FinancialAssistantResponse(
+                "No hay datos de estado de resultados para este período.", "low", null);
+
         var netIncome = income.NetIncome;
 
         var data = new List<FinancialAssistantDataPoint>
@@ -171,6 +179,10 @@ public sealed class FinancialAssistantService
                 "No se encontró un período válido.", "low", null);
 
         var bs = await _reports.GetBalanceSheetAsync(period.Id);
+        if (bs == null)
+            return new FinancialAssistantResponse(
+                "No hay datos de balance general para este período.", "low", null);
+
         var check = bs.TotalAssets - (bs.TotalLiabilities + bs.TotalEquity);
 
         var data = new List<FinancialAssistantDataPoint>
@@ -208,6 +220,10 @@ public sealed class FinancialAssistantService
                 "No se encontró un período válido.", "low", null);
 
         var cf = await _enhanced.GetCashFlowStatementAsync(period.Id);
+        if (cf == null)
+            return new FinancialAssistantResponse(
+                "No hay datos de flujo de efectivo para este período.", "low", null);
+
         var data = new List<FinancialAssistantDataPoint>
         {
             new("Flujo Operativo", cf.NetOperatingCashFlow, "decimal"),
@@ -233,6 +249,10 @@ public sealed class FinancialAssistantService
                 "No se encontró un período válido.", "low", null);
 
         var equity = await _enhanced.GetEquityChangesAsync(period.Id);
+        if (equity == null)
+            return new FinancialAssistantResponse(
+                "No hay datos de cambios en el patrimonio para este período.", "low", null);
+
         var data = new List<FinancialAssistantDataPoint>
         {
             new("Patrimonio Inicial", equity.TotalOpeningEquity, "decimal"),

@@ -81,15 +81,8 @@ public sealed class PurchasesController : ControllerBase
     [HttpPost("{id:guid}/complete")]
     public async Task<IActionResult> Complete(Guid id)
     {
-        try
-        {
-            await _service.CompleteAsync(id);
-            return NoContent();
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        await _service.CompleteAsync(id);
+        return NoContent();
     }
 
     [Audit("Purchase", "Cancel")]

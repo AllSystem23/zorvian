@@ -27,7 +27,7 @@ public sealed class SupplierPaymentService
     public async Task<SupplierPaymentResponse> RegisterPaymentAsync(CreateSupplierPaymentRequest request)
     {
         var purchase = await _purchaseRepo.GetByIdAsync(request.PurchaseId)
-            ?? throw new InvalidOperationException("Purchase not found");
+            ?? throw new KeyNotFoundException("Purchase not found");
 
         if (purchase.Status == "cancelled")
             throw new InvalidOperationException("Cannot pay a cancelled purchase");

@@ -42,13 +42,13 @@ public sealed class PermissionService
     public async Task<PermissionResponse> CreateAsync(CreatePermissionRequest request)
     {
         var employeeId = _tenant.CurrentEmployeeId
-            ?? throw new InvalidOperationException("Authenticated employee not found");
+            ?? throw new KeyNotFoundException("Authenticated employee not found");
 
         var employee = await _employeeRepo.GetByIdAsync(employeeId)
-            ?? throw new InvalidOperationException("Employee not found");
+            ?? throw new KeyNotFoundException("Employee not found");
 
         var leaveType = await _repo.GetLeaveTypeByIdAsync(request.LeaveTypeId)
-            ?? throw new InvalidOperationException("Leave type not found");
+            ?? throw new KeyNotFoundException("Leave type not found");
 
         if (request.EndDate < request.StartDate)
             throw new InvalidOperationException("End date must be after start date");
@@ -168,7 +168,7 @@ public sealed class PermissionService
     public async Task<PermissionResponse?> ApproveAsync(Guid requestId, string? comments)
     {
         var approverId = _tenant.CurrentEmployeeId
-            ?? throw new InvalidOperationException("Authenticated employee not found");
+            ?? throw new KeyNotFoundException("Authenticated employee not found");
 
         var permission = await _repo.GetByIdAsync(requestId);
         if (permission is null) return null;
@@ -200,7 +200,7 @@ public sealed class PermissionService
     public async Task<PermissionResponse?> RejectAsync(Guid requestId, string reason)
     {
         var approverId = _tenant.CurrentEmployeeId
-            ?? throw new InvalidOperationException("Authenticated employee not found");
+            ?? throw new KeyNotFoundException("Authenticated employee not found");
 
         var permission = await _repo.GetByIdAsync(requestId);
         if (permission is null) return null;

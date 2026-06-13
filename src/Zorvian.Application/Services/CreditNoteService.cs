@@ -53,7 +53,7 @@ public sealed class CreditNoteService
     public async Task<CreditNoteResponse> CreateAsync(CreateCreditNoteRequest request)
     {
         var sale = await _saleRepo.GetByIdAsync(request.SaleId)
-            ?? throw new InvalidOperationException("Sale not found");
+            ?? throw new KeyNotFoundException("Sale not found");
         var companyId = CompanyId;
         var creditNoteNumber = await _repo.GenerateCreditNoteNumberAsync(companyId);
 

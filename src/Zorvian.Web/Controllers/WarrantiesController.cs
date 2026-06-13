@@ -48,45 +48,24 @@ public sealed class WarrantiesController : ControllerBase
     [HttpPost("{id:guid}/claims")]
     public async Task<IActionResult> AddClaim(Guid id, [FromBody] CreateWarrantyClaimRequest request)
     {
-        try
-        {
-            var claim = await _service.AddClaimAsync(request with { WarrantyId = id });
-            return Ok(claim);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        var claim = await _service.AddClaimAsync(request with { WarrantyId = id });
+        return Ok(claim);
     }
 
     [Audit("WarrantyClaim", "AssignWorkshop")]
     [HttpPost("claims/{claimId:guid}/assign-workshop")]
     public async Task<IActionResult> AssignWorkshop(Guid claimId, [FromBody] AssignWorkshopRequest request)
     {
-        try
-        {
-            var claim = await _service.AssignWorkshopAsync(claimId, request);
-            return Ok(claim);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        var claim = await _service.AssignWorkshopAsync(claimId, request);
+        return Ok(claim);
     }
 
     [Audit("WarrantyClaim", "ReferToProvider")]
     [HttpPost("claims/{claimId:guid}/refer-to-provider")]
     public async Task<IActionResult> ReferToProvider(Guid claimId, [FromBody] ReferToProviderRequest request)
     {
-        try
-        {
-            var claim = await _service.ReferToProviderAsync(claimId, request);
-            return Ok(claim);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        var claim = await _service.ReferToProviderAsync(claimId, request);
+        return Ok(claim);
     }
 
     [HttpGet("{id:guid}/timeline")]

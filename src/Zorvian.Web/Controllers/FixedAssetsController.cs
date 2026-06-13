@@ -99,15 +99,8 @@ public sealed class FixedAssetsController : ControllerBase
     [RequirePermission(Permissions.FixedAssetWrite)]
     public async Task<IActionResult> Revalue(Guid id, [FromBody] RevalueAssetRequest request)
     {
-        try
-        {
-            var revaluation = await _service.RevalueAsync(id, request);
-            return Ok(revaluation);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        var revaluation = await _service.RevalueAsync(id, request);
+        return Ok(revaluation);
     }
 
     [Audit("FixedAsset", "Dispose")]
@@ -131,30 +124,16 @@ public sealed class FixedAssetsController : ControllerBase
     [RequirePermission(Permissions.FixedAssetWrite)]
     public async Task<IActionResult> AddMaintenance(Guid id, [FromBody] AddMaintenanceRequest request)
     {
-        try
-        {
-            var maintenance = await _service.AddMaintenanceAsync(id, request);
-            return CreatedAtAction(null, maintenance);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        var maintenance = await _service.AddMaintenanceAsync(id, request);
+        return CreatedAtAction(null, maintenance);
     }
 
     [HttpGet("{id:guid}/depreciation-schedule")]
     [RequirePermission(Permissions.FixedAssetRead)]
     public async Task<IActionResult> GetDepreciationSchedule(Guid id)
     {
-        try
-        {
-            var schedule = await _service.GetDepreciationScheduleAsync(id);
-            return Ok(schedule);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        var schedule = await _service.GetDepreciationScheduleAsync(id);
+        return Ok(schedule);
     }
 
     [HttpGet("reports/summary")]

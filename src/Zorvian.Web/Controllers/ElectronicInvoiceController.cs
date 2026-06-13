@@ -29,10 +29,6 @@ public sealed class ElectronicInvoiceController : ControllerBase
         {
             return Conflict(new { error = ex.Message });
         }
-        catch (ArgumentException ex)
-        {
-            return NotFound(new { error = ex.Message });
-        }
     }
 
     [HttpGet("sale/{saleId:guid}")]
@@ -66,10 +62,6 @@ public sealed class ElectronicInvoiceController : ControllerBase
             var result = await _service.ResubmitAsync(id);
             return Ok(result);
         }
-        catch (ArgumentException ex)
-        {
-            return NotFound(new { error = ex.Message });
-        }
         catch (InvalidOperationException ex)
         {
             return Conflict(new { error = ex.Message });
@@ -84,10 +76,6 @@ public sealed class ElectronicInvoiceController : ControllerBase
             await _service.CancelAsync(id, request.Reason);
             return Ok(new { message = "Factura anulada exitosamente" });
         }
-        catch (ArgumentException ex)
-        {
-            return NotFound(new { error = ex.Message });
-        }
         catch (InvalidOperationException ex)
         {
             return Conflict(new { error = ex.Message });
@@ -97,28 +85,14 @@ public sealed class ElectronicInvoiceController : ControllerBase
     [HttpGet("{saleId:guid}/xml")]
     public async Task<IActionResult> GetXml(Guid saleId, [FromQuery] string countryCode)
     {
-        try
-        {
-            var xml = await _service.GenerateXmlAsync(saleId, countryCode);
-            return Content(xml, "application/xml");
-        }
-        catch (ArgumentException ex)
-        {
-            return NotFound(new { error = ex.Message });
-        }
+        var xml = await _service.GenerateXmlAsync(saleId, countryCode);
+        return Content(xml, "application/xml");
     }
 
     [HttpGet("{id:guid}/pdf")]
     public async Task<IActionResult> GetPdf(Guid id)
     {
-        try
-        {
-            var url = await _service.GeneratePdfAsync(id);
-            return Ok(new { url });
-        }
-        catch (ArgumentException ex)
-        {
-            return NotFound(new { error = ex.Message });
-        }
+        var url = await _service.GeneratePdfAsync(id);
+        return Ok(new { url });
     }
 }

@@ -44,15 +44,8 @@ public sealed class CreditsController : ControllerBase
     [RequirePermission(Permissions.CreditWrite)]
     public async Task<IActionResult> RegisterPayment(Guid id, [FromBody] CreateCreditPaymentRequest request)
     {
-        try
-        {
-            var payment = await _service.RegisterPaymentAsync(request with { CreditId = id });
-            return Ok(payment);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        var payment = await _service.RegisterPaymentAsync(request with { CreditId = id });
+        return Ok(payment);
     }
 
     [Audit("Credit", "ReadPayments")]
@@ -68,15 +61,8 @@ public sealed class CreditsController : ControllerBase
     [RequirePermission(Permissions.CreditWrite)]
     public async Task<IActionResult> CalculateLateFees(Guid id, [FromBody] CalculateLateFeeRequest? request)
     {
-        try
-        {
-            var result = await _service.CalculateLateFeesAsync(id, request?.DailyInterestRate);
-            return Ok(result);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        var result = await _service.CalculateLateFeesAsync(id, request?.DailyInterestRate);
+        return Ok(result);
     }
 
     [Audit("Credit", "ReadLateFees")]

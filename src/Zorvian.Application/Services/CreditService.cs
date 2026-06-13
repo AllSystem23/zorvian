@@ -67,7 +67,7 @@ public sealed class CreditService
     public async Task<CreditPaymentResponse> RegisterPaymentAsync(CreateCreditPaymentRequest request)
     {
         var credit = await _creditRepo.GetByIdAsync(request.CreditId)
-            ?? throw new InvalidOperationException("Credit not found");
+            ?? throw new KeyNotFoundException("Credit not found");
 
         decimal principalAmount, interestAmount;
 
@@ -75,7 +75,7 @@ public sealed class CreditService
         {
             var installment = credit.Installments
                 .FirstOrDefault(i => i.Id == request.CreditInstallmentId.Value)
-                ?? throw new InvalidOperationException("Installment not found");
+                ?? throw new KeyNotFoundException("Installment not found");
 
             var ratio = installment.Amount > 0
                 ? installment.PrincipalAmount / installment.Amount
@@ -166,8 +166,8 @@ public sealed class CreditService
 
     public async Task<List<LateFeeResponse>> CalculateLateFeesAsync(Guid creditId, decimal? dailyInterestRate = null)
     {
-        var credit = await _creditRepo.GetByIdAsync(creditId)
-            ?? throw new InvalidOperationException("Credit not found");
+        var credit = await _creditRepo.GetByIdAsync(creditId);
+        if (credit is null) return [];
 
         var company = await _companyRepo.GetByTenantIdAsync(_tenant.TenantId);
         var settings = company is not null ? await _companyRepo.GetSettingsAsync(company.Id) : null;
@@ -254,7 +254,7 @@ public sealed class CreditService
     public async Task<CollectionActionResponse> AddCollectionActionAsync(CreateCollectionActionRequest request)
     {
         var credit = await _creditRepo.GetByIdAsync(request.CreditId)
-            ?? throw new InvalidOperationException("Credit not found");
+            ?? throw new KeyNotFoundException("Credit not found");
 
         var employeeId = _tenant.CurrentEmployeeId
             ?? throw new InvalidOperationException("Employee not identified");
@@ -297,7 +297,7 @@ public sealed class CreditService
     public async Task<CreditRefinancingResponse> CreateRefinancingAsync(Guid creditId, CreateRefinancingRequest request)
     {
         var credit = await _creditRepo.GetByIdAsync(creditId)
-            ?? throw new InvalidOperationException("Credit not found");
+            ?? throw new KeyNotFoundException("Credit not found");
 
         if (credit.Status == "canceled")
             throw new InvalidOperationException("Cannot refinance a paid credit");

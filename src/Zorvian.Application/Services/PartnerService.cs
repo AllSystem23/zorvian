@@ -59,7 +59,7 @@ public sealed class PartnerService : IPartnerService
     public async Task<PartnerDto> UpdateAsync(Guid id, UpdatePartnerRequest request)
     {
         var partner = await _repo.GetByIdAsync(id)
-            ?? throw new ArgumentException($"Partner {id} no encontrado");
+            ?? throw new KeyNotFoundException($"Partner {id} no encontrado");
 
         if (request.Name is not null) partner.Name = request.Name;
         if (request.LegalName is not null) partner.LegalName = request.LegalName;
@@ -97,7 +97,7 @@ public sealed class PartnerService : IPartnerService
     public async Task<PartnerDto> ActivateAsync(Guid id)
     {
         var partner = await _repo.GetByIdAsync(id)
-            ?? throw new ArgumentException($"Partner {id} no encontrado");
+            ?? throw new KeyNotFoundException($"Partner {id} no encontrado");
 
         partner.Status = "active";
         partner.LastActivityAt = DateTime.UtcNow;
@@ -109,7 +109,7 @@ public sealed class PartnerService : IPartnerService
     public async Task<PartnerDto> DeactivateAsync(Guid id, string reason)
     {
         var partner = await _repo.GetByIdAsync(id)
-            ?? throw new ArgumentException($"Partner {id} no encontrado");
+            ?? throw new KeyNotFoundException($"Partner {id} no encontrado");
 
         partner.Status = "inactive";
         partner.Notes = reason;

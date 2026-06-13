@@ -34,15 +34,8 @@ public sealed class PartnerController : ControllerBase
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdatePartnerRequest request)
     {
-        try
-        {
-            var result = await _service.UpdateAsync(id, request);
-            return Ok(result);
-        }
-        catch (ArgumentException ex)
-        {
-            return NotFound(new { error = ex.Message });
-        }
+        var result = await _service.UpdateAsync(id, request);
+        return Ok(result);
     }
 
     [HttpGet("{id:guid}")]
@@ -70,29 +63,15 @@ public sealed class PartnerController : ControllerBase
     [HttpPost("{id:guid}/activate")]
     public async Task<IActionResult> Activate(Guid id)
     {
-        try
-        {
-            var result = await _service.ActivateAsync(id);
-            return Ok(result);
-        }
-        catch (ArgumentException ex)
-        {
-            return NotFound(new { error = ex.Message });
-        }
+        var result = await _service.ActivateAsync(id);
+        return Ok(result);
     }
 
     [HttpPost("{id:guid}/deactivate")]
     public async Task<IActionResult> Deactivate(Guid id, [FromBody] DeactivatePartnerRequest request)
     {
-        try
-        {
-            var result = await _service.DeactivateAsync(id, request.Reason);
-            return Ok(result);
-        }
-        catch (ArgumentException ex)
-        {
-            return NotFound(new { error = ex.Message });
-        }
+        var result = await _service.DeactivateAsync(id, request.Reason);
+        return Ok(result);
     }
 
     [HttpGet("by-country/{countryCode}")]

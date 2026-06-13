@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../shared/ds/ds.dart';
 import '../providers/provider_state.dart';
 
@@ -70,7 +71,7 @@ class ProviderDetailPage extends ConsumerWidget {
                   Text('Contratos de Servicios', style: ZTypography.titleMedium),
                   ZButton(
                     text: 'Nuevo Contrato',
-                    onPressed: () {},
+                    onPressed: () => context.push('/providers/contracts/new?providerId=$id'),
                     type: ZButtonType.secondary,
                     fullWidth: false,
                   ),
@@ -93,9 +94,7 @@ class ProviderDetailPage extends ConsumerWidget {
                               title: Text(contract.contractName),
                               subtitle: Text('Monto: ${contract.totalContractAmount} ${contract.currency}'),
                               trailing: ZBadge(text: contract.status),
-                              onTap: () {
-                                // TODO: Navegar a detalle de contrato
-                              },
+                              onTap: () => context.push('/providers/contracts/${contract.id}'),
                             ),
                           );
                         },

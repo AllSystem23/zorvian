@@ -26,100 +26,66 @@ public sealed class FinancialReportsController : ControllerBase
     [HttpGet("trial-balance/{periodId:guid}")]
     public async Task<IActionResult> TrialBalance(Guid periodId)
     {
-        try
-        {
-            var result = await _reportService.GetTrialBalanceAsync(periodId);
-            return Ok(result);
-        }
-        catch (InvalidOperationException ex) { return BadRequest(new { error = ex.Message }); }
+        var result = await _reportService.GetTrialBalanceAsync(periodId);
+        return Ok(result);
     }
 
     [HttpGet("income-statement/{periodId:guid}")]
     public async Task<IActionResult> IncomeStatement(Guid periodId)
     {
-        try
-        {
-            var result = await _reportService.GetIncomeStatementAsync(periodId);
-            return Ok(result);
-        }
-        catch (InvalidOperationException ex) { return BadRequest(new { error = ex.Message }); }
+        var result = await _reportService.GetIncomeStatementAsync(periodId);
+        return Ok(result);
     }
 
     [HttpGet("balance-sheet/{periodId:guid}")]
     public async Task<IActionResult> BalanceSheet(Guid periodId)
     {
-        try
-        {
-            var result = await _reportService.GetBalanceSheetAsync(periodId);
-            return Ok(result);
-        }
-        catch (InvalidOperationException ex) { return BadRequest(new { error = ex.Message }); }
+        var result = await _reportService.GetBalanceSheetAsync(periodId);
+        return Ok(result);
     }
 
     [HttpGet("general-ledger/{accountId:guid}")]
     public async Task<IActionResult> GeneralLedger(Guid accountId, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
     {
-        try
-        {
-            var result = await _reportService.GetGeneralLedgerAsync(accountId, fromDate, toDate);
-            return Ok(result);
-        }
-        catch (InvalidOperationException ex) { return BadRequest(new { error = ex.Message }); }
+        var result = await _reportService.GetGeneralLedgerAsync(accountId, fromDate, toDate);
+        return Ok(result);
     }
 
     [HttpGet("cost-center-expense/{costCenterId:guid}")]
     public async Task<IActionResult> CostCenterExpense(Guid costCenterId, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
     {
-        try
-        {
-            var result = await _reportService.GetCostCenterExpenseReportAsync(costCenterId, fromDate, toDate);
-            return Ok(result);
-        }
-        catch (InvalidOperationException ex) { return BadRequest(new { error = ex.Message }); }
+        var result = await _reportService.GetCostCenterExpenseReportAsync(costCenterId, fromDate, toDate);
+        return Ok(result);
     }
 
     [HttpGet("budget-vs-actual")]
     public async Task<IActionResult> BudgetVsActual([FromQuery] int year, [FromQuery] int month)
     {
-        try
-        {
-            var result = await _reportService.GetBudgetVsActualAsync(year, month);
-            return Ok(result);
-        }
-        catch (InvalidOperationException ex) { return BadRequest(new { error = ex.Message }); }
+        var result = await _reportService.GetBudgetVsActualAsync(year, month);
+        return Ok(result);
     }
 
     [HttpGet("equity-changes/{periodId:guid}")]
     public async Task<IActionResult> EquityChanges(Guid periodId)
     {
-        try
-        {
-            var result = await _enhancedService.GetEquityChangesAsync(periodId);
-            return Ok(result);
-        }
-        catch (InvalidOperationException ex) { return BadRequest(new { error = ex.Message }); }
+        var result = await _enhancedService.GetEquityChangesAsync(periodId);
+        if (result is null) return NotFound();
+        return Ok(result);
     }
 
     [HttpGet("cash-flow/{periodId:guid}")]
     public async Task<IActionResult> CashFlow(Guid periodId)
     {
-        try
-        {
-            var result = await _enhancedService.GetCashFlowStatementAsync(periodId);
-            return Ok(result);
-        }
-        catch (InvalidOperationException ex) { return BadRequest(new { error = ex.Message }); }
+        var result = await _enhancedService.GetCashFlowStatementAsync(periodId);
+        if (result is null) return NotFound();
+        return Ok(result);
     }
 
     [HttpPost("comparative")]
     public async Task<IActionResult> Comparative([FromBody] ComparativeReportRequest request)
     {
-        try
-        {
-            var result = await _enhancedService.GetComparativeReportAsync(request.ReportType, request.PeriodIds);
-            return Ok(result);
-        }
-        catch (InvalidOperationException ex) { return BadRequest(new { error = ex.Message }); }
+        var result = await _enhancedService.GetComparativeReportAsync(request.ReportType, request.PeriodIds);
+        return Ok(result);
     }
 
     [HttpPost("assistant/ask")]

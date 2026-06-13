@@ -36,7 +36,7 @@ public sealed class DocumentService : IDocumentService
     public async Task<GeneratedDocument> GenerateProfessionalDocumentAsync(Guid templateId, Guid entityId, object variableData)
     {
         var template = await _templateRepo.GetByIdAsync(templateId);
-        if (template == null) throw new ArgumentException("Template not found");
+        if (template == null) throw new KeyNotFoundException("Template not found");
 
         _logger.LogInformation("Generating professional document from template {TemplateName} for entity {EntityId}", template.Name, entityId);
 
@@ -82,7 +82,7 @@ public sealed class DocumentService : IDocumentService
     public async Task FinalizeAndRequestSignatureAsync(Guid documentId, string signerRole, Guid signerId)
     {
         var doc = await _docRepo.GetByIdAsync(documentId);
-        if (doc == null) throw new ArgumentException("Document not found");
+        if (doc == null) throw new KeyNotFoundException("Document not found");
 
         _logger.LogInformation("Finalizing document {DocumentId} and requesting signature from {SignerId}", documentId, signerId);
 

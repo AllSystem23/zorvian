@@ -29,7 +29,7 @@ public sealed class ReportService : IReportService
             .Include(d => d.PayrollRun).ThenInclude(r => r!.PayrollPeriod)
             .FirstOrDefaultAsync(d => d.Id == detailId);
 
-        if (detail is null) throw new InvalidOperationException("Payroll detail not found");
+        if (detail is null) throw new KeyNotFoundException("Payroll detail not found");
 
         var company = await _db.Companies.FirstOrDefaultAsync(c => c.TenantId == _tenant.TenantId);
 
@@ -165,7 +165,7 @@ public sealed class ReportService : IReportService
             .Include(r => r.Details).ThenInclude(d => d.Employee).ThenInclude(e => e!.Department)
             .FirstOrDefaultAsync(r => r.Id == runId);
 
-        if (run is null) throw new InvalidOperationException("Payroll run not found");
+        if (run is null) throw new KeyNotFoundException("Payroll run not found");
 
         using var workbook = new XLWorkbook();
         var ws = workbook.Worksheets.Add("Costos de Nomina");

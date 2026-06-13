@@ -294,7 +294,7 @@ public sealed class BiService
         period ??= await _periodRepo.GetCurrentOpenAsync(CompanyId)
             ?? (await _periodRepo.GetAllAsync(CompanyId)).OrderByDescending(p => p.Year).ThenByDescending(p => p.Month).FirstOrDefault();
 
-        if (period == null) throw new InvalidOperationException("No accounting period found");
+        if (period == null) return new BiFinancialRatiosResponse(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 
         var tb = await GetTrialBalanceAsync(period.Id);
 
@@ -368,7 +368,7 @@ public sealed class BiService
         if (periodId.HasValue)
             period = await _periodRepo.GetByIdAsync(periodId.Value);
         period ??= await _periodRepo.GetCurrentOpenAsync(CompanyId);
-        if (period == null) throw new InvalidOperationException("No accounting period found");
+        if (period == null) return new BiCashFlowResponse([], [], [], 0, 0, 0, DateTime.UtcNow);
 
         var entries = await _entryRepo.GetFilteredAsync(period.Id, null, "posted", null, null, CompanyId, 1, int.MaxValue);
         var allDetails = new List<AccountingEntryDetail>();

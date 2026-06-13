@@ -64,8 +64,8 @@ public sealed class SeedService
 
         var company = new Company
         {
-            Name = "Empresa Demo S.A.",
-            LegalName = "Empresa Demo S.A.",
+            Name = "Mi Empresa",
+            LegalName = "Mi Empresa",
             TaxId = "J123456789",
             Country = "Nicaragua",
             Currency = "NIO",

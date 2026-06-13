@@ -22,24 +22,16 @@ public sealed class AccountLinksController : ControllerBase
     [RequirePermission(Permissions.AccountingWrite)]
     public async Task<IActionResult> Create([FromBody] CreateAccountLinkRequest request)
     {
-        try
-        {
-            var link = await _service.CreateAsync(request);
-            return Ok(link);
-        }
-        catch (InvalidOperationException ex) { return BadRequest(new { error = ex.Message }); }
+        var link = await _service.CreateAsync(request);
+        return Ok(link);
     }
 
     [HttpDelete("{id:guid}")]
     [RequirePermission(Permissions.AccountingWrite)]
     public async Task<IActionResult> Delete(Guid id)
     {
-        try
-        {
-            await _service.DeleteAsync(id);
-            return NoContent();
-        }
-        catch (InvalidOperationException ex) { return BadRequest(new { error = ex.Message }); }
+        await _service.DeleteAsync(id);
+        return NoContent();
     }
 
     [HttpPost("seed")]

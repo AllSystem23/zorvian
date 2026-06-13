@@ -1,5 +1,6 @@
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
+using Zorvian.Core.Interfaces;
 
 namespace Zorvian.Application.Services.Documentary;
 
@@ -8,23 +9,36 @@ public sealed class DocumentGenerationService : IDocumentGenerationService
     private readonly IDocumentService _documentService;
     private readonly IEmployeeRepository _employeeRepo;
     private readonly ISaleRepository _saleRepo;
+    private readonly ICompanyRepository _companyRepo;
+    private readonly ITenantContext _tenant;
 
     public DocumentGenerationService(
         IDocumentService documentService,
         IEmployeeRepository employeeRepo,
-        ISaleRepository saleRepo)
+        ISaleRepository saleRepo,
+        ICompanyRepository companyRepo,
+        ITenantContext tenant)
     {
         _documentService = documentService;
         _employeeRepo = employeeRepo;
         _saleRepo = saleRepo;
+        _companyRepo = companyRepo;
+        _tenant = tenant;
+    }
+
+    private async Task<string> GetCompanyNameAsync()
+    {
+        var company = await _companyRepo.GetByTenantIdAsync(_tenant.TenantId);
+        return company?.Name ?? "Mi Empresa";
     }
 
     public async Task<GeneratedDocument> QuickGenerateEmployeeContractAsync(Guid employeeId, Guid templateId)
     {
         var employee = await _employeeRepo.GetByIdAsync(employeeId);
-        if (employee == null) throw new ArgumentException("Employee not found");
+        if (employee == null) throw new KeyNotFoundException("Employee not found");
 
-        // Logic for 3-click rule: Prepare data automatically
+        var companyName = await GetCompanyNameAsync();
+
         var data = new
         {
             Employee = new
@@ -38,7 +52,7 @@ public sealed class DocumentGenerationService : IDocumentGenerationService
             },
             Company = new
             {
-                Name = "Zorvian ERP Demo",
+                Name = companyName,
                 Date = DateTime.UtcNow.ToString("dd/MM/yyyy")
             }
         };
@@ -54,7 +68,9 @@ public sealed class DocumentGenerationService : IDocumentGenerationService
     public async Task<GeneratedDocument> QuickGenerateSaleDocumentAsync(Guid saleId, Guid templateId)
     {
         var sale = await _saleRepo.GetByIdAsync(saleId);
-        if (sale == null) throw new ArgumentException("Sale not found");
+        if (sale == null) throw new KeyNotFoundException("Sale not found");
+
+        var companyName = await GetCompanyNameAsync();
 
         var data = new
         {
@@ -67,7 +83,7 @@ public sealed class DocumentGenerationService : IDocumentGenerationService
             },
             Company = new
             {
-                Name = "Zorvian ERP Commercial"
+                Name = companyName
             }
         };
 

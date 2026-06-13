@@ -48,13 +48,13 @@ public sealed class FinancialReportService
     private static decimal ConvertSum(IEnumerable<AccountingEntryDetail> details, IReadOnlyDictionary<Guid, AccountingEntry> entryMap, Func<AccountingEntryDetail, decimal> selector, string cc) =>
         details.Sum(d => Convert(selector(d), entryMap[d.AccountingEntryId], cc));
 
-    public async Task<TrialBalanceResponse> GetTrialBalanceAsync(Guid periodId)
+    public async Task<TrialBalanceResponse?> GetTrialBalanceAsync(Guid periodId)
     {
         var cc = await GetCompanyCurrencyAsync();
-        var period = await _periodRepo.GetByIdAsync(periodId)
-            ?? throw new InvalidOperationException("Period not found");
+        var period = await _periodRepo.GetByIdAsync(periodId);
+        if (period is null) return null;
         if (period.CompanyId != CompanyId)
-            throw new InvalidOperationException("Period not found for this company");
+            throw new KeyNotFoundException("Period not found for this company");
 
         var posted = await _entryRepo.GetFilteredAsync(periodId, null, "posted", null, null, CompanyId, 1, int.MaxValue);
         var allEntries = (await Task.WhenAll(posted.Select(async e => await _entryRepo.GetByIdAsync(e.Id))))
@@ -87,9 +87,10 @@ public sealed class FinancialReportService
         );
     }
 
-    public async Task<IncomeStatementResponse> GetIncomeStatementAsync(Guid periodId)
+    public async Task<IncomeStatementResponse?> GetIncomeStatementAsync(Guid periodId)
     {
         var trialBalance = await GetTrialBalanceAsync(periodId);
+        if (trialBalance is null) return null;
         var period = await _periodRepo.GetByIdAsync(periodId);
 
         var income = trialBalance.Items.Where(i => i.AccountType == AccountTypes.Income).Sum(i => i.EndingBalance);
@@ -103,9 +104,10 @@ public sealed class FinancialReportService
         );
     }
 
-    public async Task<BalanceSheetResponse> GetBalanceSheetAsync(Guid periodId)
+    public async Task<BalanceSheetResponse?> GetBalanceSheetAsync(Guid periodId)
     {
         var trialBalance = await GetTrialBalanceAsync(periodId);
+        if (trialBalance is null) return null;
         var period = await _periodRepo.GetByIdAsync(periodId);
 
         var assets = trialBalance.Items.Where(i => i.AccountType == AccountTypes.Asset).ToList();
@@ -114,11 +116,12 @@ public sealed class FinancialReportService
 
         // Add net income to retained earnings
         var incomeSt = await GetIncomeStatementAsync(periodId);
+        var netIncome = incomeSt?.NetIncome ?? 0;
         var retainedEarnings = equity.FirstOrDefault(e => e.AccountCode == "3.1.02");
-        if (retainedEarnings != null && incomeSt.NetIncome != 0)
+        if (retainedEarnings != null && netIncome != 0)
         {
             equity.Remove(retainedEarnings);
-            equity.Add(retainedEarnings with { EndingBalance = retainedEarnings.EndingBalance + incomeSt.NetIncome });
+            equity.Add(retainedEarnings with { EndingBalance = retainedEarnings.EndingBalance + netIncome });
         }
 
         var sections = new List<BalanceSheetSection>
@@ -137,11 +140,11 @@ public sealed class FinancialReportService
         );
     }
 
-    public async Task<GeneralLedgerResponse> GetGeneralLedgerAsync(Guid accountId, DateTime? fromDate, DateTime? toDate)
+    public async Task<GeneralLedgerResponse?> GetGeneralLedgerAsync(Guid accountId, DateTime? fromDate, DateTime? toDate)
     {
         var cc = await GetCompanyCurrencyAsync();
-        var account = await _accountRepo.GetByIdAsync(accountId)
-            ?? throw new InvalidOperationException("Account not found");
+        var account = await _accountRepo.GetByIdAsync(accountId);
+        if (account is null) return null;
 
         var posted = await _entryRepo.GetFilteredAsync(null, null, "posted", fromDate, toDate, CompanyId, 1, int.MaxValue);
         var allEntries = (await Task.WhenAll(posted.Select(async e => await _entryRepo.GetByIdAsync(e.Id))))

@@ -35,7 +35,7 @@ public sealed class ElectronicInvoiceService : IElectronicInvoiceService
 
         var sale = await _saleRepo.GetByIdAsync(saleId);
         if (sale is null)
-            throw new ArgumentException($"Venta {saleId} no encontrada");
+            throw new KeyNotFoundException($"Venta {saleId} no encontrada");
 
         var invoice = new ElectronicInvoice
         {
@@ -108,7 +108,7 @@ public sealed class ElectronicInvoiceService : IElectronicInvoiceService
     public async Task<ElectronicInvoiceDto> ResubmitAsync(Guid id)
     {
         var invoice = await _repo.GetByIdAsync(id)
-            ?? throw new ArgumentException($"Factura electrónica {id} no encontrada");
+            ?? throw new KeyNotFoundException($"Factura electrónica {id} no encontrada");
 
         if (invoice.Status == "authorized")
             throw new InvalidOperationException("La factura ya fue autorizada");
@@ -120,7 +120,7 @@ public sealed class ElectronicInvoiceService : IElectronicInvoiceService
         try
         {
             var sale = await _saleRepo.GetByIdAsync(invoice.SaleId)
-                ?? throw new ArgumentException($"Venta {invoice.SaleId} no encontrada");
+                ?? throw new KeyNotFoundException($"Venta {invoice.SaleId} no encontrada");
 
             var xml = invoice.XmlContent ?? GenerateXml(sale, invoice.CountryCode);
             var result = await SubmitToTaxAuthorityAsync(xml, invoice.CountryCode);
@@ -155,7 +155,7 @@ public sealed class ElectronicInvoiceService : IElectronicInvoiceService
     public async Task CancelAsync(Guid id, string reason)
     {
         var invoice = await _repo.GetByIdAsync(id)
-            ?? throw new ArgumentException($"Factura electrónica {id} no encontrada");
+            ?? throw new KeyNotFoundException($"Factura electrónica {id} no encontrada");
 
         if (invoice.Status != "authorized")
             throw new InvalidOperationException("Solo facturas autorizadas pueden ser anuladas");
@@ -171,7 +171,7 @@ public sealed class ElectronicInvoiceService : IElectronicInvoiceService
     public async Task<string> GenerateXmlAsync(Guid saleId, string countryCode)
     {
         var sale = await _saleRepo.GetByIdAsync(saleId)
-            ?? throw new ArgumentException($"Venta {saleId} no encontrada");
+            ?? throw new KeyNotFoundException($"Venta {saleId} no encontrada");
 
         return GenerateXml(sale, countryCode);
     }
@@ -179,7 +179,7 @@ public sealed class ElectronicInvoiceService : IElectronicInvoiceService
     public async Task<string> GeneratePdfAsync(Guid id)
     {
         var invoice = await _repo.GetByIdAsync(id)
-            ?? throw new ArgumentException($"Factura electrónica {id} no encontrada");
+            ?? throw new KeyNotFoundException($"Factura electrónica {id} no encontrada");
 
         return $"facturas/{invoice.Id}/factura_{invoice.InvoiceNumber}.pdf";
     }

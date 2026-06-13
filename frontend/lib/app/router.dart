@@ -46,8 +46,10 @@ import '../features/goals/dashboard/goals_dashboard_screen.dart';
 import '../features/goals/portal/my_goals_screen.dart';
 import '../features/providers/pages/provider_list_page.dart';
 import '../features/providers/pages/provider_detail_page.dart';
+import '../features/providers/pages/provider_form_page.dart';
 import '../features/providers/pages/service_contract_detail_page.dart';
 import '../features/providers/pages/provider_contracts_page.dart';
+import '../features/providers/pages/contract_form_page.dart';
 import '../features/providers/pages/provider_invoices_page.dart';
 import '../features/unauthorized/unauthorized_page.dart';
 import '../features/clients/pages/client_list_page.dart';
@@ -620,6 +622,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, _) => const ProviderListPage(),
             routes: [
               GoRoute(
+                path: 'new',
+                name: 'provider-new',
+                builder: (_, _) => const ProviderFormPage(),
+              ),
+              GoRoute(
                 path: 'contracts',
                 name: 'provider-contracts',
                 builder: (_, _) => const ProviderContractsPage(),
@@ -628,6 +635,15 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: ':providerId',
                 name: 'provider-detail',
                 builder: (_, state) => ProviderDetailPage(id: state.pathParameters['providerId']!),
+                routes: [
+                  GoRoute(
+                    path: 'edit',
+                    name: 'provider-edit',
+                    builder: (_, state) => ProviderFormPage(
+                      providerId: state.pathParameters['providerId']!,
+                    ),
+                  ),
+                ],
               ),
               GoRoute(
                 path: 'contracts/:contractId',
@@ -638,6 +654,20 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: 'payments',
                 name: 'provider-payments',
                 builder: (_, _) => const ProviderInvoicesPage(),
+              ),
+              GoRoute(
+                path: 'contracts/new',
+                name: 'contract-new',
+                builder: (_, state) => ContractFormPage(
+                  providerId: state.uri.queryParameters['providerId'],
+                ),
+              ),
+              GoRoute(
+                path: 'contracts/:contractId/edit',
+                name: 'contract-edit',
+                builder: (_, state) => ContractFormPage(
+                  contractId: state.pathParameters['contractId']!,
+                ),
               ),
             ],
           ),

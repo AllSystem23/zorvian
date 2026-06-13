@@ -29,7 +29,7 @@ public sealed class AttendanceService
     {
         var employee = await _employeeRepo.GetByIdAsync(employeeId);
         if (employee is null)
-            throw new InvalidOperationException("Employee not found");
+            throw new KeyNotFoundException("Employee not found");
 
         var existing = await _repo.GetTodayRecordAsync(employeeId);
         if (existing is not null)
