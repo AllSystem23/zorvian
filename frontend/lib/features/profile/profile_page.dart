@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:dio/dio.dart';
 import '../../auth/auth_provider.dart';
+import '../../core/network/api_config.dart';
 import '../../shared/ds/ds.dart';
 import '../biometrics/providers/biometric_provider.dart';
 
@@ -151,10 +152,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   icon: const Icon(Icons.download, size: 18),
                   label: const Text('Descargar Constancia'),
                   onPressed: () async {
-                    const defaultUrl = String.fromEnvironment('API_URL', defaultValue: 'https://nexora-9yal.onrender.com/zorvian/v1');
                     final storage = ref.read(secureStorageProvider);
                     final token = await storage.getAccessToken();
-                    final uri = Uri.parse('$defaultUrl/employees/me/certificate').replace(queryParameters: {'access_token': token ?? ''});
+                    final uri = Uri.parse(ApiConfig.resolve('employees/me/certificate')).replace(queryParameters: {'access_token': token ?? ''});
                     if (await canLaunchUrl(uri)) {
                       await launchUrl(uri, mode: LaunchMode.externalApplication);
                     }

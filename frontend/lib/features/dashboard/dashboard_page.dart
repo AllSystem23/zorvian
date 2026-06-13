@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../auth/auth_provider.dart';
+import '../../core/network/api_config.dart';
 import '../../core/services/signalr_service.dart';
 import '../../core/widgets/bi/bi_bar_chart.dart';
 import '../../core/widgets/bi/bi_pie_chart.dart';
@@ -39,13 +40,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   Future<void> _connectSignalR() async {
     final auth = ref.read(authProvider);
     if (auth.status != AuthStatus.authenticated) return;
-    const apiUrl = String.fromEnvironment('API_URL', defaultValue: 'https://nexora-9yal.onrender.com/zorvian/v1');
-    final uri = Uri.parse(apiUrl);
-    final rootUrl = '${uri.scheme}://${uri.host}${uri.hasPort ? ':${uri.port}' : ''}';
     final storage = ref.read(secureStorageProvider);
     final token = await storage.getAccessToken();
     if (token != null) {
-      ref.read(signalRProvider.notifier).connect(rootUrl, token);
+      ref.read(signalRProvider.notifier).connect(ApiConfig.originUrl, token);
     }
   }
 
@@ -103,6 +101,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   Widget _buildHeader(String user) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final auth = ref.watch(authProvider);
+    
     return Row(
       children: [
         Expanded(
@@ -114,12 +114,20 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 style: ZTypography.bodyMedium.copyWith(color: ZColors.neutral500),
               ),
               const SizedBox(height: 4),
-              Text(
-                user,
-                style: ZTypography.displaySmall.copyWith(
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -0.5,
-                ),
+              Row(
+                children: [
+                  Text(
+                    user,
+                    style: ZTypography.displaySmall.copyWith(
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  if (auth.role == 'SuperAdmin') ...[
+                    const SizedBox(width: 12),
+                    _buildCompanySelector(),
+                  ],
+                ],
               ),
             ],
           ),
@@ -150,6 +158,50 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildCompanySelector() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: ref.read(authProvider.notifier).getMyTenants(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.length <= 1) return const SizedBox();
+        
+        final tenants = snapshot.data!;
+        final currentTenant = ref.watch(authProvider).tenantId;
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: BoxDecoration(
+            color: ZColors.brandPrimary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(ZRadii.full),
+            border: Border.all(color: ZColors.brandPrimary.withValues(alpha: 0.2)),
+          ),
+          child: DropdownButton<String>(
+            value: currentTenant,
+            underline: const SizedBox(),
+            isDense: true,
+            icon: Icon(Icons.business, size: 16, color: ZColors.brandPrimary),
+            style: ZTypography.labelSmall.copyWith(color: ZColors.brandPrimary, fontWeight: FontWeight.bold),
+            items: tenants.map((t) => DropdownMenuItem(
+              value: t['tenantId'] as String,
+              child: Text(t['name'] as String),
+            )).toList(),
+            onChanged: (newId) async {
+              if (newId != null && newId != currentTenant) {
+                final success = await ref.read(authProvider.notifier).switchTenant(newId);
+                if (success) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Cambiando a: ${tenants.firstWhere((t) => t['tenantId'] == newId)['name']}')),
+                    );
+                  }
+                }
+              }
+            },
+          ),
+        );
+      },
     );
   }
 

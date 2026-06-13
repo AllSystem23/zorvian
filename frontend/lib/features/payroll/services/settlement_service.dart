@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/network/api_config.dart';
 
 class SettlementService {
   final Ref _ref;
@@ -22,11 +23,8 @@ class SettlementService {
     final token = await storage.getAccessToken();
     
     // Base URL is managed by DioClient, but here we might need it for a direct call or use dio instance
-    final dio = Dio(); // Using a clean Dio for blob download or configured one
-    
-    // Getting base URL from environment or hardcoded as in DioClient
-    const baseUrl = String.fromEnvironment('API_URL', defaultValue: 'https://nexora-9yal.onrender.com/zorvian/v1/');
-    final url = '${baseUrl}payroll/settlement/generate-pdf';
+    final dio = Dio();
+    final url = ApiConfig.resolve('payroll/settlement/generate-pdf');
 
     final response = await dio.post(
       url,

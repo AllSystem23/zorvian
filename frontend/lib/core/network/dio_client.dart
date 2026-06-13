@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../storage/secure_storage.dart';
+import 'api_config.dart';
 
 typedef OnErrorCallback = void Function(int? statusCode, String message);
 typedef OnUnauthorizedCallback = void Function();
@@ -11,12 +12,9 @@ class DioClient {
   final OnErrorCallback? onError;
   final OnUnauthorizedCallback? onUnauthorized;
 
-  static String _normalizeBaseUrl(String url) =>
-      url.endsWith('/') ? url : '$url/';
-
   DioClient(this._storage, {this.onError, this.onUnauthorized}) {
     _dio = Dio(BaseOptions(
-      baseUrl: _normalizeBaseUrl(const String.fromEnvironment('API_URL', defaultValue: 'https://nexora-9yal.onrender.com/zorvian/v1')),
+      baseUrl: '${ApiConfig.baseUrl}/',
       connectTimeout: const Duration(seconds: 30),
       receiveTimeout: const Duration(seconds: 60),
       headers: {'Content-Type': 'application/json'},
