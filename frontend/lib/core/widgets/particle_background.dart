@@ -1,10 +1,22 @@
-import 'dart:math' as math;
+import 'dart:math';
 import 'package:flutter/material.dart';
-import '../../shared/ds/ds.dart';
+import 'package:vector_math/vector_math_64.dart' show radians;
 
-/// A subtle animated particle background for premium screens.
 class ParticleBackground extends StatefulWidget {
-  const ParticleBackground({super.key});
+  final int particleCount;
+  final List<Color> colors;
+  final double speed;
+
+  const ParticleBackground({
+    super.key,
+    this.particleCount = 50,
+    this.colors = const [
+      Color(0xFF7C4DFF),
+      Color(0xFF00E5FF),
+      Color(0xFF2EE59D),
+    ],
+    this.speed = 1.0,
+  });
 
   @override
   State<ParticleBackground> createState() => _ParticleBackgroundState();
@@ -12,40 +24,21 @@ class ParticleBackground extends StatefulWidget {
 
 class _ParticleBackgroundState extends State<ParticleBackground>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  final List<Particle> _particles = [];
-  final math.Random _random = math.Random();
+  late final AnimationController _controller;
+  late final List<_Particle> _particles;
+  final _rng = Random();
 
   @override
   void initState() {
     super.initState();
+    _particles = List.generate(
+      widget.particleCount,
+      (_) => _Particle._(_rng),
+    );
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 10),
+      duration: const Duration(seconds: 40),
     )..repeat();
-
-    // Initialize particles with normalized coordinates (0.0 to 1.0)
-    for (int i = 0; i < 40; i++) {
-      _particles.add(Particle(
-        position: Offset(_random.nextDouble(), _random.nextDouble()),
-        velocity: Offset(
-          (_random.nextDouble() - 0.5) * 0.001,
-          (_random.nextDouble() - 0.5) * 0.001,
-        ),
-        size: _random.nextDouble() * 3 + 1,
-        color: _getRandomColor(),
-        opacity: _random.nextDouble() * 0.2 + 0.05,
-      ));
-    }
-  }
-
-  Color _getRandomColor() {
-    final colors = [
-      ZColors.brandSecondary,
-      ZColors.brandAccent,
-      ZColors.moduleIa,
-    ];
-    return colors[_random.nextInt(colors.length)];
   }
 
   @override
@@ -58,65 +51,76 @@ class _ParticleBackgroundState extends State<ParticleBackground>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _controller,
-      builder: (context, child) {
-        for (var particle in _particles) {
-          particle.update();
-        }
-        return CustomPaint(
-          painter: ParticlePainter(particles: _particles),
-          size: Size.infinite,
-        );
-      },
+      builder: (_, __) => CustomPaint(
+        painter: _ParticlePainter(
+          particles: _particles,
+          colors: widget.colors,
+          progress: _controller.value,
+          speed: widget.speed,
+        ),
+        size: Size.infinite,
+      ),
     );
   }
 }
 
-class Particle {
-  Offset position;
-  Offset velocity;
+class _Particle {
+  double x, y;
+  double vx, vy;
   double size;
-  Color color;
-  double opacity;
+  double baseOpacity;
+  double opacityPhase;
+  int colorIndex;
 
-  Particle({
-    required this.position,
-    required this.velocity,
-    required this.size,
-    required this.color,
-    required this.opacity,
-  });
-
-  void update() {
-    position += velocity;
-    
-    // Wrap around screen
-    if (position.dx < 0) position = Offset(1.0, position.dy);
-    if (position.dx > 1) position = Offset(0.0, position.dy);
-    if (position.dy < 0) position = Offset(position.dx, 1.0);
-    if (position.dy > 1) position = Offset(position.dx, 0.0);
-  }
+  _Particle._(Random rng)
+      : x = rng.nextDouble(),
+        y = rng.nextDouble(),
+        vx = (rng.nextDouble() - 0.5) * 0.004,
+        vy = (rng.nextDouble() - 0.5) * 0.004,
+        size = rng.nextDouble() * 2.5 + 1.0,
+        baseOpacity = rng.nextDouble() * 0.25 + 0.05,
+        opacityPhase = rng.nextDouble() * 2 * pi,
+        colorIndex = rng.nextInt(3);
 }
 
-class ParticlePainter extends CustomPainter {
-  final List<Particle> particles;
+class _ParticlePainter extends CustomPainter {
+  final List<_Particle> particles;
+  final List<Color> colors;
+  final double progress;
+  final double speed;
 
-  ParticlePainter({required this.particles});
+  _ParticlePainter({
+    required this.particles,
+    required this.colors,
+    required this.progress,
+    required this.speed,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    for (var particle in particles) {
+    for (final p in particles) {
+      p.x += p.vx * speed;
+      p.y += p.vy * speed;
+
+      if (p.x < -0.05) p.x = 1.05;
+      if (p.x > 1.05) p.x = -0.05;
+      if (p.y < -0.05) p.y = 1.05;
+      if (p.y > 1.05) p.y = -0.05;
+
+      final opacity = p.baseOpacity *
+          (0.6 + 0.4 * sin(progress * 2 * pi * 0.5 + p.opacityPhase));
+
+      final px = p.x * size.width;
+      final py = p.y * size.height;
+
       final paint = Paint()
-        ..color = particle.color.withValues(alpha: particle.opacity)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1);
-      
-      canvas.drawCircle(
-        Offset(particle.position.dx * size.width, particle.position.dy * size.height),
-        particle.size,
-        paint,
-      );
+        ..color = colors[p.colorIndex].withValues(alpha: opacity)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
+
+      canvas.drawCircle(Offset(px, py), p.size, paint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant ParticlePainter oldDelegate) => true;
+  bool shouldRepaint(covariant _ParticlePainter oldDelegate) => true;
 }
