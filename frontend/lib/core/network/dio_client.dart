@@ -40,7 +40,12 @@ class DioClient {
         handler.next(options);
       },
       onError: (error, handler) async {
-        if (error.response?.statusCode == 401) {
+        // No interceptar errores de auth (login, register, forgot-password)
+        final isAuthEndpoint = error.requestOptions.path.contains('auth/login')
+            || error.requestOptions.path.contains('auth/register')
+            || error.requestOptions.path.contains('auth/forgot-password')
+            || error.requestOptions.path.contains('auth/refresh');
+        if (error.response?.statusCode == 401 && !isAuthEndpoint) {
           final refreshed = await _tryRefreshToken();
           if (refreshed) {
             final retryResponse = await _dio.fetch(error.requestOptions);

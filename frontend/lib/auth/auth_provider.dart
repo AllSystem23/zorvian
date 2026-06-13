@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -114,6 +115,11 @@ class AuthNotifier extends Notifier<AuthState> {
       );
 
       return true;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        throw Exception('Credenciales inválidas. Verifica tu email y contraseña.');
+      }
+      return false;
     } catch (_) {
       return false;
     }

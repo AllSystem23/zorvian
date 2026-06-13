@@ -98,6 +98,8 @@ public sealed class AuthService
                         user.FirebaseUid = fbUser.Uid;
                         if (!string.IsNullOrEmpty(fbUser.Name)) user.DisplayName = fbUser.Name;
                         if (!string.IsNullOrEmpty(fbUser.Picture)) user.AvatarUrl = fbUser.Picture;
+                        if (user.PasswordHash is null)
+                            user.PasswordHash = PasswordHelper.Hash(request.Password);
                         await _authRepo.SaveChangesAsync();
                     }
                     else
@@ -108,6 +110,7 @@ public sealed class AuthService
                             Email = email ?? string.Empty,
                             DisplayName = fbUser.Name ?? string.Empty,
                             AvatarUrl = fbUser.Picture ?? string.Empty,
+                            PasswordHash = PasswordHelper.Hash(request.Password),
                             TenantId = _tenant.TenantId ?? throw new InvalidOperationException("TenantId missing"),
                         };
                         await _authRepo.AddUserAsync(user);
@@ -123,9 +126,21 @@ public sealed class AuthService
             else
             {
                 user = await _authRepo.GetUserByEmailAsync(request.Email);
-                if (user is null || user.PasswordHash is null) return null;
-
-                if (!PasswordHelper.Verify(request.Password, user.PasswordHash)) return null;
+                if (user is null)
+                {
+                    _logger.LogWarning("Login-password fallback: user not found for {Email}", request.Email);
+                    return null;
+                }
+                if (user.PasswordHash is null)
+                {
+                    _logger.LogWarning("Login-password fallback: user {Email} has no local PasswordHash", request.Email);
+                    return null;
+                }
+                if (!PasswordHelper.Verify(request.Password, user.PasswordHash))
+                {
+                    _logger.LogWarning("Login-password fallback: password mismatch for {Email}", request.Email);
+                    return null;
+                }
             }
 
             if (user.IsMfaEnabled)

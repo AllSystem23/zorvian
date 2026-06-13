@@ -23,24 +23,29 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       backgroundColor: ZColors.darkBackground,
       body: Stack(
         children: [
-          // PREMIUM BACKGROUND GRADIENT
+          // ANIMATED PARTICLE BACKGROUND
+          Positioned.fill(
+            child: const ParticleBackground(
+              particleCount: 50,
+              speed: 0.6,
+            ),
+          ),
+          // PREMIUM BACKGROUND GRADIENT (over particles)
           Positioned.fill(
             child: Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: RadialGradient(
                   center: Alignment(0.7, -0.6),
                   radius: 1.5,
                   colors: [
-                    ZColors.neutral800,
-                    ZColors.darkBackground,
+                    ZColors.neutral800.withValues(alpha: 0.7),
+                    ZColors.darkBackground.withValues(alpha: 0.3),
+                    Colors.transparent,
                   ],
+                  stops: const [0.0, 0.5, 1.0],
                 ),
               ),
             ),
-          ),
-          // PARTICLE BACKGROUND
-          const Positioned.fill(
-            child: ParticleBackground(),
           ),
           // AMBIENT GLOWS
           Positioned(
@@ -239,8 +244,10 @@ class _LoginFormState extends ConsumerState<LoginForm> {
       } else if (mounted) {
         setState(() => _error = 'Error al conectar con el servidor');
       }
-    } catch (_) {
-      if (mounted) setState(() => _error = 'Error de conexión');
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = e is Exception ? e.toString().replaceFirst('Exception: ', '') : 'Error de conexión');
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
