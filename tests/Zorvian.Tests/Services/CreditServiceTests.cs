@@ -200,14 +200,14 @@ public sealed class CreditServiceTests
     }
 
     [Fact]
-    public async Task CalculateLateFeesAsync_CreditNotFound_ThrowsInvalidOperationException()
+    public async Task CalculateLateFeesAsync_CreditNotFound_ReturnsEmpty()
     {
         var creditId = Guid.NewGuid();
         _creditRepo.Setup(r => r.GetByIdAsync(creditId)).ReturnsAsync((Credit?)null);
 
-        var act = () => _sut.CalculateLateFeesAsync(creditId);
+        var result = await _sut.CalculateLateFeesAsync(creditId);
 
-        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("Credit not found");
+        result.Should().BeEmpty();
     }
 
     [Fact]
@@ -309,7 +309,7 @@ public sealed class CreditServiceTests
     }
 
     [Fact]
-    public async Task AddCollectionActionAsync_CreditNotFound_ThrowsInvalidOperationException()
+    public async Task AddCollectionActionAsync_CreditNotFound_ThrowsKeyNotFoundException()
     {
         var request = new CreateCollectionActionRequest(
             Guid.NewGuid(), "PHONE_CALL", null, null, null, null, null, null, null);
@@ -318,7 +318,7 @@ public sealed class CreditServiceTests
 
         var act = () => _sut.AddCollectionActionAsync(request);
 
-        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("Credit not found");
+        await act.Should().ThrowAsync<KeyNotFoundException>().WithMessage("Credit not found");
     }
 
     [Fact]

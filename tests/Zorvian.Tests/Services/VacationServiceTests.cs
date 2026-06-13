@@ -280,6 +280,6 @@ public sealed class VacationServiceTests
     {
         _employeeRepo.Setup(r => r.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync((Employee?)null);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.CalculateBalanceAsync());
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => _sut.CalculateBalanceAsync());
     }
 }

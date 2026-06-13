@@ -75,7 +75,7 @@ public sealed class AttendanceServiceTests
     {
         _employeeRepo.Setup(r => r.GetByIdAsync(_employeeId)).ReturnsAsync((Employee?)null);
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var ex = await Assert.ThrowsAsync<KeyNotFoundException>(() =>
             _sut.CheckInAsync(_employeeId, new CheckInRequest(null, null)));
 
         Assert.Equal("Employee not found", ex.Message);

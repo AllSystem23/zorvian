@@ -103,7 +103,7 @@ public sealed class VacationServiceEdgeCaseTests
     {
         _tenant.Setup(t => t.CurrentEmployeeId).Returns((Guid?)null);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        await Assert.ThrowsAsync<KeyNotFoundException>(() =>
             _sut.CreateAsync(new CreateVacationRequest(
                 new DateOnly(2026, 1, 15),
                 new DateOnly(2026, 1, 28),

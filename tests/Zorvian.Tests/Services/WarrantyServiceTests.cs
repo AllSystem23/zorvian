@@ -196,7 +196,7 @@ public sealed class WarrantyServiceTests
     }
 
     [Fact]
-    public async Task AddClaimAsync_WithNonexistentWarranty_ThrowsInvalidOperationException()
+    public async Task AddClaimAsync_WithNonexistentWarranty_ThrowsKeyNotFoundException()
     {
         _repo.Setup(r => r.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync((Warranty?)null);
 
@@ -204,7 +204,7 @@ public sealed class WarrantyServiceTests
 
         var act = () => _sut.AddClaimAsync(request);
 
-        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*Warranty not found*");
+        await act.Should().ThrowAsync<KeyNotFoundException>().WithMessage("*Warranty not found*");
     }
 
     [Fact]
