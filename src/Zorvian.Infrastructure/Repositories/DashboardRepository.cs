@@ -86,6 +86,34 @@ public sealed class DashboardRepository : IDashboardRepository
             .ToListAsync();
     }
 
+    public async Task<int> GetResolvedVacationCountSinceAsync(DateOnly since)
+    {
+        return await Query<VacationRequest>()
+            .CountAsync(v => (v.Status == "approved" || v.Status == "rejected")
+                && v.UpdatedAt != null && DateOnly.FromDateTime(v.UpdatedAt.Value) >= since);
+    }
+
+    public async Task<int> GetResolvedPermissionCountSinceAsync(DateOnly since)
+    {
+        return await Query<PermissionRequest>()
+            .CountAsync(p => (p.Status == "approved" || p.Status == "rejected")
+                && p.UpdatedAt != null && DateOnly.FromDateTime(p.UpdatedAt.Value) >= since);
+    }
+
+    public async Task<List<Employee>> GetEmployeesWithBirthdayInMonthAsync(int month)
+    {
+        return await Query<Employee>()
+            .Where(e => e.DateOfBirth!.Value.Month == month && e.Status == "active")
+            .ToListAsync();
+    }
+
+    public async Task<List<Employee>> GetEmployeesWithAnniversaryInMonthAsync(int month)
+    {
+        return await Query<Employee>()
+            .Where(e => e.HireDate.Month == month && e.Status == "active")
+            .ToListAsync();
+    }
+
     public async Task<List<VacationRequest>> GetVacationsInRangeAsync(DateOnly start, DateOnly end)
     {
         var query = NeedsBypass

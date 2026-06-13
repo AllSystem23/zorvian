@@ -52,11 +52,34 @@ public sealed class DashboardService
             ? Math.Round(((double)(active - prevActive) / prevActive) * 100, 1)
             : null;
 
+        var now = DateTime.UtcNow;
+        var thirtyDaysAgo = DateOnly.FromDateTime(now.AddDays(-30));
+        var resolvedVac = await _repo.GetResolvedVacationCountSinceAsync(thirtyDaysAgo);
+        var resolvedPerm = await _repo.GetResolvedPermissionCountSinceAsync(thirtyDaysAgo);
+        var totalPending = pendingVac + pendingPerm;
+        var prevPending = totalPending + resolvedVac + resolvedPerm;
+        double? pendingTrend = prevPending > 0
+            ? Math.Round(((double)(totalPending - prevPending) / prevPending) * 100, 1)
+            : null;
+
+        var lastMonth = now.Month == 1 ? 12 : now.Month - 1;
+        var prevBirthdays = await _repo.GetEmployeesWithBirthdayInMonthAsync(lastMonth);
+        var prevAnniversaries = await _repo.GetEmployeesWithAnniversaryInMonthAsync(lastMonth);
+        double? bdayTrend = prevBirthdays.Count > 0
+            ? Math.Round(((double)(birthdays.Count - prevBirthdays.Count) / prevBirthdays.Count) * 100, 1)
+            : null;
+        double? annivTrend = prevAnniversaries.Count > 0
+            ? Math.Round(((double)(anniversaries.Count - prevAnniversaries.Count) / prevAnniversaries.Count) * 100, 1)
+            : null;
+
         return new DashboardKpisResponse(
             total,
             active,
             inactive,
             activeTrend,
+            pendingTrend,
+            bdayTrend,
+            annivTrend,
             byDept.Select(d => new DepartmentCount(d.Name, d.Count)).ToList(),
             pendingVac,
             pendingPerm,

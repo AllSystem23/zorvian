@@ -11,8 +11,12 @@ public interface IDashboardRepository
     Task<List<(string Name, int Count)>> GetEmployeesByDepartmentAsync();
     Task<int> GetPendingVacationRequestsAsync();
     Task<int> GetPendingPermissionRequestsAsync();
+    Task<int> GetResolvedVacationCountSinceAsync(DateOnly since);
+    Task<int> GetResolvedPermissionCountSinceAsync(DateOnly since);
     Task<List<Employee>> GetEmployeesWithBirthdayThisMonthAsync();
+    Task<List<Employee>> GetEmployeesWithBirthdayInMonthAsync(int month);
     Task<List<Employee>> GetEmployeesWithAnniversaryThisMonthAsync();
+    Task<List<Employee>> GetEmployeesWithAnniversaryInMonthAsync(int month);
     Task<List<VacationRequest>> GetVacationsInRangeAsync(DateOnly start, DateOnly end);
     Task<List<PermissionRequest>> GetRecentPermissionsAsync(int count);
     Task<List<VacationRequest>> GetRecentVacationsAsync(int count);

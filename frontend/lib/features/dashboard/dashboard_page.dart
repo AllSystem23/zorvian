@@ -180,6 +180,10 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             label: 'Vacaciones + Permisos',
             icon: Icons.pending_actions_outlined,
             variant: ZStatVariant.warning,
+            trend: kpis.pendingRequestsTrend != null
+                ? kpis.pendingRequestsTrend!.abs()
+                : null,
+            trendUp: (kpis.pendingRequestsTrend ?? 0) < 0,
             onTap: () => context.push('/vacations'),
           ),
           ZStatCard(
@@ -188,6 +192,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             label: 'celebraciones este mes',
             icon: Icons.cake_outlined,
             variant: ZStatVariant.info,
+            trend: kpis.birthdaysTrend,
+            trendUp: (kpis.birthdaysTrend ?? 0) >= 0,
             onTap: () => context.push('/employees'),
           ),
           ZStatCard(
@@ -196,6 +202,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             label: 'años de servicio este mes',
             icon: Icons.work_history_outlined,
             variant: ZStatVariant.success,
+            trend: kpis.anniversariesTrend,
+            trendUp: (kpis.anniversariesTrend ?? 0) >= 0,
             onTap: () => context.push('/employees'),
           ),
         ],
