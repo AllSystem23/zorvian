@@ -6,6 +6,7 @@ class DashboardKpis {
   final int totalEmployees;
   final int activeEmployees;
   final int inactiveEmployees;
+  final double? activeEmployeesTrend;
   final List<DepartmentCount> employeesByDepartment;
   final int pendingVacationRequests;
   final int pendingPermissionRequests;
@@ -16,6 +17,7 @@ class DashboardKpis {
     required this.totalEmployees,
     required this.activeEmployees,
     required this.inactiveEmployees,
+    this.activeEmployeesTrend,
     required this.employeesByDepartment,
     required this.pendingVacationRequests,
     required this.pendingPermissionRequests,
@@ -27,6 +29,7 @@ class DashboardKpis {
     totalEmployees: json['totalEmployees'] as int,
     activeEmployees: json['activeEmployees'] as int,
     inactiveEmployees: json['inactiveEmployees'] as int,
+    activeEmployeesTrend: (json['activeEmployeesTrend'] as num?)?.toDouble(),
     employeesByDepartment: (json['employeesByDepartment'] as List)
         .map((e) => DepartmentCount.fromJson(e))
         .toList(),

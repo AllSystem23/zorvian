@@ -34,6 +34,14 @@ public sealed class DashboardRepository : IDashboardRepository
         return await Query<Employee>().CountAsync(e => e.Status == "active");
     }
 
+    public async Task<int> GetPreviousMonthActiveEmployeesAsync()
+    {
+        var thirtyDaysAgo = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
+        return await Query<Employee>()
+            .CountAsync(e => e.HireDate <= thirtyDaysAgo
+                && (e.TerminationDate == null || e.TerminationDate > thirtyDaysAgo));
+    }
+
     public async Task<int> GetInactiveEmployeesAsync()
     {
         return await Query<Employee>().CountAsync(e => e.Status != "active");

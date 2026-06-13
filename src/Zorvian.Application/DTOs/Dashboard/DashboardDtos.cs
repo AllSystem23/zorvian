@@ -4,6 +4,7 @@ public sealed record DashboardKpisResponse(
     int TotalEmployees,
     int ActiveEmployees,
     int InactiveEmployees,
+    double? ActiveEmployeesTrend,
     List<DepartmentCount> EmployeesByDepartment,
     int PendingVacationRequests,
     int PendingPermissionRequests,

@@ -6,6 +6,7 @@ public interface IDashboardRepository
 {
     Task<int> GetTotalEmployeesAsync();
     Task<int> GetActiveEmployeesAsync();
+    Task<int> GetPreviousMonthActiveEmployeesAsync();
     Task<int> GetInactiveEmployeesAsync();
     Task<List<(string Name, int Count)>> GetEmployeesByDepartmentAsync();
     Task<int> GetPendingVacationRequestsAsync();

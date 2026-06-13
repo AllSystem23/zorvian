@@ -46,11 +46,17 @@ public sealed class DashboardService
         var pendingPerm = await _repo.GetPendingPermissionRequestsAsync();
         var birthdays = await _repo.GetEmployeesWithBirthdayThisMonthAsync();
         var anniversaries = await _repo.GetEmployeesWithAnniversaryThisMonthAsync();
+        var prevActive = await _repo.GetPreviousMonthActiveEmployeesAsync();
+
+        double? activeTrend = prevActive > 0
+            ? Math.Round(((double)(active - prevActive) / prevActive) * 100, 1)
+            : null;
 
         return new DashboardKpisResponse(
             total,
             active,
             inactive,
+            activeTrend,
             byDept.Select(d => new DepartmentCount(d.Name, d.Count)).ToList(),
             pendingVac,
             pendingPerm,
