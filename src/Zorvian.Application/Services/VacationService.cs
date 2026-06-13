@@ -230,8 +230,9 @@ public sealed class VacationService
         var employee = await _employeeRepo.GetByIdAsync(employeeId)
             ?? throw new KeyNotFoundException("Employee not found");
         
-        var config = await _taxConfigRepo.GetByCountryCodeAsync(employee.CountryCode)
-            ?? throw new InvalidOperationException($"Tax configuration not found for country: {employee.CountryCode}");
+        var config = await _taxConfigRepo.GetByCountryCodeAsync(employee.CountryCode);
+        if (config is null)
+            return new VacationBalanceResponse(0, 0, 0, 0, 0);
         
         var daysPerYear = config.VacationDaysPerYear;
         

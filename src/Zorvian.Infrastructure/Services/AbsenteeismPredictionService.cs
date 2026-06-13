@@ -33,7 +33,7 @@ public sealed class AbsenteeismPredictionService
         if (_model == null && File.Exists(ModelPath))
             _model = _mlContext.Model.Load(ModelPath, out _);
         
-        if (_model == null) throw new InvalidOperationException("Model not trained.");
+        if (_model == null) return new AttendancePrediction();
 
         var predictionEngine = _mlContext.Model.CreatePredictionEngine<AttendanceData, AttendancePrediction>(_model);
         return predictionEngine.Predict(data);

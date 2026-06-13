@@ -214,9 +214,9 @@ public sealed class PayrollService
             ?? throw new KeyNotFoundException("Payroll period not found");
 
         var company = await _companyRepo.GetByTenantIdAsync(_tenant.TenantId) 
-            ?? throw new InvalidOperationException("Company not found");
+            ?? throw new KeyNotFoundException("Company not found");
         var taxConfig = await _taxConfigRepo.GetByCountryCodeAsync(company.Country ?? "NIC")
-            ?? throw new InvalidOperationException("Tax configuration not found for country");
+            ?? throw new KeyNotFoundException("Tax configuration not found for country");
 
         var activeEmployees = await _employeeRepo.GetFilteredAsync(null, "active", null, 1, 10000);
         var conceptDefinitions = await _conceptRepo.GetAllAsync(_tenant.TenantId);

@@ -85,6 +85,7 @@ public sealed class FinancialReportsController : ControllerBase
     public async Task<IActionResult> Comparative([FromBody] ComparativeReportRequest request)
     {
         var result = await _enhancedService.GetComparativeReportAsync(request.ReportType, request.PeriodIds);
+        if (result is null) return BadRequest(new { error = "At least two periods are required for comparison" });
         return Ok(result);
     }
 

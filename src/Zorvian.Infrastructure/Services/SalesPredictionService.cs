@@ -43,7 +43,7 @@ public sealed class SalesPredictionService
             _model = _mlContext.Model.Load(ModelPath, out _);
 
         if (_model == null)
-            throw new InvalidOperationException("Model not trained. Train the model first.");
+            return new SalesPrediction();
 
         var predictionEngine = _mlContext.Model.CreatePredictionEngine<SalesData, SalesPrediction>(_model);
         return predictionEngine.Predict(data);
@@ -55,7 +55,7 @@ public sealed class SalesPredictionService
             _model = _mlContext.Model.Load(ModelPath, out _);
 
         if (_model == null)
-            throw new InvalidOperationException("Model not trained. Train the model first.");
+            return new List<SalesPrediction>();
 
         var predictionEngine = _mlContext.Model.CreatePredictionEngine<SalesData, SalesPrediction>(_model);
         return nextDaysData.Select(d => predictionEngine.Predict(d)).ToList();

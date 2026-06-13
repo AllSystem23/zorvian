@@ -61,6 +61,7 @@ public sealed class EnhancedReportService
         var currentPosted = await _entryRepo.GetFilteredAsync(periodId, null, "posted", null, null, CompanyId, 1, int.MaxValue);
         var currentEntries = (await Task.WhenAll(currentPosted.Select(async e => await _entryRepo.GetByIdAsync(e.Id))))
             .Where(e => e != null).Cast<AccountingEntry>().ToList();
+        if (currentEntries.Count == 0) return null;
         var entryMap = currentEntries.ToDictionary(e => e.Id);
         var details = currentEntries.SelectMany(e => e.Details).ToList();
 
@@ -204,10 +205,10 @@ public sealed class EnhancedReportService
         );
     }
 
-    public async Task<ComparativeReportResponse> GetComparativeReportAsync(string reportType, List<Guid> periodIds)
+    public async Task<ComparativeReportResponse?> GetComparativeReportAsync(string reportType, List<Guid> periodIds)
     {
         if (periodIds.Count < 2)
-            throw new InvalidOperationException("At least two periods required for comparison");
+            return null;
 
         var periodResults = await Task.WhenAll(periodIds.Select(async id => await _periodRepo.GetByIdAsync(id)));
         var periods = periodResults.Where(p => p is not null).Select(p => p!).ToArray();

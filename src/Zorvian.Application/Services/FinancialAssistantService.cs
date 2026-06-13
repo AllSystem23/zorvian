@@ -281,6 +281,10 @@ public sealed class FinancialAssistantService
                 "Se necesitan al menos 2 períodos para comparar.", "low", null);
 
         var comp = await _enhanced.GetComparativeReportAsync("income_statement", selected);
+        if (comp is null)
+            return new FinancialAssistantResponse(
+                "Se necesitan al menos 2 períodos para comparar.", "low", null);
+
         var data = comp.Lines.Select(l => new FinancialAssistantDataPoint(
             $"{l.Concept} (var: {l.VariancePercent}%)", l.Variance, "decimal")).ToList();
 
