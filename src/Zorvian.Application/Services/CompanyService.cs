@@ -28,6 +28,7 @@ public sealed class CompanyService
 
         var company = new Company
         {
+            TenantId = tenantId,
             Name = request.Name,
             LegalName = request.LegalName,
             TaxId = request.TaxId,
