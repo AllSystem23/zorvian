@@ -82,15 +82,10 @@ public sealed class GlobalExceptionMiddleware
                 context.Request.Method, context.Request.Path, context.TraceIdentifier);
 
             context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-            var inner = ex.InnerException;
-            var detail = $"{ex.GetType().Name}: {ex.Message}";
-            if (inner is not null)
-                detail += $" | Inner: {inner.GetType().Name}: {inner.Message}";
 
             await WriteResponse(context, new
             {
                 message = "Error interno del servidor. Intente más tarde.",
-                detail,
                 traceId = context.TraceIdentifier
             });
         }
@@ -98,15 +93,35 @@ public sealed class GlobalExceptionMiddleware
 
     private static async Task WriteResponse(HttpContext context, object body)
     {
-        context.Response.ContentType = "application/json";
-        var json = JsonSerializer.Serialize(new
+        context.Response.ContentType = "application/problem+json";
+        
+        var errorBody = body as dynamic;
+        var problemDetails = new
         {
-            error = body,
-            statusCode = context.Response.StatusCode,
-            timestamp = DateTime.UtcNow,
-        }, JsonOptions);
+            type = $"https://zorvian.app/errors/{(int)context.Response.StatusCode}",
+            title = GetTitleForStatus(context.Response.StatusCode),
+            status = context.Response.StatusCode,
+            detail = errorBody.message,
+            instance = context.Request.Path.Value,
+            traceId = context.TraceIdentifier,
+            errors = errorBody.details // Para validaciones
+        };
+
+        var json = JsonSerializer.Serialize(problemDetails, JsonOptions);
         await context.Response.WriteAsync(json);
     }
+
+    private static string GetTitleForStatus(int statusCode) => statusCode switch
+    {
+        400 => "Bad Request",
+        401 => "Unauthorized",
+        403 => "Forbidden",
+        404 => "Not Found",
+        409 => "Conflict",
+        422 => "Unprocessable Entity",
+        500 => "Internal Server Error",
+        _ => "An error occurred"
+    };
 }
 
 public static class GlobalExceptionMiddlewareExtensions

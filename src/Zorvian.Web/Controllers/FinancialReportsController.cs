@@ -92,24 +92,13 @@ public sealed class FinancialReportsController : ControllerBase
     [HttpPost("assistant/ask")]
     public async Task<IActionResult> AskAssistant([FromBody] FinancialAssistantRequest request)
     {
-        try
-        {
-            var result = await _assistantService.AskAsync(request.Query);
-            return Ok(result);
-        }
-        catch (Exception ex) { return BadRequest(new { error = ex.Message }); }
+        var result = await _assistantService.AskAsync(request.Query);
+        return Ok(result);
     }
-[HttpPost("assistant/feedback")]
-public async Task<IActionResult> AssistantFeedback([FromBody] FinancialAssistantFeedbackRequest request)
-{
-    try
+    [HttpPost("assistant/feedback")]
+    public async Task<IActionResult> AssistantFeedback([FromBody] FinancialAssistantFeedbackRequest request)
     {
         await _assistantService.SaveFeedbackAsync(request);
         return Ok();
     }
-    catch (Exception ex) 
-    { 
-        return BadRequest(new { error = ex.Message }); 
-    }
-}
 }

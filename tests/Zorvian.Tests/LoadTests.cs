@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Zorvian.Core.Interfaces;
+using Zorvian.Web;
 
 namespace Zorvian.Tests;
 

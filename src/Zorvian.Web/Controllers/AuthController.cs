@@ -198,18 +198,10 @@ public sealed class AuthController : ControllerBase
     }
 
     [HttpGet("diagnostics")]
-    [AllowAnonymous]
     public IActionResult Diagnostics([FromServices] IFirebaseAuthService firebase)
     {
-        try
-        {
-            var fbAuth = FirebaseAdmin.Auth.FirebaseAuth.DefaultInstance;
-            return Ok(new { firebaseInitialized = fbAuth != null, firebaseProject = FirebaseAdmin.FirebaseApp.DefaultInstance?.Options?.ProjectId });
-        }
-        catch (Exception ex)
-        {
-            return Ok(new { firebaseInitialized = false, error = ex.Message });
-        }
+        var fbAuth = FirebaseAdmin.Auth.FirebaseAuth.DefaultInstance;
+        return Ok(new { firebaseInitialized = fbAuth != null, firebaseProject = FirebaseAdmin.FirebaseApp.DefaultInstance?.Options?.ProjectId });
     }
 
     private Guid? GetCurrentUserId()

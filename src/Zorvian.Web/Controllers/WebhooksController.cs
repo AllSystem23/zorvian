@@ -35,7 +35,9 @@ public sealed class WebhooksController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetSubscriptions()
     {
-        var subs = await _db.Set<WebhookSubscription>().ToListAsync();
+        var subs = await _db.Set<WebhookSubscription>()
+            .Where(s => s.TenantId == _tenant.TenantId)
+            .ToListAsync();
         return Ok(subs);
     }
 
@@ -50,6 +52,7 @@ public sealed class WebhooksController : ControllerBase
     {
         var sub = new WebhookSubscription
         {
+            TenantId = _tenant.TenantId ?? "",
             EventType = request.EventType,
             TargetUrl = request.TargetUrl,
             Secret = Guid.NewGuid().ToString("N"),
@@ -74,7 +77,7 @@ public sealed class WebhooksController : ControllerBase
     public async Task<IActionResult> UpdateSubscription(Guid id, [FromBody] UpdateWebhookRequest request)
     {
         var sub = await _db.Set<WebhookSubscription>().FindAsync(id);
-        if (sub == null) return NotFound();
+        if (sub == null || sub.TenantId != _tenant.TenantId) return NotFound();
 
         sub.EventType = request.EventType;
         sub.TargetUrl = request.TargetUrl;
@@ -97,7 +100,7 @@ public sealed class WebhooksController : ControllerBase
     public async Task<IActionResult> Unsubscribe(Guid id)
     {
         var sub = await _db.Set<WebhookSubscription>().FindAsync(id);
-        if (sub == null) return NotFound();
+        if (sub == null || sub.TenantId != _tenant.TenantId) return NotFound();
 
         _db.Set<WebhookSubscription>().Remove(sub);
         await _db.SaveChangesAsync();
@@ -114,7 +117,7 @@ public sealed class WebhooksController : ControllerBase
     public async Task<IActionResult> RegenerateSecret(Guid id)
     {
         var sub = await _db.Set<WebhookSubscription>().FindAsync(id);
-        if (sub == null) return NotFound();
+        if (sub == null || sub.TenantId != _tenant.TenantId) return NotFound();
 
         sub.Secret = Guid.NewGuid().ToString("N");
         await _db.SaveChangesAsync();
@@ -129,7 +132,8 @@ public sealed class WebhooksController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetDeliveryLogs([FromQuery] Guid? subscriptionId, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
-        var query = _db.Set<WebhookDeliveryLog>().AsQueryable();
+        var query = _db.Set<WebhookDeliveryLog>()
+            .Where(l => l.Subscription != null && l.Subscription.TenantId == _tenant.TenantId);
 
         if (subscriptionId.HasValue)
             query = query.Where(l => l.SubscriptionId == subscriptionId.Value);
@@ -152,8 +156,8 @@ public sealed class WebhooksController : ControllerBase
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetSubscriptionLogs(Guid id, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
-        var exists = await _db.Set<WebhookSubscription>().AnyAsync(s => s.Id == id);
-        if (!exists) return NotFound();
+        var sub = await _db.Set<WebhookSubscription>().FindAsync(id);
+        if (sub == null || sub.TenantId != _tenant.TenantId) return NotFound();
 
         var logs = await _db.Set<WebhookDeliveryLog>()
             .Where(l => l.SubscriptionId == id)

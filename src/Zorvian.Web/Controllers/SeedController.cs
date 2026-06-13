@@ -26,11 +26,19 @@ public sealed class SeedController : ControllerBase
     /// Ejecuta la siembra de datos de prueba en la base de datos.
     /// </summary>
     [HttpPost]
-    public async Task<IActionResult> Seed()
+    public async Task<IActionResult> Seed([FromBody] SeedCompanyRequest request)
     {
-        await _seed.SeedAsync(_tenant.TenantId);
-        return Ok(new { message = "Seed data created" });
+        var tenantId = await _seed.SeedAsync(_tenant.TenantId, request.Name, request.Country, request.TaxId, request.IsStrictlyPrivate);
+        return Ok(new { 
+            message = $"Empresa '{request.Name}' inicializada correctamente",
+            tenantId = tenantId,
+            instructions = request.IsStrictlyPrivate 
+                ? "Esta empresa es PRIVADA. El Super Admin no tiene acceso directo." 
+                : "Si eres Super Admin, ahora puedes cambiar a esta empresa usando el endpoint switch-tenant."
+        });
     }
+
+    public sealed record SeedCompanyRequest(string Name, string Country, string TaxId, bool IsStrictlyPrivate = false);
 
     /// <summary>
     /// Ejecuta la siembra específica para Tienda Brizuela Romero.
@@ -47,7 +55,7 @@ public sealed class SeedController : ControllerBase
 
     /// <summary>
     /// Crea el usuario Super Admin en Firebase Authentication y en la base de datos.
-    /// Endpoint público para bootstrap inicial.
+    /// Solo accesible cuando no existe ningún Super Admin en el sistema.
     /// </summary>
     [HttpPost("super-admin")]
     [AllowAnonymous]
@@ -55,6 +63,10 @@ public sealed class SeedController : ControllerBase
     {
         if (string.IsNullOrWhiteSpace(request.Email))
             return BadRequest(new { error = "El email es requerido" });
+
+        var bootstrapKey = Environment.GetEnvironmentVariable("ZORVIAN_BOOTSTRAP_KEY");
+        if (string.IsNullOrEmpty(bootstrapKey) || bootstrapKey != request.BootstrapKey)
+            return Unauthorized(new { error = "Bootstrap key inválida o no configurada" });
 
         var result = await _seed.SeedSuperAdminAsync(request.Email.Trim());
 
@@ -71,4 +83,4 @@ public sealed class SeedController : ControllerBase
     }
 }
 
-public sealed record CreateSuperAdminRequest(string Email);
+public sealed record CreateSuperAdminRequest(string Email, string? BootstrapKey = null);

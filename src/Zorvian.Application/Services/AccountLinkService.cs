@@ -41,7 +41,8 @@ public sealed class AccountLinkService
 
     public async Task DeleteAsync(Guid id)
     {
-        var link = await _repo.GetByCompanyAsync(CompanyId).ContinueWith(t => t.Result.FirstOrDefault(l => l.Id == id))
+        var links = await _repo.GetByCompanyAsync(CompanyId);
+        var link = links.FirstOrDefault(l => l.Id == id)
             ?? throw new KeyNotFoundException("Link not found");
         await _repo.DeleteAsync(link);
         await _repo.SaveChangesAsync();
