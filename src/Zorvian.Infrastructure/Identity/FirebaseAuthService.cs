@@ -86,15 +86,21 @@ public sealed class FirebaseAuthService : IFirebaseAuthService
             }
 
             var fbResponse = await response.Content.ReadFromJsonAsync<JsonElement>();
-            var idToken = fbResponse.GetProperty("idToken").GetString();
+            var localId = fbResponse.GetProperty("localId").GetString();
+            var fbEmail = fbResponse.GetProperty("email").GetString();
+            var displayName = fbResponse.GetProperty("displayName").GetString();
 
-            if (idToken is null)
+            if (string.IsNullOrEmpty(localId) || string.IsNullOrEmpty(fbEmail))
             {
-                _logger.LogWarning("Firebase REST API succeeded but no idToken in response");
+                _logger.LogWarning("Firebase REST API succeeded but missing localId or email");
                 return null;
             }
 
-            return await VerifyIdTokenAsync(idToken);
+            string? picture = null;
+            if (fbResponse.TryGetProperty("photoUrl", out var photoEl))
+                picture = photoEl.GetString();
+
+            return new FirebaseUser(localId, fbEmail, displayName ?? "", picture);
         }
         catch (Exception ex)
         {
