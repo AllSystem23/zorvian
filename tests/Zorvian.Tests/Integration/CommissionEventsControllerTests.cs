@@ -11,6 +11,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Zorvian.Application.Services;
 using Zorvian.Application.Interfaces;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Controllers;
 
 namespace Zorvian.Tests.Integration;
@@ -67,7 +68,11 @@ public class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        var claims = new[] { new Claim(ClaimTypes.Name, "Test user") };
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.Name, "Test user"),
+            new Claim("permission", Permissions.CommissionWrite)
+        };
         var identity = new ClaimsIdentity(claims, "Test");
         var principal = new ClaimsPrincipal(identity);
         var ticket = new AuthenticationTicket(principal, "Test");

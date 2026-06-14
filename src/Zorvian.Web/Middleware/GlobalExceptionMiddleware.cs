@@ -94,17 +94,20 @@ public sealed class GlobalExceptionMiddleware
     private static async Task WriteResponse(HttpContext context, object body)
     {
         context.Response.ContentType = "application/problem+json";
-        
-        var errorBody = body as dynamic;
+
+        var bodyType = body.GetType();
+        var message = bodyType.GetProperty("message")?.GetValue(body) as string;
+        var details = bodyType.GetProperty("details")?.GetValue(body);
+
         var problemDetails = new
         {
             type = $"https://zorvian.app/errors/{(int)context.Response.StatusCode}",
             title = GetTitleForStatus(context.Response.StatusCode),
             status = context.Response.StatusCode,
-            detail = errorBody.message,
+            detail = message,
             instance = context.Request.Path.Value,
             traceId = context.TraceIdentifier,
-            errors = errorBody.details // Para validaciones
+            errors = details
         };
 
         var json = JsonSerializer.Serialize(problemDetails, JsonOptions);

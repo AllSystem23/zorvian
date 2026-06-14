@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Moq;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -11,6 +10,17 @@ using Zorvian.Infrastructure.Data;
 
 namespace Zorvian.Tests.Integration;
 
+/// <summary>
+/// RLS isolation tests using InMemory database.
+/// 
+/// NOTE: EF Core InMemory store does NOT share data across scopes created
+/// from WebApplicationFactory.Services.CreateScope(). Therefore all operations
+/// (insert + query with different tenant contexts) must occur within a single
+/// scope. This still validates the HasQueryFilter tenant isolation logic.
+/// 
+/// In production, PostgreSQL RLS policies provide cross-request isolation via
+/// TenantSessionInterceptor which sets session-level tenant context variables.
+/// </summary>
 public class RLSIsolationTests : IClassFixture<CustomWebApplicationFactory>
 {
     private readonly CustomWebApplicationFactory _factory;
@@ -26,39 +36,65 @@ public class RLSIsolationTests : IClassFixture<CustomWebApplicationFactory>
         var tenantA = Guid.NewGuid().ToString();
         var tenantB = Guid.NewGuid().ToString();
 
-        // 1. Setup initial data
         using (var scope = _factory.Services.CreateScope())
         {
-            var dbContext = scope.ServiceProvider.GetRequiredService<ZorvianDbContext>();
-            dbContext.Companies.Add(new Company { Id = Guid.NewGuid(), Name = "Company A", TenantId = tenantA });
-            dbContext.Companies.Add(new Company { Id = Guid.NewGuid(), Name = "Company B", TenantId = tenantB });
-            await dbContext.SaveChangesAsync();
-        }
+            var sp = scope.ServiceProvider;
+            var db = sp.GetRequiredService<ZorvianDbContext>();
+            var tenantWriter = sp.GetRequiredService<ITenantContextWriter>();
 
-        // 2. Test Tenant A
-        using (var scope = _factory.Services.CreateScope())
-        {
-            var tenantWriter = scope.ServiceProvider.GetRequiredService<ITenantContextWriter>();
+            // Insert two companies with different tenant IDs
+            db.Companies.Add(new Company { Id = Guid.NewGuid(), Name = "Company A", TenantId = tenantA });
+            db.Companies.Add(new Company { Id = Guid.NewGuid(), Name = "Company B", TenantId = tenantB });
+            await db.SaveChangesAsync();
+
+            // Clear change tracker to force queries from store
+            db.ChangeTracker.Clear();
+
+            // Act — switch to tenant A
             tenantWriter.SetTenantId(TenantId.FromString(tenantA));
-            
-            var dbContext = scope.ServiceProvider.GetRequiredService<ZorvianDbContext>();
-            var companies = await dbContext.Companies.ToListAsync();
+            var companiesA = await db.Companies.ToListAsync();
 
-            Assert.Single(companies);
-            Assert.Equal("Company A", companies.First().Name);
+            // Assert — only Company A visible
+            Assert.Single(companiesA);
+            Assert.Equal("Company A", companiesA.First().Name);
+
+            // Clear again for next query
+            db.ChangeTracker.Clear();
+
+            // Act — switch to tenant B
+            tenantWriter.SetTenantId(TenantId.FromString(tenantB));
+            var companiesB = await db.Companies.ToListAsync();
+
+            // Assert — only Company B visible
+            Assert.Single(companiesB);
+            Assert.Equal("Company B", companiesB.First().Name);
         }
+    }
 
-        // 3. Test Tenant B
+    [Fact]
+    public async Task RLS_IsSuperAdmin_SeesAllCompanies()
+    {
+        var tenantA = Guid.NewGuid().ToString();
+        var tenantB = Guid.NewGuid().ToString();
+
         using (var scope = _factory.Services.CreateScope())
         {
-            var tenantWriter = scope.ServiceProvider.GetRequiredService<ITenantContextWriter>();
-            tenantWriter.SetTenantId(TenantId.FromString(tenantB));
-            
-            var dbContext = scope.ServiceProvider.GetRequiredService<ZorvianDbContext>();
-            var companies = await dbContext.Companies.ToListAsync();
+            var sp = scope.ServiceProvider;
+            var db = sp.GetRequiredService<ZorvianDbContext>();
+            var tenantWriter = sp.GetRequiredService<ITenantContextWriter>();
 
-            Assert.Single(companies);
-            Assert.Equal("Company B", companies.First().Name);
+            db.Companies.Add(new Company { Id = Guid.NewGuid(), Name = "Company A", TenantId = tenantA });
+            db.Companies.Add(new Company { Id = Guid.NewGuid(), Name = "Company B", TenantId = tenantB });
+            await db.SaveChangesAsync();
+
+            db.ChangeTracker.Clear();
+
+            // Act — set IsSuperAdmin = true
+            tenantWriter.SetIsSuperAdmin(true);
+            var all = await db.Companies.ToListAsync();
+
+            // Assert — super admin sees both companies
+            Assert.Equal(2, all.Count);
         }
     }
 }

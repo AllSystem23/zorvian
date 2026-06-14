@@ -24,7 +24,8 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             {
                 ["Testing:MockExternalServices"] = "true",
                 ["ConnectionStrings:ZorvianDb"] = "",
-                ["Jwt:Secret"] = "SUPER_SECRET_KEY_FOR_TESTING_PURPOSES_ONLY_MIN_32_CHARS"
+                ["Jwt:Secret"] = "SUPER_SECRET_KEY_FOR_TESTING_PURPOSES_ONLY_MIN_32_CHARS",
+                ["Encryption:Key"] = "dGVzdC1lbmMta2V5LTMyLWJ5dGVzLTEyMzQ1Njc4OTA="
             });
         });
 
