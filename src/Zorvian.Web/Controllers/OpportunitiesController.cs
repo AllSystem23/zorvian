@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Commercial;
 using Zorvian.Application.Services;
 using Zorvian.Core.Entities;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
@@ -23,6 +24,7 @@ public sealed class OpportunitiesController : ControllerBase
     }
 
     [Audit("Opportunity", "ReadList")]
+    [RequirePermission(Permissions.SaleRead)]
     [HttpGet]
     public async Task<IActionResult> GetActive()
     {
@@ -31,6 +33,7 @@ public sealed class OpportunitiesController : ControllerBase
     }
 
     [Audit("Opportunity", "Read")]
+    [RequirePermission(Permissions.SaleRead)]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -40,6 +43,7 @@ public sealed class OpportunitiesController : ControllerBase
     }
 
     [Audit("Opportunity", "Create")]
+    [RequirePermission(Permissions.SaleWrite)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateOpportunityRequest request)
     {
@@ -49,6 +53,7 @@ public sealed class OpportunitiesController : ControllerBase
     }
 
     [Audit("Opportunity", "Update")]
+    [RequirePermission(Permissions.SaleWrite)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateOpportunityRequest request)
     {
@@ -61,6 +66,7 @@ public sealed class OpportunitiesController : ControllerBase
     }
     
     [Audit("Opportunity", "ReadByStage")]
+    [RequirePermission(Permissions.SaleRead)]
     [HttpGet("stage/{stageId:guid}")]
     public async Task<IActionResult> GetByStage(Guid stageId)
     {

@@ -19,7 +19,7 @@ public sealed class CommercialActivity : BaseEntity
     public Client? Client { get; set; }
     
     public Guid CreatedById { get; set; }
-    public User? CreatedBy { get; set; }
+    public User? CreatedByUser { get; set; }
     
     public Guid? AssignedToId { get; set; }
     public Employee? AssignedTo { get; set; }

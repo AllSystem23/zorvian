@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Payroll;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
@@ -16,11 +17,13 @@ public sealed class BankAccountsController : ControllerBase
     public BankAccountsController(BankAccountService service) => _service = service;
 
     [Audit("BankAccount", "Read")]
+    [RequirePermission(Permissions.CashRead)]
     [HttpGet("employee/{employeeId}")]
     public async Task<IActionResult> GetByEmployee(Guid employeeId) =>
         Ok(await _service.GetByEmployeeIdAsync(employeeId));
 
     [Audit("BankAccount", "Read")]
+    [RequirePermission(Permissions.CashRead)]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -28,6 +31,7 @@ public sealed class BankAccountsController : ControllerBase
         return result != null ? Ok(result) : NotFound();
     }
 
+    [RequirePermission(Permissions.CashWrite)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateEmployeeBankAccountRequest request)
     {
@@ -35,6 +39,7 @@ public sealed class BankAccountsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
+    [RequirePermission(Permissions.CashWrite)]
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateEmployeeBankAccountRequest request)
     {
@@ -42,6 +47,7 @@ public sealed class BankAccountsController : ControllerBase
         return result != null ? Ok(result) : NotFound();
     }
 
+    [RequirePermission(Permissions.CashWrite)]
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid id)
     {

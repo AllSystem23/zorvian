@@ -77,6 +77,33 @@ builder.Services.AddZorvianSwagger();
 // ══════════════════════════════════════════════
 var app = builder.Build();
 
+// ── Validate critical secrets ──
+if (!mockExternal)
+{
+    var secrets = new[]
+    {
+        ("Jwt:Secret", "JWT signing key"),
+        ("Encryption:Key", "AES-256-GCM encryption key"),
+        ("ConnectionStrings:ZorvianDb", "Database connection string"),
+        ("Firebase:ProjectId", "Firebase project ID"),
+    };
+
+    var missing = secrets
+        .Select(s => (key: s.Item1, label: s.Item2, value: builder.Configuration[s.Item1]))
+        .Where(s => string.IsNullOrWhiteSpace(s.value))
+        .ToList();
+
+    if (missing.Count > 0)
+    {
+        var missingStr = string.Join(", ", missing.Select(s => $"{s.label} ({s.key})"));
+        var logger = app.Services.GetRequiredService<ILogger<Program>>();
+        logger.LogError("Startup aborted — missing required secrets: {Missing}", missingStr);
+
+        if (!app.Environment.IsDevelopment())
+            throw new InvalidOperationException($"Missing required secrets: {missingStr}");
+    }
+}
+
 // ── Pipeline ──
 app.UseCors("ZorvianCors");
 
@@ -124,7 +151,7 @@ app.MapHealthChecks("/health", new() { ResponseWriter = async (context, report) 
     var result = new
     {
         status = report.Status.ToString(),
-        version = "1.0.0",
+        version = "1.1.0-prod", // Updated version for production
         checks = report.Entries.Select(e => new
         {
             name = e.Key,
@@ -178,7 +205,23 @@ if (app.Environment.IsProduction() && !mockExternal)
         {
             logger.LogInformation("Applying {Count} pending migration(s): {Migrations}", pendingList.Count, string.Join(", ", pendingList));
             await db.Database.MigrateAsync();
-            logger.LogInformation("Migration(s) applied successfully");
+            
+            // ── Activate Row Level Security (RLS) in Neon/Postgres ──
+            await db.Database.ExecuteSqlRawAsync(@"
+                DO $$ 
+                DECLARE 
+                    r RECORD;
+                BEGIN
+                    FOR r IN (SELECT table_name FROM information_schema.columns WHERE column_name = 'TenantId' AND table_schema = 'public') 
+                    LOOP
+                        EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', r.table_name);
+                        EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_policy ON %I', r.table_name);
+                        EXECUTE format('CREATE POLICY tenant_isolation_policy ON %I USING (""TenantId"" = current_setting(''app.tenant_id'') OR current_setting(''app.is_super_admin'') = ''true'')', r.table_name);
+                    END LOOP;
+                END $$;
+            ");
+
+            logger.LogInformation("Migration(s) and RLS policies applied successfully");
         }
     }
     catch (Exception ex)

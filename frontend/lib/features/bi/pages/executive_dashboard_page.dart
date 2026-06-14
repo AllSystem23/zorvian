@@ -8,7 +8,7 @@ import '../../../core/widgets/bi/bi_bar_chart.dart';
 import '../../../core/widgets/bi/bi_gauge.dart';
 import '../providers/bi_provider.dart';
 import '../models/bi_models.dart';
-import '../../../../shared/ds/ds.dart';
+import '../../../shared/ds/ds.dart';
 
 class ExecutiveDashboardPage extends ConsumerStatefulWidget {
   const ExecutiveDashboardPage({super.key});

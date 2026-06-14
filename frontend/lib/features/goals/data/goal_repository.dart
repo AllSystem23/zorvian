@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../auth/auth_provider.dart';
-import '../../../../core/network/dio_client.dart';
+import '../../../auth/auth_provider.dart';
+import '../../../core/network/dio_client.dart';
 import '../../../core/entities/goal_definition.dart';
 import '../../../core/entities/goal_assignment.dart';
 import '../../../core/entities/goal_progress.dart';

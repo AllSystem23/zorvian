@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Commercial;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
@@ -19,6 +20,7 @@ public sealed class SupplierPaymentsController : ControllerBase
     }
 
     [Audit("SupplierPayment", "Create")]
+    [RequirePermission(Permissions.PurchaseWrite)]
     [HttpPost]
     public async Task<IActionResult> RegisterPayment([FromBody] CreateSupplierPaymentRequest request)
     {
@@ -33,6 +35,7 @@ public sealed class SupplierPaymentsController : ControllerBase
         }
     }
 
+    [RequirePermission(Permissions.PurchaseRead)]
     [HttpGet("by-purchase/{purchaseId:guid}")]
     public async Task<IActionResult> GetByPurchaseId(Guid purchaseId)
     {

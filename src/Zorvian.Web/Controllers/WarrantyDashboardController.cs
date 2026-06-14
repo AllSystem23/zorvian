@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers;
 
@@ -16,6 +17,7 @@ public sealed class WarrantyDashboardController : ControllerBase
         _service = service;
     }
 
+    [RequirePermission(Permissions.WarrantyRead)]
     [HttpGet("metrics")]
     public async Task<IActionResult> GetMetrics()
     {

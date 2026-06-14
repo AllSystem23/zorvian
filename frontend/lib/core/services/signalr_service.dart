@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:signalr_netcore/signalr_client.dart';
 
@@ -43,14 +42,10 @@ class SignalRNotifier extends Notifier<NotificationState> {
     _setState(ZConnectionState.connecting);
 
     try {
-      if (kDebugMode) debugPrint('DEBUG: SignalR connect called with baseUrl: $baseUrl');
-      
       var rootUrl = baseUrl;
       if (rootUrl.contains('/zorvian/')) rootUrl = rootUrl.substring(0, rootUrl.indexOf('/zorvian/'));
       if (rootUrl.endsWith('/')) rootUrl = rootUrl.substring(0, rootUrl.length - 1);
       final hubUrl = '$rootUrl/hubs/notifications';
-      
-      if (kDebugMode) debugPrint('DEBUG: Built hubUrl: $hubUrl');
       
       _connection = HubConnectionBuilder()
           .withUrl(hubUrl, options: HttpConnectionOptions(

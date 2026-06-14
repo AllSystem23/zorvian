@@ -212,10 +212,7 @@ public sealed class ReportService : IReportService
     public async Task<byte[]> GenerateVacationReportAsync(int year)
     {
         var vacations = await _db.VacationRequests
-            .IgnoreQueryFilters()
-            .Where(v => v.TenantId == _tenant.TenantId
-                && v.StartDate.Year == year
-                && !v.IsDeleted)
+            .Where(v => v.StartDate.Year == year)
             .Include(v => v.Employee)
             .OrderBy(v => v.Employee!.LastName)
             .ThenBy(v => v.Employee!.FirstName)
@@ -257,10 +254,7 @@ public sealed class ReportService : IReportService
     public async Task<byte[]> GeneratePermissionReportAsync(int year)
     {
         var permissions = await _db.PermissionRequests
-            .IgnoreQueryFilters()
-            .Where(p => p.TenantId == _tenant.TenantId
-                && p.StartDate.Year == year
-                && !p.IsDeleted)
+            .Where(p => p.StartDate.Year == year)
             .Include(p => p.Employee)
             .Include(p => p.LeaveType)
             .OrderBy(p => p.Employee!.LastName)
@@ -302,11 +296,8 @@ public sealed class ReportService : IReportService
     public async Task<byte[]> GenerateAttendanceReportAsync(int year, int month)
     {
         var records = await _db.AttendanceRecords
-            .IgnoreQueryFilters()
-            .Where(a => a.TenantId == _tenant.TenantId
-                && a.Date.Year == year
-                && a.Date.Month == month
-                && !a.IsDeleted)
+            .Where(a => a.Date.Year == year
+                && a.Date.Month == month)
             .Include(a => a.Employee)
             .OrderBy(a => a.Employee!.LastName)
             .ThenBy(a => a.Employee!.FirstName)
@@ -347,10 +338,7 @@ public sealed class ReportService : IReportService
     public async Task<byte[]> GenerateBalanceReportAsync()
     {
         var employees = await _db.Employees
-            .IgnoreQueryFilters()
-            .Where(e => e.TenantId == _tenant.TenantId
-                && e.Status == "active"
-                && !e.IsDeleted)
+            .Where(e => e.Status == "active")
             .Include(e => e.Department)
             .OrderBy(e => e.LastName)
             .ThenBy(e => e.FirstName)
@@ -378,19 +366,13 @@ public sealed class ReportService : IReportService
             var accruedDays = Math.Min(Math.Max(monthsEmployed, 0) * (daysPerYear / 12), daysPerYear * 2);
 
             var takenDays = await _db.VacationRequests
-                .IgnoreQueryFilters()
-                .Where(v => v.TenantId == _tenant.TenantId
-                    && v.EmployeeId == emp.Id
-                    && v.Status == "taken"
-                    && !v.IsDeleted)
+                .Where(v => v.EmployeeId == emp.Id
+                    && v.Status == "taken")
                 .SumAsync(v => (int?)v.BusinessDays) ?? 0;
 
             var pendingDays = await _db.VacationRequests
-                .IgnoreQueryFilters()
-                .Where(v => v.TenantId == _tenant.TenantId
-                    && v.EmployeeId == emp.Id
-                    && v.Status == "pending"
-                    && !v.IsDeleted)
+                .Where(v => v.EmployeeId == emp.Id
+                    && v.Status == "pending")
                 .SumAsync(v => (int?)v.BusinessDays) ?? 0;
 
             var available = Math.Max(0, Math.Round(accruedDays - takenDays - pendingDays, 2));

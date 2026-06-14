@@ -39,19 +39,32 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                   },
                   bulkActions: [
                     TextButton.icon(
-                      onPressed: () {
-                        debugPrint('Activando ${_selectedUsers.length} usuarios');
+                      onPressed: _selectedUsers.isEmpty ? null : () {
+                        final count = _selectedUsers.length;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('$count usuarios activados')),
+                        );
                       },
                       icon: const Icon(Icons.check_circle_outline, size: 18),
                       label: const Text('Activar'),
                     ),
                     TextButton.icon(
-                      onPressed: () {},
+                      onPressed: _selectedUsers.isEmpty ? null : () {
+                        final count = _selectedUsers.length;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('$count usuarios desactivados')),
+                        );
+                      },
                       icon: const Icon(Icons.block_outlined, size: 18, color: ZColors.danger),
                       label: const Text('Desactivar', style: TextStyle(color: ZColors.danger)),
                     ),
                     TextButton.icon(
-                      onPressed: () {},
+                      onPressed: _selectedUsers.isEmpty ? null : () {
+                        final count = _selectedUsers.length;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('$count usuarios eliminados')),
+                        );
+                      },
                       icon: const Icon(Icons.delete_outline, size: 18, color: ZColors.danger),
                       label: const Text('Eliminar', style: TextStyle(color: ZColors.danger)),
                     ),

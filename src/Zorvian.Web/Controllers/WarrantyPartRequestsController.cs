@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Warranty;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
@@ -15,6 +16,7 @@ public sealed class WarrantyPartRequestsController : ControllerBase
 
     public WarrantyPartRequestsController(WarrantyPartRequestService service) => _service = service;
 
+    [RequirePermission(Permissions.WarrantyRead)]
     [HttpGet("by-claim/{claimId:guid}")]
     public async Task<IActionResult> GetByClaim(Guid claimId)
     {
@@ -22,6 +24,7 @@ public sealed class WarrantyPartRequestsController : ControllerBase
         return Ok(items);
     }
 
+    [RequirePermission(Permissions.WarrantyRead)]
     [HttpGet("by-provider/{providerId:guid}")]
     public async Task<IActionResult> GetByProvider(Guid providerId)
     {
@@ -29,6 +32,7 @@ public sealed class WarrantyPartRequestsController : ControllerBase
         return Ok(items);
     }
 
+    [RequirePermission(Permissions.WarrantyRead)]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -39,6 +43,7 @@ public sealed class WarrantyPartRequestsController : ControllerBase
     }
 
     [Audit("WarrantyPartRequest", "Create")]
+    [RequirePermission(Permissions.WarrantyWrite)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateWarrantyPartRequestRequest request)
     {
@@ -47,6 +52,7 @@ public sealed class WarrantyPartRequestsController : ControllerBase
     }
 
     [Audit("WarrantyPartRequest", "UpdateStatus")]
+    [RequirePermission(Permissions.WarrantyWrite)]
     [HttpPatch("{id:guid}/status")]
     public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateWarrantyPartRequestStatusRequest request)
     {

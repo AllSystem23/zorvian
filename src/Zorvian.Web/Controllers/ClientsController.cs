@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Commercial;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
@@ -19,6 +20,7 @@ public sealed class ClientsController : ControllerBase
     }
 
     [Audit("Client", "Create")]
+    [RequirePermission(Permissions.ClientWrite)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateClientRequest request)
     {
@@ -27,6 +29,7 @@ public sealed class ClientsController : ControllerBase
     }
 
     [Audit("Client", "Read")]
+    [RequirePermission(Permissions.ClientRead)]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -37,6 +40,7 @@ public sealed class ClientsController : ControllerBase
     }
 
     [Audit("Client", "ReadStatement")]
+    [RequirePermission(Permissions.ClientRead)]
     [HttpGet("{id:guid}/statement")]
     public async Task<IActionResult> GetStatement(Guid id)
     {
@@ -47,6 +51,7 @@ public sealed class ClientsController : ControllerBase
     }
 
     [Audit("Client", "ReadList")]
+    [RequirePermission(Permissions.ClientRead)]
     [HttpGet]
     public async Task<IActionResult> GetList([FromQuery] ClientFilterRequest filter)
     {
@@ -55,6 +60,7 @@ public sealed class ClientsController : ControllerBase
     }
 
     [Audit("Client", "Update")]
+    [RequirePermission(Permissions.ClientWrite)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateClientRequest request)
     {
@@ -65,6 +71,7 @@ public sealed class ClientsController : ControllerBase
     }
 
     [Audit("Client", "Delete")]
+    [RequirePermission(Permissions.ClientWrite)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

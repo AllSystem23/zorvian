@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Inventory;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
@@ -18,6 +19,7 @@ public sealed class BrandsController : ControllerBase
         _service = service;
     }
 
+    [RequirePermission(Permissions.InventoryRead)]
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -26,6 +28,7 @@ public sealed class BrandsController : ControllerBase
     }
 
     [Audit("Brand", "Create")]
+    [RequirePermission(Permissions.InventoryWrite)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateBrandRequest request)
     {
@@ -34,6 +37,7 @@ public sealed class BrandsController : ControllerBase
     }
 
     [Audit("Brand", "Update")]
+    [RequirePermission(Permissions.InventoryWrite)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateBrandRequest request)
     {
@@ -44,6 +48,7 @@ public sealed class BrandsController : ControllerBase
     }
 
     [Audit("Brand", "Delete")]
+    [RequirePermission(Permissions.InventoryWrite)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

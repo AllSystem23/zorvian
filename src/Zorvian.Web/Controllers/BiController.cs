@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers;
 
@@ -13,6 +14,7 @@ public sealed class BiController : ControllerBase
 
     public BiController(BiService bi) => _bi = bi;
 
+    [RequirePermission(Permissions.KpiRead)]
     [HttpGet("executive-summary")]
     public async Task<IActionResult> GetExecutive()
     {
@@ -20,6 +22,7 @@ public sealed class BiController : ControllerBase
         return Ok(result);
     }
 
+    [RequirePermission(Permissions.KpiRead)]
     [HttpGet("sales-trend")]
     public async Task<IActionResult> GetSalesTrend([FromQuery] int months = 12)
     {
@@ -27,6 +30,7 @@ public sealed class BiController : ControllerBase
         return Ok(result);
     }
 
+    [RequirePermission(Permissions.KpiRead)]
     [HttpGet("sales-by-category")]
     public async Task<IActionResult> GetSalesByCategory([FromQuery] DateTime? from, [FromQuery] DateTime? to)
     {
@@ -34,6 +38,7 @@ public sealed class BiController : ControllerBase
         return Ok(result);
     }
 
+    [RequirePermission(Permissions.KpiRead)]
     [HttpGet("sales-by-seller")]
     public async Task<IActionResult> GetSalesBySeller([FromQuery] DateTime? from, [FromQuery] DateTime? to)
     {
@@ -41,6 +46,7 @@ public sealed class BiController : ControllerBase
         return Ok(result);
     }
 
+    [RequirePermission(Permissions.KpiRead)]
     [HttpGet("quote-conversion")]
     public async Task<IActionResult> GetQuoteConversion([FromQuery] DateTime? from, [FromQuery] DateTime? to)
     {
@@ -48,6 +54,7 @@ public sealed class BiController : ControllerBase
         return Ok(result);
     }
 
+    [RequirePermission(Permissions.KpiRead)]
     [HttpGet("ar-aging")]
     public async Task<IActionResult> GetArAging()
     {
@@ -55,6 +62,7 @@ public sealed class BiController : ControllerBase
         return Ok(result);
     }
 
+    [RequirePermission(Permissions.KpiRead)]
     [HttpGet("ap-aging")]
     public async Task<IActionResult> GetApAging()
     {
@@ -62,6 +70,7 @@ public sealed class BiController : ControllerBase
         return Ok(result);
     }
 
+    [RequirePermission(Permissions.KpiRead)]
     [HttpGet("financial-ratios")]
     public async Task<IActionResult> GetFinancialRatios([FromQuery] Guid? periodId)
     {
@@ -69,6 +78,7 @@ public sealed class BiController : ControllerBase
         return Ok(result);
     }
 
+    [RequirePermission(Permissions.KpiRead)]
     [HttpGet("comparative-income")]
     public async Task<IActionResult> GetComparativeIncome([FromQuery] Guid? currentPeriodId, [FromQuery] Guid? previousPeriodId)
     {
@@ -76,6 +86,7 @@ public sealed class BiController : ControllerBase
         return Ok(result);
     }
 
+    [RequirePermission(Permissions.KpiRead)]
     [HttpGet("cash-flow")]
     public async Task<IActionResult> GetCashFlow([FromQuery] Guid? periodId)
     {
@@ -83,6 +94,7 @@ public sealed class BiController : ControllerBase
         return Ok(result);
     }
 
+    [RequirePermission(Permissions.KpiRead)]
     [HttpGet("inventory-summary")]
     public async Task<IActionResult> GetInventorySummary()
     {
@@ -90,6 +102,7 @@ public sealed class BiController : ControllerBase
         return Ok(result);
     }
 
+    [RequirePermission(Permissions.KpiRead)]
     [HttpGet("payroll-summary")]
     public async Task<IActionResult> GetPayrollSummary([FromQuery] DateTime? from, [FromQuery] DateTime? to)
     {
@@ -97,6 +110,7 @@ public sealed class BiController : ControllerBase
         return Ok(result);
     }
 
+    [RequirePermission(Permissions.KpiRead)]
     [HttpGet("employee-turnover")]
     public async Task<IActionResult> GetEmployeeTurnover([FromQuery] DateTime? from, [FromQuery] DateTime? to)
     {

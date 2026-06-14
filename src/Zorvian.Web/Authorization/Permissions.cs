@@ -63,4 +63,10 @@ public static class Permissions
 
     public const string ProviderRead = "provider.read";
     public const string ProviderWrite = "provider.write";
+
+    public const string ClientRead = "client.read";
+    public const string ClientWrite = "client.write";
+
+    public const string DocumentRead = "document.read";
+    public const string DocumentWrite = "document.write";
 }

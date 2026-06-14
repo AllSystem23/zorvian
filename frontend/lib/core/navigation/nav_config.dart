@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../shared/ds/ds.dart';
+import '../../shared/ds/ds.dart';
 
 final class NavItem {
   final String id;

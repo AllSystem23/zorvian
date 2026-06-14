@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Inventory;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
@@ -19,6 +20,7 @@ public sealed class ProductsController : ControllerBase
     }
 
     [Audit("Product", "Create")]
+    [RequirePermission(Permissions.InventoryWrite)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateProductRequest request)
     {
@@ -33,6 +35,7 @@ public sealed class ProductsController : ControllerBase
         }
     }
 
+    [RequirePermission(Permissions.InventoryRead)]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -42,6 +45,7 @@ public sealed class ProductsController : ControllerBase
         return Ok(product);
     }
 
+    [RequirePermission(Permissions.InventoryRead)]
     [HttpGet]
     public async Task<IActionResult> GetList([FromQuery] ProductFilterRequest filter)
     {
@@ -49,6 +53,7 @@ public sealed class ProductsController : ControllerBase
         return Ok(result);
     }
 
+    [RequirePermission(Permissions.InventoryRead)]
     [HttpGet("low-stock")]
     public async Task<IActionResult> GetLowStock()
     {
@@ -57,6 +62,7 @@ public sealed class ProductsController : ControllerBase
     }
 
     [Audit("Product", "Update")]
+    [RequirePermission(Permissions.InventoryWrite)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateProductRequest request)
     {
@@ -67,6 +73,7 @@ public sealed class ProductsController : ControllerBase
     }
 
     [Audit("Product", "Delete")]
+    [RequirePermission(Permissions.InventoryWrite)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
@@ -76,6 +83,7 @@ public sealed class ProductsController : ControllerBase
         return NoContent();
     }
 
+    [RequirePermission(Permissions.InventoryRead)]
     [HttpGet("movements")]
     public async Task<IActionResult> GetMovements([FromQuery] InventoryMovementFilterRequest filter)
     {

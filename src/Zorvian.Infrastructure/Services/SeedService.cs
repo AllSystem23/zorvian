@@ -57,50 +57,88 @@ public sealed class SeedService
         }
     }
 
-    public async Task SeedAsync(string tenantId)
+    public async Task<string> SeedAsync(string tenantId, string companyName = "Mi Empresa", string country = "Nicaragua", string taxId = "J123456789", bool isStrictlyPrivate = false)
     {
-        if (await _db.Companies.AnyAsync(c => c.TenantId == tenantId))
-            return;
+        // Si el tenantId es "superadmin" o está vacío, generamos uno nuevo para la empresa real
+        var targetTenantId = (tenantId == "superadmin" || string.IsNullOrEmpty(tenantId)) 
+            ? Guid.NewGuid().ToString() 
+            : tenantId;
+
+        if (await _db.Companies.AnyAsync(c => c.TenantId == targetTenantId))
+            return targetTenantId;
 
         var company = new Company
         {
-            Name = "Mi Empresa",
-            LegalName = "Mi Empresa",
-            TaxId = "J123456789",
-            Country = "Nicaragua",
-            Currency = "NIO",
-            Timezone = "America/Managua",
+            Name = companyName,
+            LegalName = companyName,
+            TaxId = taxId,
+            Country = country,
+            Currency = country switch {
+                "Nicaragua" => "NIO",
+                "Costa Rica" => "CRC",
+                "Guatemala" => "GTQ",
+                "Honduras" => "HNL",
+                "El Salvador" => "USD",
+                "Panamá" => "USD",
+                _ => "USD"
+            },
+            Timezone = country switch {
+                "Nicaragua" => "America/Managua",
+                "Costa Rica" => "America/Costa_Rica",
+                "Guatemala" => "America/Guatemala",
+                "Honduras" => "America/Tegucigalpa",
+                "El Salvador" => "America/El_Salvador",
+                "Panamá" => "America/Panama",
+                _ => "UTC"
+            },
             MaxEmployees = 100,
+            TenantId = targetTenantId
         };
         _db.Companies.Add(company);
         await _db.SaveChangesAsync();
 
-        await _fiscal.SetupDefaultTaxesAsync(company.Id, "NIC");
+        // Vincular al usuario actual con este nuevo Tenant si es SuperAdmin y no es estrictamente privada
+        if (tenantId == "superadmin" && !isStrictlyPrivate)
+        {
+            var superAdmin = await _db.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.TenantId == "superadmin");
+            if (superAdmin != null)
+            {
+                _db.UserTenants.Add(new UserTenant 
+                { 
+                    UserId = superAdmin.Id, 
+                    TenantId = targetTenantId, 
+                    IsActive = true 
+                });
+                await _db.SaveChangesAsync();
+            }
+        }
+
+        await _fiscal.SetupDefaultTaxesAsync(company.Id, GetCountryIso(country));
         
         // Seed Country Specific Localization
-        if (company.Country == "Nicaragua")
+        if (country == "Nicaragua")
             await SeedNicaraguaLocalizationAsync(company.Id);
-        else if (company.Country == "Costa Rica")
+        else if (country == "Costa Rica")
             await SeedCostaRicaLocalizationAsync(company.Id);
-        else if (company.Country == "Honduras")
+        else if (country == "Honduras")
             await SeedHondurasLocalizationAsync(company.Id);
-        else if (company.Country == "Guatemala")
+        else if (country == "Guatemala")
             await SeedGuatemalaLocalizationAsync(company.Id);
-        else if (company.Country == "El Salvador")
+        else if (country == "El Salvador")
             await SeedElSalvadorLocalizationAsync(company.Id);
-        else if (company.Country == "Panamá")
+        else if (country == "Panamá")
             await SeedPanamaLocalizationAsync(company.Id);
 
-        var settings = new CompanySettings { CompanyId = company.Id };
+        var settings = new CompanySettings { CompanyId = company.Id, TenantId = targetTenantId };
         _db.CompanySettings.Add(settings);
 
         var roles = new List<Role>
         {
-            new() { Name = RoleType.SuperAdmin, DisplayName = "Super Admin", IsSystem = true },
-            new() { Name = RoleType.CompanyAdmin, DisplayName = "Admin", IsSystem = true },
-            new() { Name = RoleType.Rrhh, DisplayName = "RRHH", IsSystem = true },
-            new() { Name = RoleType.Supervisor, DisplayName = "Supervisor", IsSystem = true },
-            new() { Name = RoleType.Employee, DisplayName = "Empleado", IsSystem = true },
+            new() { Name = RoleType.SuperAdmin, DisplayName = "Super Admin", IsSystem = true, TenantId = targetTenantId },
+            new() { Name = RoleType.CompanyAdmin, DisplayName = "Admin", IsSystem = true, TenantId = targetTenantId },
+            new() { Name = RoleType.Rrhh, DisplayName = "RRHH", IsSystem = true, TenantId = targetTenantId },
+            new() { Name = RoleType.Supervisor, DisplayName = "Supervisor", IsSystem = true, TenantId = targetTenantId },
+            new() { Name = RoleType.Employee, DisplayName = "Empleado", IsSystem = true, TenantId = targetTenantId },
         };
         _db.Roles.AddRange(roles);
         await _db.SaveChangesAsync();
@@ -123,60 +161,32 @@ public sealed class SeedService
                 Name = name,
                 Description = desc,
                 IsActive = true,
+                TenantId = targetTenantId
             });
         }
         _db.Departments.AddRange(departments);
         await _db.SaveChangesAsync();
 
-        var firstNames = new[] { "Carlos", "María", "José", "Ana", "Luis", "Sofía", "Pedro", "Laura", "Miguel", "Elena", "Diego", "Camila", "Andrés", "Valeria", "Javier", "Isabella", "Fernando", "Gabriela", "Ricardo", "Daniela" };
-        var lastNames = new[] { "García", "Martínez", "López", "Hernández", "González", "Pérez", "Rodríguez", "Sánchez", "Ramírez", "Cruz", "Morales", "Castillo", "Flores", "Rivas", "Vega", "Ortiz", "Chávez", "Reyes", "Gutiérrez", "Medina" };
-        var positions = new[] { "Director General", "Gerente RH", "Analista TI", "Contador", "Ejecutivo Ventas", "Coordinador Operaciones", "Supervisor", "Asistente", "Desarrollador", "Diseñador" };
-
-        var employees = new List<Employee>();
-        var rng = Random.Shared;
-        for (int i = 0; i < 20; i++)
-        {
-            var dept = departments[rng.Next(departments.Count)];
-            employees.Add(new Employee
-            {
-                EmployeeCode = $"EMP-{2026}{(i + 1):D4}",
-                FirstName = firstNames[i],
-                LastName = lastNames[i],
-                Email = $"{firstNames[i].ToLower()}.{lastNames[i].ToLower()}@demo.zorvian.app",
-                Phone = $"+505 8888-{rng.Next(1000, 9999)}",
-                DateOfBirth = new DateOnly(1980 + rng.Next(15, 30), rng.Next(1, 13), rng.Next(1, 29)),
-                Gender = i % 2 == 0 ? "M" : "F",
-                IdentificationType = "CED",
-                IdentificationNumber = $"001-{rng.Next(100190, 999999):D6}-{rng.Next(1000, 9999):D4}",
-                DepartmentId = dept.Id,
-                Position = positions[rng.Next(positions.Length)],
-                HireDate = new DateOnly(2020 + rng.Next(0, 6), rng.Next(1, 13), rng.Next(1, 29)),
-                Salary = Math.Round((decimal)(500 + rng.NextDouble() * 4500), 2),
-                SalaryType = "monthly",
-                Status = "active",
-            });
-        }
-        _db.Employees.AddRange(employees);
-        await _db.SaveChangesAsync();
-
-        if (!await _db.LeaveTypes.AnyAsync(lt => lt.TenantId == tenantId))
+        if (!await _db.LeaveTypes.AnyAsync(lt => lt.TenantId == targetTenantId))
         {
             var leaveTypes = new List<LeaveType>
             {
-                new() { Code = "SICK", Name = "Enfermedad", IsPaid = true, RequiresAttachment = false, RequiresApproval = true, MaxDaysPerRequest = null, MaxDaysPerMonth = null, MaxDaysPerYear = null, Description = "Permiso por enfermedad; hasta 3 días sin certificado" },
-                new() { Code = "MATERNITY", Name = "Maternidad", IsPaid = true, RequiresAttachment = true, RequiresApproval = false, MaxDaysPerRequest = 84, MaxDaysPerMonth = null, MaxDaysPerYear = null, Country = "Nicaragua", Description = "12 semanas (84 días) de descanso postnatal, automático con certificado" },
-                new() { Code = "PATERNITY", Name = "Paternidad", IsPaid = true, RequiresAttachment = false, RequiresApproval = true, MaxDaysPerRequest = 5, MaxDaysPerMonth = null, MaxDaysPerYear = null, Country = "Nicaragua", Description = "5 días hábiles dentro de los 15 días posteriores al nacimiento" },
-                new() { Code = "PERSONAL", Name = "Permiso personal", IsPaid = true, RequiresAttachment = false, RequiresApproval = true, MaxDaysPerRequest = null, MaxDaysPerMonth = 2, MaxDaysPerYear = null, Description = "Asuntos personales, máximo 2 días por mes calendario, no acumulables" },
-                new() { Code = "MARRIAGE", Name = "Matrimonio", IsPaid = true, RequiresAttachment = true, RequiresApproval = true, MaxDaysPerRequest = 5, MaxDaysPerMonth = null, MaxDaysPerYear = null, Description = "5 días hábiles, requiere acta de matrimonio" },
-                new() { Code = "BEREAVEMENT", Name = "Fallecimiento", IsPaid = true, RequiresAttachment = false, RequiresApproval = true, MaxDaysPerRequest = 3, MaxDaysPerMonth = null, MaxDaysPerYear = null, Description = "3 días hábiles por fallecimiento de familiar directo" },
-                new() { Code = "STUDY", Name = "Estudio/Examen", IsPaid = true, RequiresAttachment = true, RequiresApproval = true, MaxDaysPerRequest = 1, MaxDaysPerMonth = null, MaxDaysPerYear = null, Description = "1 día por examen, requiere comprobante" },
-                new() { Code = "MEDICAL_APPT", Name = "Cita médica", IsPaid = true, RequiresAttachment = false, RequiresApproval = true, MaxDaysPerRequest = 1, MaxDaysPerMonth = null, MaxDaysPerYear = null, Description = "Medio día (0.5) para citas médicas" },
-                new() { Code = "UNPAID", Name = "Sin goce de salario", IsPaid = false, RequiresAttachment = false, RequiresApproval = true, MaxDaysPerRequest = null, MaxDaysPerMonth = null, MaxDaysPerYear = 30, Description = "Máximo 30 días por año sin goce de salario" },
-                new() { Code = "SUBSIDY", Name = "Subsidio INSS", IsPaid = true, RequiresAttachment = true, RequiresApproval = true, MaxDaysPerRequest = null, MaxDaysPerMonth = null, MaxDaysPerYear = null, Description = "Subsidio según legislación del INSS, requiere certificado médico" },
+                new() { Code = "SICK", Name = "Enfermedad", IsPaid = true, RequiresAttachment = false, RequiresApproval = true, MaxDaysPerRequest = null, MaxDaysPerMonth = null, MaxDaysPerYear = null, Description = "Permiso por enfermedad; hasta 3 días sin certificado", TenantId = targetTenantId },
+                new() { Code = "MATERNITY", Name = "Maternidad", IsPaid = true, RequiresAttachment = true, RequiresApproval = false, MaxDaysPerRequest = 84, MaxDaysPerMonth = null, MaxDaysPerYear = null, Country = "Nicaragua", Description = "12 semanas (84 días) de descanso postnatal, automático con certificado", TenantId = targetTenantId },
+                new() { Code = "PATERNITY", Name = "Paternidad", IsPaid = true, RequiresAttachment = false, RequiresApproval = true, MaxDaysPerRequest = 5, MaxDaysPerMonth = null, MaxDaysPerYear = null, Country = "Nicaragua", Description = "5 días hábiles dentro de los 15 días posteriores al nacimiento", TenantId = targetTenantId },
+                new() { Code = "PERSONAL", Name = "Permiso personal", IsPaid = true, RequiresAttachment = false, RequiresApproval = true, MaxDaysPerRequest = null, MaxDaysPerMonth = 2, MaxDaysPerYear = null, Description = "Asuntos personales, máximo 2 días por mes calendario, no acumulables", TenantId = targetTenantId },
+                new() { Code = "MARRIAGE", Name = "Matrimonio", IsPaid = true, RequiresAttachment = true, RequiresApproval = true, MaxDaysPerRequest = 5, MaxDaysPerMonth = null, MaxDaysPerYear = null, Description = "5 días hábiles, requiere acta de matrimonio", TenantId = targetTenantId },
+                new() { Code = "BEREAVEMENT", Name = "Fallecimiento", IsPaid = true, RequiresAttachment = false, RequiresApproval = true, MaxDaysPerRequest = 3, MaxDaysPerMonth = null, MaxDaysPerYear = null, Description = "3 días hábiles por fallecimiento de familiar directo", TenantId = targetTenantId },
+                new() { Code = "STUDY", Name = "Estudio/Examen", IsPaid = true, RequiresAttachment = true, RequiresApproval = true, MaxDaysPerRequest = 1, MaxDaysPerMonth = null, MaxDaysPerYear = null, Description = "1 día por examen, requiere comprobante", TenantId = targetTenantId },
+                new() { Code = "MEDICAL_APPT", Name = "Cita médica", IsPaid = true, RequiresAttachment = false, RequiresApproval = true, MaxDaysPerRequest = 1, MaxDaysPerMonth = null, MaxDaysPerYear = null, Description = "Medio día (0.5) para citas médicas", TenantId = targetTenantId },
+                new() { Code = "UNPAID", Name = "Sin goce de salario", IsPaid = false, RequiresAttachment = false, RequiresApproval = true, MaxDaysPerRequest = null, MaxDaysPerMonth = null, MaxDaysPerYear = 30, Description = "Máximo 30 días por año sin goce de salario", TenantId = targetTenantId },
+                new() { Code = "SUBSIDY", Name = "Subsidio INSS", IsPaid = true, RequiresAttachment = true, RequiresApproval = true, MaxDaysPerRequest = null, MaxDaysPerMonth = null, MaxDaysPerYear = null, Description = "Subsidio según legislación del INSS, requiere certificado médico", TenantId = targetTenantId },
             };
             _db.LeaveTypes.AddRange(leaveTypes);
             await _db.SaveChangesAsync();
         }
+
+        return targetTenantId;
     }
 
     public async Task<SuperAdminResult> SeedSuperAdminAsync(string email)
@@ -462,6 +472,17 @@ public sealed class SeedService
 
         return new string(chars[..].OrderBy(_ => rng.Next()).ToArray());
     }
+
+    private static string GetCountryIso(string country) => country switch
+    {
+        "Nicaragua" => "NIC",
+        "Costa Rica" => "CRI",
+        "Guatemala" => "GTM",
+        "Honduras" => "HND",
+        "El Salvador" => "SLV",
+        "Panamá" => "PAN",
+        _ => "USA"
+    };
 }
 
 public sealed record SuperAdminResult(string Email, string PasswordOrMessage, bool AlreadyExists);

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Partner;
 using Zorvian.Application.Interfaces;
+using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers;
 
@@ -17,6 +18,7 @@ public sealed class PartnerController : ControllerBase
         _service = service;
     }
 
+    [RequirePermission(Permissions.SaleWrite)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreatePartnerRequest request)
     {
@@ -31,6 +33,7 @@ public sealed class PartnerController : ControllerBase
         }
     }
 
+    [RequirePermission(Permissions.SaleWrite)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdatePartnerRequest request)
     {
@@ -38,6 +41,7 @@ public sealed class PartnerController : ControllerBase
         return Ok(result);
     }
 
+    [RequirePermission(Permissions.SaleRead)]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -46,6 +50,7 @@ public sealed class PartnerController : ControllerBase
         return Ok(result);
     }
 
+    [RequirePermission(Permissions.SaleRead)]
     [HttpGet]
     public async Task<IActionResult> GetAll(
         [FromQuery] string? search,
@@ -60,6 +65,7 @@ public sealed class PartnerController : ControllerBase
         return Ok(new { items = results, total, page, pageSize });
     }
 
+    [RequirePermission(Permissions.SaleWrite)]
     [HttpPost("{id:guid}/activate")]
     public async Task<IActionResult> Activate(Guid id)
     {
@@ -67,6 +73,7 @@ public sealed class PartnerController : ControllerBase
         return Ok(result);
     }
 
+    [RequirePermission(Permissions.SaleWrite)]
     [HttpPost("{id:guid}/deactivate")]
     public async Task<IActionResult> Deactivate(Guid id, [FromBody] DeactivatePartnerRequest request)
     {
@@ -74,6 +81,7 @@ public sealed class PartnerController : ControllerBase
         return Ok(result);
     }
 
+    [RequirePermission(Permissions.SaleRead)]
     [HttpGet("by-country/{countryCode}")]
     public async Task<IActionResult> GetActiveByCountry(string countryCode)
     {

@@ -36,10 +36,6 @@
     <ProjectReference Include="..\Zorvian.Application\Zorvian.Application.csproj" />
     <ProjectReference Include="..\Zorvian.Infrastructure\Zorvian.Infrastructure.csproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Content Update="zorvian-erp-firebase-admin.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
+  <!-- Firebase credentials loaded via Firebase:CredentialsJson env var; never commit the JSON file -->
 
 </Project>

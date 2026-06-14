@@ -61,10 +61,9 @@ class _BankDepositPageState extends ConsumerState<BankDepositPage> {
     if (_formKey.currentState!.validate()) {
       final treasuryService = ref.read(treasuryServiceProvider);
       try {
-        // En un flujo real, esto vendría de un endpoint previo de creación de movimiento
-        // Aquí asumimos el flujo de generación de asiento para un movimiento dado
+        // NOTA: bankMovementId debe ser proporcionado por el flujo de selección 
+        // de movimientos pendientes de depósito en una implementación completa.
         await treasuryService.generateBankDepositEntry({
-          'bankMovementId': 'mock-id-${DateTime.now().millisecondsSinceEpoch}',
           'amount': double.parse(_amountController.text),
           'bankAccountId': _bankAccountIdController.text,
           'costCenterId': _costCenterIdController.text,

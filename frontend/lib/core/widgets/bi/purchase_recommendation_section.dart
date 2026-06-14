@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../features/bi/providers/bi_provider.dart';
-import '../../../../shared/ds/ds.dart';
+import '../../../shared/ds/ds.dart';
 
 class PurchaseRecommendationSection extends ConsumerWidget {
   const PurchaseRecommendationSection({super.key});

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Warranty;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
@@ -21,6 +22,7 @@ public sealed class WarrantiesController : ControllerBase
     }
 
     [Audit("Warranty", "Create")]
+    [RequirePermission(Permissions.WarrantyWrite)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateWarrantyRequest request)
     {
@@ -28,6 +30,7 @@ public sealed class WarrantiesController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = warranty.Id }, warranty);
     }
 
+    [RequirePermission(Permissions.WarrantyRead)]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -37,6 +40,7 @@ public sealed class WarrantiesController : ControllerBase
         return Ok(warranty);
     }
 
+    [RequirePermission(Permissions.WarrantyRead)]
     [HttpGet]
     public async Task<IActionResult> GetList([FromQuery] WarrantyFilterRequest filter)
     {
@@ -45,6 +49,7 @@ public sealed class WarrantiesController : ControllerBase
     }
 
     [Audit("WarrantyClaim", "Create")]
+    [RequirePermission(Permissions.WarrantyWrite)]
     [HttpPost("{id:guid}/claims")]
     public async Task<IActionResult> AddClaim(Guid id, [FromBody] CreateWarrantyClaimRequest request)
     {
@@ -53,6 +58,7 @@ public sealed class WarrantiesController : ControllerBase
     }
 
     [Audit("WarrantyClaim", "AssignWorkshop")]
+    [RequirePermission(Permissions.WarrantyWrite)]
     [HttpPost("claims/{claimId:guid}/assign-workshop")]
     public async Task<IActionResult> AssignWorkshop(Guid claimId, [FromBody] AssignWorkshopRequest request)
     {
@@ -61,6 +67,7 @@ public sealed class WarrantiesController : ControllerBase
     }
 
     [Audit("WarrantyClaim", "ReferToProvider")]
+    [RequirePermission(Permissions.WarrantyWrite)]
     [HttpPost("claims/{claimId:guid}/refer-to-provider")]
     public async Task<IActionResult> ReferToProvider(Guid claimId, [FromBody] ReferToProviderRequest request)
     {
@@ -68,6 +75,7 @@ public sealed class WarrantiesController : ControllerBase
         return Ok(claim);
     }
 
+    [RequirePermission(Permissions.WarrantyRead)]
     [HttpGet("{id:guid}/timeline")]
     public async Task<IActionResult> GetTimeline(Guid id)
     {

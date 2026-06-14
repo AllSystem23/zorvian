@@ -5,7 +5,7 @@ import '../../../core/widgets/bi/bi_bar_chart.dart';
 import '../../../core/widgets/bi/bi_pie_chart.dart';
 import '../../../core/widgets/bi/bi_kpi_card.dart';
 import '../providers/bi_provider.dart';
-import '../../../../shared/ds/ds.dart';
+import '../../../shared/ds/ds.dart';
 
 class OperationalDashboardPage extends ConsumerStatefulWidget {
   const OperationalDashboardPage({super.key});

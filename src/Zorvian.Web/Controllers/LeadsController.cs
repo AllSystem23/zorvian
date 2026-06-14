@@ -1,9 +1,13 @@
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Zorvian.Application.DTOs.Commercial;
 using Zorvian.Application.Services;
 using Zorvian.Core.Entities;
+using Zorvian.Core.Interfaces;
+using Zorvian.Infrastructure.Data;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
@@ -14,15 +18,20 @@ namespace Zorvian.Web.Controllers;
 public sealed class LeadsController : ControllerBase
 {
     private readonly LeadService _service;
+    private readonly ZorvianDbContext _db;
+    private readonly ITenantContext _tenant;
     private readonly IMapper _mapper;
 
-    public LeadsController(LeadService service, IMapper mapper)
+    public LeadsController(LeadService service, ZorvianDbContext db, ITenantContext tenant, IMapper mapper)
     {
         _service = service;
+        _db = db;
+        _tenant = tenant;
         _mapper = mapper;
     }
 
     [Audit("Lead", "ReadList")]
+    [RequirePermission(Permissions.SaleRead)]
     [HttpGet]
     public async Task<IActionResult> GetLeads([FromQuery] LeadFilterRequest filter)
     {
@@ -32,6 +41,7 @@ public sealed class LeadsController : ControllerBase
     }
 
     [Audit("Lead", "Read")]
+    [RequirePermission(Permissions.SaleRead)]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -41,6 +51,7 @@ public sealed class LeadsController : ControllerBase
     }
 
     [Audit("Lead", "Create")]
+    [RequirePermission(Permissions.SaleWrite)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateLeadRequest request)
     {
@@ -50,6 +61,7 @@ public sealed class LeadsController : ControllerBase
     }
 
     [Audit("Lead", "Update")]
+    [RequirePermission(Permissions.SaleWrite)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateLeadRequest request)
     {
@@ -62,10 +74,67 @@ public sealed class LeadsController : ControllerBase
     }
 
     [Audit("Lead", "Delete")]
+    [RequirePermission(Permissions.SaleWrite)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _service.DeleteLeadAsync(id);
         return NoContent();
+    }
+
+    [Audit("Lead", "ReadList")]
+    [RequirePermission(Permissions.SaleRead)]
+    [HttpGet("{leadId:guid}/activities")]
+    public async Task<IActionResult> GetActivities(Guid leadId)
+    {
+        var activities = await _db.CommercialActivities
+            .Include(a => a.CreatedByUser)
+            .Where(a => a.LeadId == leadId)
+            .OrderByDescending(a => a.CreatedAt)
+            .Select(a => new ActivityResponse(
+                a.Id,
+                a.Type,
+                a.Subject ?? string.Empty,
+                a.Description,
+                a.CreatedByUser != null ? a.CreatedByUser.DisplayName : null,
+                a.CreatedAt
+            ))
+            .ToListAsync();
+
+        return Ok(activities);
+    }
+
+    [Audit("Lead", "Create")]
+    [RequirePermission(Permissions.SaleWrite)]
+    [HttpPost("{leadId:guid}/activities")]
+    public async Task<IActionResult> CreateActivity(Guid leadId, [FromBody] CreateActivityRequest request)
+    {
+        var lead = await _service.GetLeadByIdAsync(leadId);
+        if (lead == null) return NotFound();
+
+        var activity = new CommercialActivity
+        {
+            LeadId = leadId,
+            Type = request.Type,
+            Subject = request.Subject,
+            Description = request.Description,
+            Status = "pending",
+            CreatedById = _tenant.CurrentUserId ?? Guid.Empty,
+            CompanyId = _tenant.TenantId.Value,
+        };
+
+        _db.CommercialActivities.Add(activity);
+        await _db.SaveChangesAsync();
+
+        var response = new ActivityResponse(
+            activity.Id,
+            activity.Type,
+            activity.Subject ?? string.Empty,
+            activity.Description,
+            null,
+            activity.CreatedAt
+        );
+
+        return CreatedAtAction(nameof(GetActivities), new { leadId }, response);
     }
 }

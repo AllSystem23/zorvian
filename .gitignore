@@ -46,6 +46,7 @@ Thumbs.db
 .env.*
 *.env.local
 appsettings.Local.json
+appsettings.*.Local.json
 login_test.json
 
 # IMPORTANT: appsettings.json with secrets should NEVER be committed
@@ -54,12 +55,17 @@ login_test.json
 
 # Service Account Keys (NEVER commit)
 *.key
+*.p12
+*.pfx
 *.pem
 *-firebase-adminsdk-*.json
-*-firebase-admin.json
+*-firebase-admin*.json
 **/zorvian-hr-firebase-admin.json
+**/zorvian-erp-firebase-admin.json
 serviceAccountKey.json
 *-service-account.json
+*-service-account-key.json
+credentials.json
 
 # NuGet
 *.nupkg

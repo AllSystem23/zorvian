@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Report;
 using Zorvian.Application.Interfaces;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
@@ -24,6 +25,7 @@ public sealed class ReportsController : ControllerBase
     /// <summary>
     /// Genera y descarga un reporte en Excel según el tipo solicitado (vacation, permission, attendance, balance).
     /// </summary>
+    [RequirePermission(Permissions.ReportRead)]
     [HttpPost("generate")]
     public async Task<IActionResult> Generate([FromBody] GenerateReportRequest request)
     {

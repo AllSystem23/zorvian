@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.MultiCurrency;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers;
 
@@ -17,12 +18,14 @@ public sealed class ExchangeRatesController : ControllerBase
         _service = service;
     }
 
+    [RequirePermission(Permissions.AccountingRead)]
     [HttpGet]
     public async Task<ActionResult<List<ExchangeRateResponse>>> GetAll()
     {
         return Ok(await _service.GetAllAsync());
     }
 
+    [RequirePermission(Permissions.AccountingRead)]
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<ExchangeRateResponse>> GetById(Guid id)
     {
@@ -30,6 +33,7 @@ public sealed class ExchangeRatesController : ControllerBase
         return result is null ? NotFound() : Ok(result);
     }
 
+    [RequirePermission(Permissions.AccountingWrite)]
     [HttpPost]
     public async Task<ActionResult<ExchangeRateResponse>> Create(CreateExchangeRateRequest request)
     {
@@ -37,6 +41,7 @@ public sealed class ExchangeRatesController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
+    [RequirePermission(Permissions.AccountingWrite)]
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<ExchangeRateResponse>> Update(Guid id, UpdateExchangeRateRequest request)
     {
@@ -44,6 +49,7 @@ public sealed class ExchangeRatesController : ControllerBase
         return result is null ? NotFound() : Ok(result);
     }
 
+    [RequirePermission(Permissions.AccountingWrite)]
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult> Delete(Guid id)
     {
@@ -51,6 +57,7 @@ public sealed class ExchangeRatesController : ControllerBase
         return deleted ? NoContent() : NotFound();
     }
 
+    [RequirePermission(Permissions.AccountingRead)]
     [HttpGet("rate")]
     public async Task<ActionResult<decimal?>> GetRate(
         [FromQuery] string from,

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Report;
 using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers;
 
@@ -24,12 +25,14 @@ public sealed class CustomReportsController : ControllerBase
     private string CurrentUserId =>
         User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
 
+    [RequirePermission(Permissions.ReportRead)]
     [HttpGet]
     public async Task<ActionResult<List<CustomReportResponse>>> GetAll()
     {
         return Ok(await _service.GetAllAsync(CurrentUserId));
     }
 
+    [RequirePermission(Permissions.ReportRead)]
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<CustomReportResponse>> GetById(Guid id)
     {
@@ -37,6 +40,7 @@ public sealed class CustomReportsController : ControllerBase
         return result is null ? NotFound() : Ok(result);
     }
 
+    [RequirePermission(Permissions.ReportRead)]
     [HttpPost]
     public async Task<ActionResult<CustomReportResponse>> Create(CreateCustomReportRequest request)
     {
@@ -44,6 +48,7 @@ public sealed class CustomReportsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
+    [RequirePermission(Permissions.ReportRead)]
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<CustomReportResponse>> Update(Guid id, UpdateCustomReportRequest request)
     {
@@ -51,6 +56,7 @@ public sealed class CustomReportsController : ControllerBase
         return result is null ? NotFound() : Ok(result);
     }
 
+    [RequirePermission(Permissions.ReportRead)]
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult> Delete(Guid id)
     {
@@ -58,6 +64,7 @@ public sealed class CustomReportsController : ControllerBase
         return deleted ? NoContent() : NotFound();
     }
 
+    [RequirePermission(Permissions.ReportRead)]
     [HttpPost("{id:guid}/execute")]
     public async Task<ActionResult<ReportResult>> Execute(Guid id)
     {
@@ -72,6 +79,7 @@ public sealed class CustomReportsController : ControllerBase
         }
     }
 
+    [RequirePermission(Permissions.ReportRead)]
     [HttpPost("execute-adhoc")]
     public async Task<ActionResult<ReportResult>> ExecuteAdHoc(
         [FromQuery] string module,
@@ -81,6 +89,7 @@ public sealed class CustomReportsController : ControllerBase
         return Ok(result);
     }
 
+    [RequirePermission(Permissions.ReportRead)]
     [HttpPost("{id:guid}/export/excel")]
     public async Task<ActionResult> ExportExcel(Guid id)
     {
@@ -101,6 +110,7 @@ public sealed class CustomReportsController : ControllerBase
         }
     }
 
+    [RequirePermission(Permissions.ReportRead)]
     [HttpPost("{id:guid}/export/pdf")]
     public async Task<ActionResult> ExportPdf(Guid id)
     {
@@ -120,6 +130,7 @@ public sealed class CustomReportsController : ControllerBase
         }
     }
 
+    [RequirePermission(Permissions.ReportRead)]
     [HttpPost("export-adhoc/excel")]
     public async Task<ActionResult> ExportAdHocExcel(
         [FromQuery] string module,
@@ -132,6 +143,7 @@ public sealed class CustomReportsController : ControllerBase
             $"{title}.xlsx");
     }
 
+    [RequirePermission(Permissions.ReportRead)]
     [HttpPost("export-adhoc/pdf")]
     public async Task<ActionResult> ExportAdHocPdf(
         [FromQuery] string module,

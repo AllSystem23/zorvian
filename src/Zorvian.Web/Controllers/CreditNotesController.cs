@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Accounting;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
@@ -15,6 +16,7 @@ public sealed class CreditNotesController : ControllerBase
 
     public CreditNotesController(CreditNoteService service) => _service = service;
 
+    [RequirePermission(Permissions.CreditRead)]
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -22,6 +24,7 @@ public sealed class CreditNotesController : ControllerBase
         return Ok(items);
     }
 
+    [RequirePermission(Permissions.CreditRead)]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -31,6 +34,7 @@ public sealed class CreditNotesController : ControllerBase
         return Ok(item);
     }
 
+    [RequirePermission(Permissions.CreditRead)]
     [HttpGet("by-sale/{saleId:guid}")]
     public async Task<IActionResult> GetBySaleId(Guid saleId)
     {
@@ -39,6 +43,7 @@ public sealed class CreditNotesController : ControllerBase
     }
 
     [Audit("CreditNote", "Create")]
+    [RequirePermission(Permissions.CreditWrite)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateCreditNoteRequest request)
     {

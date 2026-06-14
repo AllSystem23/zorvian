@@ -20,7 +20,6 @@ class PublicWarrantyProvider extends ChangeNotifier {
       _warranty = WarrantyModel.fromJson(response.data);
     } catch (e) {
       _error = 'Error al consultar la garantía. Verifique los datos.';
-      debugPrint('Error tracking warranty: $e');
     } finally {
       _isLoading = false;
       notifyListeners();

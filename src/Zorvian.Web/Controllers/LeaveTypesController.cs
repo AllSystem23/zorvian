@@ -4,6 +4,7 @@ using Zorvian.Application.DTOs.Permission;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
@@ -28,6 +29,7 @@ public sealed class LeaveTypesController : ControllerBase
     /// <summary>
     /// Obtiene todos los tipos de ausencia configurados para la empresa.
     /// </summary>
+    [RequirePermission(Permissions.EmployeeRead)]
     [HttpGet]
     public async Task<IActionResult> GetList()
     {
@@ -43,6 +45,7 @@ public sealed class LeaveTypesController : ControllerBase
     /// Crea un nuevo tipo de ausencia.
     /// </summary>
     [Audit("LeaveType", "Create")]
+    [RequirePermission(Permissions.EmployeeWrite)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateLeaveTypeRequest request)
     {
@@ -76,6 +79,7 @@ public sealed class LeaveTypesController : ControllerBase
     /// Actualiza un tipo de ausencia existente.
     /// </summary>
     [Audit("LeaveType", "Update")]
+    [RequirePermission(Permissions.EmployeeWrite)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] CreateLeaveTypeRequest request)
     {

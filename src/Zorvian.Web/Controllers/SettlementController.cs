@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Models;
 using Zorvian.Core.Enums;
+using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers;
 
@@ -20,6 +21,7 @@ public sealed class SettlementController : ControllerBase
         _payrollService = payrollService;
     }
 
+    [RequirePermission(Permissions.PayrollWrite)]
     [HttpPost("generate-pdf")]
     public async Task<IActionResult> GenerateSettlementPdf([FromBody] SettlementRequest request)
     {

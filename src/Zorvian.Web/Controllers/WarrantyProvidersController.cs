@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Warranty;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
@@ -18,6 +19,7 @@ public sealed class WarrantyProvidersController : ControllerBase
         _service = service;
     }
 
+    [RequirePermission(Permissions.WarrantyRead)]
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -25,6 +27,7 @@ public sealed class WarrantyProvidersController : ControllerBase
         return Ok(items);
     }
 
+    [RequirePermission(Permissions.WarrantyRead)]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -35,6 +38,7 @@ public sealed class WarrantyProvidersController : ControllerBase
     }
 
     [Audit("WarrantyProvider", "Create")]
+    [RequirePermission(Permissions.WarrantyWrite)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateWarrantyProviderRequest request)
     {
@@ -43,6 +47,7 @@ public sealed class WarrantyProvidersController : ControllerBase
     }
 
     [Audit("WarrantyProvider", "Update")]
+    [RequirePermission(Permissions.WarrantyWrite)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateWarrantyProviderRequest request)
     {
@@ -53,6 +58,7 @@ public sealed class WarrantyProvidersController : ControllerBase
     }
 
     [Audit("WarrantyProvider", "Delete")]
+    [RequirePermission(Permissions.WarrantyWrite)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

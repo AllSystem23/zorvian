@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Warranty;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
@@ -15,6 +16,7 @@ public sealed class WarrantyCommunicationsController : ControllerBase
 
     public WarrantyCommunicationsController(WarrantyCommunicationService service) => _service = service;
 
+    [RequirePermission(Permissions.WarrantyRead)]
     [HttpGet("by-warranty/{warrantyId:guid}")]
     public async Task<IActionResult> GetByWarranty(Guid warrantyId)
     {
@@ -23,6 +25,7 @@ public sealed class WarrantyCommunicationsController : ControllerBase
     }
 
     [Audit("WarrantyCommunication", "Send")]
+    [RequirePermission(Permissions.WarrantyWrite)]
     [HttpPost]
     public async Task<IActionResult> Send([FromBody] SendWarrantyCommunicationRequest request)
     {

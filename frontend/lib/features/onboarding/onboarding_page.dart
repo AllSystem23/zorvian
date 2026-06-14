@@ -20,8 +20,20 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   final _phoneCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
   final _employeesCtrl = TextEditingController(text: '10');
+  String _selectedCountry = 'Nicaragua';
+  bool _isStrictlyPrivate = false;
   bool _loading = false;
   String? _error;
+
+  final List<String> _countries = [
+    'Nicaragua',
+    'Costa Rica',
+    'Guatemala',
+    'Honduras',
+    'El Salvador',
+    'Panamá'
+  ];
+
   @override
   void dispose() {
     _companyNameCtrl.dispose();
@@ -39,22 +51,25 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
 
     try {
       final dio = ref.read(dioClientProvider);
-      await dio.post('companies', data: {
+      // Usamos el endpoint de seed para una inicialización completa (impuestos, roles, etc.)
+      await dio.post('seed', data: {
         'name': _companyNameCtrl.text.trim(),
-        'legalName': _legalNameCtrl.text.trim(),
+        'country': _selectedCountry,
         'taxId': _taxIdCtrl.text.trim(),
+        'isStrictlyPrivate': _isStrictlyPrivate,
+      });
+
+      // También actualizamos datos adicionales si es necesario
+      await dio.put('companies/current', data: {
+        'legalName': _legalNameCtrl.text.trim(),
         'phone': _phoneCtrl.text.trim(),
         'address': _addressCtrl.text.trim(),
-        'maxEmployees': int.tryParse(_employeesCtrl.text) ?? 10,
-        'country': 'Nicaragua',
-        'currency': 'NIO',
-        'timezone': 'America/Managua',
       });
 
       await ref.read(authProvider.notifier).checkAuth();
       if (mounted) context.go('/dashboard');
     } catch (e) {
-      setState(() => _error = 'Error al crear la empresa');
+      setState(() => _error = 'Error al configurar la empresa: $e');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -109,6 +124,16 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                   validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
                 ),
                 const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _selectedCountry,
+                  decoration: const InputDecoration(
+                    labelText: 'País / Región',
+                    prefixIcon: Icon(Icons.public),
+                  ),
+                  items: _countries.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                  onChanged: (v) => setState(() => _selectedCountry = v!),
+                ),
+                const SizedBox(height: 16),
                 TextFormField(
                   controller: _legalNameCtrl,
                   decoration: const InputDecoration(
@@ -161,6 +186,14 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                   text: 'Crear empresa',
                   onPressed: _submit,
                   isLoading: _loading,
+                ),
+                const SizedBox(height: 16),
+                SwitchListTile(
+                  title: const Text('Modo de Privacidad Estricta'),
+                  subtitle: const Text('Impide que el Super Admin global acceda a los datos de esta empresa.'),
+                  value: _isStrictlyPrivate,
+                  onChanged: (v) => setState(() => _isStrictlyPrivate = v),
+                  contentPadding: EdgeInsets.zero,
                 ),
               ],
             ),

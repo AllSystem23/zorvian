@@ -858,7 +858,7 @@ public sealed class ZorvianDbContext : DbContext
         builder.Entity<QuoteDetail>(e =>
         {
             e.HasKey(qd => qd.Id);
-            e.Property(qd => qd.UnitPrice).HasColumnType("decimal(18,2)");
+            e.Property(qd => qd.UnitPrice).HasColumnType("decimal(19,4)");
             e.Property(qd => qd.Discount).HasColumnType("decimal(18,2)");
             e.Property(qd => qd.Subtotal).HasColumnType("decimal(18,2)");
             e.HasOne(qd => qd.Quote)
@@ -903,7 +903,7 @@ public sealed class ZorvianDbContext : DbContext
         builder.Entity<SaleDetail>(e =>
         {
             e.HasKey(sd => sd.Id);
-            e.Property(sd => sd.UnitPrice).HasColumnType("decimal(18,2)");
+            e.Property(sd => sd.UnitPrice).HasColumnType("decimal(19,4)");
             e.Property(sd => sd.Discount).HasColumnType("decimal(18,2)");
             e.Property(sd => sd.Subtotal).HasColumnType("decimal(18,2)");
             e.HasOne(sd => sd.Sale)
@@ -1008,8 +1008,8 @@ public sealed class ZorvianDbContext : DbContext
             e.Property(p => p.Location).HasMaxLength(100);
             e.Property(p => p.Barcode).HasMaxLength(100);
             e.Property(p => p.ImageUrl).HasMaxLength(500);
-            e.Property(p => p.CostPrice).HasColumnType("decimal(18,2)");
-            e.Property(p => p.SellingPrice).HasColumnType("decimal(18,2)");
+            e.Property(p => p.CostPrice).HasColumnType("decimal(19,4)");
+            e.Property(p => p.SellingPrice).HasColumnType("decimal(19,4)");
             e.HasOne(p => p.Category)
                 .WithMany(c => c.Products)
                 .HasForeignKey(p => p.CategoryId)
@@ -1030,7 +1030,7 @@ public sealed class ZorvianDbContext : DbContext
         {
             e.HasKey(m => m.Id);
             e.Property(m => m.MovementType).HasMaxLength(30).IsRequired();
-            e.Property(m => m.UnitCost).HasColumnType("decimal(18,2)");
+            e.Property(m => m.UnitCost).HasColumnType("decimal(19,4)");
             e.Property(m => m.ReferenceNumber).HasMaxLength(100);
             e.Property(m => m.Notes).HasMaxLength(500);
             e.HasOne(m => m.Product)
@@ -1501,7 +1501,7 @@ public sealed class ZorvianDbContext : DbContext
         builder.Entity<PurchaseDetail>(e =>
         {
             e.HasKey(pd => pd.Id);
-            e.Property(pd => pd.UnitCost).HasColumnType("decimal(18,2)");
+            e.Property(pd => pd.UnitCost).HasColumnType("decimal(19,4)");
             e.Property(pd => pd.Discount).HasColumnType("decimal(18,2)");
             e.Property(pd => pd.Subtotal).HasColumnType("decimal(18,2)");
             e.HasOne(pd => pd.Purchase)

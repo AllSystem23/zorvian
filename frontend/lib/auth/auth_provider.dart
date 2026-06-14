@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/error/error_notifier.dart';
 import '../core/network/dio_client.dart';
 import '../core/storage/secure_storage.dart';
+import '../features/dashboard/providers/dashboard_provider.dart';
 
 final secureStorageProvider = Provider<SecureStorage>((_) => SecureStorage());
 
@@ -179,7 +180,7 @@ class AuthNotifier extends Notifier<AuthState> {
         'tenantId': tenantId,
       });
 
-      final data = response.data;
+      final data = response.data['data'] ?? response.data;
       await storage.saveTokens(data['accessToken'], data['refreshToken'])
           .catchError((_) => null);
 
@@ -194,9 +195,23 @@ class AuthNotifier extends Notifier<AuthState> {
         employeeId: user['employeeId'],
       );
 
+      // Invalidate providers to force data reload from the new tenant
+      ref.invalidate(dashboardProvider);
+      
       return true;
     } catch (_) {
       return false;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getMyTenants() async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      final response = await dio.get('auth/tenants');
+      final List data = response.data;
+      return data.cast<Map<String, dynamic>>();
+    } catch (_) {
+      return [];
     }
   }
 

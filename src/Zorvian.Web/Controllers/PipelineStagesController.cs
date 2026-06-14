@@ -6,6 +6,7 @@ using Zorvian.Application.DTOs.Commercial;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
 using Zorvian.Infrastructure.Data;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
@@ -27,6 +28,7 @@ public sealed class PipelineStagesController : ControllerBase
     }
 
     [Audit("PipelineStage", "ReadList")]
+    [RequirePermission(Permissions.SaleRead)]
     [HttpGet]
     public async Task<IActionResult> GetStages()
     {

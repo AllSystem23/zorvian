@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Accounting;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
@@ -18,6 +19,7 @@ public sealed class BudgetsController : ControllerBase
         _service = service;
     }
 
+    [RequirePermission(Permissions.AccountingRead)]
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] int? year, [FromQuery] int? month)
     {
@@ -31,6 +33,7 @@ public sealed class BudgetsController : ControllerBase
     }
 
     [Audit("Budget", "Create")]
+    [RequirePermission(Permissions.AccountingWrite)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateBudgetRequest request)
     {
@@ -39,6 +42,7 @@ public sealed class BudgetsController : ControllerBase
     }
 
     [Audit("Budget", "Update")]
+    [RequirePermission(Permissions.AccountingWrite)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateBudgetRequest request)
     {
@@ -49,6 +53,7 @@ public sealed class BudgetsController : ControllerBase
     }
 
     [Audit("Budget", "Delete")]
+    [RequirePermission(Permissions.AccountingWrite)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

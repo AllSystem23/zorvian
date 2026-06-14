@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Commercial;
 using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
@@ -21,6 +22,7 @@ public sealed class PurchasesController : ControllerBase
         _aiService = aiService;
     }
 
+    [RequirePermission(Permissions.PurchaseWrite)]
     [HttpPost("analyze")]
     public async Task<IActionResult> AnalyzeInvoice(IFormFile file)
     {
@@ -32,6 +34,7 @@ public sealed class PurchasesController : ControllerBase
     }
 
     [Audit("Purchase", "Create")]
+    [RequirePermission(Permissions.PurchaseWrite)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreatePurchaseRequest request)
     {
@@ -46,6 +49,7 @@ public sealed class PurchasesController : ControllerBase
         }
     }
 
+    [RequirePermission(Permissions.PurchaseRead)]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -55,6 +59,7 @@ public sealed class PurchasesController : ControllerBase
         return Ok(purchase);
     }
 
+    [RequirePermission(Permissions.PurchaseRead)]
     [HttpGet]
     public async Task<IActionResult> GetFiltered([FromQuery] PurchaseFilterRequest filter)
     {
@@ -63,6 +68,7 @@ public sealed class PurchasesController : ControllerBase
     }
 
     [Audit("Purchase", "Update")]
+    [RequirePermission(Permissions.PurchaseWrite)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdatePurchaseRequest request)
     {
@@ -78,6 +84,7 @@ public sealed class PurchasesController : ControllerBase
     }
 
     [Audit("Purchase", "Complete")]
+    [RequirePermission(Permissions.PurchaseWrite)]
     [HttpPost("{id:guid}/complete")]
     public async Task<IActionResult> Complete(Guid id)
     {
@@ -86,6 +93,7 @@ public sealed class PurchasesController : ControllerBase
     }
 
     [Audit("Purchase", "Cancel")]
+    [RequirePermission(Permissions.PurchaseWrite)]
     [HttpPost("{id:guid}/cancel")]
     public async Task<IActionResult> Cancel(Guid id)
     {
@@ -100,6 +108,7 @@ public sealed class PurchasesController : ControllerBase
         }
     }
 
+    [RequirePermission(Permissions.PurchaseRead)]
     [HttpGet("aging")]
     public async Task<IActionResult> GetAging()
     {

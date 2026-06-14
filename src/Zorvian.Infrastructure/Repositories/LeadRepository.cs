@@ -15,7 +15,10 @@ public sealed class LeadRepository : ILeadRepository
     }
 
     public async Task<Lead?> GetByIdAsync(Guid id) =>
-        await _db.Leads.FirstOrDefaultAsync(l => l.Id == id);
+        await _db.Leads
+            .Include(l => l.Activities)
+                .ThenInclude(a => a.CreatedByUser)
+            .FirstOrDefaultAsync(l => l.Id == id);
 
     public async Task<List<Lead>> GetFilteredAsync(string? search, string? status, Guid companyId, int page, int pageSize)
     {

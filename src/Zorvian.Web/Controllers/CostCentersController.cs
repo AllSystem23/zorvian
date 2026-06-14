@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Accounting;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
@@ -18,6 +19,7 @@ public sealed class CostCentersController : ControllerBase
         _service = service;
     }
 
+    [RequirePermission(Permissions.AccountingRead)]
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -26,6 +28,7 @@ public sealed class CostCentersController : ControllerBase
     }
 
     [Audit("CostCenter", "Create")]
+    [RequirePermission(Permissions.AccountingWrite)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateCostCenterRequest request)
     {
@@ -34,6 +37,7 @@ public sealed class CostCentersController : ControllerBase
     }
 
     [Audit("CostCenter", "Update")]
+    [RequirePermission(Permissions.AccountingWrite)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCostCenterRequest request)
     {
@@ -44,6 +48,7 @@ public sealed class CostCentersController : ControllerBase
     }
 
     [Audit("CostCenter", "Delete")]
+    [RequirePermission(Permissions.AccountingWrite)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

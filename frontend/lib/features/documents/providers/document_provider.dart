@@ -40,17 +40,18 @@ class DocumentNotifier extends Notifier<DocumentState> {
     state = state.copyWith(loading: true);
     try {
       final dio = ref.read(dioClientProvider);
-      await dio.get('documents/templates');
+      final response = await dio.get('documents/templates');
+      final data = response.data as List;
+      final templates = data.map((e) => DocumentTemplate.fromJson(e)).toList();
       state = state.copyWith(
-        templates: _mockTemplates,
+        templates: templates,
         loading: false,
         error: null,
       );
     } catch (e) {
       state = state.copyWith(
-        templates: _mockTemplates,
         loading: false,
-        error: null,
+        error: e.toString(),
       );
     }
   }
@@ -91,28 +92,6 @@ class DocumentNotifier extends Notifier<DocumentState> {
     }
   }
 }
-
-// ── Mock Data for Offline/Dev ──
-final _mockTemplates = [
-  const DocumentTemplate(
-    id: '11111111-1111-1111-1111-111111111111',
-    name: 'Contrato Laboral Estándar',
-    category: 'HR',
-    content: '<h1>Contrato Individual de Trabajo</h1><p><strong>TRABAJADOR:</strong> {{ Employee.FullName }}</p><p><strong>CARGO:</strong> {{ Employee.Position }}</p><p><strong>SALARIO:</strong> {{ Employee.Salary }}</p>',
-    countryCode: 'ALL',
-    module: 'Employee',
-    version: '1.0',
-  ),
-  const DocumentTemplate(
-    id: '22222222-2222-2222-2222-222222222222',
-    name: 'Factura de Venta Corporativa',
-    category: 'Sales',
-    content: '<h2>FACTURA: {{ Sale.Number }}</h2><p>Cliente: {{ Sale.ClientName }}</p><p>Total: {{ Sale.Total }}</p>',
-    countryCode: 'ALL',
-    module: 'Sale',
-    version: '1.0',
-  ),
-];
 
 // ── Providers ──
 

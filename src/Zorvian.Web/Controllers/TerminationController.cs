@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Payroll;
 using Zorvian.Application.Services;
 using Zorvian.Core.Entities;
+using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers;
 
@@ -15,6 +16,7 @@ public sealed class TerminationController : ControllerBase
 
     public TerminationController(TerminationService service) => _service = service;
 
+    [RequirePermission(Permissions.EmployeeWrite)]
     [HttpPost("calculate")]
     public async Task<IActionResult> Calculate(Guid employeeId, TerminationReason reason, DateOnly terminationDate) =>
         Ok(await _service.CalculateAsync(employeeId, reason, terminationDate));

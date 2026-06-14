@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Warranty;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
@@ -18,12 +19,14 @@ public sealed class WarrantySlaConfigsController : ControllerBase
         _service = service;
     }
 
+    [RequirePermission(Permissions.WarrantyRead)]
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
         return Ok(await _service.GetAllAsync());
     }
 
+    [RequirePermission(Permissions.WarrantyRead)]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -32,6 +35,7 @@ public sealed class WarrantySlaConfigsController : ControllerBase
         return Ok(config);
     }
 
+    [RequirePermission(Permissions.WarrantyWrite)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateWarrantySlaConfigRequest request)
     {
@@ -39,6 +43,7 @@ public sealed class WarrantySlaConfigsController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = config.Id }, config);
     }
 
+    [RequirePermission(Permissions.WarrantyWrite)]
     [HttpPatch("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateWarrantySlaConfigRequest request)
     {
@@ -47,6 +52,7 @@ public sealed class WarrantySlaConfigsController : ControllerBase
         return Ok(config);
     }
 
+    [RequirePermission(Permissions.WarrantyWrite)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

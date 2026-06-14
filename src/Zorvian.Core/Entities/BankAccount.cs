@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using Zorvian.Core.Attributes;
 
 namespace Zorvian.Core.Entities
 {
@@ -14,7 +15,8 @@ namespace Zorvian.Core.Entities
         public Company? Company { get; set; }
 
         [Required]
-        [StringLength(50)]
+        [StringLength(255)] // Aumentado para soportar base64 de encriptación
+        [Encrypted]
         public string AccountNumber { get; set; } = string.Empty;
 
         [Required]

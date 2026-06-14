@@ -21,6 +21,7 @@ using Zorvian.Infrastructure.Data;
 using Zorvian.Infrastructure.Identity;
 using Zorvian.Infrastructure.Repositories;
 using Zorvian.Infrastructure.Services;
+using Zorvian.Infrastructure.Data.Interceptors;
 using Zorvian.Web.Hubs;
 using Zorvian.Web.Jobs;
 using Zorvian.Infrastructure.Jobs;
@@ -92,23 +93,27 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddZorvianDatabase(this IServiceCollection services, IConfiguration configuration, bool mockExternal)
     {
+        services.AddScoped<EncryptionInterceptor>();
+
         services.AddDbContext<ZorvianDbContext>((sp, options) =>
         {
             var auditInterceptor = sp.GetRequiredService<Zorvian.Infrastructure.Data.AuditInterceptor>();
             var immutabilityInterceptor = sp.GetRequiredService<Zorvian.Infrastructure.Data.AuditImmutabilityInterceptor>();
             var entityHistoryInterceptor = sp.GetRequiredService<Zorvian.Infrastructure.Data.EntityHistoryInterceptor>();
             var tenantSessionInterceptor = sp.GetRequiredService<Zorvian.Infrastructure.Data.TenantSessionInterceptor>();
+            var encryptionInterceptor = sp.GetRequiredService<EncryptionInterceptor>();
+
             var connStr = configuration.GetConnectionString("ZorvianDb");
             if (mockExternal || string.IsNullOrEmpty(connStr))
             {
                 options.UseInMemoryDatabase("ZorvianInMemoryDb")
-                       .AddInterceptors(entityHistoryInterceptor, auditInterceptor, immutabilityInterceptor)
+                       .AddInterceptors(entityHistoryInterceptor, auditInterceptor, immutabilityInterceptor, encryptionInterceptor)
                        .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
             }
             else
             {
                 options.UseNpgsql(connStr)
-                       .AddInterceptors(tenantSessionInterceptor, entityHistoryInterceptor, auditInterceptor, immutabilityInterceptor)
+                       .AddInterceptors(tenantSessionInterceptor, entityHistoryInterceptor, auditInterceptor, immutabilityInterceptor, encryptionInterceptor)
                        .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
             }
         });

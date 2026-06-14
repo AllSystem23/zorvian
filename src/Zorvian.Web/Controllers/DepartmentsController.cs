@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Department;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers;
 
@@ -23,6 +24,7 @@ public sealed class DepartmentsController : ControllerBase
     /// <summary>
     /// Crea un nuevo departamento.
     /// </summary>
+    [RequirePermission(Permissions.EmployeeWrite)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateDepartmentRequest request)
     {
@@ -33,6 +35,7 @@ public sealed class DepartmentsController : ControllerBase
     /// <summary>
     /// Obtiene un departamento por su identificador único.
     /// </summary>
+    [RequirePermission(Permissions.EmployeeRead)]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -45,6 +48,7 @@ public sealed class DepartmentsController : ControllerBase
     /// <summary>
     /// Obtiene todos los departamentos registrados.
     /// </summary>
+    [RequirePermission(Permissions.EmployeeRead)]
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -55,6 +59,7 @@ public sealed class DepartmentsController : ControllerBase
     /// <summary>
     /// Actualiza los datos de un departamento existente.
     /// </summary>
+    [RequirePermission(Permissions.EmployeeWrite)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateDepartmentRequest request)
     {
@@ -67,6 +72,7 @@ public sealed class DepartmentsController : ControllerBase
     /// <summary>
     /// Elimina un departamento. Devuelve conflicto si tiene empleados asociados.
     /// </summary>
+    [RequirePermission(Permissions.EmployeeWrite)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

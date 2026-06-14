@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Branch;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
@@ -18,6 +19,7 @@ public sealed class BranchesController : ControllerBase
         _service = service;
     }
 
+    [RequirePermission(Permissions.CompanyManage)]
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -25,6 +27,7 @@ public sealed class BranchesController : ControllerBase
         return Ok(branches);
     }
 
+    [RequirePermission(Permissions.CompanyManage)]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -35,6 +38,7 @@ public sealed class BranchesController : ControllerBase
     }
 
     [Audit("Branch", "Create")]
+    [RequirePermission(Permissions.CompanyManage)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateBranchRequest request)
     {
@@ -43,6 +47,7 @@ public sealed class BranchesController : ControllerBase
     }
 
     [Audit("Branch", "Update")]
+    [RequirePermission(Permissions.CompanyManage)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateBranchRequest request)
     {
@@ -53,6 +58,7 @@ public sealed class BranchesController : ControllerBase
     }
 
     [Audit("Branch", "Delete")]
+    [RequirePermission(Permissions.CompanyManage)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

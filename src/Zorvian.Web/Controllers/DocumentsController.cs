@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.Interfaces;
+using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers;
 
@@ -23,6 +24,7 @@ public sealed class DocumentsController : ControllerBase
     /// <summary>
     /// Sugiere plantillas para un módulo específico.
     /// </summary>
+    [RequirePermission(Permissions.DocumentRead)]
     [HttpGet("suggestions")]
     public async Task<IActionResult> GetSuggestions([FromQuery] string module, [FromQuery] string @event, [FromQuery] string countryCode = "NI")
     {
@@ -33,6 +35,7 @@ public sealed class DocumentsController : ControllerBase
     /// <summary>
     /// REGLA DE 3 CLICS: Genera un contrato de empleado y lo deja listo para firma.
     /// </summary>
+    [RequirePermission(Permissions.DocumentWrite)]
     [HttpPost("quick-generate/employee-contract")]
     public async Task<IActionResult> QuickGenerateEmployeeContract([FromBody] QuickGenerateRequest request)
     {
@@ -43,6 +46,7 @@ public sealed class DocumentsController : ControllerBase
     /// <summary>
     /// Obtiene los detalles de un documento, incluyendo versiones y estado de firmas.
     /// </summary>
+    [RequirePermission(Permissions.DocumentRead)]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetDetails(Guid id)
     {
@@ -54,6 +58,7 @@ public sealed class DocumentsController : ControllerBase
     /// <summary>
     /// Un solo click para finalizar y solicitar firma si el documento está en draft.
     /// </summary>
+    [RequirePermission(Permissions.DocumentWrite)]
     [HttpPost("{id}/finalize")]
     public async Task<IActionResult> Finalize(Guid id, [FromBody] FinalizeRequest request)
     {

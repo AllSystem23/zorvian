@@ -5,6 +5,7 @@ using Zorvian.Application.DTOs.Notifications;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
 using Zorvian.Infrastructure.Data;
+using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers;
 
@@ -26,6 +27,7 @@ public sealed class NotificationsController : ControllerBase
     /// <summary>
     /// Registra o actualiza un dispositivo para recibir notificaciones push.
     /// </summary>
+    [RequirePermission(Permissions.UserRead)]
     [HttpPost("register-device")]
     public async Task<IActionResult> RegisterDevice([FromBody] RegisterDeviceRequest request)
     {

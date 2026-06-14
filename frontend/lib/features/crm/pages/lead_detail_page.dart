@@ -249,7 +249,15 @@ class _LeadDetailPageState extends ConsumerState<LeadDetailPage> {
                   ),
                 Padding(
                   padding: const EdgeInsets.only(top: 2),
-                  child: Text(_formatDate(activity.createdAt), style: ZTypography.labelSmall.copyWith(color: ZColors.neutral400)),
+                  child: Row(
+                    children: [
+                      Text(_formatDate(activity.createdAt), style: ZTypography.labelSmall.copyWith(color: ZColors.neutral400)),
+                      if (activity.createdByUserName != null) ...[
+                        const SizedBox(width: 8),
+                        Text('por ${activity.createdByUserName}', style: ZTypography.labelSmall.copyWith(color: ZColors.neutral400)),
+                      ],
+                    ],
+                  ),
                 ),
               ],
             ),

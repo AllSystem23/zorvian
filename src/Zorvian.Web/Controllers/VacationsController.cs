@@ -5,6 +5,7 @@ using Zorvian.Application.DTOs.Vacation;
 using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
 using Zorvian.Core.Interfaces;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
@@ -31,6 +32,7 @@ public sealed class VacationsController : ControllerBase
     /// <summary>
     /// Recomienda fechas para vacaciones basadas en disponibilidad del equipo.
     /// </summary>
+    [RequirePermission(Permissions.EmployeeRead)]
     [HttpGet("recommend")]
     public async Task<IActionResult> Recommend([FromQuery] int days, [FromQuery] int month, [FromQuery] int year)
     {
@@ -45,6 +47,7 @@ public sealed class VacationsController : ControllerBase
     /// Crea una nueva solicitud de vacaciones.
     /// </summary>
     [Audit("Vacation", "Create")]
+    [RequirePermission(Permissions.EmployeeWrite)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateVacationRequest request)
     {
@@ -62,6 +65,7 @@ public sealed class VacationsController : ControllerBase
     /// <summary>
     /// Obtiene una solicitud de vacaciones por su identificador.
     /// </summary>
+    [RequirePermission(Permissions.EmployeeRead)]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -74,6 +78,7 @@ public sealed class VacationsController : ControllerBase
     /// <summary>
     /// Obtiene una lista filtrada de solicitudes de vacaciones.
     /// </summary>
+    [RequirePermission(Permissions.EmployeeRead)]
     [HttpGet]
     public async Task<IActionResult> GetList([FromQuery] VacationFilterRequest filter)
     {
@@ -84,6 +89,7 @@ public sealed class VacationsController : ControllerBase
     /// <summary>
     /// Obtiene las solicitudes de vacaciones del empleado autenticado.
     /// </summary>
+    [RequirePermission(Permissions.EmployeeRead)]
     [HttpGet("my")]
     public async Task<IActionResult> GetMy()
     {
@@ -94,6 +100,7 @@ public sealed class VacationsController : ControllerBase
     /// <summary>
     /// Calcula y devuelve el saldo de vacaciones disponible del empleado autenticado.
     /// </summary>
+    [RequirePermission(Permissions.EmployeeRead)]
     [HttpGet("balance")]
     public async Task<IActionResult> MyBalance()
     {
@@ -112,6 +119,7 @@ public sealed class VacationsController : ControllerBase
     /// Aprueba una solicitud de vacaciones. Requiere comentario opcional.
     /// </summary>
     [Audit("Vacation", "Approve")]
+    [RequirePermission(Permissions.EmployeeWrite)]
     [HttpPut("{id:guid}/approve")]
     public async Task<IActionResult> Approve(Guid id, [FromBody] CommentRequest body)
     {
@@ -132,6 +140,7 @@ public sealed class VacationsController : ControllerBase
     /// Rechaza una solicitud de vacaciones con un comentario.
     /// </summary>
     [Audit("Vacation", "Reject")]
+    [RequirePermission(Permissions.EmployeeWrite)]
     [HttpPut("{id:guid}/reject")]
     public async Task<IActionResult> Reject(Guid id, [FromBody] CommentRequest body)
     {

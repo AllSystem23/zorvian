@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import '../storage/secure_storage.dart';
 import 'api_config.dart';
 
@@ -71,8 +70,6 @@ class DioClient {
       final refresh = await _storage.getRefreshToken();
       if (refresh == null) return false;
 
-      if (kDebugMode) debugPrint('DEBUG: Attempting refresh with token: $refresh');
-      
       // Usamos baseUrl directamente para evitar concatenaciones mal formadas
       final response = await Dio(BaseOptions(
         connectTimeout: const Duration(seconds: 30),
@@ -81,8 +78,6 @@ class DioClient {
         '${_dio.options.baseUrl}auth/refresh',
         data: {'refreshToken': refresh},
       );
-
-      if (kDebugMode) debugPrint('DEBUG: Refresh response: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         await _storage.saveTokens(
@@ -93,7 +88,6 @@ class DioClient {
       }
     } catch (e) {
       if (e is DioException) {
-        if (kDebugMode) debugPrint('DEBUG: Refresh error: ${e.response?.statusCode} - ${e.response?.data}');
       }
     }
     return false;

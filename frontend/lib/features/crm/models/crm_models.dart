@@ -91,6 +91,7 @@ class CrmActivity {
   final String type;
   final String subject;
   final String? description;
+  final String? createdByUserName;
   final DateTime createdAt;
 
   CrmActivity({
@@ -99,6 +100,7 @@ class CrmActivity {
     required this.type,
     required this.subject,
     this.description,
+    this.createdByUserName,
     required this.createdAt,
   });
 
@@ -109,6 +111,7 @@ class CrmActivity {
       type: json['type'] ?? 'note',
       subject: json['subject'] ?? '',
       description: json['description'],
+      createdByUserName: json['createdByUserName'] as String?,
       createdAt: DateTime.parse(json['createdAt']),
     );
   }

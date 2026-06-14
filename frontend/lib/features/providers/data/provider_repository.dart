@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/network/dio_client.dart';
+import '../../../core/network/dio_client.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../core/entities/service_provider.dart';
 import '../../../core/entities/service_contract.dart';

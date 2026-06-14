@@ -9,7 +9,7 @@ import '../../../core/widgets/bi/sales_prediction_section.dart';
 import '../../../core/widgets/bi/purchase_recommendation_section.dart';
 import '../../../core/widgets/bi/expense_classifier_section.dart';
 import '../providers/bi_provider.dart';
-import '../../../../shared/ds/ds.dart';
+import '../../../shared/ds/ds.dart';
 
 class CommercialDashboardPage extends ConsumerStatefulWidget {
   const CommercialDashboardPage({super.key});

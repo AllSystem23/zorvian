@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs;
 using Zorvian.Application.Interfaces;
+using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers;
 
@@ -17,6 +18,7 @@ public sealed class ElectronicInvoiceController : ControllerBase
         _service = service;
     }
 
+    [RequirePermission(Permissions.AccountingWrite)]
     [HttpPost("issue")]
     public async Task<IActionResult> Issue([FromBody] IssueInvoiceRequest request)
     {
@@ -31,6 +33,7 @@ public sealed class ElectronicInvoiceController : ControllerBase
         }
     }
 
+    [RequirePermission(Permissions.AccountingRead)]
     [HttpGet("sale/{saleId:guid}")]
     public async Task<IActionResult> GetBySale(Guid saleId)
     {
@@ -39,6 +42,7 @@ public sealed class ElectronicInvoiceController : ControllerBase
         return Ok(result);
     }
 
+    [RequirePermission(Permissions.AccountingRead)]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -47,6 +51,7 @@ public sealed class ElectronicInvoiceController : ControllerBase
         return Ok(result);
     }
 
+    [RequirePermission(Permissions.AccountingRead)]
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] Guid companyId, [FromQuery] string? countryCode)
     {
@@ -54,6 +59,7 @@ public sealed class ElectronicInvoiceController : ControllerBase
         return Ok(results);
     }
 
+    [RequirePermission(Permissions.AccountingWrite)]
     [HttpPost("{id:guid}/resubmit")]
     public async Task<IActionResult> Resubmit(Guid id)
     {
@@ -68,6 +74,7 @@ public sealed class ElectronicInvoiceController : ControllerBase
         }
     }
 
+    [RequirePermission(Permissions.AccountingWrite)]
     [HttpPost("{id:guid}/cancel")]
     public async Task<IActionResult> Cancel(Guid id, [FromBody] CancelInvoiceRequest request)
     {
@@ -82,6 +89,7 @@ public sealed class ElectronicInvoiceController : ControllerBase
         }
     }
 
+    [RequirePermission(Permissions.AccountingRead)]
     [HttpGet("{saleId:guid}/xml")]
     public async Task<IActionResult> GetXml(Guid saleId, [FromQuery] string countryCode)
     {
@@ -89,6 +97,7 @@ public sealed class ElectronicInvoiceController : ControllerBase
         return Content(xml, "application/xml");
     }
 
+    [RequirePermission(Permissions.AccountingRead)]
     [HttpGet("{id:guid}/pdf")]
     public async Task<IActionResult> GetPdf(Guid id)
     {

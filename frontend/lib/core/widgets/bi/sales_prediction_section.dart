@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../features/bi/providers/bi_provider.dart';
-import '../../../../shared/ds/ds.dart';
+import '../../../shared/ds/ds.dart';
 import 'bi_kpi_card.dart';
 import 'bi_line_chart.dart';
 

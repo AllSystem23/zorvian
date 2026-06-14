@@ -3,6 +3,7 @@ namespace Zorvian.Core.Entities;
 public sealed class WebhookDeliveryLog : BaseEntity
 {
     public Guid SubscriptionId { get; set; }
+    public WebhookSubscription? Subscription { get; set; }
     public string EventType { get; set; } = string.Empty;
     public string TargetUrl { get; set; } = string.Empty;
     public int Attempt { get; set; }

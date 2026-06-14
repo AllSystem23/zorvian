@@ -5,6 +5,7 @@ using Zorvian.Application.DTOs.FixedAssets;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
+using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers;
 
@@ -26,6 +27,7 @@ public sealed class FixedAssetCategoriesController : ControllerBase
 
     private Guid CompanyId => Guid.TryParse(_tenant.TenantId, out var id) ? id : throw new InvalidOperationException("Invalid tenant");
 
+    [RequirePermission(Permissions.FixedAssetWrite)]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateFixedAssetCategoryRequest request)
     {
@@ -36,6 +38,7 @@ public sealed class FixedAssetCategoriesController : ControllerBase
         return CreatedAtAction(null, _mapper.Map<FixedAssetCategoryResponse>(category));
     }
 
+    [RequirePermission(Permissions.FixedAssetRead)]
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
@@ -43,6 +46,7 @@ public sealed class FixedAssetCategoriesController : ControllerBase
         return Ok(_mapper.Map<List<FixedAssetCategoryResponse>>(items));
     }
 
+    [RequirePermission(Permissions.FixedAssetWrite)]
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] CreateFixedAssetCategoryRequest request)
     {
@@ -55,6 +59,7 @@ public sealed class FixedAssetCategoriesController : ControllerBase
         return Ok(_mapper.Map<FixedAssetCategoryResponse>(category));
     }
 
+    [RequirePermission(Permissions.FixedAssetWrite)]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

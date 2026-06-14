@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.Services;
 using Zorvian.Application.Interfaces;
+using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers;
 
@@ -22,6 +23,7 @@ public sealed class CommissionEventsController : ControllerBase
     /// <summary>
     /// Recibe eventos genéricos de CRM para el motor de comisiones.
     /// </summary>
+    [RequirePermission(Permissions.CommissionWrite)]
     [HttpPost("events")]
     public async Task<IActionResult> HandleEvent([FromBody] CommissionEventRequest request)
     {
@@ -33,6 +35,7 @@ public sealed class CommissionEventsController : ControllerBase
     /// <summary>
     /// Recibe eventos de ventas (facturas, cobranzas) para el motor de comisiones.
     /// </summary>
+    [RequirePermission(Permissions.CommissionWrite)]
     [HttpPost("sales")]
     public async Task<IActionResult> HandleSale([FromBody] CommissionSaleRequest request)
     {
