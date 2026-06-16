@@ -54,9 +54,9 @@ final companyListProvider =
     FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
   final dio = ref.read(dioClientProvider);
   try {
-    final response = await dio.get('companies').timeout(const Duration(seconds: 5));
-    if (response.data is List) {
-      return (response.data as List).cast<Map<String, dynamic>>();
+    final response = await dio.get('companies/current').timeout(const Duration(seconds: 5));
+    if (response.data is Map<String, dynamic>) {
+      return [response.data as Map<String, dynamic>];
     }
     return [];
   } catch (e) {
