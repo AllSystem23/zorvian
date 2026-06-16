@@ -117,9 +117,36 @@ public sealed class AuthRepository : IAuthRepository
 
     public async Task<List<UserTenant>> GetUserTenantsAsync(Guid userId)
     {
-        return await _db.UserTenants
-            .Where(ut => ut.UserId == userId && ut.IsActive)
+        var query = _db.UserTenants
+            .Where(ut => ut.UserId == userId && ut.IsActive);
+
+        return await (NeedsBypass
+            ? query.IgnoreQueryFilters().ToListAsync()
+            : query.ToListAsync());
+    }
+
+    public async Task<(List<Company> Items, int Total)> GetCompaniesPagedAsync(int page, int pageSize)
+    {
+        var query = _db.Companies.AsQueryable();
+        var finalQuery = NeedsBypass ? query.IgnoreQueryFilters() : query;
+
+        var total = await finalQuery.CountAsync();
+        var items = await finalQuery
+            .OrderBy(c => c.Name)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
+
+        return (items, total);
+    }
+
+    public async Task<List<Company>> GetAllCompaniesAsync()
+    {
+        var query = _db.Companies.AsQueryable();
+
+        return await (NeedsBypass
+            ? query.IgnoreQueryFilters().ToListAsync()
+            : query.ToListAsync());
     }
 
     public async Task AddUserTenantAsync(UserTenant userTenant)

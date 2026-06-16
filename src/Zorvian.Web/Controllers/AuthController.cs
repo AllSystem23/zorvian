@@ -174,12 +174,14 @@ public sealed class AuthController : ControllerBase
 
     [HttpGet("tenants")]
     [Authorize]
-    public async Task<IActionResult> GetTenants()
+    public async Task<IActionResult> GetTenants(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
     {
         var userId = GetCurrentUserId();
         if (userId is null) return Unauthorized();
 
-        var tenants = await _authService.GetUserTenantsAsync(userId.Value);
+        var tenants = await _authService.GetUserTenantsAsync(userId.Value, page, pageSize);
         return Ok(tenants);
     }
 

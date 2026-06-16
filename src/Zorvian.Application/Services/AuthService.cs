@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Zorvian.Application.DTOs.Auth;
+using Zorvian.Application.DTOs.Common;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
@@ -350,16 +351,31 @@ public sealed class AuthService
         }
     }
 
-    public async Task<List<TenantInfoResponse>> GetUserTenantsAsync(Guid userId)
+    public async Task<PagedResult<TenantInfoResponse>> GetUserTenantsAsync(Guid userId, int page = 1, int pageSize = 20)
     {
+        var currentTenantId = _tenant.TenantId.ToString();
+
+        // SuperAdmin (dueño absoluto) ve todas las empresas de la plataforma
+        if (_tenant.IsSuperAdmin)
+        {
+            var (items, total) = await _authRepo.GetCompaniesPagedAsync(page, pageSize);
+
+            var list = items.Select(c => new TenantInfoResponse(
+                c.TenantId,
+                c.Name,
+                c.TenantId == currentTenantId
+            )).ToList();
+
+            return new PagedResult<TenantInfoResponse>(list, total, page, pageSize);
+        }
+
         var userTenants = await _authRepo.GetUserTenantsAsync(userId);
         var tenantIds = userTenants.Select(ut => ut.TenantId).ToList();
 
         var companies = await _authRepo.GetCompaniesByTenantIdsAsync(tenantIds);
 
-        var currentTenantId = _tenant.TenantId.ToString();
-
-        return userTenants.Select(ut =>
+        // Para usuarios normales, devolver la lista completa (pocos tenants)
+        var result = userTenants.Select(ut =>
         {
             var company = companies.FirstOrDefault(c => c.TenantId == ut.TenantId);
             return new TenantInfoResponse(
@@ -368,6 +384,8 @@ public sealed class AuthService
                 ut.TenantId == currentTenantId
             );
         }).ToList();
+
+        return new PagedResult<TenantInfoResponse>(result, result.Count, 1, result.Count);
     }
 
     public async Task<AuthResponse?> SwitchTenantAsync(Guid userId, string newTenantId)

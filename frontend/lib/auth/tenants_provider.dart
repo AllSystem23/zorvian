@@ -21,7 +21,9 @@ class TenantInfo {
 
 final tenantsListProvider = FutureProvider.autoDispose<List<TenantInfo>>((ref) async {
   final dio = ref.read(dioClientProvider);
-  final response = await dio.get('auth/tenants');
-  final list = response.data as List<dynamic>;
+  final response = await dio.get('auth/tenants', params: {'pageSize': 100});
+  final data = response.data;
+  // Soporta formato plano (List) y paginado (PagedResult con .items)
+  final Iterable list = data is List ? data : (data['items'] as List<dynamic>);
   return list.map((e) => TenantInfo.fromJson(e as Map<String, dynamic>)).toList();
 });

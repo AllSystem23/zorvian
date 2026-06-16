@@ -207,9 +207,11 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<List<Map<String, dynamic>>> getMyTenants() async {
     try {
       final dio = ref.read(dioClientProvider);
-      final response = await dio.get('auth/tenants');
-      final List data = response.data;
-      return data.cast<Map<String, dynamic>>();
+      final response = await dio.get('auth/tenants', params: {'pageSize': 100});
+      final data = response.data;
+      // Soporta formato plano (List) y paginado (PagedResult con .items)
+      final items = data is List ? data : (data['items'] as List<dynamic>);
+      return items.cast<Map<String, dynamic>>().toList();
     } catch (_) {
       return [];
     }
