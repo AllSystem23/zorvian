@@ -9,11 +9,11 @@ using Zorvian.Infrastructure.Data;
 
 #nullable disable
 
-namespace Zorvian.Infrastructure.Data.Migrations
+namespace Zorvian.Infrastructure.Migrations
 {
     [DbContext(typeof(ZorvianDbContext))]
-    [Migration("20260615201816_AddFleetModule")]
-    partial class AddFleetModule
+    [Migration("20260616184129_BaselineSync")]
+    partial class BaselineSync
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -7194,6 +7194,62 @@ namespace Zorvian.Infrastructure.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("VehicleBrands");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.Fleet.VehicleGeofenceState", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("EnteredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ExitedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("GeofenceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsInside")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("LastPositionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GeofenceId");
+
+                    b.HasIndex("VehicleId", "GeofenceId", "IsInside");
+
+                    b.ToTable("VehicleGeofenceStates");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.Fleet.VehicleType", b =>
@@ -14504,6 +14560,25 @@ namespace Zorvian.Infrastructure.Data.Migrations
                     b.Navigation("FuelType");
 
                     b.Navigation("VehicleType");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.Fleet.VehicleGeofenceState", b =>
+                {
+                    b.HasOne("Zorvian.Core.Entities.Fleet.Geofence", "Geofence")
+                        .WithMany()
+                        .HasForeignKey("GeofenceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Zorvian.Core.Entities.Fleet.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Geofence");
+
+                    b.Navigation("Vehicle");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.Fleet.WorkOrder", b =>

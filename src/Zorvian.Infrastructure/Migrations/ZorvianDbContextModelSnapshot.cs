@@ -2,21 +2,18 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Zorvian.Infrastructure.Data;
 
 #nullable disable
 
-namespace Zorvian.Infrastructure.Data.Migrations
+namespace Zorvian.Infrastructure.Migrations
 {
     [DbContext(typeof(ZorvianDbContext))]
-    [Migration("20260615211135_AddFleetGeofenceState")]
-    partial class AddFleetGeofenceState
+    partial class ZorvianDbContextModelSnapshot : ModelSnapshot
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
