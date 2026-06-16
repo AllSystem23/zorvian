@@ -19,6 +19,12 @@ public sealed class DatabaseBackupJob
     {
         _logger.LogInformation("Starting database backup");
 
+        if (!IsPgDumpAvailable())
+        {
+            _logger.LogWarning("pg_dump not found — skipping backup (Render provides automatic backups)");
+            return;
+        }
+
         try
         {
             Directory.CreateDirectory(BackupDir);
@@ -90,6 +96,28 @@ public sealed class DatabaseBackupJob
         catch (Exception ex)
         {
             _logger.LogError(ex, "Database backup failed");
+        }
+    }
+
+    private static bool IsPgDumpAvailable()
+    {
+        try
+        {
+            using var proc = Process.Start(new ProcessStartInfo
+            {
+                FileName = "pg_dump",
+                ArgumentList = { "--version" },
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+            });
+            if (proc is null) return false;
+            proc.WaitForExit(3000);
+            return proc.ExitCode == 0;
+        }
+        catch
+        {
+            return false;
         }
     }
 
