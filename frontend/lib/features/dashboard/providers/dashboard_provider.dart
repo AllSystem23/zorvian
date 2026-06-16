@@ -156,7 +156,7 @@ class DashboardNotifier extends Notifier<DashboardState> {
     state = state.copyWith(loading: true, error: null);
     try {
       final dio = ref.read(dioClientProvider);
-      final timeout = const Duration(seconds: 25);
+      final timeout = const Duration(seconds: 45);
       
       final response = await dio.get('dashboard/summary').timeout(timeout);
       final data = response.data;

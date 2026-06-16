@@ -1,9 +1,13 @@
+using Zorvian.Application.DTOs.Warranty;
 using Zorvian.Core.Entities;
 
 namespace Zorvian.Application.Interfaces;
 
 public interface IWarrantyRepository
 {
+    // Ultra-optimized: single raw SQL for ALL dashboard counts (1 round-trip)
+    Task<WarrantyDashboardScalars> GetDashboardScalarsRawAsync();
+
     Task<Warranty?> GetByIdAsync(Guid id);
     Task<Warranty?> GetByWarrantyNumberAsync(string warrantyNumber);
     Task<WarrantyClaim?> GetClaimByIdAsync(Guid claimId);

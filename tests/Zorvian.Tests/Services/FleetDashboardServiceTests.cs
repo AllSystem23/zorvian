@@ -10,18 +10,11 @@ namespace Zorvian.Tests.Services;
 public sealed class FleetDashboardServiceTests
 {
     private readonly Mock<IVehicleRepository> _vehicleRepo = new();
-    private readonly Mock<IDriverRepository> _driverRepo = new();
-    private readonly Mock<IRouteRepository> _routeRepo = new();
-    private readonly Mock<IDeliveryRepository> _deliveryRepo = new();
-    private readonly Mock<ITripRepository> _tripRepo = new();
-    private readonly Mock<IFleetDocumentRepository> _documentRepo = new();
     private readonly FleetDashboardService _sut;
 
     public FleetDashboardServiceTests()
     {
-        _sut = new FleetDashboardService(
-            _vehicleRepo.Object, _driverRepo.Object, _routeRepo.Object,
-            _deliveryRepo.Object, _tripRepo.Object, _documentRepo.Object);
+        _sut = new FleetDashboardService(_vehicleRepo.Object);
     }
 
     [Fact]
@@ -35,12 +28,8 @@ public sealed class FleetDashboardServiceTests
             new() { Id = Guid.NewGuid(), Status = "Inactive" },
         };
 
-        _vehicleRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(vehicles);
-        _driverRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(new List<Driver>());
-        _routeRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Route>());
-        _deliveryRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Delivery>());
-        _tripRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Trip>());
-        _documentRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(new List<FleetDocument>());
+        _vehicleRepo.Setup(r => r.GetDashboardScalarsRawAsync())
+            .ReturnsAsync(new FleetDashboardScalars { TotalVehicles = 4, ActiveVehicles = 2, InMaintenance = 1, AvailableDrivers = 0, ActiveRoutes = 0, PendingDeliveries = 0, TripsToday = 0, ExpiringDocuments = 0, ExpiringSoon = 0 });
 
         var result = await _sut.GetDashboardAsync();
 
@@ -59,12 +48,8 @@ public sealed class FleetDashboardServiceTests
             new() { Id = Guid.NewGuid(), Status = "OnTrip" },
         };
 
-        _vehicleRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(new List<Vehicle>());
-        _driverRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(drivers);
-        _routeRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Route>());
-        _deliveryRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Delivery>());
-        _tripRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Trip>());
-        _documentRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(new List<FleetDocument>());
+        _vehicleRepo.Setup(r => r.GetDashboardScalarsRawAsync())
+            .ReturnsAsync(new FleetDashboardScalars { TotalVehicles = 0, ActiveVehicles = 0, InMaintenance = 0, AvailableDrivers = 2, ActiveRoutes = 0, PendingDeliveries = 0, TripsToday = 0, ExpiringDocuments = 0, ExpiringSoon = 0 });
 
         var result = await _sut.GetDashboardAsync();
 
@@ -81,12 +66,8 @@ public sealed class FleetDashboardServiceTests
             new() { Id = Guid.NewGuid(), Status = "Completed" },
         };
 
-        _vehicleRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(new List<Vehicle>());
-        _driverRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(new List<Driver>());
-        _routeRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(routes);
-        _deliveryRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Delivery>());
-        _tripRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Trip>());
-        _documentRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(new List<FleetDocument>());
+        _vehicleRepo.Setup(r => r.GetDashboardScalarsRawAsync())
+            .ReturnsAsync(new FleetDashboardScalars { TotalVehicles = 0, ActiveVehicles = 0, InMaintenance = 0, AvailableDrivers = 0, ActiveRoutes = 2, PendingDeliveries = 0, TripsToday = 0, ExpiringDocuments = 0, ExpiringSoon = 0 });
 
         var result = await _sut.GetDashboardAsync();
 
@@ -103,12 +84,8 @@ public sealed class FleetDashboardServiceTests
             new() { Id = Guid.NewGuid(), Status = "Delivered" },
         };
 
-        _vehicleRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(new List<Vehicle>());
-        _driverRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(new List<Driver>());
-        _routeRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Route>());
-        _deliveryRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(deliveries);
-        _tripRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Trip>());
-        _documentRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(new List<FleetDocument>());
+        _vehicleRepo.Setup(r => r.GetDashboardScalarsRawAsync())
+            .ReturnsAsync(new FleetDashboardScalars { TotalVehicles = 0, ActiveVehicles = 0, InMaintenance = 0, AvailableDrivers = 0, ActiveRoutes = 0, PendingDeliveries = 2, TripsToday = 0, ExpiringDocuments = 0, ExpiringSoon = 0 });
 
         var result = await _sut.GetDashboardAsync();
 
@@ -126,12 +103,8 @@ public sealed class FleetDashboardServiceTests
             new() { Id = Guid.NewGuid(), ExpiryDate = today.AddDays(-5), Status = "Valid" },
         };
 
-        _vehicleRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(new List<Vehicle>());
-        _driverRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(new List<Driver>());
-        _routeRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Route>());
-        _deliveryRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Delivery>());
-        _tripRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Trip>());
-        _documentRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(documents);
+        _vehicleRepo.Setup(r => r.GetDashboardScalarsRawAsync())
+            .ReturnsAsync(new FleetDashboardScalars { TotalVehicles = 0, ActiveVehicles = 0, InMaintenance = 0, AvailableDrivers = 0, ActiveRoutes = 0, PendingDeliveries = 0, TripsToday = 0, ExpiringDocuments = 0, ExpiringSoon = 1 });
 
         var result = await _sut.GetDashboardAsync();
 
@@ -147,12 +120,8 @@ public sealed class FleetDashboardServiceTests
             new() { Id = Guid.NewGuid(), Status = "Maintenance" },
         };
 
-        _vehicleRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(vehicles);
-        _driverRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(new List<Driver>());
-        _routeRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Route>());
-        _deliveryRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Delivery>());
-        _tripRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Trip>());
-        _documentRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(new List<FleetDocument>());
+        _vehicleRepo.Setup(r => r.GetDashboardScalarsRawAsync())
+            .ReturnsAsync(new FleetDashboardScalars { TotalVehicles = 1, ActiveVehicles = 0, InMaintenance = 1, AvailableDrivers = 0, ActiveRoutes = 0, PendingDeliveries = 0, TripsToday = 0, ExpiringDocuments = 0, ExpiringSoon = 0 });
 
         var result = await _sut.GetDashboardAsync();
 
@@ -167,12 +136,8 @@ public sealed class FleetDashboardServiceTests
             new() { Id = Guid.NewGuid(), Status = "Active" },
         };
 
-        _vehicleRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(vehicles);
-        _driverRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(new List<Driver>());
-        _routeRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Route>());
-        _deliveryRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Delivery>());
-        _tripRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Trip>());
-        _documentRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(new List<FleetDocument>());
+        _vehicleRepo.Setup(r => r.GetDashboardScalarsRawAsync())
+            .ReturnsAsync(new FleetDashboardScalars { TotalVehicles = 1, ActiveVehicles = 1, InMaintenance = 0, AvailableDrivers = 0, ActiveRoutes = 0, PendingDeliveries = 0, TripsToday = 0, ExpiringDocuments = 0, ExpiringSoon = 0 });
 
         var result = await _sut.GetDashboardAsync();
 
@@ -182,20 +147,11 @@ public sealed class FleetDashboardServiceTests
     [Fact]
     public async Task GetDashboardAsync_CallsAllReposExactlyOnce()
     {
-        _vehicleRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(new List<Vehicle>());
-        _driverRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(new List<Driver>());
-        _routeRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Route>());
-        _deliveryRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Delivery>());
-        _tripRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Trip>());
-        _documentRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(new List<FleetDocument>());
+        _vehicleRepo.Setup(r => r.GetDashboardScalarsRawAsync())
+            .ReturnsAsync(new FleetDashboardScalars { TotalVehicles = 0, ActiveVehicles = 0, InMaintenance = 0, AvailableDrivers = 0, ActiveRoutes = 0, PendingDeliveries = 0, TripsToday = 0, ExpiringDocuments = 0, ExpiringSoon = 0 });
 
         await _sut.GetDashboardAsync();
 
-        _vehicleRepo.Verify(r => r.GetAllAsync(It.IsAny<Guid>()), Times.Once);
-        _driverRepo.Verify(r => r.GetAllAsync(It.IsAny<Guid>()), Times.Once);
-        _routeRepo.Verify(r => r.GetAllAsync(), Times.Once);
-        _deliveryRepo.Verify(r => r.GetAllAsync(), Times.Once);
-        _tripRepo.Verify(r => r.GetAllAsync(), Times.Once);
-        _documentRepo.Verify(r => r.GetAllAsync(It.IsAny<Guid>()), Times.Once);
+        _vehicleRepo.Verify(r => r.GetDashboardScalarsRawAsync(), Times.Once);
     }
 }

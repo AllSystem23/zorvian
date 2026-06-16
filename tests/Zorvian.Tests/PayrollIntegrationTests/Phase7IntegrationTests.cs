@@ -124,6 +124,7 @@ public class Phase7IntegrationTests
     {
         // ARRANGE
         var mockDashRepo = new Mock<IDashboardRepository>();
+        var mockTenant = new Mock<ITenantContext>();
         var mockSaleRepo = new Mock<ISaleRepository>();
         var mockCreditRepo = new Mock<ICreditRepository>();
         var mockProductRepo = new Mock<IProductRepository>();
@@ -134,7 +135,7 @@ public class Phase7IntegrationTests
         mockDashRepo.Setup(r => r.GetPayrollHistoryAsync(6))
             .ReturnsAsync(new List<(string, decimal)> { ("Jan", 8000m) });
 
-        var dashboardService = new DashboardService(mockDashRepo.Object, mockSaleRepo.Object, 
+        var dashboardService = new DashboardService(mockDashRepo.Object, mockTenant.Object, mockSaleRepo.Object, 
             mockCreditRepo.Object, mockProductRepo.Object, mockCashRepo.Object);
 
         // ACT

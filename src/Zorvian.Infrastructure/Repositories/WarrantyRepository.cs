@@ -1,3 +1,4 @@
+using Zorvian.Application.DTOs.Warranty;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Enums;
@@ -13,6 +14,51 @@ public sealed class WarrantyRepository : IWarrantyRepository
     public WarrantyRepository(ZorvianDbContext db)
     {
         _db = db;
+    }
+
+    /// <summary>
+    /// Ultra-optimized: all 6 dashboard counts in a single raw SQL round-trip.
+    /// </summary>
+    public async Task<WarrantyDashboardScalars> GetDashboardScalarsRawAsync()
+    {
+        var sql = @"
+            SELECT
+                (SELECT COUNT(*) FROM ""Warranties"" w
+                 WHERE w.""IsDeleted"" = false
+                   AND w.""Status"" NOT IN ('Closed', 'Delivered')
+                ) AS ""TotalActive"",
+
+                (SELECT COUNT(*) FROM ""Warranties"" w
+                 WHERE w.""IsDeleted"" = false
+                   AND w.""SlaBreachedAt"" IS NOT NULL
+                ) AS ""TotalBreachedSla"",
+
+                (SELECT COUNT(*) FROM ""Warranties"" w
+                 WHERE w.""IsDeleted"" = false
+                   AND w.""Status"" = 'Registered'
+                ) AS ""RegisteredCount"",
+
+                (SELECT COUNT(*) FROM ""Warranties"" w
+                 WHERE w.""IsDeleted"" = false
+                   AND w.""Status"" = 'InDiagnosis'
+                ) AS ""InDiagnosisCount"",
+
+                (SELECT COUNT(*) FROM ""Warranties"" w
+                 WHERE w.""IsDeleted"" = false
+                   AND w.""Status"" = 'InRepair'
+                ) AS ""InRepairCount"",
+
+                (SELECT COUNT(*) FROM ""Warranties"" w
+                 WHERE w.""IsDeleted"" = false
+                   AND w.""Status"" = 'ReadyForDelivery'
+                ) AS ""ReadyForDeliveryCount""
+        ";
+
+        var result = await _db.Database
+            .SqlQueryRaw<WarrantyDashboardScalars>(sql)
+            .FirstOrDefaultAsync();
+
+        return result ?? new WarrantyDashboardScalars();
     }
 
     public async Task<Warranty?> GetByIdAsync(Guid id) =>

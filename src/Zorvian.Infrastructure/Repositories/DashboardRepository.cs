@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Zorvian.Application.DTOs.Dashboard;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
 using Zorvian.Infrastructure.Data;
@@ -24,27 +25,84 @@ public sealed class DashboardRepository : IDashboardRepository
         return NeedsBypass ? set.IgnoreQueryFilters().Where(e => !EF.Property<bool>(e, "IsDeleted")) : set;
     }
 
-    public async Task<int> GetTotalEmployeesAsync()
+    /// <summary>
+    /// Ultra-optimized: returns ALL scalar KPI values in a single raw SQL round-trip.
+    /// Uses 11 correlated subqueries — the DB executes them in one network call.
+    /// </summary>
+    public async Task<DashboardKpiScalars> GetAllKpiScalarsRawAsync(
+        string tenantId, bool isSuperAdmin, DateOnly thirtyDaysAgo, int currentMonth, int lastMonth)
     {
-        return await Query<Employee>().CountAsync();
-    }
+        var sql = @"
+            SELECT
+                (SELECT COUNT(*) FROM ""Employees"" e
+                 WHERE (e.""TenantId"" = @tenantId OR @isSuperAdmin = true) AND e.""IsDeleted"" = false
+                ) AS ""TotalEmployees"",
 
-    public async Task<int> GetActiveEmployeesAsync()
-    {
-        return await Query<Employee>().CountAsync(e => e.Status == "active");
-    }
+                (SELECT COUNT(*) FROM ""Employees"" e
+                 WHERE (e.""TenantId"" = @tenantId OR @isSuperAdmin = true) AND e.""IsDeleted"" = false
+                   AND e.""Status"" = 'active'
+                ) AS ""ActiveEmployees"",
 
-    public async Task<int> GetPreviousMonthActiveEmployeesAsync()
-    {
-        var thirtyDaysAgo = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
-        return await Query<Employee>()
-            .CountAsync(e => e.HireDate <= thirtyDaysAgo
-                && (e.TerminationDate == null || e.TerminationDate > thirtyDaysAgo));
-    }
+                (SELECT COUNT(*) FROM ""VacationRequests"" v
+                 WHERE (v.""TenantId"" = @tenantId OR @isSuperAdmin = true) AND v.""IsDeleted"" = false
+                   AND v.""Status"" = 'pending'
+                ) AS ""PendingVacationRequests"",
 
-    public async Task<int> GetInactiveEmployeesAsync()
-    {
-        return await Query<Employee>().CountAsync(e => e.Status != "active");
+                (SELECT COUNT(*) FROM ""PermissionRequests"" p
+                 WHERE (p.""TenantId"" = @tenantId OR @isSuperAdmin = true) AND p.""IsDeleted"" = false
+                   AND p.""Status"" = 'pending'
+                ) AS ""PendingPermissionRequests"",
+
+                (SELECT COUNT(*) FROM ""Employees"" e
+                 WHERE (e.""TenantId"" = @tenantId OR @isSuperAdmin = true) AND e.""IsDeleted"" = false
+                   AND e.""Status"" = 'active' AND EXTRACT(MONTH FROM e.""DateOfBirth"") = @currentMonth
+                ) AS ""BirthdayCount"",
+
+                (SELECT COUNT(*) FROM ""Employees"" e
+                 WHERE (e.""TenantId"" = @tenantId OR @isSuperAdmin = true) AND e.""IsDeleted"" = false
+                   AND e.""Status"" = 'active' AND EXTRACT(MONTH FROM e.""HireDate"") = @currentMonth
+                ) AS ""AnniversaryCount"",
+
+                (SELECT COUNT(*) FROM ""Employees"" e
+                 WHERE (e.""TenantId"" = @tenantId OR @isSuperAdmin = true) AND e.""IsDeleted"" = false
+                   AND e.""Status"" = 'active' AND EXTRACT(MONTH FROM e.""DateOfBirth"") = @lastMonth
+                ) AS ""PrevBirthdayCount"",
+
+                (SELECT COUNT(*) FROM ""Employees"" e
+                 WHERE (e.""TenantId"" = @tenantId OR @isSuperAdmin = true) AND e.""IsDeleted"" = false
+                   AND e.""Status"" = 'active' AND EXTRACT(MONTH FROM e.""HireDate"") = @lastMonth
+                ) AS ""PrevAnniversaryCount"",
+
+                (SELECT COUNT(*) FROM ""VacationRequests"" v
+                 WHERE (v.""TenantId"" = @tenantId OR @isSuperAdmin = true) AND v.""IsDeleted"" = false
+                   AND (v.""Status"" = 'approved' OR v.""Status"" = 'rejected')
+                   AND v.""UpdatedAt"" IS NOT NULL AND v.""UpdatedAt""::date >= @sinceDate
+                ) AS ""ResolvedVacationCount"",
+
+                (SELECT COUNT(*) FROM ""PermissionRequests"" p
+                 WHERE (p.""TenantId"" = @tenantId OR @isSuperAdmin = true) AND p.""IsDeleted"" = false
+                   AND (p.""Status"" = 'approved' OR p.""Status"" = 'rejected')
+                   AND p.""UpdatedAt"" IS NOT NULL AND p.""UpdatedAt""::date >= @sinceDate
+                ) AS ""ResolvedPermissionCount"",
+
+                (SELECT COUNT(*) FROM ""Employees"" e
+                 WHERE (e.""TenantId"" = @tenantId OR @isSuperAdmin = true) AND e.""IsDeleted"" = false
+                   AND e.""HireDate"" <= @thirtyDaysAgo
+                   AND (e.""TerminationDate"" IS NULL OR e.""TerminationDate"" > @thirtyDaysAgo)
+                ) AS ""PreviousMonthActiveEmployees""
+        ";
+
+        var result = await _db.Database
+            .SqlQueryRaw<DashboardKpiScalars>(sql,
+                new Npgsql.NpgsqlParameter("@tenantId", tenantId),
+                new Npgsql.NpgsqlParameter("@isSuperAdmin", isSuperAdmin),
+                new Npgsql.NpgsqlParameter("@sinceDate", thirtyDaysAgo),
+                new Npgsql.NpgsqlParameter("@currentMonth", currentMonth),
+                new Npgsql.NpgsqlParameter("@lastMonth", lastMonth),
+                new Npgsql.NpgsqlParameter("@thirtyDaysAgo", thirtyDaysAgo))
+            .FirstOrDefaultAsync();
+
+        return result ?? new DashboardKpiScalars();
     }
 
     public async Task<List<(string Name, int Count)>> GetEmployeesByDepartmentAsync()
@@ -60,6 +118,16 @@ public sealed class DashboardRepository : IDashboardRepository
         return data.Select(d => (d.Name, d.Count)).ToList();
     }
 
+    public async Task<int> GetTotalEmployeesAsync()
+    {
+        return await Query<Employee>().CountAsync();
+    }
+
+    public async Task<int> GetActiveEmployeesAsync()
+    {
+        return await Query<Employee>().CountAsync(e => e.Status == "active");
+    }
+
     public async Task<int> GetPendingVacationRequestsAsync()
     {
         return await Query<VacationRequest>().CountAsync(v => v.Status == "pending");
@@ -68,50 +136,6 @@ public sealed class DashboardRepository : IDashboardRepository
     public async Task<int> GetPendingPermissionRequestsAsync()
     {
         return await Query<PermissionRequest>().CountAsync(p => p.Status == "pending");
-    }
-
-    public async Task<List<Employee>> GetEmployeesWithBirthdayThisMonthAsync()
-    {
-        var now = DateTime.UtcNow;
-        return await Query<Employee>()
-            .Where(e => e.DateOfBirth!.Value.Month == now.Month && e.Status == "active")
-            .ToListAsync();
-    }
-
-    public async Task<List<Employee>> GetEmployeesWithAnniversaryThisMonthAsync()
-    {
-        var now = DateTime.UtcNow;
-        return await Query<Employee>()
-            .Where(e => e.HireDate.Month == now.Month && e.Status == "active")
-            .ToListAsync();
-    }
-
-    public async Task<int> GetResolvedVacationCountSinceAsync(DateOnly since)
-    {
-        return await Query<VacationRequest>()
-            .CountAsync(v => (v.Status == "approved" || v.Status == "rejected")
-                && v.UpdatedAt != null && DateOnly.FromDateTime(v.UpdatedAt.Value) >= since);
-    }
-
-    public async Task<int> GetResolvedPermissionCountSinceAsync(DateOnly since)
-    {
-        return await Query<PermissionRequest>()
-            .CountAsync(p => (p.Status == "approved" || p.Status == "rejected")
-                && p.UpdatedAt != null && DateOnly.FromDateTime(p.UpdatedAt.Value) >= since);
-    }
-
-    public async Task<List<Employee>> GetEmployeesWithBirthdayInMonthAsync(int month)
-    {
-        return await Query<Employee>()
-            .Where(e => e.DateOfBirth!.Value.Month == month && e.Status == "active")
-            .ToListAsync();
-    }
-
-    public async Task<List<Employee>> GetEmployeesWithAnniversaryInMonthAsync(int month)
-    {
-        return await Query<Employee>()
-            .Where(e => e.HireDate.Month == month && e.Status == "active")
-            .ToListAsync();
     }
 
     public async Task<List<VacationRequest>> GetVacationsInRangeAsync(DateOnly start, DateOnly end)

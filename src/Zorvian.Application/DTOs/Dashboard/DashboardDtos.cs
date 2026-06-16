@@ -45,6 +45,25 @@ public sealed record DashboardSummaryResponse(
     List<RecentRequestItem> RecentRequests
 );
 
+/// <summary>
+/// Raw SQL result DTO — all scalar KPI values in a single DB round-trip.
+/// Property names match the SQL column aliases (case-insensitive).
+/// </summary>
+public sealed class DashboardKpiScalars
+{
+    public int TotalEmployees { get; set; }
+    public int ActiveEmployees { get; set; }
+    public int PendingVacationRequests { get; set; }
+    public int PendingPermissionRequests { get; set; }
+    public int BirthdayCount { get; set; }
+    public int AnniversaryCount { get; set; }
+    public int PrevBirthdayCount { get; set; }
+    public int PrevAnniversaryCount { get; set; }
+    public int ResolvedVacationCount { get; set; }
+    public int ResolvedPermissionCount { get; set; }
+    public int PreviousMonthActiveEmployees { get; set; }
+}
+
 public sealed record PayrollDashboardResponse(
     List<PayrollCostByDept> CostsByDepartment,
     List<PayrollHistoryItem> History,
