@@ -6,7 +6,7 @@ using Zorvian.Application.Services.Fleet;
 namespace Zorvian.Web.Controllers.Fleet;
 
 [ApiController]
-[Route("api/fleet/predictive")]
+[Route("zorvian/v1/fleet/predictive")]
 [Authorize]
 public sealed class PredictiveMaintenanceController : ControllerBase
 {

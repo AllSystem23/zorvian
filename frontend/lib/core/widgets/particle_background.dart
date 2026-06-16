@@ -1,6 +1,5 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:vector_math/vector_math_64.dart' show radians;
 
 class ParticleBackground extends StatefulWidget {
   final int particleCount;
@@ -51,14 +50,14 @@ class _ParticleBackgroundState extends State<ParticleBackground>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _controller,
-      builder: (_, __) => CustomPaint(
+      builder: (_, _) => CustomPaint(
         painter: _ParticlePainter(
           particles: _particles,
           colors: widget.colors,
           progress: _controller.value,
           speed: widget.speed,
         ),
-        size: Size.infinite,
+        size: Size.zero,
       ),
     );
   }

@@ -44,13 +44,13 @@ class OpportunityNotifier extends Notifier<OpportunityState> {
       final dio = ref.read(dioClientProvider);
       
       // Load stages first
-      final stagesRes = await dio.get('zorvian/v1/crm/pipeline-stages');
+      final stagesRes = await dio.get('crm/pipeline-stages');
       final stages = (stagesRes.data as List)
           .map((e) => PipelineStage.fromJson(e))
           .toList();
 
       // Load opportunities
-      final oppsRes = await dio.get('zorvian/v1/crm/opportunities');
+      final oppsRes = await dio.get('crm/opportunities');
       final opps = (oppsRes.data as List)
           .map((e) => Opportunity.fromJson(e))
           .toList();
@@ -71,7 +71,7 @@ class OpportunityNotifier extends Notifier<OpportunityState> {
   Future<bool> createOpportunity(Map<String, dynamic> data) async {
     try {
       final dio = ref.read(dioClientProvider);
-      await dio.post('zorvian/v1/crm/opportunities', data: data);
+      await dio.post('crm/opportunities', data: data);
       await loadPipeline();
       return true;
     } catch (e) {

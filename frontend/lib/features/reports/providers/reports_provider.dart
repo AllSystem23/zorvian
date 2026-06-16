@@ -16,7 +16,7 @@ class ReportsService {
 
   Future<void> downloadReport(String type, {int? year, int? month, String format = 'xlsx', String? periodId}) async {
     final response = await _dio.post(
-      '/reports/generate',
+      'reports/generate',
       data: {
         'reportType': type,
         'year': year,

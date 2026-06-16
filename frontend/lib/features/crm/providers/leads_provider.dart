@@ -46,7 +46,7 @@ class LeadNotifier extends Notifier<LeadState> {
     state = state.copyWith(loading: true, error: null);
     try {
       final dio = ref.read(dioClientProvider);
-      final response = await dio.get('zorvian/v1/crm/leads', params: {
+      final response = await dio.get('crm/leads', params: {
         'page': page,
         'status': status,
         'pageSize': 20,
@@ -75,7 +75,7 @@ class LeadNotifier extends Notifier<LeadState> {
   Future<bool> createLead(Map<String, dynamic> data) async {
     try {
       final dio = ref.read(dioClientProvider);
-      await dio.post('zorvian/v1/crm/leads', data: data);
+      await dio.post('crm/leads', data: data);
       await loadLeads();
       return true;
     } catch (e) {

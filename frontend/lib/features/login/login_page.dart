@@ -51,27 +51,31 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           Positioned(
             top: -100,
             right: -100,
-            child: Container(
-              width: 400,
-              height: 400,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: ZColors.brandAccent.withValues(alpha: 0.05),
+            child: ClipRRect(
+              child: Container(
+                width: 400,
+                height: 400,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: ZColors.brandAccent.withValues(alpha: 0.05),
+                ),
+                child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 100, sigmaY: 100), child: Container()),
               ),
-              child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 100, sigmaY: 100), child: Container()),
             ),
           ),
           Positioned(
             bottom: -50,
             left: -50,
-            child: Container(
-              width: 300,
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: ZColors.brandTeal.withValues(alpha: 0.03),
+            child: ClipRRect(
+              child: Container(
+                width: 300,
+                height: 300,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: ZColors.brandTeal.withValues(alpha: 0.03),
+                ),
+                child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80), child: Container()),
               ),
-              child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 80, sigmaY: 80), child: Container()),
             ),
           ),
           

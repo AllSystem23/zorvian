@@ -24,7 +24,7 @@ class ActivityNotifier extends Notifier<ActivityState> {
     state = state.copyWith(loading: true);
     try {
       final dio = ref.read(dioClientProvider);
-      final response = await dio.get('zorvian/v1/crm/leads/$leadId/activities');
+      final response = await dio.get('crm/leads/$leadId/activities');
       final data = (response.data as List)
           .map((e) => CrmActivity.fromJson(e as Map<String, dynamic>))
           .toList();
@@ -37,7 +37,7 @@ class ActivityNotifier extends Notifier<ActivityState> {
   Future<bool> addActivity(String leadId, Map<String, dynamic> data) async {
     try {
       final dio = ref.read(dioClientProvider);
-      await dio.post('zorvian/v1/crm/leads/$leadId/activities', data: data);
+      await dio.post('crm/leads/$leadId/activities', data: data);
       await loadActivities(leadId);
       return true;
     } catch (_) {
