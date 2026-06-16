@@ -42,7 +42,7 @@ public class WarrantyCostService : IWarrantyCostService
     public async Task<WarrantyCostResponse> CreateAsync(CreateWarrantyCostRequest request)
     {
         var cost = _mapper.Map<WarrantyCost>(request);
-        cost.CompanyId = Guid.TryParse(_tenant.TenantId, out var companyId) ? companyId : throw new InvalidOperationException("Invalid tenant");
+        cost.CompanyId = _tenant.RequireCompanyId();
         await _repo.AddAsync(cost);
         await _repo.SaveChangesAsync();
 
@@ -67,7 +67,7 @@ public class WarrantyCostService : IWarrantyCostService
         var wasUnbilled = !cost.IsBilled;
         var willBeBilled = request.IsBilled == true;
 
-        cost.CompanyId = Guid.TryParse(_tenant.TenantId, out var companyId) ? companyId : throw new InvalidOperationException("Invalid tenant");
+        cost.CompanyId = _tenant.RequireCompanyId();
 
         _mapper.Map(request, cost);
 

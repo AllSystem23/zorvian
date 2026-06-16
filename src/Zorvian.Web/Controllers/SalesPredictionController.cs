@@ -102,7 +102,7 @@ public sealed class SalesPredictionController : ControllerBase
         }
 
         var currentMonthSales = await _db.Sales
-            .Where(s => s.TenantId == _tenant.TenantId
+            .Where(s => (s.TenantId == _tenant.TenantId || _tenant.IsSuperAdmin)
                 && s.SaleDate.Year == today.Year
                 && s.SaleDate.Month == today.Month
                 && !s.IsDeleted)
@@ -124,14 +124,14 @@ public sealed class SalesPredictionController : ControllerBase
         var tenantId = _tenant.TenantId;
 
         var previousDaySales = await _db.Sales
-            .Where(s => s.TenantId == tenantId
+            .Where(s => (s.TenantId == tenantId || _tenant.IsSuperAdmin)
                 && s.SaleDate.Date == date.AddDays(-1).Date
                 && !s.IsDeleted)
             .SumAsync(s => s.Total);
 
         var weekAgo = date.AddDays(-7);
         var previousWeekSales = await _db.Sales
-            .Where(s => s.TenantId == tenantId
+            .Where(s => (s.TenantId == tenantId || _tenant.IsSuperAdmin)
                 && s.SaleDate.Date >= weekAgo.Date
                 && s.SaleDate.Date < date.Date
                 && !s.IsDeleted)

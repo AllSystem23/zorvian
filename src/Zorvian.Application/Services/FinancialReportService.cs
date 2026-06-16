@@ -32,7 +32,7 @@ public sealed class FinancialReportService
         _tenant = tenant;
     }
 
-    private Guid CompanyId => Guid.TryParse(_tenant.TenantId, out var id) ? id : throw new InvalidOperationException("Invalid tenant");
+    private Guid CompanyId => _tenant.ResolveCompanyId();
 
     private async Task<string> GetCompanyCurrencyAsync()
     {

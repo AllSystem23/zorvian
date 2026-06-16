@@ -28,7 +28,7 @@ public sealed class ApiKeysController : ControllerBase
     public async Task<IActionResult> GetKeys()
     {
         var keys = await _db.Set<ApiKey>()
-            .Where(k => k.TenantId == _tenant.TenantId)
+            .Where(k => k.TenantId == _tenant.TenantId || _tenant.IsSuperAdmin)
             .Select(k => new { k.Id, k.Name, k.Prefix, k.LastUsedAt, k.ExpiresAt, k.IsActive, k.CreatedAt })
             .ToListAsync();
         return Ok(keys);
@@ -45,7 +45,7 @@ public sealed class ApiKeysController : ControllerBase
     public async Task<IActionResult> DeleteKey(Guid id)
     {
         var key = await _db.Set<ApiKey>().FindAsync(id);
-        if (key == null || key.TenantId != _tenant.TenantId) return NotFound();
+        if (key == null || (key.TenantId != _tenant.TenantId && !_tenant.IsSuperAdmin)) return NotFound();
 
         _db.Set<ApiKey>().Remove(key);
         await _db.SaveChangesAsync();

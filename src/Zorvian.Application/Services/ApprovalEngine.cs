@@ -23,7 +23,7 @@ public sealed class ApprovalEngine : IApprovalEngine
         _tenant = tenant; _mapper = mapper;
     }
 
-    private Guid CompanyId => Guid.TryParse(_tenant.TenantId, out var id) ? id : throw new InvalidOperationException("Invalid tenant");
+    private Guid CompanyId => _tenant.RequireCompanyId();
 
     public async Task<ApprovalEvaluationResult> EvaluateAsync(
         string module, string eventType, Guid referenceId, decimal amount, string requestedBy)

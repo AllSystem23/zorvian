@@ -25,7 +25,7 @@ public sealed class FixedAssetCategoriesController : ControllerBase
         _mapper = mapper;
     }
 
-    private Guid CompanyId => Guid.TryParse(_tenant.TenantId, out var id) ? id : throw new InvalidOperationException("Invalid tenant");
+    private Guid CompanyId => _tenant.ResolveCompanyId();
 
     [RequirePermission(Permissions.FixedAssetWrite)]
     [HttpPost]

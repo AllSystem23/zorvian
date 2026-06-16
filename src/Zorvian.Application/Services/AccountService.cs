@@ -25,11 +25,14 @@ public sealed class AccountService
     {
         if (_cachedCompanyId.HasValue) return _cachedCompanyId.Value;
 
-        if (Guid.TryParse(_tenant.TenantId, out var id))
+        if (_tenant.TenantId.TryGetCompanyId(out var id) && id != Guid.Empty)
         {
             _cachedCompanyId = id;
             return id;
         }
+
+        if (_tenant.IsSuperAdmin)
+            return Guid.Empty;
 
         var company = await _companyRepo.GetByTenantIdAsync(_tenant.TenantId ?? "");
         if (company is not null)
@@ -38,7 +41,7 @@ public sealed class AccountService
             return company.Id;
         }
 
-        throw new InvalidOperationException("Invalid tenant");
+        throw new InvalidOperationException("Tenant not configured. Switch to a company first.");
     }
 
     public async Task<List<AccountResponse>> GetAllAsync()
@@ -304,7 +307,7 @@ public sealed class AccountingEntryService
         _entryRepo = entryRepo; _periodRepo = periodRepo; _accountRepo = accountRepo; _tenant = tenant; _mapper = mapper;
     }
 
-    private Guid CompanyId => Guid.TryParse(_tenant.TenantId, out var id) ? id : throw new InvalidOperationException("Invalid tenant");
+    private Guid CompanyId => _tenant.ResolveCompanyId();
 
     public async Task<AccountingEntryResponse> CreateManualEntryAsync(CreateManualEntryRequest request)
     {
@@ -396,7 +399,7 @@ public sealed class AccountingPeriodService
     public AccountingPeriodService(IAccountingPeriodRepository repo, ITenantContext tenant)
     { _repo = repo; _tenant = tenant; }
 
-    private Guid CompanyId => Guid.TryParse(_tenant.TenantId, out var id) ? id : throw new InvalidOperationException("Invalid tenant");
+    private Guid CompanyId => _tenant.ResolveCompanyId();
 
     public async Task<List<AccountingPeriodResponse>> GetAllAsync()
     {

@@ -31,7 +31,7 @@ public sealed class UsersController : ControllerBase
     public async Task<IActionResult> GetList()
     {
         var users = await _db.Users
-            .Where(u => u.TenantId == _tenant.TenantId)
+            .Where(u => u.TenantId == _tenant.TenantId || _tenant.IsSuperAdmin)
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
             .Include(u => u.Employee)
@@ -57,7 +57,7 @@ public sealed class UsersController : ControllerBase
     public async Task<IActionResult> GetById(Guid id)
     {
         var user = await _db.Users
-            .Where(u => u.TenantId == _tenant.TenantId)
+            .Where(u => u.TenantId == _tenant.TenantId || _tenant.IsSuperAdmin)
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
             .Include(u => u.Employee)
@@ -94,7 +94,7 @@ public sealed class UsersController : ControllerBase
             return Forbid();
 
         var user = await _db.Users
-            .Where(u => u.TenantId == _tenant.TenantId)
+            .Where(u => u.TenantId == _tenant.TenantId || _tenant.IsSuperAdmin)
             .Include(u => u.UserRoles)
             .FirstOrDefaultAsync(u => u.Id == id);
 
@@ -102,7 +102,7 @@ public sealed class UsersController : ControllerBase
             return NotFound(new { error = "User not found" });
 
         var role = await _db.Roles
-            .FirstOrDefaultAsync(r => r.Id == request.RoleId && (r.TenantId == _tenant.TenantId || r.IsSystem));
+            .FirstOrDefaultAsync(r => r.Id == request.RoleId && (r.TenantId == _tenant.TenantId || r.IsSystem || _tenant.IsSuperAdmin));
 
         if (role is null)
             return NotFound(new { error = "Role not found" });
@@ -136,7 +136,7 @@ public sealed class UsersController : ControllerBase
             return Forbid();
 
         var user = await _db.Users
-            .Where(u => u.TenantId == _tenant.TenantId)
+            .Where(u => u.TenantId == _tenant.TenantId || _tenant.IsSuperAdmin)
             .FirstOrDefaultAsync(u => u.Id == id);
 
         if (user is null)
@@ -149,7 +149,7 @@ public sealed class UsersController : ControllerBase
                 return BadRequest(new { error = "No puedes desactivarte a ti mismo" });
 
             var otherAdmins = await _db.UserRoles
-                .Where(ur => ur.Role.Name == RoleType.CompanyAdmin && ur.User.TenantId == _tenant.TenantId && ur.User.Id != id && ur.User.IsActive)
+                .Where(ur => ur.Role.Name == RoleType.CompanyAdmin && (ur.User.TenantId == _tenant.TenantId || _tenant.IsSuperAdmin) && ur.User.Id != id && ur.User.IsActive)
                 .CountAsync();
 
             if (otherAdmins == 0)
@@ -168,7 +168,7 @@ public sealed class UsersController : ControllerBase
     public async Task<IActionResult> GetRoles()
     {
         var roles = await _db.Roles
-            .Where(r => r.TenantId == _tenant.TenantId)
+            .Where(r => r.TenantId == _tenant.TenantId || _tenant.IsSuperAdmin || r.IsSystem)
             .OrderBy(r => r.DisplayName)
             .ToListAsync();
 

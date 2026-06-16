@@ -34,7 +34,7 @@ public sealed class PipelineStagesController : ControllerBase
     {
         var companyId = _tenantContext.TenantId.Value;
         var stages = await _db.PipelineStages
-            .Where(s => s.CompanyId == companyId)
+            .Where(s => s.CompanyId == companyId || _tenantContext.IsSuperAdmin)
             .OrderBy(s => s.Order)
             .ToListAsync();
         

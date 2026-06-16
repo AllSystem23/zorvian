@@ -20,7 +20,7 @@ public sealed class WarrantyProfitabilityReportService
         _tenant = tenant;
     }
 
-    private Guid CompanyId => Guid.TryParse(_tenant.TenantId, out var id) ? id : throw new InvalidOperationException("Invalid tenant");
+    private Guid CompanyId => _tenant.ResolveCompanyId();
 
     public async Task<WarrantyCostSummary> GetCostByWarrantyAsync(Guid warrantyId)
     {

@@ -31,7 +31,7 @@ public sealed class ReportService : IReportService
 
         if (detail is null) throw new KeyNotFoundException("Payroll detail not found");
 
-        var company = await _db.Companies.FirstOrDefaultAsync(c => c.TenantId == _tenant.TenantId);
+        var company = await _db.Companies.FirstOrDefaultAsync(c => c.TenantId == detail.Employee!.TenantId);
 
         var document = Document.Create(container =>
         {

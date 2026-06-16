@@ -35,8 +35,7 @@ public sealed class CustomReportService : ICustomReportService
         _tenant = tenant;
     }
 
-    private Guid CompanyId =>
-        Guid.TryParse(_tenant.TenantId, out var id) ? id : throw new InvalidOperationException("Invalid tenant");
+    private Guid CompanyId => _tenant.ResolveCompanyId();
 
     public async Task<List<CustomReportResponse>> GetAllAsync(string? userId = null)
     {

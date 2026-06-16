@@ -62,7 +62,7 @@ public sealed class PerformanceService
     {
         var objectives = await _db.Objectives
             .Include(o => o.KeyResults)
-            .Where(o => o.EmployeeId == employeeId && o.TenantId == _tenant.TenantId)
+            .Where(o => o.EmployeeId == employeeId && (o.TenantId == _tenant.TenantId || _tenant.IsSuperAdmin))
             .ToListAsync();
             
         return objectives.Select(MapToResponse).ToList();

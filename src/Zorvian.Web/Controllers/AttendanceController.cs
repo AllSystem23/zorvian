@@ -39,7 +39,7 @@ public sealed class AttendanceController : ControllerBase
     [RequirePermission(Permissions.EmployeeRead)]
     public async Task<IActionResult> GetAbsenteeismPredictions()
     {
-        var employees = await _db.Employees.Where(e => e.TenantId == _tenant.TenantId).ToListAsync();
+        var employees = await _db.Employees.Where(e => e.TenantId == _tenant.TenantId || _tenant.IsSuperAdmin).ToListAsync();
         var predictions = new List<object>();
 
         foreach (var emp in employees)

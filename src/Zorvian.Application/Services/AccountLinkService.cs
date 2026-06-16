@@ -14,7 +14,7 @@ public sealed class AccountLinkService
     public AccountLinkService(IAccountLinkRepository repo, IAccountRepository accountRepo, ITenantContext tenant)
     { _repo = repo; _accountRepo = accountRepo; _tenant = tenant; }
 
-    public Guid CompanyId => Guid.TryParse(_tenant.TenantId, out var id) ? id : throw new InvalidOperationException("Invalid tenant");
+    public Guid CompanyId => _tenant.RequireCompanyId();
 
     public async Task<List<AccountLinkResponse>> GetAllAsync()
     {

@@ -17,7 +17,7 @@ public sealed class ApprovalFlowConfigService
         _repo = repo; _tenant = tenant; _mapper = mapper;
     }
 
-    private Guid CompanyId => Guid.TryParse(_tenant.TenantId, out var id) ? id : throw new InvalidOperationException("Invalid tenant");
+    private Guid CompanyId => _tenant.RequireCompanyId();
 
     public async Task<List<ApprovalFlowConfigResponse>> GetAllAsync()
     {
