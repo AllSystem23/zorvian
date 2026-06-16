@@ -34,6 +34,8 @@ public static class TransactionTypes
     public const string Collection = "Collection";
     public const string AdvanceToSupplier = "AdvanceToSupplier";
     public const string AdvanceApplication = "AdvanceApplication";
+    public const string FleetExpense = "FleetExpense";
+    public const string FleetFuel = "FleetFuel";
 }
 
 public static class AccountRoles
@@ -67,4 +69,7 @@ public static class AccountRoles
     public const string LateFeeIncome = "LateFeeIncome";
     public const string BankExpense = "BankExpense";
     public const string CashEquivalents = "CashEquivalents";
+    public const string FleetOperatingExpense = "FleetOperatingExpense";
+    public const string FleetFuelExpense = "FleetFuelExpense";
+    public const string FleetMaintenanceExpense = "FleetMaintenanceExpense";
 }

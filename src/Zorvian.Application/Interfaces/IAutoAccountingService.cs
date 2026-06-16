@@ -33,4 +33,5 @@ public interface IAutoAccountingService
     Task<Guid> GenerateCollectionEntryAsync(Guid collectionId, decimal amount, decimal interest, decimal lateFee, Guid invoiceId, Guid? costCenterId);
     Task<Guid> GenerateAdvanceToSupplierEntryAsync(Guid advanceId, decimal amount, Guid supplierId, Guid? costCenterId);
     Task<Guid> GenerateSupplierAdvanceApplicationEntryAsync(Guid applicationId, decimal amount, Guid advanceId, Guid purchaseId, Guid? costCenterId);
+    Task<Guid> GenerateFleetExpenseEntryAsync(Guid expenseId, decimal amount, string description, Guid? accountId, Guid companyId, Guid? branchId);
 }

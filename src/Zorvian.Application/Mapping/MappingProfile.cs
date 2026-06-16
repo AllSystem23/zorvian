@@ -10,7 +10,9 @@ using Zorvian.Application.DTOs.Warranty;
 using Zorvian.Application.DTOs.Accounting;
 using Zorvian.Application.DTOs.FixedAssets;
 using Zorvian.Application.DTOs.Approval;
+using Zorvian.Application.DTOs.Fleet;
 using Zorvian.Core.Entities;
+using Zorvian.Core.Entities.Fleet;
 using Zorvian.Core.Enums;
 
 namespace Zorvian.Application.Mapping;
@@ -610,5 +612,267 @@ public sealed class MappingProfile : Profile
         CreateMap<ApprovalFlowStep, ApprovalFlowStepResponse>();
         CreateMap<ApprovalRequest, ApprovalRequestResponse>();
         CreateMap<ApprovalRequestAction, ApprovalRequestActionResponse>();
+
+        // ── Fleet Module ──
+        CreateMap<CreateVehicleBrandRequest, VehicleBrand>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.IsActive, o => o.MapFrom(_ => true));
+        CreateMap<UpdateVehicleBrandRequest, VehicleBrand>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<VehicleBrand, VehicleBrandResponse>();
+
+        CreateMap<CreateVehicleTypeRequest, VehicleType>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.IsActive, o => o.MapFrom(_ => true));
+        CreateMap<UpdateVehicleTypeRequest, VehicleType>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<VehicleType, VehicleTypeResponse>();
+
+        CreateMap<CreateFuelTypeRequest, FuelType>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.IsActive, o => o.MapFrom(_ => true));
+        CreateMap<UpdateFuelTypeRequest, FuelType>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<FuelType, FuelTypeResponse>();
+
+        CreateMap<CreateDriverLicenseCategoryRequest, DriverLicenseCategory>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.IsActive, o => o.MapFrom(_ => true));
+        CreateMap<UpdateDriverLicenseCategoryRequest, DriverLicenseCategory>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<DriverLicenseCategory, DriverLicenseCategoryResponse>();
+
+        CreateMap<CreateVehicleRequest, Vehicle>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.PreviousKm, o => o.MapFrom(_ => 0))
+            .ForMember(d => d.Brand, o => o.Ignore())
+            .ForMember(d => d.VehicleType, o => o.Ignore())
+            .ForMember(d => d.FuelType, o => o.Ignore())
+            .ForMember(d => d.Branch, o => o.Ignore())
+            .ForMember(d => d.Driver, o => o.Ignore());
+        CreateMap<UpdateVehicleRequest, Vehicle>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.Brand, o => o.Ignore())
+            .ForMember(d => d.VehicleType, o => o.Ignore())
+            .ForMember(d => d.FuelType, o => o.Ignore())
+            .ForMember(d => d.Branch, o => o.Ignore())
+            .ForMember(d => d.Driver, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<Vehicle, VehicleResponse>()
+            .ForMember(d => d.BrandName, o => o.MapFrom(s => s.Brand.Name))
+            .ForMember(d => d.VehicleTypeName, o => o.MapFrom(s => s.VehicleType.Name))
+            .ForMember(d => d.FuelTypeName, o => o.MapFrom(s => s.FuelType.Name))
+            .ForMember(d => d.BranchName, o => o.MapFrom(s => s.Branch.Name))
+            .ForMember(d => d.DriverName, o => o.MapFrom(s => s.Driver != null ? s.Driver.FullName : null));
+
+        CreateMap<CreateDriverRequest, Driver>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.Employee, o => o.Ignore())
+            .ForMember(d => d.LicenseCategory, o => o.Ignore())
+            .ForMember(d => d.Branch, o => o.Ignore());
+        CreateMap<UpdateDriverRequest, Driver>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.Employee, o => o.Ignore())
+            .ForMember(d => d.LicenseCategory, o => o.Ignore())
+            .ForMember(d => d.Branch, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<Driver, DriverResponse>()
+            .ForMember(d => d.FullName, o => o.MapFrom(s => s.FullName))
+            .ForMember(d => d.LicenseCategoryName, o => o.MapFrom(s => s.LicenseCategory.Name))
+            .ForMember(d => d.BranchName, o => o.MapFrom(s => s.Branch.Name));
+
+        CreateMap<CreateMaintenanceTemplateRequest, MaintenanceTemplate>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.IsActive, o => o.MapFrom(_ => true));
+        CreateMap<UpdateMaintenanceTemplateRequest, MaintenanceTemplate>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<MaintenanceTemplate, MaintenanceTemplateResponse>();
+
+        CreateMap<CreateFailureTypeRequest, FailureType>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.IsActive, o => o.MapFrom(_ => true));
+        CreateMap<UpdateFailureTypeRequest, FailureType>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<FailureType, FailureTypeResponse>();
+
+        CreateMap<CreateWorkshopRequest, Workshop>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.IsActive, o => o.MapFrom(_ => true));
+        CreateMap<UpdateWorkshopRequest, Workshop>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<Workshop, WorkshopResponse>();
+
+        CreateMap<CreateDocumentTypeRequest, DocumentType>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.IsActive, o => o.MapFrom(_ => true));
+        CreateMap<UpdateDocumentTypeRequest, DocumentType>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<DocumentType, DocumentTypeResponse>();
+
+        CreateMap<CreateFleetDocumentRequest, FleetDocument>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.Status, o => o.MapFrom(_ => "Valid"))
+            .ForMember(d => d.AlertSent, o => o.MapFrom(_ => false))
+            .ForMember(d => d.DocumentType, o => o.Ignore());
+        CreateMap<UpdateFleetDocumentRequest, FleetDocument>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.DocumentType, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<FleetDocument, FleetDocumentResponse>()
+            .ForMember(d => d.DocumentTypeName, o => o.MapFrom(s => s.DocumentType.Name))
+            .ForMember(d => d.DocumentTypeHasExpiry, o => o.MapFrom(s => s.DocumentType.HasExpiry));
+
+        CreateMap<CreateExpenseCategoryRequest, ExpenseCategory>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.IsActive, o => o.MapFrom(_ => true));
+        CreateMap<UpdateExpenseCategoryRequest, ExpenseCategory>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<ExpenseCategory, ExpenseCategoryResponse>();
+
+        CreateMap<CreateExpenseSubcategoryRequest, ExpenseSubcategory>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.IsActive, o => o.MapFrom(_ => true));
+        CreateMap<UpdateExpenseSubcategoryRequest, ExpenseSubcategory>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<ExpenseSubcategory, ExpenseSubcategoryResponse>()
+            .ForMember(d => d.CategoryName, o => o.MapFrom(s => s.Category.Name));
+
+        CreateMap<CreateFleetExpenseRequest, FleetExpense>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.AmountBaseCurrency, o => o.Ignore())
+            .ForMember(d => d.Reimbursed, o => o.MapFrom(_ => false))
+            .ForMember(d => d.Approved, o => o.MapFrom(_ => false))
+            .ForMember(d => d.Category, o => o.Ignore())
+            .ForMember(d => d.Subcategory, o => o.Ignore())
+            .ForMember(d => d.Vehicle, o => o.Ignore())
+            .ForMember(d => d.Driver, o => o.Ignore())
+            .ForMember(d => d.Trip, o => o.Ignore())
+            .ForMember(d => d.Route, o => o.Ignore())
+            .ForMember(d => d.Supplier, o => o.Ignore())
+            .ForMember(d => d.Account, o => o.Ignore());
+        CreateMap<UpdateFleetExpenseRequest, FleetExpense>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.Category, o => o.Ignore())
+            .ForMember(d => d.Subcategory, o => o.Ignore())
+            .ForMember(d => d.Vehicle, o => o.Ignore())
+            .ForMember(d => d.Driver, o => o.Ignore())
+            .ForMember(d => d.Trip, o => o.Ignore())
+            .ForMember(d => d.Route, o => o.Ignore())
+            .ForMember(d => d.Supplier, o => o.Ignore())
+            .ForMember(d => d.Account, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<FleetExpense, FleetExpenseResponse>()
+            .ForMember(d => d.CategoryName, o => o.MapFrom(s => s.Category.Name))
+            .ForMember(d => d.SubcategoryName, o => o.MapFrom(s => s.Subcategory != null ? s.Subcategory.Name : null))
+            .ForMember(d => d.VehiclePlate, o => o.MapFrom(s => s.Vehicle != null ? s.Vehicle.Plate : null))
+            .ForMember(d => d.VehicleBrandModel, o => o.MapFrom(s => s.Vehicle != null ? $"{s.Vehicle.Brand.Name} {s.Vehicle.Model}" : null))
+            .ForMember(d => d.DriverName, o => o.MapFrom(s => s.Driver != null ? s.Driver.FullName : null))
+            .ForMember(d => d.SupplierName, o => o.MapFrom(s => s.Supplier != null ? s.Supplier.Name : null))
+            .ForMember(d => d.AccountName, o => o.MapFrom(s => s.Account != null ? s.Account.Name : null));
+
+        CreateMap<CreateRouteRequest, Route>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.Type, o => o.MapFrom(s => s.Type ?? "Urban"))
+            .ForMember(d => d.Points, o => o.Ignore());
+        CreateMap<CreateRoutePointRequest, RoutePoint>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.Type, o => o.MapFrom(s => s.Type ?? "Delivery"));
+        CreateMap<UpdateRouteRequest, Route>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<Route, RouteResponse>()
+            .ForMember(d => d.VehiclePlate, o => o.MapFrom(s => s.Vehicle != null ? s.Vehicle.Plate : null))
+            .ForMember(d => d.DriverName, o => o.MapFrom(s => s.Driver != null ? s.Driver.FullName : null))
+            .ForMember(d => d.CoDriverName, o => o.MapFrom(s => s.CoDriver != null ? s.CoDriver.FullName : null))
+            .ForMember(d => d.BranchName, o => o.MapFrom(s => s.Branch.Name))
+            .ForMember(d => d.Points, o => o.MapFrom(s => s.Points.OrderBy(p => p.Order)));
+
+        CreateMap<CreateDeliveryRequest, Delivery>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.Items, o => o.Ignore());
+        CreateMap<CreateDeliveryItemRequest, DeliveryItem>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.Status, o => o.MapFrom(_ => "Pending"));
+        CreateMap<UpdateDeliveryRequest, Delivery>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<Delivery, DeliveryResponse>()
+            .ForMember(d => d.ClientName, o => o.MapFrom(s => s.Client != null ? $"{s.Client.FirstName} {s.Client.LastName}" : null))
+            .ForMember(d => d.RouteName, o => o.MapFrom(s => s.Route != null ? s.Route.Name : null))
+            .ForMember(d => d.VehiclePlate, o => o.MapFrom(s => s.Vehicle != null ? s.Vehicle.Plate : null))
+            .ForMember(d => d.DriverName, o => o.MapFrom(s => s.Driver != null ? s.Driver.FullName : null));
+        CreateMap<DeliveryItem, DeliveryItemResponse>()
+            .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product != null ? s.Product.Name : null));
+
+        CreateMap<CreateTripRequest, Trip>()
+            .ForMember(d => d.Id, o => o.Ignore());
+        CreateMap<UpdateTripRequest, Trip>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<Trip, TripResponse>()
+            .ForMember(d => d.VehiclePlate, o => o.MapFrom(s => s.Vehicle.Plate))
+            .ForMember(d => d.VehicleBrandModel, o => o.MapFrom(s => $"{s.Vehicle.Brand.Name} {s.Vehicle.Model}"))
+            .ForMember(d => d.DriverName, o => o.MapFrom(s => s.Driver.FullName))
+            .ForMember(d => d.CoDriverName, o => o.MapFrom(s => s.CoDriver != null ? s.CoDriver.FullName : null));
+
+        // FuelRefill
+        CreateMap<CreateFuelRefillRequest, FuelRefill>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.AnomalyFlag, o => o.Ignore())
+            .ForMember(d => d.AnomalyNotes, o => o.Ignore());
+        CreateMap<UpdateFuelRefillRequest, FuelRefill>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<FuelRefill, FuelRefillResponse>()
+            .ForMember(d => d.VehiclePlate, o => o.MapFrom(s => s.Vehicle.Plate))
+            .ForMember(d => d.VehicleBrandModel, o => o.MapFrom(s => $"{s.Vehicle.Brand.Name} {s.Vehicle.Model}"))
+            .ForMember(d => d.DriverName, o => o.MapFrom(s => s.Driver.FullName))
+            .ForMember(d => d.FuelTypeName, o => o.MapFrom(s => s.FuelType.Name))
+            .ForMember(d => d.SupplierName, o => o.MapFrom(s => s.Supplier != null ? s.Supplier.Name : null));
+
+        // WorkOrder
+        CreateMap<CreateWorkOrderRequest, WorkOrder>()
+            .ForMember(d => d.Id, o => o.Ignore());
+        CreateMap<UpdateWorkOrderRequest, WorkOrder>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<WorkOrder, WorkOrderResponse>()
+            .ForMember(d => d.VehiclePlate, o => o.MapFrom(s => s.Vehicle.Plate))
+            .ForMember(d => d.VehicleBrandModel, o => o.MapFrom(s => $"{s.Vehicle.Brand.Name} {s.Vehicle.Model}"))
+            .ForMember(d => d.DriverName, o => o.MapFrom(s => s.Driver != null ? s.Driver.FullName : null))
+            .ForMember(d => d.FailureTypeName, o => o.MapFrom(s => s.FailureType != null ? s.FailureType.Name : null))
+            .ForMember(d => d.WorkshopName, o => o.MapFrom(s => s.Workshop != null ? s.Workshop.Name : null));
+
+        // WorkOrderPart
+        CreateMap<WorkOrderPart, WorkOrderPartResponse>()
+            .ForMember(d => d.ProductName, o => o.MapFrom(s => s.Product != null ? s.Product.Name : null));
+
+        // MaintenanceSchedule
+        CreateMap<CreateMaintenanceScheduleRequest, MaintenanceSchedule>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.Status, o => o.Ignore());
+        CreateMap<UpdateMaintenanceScheduleRequest, MaintenanceSchedule>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<MaintenanceSchedule, MaintenanceScheduleResponse>()
+            .ForMember(d => d.VehiclePlate, o => o.MapFrom(s => s.Vehicle.Plate))
+            .ForMember(d => d.VehicleBrandModel, o => o.MapFrom(s => $"{s.Vehicle.Brand.Name} {s.Vehicle.Model}"))
+            .ForMember(d => d.TemplateName, o => o.MapFrom(s => s.Template != null ? s.Template.Name : null));
+
+        // ── GPS Module ──
+        CreateMap<GpsPosition, GpsPositionResponse>()
+            .ForMember(d => d.VehiclePlate, o => o.MapFrom(s => s.Vehicle.Plate));
+
+        CreateMap<Geofence, GeofenceResponse>();
     }
 }

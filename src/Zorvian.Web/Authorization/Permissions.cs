@@ -69,4 +69,10 @@ public static class Permissions
 
     public const string DocumentRead = "document.read";
     public const string DocumentWrite = "document.write";
+
+    // Fleet Module
+    public const string FleetRead = "fleet.read";
+    public const string FleetWrite = "fleet.write";
+    public const string FleetDelete = "fleet.delete";
+    public const string FleetConfig = "fleet.config";
 }

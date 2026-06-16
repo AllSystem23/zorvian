@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../auth/auth_provider.dart';
@@ -131,6 +132,32 @@ import '../features/crm/pages/lead_detail_page.dart';
 import '../features/crm/pages/lead_form_page.dart';
 import '../features/crm/pages/opportunity_detail_page.dart';
 import '../features/crm/pages/opportunity_form_page.dart';
+import '../features/fleet/pages/fleet_dashboard_page.dart';
+import '../features/fleet/pages/fleet_vehicle_list_page.dart';
+import '../features/fleet/pages/fleet_vehicle_form_page.dart';
+import '../features/fleet/pages/fleet_driver_list_page.dart';
+import '../features/fleet/pages/fleet_driver_form_page.dart';
+import '../features/fleet/pages/fleet_document_list_page.dart';
+import '../features/fleet/pages/fleet_document_form_page.dart';
+import '../features/fleet/pages/fleet_route_list_page.dart';
+import '../features/fleet/pages/fleet_route_form_page.dart';
+import '../features/fleet/pages/fleet_delivery_list_page.dart';
+import '../features/fleet/pages/fleet_delivery_form_page.dart';
+import '../features/fleet/pages/fleet_trip_list_page.dart';
+import '../features/fleet/pages/fleet_trip_form_page.dart';
+import '../features/fleet/pages/fleet_reports_page.dart';
+import '../features/fleet/pages/fleet_fuel_list_page.dart';
+import '../features/fleet/pages/fleet_fuel_form_page.dart';
+import '../features/fleet/pages/fleet_maintenance_list_page.dart';
+import '../features/fleet/pages/fleet_maintenance_form_page.dart';
+import '../features/fleet/pages/fleet_workshop_list_page.dart';
+import '../features/fleet/pages/fleet_workshop_form_page.dart';
+import '../features/fleet/pages/fleet_expense_list_page.dart';
+import '../features/fleet/pages/fleet_expense_form_page.dart';
+import '../features/fleet/pages/fleet_gps_page.dart';
+import '../features/fleet/pages/fleet_alerts_page.dart';
+import '../features/fleet/pages/fleet_tracking_page.dart';
+import '../features/fleet/pages/fleet_predictive_page.dart';
 
 final _routeRoles = <String, List<String>>{
   '/goals/configurator': ['SuperAdmin', 'CompanyAdmin'],
@@ -189,6 +216,7 @@ final _routeRoles = <String, List<String>>{
   '/treasury': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
   '/pos': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/crm': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
+  '/fleet': ['SuperAdmin', 'CompanyAdmin', 'Supervisor', 'Dispatcher', 'Employee'],
 };
 
 bool _hasAccess(String role, String location) {
@@ -887,6 +915,151 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/chat',
             name: 'chat',
             builder: (_, _) => const ChatPage(),
+          ),
+          // ── Fleet & Logistics Module ──
+          GoRoute(
+            path: '/fleet',
+            name: 'fleet-dashboard',
+            builder: (_, _) => const FleetDashboardPage(),
+          ),
+          GoRoute(
+            path: '/fleet/vehicles',
+            name: 'fleet-vehicles',
+            builder: (_, _) => const FleetVehicleListPage(),
+            routes: [
+              GoRoute(
+                path: 'new',
+                name: 'fleet-vehicle-new',
+                builder: (_, _) => const FleetVehicleFormPage(),
+              ),
+              GoRoute(
+                path: ':vehicleId/edit',
+                name: 'fleet-vehicle-edit',
+                builder: (_, state) => FleetVehicleFormPage(vehicleId: state.pathParameters['vehicleId']!),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: '/fleet/drivers',
+            name: 'fleet-drivers',
+            builder: (_, _) => const FleetDriverListPage(),
+            routes: [
+              GoRoute(
+                path: 'new',
+                name: 'fleet-driver-new',
+                builder: (_, _) => const FleetDriverFormPage(),
+              ),
+              GoRoute(
+                path: ':driverId/edit',
+                name: 'fleet-driver-edit',
+                builder: (_, state) => FleetDriverFormPage(driverId: state.pathParameters['driverId']!),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: '/fleet/routes',
+            name: 'fleet-routes',
+            builder: (_, _) => const FleetRouteListPage(),
+            routes: [
+              GoRoute(path: 'new', name: 'fleet-routes-new', builder: (_, _) => const FleetRouteFormPage()),
+              GoRoute(path: ':routeId/edit', name: 'fleet-routes-edit', builder: (_, state) => FleetRouteFormPage(routeId: state.pathParameters['routeId'])),
+            ],
+          ),
+          GoRoute(
+            path: '/fleet/deliveries',
+            name: 'fleet-deliveries',
+            builder: (_, _) => const FleetDeliveryListPage(),
+            routes: [
+              GoRoute(path: 'new', name: 'fleet-deliveries-new', builder: (_, _) => const FleetDeliveryFormPage()),
+              GoRoute(path: ':deliveryId/edit', name: 'fleet-deliveries-edit', builder: (_, state) => FleetDeliveryFormPage(deliveryId: state.pathParameters['deliveryId'])),
+            ],
+          ),
+          GoRoute(
+            path: '/fleet/trips',
+            name: 'fleet-trips',
+            builder: (_, _) => const FleetTripListPage(),
+            routes: [
+              GoRoute(path: 'new', name: 'fleet-trips-new', builder: (_, _) => const FleetTripFormPage()),
+              GoRoute(path: ':tripId/edit', name: 'fleet-trips-edit', builder: (_, state) => FleetTripFormPage(tripId: state.pathParameters['tripId'])),
+            ],
+          ),
+          GoRoute(
+            path: '/fleet/fuel',
+            name: 'fleet-fuel',
+            builder: (_, _) => const FleetFuelListPage(),
+            routes: [
+              GoRoute(path: 'new', name: 'fleet-fuel-new', builder: (_, _) => const FleetFuelFormPage()),
+              GoRoute(path: ':fuelId/edit', name: 'fleet-fuel-edit', builder: (_, state) => FleetFuelFormPage(fuelId: state.pathParameters['fuelId'])),
+            ],
+          ),
+          GoRoute(
+            path: '/fleet/maintenance',
+            name: 'fleet-maintenance',
+            builder: (_, _) => const FleetMaintenanceListPage(),
+            routes: [
+              GoRoute(path: 'new', name: 'fleet-maintenance-new', builder: (_, _) => const FleetMaintenanceFormPage()),
+              GoRoute(path: ':workOrderId/edit', name: 'fleet-maintenance-edit', builder: (_, state) => FleetMaintenanceFormPage(workOrderId: state.pathParameters['workOrderId'])),
+            ],
+          ),
+          GoRoute(
+            path: '/fleet/workshop',
+            name: 'fleet-workshop',
+            builder: (_, _) => const FleetWorkshopListPage(),
+            routes: [
+              GoRoute(path: 'new', name: 'fleet-workshop-new', builder: (_, _) => const FleetWorkshopFormPage()),
+              GoRoute(path: ':workshopId/edit', name: 'fleet-workshop-edit', builder: (_, state) => FleetWorkshopFormPage(workshopId: state.pathParameters['workshopId'])),
+            ],
+          ),
+          GoRoute(
+            path: '/fleet/documents',
+            name: 'fleet-documents',
+            builder: (_, _) => const FleetDocumentListPage(),
+            routes: [
+              GoRoute(
+                path: 'new',
+                name: 'fleet-documents-new',
+                builder: (_, state) => FleetDocumentFormPage(extra: state.extra as Map<String, dynamic>?),
+              ),
+              GoRoute(
+                path: ':documentId/edit',
+                name: 'fleet-documents-edit',
+                builder: (_, state) => FleetDocumentFormPage(documentId: state.pathParameters['documentId']),
+              ),
+            ],
+          ),
+          GoRoute(
+            path: '/fleet/expenses',
+            name: 'fleet-expenses',
+            builder: (_, _) => const FleetExpenseListPage(),
+            routes: [
+              GoRoute(path: 'new', name: 'fleet-expenses-new', builder: (_, _) => const FleetExpenseFormPage()),
+              GoRoute(path: ':expenseId/edit', name: 'fleet-expenses-edit', builder: (_, state) => FleetExpenseFormPage(expenseId: state.pathParameters['expenseId'])),
+            ],
+          ),
+          GoRoute(
+            path: '/fleet/reports',
+            name: 'fleet-reports',
+            builder: (_, _) => const FleetReportsPage(),
+          ),
+          GoRoute(
+            path: '/fleet/gps',
+            name: 'fleet-gps',
+            builder: (_, _) => const FleetGpsPage(),
+          ),
+          GoRoute(
+            path: '/fleet/alerts',
+            name: 'fleet-alerts',
+            builder: (_, _) => const FleetAlertsPage(),
+          ),
+          GoRoute(
+            path: '/fleet/tracking',
+            name: 'fleet-tracking',
+            builder: (_, _) => const FleetTrackingPage(),
+          ),
+          GoRoute(
+            path: '/fleet/predictive',
+            name: 'fleet-predictive',
+            builder: (_, _) => const FleetPredictivePage(),
           ),
         ],
       ),

@@ -110,6 +110,32 @@ final class NavConfig {
       ],
     ),
 
+    const NavModule(
+      id: 'flota',
+      label: 'Flota y Logística',
+      icon: Icons.local_shipping_outlined,
+      color: ZColors.moduleFleet,
+      group: 'operations',
+      children: [
+        NavItem(id: 'flota-dashboard', label: 'Dashboard', icon: Icons.dashboard_outlined, route: '/fleet'),
+        NavItem(id: 'flota-vehiculos', label: 'Vehículos', icon: Icons.time_to_leave_outlined, route: '/fleet/vehicles'),
+        NavItem(id: 'flota-conductores', label: 'Conductores', icon: Icons.person_outline, route: '/fleet/drivers'),
+        NavItem(id: 'flota-rutas', label: 'Rutas', icon: Icons.alt_route_outlined, route: '/fleet/routes'),
+        NavItem(id: 'flota-entregas', label: 'Entregas', icon: Icons.inventory_2_outlined, route: '/fleet/deliveries'),
+        NavItem(id: 'flota-viajes', label: 'Viajes', icon: Icons.flight_takeoff_outlined, route: '/fleet/trips'),
+        NavItem(id: 'flota-combustible', label: 'Combustible', icon: Icons.local_gas_station_outlined, route: '/fleet/fuel'),
+        NavItem(id: 'flota-mantenimientos', label: 'Mantenimientos', icon: Icons.build_outlined, route: '/fleet/maintenance'),
+        NavItem(id: 'flota-taller', label: 'Taller', icon: Icons.precision_manufacturing_outlined, route: '/fleet/workshop'),
+        NavItem(id: 'flota-documentos', label: 'Documentos', icon: Icons.description_outlined, route: '/fleet/documents'),
+        NavItem(id: 'flota-gastos', label: 'Gastos', icon: Icons.account_balance_wallet_outlined, route: '/fleet/expenses'),
+        NavItem(id: 'flota-gps', label: 'GPS en Tiempo Real', icon: Icons.gps_fixed_outlined, route: '/fleet/gps'),
+        NavItem(id: 'flota-alertas', label: 'Alertas', icon: Icons.notifications_active_outlined, route: '/fleet/alerts'),
+        NavItem(id: 'flota-tracking', label: 'Tracking Entregas', icon: Icons.delivery_dining_outlined, route: '/fleet/tracking'),
+        NavItem(id: 'flota-predictive', label: 'IA Predictiva', icon: Icons.psychology_outlined, route: '/fleet/predictive'),
+        NavItem(id: 'flota-reportes', label: 'Reportes', icon: Icons.analytics_outlined, route: '/fleet/reports'),
+      ],
+    ),
+
     // ── FINANCIERO ──
     const NavModule(
       id: 'finanzas',

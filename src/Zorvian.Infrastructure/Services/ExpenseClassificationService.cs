@@ -1,10 +1,11 @@
 using Microsoft.ML;
 using Microsoft.ML.Data;
 using Zorvian.Application.DTOs.ML;
+using Zorvian.Application.Interfaces;
 
 namespace Zorvian.Infrastructure.Services;
 
-public sealed class ExpenseClassificationService
+public sealed class ExpenseClassificationService : IExpenseClassificationService
 {
     private readonly MLContext _mlContext;
     private ITransformer? _model;

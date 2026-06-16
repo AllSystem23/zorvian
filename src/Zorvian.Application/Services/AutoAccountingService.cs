@@ -1322,6 +1322,55 @@ public sealed class AutoAccountingService : IAutoAccountingService
         return entry.Id;
     }
 
+    public async Task<Guid> GenerateFleetExpenseEntryAsync(Guid expenseId, decimal amount, string description, Guid? accountId, Guid companyId, Guid? branchId)
+    {
+        var periodId = await GetPeriodIdAsync();
+
+        AccountingEntryDetail MakeDetail(Guid acctId, decimal debit, decimal credit, string desc)
+        {
+            return new() { AccountId = acctId, DebitAmount = debit, CreditAmount = credit, Description = desc, CompanyId = companyId };
+        }
+
+        var entryDetails = new List<AccountingEntryDetail>();
+
+        // Determine expense account: use provided accountId, or link, or hardcoded fallback
+        var expenseAccountIdResult = accountId ?? Guid.Empty;
+        if (expenseAccountIdResult == Guid.Empty)
+        {
+            try { expenseAccountIdResult = await GetAccountIdAsync(TransactionTypes.FleetExpense, AccountRoles.FleetOperatingExpense); }
+            catch { expenseAccountIdResult = await GetAccountIdByCodeAsync("5.2.01"); } // Gastos de Flota
+        }
+
+        // Determine cash/bank account: use link, or hardcoded fallback
+        Guid cashAccountId;
+        try { cashAccountId = await GetAccountIdAsync(TransactionTypes.FleetExpense, AccountRoles.Cash); }
+        catch { cashAccountId = await GetAccountIdByCodeAsync("1.1.01"); } // Caja General
+
+        entryDetails.Add(MakeDetail(expenseAccountIdResult, amount, 0, $"Gasto flota: {description}"));
+        entryDetails.Add(MakeDetail(cashAccountId, 0, amount, $"Pago gasto flota: {description}"));
+
+        var entry = new AccountingEntry
+        {
+            EntryNumber = await GenerateNumberAsync(),
+            EntryDate = DateTime.UtcNow,
+            Description = $"Gasto Flota: {description} #{expenseId.ToString()[..8]}",
+            ReferenceType = "FleetExpense",
+            ReferenceId = expenseId,
+            Status = "posted",
+            AccountingPeriodId = periodId,
+            CompanyId = companyId,
+            BranchId = branchId,
+            TotalDebit = entryDetails.Sum(d => d.DebitAmount),
+            TotalCredit = entryDetails.Sum(d => d.CreditAmount),
+            PostedAt = DateTime.UtcNow,
+            Details = entryDetails,
+        };
+
+        await _entryRepo!.AddAsync(entry);
+        await _entryRepo.SaveChangesAsync();
+        return entry.Id;
+    }
+
     private async Task<string> GenerateNumberAsync()
     {
         var count = await _entryRepo!.GetFilteredCountAsync(null, null, null, null, null, CompanyId);

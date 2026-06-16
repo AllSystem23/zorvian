@@ -187,6 +187,8 @@ if (!mockExternal)
     recurringJobManager.AddOrUpdate<Zorvian.Web.Jobs.AuditLogCleanupJob>("audit-log-cleanup", j => j.RunAsync(), "0 3 1 * *");
     recurringJobManager.AddOrUpdate<Zorvian.Web.Jobs.DatabaseBackupJob>("database-backup", j => j.RunAsync(), "0 2 * * *");
     recurringJobManager.AddOrUpdate<Zorvian.Application.Jobs.VacationAutomatedJob>("vacation-accrual", j => j.RunAsync(), "0 0 1 * *");
+    recurringJobManager.AddOrUpdate<Zorvian.Web.Jobs.FleetAlertJob>("fleet-alert-check", j => j.RunAsync(), "0 */6 * * *");
+    recurringJobManager.AddOrUpdate<Zorvian.Web.Jobs.FleetExpenseNotificationJob>("fleet-expense-notification", j => j.RunAsync(), "0 8 * * *");
 }
 
 // ── Auto-migrate in Production ──

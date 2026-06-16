@@ -32,6 +32,7 @@ class ZColors {
   static const Color moduleHr = Color(0xFFE040FB); // HR Magenta Talento
   static const Color moduleAdmin = Color(0xFF78909C); // Admin Blue Grey (WCAG AA on dark)
   static const Color moduleSecurity = Color(0xFFEF5350); // Security Red
+  static const Color moduleFleet = Color(0xFFFF6D00); // Fleet Orange Logistic
 
   // Neutral Scale (Warm Slate — more premium feel)
   static const Color neutral50 = Color(0xFFFAFAFE);

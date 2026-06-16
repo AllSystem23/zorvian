@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -99,7 +99,7 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>();
     public DbSet<IntercompanyTransaction> IntercompanyTransactions => Set<IntercompanyTransaction>();
 
-    // New Module: Créditos
+    // New Module: CrÃ©ditos
     public DbSet<Credit> Credits => Set<Credit>();
     public DbSet<CreditInstallment> CreditInstallments => Set<CreditInstallment>();
     public DbSet<CreditPayment> CreditPayments => Set<CreditPayment>();
@@ -120,7 +120,7 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<SupplierCreditNote> SupplierCreditNotes => Set<SupplierCreditNote>();
     public DbSet<Withholding> Withholdings => Set<Withholding>();
 
-    // New Module: Garantías
+    // New Module: GarantÃ­as
     public DbSet<Warranty> Warranties => Set<Warranty>();
     public DbSet<WarrantyClaim> WarrantyClaims => Set<WarrantyClaim>();
     public DbSet<ServiceWorkshop> ServiceWorkshops => Set<ServiceWorkshop>();
@@ -171,7 +171,7 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<AccountingRuleTemplate> AccountingRuleTemplates => Set<AccountingRuleTemplate>();
     public DbSet<EmployeePayrollExemption> EmployeePayrollExemptions => Set<EmployeePayrollExemption>();
     
-    // New Module: Tesorería
+    // New Module: TesorerÃ­a
     public DbSet<Bank> Banks => Set<Bank>();
     public DbSet<BankAccount> BankAccounts => Set<BankAccount>();
     public DbSet<Checkbook> Checkbooks => Set<Checkbook>();
@@ -179,7 +179,7 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<CheckAuditTrail> CheckAuditTrails => Set<CheckAuditTrail>();
     public DbSet<CheckPrintTemplate> CheckPrintTemplates => Set<CheckPrintTemplate>();
     
-    // New Module: Nómina Avanzada
+    // New Module: NÃ³mina Avanzada
     public DbSet<SickLeaveRecord> SickLeaveRecords => Set<SickLeaveRecord>();
     public DbSet<TerminationRecord> TerminationRecords => Set<TerminationRecord>();
 
@@ -195,12 +195,12 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<Incentive> Incentives => Set<Incentive>();
     public DbSet<IncentivePayment> IncentivePayments => Set<IncentivePayment>();
 
-    // New Module: KPI y Desempeño
+    // New Module: KPI y DesempeÃ±o
     public DbSet<KpiDefinition> KpiDefinitions => Set<KpiDefinition>();
     public DbSet<KpiRecord> KpiRecords => Set<KpiRecord>();
     public DbSet<Ranking> Rankings => Set<Ranking>();
 
-    // New Module: Facturación Electrónica
+    // New Module: FacturaciÃ³n ElectrÃ³nica
     public DbSet<ElectronicInvoice> ElectronicInvoices => Set<ElectronicInvoice>();
     public DbSet<ElectronicInvoiceXml> ElectronicInvoiceXmls => Set<ElectronicInvoiceXml>();
 
@@ -218,6 +218,38 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<GeneratedDocument> GeneratedDocuments => Set<GeneratedDocument>();
     public DbSet<DocumentVersion> DocumentVersions => Set<DocumentVersion>();
     public DbSet<DocumentSignature> DocumentSignatures => Set<DocumentSignature>();
+
+    // New Module: Flota y LogÃ­stica
+    public DbSet<Zorvian.Core.Entities.Fleet.VehicleBrand> VehicleBrands => Set<Zorvian.Core.Entities.Fleet.VehicleBrand>();
+    public DbSet<Zorvian.Core.Entities.Fleet.VehicleType> VehicleTypes => Set<Zorvian.Core.Entities.Fleet.VehicleType>();
+    public DbSet<Zorvian.Core.Entities.Fleet.FuelType> FuelTypes => Set<Zorvian.Core.Entities.Fleet.FuelType>();
+    public DbSet<Zorvian.Core.Entities.Fleet.DriverLicenseCategory> DriverLicenseCategories => Set<Zorvian.Core.Entities.Fleet.DriverLicenseCategory>();
+    public DbSet<Zorvian.Core.Entities.Fleet.Vehicle> Vehicles => Set<Zorvian.Core.Entities.Fleet.Vehicle>();
+    public DbSet<Zorvian.Core.Entities.Fleet.Driver> Drivers => Set<Zorvian.Core.Entities.Fleet.Driver>();
+    public DbSet<Zorvian.Core.Entities.Fleet.Route> Routes => Set<Zorvian.Core.Entities.Fleet.Route>();
+    public DbSet<Zorvian.Core.Entities.Fleet.RoutePoint> RoutePoints => Set<Zorvian.Core.Entities.Fleet.RoutePoint>();
+    public DbSet<Zorvian.Core.Entities.Fleet.Delivery> Deliveries => Set<Zorvian.Core.Entities.Fleet.Delivery>();
+    public DbSet<Zorvian.Core.Entities.Fleet.DeliveryItem> DeliveryItems => Set<Zorvian.Core.Entities.Fleet.DeliveryItem>();
+    public DbSet<Zorvian.Core.Entities.Fleet.Trip> Trips => Set<Zorvian.Core.Entities.Fleet.Trip>();
+    public DbSet<Zorvian.Core.Entities.Fleet.FuelRefill> FuelRefills => Set<Zorvian.Core.Entities.Fleet.FuelRefill>();
+    public DbSet<Zorvian.Core.Entities.Fleet.MaintenanceSchedule> MaintenanceSchedules => Set<Zorvian.Core.Entities.Fleet.MaintenanceSchedule>();
+    public DbSet<Zorvian.Core.Entities.Fleet.MaintenanceTemplate> MaintenanceTemplates => Set<Zorvian.Core.Entities.Fleet.MaintenanceTemplate>();
+    public DbSet<Zorvian.Core.Entities.Fleet.WorkOrder> WorkOrders => Set<Zorvian.Core.Entities.Fleet.WorkOrder>();
+    public DbSet<Zorvian.Core.Entities.Fleet.WorkOrderPart> WorkOrderParts => Set<Zorvian.Core.Entities.Fleet.WorkOrderPart>();
+    public DbSet<Zorvian.Core.Entities.Fleet.FailureType> FailureTypes => Set<Zorvian.Core.Entities.Fleet.FailureType>();
+    public DbSet<Zorvian.Core.Entities.Fleet.Workshop> Workshops => Set<Zorvian.Core.Entities.Fleet.Workshop>();
+    public DbSet<Zorvian.Core.Entities.Fleet.FleetDocument> FleetDocuments => Set<Zorvian.Core.Entities.Fleet.FleetDocument>();
+    public DbSet<Zorvian.Core.Entities.Fleet.DocumentType> DocumentTypes => Set<Zorvian.Core.Entities.Fleet.DocumentType>();
+    public DbSet<Zorvian.Core.Entities.Fleet.FleetExpense> FleetExpenses => Set<Zorvian.Core.Entities.Fleet.FleetExpense>();
+    public DbSet<Zorvian.Core.Entities.Fleet.ExpenseCategory> ExpenseCategories => Set<Zorvian.Core.Entities.Fleet.ExpenseCategory>();
+    public DbSet<Zorvian.Core.Entities.Fleet.ExpenseSubcategory> ExpenseSubcategories => Set<Zorvian.Core.Entities.Fleet.ExpenseSubcategory>();
+    public DbSet<Zorvian.Core.Entities.Fleet.GpsPosition> GpsPositions => Set<Zorvian.Core.Entities.Fleet.GpsPosition>();
+    public DbSet<Zorvian.Core.Entities.Fleet.Geofence> Geofences => Set<Zorvian.Core.Entities.Fleet.Geofence>();
+    public DbSet<Zorvian.Core.Entities.Fleet.DriverInfraction> DriverInfractions => Set<Zorvian.Core.Entities.Fleet.DriverInfraction>();
+    public DbSet<Zorvian.Core.Entities.Fleet.DriverTraining> DriverTrainings => Set<Zorvian.Core.Entities.Fleet.DriverTraining>();
+    public DbSet<Zorvian.Core.Entities.Fleet.FleetAlert> FleetAlerts => Set<Zorvian.Core.Entities.Fleet.FleetAlert>();
+    public DbSet<Zorvian.Core.Entities.Fleet.FleetAlertRule> FleetAlertRules => Set<Zorvian.Core.Entities.Fleet.FleetAlertRule>();
+    public DbSet<Zorvian.Core.Entities.Fleet.VehicleGeofenceState> VehicleGeofenceStates => Set<Zorvian.Core.Entities.Fleet.VehicleGeofenceState>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -1045,7 +1077,7 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(m => (m.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !m.IsDeleted);
         });
 
-        // ---- New Module: Créditos ----
+        // ---- New Module: CrÃ©ditos ----
         builder.Entity<Credit>(e =>
         {
             e.HasKey(c => c.Id);
@@ -1378,7 +1410,7 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(b => (b.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !b.IsDeleted);
         });
 
-        // ---- New Module: Tesorería ----
+        // ---- New Module: TesorerÃ­a ----
         builder.Entity<Bank>(e =>
         {
             e.HasKey(b => b.Id);
@@ -1722,7 +1754,7 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(d => (d.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !d.IsDeleted);
         });
 
-        // ---- New Module: Garantías ----
+        // ---- New Module: GarantÃ­as ----
         builder.Entity<Warranty>(e =>
         {
             e.HasKey(w => w.Id);
@@ -2210,7 +2242,7 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(h => (h.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !h.IsDeleted);
         });
 
-        // ---- Facturación Electrónica ----
+        // ---- FacturaciÃ³n ElectrÃ³nica ----
         builder.Entity<ElectronicInvoice>(e =>
         {
             e.HasKey(x => x.Id);
@@ -2301,6 +2333,355 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(s => (s.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !s.IsDeleted);
         });
 
+        // â”€â”€ Fleet Module â”€â”€
+        builder.Entity<Zorvian.Core.Entities.Fleet.VehicleBrand>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(100).IsRequired();
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        builder.Entity<Zorvian.Core.Entities.Fleet.VehicleType>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(100).IsRequired();
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        builder.Entity<Zorvian.Core.Entities.Fleet.FuelType>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(100).IsRequired();
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        builder.Entity<Zorvian.Core.Entities.Fleet.DriverLicenseCategory>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(100).IsRequired();
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        builder.Entity<Zorvian.Core.Entities.Fleet.Vehicle>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Code).HasMaxLength(20).IsRequired();
+            e.Property(x => x.Plate).HasMaxLength(15).IsRequired();
+            e.Property(x => x.Model).HasMaxLength(50).IsRequired();
+            e.Property(x => x.Vin).HasMaxLength(17);
+            e.Property(x => x.EngineNumber).HasMaxLength(30);
+            e.Property(x => x.ChassisNumber).HasMaxLength(30);
+            e.Property(x => x.Color).HasMaxLength(30);
+            e.Property(x => x.Status).HasMaxLength(30).IsRequired();
+            e.Property(x => x.GpsDeviceId).HasMaxLength(50);
+            e.Property(x => x.CurrentKm).HasColumnType("decimal(10,2)");
+            e.Property(x => x.PreviousKm).HasColumnType("decimal(10,2)");
+            e.Property(x => x.HourMeter).HasColumnType("decimal(10,2)");
+            e.Property(x => x.LoadCapacityKg).HasColumnType("decimal(10,2)");
+            e.Property(x => x.LoadCapacityM3).HasColumnType("decimal(10,2)");
+            e.Property(x => x.PurchaseValue).HasColumnType("decimal(18,2)");
+            e.HasOne(x => x.Brand).WithMany().HasForeignKey(x => x.BrandId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.VehicleType).WithMany().HasForeignKey(x => x.VehicleTypeId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.FuelType).WithMany().HasForeignKey(x => x.FuelTypeId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Branch).WithMany().HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Driver).WithMany().HasForeignKey(x => x.DriverId).OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(x => new { x.Code, x.TenantId }).IsUnique();
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        builder.Entity<Zorvian.Core.Entities.Fleet.Driver>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.FirstName).HasMaxLength(100).IsRequired();
+            e.Property(x => x.LastName).HasMaxLength(100).IsRequired();
+            e.Property(x => x.IdDocument).HasMaxLength(20).IsRequired();
+            e.Property(x => x.Phone).HasMaxLength(20).IsRequired();
+            e.Property(x => x.Email).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Address).HasMaxLength(200);
+            e.Property(x => x.LicenseNumber).HasMaxLength(30).IsRequired();
+            e.Property(x => x.AdditionalCategories).HasMaxLength(100);
+            e.Property(x => x.Status).HasMaxLength(30).IsRequired();
+            e.Property(x => x.PhotoUrl).HasMaxLength(500);
+            e.HasOne(x => x.Employee).WithMany().HasForeignKey(x => x.EmployeeId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.LicenseCategory).WithMany().HasForeignKey(x => x.LicenseCategoryId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Branch).WithMany().HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(x => new { x.IdDocument, x.TenantId }).IsUnique();
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        builder.Entity<Zorvian.Core.Entities.Fleet.Route>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Code).HasMaxLength(20).IsRequired();
+            e.Property(x => x.Name).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Type).HasMaxLength(30).IsRequired();
+            e.Property(x => x.OriginAddress).HasMaxLength(200).IsRequired();
+            e.Property(x => x.DestinationAddress).HasMaxLength(200);
+            e.Property(x => x.Status).HasMaxLength(30).IsRequired();
+            e.Property(x => x.DistanceEstKm).HasColumnType("decimal(10,2)");
+            e.Property(x => x.CostEst).HasColumnType("decimal(18,2)");
+            e.HasOne(x => x.Vehicle).WithMany().HasForeignKey(x => x.VehicleId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Driver).WithMany().HasForeignKey(x => x.DriverId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.CoDriver).WithMany().HasForeignKey(x => x.CoDriverId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Branch).WithMany().HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        builder.Entity<Zorvian.Core.Entities.Fleet.RoutePoint>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Type).HasMaxLength(30).IsRequired();
+            e.Property(x => x.Address).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Instructions).HasMaxLength(500);
+            e.Property(x => x.DistanceFromPreviousKm).HasColumnType("decimal(10,2)");
+            e.HasOne(x => x.Route).WithMany(r => r.Points).HasForeignKey(x => x.RouteId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Sale).WithMany().HasForeignKey(x => x.SaleId).OnDelete(DeleteBehavior.SetNull);
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        builder.Entity<Zorvian.Core.Entities.Fleet.Delivery>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Code).HasMaxLength(20).IsRequired();
+            e.Property(x => x.DeliveryAddress).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Status).HasMaxLength(30).IsRequired();
+            e.Property(x => x.ReceiverName).HasMaxLength(100);
+            e.Property(x => x.ReceiverId).HasMaxLength(20);
+            e.Property(x => x.SignatureUrl).HasMaxLength(500);
+            e.Property(x => x.Observations).HasMaxLength(1000);
+            e.Property(x => x.DocumentUrl).HasMaxLength(500);
+            e.HasOne(x => x.Sale).WithMany().HasForeignKey(x => x.SaleId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Client).WithMany().HasForeignKey(x => x.ClientId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Route).WithMany().HasForeignKey(x => x.RouteId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Vehicle).WithMany().HasForeignKey(x => x.VehicleId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Driver).WithMany().HasForeignKey(x => x.DriverId).OnDelete(DeleteBehavior.SetNull);
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        builder.Entity<Zorvian.Core.Entities.Fleet.DeliveryItem>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.QtyOrdered).HasColumnType("decimal(10,2)");
+            e.Property(x => x.QtyDelivered).HasColumnType("decimal(10,2)");
+            e.Property(x => x.QtyReturned).HasColumnType("decimal(10,2)");
+            e.Property(x => x.LotSerial).HasMaxLength(50);
+            e.Property(x => x.Status).HasMaxLength(30).IsRequired();
+            e.HasOne(x => x.Delivery).WithMany(d => d.Items).HasForeignKey(x => x.DeliveryId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Product).WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        builder.Entity<Zorvian.Core.Entities.Fleet.Trip>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Code).HasMaxLength(20).IsRequired();
+            e.Property(x => x.Origin).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Destination).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Status).HasMaxLength(30).IsRequired();
+            e.Property(x => x.StartKm).HasColumnType("decimal(10,2)");
+            e.Property(x => x.EndKm).HasColumnType("decimal(10,2)");
+            e.Property(x => x.TotalKm).HasColumnType("decimal(10,2)");
+            e.Property(x => x.Notes).HasMaxLength(500);
+            e.HasOne(x => x.Vehicle).WithMany().HasForeignKey(x => x.VehicleId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Driver).WithMany().HasForeignKey(x => x.DriverId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.CoDriver).WithMany().HasForeignKey(x => x.CoDriverId).OnDelete(DeleteBehavior.SetNull);
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        builder.Entity<Zorvian.Core.Entities.Fleet.FuelRefill>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Liters).HasColumnType("decimal(10,2)").IsRequired();
+            e.Property(x => x.PricePerLiter).HasColumnType("decimal(10,4)").IsRequired();
+            e.Property(x => x.TotalCost).HasColumnType("decimal(12,2)").IsRequired();
+            e.Property(x => x.CurrentKm).HasColumnType("decimal(10,2)");
+            e.Property(x => x.HourMeter).HasColumnType("decimal(10,2)");
+            e.Property(x => x.RefillType).HasMaxLength(20).IsRequired();
+            e.Property(x => x.PaymentMethod).HasMaxLength(20).IsRequired();
+            e.Property(x => x.InvoiceUrl).HasMaxLength(500);
+            e.Property(x => x.Observations).HasMaxLength(500);
+            e.Property(x => x.AnomalyNotes).HasMaxLength(500);
+            e.HasOne(x => x.Vehicle).WithMany().HasForeignKey(x => x.VehicleId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Driver).WithMany().HasForeignKey(x => x.DriverId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.FuelType).WithMany().HasForeignKey(x => x.FuelTypeId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Supplier).WithMany().HasForeignKey(x => x.SupplierId).OnDelete(DeleteBehavior.SetNull);
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        builder.Entity<Zorvian.Core.Entities.Fleet.MaintenanceSchedule>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.ScheduleType).HasMaxLength(20).IsRequired();
+            e.Property(x => x.Status).HasMaxLength(20).IsRequired();
+            e.HasOne(x => x.Vehicle).WithMany().HasForeignKey(x => x.VehicleId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Template).WithMany().HasForeignKey(x => x.TemplateId).OnDelete(DeleteBehavior.SetNull);
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        builder.Entity<Zorvian.Core.Entities.Fleet.MaintenanceTemplate>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Description).HasMaxLength(500);
+            e.Property(x => x.ApplicableVehicleTypes).HasMaxLength(200);
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        builder.Entity<Zorvian.Core.Entities.Fleet.WorkOrder>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Number).HasMaxLength(20).IsRequired();
+            e.Property(x => x.Priority).HasMaxLength(20).IsRequired();
+            e.Property(x => x.Status).HasMaxLength(30).IsRequired();
+            e.Property(x => x.ProblemDescription).HasMaxLength(2000);
+            e.Property(x => x.Diagnosis).HasMaxLength(2000);
+            e.Property(x => x.RootCause).HasMaxLength(2000);
+            e.Property(x => x.SolutionApplied).HasMaxLength(2000);
+            e.Property(x => x.MechanicResponsible).HasMaxLength(100);
+            e.Property(x => x.CostEst).HasColumnType("decimal(18,2)");
+            e.Property(x => x.CostLabor).HasColumnType("decimal(18,2)");
+            e.Property(x => x.CostParts).HasColumnType("decimal(18,2)");
+            e.Property(x => x.CostTotal).HasColumnType("decimal(18,2)");
+            e.HasOne(x => x.Vehicle).WithMany().HasForeignKey(x => x.VehicleId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Driver).WithMany().HasForeignKey(x => x.DriverId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.FailureType).WithMany().HasForeignKey(x => x.FailureTypeId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Workshop).WithMany().HasForeignKey(x => x.WorkshopId).OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(x => new { x.Number, x.TenantId }).IsUnique();
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        builder.Entity<Zorvian.Core.Entities.Fleet.WorkOrderPart>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Quantity).HasColumnType("decimal(10,2)");
+            e.Property(x => x.UnitCost).HasColumnType("decimal(18,2)");
+            e.Property(x => x.SupplierCode).HasMaxLength(50);
+            e.HasOne(x => x.WorkOrder).WithMany().HasForeignKey(x => x.WorkOrderId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Product).WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        builder.Entity<Zorvian.Core.Entities.Fleet.FailureType>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Description).HasMaxLength(500);
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        builder.Entity<Zorvian.Core.Entities.Fleet.Workshop>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(100).IsRequired();
+            e.Property(x => x.ContactPerson).HasMaxLength(100);
+            e.Property(x => x.Phone).HasMaxLength(20).IsRequired();
+            e.Property(x => x.Email).HasMaxLength(100);
+            e.Property(x => x.Address).HasMaxLength(200);
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        builder.Entity<Zorvian.Core.Entities.Fleet.FleetDocument>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.EntityType).HasMaxLength(20).IsRequired();
+            e.Property(x => x.DocumentNumber).HasMaxLength(50).IsRequired();
+            e.Property(x => x.FileUrl).HasMaxLength(500);
+            e.Property(x => x.Notes).HasMaxLength(500);
+            e.Property(x => x.Status).HasMaxLength(30).IsRequired();
+            e.HasOne(x => x.DocumentType).WithMany().HasForeignKey(x => x.DocumentTypeId).OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        builder.Entity<Zorvian.Core.Entities.Fleet.DocumentType>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(100).IsRequired();
+            e.Property(x => x.EntityType).HasMaxLength(20).IsRequired();
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        builder.Entity<Zorvian.Core.Entities.Fleet.FleetExpense>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Description).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Amount).HasColumnType("decimal(18,2)").IsRequired();
+            e.Property(x => x.Currency).HasMaxLength(3).IsRequired();
+            e.Property(x => x.ExchangeRate).HasColumnType("decimal(10,4)");
+            e.Property(x => x.AmountBaseCurrency).HasColumnType("decimal(18,2)");
+            e.Property(x => x.PaymentMethod).HasMaxLength(20).IsRequired();
+            e.Property(x => x.DocumentUrl).HasMaxLength(500);
+            e.HasOne(x => x.Category).WithMany().HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Subcategory).WithMany().HasForeignKey(x => x.SubcategoryId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Vehicle).WithMany().HasForeignKey(x => x.VehicleId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Driver).WithMany().HasForeignKey(x => x.DriverId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Trip).WithMany().HasForeignKey(x => x.TripId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Route).WithMany().HasForeignKey(x => x.RouteId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Supplier).WithMany().HasForeignKey(x => x.SupplierId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(x => x.Account).WithMany().HasForeignKey(x => x.AccountId).OnDelete(DeleteBehavior.SetNull);
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        builder.Entity<Zorvian.Core.Entities.Fleet.ExpenseCategory>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Description).HasMaxLength(500);
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        builder.Entity<Zorvian.Core.Entities.Fleet.ExpenseSubcategory>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(100).IsRequired();
+            e.HasOne(x => x.Category).WithMany().HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        builder.Entity<Zorvian.Core.Entities.Fleet.GpsPosition>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Latitude).HasColumnType("double precision").IsRequired();
+            e.Property(x => x.Longitude).HasColumnType("double precision").IsRequired();
+            e.Property(x => x.Altitude).HasColumnType("double precision");
+            e.Property(x => x.Speed).HasColumnType("double precision");
+            e.Property(x => x.Odometer).HasColumnType("decimal(10,2)");
+            e.Property(x => x.FuelLevel).HasColumnType("decimal(5,2)");
+            e.Property(x => x.Temperature).HasColumnType("decimal(5,2)");
+            e.Property(x => x.DeviceBattery).HasColumnType("decimal(5,2)");
+            e.HasOne(x => x.Vehicle).WithMany().HasForeignKey(x => x.VehicleId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(x => new { x.VehicleId, x.GpsTimestamp });
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        builder.Entity<Zorvian.Core.Entities.Fleet.Geofence>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(100).IsRequired();
+            e.Property(x => x.Type).HasMaxLength(20).IsRequired();
+            e.Property(x => x.CoordinatesJson).IsRequired();
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        builder.Entity<Zorvian.Core.Entities.Fleet.DriverInfraction>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Description).HasMaxLength(500);
+            e.Property(x => x.FineAmount).HasColumnType("decimal(18,2)");
+            e.Property(x => x.Status).HasMaxLength(20).IsRequired();
+            e.HasOne(x => x.Driver).WithMany().HasForeignKey(x => x.DriverId).OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        builder.Entity<Zorvian.Core.Entities.Fleet.DriverTraining>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.CourseName).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Institution).HasMaxLength(200);
+            e.HasOne(x => x.Driver).WithMany().HasForeignKey(x => x.DriverId).OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
         builder.Entity<UserTenant>(e =>
         {
             e.HasKey(ut => new { ut.UserId, ut.TenantId });
@@ -2309,6 +2690,22 @@ public sealed class ZorvianDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(ut => ut.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ---- Fleet: Geofence State Tracking ----
+        builder.Entity<Zorvian.Core.Entities.Fleet.VehicleGeofenceState>(e =>
+        {
+            e.HasKey(gs => gs.Id);
+            e.HasOne(gs => gs.Vehicle)
+                .WithMany()
+                .HasForeignKey(gs => gs.VehicleId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(gs => gs.Geofence)
+                .WithMany()
+                .HasForeignKey(gs => gs.GeofenceId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(gs => new { gs.VehicleId, gs.GeofenceId, gs.IsInside });
+            e.HasQueryFilter(gs => (gs.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !gs.IsDeleted);
         });
     }
 

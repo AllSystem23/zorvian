@@ -189,6 +189,31 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IPartnerRepository, PartnerRepository>();
         services.AddScoped<IElectronicInvoiceRepository, ElectronicInvoiceRepository>();
 
+        // Fleet
+        services.AddScoped<Zorvian.Application.Interfaces.Fleet.IVehicleBrandRepository, Zorvian.Infrastructure.Repositories.Fleet.VehicleBrandRepository>();
+        services.AddScoped<Zorvian.Application.Interfaces.Fleet.IVehicleTypeRepository, Zorvian.Infrastructure.Repositories.Fleet.VehicleTypeRepository>();
+        services.AddScoped<Zorvian.Application.Interfaces.Fleet.IFuelTypeRepository, Zorvian.Infrastructure.Repositories.Fleet.FuelTypeRepository>();
+        services.AddScoped<Zorvian.Application.Interfaces.Fleet.IDriverLicenseCategoryRepository, Zorvian.Infrastructure.Repositories.Fleet.DriverLicenseCategoryRepository>();
+        services.AddScoped<Zorvian.Application.Interfaces.Fleet.IVehicleRepository, Zorvian.Infrastructure.Repositories.Fleet.VehicleRepository>();
+        services.AddScoped<Zorvian.Application.Interfaces.Fleet.IDriverRepository, Zorvian.Infrastructure.Repositories.Fleet.DriverRepository>();
+        services.AddScoped<Zorvian.Application.Interfaces.Fleet.IFleetDocumentRepository, Zorvian.Infrastructure.Repositories.Fleet.FleetDocumentRepository>();
+        services.AddScoped<Zorvian.Application.Interfaces.Fleet.IDocumentTypeRepository, Zorvian.Infrastructure.Repositories.Fleet.DocumentTypeRepository>();
+        services.AddScoped<Zorvian.Application.Interfaces.Fleet.IRouteRepository, Zorvian.Infrastructure.Repositories.Fleet.RouteRepository>();
+        services.AddScoped<Zorvian.Application.Interfaces.Fleet.IDeliveryRepository, Zorvian.Infrastructure.Repositories.Fleet.DeliveryRepository>();
+        services.AddScoped<Zorvian.Application.Interfaces.Fleet.ITripRepository, Zorvian.Infrastructure.Repositories.Fleet.TripRepository>();
+        services.AddScoped<Zorvian.Application.Interfaces.Fleet.IFuelRefillRepository, Zorvian.Infrastructure.Repositories.Fleet.FuelRefillRepository>();
+        services.AddScoped<Zorvian.Application.Interfaces.Fleet.IWorkOrderRepository, Zorvian.Infrastructure.Repositories.Fleet.WorkOrderRepository>();
+        services.AddScoped<Zorvian.Application.Interfaces.Fleet.IMaintenanceScheduleRepository, Zorvian.Infrastructure.Repositories.Fleet.MaintenanceScheduleRepository>();
+        services.AddScoped<Zorvian.Application.Interfaces.Fleet.IWorkshopRepository, Zorvian.Infrastructure.Repositories.Fleet.WorkshopRepository>();
+        services.AddScoped<Zorvian.Application.Interfaces.Fleet.IFailureTypeRepository, Zorvian.Infrastructure.Repositories.Fleet.FailureTypeRepository>();
+        services.AddScoped<Zorvian.Application.Interfaces.Fleet.IMaintenanceTemplateRepository, Zorvian.Infrastructure.Repositories.Fleet.MaintenanceTemplateRepository>();
+        services.AddScoped<Zorvian.Application.Interfaces.Fleet.IExpenseCategoryRepository, Zorvian.Infrastructure.Repositories.Fleet.ExpenseCategoryRepository>();
+        services.AddScoped<Zorvian.Application.Interfaces.Fleet.IExpenseSubcategoryRepository, Zorvian.Infrastructure.Repositories.Fleet.ExpenseSubcategoryRepository>();
+        services.AddScoped<Zorvian.Application.Interfaces.Fleet.IFleetExpenseRepository, Zorvian.Infrastructure.Repositories.Fleet.FleetExpenseRepository>();
+        services.AddScoped<Zorvian.Application.Interfaces.Fleet.IGpsPositionRepository, Zorvian.Infrastructure.Repositories.Fleet.GpsPositionRepository>();
+        services.AddScoped<Zorvian.Application.Interfaces.Fleet.IGeofenceRepository, Zorvian.Infrastructure.Repositories.Fleet.GeofenceRepository>();
+        services.AddScoped<Zorvian.Application.Interfaces.Fleet.IGeofenceStateRepository, Zorvian.Infrastructure.Repositories.Fleet.GeofenceStateRepository>();
+
         // Accounting
         services.AddScoped<IAccountRepository, AccountRepository>();
         services.AddScoped<IAccountingEntryRepository, AccountingEntryRepository>();
@@ -381,10 +406,43 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IFCMNotificationService, FCMNotificationService>();
         services.AddScoped<INotificationService, CombinedNotificationService>();
 
+        // Fleet
+        services.AddScoped<Zorvian.Application.Services.Fleet.VehicleBrandService>();
+        services.AddScoped<Zorvian.Application.Services.Fleet.VehicleTypeService>();
+        services.AddScoped<Zorvian.Application.Services.Fleet.FuelTypeService>();
+        services.AddScoped<Zorvian.Application.Services.Fleet.DriverLicenseCategoryService>();
+        services.AddScoped<Zorvian.Application.Services.Fleet.VehicleService>();
+        services.AddScoped<Zorvian.Application.Services.Fleet.DriverService>();
+        services.AddScoped<Zorvian.Application.Services.Fleet.FleetDocumentService>();
+        services.AddScoped<Zorvian.Application.Services.Fleet.DocumentTypeService>();
+        services.AddScoped<Zorvian.Application.Services.Fleet.RouteService>();
+        services.AddScoped<Zorvian.Application.Services.Fleet.DeliveryService>();
+        services.AddScoped<Zorvian.Application.Services.Fleet.TripService>();
+        services.AddScoped<Zorvian.Application.Services.Fleet.FleetDashboardService>();
+        services.AddScoped<Zorvian.Application.Services.Fleet.FuelRefillService>();
+        services.AddScoped<Zorvian.Application.Services.Fleet.WorkOrderService>();
+        services.AddScoped<Zorvian.Application.Services.Fleet.MaintenanceScheduleService>();
+        services.AddScoped<Zorvian.Application.Services.Fleet.WorkshopService>();
+        services.AddScoped<Zorvian.Application.Services.Fleet.FailureTypeService>();
+        services.AddScoped<Zorvian.Application.Services.Fleet.MaintenanceTemplateService>();
+        services.AddScoped<Zorvian.Application.Services.Fleet.ExpenseCategoryService>();
+        services.AddScoped<Zorvian.Application.Services.Fleet.ExpenseSubcategoryService>();
+        services.AddScoped<Zorvian.Application.Services.Fleet.FleetExpenseService>();
+        services.AddScoped<Zorvian.Application.Services.Fleet.FleetReportService>();
+        services.AddScoped<Zorvian.Application.Services.Fleet.FleetAlertService>();
+        services.AddScoped<Zorvian.Infrastructure.Services.FleetPdfChartService>();
+        services.AddScoped<Zorvian.Application.Services.Fleet.GpsService>();
+        services.AddScoped<Zorvian.Application.Services.Fleet.GeofenceService>();
+        services.AddScoped<Zorvian.Application.Services.Fleet.RouteOptimizationService>();
+        services.AddScoped<Zorvian.Application.Services.Fleet.DeliveryTrackingService>();
+        services.AddScoped<Zorvian.Application.Services.Fleet.PredictiveMaintenanceService>();
+        services.AddScoped<Zorvian.Application.Services.Fleet.FuelAnomalyDetectionService>();
+
         // AI Services
         services.AddSingleton<AbsenteeismPredictionService>();
         services.AddSingleton<SalesPredictionService>();
         services.AddSingleton<ExpenseClassificationService>();
+        services.AddSingleton<Zorvian.Application.Interfaces.IExpenseClassificationService>(sp => sp.GetRequiredService<ExpenseClassificationService>());
         services.AddScoped<AccountingAssistantService>();
         services.AddScoped<PurchaseRecommendationService>();
         services.AddScoped<EnhancedReportService>();
@@ -410,6 +468,8 @@ public static class DependencyInjectionExtensions
         services.AddScoped<DatabaseBackupJob>();
         services.AddScoped<VacationAutomatedJob>();
         services.AddScoped<OcrProcessingJob>();
+        services.AddScoped<Zorvian.Web.Jobs.FleetAlertJob>();
+        services.AddScoped<Zorvian.Web.Jobs.FleetExpenseNotificationJob>();
         return services;
     }
 }
