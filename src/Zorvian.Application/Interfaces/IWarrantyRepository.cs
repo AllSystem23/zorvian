@@ -6,7 +6,7 @@ namespace Zorvian.Application.Interfaces;
 public interface IWarrantyRepository
 {
     // Ultra-optimized: single raw SQL for ALL dashboard counts (1 round-trip)
-    Task<WarrantyDashboardScalars> GetDashboardScalarsRawAsync();
+    Task<WarrantyDashboardScalars> GetDashboardScalarsRawAsync(string tenantId, bool isSuperAdmin);
 
     Task<Warranty?> GetByIdAsync(Guid id);
     Task<Warranty?> GetByWarrantyNumberAsync(string warrantyNumber);

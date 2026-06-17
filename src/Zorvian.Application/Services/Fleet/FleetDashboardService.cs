@@ -6,19 +6,25 @@ namespace Zorvian.Application.Services.Fleet;
 public sealed class FleetDashboardService
 {
     private readonly IVehicleRepository _vehicleRepo;
+    private readonly Zorvian.Core.Interfaces.ITenantContext _tenant;
 
-    public FleetDashboardService(IVehicleRepository vehicleRepo)
+    public FleetDashboardService(IVehicleRepository vehicleRepo, Zorvian.Core.Interfaces.ITenantContext tenant)
     {
         _vehicleRepo = vehicleRepo;
+        _tenant = tenant;
     }
 
     /// <summary>
     /// All fleet dashboard counts in a single raw SQL round-trip.
     /// Replaces 6 GetAllAsync calls that loaded entire tables into memory.
+    /// Supports SuperAdmin bypass and specific tenant filtering.
     /// </summary>
     public async Task<FleetDashboardData> GetDashboardAsync()
     {
-        var scalars = await _vehicleRepo.GetDashboardScalarsRawAsync();
+        var tenantId = _tenant.TenantId.Value.ToString();
+        var isSuperAdmin = _tenant.IsSuperAdmin;
+
+        var scalars = await _vehicleRepo.GetDashboardScalarsRawAsync(tenantId, isSuperAdmin);
 
         var alerts = new List<AlertItem>();
         if (scalars.ExpiringSoon > 0)

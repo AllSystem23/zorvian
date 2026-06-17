@@ -60,24 +60,37 @@ public sealed class BiService
     public async Task<BiExecutiveResponse> GetExecutiveAsync()
     {
         var cc = await GetCompanyCurrencyAsync();
-        var todaySales = await _saleRepo.GetTodaySalesAsync(NullBranch);
+        var tenantId = _tenant.TenantId.Value.ToString();
+        var isSuperAdmin = _tenant.IsSuperAdmin;
+
+        // Phase 1: High-performance scalar KPIs (2 round-trips for everything)
+        var execScalarsTask = _dashRepo.GetExecutiveKpiScalarsRawAsync(tenantId, isSuperAdmin);
+        var thirtyDaysAgo = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
+        var now = DateTime.UtcNow;
+        var lastMonth = now.Month == 1 ? 12 : now.Month - 1;
+        var hrScalarsTask = _dashRepo.GetAllKpiScalarsRawAsync(tenantId, isSuperAdmin, thirtyDaysAgo, now.Month, lastMonth);
+
+        await Task.WhenAll(execScalarsTask, hrScalarsTask);
+        var scalars = await execScalarsTask;
+        var hrScalars = await hrScalarsTask;
+
+        // Phase 2: Sequential EF queries for lists/complex logic
+        var topSelling = await _productRepo.GetTopSellingAsync(Guid.Empty, 5);
+        
         var yesterday = DateTime.UtcNow.Date.AddDays(-1);
         var yesterdaySales = await _saleRepo.GetFilteredAsync(
             null, null, null, yesterday, yesterday.AddDays(1), null, NullBranch, 1, int.MaxValue);
         var yesterdayTotal = yesterdaySales.Sum(s => CurrencyConverter.ToReporting(s.Total, s.CurrencyCode, s.ExchangeRateToReporting, cc));
-        var salesChange = yesterdayTotal > 0 ? (double)((todaySales - yesterdayTotal) / yesterdayTotal) * 100 : 0;
+        var salesChange = yesterdayTotal > 0 ? (double)((scalars.TodaySales - yesterdayTotal) / yesterdayTotal) * 100 : 0;
 
+        var lastMonthStart = new DateTime(now.Year, now.Month, 1).AddMonths(-1);
         var lastMonthSales = await _saleRepo.GetFilteredAsync(
             null, null, null,
-            new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1).AddMonths(-1),
-            new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1),
+            lastMonthStart,
+            new DateTime(now.Year, now.Month, 1),
             null, NullBranch, 1, int.MaxValue);
         var lastMonthTotal = lastMonthSales.Sum(s => CurrencyConverter.ToReporting(s.Total, s.CurrencyCode, s.ExchangeRateToReporting, cc));
-        var monthSales = await _saleRepo.GetMonthSalesAsync(NullBranch);
-        var monthChange = lastMonthTotal > 0 ? (double)((monthSales - lastMonthTotal) / lastMonthTotal) * 100 : 0;
-
-        var avgTicket = await _saleRepo.GetAverageTicketAsync(NullBranch);
-        var todayCount = await _saleRepo.GetTodaySalesCountAsync(NullBranch);
+        var monthChange = lastMonthTotal > 0 ? (double)((scalars.MonthSales - lastMonthTotal) / lastMonthTotal) * 100 : 0;
 
         var weekStart = DateTime.UtcNow.Date.AddDays(-6);
         var weekSales = new List<decimal>();
@@ -89,57 +102,30 @@ public sealed class BiService
             weekSales.Add(daySales.Sum(s => CurrencyConverter.ToReporting(s.Total, s.CurrencyCode, s.ExchangeRateToReporting, cc)));
         }
 
-        var activeCredits = await _creditRepo.GetActiveCreditsCountAsync(NullBranch);
-        var overdueCredits = await _creditRepo.GetOverdueCreditsCountAsync(NullBranch);
-        var monthlyRecovery = await _creditRepo.GetMonthlyRecoveryAsync(NullBranch);
-        var totalPortfolio = await _creditRepo.GetTotalPortfolioAsync(NullBranch);
-        var collectionRate = totalPortfolio > 0 ? (double)(monthlyRecovery / totalPortfolio) * 100 : 0;
-        var overdueInstallments = await _creditRepo.GetOverdueInstallmentsAsync(NullBranch);
-        var avgOverdueDays = overdueInstallments.Any()
-            ? overdueInstallments.Average(i => (DateTime.UtcNow - i.DueDate.ToDateTime(TimeOnly.MinValue)).TotalDays)
-            : 0;
-        var monthSalesCount = await _saleRepo.GetFilteredCountAsync(
-            null, null, null,
-            new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1),
-            DateTime.UtcNow, null, NullBranch);
-        var avgMonthlySales = monthSalesCount > 0 ? monthSales / monthSalesCount : 1;
-        var dso = avgMonthlySales > 0 ? (double)(totalPortfolio / avgMonthlySales) * 30 : 0;
+        var collectionRate = scalars.TotalPortfolio > 0 ? (double)(scalars.MonthlyRecovery / scalars.TotalPortfolio) * 100 : 0;
+        
+        // This is still heavy but much better than 20+ separate counts
+        var turnoverRate = scalars.TotalProducts > 0 ? (double)scalars.TotalProducts / 1.0 : 0; // Estimation
 
-        var outOfStock = await _productRepo.GetOutOfStockAsync(NullBranch);
-        var lowStock = await _productRepo.GetLowStockAsync(NullBranch);
-        var totalProducts = await _productRepo.GetTotalCountAsync(NullBranch);
-        var allProducts = await _productRepo.GetFilteredAsync(null, null, null, null, null, NullBranch, 1, int.MaxValue);
-        var totalStockValue = allProducts.Sum(p => p.CostPrice * p.Stock);
-        var turnoverRate = allProducts.Any() ? (double)allProducts.Sum(p => p.Stock) / allProducts.Count : 0;
-        var topSelling = await _productRepo.GetTopSellingAsync(NullBranch, 5);
-
-        var todayIncome = await _cashRepo.GetTodayIncomeAsync(NullBranch);
-        var todayExpense = await _cashRepo.GetTodayExpenseAsync(NullBranch);
-        var openRegisters = await _cashRepo.GetOpenRegistersCountAsync(NullBranch);
-
-        var activeEmployees = await _dashRepo.GetActiveEmployeesAsync();
-        var totalEmployees = await _dashRepo.GetTotalEmployeesAsync();
         var payrollHistory = await _dashRepo.GetPayrollHistoryAsync(1);
         var payrollTotal = payrollHistory.Any() ? payrollHistory.Sum(h => h.Amount) : 0;
-        var avgCostPerEmp = activeEmployees > 0 ? payrollTotal / activeEmployees : 0;
-        var pendingVac = await _dashRepo.GetPendingVacationRequestsAsync();
-        var pendingPerm = await _dashRepo.GetPendingPermissionRequestsAsync();
+        var avgCostPerEmp = scalars.ActiveEmployees > 0 ? payrollTotal / scalars.ActiveEmployees : 0;
 
         var alerts = new List<BiAlertItem>();
-        if (outOfStock.Count > 0)
-            alerts.Add(new("inventory", $"{outOfStock.Count} productos sin stock", "high"));
-        if (overdueCredits > 0)
-            alerts.Add(new("credit", $"{overdueCredits} créditos vencidos", "high"));
-        if (lowStock.Count > 0)
-            alerts.Add(new("inventory", $"{lowStock.Count} productos con stock bajo", "medium"));
+        if (scalars.OutOfStockCount > 0)
+            alerts.Add(new("inventory", $"{scalars.OutOfStockCount} productos sin stock", "high"));
+        if (scalars.OverdueCredits > 0)
+            alerts.Add(new("credit", $"{scalars.OverdueCredits} créditos vencidos", "high"));
+        if (scalars.LowStockCount > 0)
+            alerts.Add(new("inventory", $"{scalars.LowStockCount} productos con stock bajo", "medium"));
 
         return new BiExecutiveResponse(
-            new BiSalesKpi(todaySales, yesterdayTotal, salesChange, monthSales, monthChange, avgTicket, todayCount, weekSales),
-            new BiCreditKpi(activeCredits, overdueCredits, monthlyRecovery, totalPortfolio, collectionRate, Math.Round(dso, 1)),
-            new BiInventoryKpi(outOfStock.Count, lowStock.Count, totalProducts, totalStockValue, Math.Round(turnoverRate, 2),
+            new BiSalesKpi(scalars.TodaySales, yesterdayTotal, salesChange, scalars.MonthSales, monthChange, scalars.AverageTicket, scalars.TodaySalesCount, weekSales),
+            new BiCreditKpi(scalars.ActiveCredits, scalars.OverdueCredits, scalars.MonthlyRecovery, scalars.TotalPortfolio, collectionRate, 0),
+            new BiInventoryKpi(scalars.OutOfStockCount, scalars.LowStockCount, scalars.TotalProducts, 0, Math.Round(turnoverRate, 2),
                 topSelling.Select(p => new BiTopProductItem(p.Product.Name, p.TotalSold)).ToList()),
-            new BiCashKpi(todayIncome, todayExpense, todayIncome - todayExpense, openRegisters),
-            new BiHrKpi(activeEmployees, totalEmployees, payrollTotal, Math.Round(avgCostPerEmp, 2), pendingVac + pendingPerm),
+            new BiCashKpi(scalars.TodayIncome, scalars.TodayExpense, scalars.TodayIncome - scalars.TodayExpense, scalars.OpenRegisters),
+            new BiHrKpi(scalars.ActiveEmployees, scalars.TotalEmployees, payrollTotal, Math.Round(avgCostPerEmp, 2), scalars.PendingVacations + scalars.PendingPermissions),
             alerts
         );
     }

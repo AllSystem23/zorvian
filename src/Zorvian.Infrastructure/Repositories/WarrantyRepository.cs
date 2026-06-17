@@ -18,44 +18,47 @@ public sealed class WarrantyRepository : IWarrantyRepository
 
     /// <summary>
     /// Ultra-optimized: all 6 dashboard counts in a single raw SQL round-trip.
+    /// Supports SuperAdmin bypass and specific tenant filtering.
     /// </summary>
-    public async Task<WarrantyDashboardScalars> GetDashboardScalarsRawAsync()
+    public async Task<WarrantyDashboardScalars> GetDashboardScalarsRawAsync(string tenantId, bool isSuperAdmin)
     {
         var sql = @"
             SELECT
                 (SELECT COUNT(*) FROM ""Warranties"" w
-                 WHERE w.""IsDeleted"" = false
+                 WHERE (w.""TenantId"" = @tenantId OR @isSuperAdmin = true) AND w.""IsDeleted"" = false
                    AND w.""Status"" NOT IN ('Closed', 'Delivered')
                 ) AS ""TotalActive"",
 
                 (SELECT COUNT(*) FROM ""Warranties"" w
-                 WHERE w.""IsDeleted"" = false
+                 WHERE (w.""TenantId"" = @tenantId OR @isSuperAdmin = true) AND w.""IsDeleted"" = false
                    AND w.""SlaBreachedAt"" IS NOT NULL
                 ) AS ""TotalBreachedSla"",
 
                 (SELECT COUNT(*) FROM ""Warranties"" w
-                 WHERE w.""IsDeleted"" = false
+                 WHERE (w.""TenantId"" = @tenantId OR @isSuperAdmin = true) AND w.""IsDeleted"" = false
                    AND w.""Status"" = 'Registered'
                 ) AS ""RegisteredCount"",
 
                 (SELECT COUNT(*) FROM ""Warranties"" w
-                 WHERE w.""IsDeleted"" = false
+                 WHERE (w.""TenantId"" = @tenantId OR @isSuperAdmin = true) AND w.""IsDeleted"" = false
                    AND w.""Status"" = 'InDiagnosis'
                 ) AS ""InDiagnosisCount"",
 
                 (SELECT COUNT(*) FROM ""Warranties"" w
-                 WHERE w.""IsDeleted"" = false
+                 WHERE (w.""TenantId"" = @tenantId OR @isSuperAdmin = true) AND w.""IsDeleted"" = false
                    AND w.""Status"" = 'InRepair'
                 ) AS ""InRepairCount"",
 
                 (SELECT COUNT(*) FROM ""Warranties"" w
-                 WHERE w.""IsDeleted"" = false
+                 WHERE (w.""TenantId"" = @tenantId OR @isSuperAdmin = true) AND w.""IsDeleted"" = false
                    AND w.""Status"" = 'ReadyForDelivery'
                 ) AS ""ReadyForDeliveryCount""
         ";
 
         var result = await _db.Database
-            .SqlQueryRaw<WarrantyDashboardScalars>(sql)
+            .SqlQueryRaw<WarrantyDashboardScalars>(sql,
+                new Npgsql.NpgsqlParameter("@tenantId", tenantId),
+                new Npgsql.NpgsqlParameter("@isSuperAdmin", isSuperAdmin))
             .FirstOrDefaultAsync();
 
         return result ?? new WarrantyDashboardScalars();
