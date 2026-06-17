@@ -47,15 +47,15 @@ public sealed class DashboardService
 
         // Phase 1: Single raw SQL for all 11 scalar KPIs (1 round-trip)
         var scalars = await _repo.GetAllKpiScalarsRawAsync(
-            _tenant.TenantId.Value.ToString(),
+            _tenant.EffectiveCompanyId,
             _tenant.IsSuperAdmin,
             thirtyDaysAgo, now.Month, lastMonth);
 
         // Phase 2: EF Core queries sequentially (safe for DbContext)
         var byDept = await _repo.GetEmployeesByDepartmentAsync();
-        var vacations = await _repo.GetVacationsInRangeAsync(start, end);
-        var permissions = await _repo.GetRecentPermissionsAsync(10);
-        var recentVacations = await _repo.GetRecentVacationsAsync(10);
+        var vacations = await _repo.GetVacationsInRangeAsync(start, end, 1, 10);
+        var permissions = await _repo.GetRecentPermissionsAsync(10, 1, 10);
+        var recentVacations = await _repo.GetRecentVacationsAsync(10, 1, 10);
 
         // Build KPIs from single-query results
         var total = scalars.TotalEmployees;
@@ -116,9 +116,9 @@ public sealed class DashboardService
         var thirtyDaysAgo = DateOnly.FromDateTime(now.AddDays(-30));
         var lastMonth = now.Month == 1 ? 12 : now.Month - 1;
 
-        // Phase 1: Raw SQL for all 11 scalar KPIs (1 round-trip)
+        // Phase 1: Single raw SQL for all 11 scalar KPIs (1 round-trip)
         var scalars = await _repo.GetAllKpiScalarsRawAsync(
-            _tenant.TenantId.Value.ToString(),
+            _tenant.EffectiveCompanyId,
             _tenant.IsSuperAdmin,
             thirtyDaysAgo, now.Month, lastMonth);
 
@@ -161,11 +161,8 @@ public sealed class DashboardService
     /// </summary>
     public async Task<ExecutiveDashboardResponse> GetExecutiveDashboardAsync()
     {
-        var tenantId = _tenant.TenantId.Value.ToString();
-        var isSuperAdmin = _tenant.IsSuperAdmin;
-
         // Phase 1: 18 scalars in 1 trip
-        var scalars = await _repo.GetExecutiveKpiScalarsRawAsync(tenantId, isSuperAdmin);
+        var scalars = await _repo.GetExecutiveKpiScalarsRawAsync(_tenant.EffectiveCompanyId, _tenant.IsSuperAdmin);
 
         // Phase 2: Top selling products (requires complex join/logic best left to EF or separate SQL)
         var topSelling = await _productRepo.GetTopSellingAsync(Guid.Empty, 5);
@@ -185,7 +182,8 @@ public sealed class DashboardService
         var start = new DateOnly(now.Year, now.Month, 1);
         var end = start.AddMonths(1).AddDays(-1);
 
-        var vacations = await _repo.GetVacationsInRangeAsync(start, end);
+        // Fetch vacations for calendar (paged)
+        var vacations = await _repo.GetVacationsInRangeAsync(start, end, 1, 100);
 
         return vacations.Select(v => new VacationCalendarEvent(
             v.EmployeeId,
@@ -201,8 +199,8 @@ public sealed class DashboardService
     public async Task<List<RecentRequestItem>> GetRecentRequestsAsync(int count = 10)
     {
         // Queries are executed sequentially for DbContext thread safety
-        var permissions = await _repo.GetRecentPermissionsAsync(count);
-        var vacations = await _repo.GetRecentVacationsAsync(count);
+        var permissions = await _repo.GetRecentPermissionsAsync(count, 1, count);
+        var vacations = await _repo.GetRecentVacationsAsync(count, 1, count);
 
         var result = new List<RecentRequestItem>();
         result.AddRange(permissions.Select(p => new RecentRequestItem(

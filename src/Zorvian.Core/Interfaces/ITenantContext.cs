@@ -5,6 +5,7 @@ namespace Zorvian.Core.Interfaces;
 public interface ITenantContext
 {
     TenantId TenantId { get; }
+    Guid? EffectiveCompanyId => IsSuperAdmin ? null : TenantId.TryGetCompanyId(out var id) ? id : null;
     bool IsSuperAdmin { get; }
     Guid? CurrentUserId { get; }
     Guid? CurrentEmployeeId { get; }
