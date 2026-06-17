@@ -127,12 +127,11 @@ public sealed class AuthRepository : IAuthRepository
 
     public async Task<(List<Company> Items, int Total)> GetCompaniesPagedAsync(int page, int pageSize)
     {
-        var query = _db.Companies.AsQueryable();
+        var query = _db.Companies.OrderBy(c => c.Name).AsQueryable();
         var finalQuery = NeedsBypass ? query.IgnoreQueryFilters() : query;
 
         var total = await finalQuery.CountAsync();
         var items = await finalQuery
-            .OrderBy(c => c.Name)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();

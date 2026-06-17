@@ -251,6 +251,7 @@ public sealed class DashboardRepository : IDashboardRepository
             .Include(v => v.Employee)
             .Where(v => v.StartDate <= end && v.EndDate >= start
                 && (v.Status == "approved" || v.Status == "pending"))
+            .OrderByDescending(v => v.StartDate)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
