@@ -48,16 +48,17 @@ class _ParticleBackgroundState extends State<ParticleBackground>
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (_, _) => CustomPaint(
-        painter: _ParticlePainter(
-          particles: _particles,
-          colors: widget.colors,
-          progress: _controller.value,
-          speed: widget.speed,
+    return RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (_, _) => CustomPaint(
+          painter: _ParticlePainter(
+            particles: _particles,
+            colors: widget.colors,
+            progress: _controller.value,
+            speed: widget.speed,
+          ),
         ),
-        size: Size.zero,
       ),
     );
   }
