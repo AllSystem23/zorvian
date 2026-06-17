@@ -122,13 +122,6 @@ class _EmployeeListPageState extends ConsumerState<EmployeeListPage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await context.push<bool>('/employees/new');
-          if (result == true) ref.read(employeeProvider.notifier).load();
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 }

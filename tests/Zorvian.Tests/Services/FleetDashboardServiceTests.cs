@@ -10,25 +10,20 @@ namespace Zorvian.Tests.Services;
 public sealed class FleetDashboardServiceTests
 {
     private readonly Mock<IVehicleRepository> _vehicleRepo = new();
+    private readonly Mock<Zorvian.Core.Interfaces.ITenantContext> _tenant = new();
     private readonly FleetDashboardService _sut;
 
     public FleetDashboardServiceTests()
     {
-        _sut = new FleetDashboardService(_vehicleRepo.Object);
+        _tenant.Setup(t => t.TenantId).Returns(new Zorvian.Core.Entities.TenantId(Guid.NewGuid()));
+        _tenant.Setup(t => t.IsSuperAdmin).Returns(false);
+        _sut = new FleetDashboardService(_vehicleRepo.Object, _tenant.Object);
     }
 
     [Fact]
     public async Task GetDashboardAsync_ReturnsCorrectVehicleCounts()
     {
-        var vehicles = new List<Vehicle>
-        {
-            new() { Id = Guid.NewGuid(), Status = "Active" },
-            new() { Id = Guid.NewGuid(), Status = "Active" },
-            new() { Id = Guid.NewGuid(), Status = "Maintenance" },
-            new() { Id = Guid.NewGuid(), Status = "Inactive" },
-        };
-
-        _vehicleRepo.Setup(r => r.GetDashboardScalarsRawAsync())
+        _vehicleRepo.Setup(r => r.GetDashboardScalarsRawAsync(It.IsAny<string>(), It.IsAny<bool>()))
             .ReturnsAsync(new FleetDashboardScalars { TotalVehicles = 4, ActiveVehicles = 2, InMaintenance = 1, AvailableDrivers = 0, ActiveRoutes = 0, PendingDeliveries = 0, TripsToday = 0, ExpiringDocuments = 0, ExpiringSoon = 0 });
 
         var result = await _sut.GetDashboardAsync();
@@ -41,14 +36,7 @@ public sealed class FleetDashboardServiceTests
     [Fact]
     public async Task GetDashboardAsync_CountsAvailableDrivers()
     {
-        var drivers = new List<Driver>
-        {
-            new() { Id = Guid.NewGuid(), Status = "Available" },
-            new() { Id = Guid.NewGuid(), Status = "Available" },
-            new() { Id = Guid.NewGuid(), Status = "OnTrip" },
-        };
-
-        _vehicleRepo.Setup(r => r.GetDashboardScalarsRawAsync())
+        _vehicleRepo.Setup(r => r.GetDashboardScalarsRawAsync(It.IsAny<string>(), It.IsAny<bool>()))
             .ReturnsAsync(new FleetDashboardScalars { TotalVehicles = 0, ActiveVehicles = 0, InMaintenance = 0, AvailableDrivers = 2, ActiveRoutes = 0, PendingDeliveries = 0, TripsToday = 0, ExpiringDocuments = 0, ExpiringSoon = 0 });
 
         var result = await _sut.GetDashboardAsync();
@@ -66,7 +54,7 @@ public sealed class FleetDashboardServiceTests
             new() { Id = Guid.NewGuid(), Status = "Completed" },
         };
 
-        _vehicleRepo.Setup(r => r.GetDashboardScalarsRawAsync())
+        _vehicleRepo.Setup(r => r.GetDashboardScalarsRawAsync(It.IsAny<string>(), It.IsAny<bool>()))
             .ReturnsAsync(new FleetDashboardScalars { TotalVehicles = 0, ActiveVehicles = 0, InMaintenance = 0, AvailableDrivers = 0, ActiveRoutes = 2, PendingDeliveries = 0, TripsToday = 0, ExpiringDocuments = 0, ExpiringSoon = 0 });
 
         var result = await _sut.GetDashboardAsync();
@@ -84,7 +72,7 @@ public sealed class FleetDashboardServiceTests
             new() { Id = Guid.NewGuid(), Status = "Delivered" },
         };
 
-        _vehicleRepo.Setup(r => r.GetDashboardScalarsRawAsync())
+        _vehicleRepo.Setup(r => r.GetDashboardScalarsRawAsync(It.IsAny<string>(), It.IsAny<bool>()))
             .ReturnsAsync(new FleetDashboardScalars { TotalVehicles = 0, ActiveVehicles = 0, InMaintenance = 0, AvailableDrivers = 0, ActiveRoutes = 0, PendingDeliveries = 2, TripsToday = 0, ExpiringDocuments = 0, ExpiringSoon = 0 });
 
         var result = await _sut.GetDashboardAsync();
@@ -103,7 +91,7 @@ public sealed class FleetDashboardServiceTests
             new() { Id = Guid.NewGuid(), ExpiryDate = today.AddDays(-5), Status = "Valid" },
         };
 
-        _vehicleRepo.Setup(r => r.GetDashboardScalarsRawAsync())
+        _vehicleRepo.Setup(r => r.GetDashboardScalarsRawAsync(It.IsAny<string>(), It.IsAny<bool>()))
             .ReturnsAsync(new FleetDashboardScalars { TotalVehicles = 0, ActiveVehicles = 0, InMaintenance = 0, AvailableDrivers = 0, ActiveRoutes = 0, PendingDeliveries = 0, TripsToday = 0, ExpiringDocuments = 0, ExpiringSoon = 1 });
 
         var result = await _sut.GetDashboardAsync();
@@ -120,7 +108,7 @@ public sealed class FleetDashboardServiceTests
             new() { Id = Guid.NewGuid(), Status = "Maintenance" },
         };
 
-        _vehicleRepo.Setup(r => r.GetDashboardScalarsRawAsync())
+        _vehicleRepo.Setup(r => r.GetDashboardScalarsRawAsync(It.IsAny<string>(), It.IsAny<bool>()))
             .ReturnsAsync(new FleetDashboardScalars { TotalVehicles = 1, ActiveVehicles = 0, InMaintenance = 1, AvailableDrivers = 0, ActiveRoutes = 0, PendingDeliveries = 0, TripsToday = 0, ExpiringDocuments = 0, ExpiringSoon = 0 });
 
         var result = await _sut.GetDashboardAsync();
@@ -136,7 +124,7 @@ public sealed class FleetDashboardServiceTests
             new() { Id = Guid.NewGuid(), Status = "Active" },
         };
 
-        _vehicleRepo.Setup(r => r.GetDashboardScalarsRawAsync())
+        _vehicleRepo.Setup(r => r.GetDashboardScalarsRawAsync(It.IsAny<string>(), It.IsAny<bool>()))
             .ReturnsAsync(new FleetDashboardScalars { TotalVehicles = 1, ActiveVehicles = 1, InMaintenance = 0, AvailableDrivers = 0, ActiveRoutes = 0, PendingDeliveries = 0, TripsToday = 0, ExpiringDocuments = 0, ExpiringSoon = 0 });
 
         var result = await _sut.GetDashboardAsync();
@@ -147,11 +135,11 @@ public sealed class FleetDashboardServiceTests
     [Fact]
     public async Task GetDashboardAsync_CallsAllReposExactlyOnce()
     {
-        _vehicleRepo.Setup(r => r.GetDashboardScalarsRawAsync())
+        _vehicleRepo.Setup(r => r.GetDashboardScalarsRawAsync(It.IsAny<string>(), It.IsAny<bool>()))
             .ReturnsAsync(new FleetDashboardScalars { TotalVehicles = 0, ActiveVehicles = 0, InMaintenance = 0, AvailableDrivers = 0, ActiveRoutes = 0, PendingDeliveries = 0, TripsToday = 0, ExpiringDocuments = 0, ExpiringSoon = 0 });
 
         await _sut.GetDashboardAsync();
 
-        _vehicleRepo.Verify(r => r.GetDashboardScalarsRawAsync(), Times.Once);
+        _vehicleRepo.Verify(r => r.GetDashboardScalarsRawAsync(It.IsAny<string>(), It.IsAny<bool>()), Times.Once);
     }
 }

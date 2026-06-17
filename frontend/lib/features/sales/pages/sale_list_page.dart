@@ -28,10 +28,6 @@ final class _SaleListPageState extends ConsumerState<SaleListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Ventas')),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/sales/new'),
-        child: const Icon(Icons.add),
-      ),
       body: ZAsyncRenderer<List<SaleItem>>(
         value: ref.watch(saleProvider),
         builder: (items) => Column(
