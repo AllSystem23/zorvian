@@ -64,6 +64,28 @@ public sealed class DashboardKpiScalars
     public int PreviousMonthActiveEmployees { get; set; }
 }
 
+public sealed class ExecutiveKpiScalars
+{
+    public decimal TodaySales { get; set; }
+    public decimal MonthSales { get; set; }
+    public decimal AverageTicket { get; set; }
+    public int TodaySalesCount { get; set; }
+    public int ActiveCredits { get; set; }
+    public int OverdueCredits { get; set; }
+    public decimal MonthlyRecovery { get; set; }
+    public decimal TotalPortfolio { get; set; }
+    public int OutOfStockCount { get; set; }
+    public int LowStockCount { get; set; }
+    public int TotalProducts { get; set; }
+    public decimal TodayIncome { get; set; }
+    public decimal TodayExpense { get; set; }
+    public int OpenRegisters { get; set; }
+    public int ActiveEmployees { get; set; }
+    public int TotalEmployees { get; set; }
+    public int PendingVacations { get; set; }
+    public int PendingPermissions { get; set; }
+}
+
 public sealed record PayrollDashboardResponse(
     List<PayrollCostByDept> CostsByDepartment,
     List<PayrollHistoryItem> History,

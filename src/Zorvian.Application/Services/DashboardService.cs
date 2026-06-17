@@ -51,18 +51,11 @@ public sealed class DashboardService
             _tenant.IsSuperAdmin,
             thirtyDaysAgo, now.Month, lastMonth);
 
-        // Phase 2: EF Core queries in parallel (after raw SQL completes — safe for DbContext)
-        var byDeptTask = _repo.GetEmployeesByDepartmentAsync();
-        var calendarTask = _repo.GetVacationsInRangeAsync(start, end);
-        var recentPermissionsTask = _repo.GetRecentPermissionsAsync(10);
-        var recentVacationsTask = _repo.GetRecentVacationsAsync(10);
-
-        await Task.WhenAll(byDeptTask, calendarTask, recentPermissionsTask, recentVacationsTask);
-
-        var byDept = await byDeptTask;
-        var vacations = await calendarTask;
-        var permissions = await recentPermissionsTask;
-        var recentVacations = await recentVacationsTask;
+        // Phase 2: EF Core queries sequentially (safe for DbContext)
+        var byDept = await _repo.GetEmployeesByDepartmentAsync();
+        var vacations = await _repo.GetVacationsInRangeAsync(start, end);
+        var permissions = await _repo.GetRecentPermissionsAsync(10);
+        var recentVacations = await _repo.GetRecentVacationsAsync(10);
 
         // Build KPIs from single-query results
         var total = scalars.TotalEmployees;
@@ -162,56 +155,28 @@ public sealed class DashboardService
     }
 
     /// <summary>
-    /// Executive dashboard: 19 queries across 5 repositories.
-    /// All queries are independent → fire all in parallel (1 round-trip).
-    /// Each repo uses its own DbContext connection from the pool.
+    /// Executive dashboard: Optimized to use only 2 database round-trips.
+    /// Phase 1: 18 scalar KPIs in a single raw SQL query.
+    /// Phase 2: Top selling products list.
     /// </summary>
     public async Task<ExecutiveDashboardResponse> GetExecutiveDashboardAsync()
     {
-        // Commercial KPIs (saleRepo)
-        var todaySalesTask = _saleRepo.GetTodaySalesAsync(Guid.Empty);
-        var monthSalesTask = _saleRepo.GetMonthSalesAsync(Guid.Empty);
-        var avgTicketTask = _saleRepo.GetAverageTicketAsync(Guid.Empty);
-        var todaySalesCountTask = _saleRepo.GetTodaySalesCountAsync(Guid.Empty);
+        var tenantId = _tenant.TenantId.Value.ToString();
+        var isSuperAdmin = _tenant.IsSuperAdmin;
 
-        // Credit KPIs (creditRepo)
-        var activeCreditsTask = _creditRepo.GetActiveCreditsCountAsync(Guid.Empty);
-        var overdueCreditsTask = _creditRepo.GetOverdueCreditsCountAsync(Guid.Empty);
-        var monthlyRecoveryTask = _creditRepo.GetMonthlyRecoveryAsync(Guid.Empty);
-        var totalPortfolioTask = _creditRepo.GetTotalPortfolioAsync(Guid.Empty);
+        // Phase 1: 18 scalars in 1 trip
+        var scalars = await _repo.GetExecutiveKpiScalarsRawAsync(tenantId, isSuperAdmin);
 
-        // Inventory KPIs (productRepo)
-        var outOfStockTask = _productRepo.GetOutOfStockAsync(Guid.Empty);
-        var lowStockTask = _productRepo.GetLowStockAsync(Guid.Empty);
-        var totalProductsTask = _productRepo.GetTotalCountAsync(Guid.Empty);
-        var topSellingTask = _productRepo.GetTopSellingAsync(Guid.Empty, 5);
-
-        // Cash KPIs (cashRepo)
-        var todayIncomeTask = _cashRepo.GetTodayIncomeAsync(Guid.Empty);
-        var todayExpenseTask = _cashRepo.GetTodayExpenseAsync(Guid.Empty);
-        var openRegistersTask = _cashRepo.GetOpenRegistersCountAsync(Guid.Empty);
-
-        // HR KPIs (dashRepo)
-        var activeEmployeesTask = _repo.GetActiveEmployeesAsync();
-        var totalEmployeesTask = _repo.GetTotalEmployeesAsync();
-        var pendingVacTask = _repo.GetPendingVacationRequestsAsync();
-        var pendingPermTask = _repo.GetPendingPermissionRequestsAsync();
-
-        // Fire all 19 queries in parallel
-        await Task.WhenAll(
-            todaySalesTask, monthSalesTask, avgTicketTask, todaySalesCountTask,
-            activeCreditsTask, overdueCreditsTask, monthlyRecoveryTask, totalPortfolioTask,
-            outOfStockTask, lowStockTask, totalProductsTask, topSellingTask,
-            todayIncomeTask, todayExpenseTask, openRegistersTask,
-            activeEmployeesTask, totalEmployeesTask, pendingVacTask, pendingPermTask);
+        // Phase 2: Top selling products (requires complex join/logic best left to EF or separate SQL)
+        var topSelling = await _productRepo.GetTopSellingAsync(Guid.Empty, 5);
 
         return new ExecutiveDashboardResponse(
-            new CommercialKpis(await todaySalesTask, await monthSalesTask, await avgTicketTask, await todaySalesCountTask),
-            new CreditKpis(await activeCreditsTask, await overdueCreditsTask, await monthlyRecoveryTask, await totalPortfolioTask),
-            new InventoryKpis((await outOfStockTask).Count, (await lowStockTask).Count, await totalProductsTask,
-                (await topSellingTask).Select(p => new TopProductItem(p.Product.Name, p.TotalSold)).ToList()),
-            new CashKpis(await todayIncomeTask, await todayExpenseTask, await openRegistersTask),
-            new HrKpis(await activeEmployeesTask, await pendingVacTask, await pendingPermTask, await totalEmployeesTask));
+            new CommercialKpis(scalars.TodaySales, scalars.MonthSales, scalars.AverageTicket, scalars.TodaySalesCount),
+            new CreditKpis(scalars.ActiveCredits, scalars.OverdueCredits, scalars.MonthlyRecovery, scalars.TotalPortfolio),
+            new InventoryKpis(scalars.OutOfStockCount, scalars.LowStockCount, scalars.TotalProducts,
+                topSelling.Select(p => new TopProductItem(p.Product.Name, p.TotalSold)).ToList()),
+            new CashKpis(scalars.TodayIncome, scalars.TodayExpense, scalars.OpenRegisters),
+            new HrKpis(scalars.ActiveEmployees, scalars.PendingVacations, scalars.PendingPermissions, scalars.TotalEmployees));
     }
 
     public async Task<List<VacationCalendarEvent>> GetVacationCalendarAsync()
@@ -235,13 +200,9 @@ public sealed class DashboardService
 
     public async Task<List<RecentRequestItem>> GetRecentRequestsAsync(int count = 10)
     {
-        // Parallel: permissions + vacations in one batch
-        var permissionsTask = _repo.GetRecentPermissionsAsync(count);
-        var vacationsTask = _repo.GetRecentVacationsAsync(count);
-        await Task.WhenAll(permissionsTask, vacationsTask);
-
-        var permissions = await permissionsTask;
-        var vacations = await vacationsTask;
+        // Queries are executed sequentially for DbContext thread safety
+        var permissions = await _repo.GetRecentPermissionsAsync(count);
+        var vacations = await _repo.GetRecentVacationsAsync(count);
 
         var result = new List<RecentRequestItem>();
         result.AddRange(permissions.Select(p => new RecentRequestItem(

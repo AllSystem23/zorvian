@@ -7,6 +7,7 @@ public interface IDashboardRepository
 {
     // Ultra-optimized: single raw SQL for ALL scalar KPI values (1 round-trip)
     Task<DashboardKpiScalars> GetAllKpiScalarsRawAsync(string tenantId, bool isSuperAdmin, DateOnly thirtyDaysAgo, int currentMonth, int lastMonth);
+    Task<ExecutiveKpiScalars> GetExecutiveKpiScalarsRawAsync(string tenantId, bool isSuperAdmin);
     Task<List<(string Name, int Count)>> GetEmployeesByDepartmentAsync();
     Task<List<VacationRequest>> GetVacationsInRangeAsync(DateOnly start, DateOnly end);
     Task<List<PermissionRequest>> GetRecentPermissionsAsync(int count);
