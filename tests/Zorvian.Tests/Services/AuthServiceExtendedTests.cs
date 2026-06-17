@@ -24,7 +24,8 @@ public sealed class AuthServiceExtendedTests
     {
         _mfa.Setup(m => m.GenerateMfaToken(It.IsAny<Guid>())).Returns("mfa-test-token");
         _mfa.Setup(m => m.ValidateMfaToken(It.IsAny<string>())).Returns((Guid?)null);
-        _tenant.Setup(t => t.TenantId).Returns(Guid.NewGuid().ToString());
+        _tenant.Setup(t => t.TenantId).Returns(TenantId.FromString(Guid.NewGuid().ToString()));
+        _tenant.Setup(t => t.IsSuperAdmin).Returns(false);
         _sut = new AuthService(_authRepo.Object, _firebase.Object, _jwt.Object, _mfa.Object, _tenant.Object, _email.Object, _logger.Object);
     }
 

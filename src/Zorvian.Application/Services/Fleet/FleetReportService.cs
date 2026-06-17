@@ -45,11 +45,11 @@ public sealed class FleetReportService
         _tenant = tenant;
     }
 
-    private async Task<Guid> GetCompanyIdAsync()
+    private Task<Guid> GetCompanyIdAsync()
     {
         if (!Guid.TryParse(_tenant.TenantId, out var companyId))
             throw new InvalidOperationException("Tenant not configured");
-        return companyId;
+        return Task.FromResult(companyId);
     }
 
     // ════════════════════════════════════════
@@ -129,7 +129,7 @@ public sealed class FleetReportService
         if (request.EndDate.HasValue)
             routes = routes.Where(r => r.CreatedAt <= request.EndDate.Value).ToList();
 
-        var deliveryCounts = deliveries.GroupBy(d => d.RouteId).ToDictionary(g => g.Key, g => g.Count());
+        var deliveryCounts = deliveries.Where(d => d.RouteId.HasValue).GroupBy(d => d.RouteId!.Value).ToDictionary(g => g.Key, g => g.Count());
 
         var rows = routes.Select(r => new RouteReportRow(
             r.Id, r.Name, r.Type, r.Status,
@@ -361,7 +361,7 @@ public sealed class FleetReportService
         }
 
         var tripsByDriver = trips.GroupBy(t => t.DriverId).ToDictionary(g => g.Key, g => g.ToList());
-        var delByDriver = deliveries.GroupBy(d => d.DriverId).ToDictionary(g => g.Key, g => g.ToList());
+        var delByDriver = deliveries.Where(d => d.DriverId.HasValue).GroupBy(d => d.DriverId!.Value).ToDictionary(g => g.Key, g => g.ToList());
         var expByDriver = expenses.Where(e => e.DriverId.HasValue)
             .GroupBy(e => e.DriverId!.Value).ToDictionary(g => g.Key, g => g.Sum(e => e.Amount));
 

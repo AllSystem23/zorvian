@@ -17,7 +17,7 @@ public sealed class AuthRepository : IAuthRepository
         _tenant = tenant;
     }
 
-    private bool NeedsBypass => _tenant.TenantId.Value == Guid.Empty;
+    private bool NeedsBypass => _tenant.TenantId.Value == Guid.Empty || _tenant.IsSuperAdmin;
 
     public async Task<User?> GetUserByFirebaseUidAsync(string firebaseUid)
     {

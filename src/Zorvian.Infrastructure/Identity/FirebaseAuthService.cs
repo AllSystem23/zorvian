@@ -86,15 +86,18 @@ public sealed class FirebaseAuthService : IFirebaseAuthService
             }
 
             var fbResponse = await response.Content.ReadFromJsonAsync<JsonElement>();
-            var localId = fbResponse.GetProperty("localId").GetString();
-            var fbEmail = fbResponse.GetProperty("email").GetString();
-            var displayName = fbResponse.GetProperty("displayName").GetString();
+            var localId = fbResponse.TryGetProperty("localId", out var localIdEl) ? localIdEl.GetString() : null;
+            var fbEmail = fbResponse.TryGetProperty("email", out var emailEl) ? emailEl.GetString() : null;
 
             if (string.IsNullOrEmpty(localId) || string.IsNullOrEmpty(fbEmail))
             {
                 _logger.LogWarning("Firebase REST API succeeded but missing localId or email");
                 return null;
             }
+
+            string? displayName = null;
+            if (fbResponse.TryGetProperty("displayName", out var displayNameEl))
+                displayName = displayNameEl.GetString();
 
             string? picture = null;
             if (fbResponse.TryGetProperty("photoUrl", out var photoEl))

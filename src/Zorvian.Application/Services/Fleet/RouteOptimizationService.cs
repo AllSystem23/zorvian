@@ -277,10 +277,10 @@ public sealed class RouteOptimizationService
             point.Instructions);
     }
 
-    private async Task<Guid> GetCompanyIdAsync()
+    private Task<Guid> GetCompanyIdAsync()
     {
         if (Guid.TryParse(_tenant.TenantId.ToString(), out var companyId))
-            return companyId;
-        return Guid.Empty;
+            return Task.FromResult(companyId);
+        return Task.FromResult(Guid.Empty);
     }
 }

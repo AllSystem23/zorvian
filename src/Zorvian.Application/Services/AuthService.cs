@@ -3,6 +3,7 @@ using Zorvian.Application.DTOs.Auth;
 using Zorvian.Application.DTOs.Common;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
+using Zorvian.Core.Enums;
 using Zorvian.Core.Interfaces;
 
 namespace Zorvian.Application.Services;
@@ -157,7 +158,9 @@ public sealed class AuthService
         {
             var innerMsg = ex.InnerException != null ? $" | Inner: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}" : " | No inner exception";
             _logger.LogError(ex, "LoginWithPasswordStep1Async failed for {Email}. Exception: {Type} {Message}{Inner}", request.Email, ex.GetType().Name, ex.Message, innerMsg);
-            throw new InvalidOperationException($"Login failed: {ex.GetType().Name}: {ex.Message}{innerMsg}", ex);
+            // Return null so the controller sends 401 Unauthorized instead of letting the
+            // exception bubble up to GlobalExceptionMiddleware which would return 400 Bad Request.
+            return null;
         }
     }
 
@@ -390,18 +393,29 @@ public sealed class AuthService
 
     public async Task<AuthResponse?> SwitchTenantAsync(Guid userId, string newTenantId)
     {
-        var hasAccess = await _authRepo.UserHasTenantAccessAsync(userId, newTenantId);
-        if (!hasAccess) return null;
-
         var user = await _authRepo.GetUserWithRolesAsync(userId);
         if (user is null) return null;
 
+        var isSuperAdmin = user.UserRoles.Any(ur => ur.Role.Name == RoleType.SuperAdmin);
+
+        // Super Admin can access any company without a UserTenants row.
+        // Regular users must have an explicit UserTenants record.
+        if (!isSuperAdmin)
+        {
+            var hasAccess = await _authRepo.UserHasTenantAccessAsync(userId, newTenantId);
+            if (!hasAccess) return null;
+        }
+
         user.LastLoginAt = DateTime.UtcNow;
-        user.TenantId = newTenantId;
+        // Do NOT overwrite TenantId in the DB for SuperAdmin ("superadmin" must stay intact).
+        // The new tenantId only lives in the emitted JWT as contextual scope.
+        if (!isSuperAdmin)
+            user.TenantId = newTenantId;
+
         await _authRepo.SaveChangesAsync();
 
         var primaryRole = user.UserRoles.FirstOrDefault()?.Role
-            ?? new Role { Name = Core.Enums.RoleType.Employee, DisplayName = "Empleado" };
+            ?? new Role { Name = RoleType.Employee, DisplayName = "Empleado" };
 
         var (accessToken, refreshToken, expiresIn) = _jwt.GenerateTokens(user, primaryRole, newTenantId);
 

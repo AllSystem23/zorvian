@@ -13,7 +13,7 @@ public sealed class AuthRepositoryExtendedTests
     private readonly ZorvianDbContext _db;
     private readonly AuthRepository _sut;
 
-    private readonly string _tenantId = Guid.NewGuid().ToString();
+    private readonly TenantId _tenantId = TenantId.FromString(Guid.NewGuid().ToString());
 
     public AuthRepositoryExtendedTests()
     {
