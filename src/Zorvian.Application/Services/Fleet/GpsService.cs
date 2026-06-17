@@ -356,6 +356,8 @@ public sealed class GpsService
 
     private Task<Guid> GetCompanyIdAsync()
     {
+        if (_tenant.IsSuperAdmin) return Task.FromResult(Guid.Empty);
+
         if (Guid.TryParse(_tenant.TenantId.ToString(), out var companyId))
             return Task.FromResult(companyId);
         return Task.FromResult(Guid.Empty);

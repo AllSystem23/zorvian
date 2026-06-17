@@ -47,7 +47,9 @@ public sealed class FleetReportService
 
     private Task<Guid> GetCompanyIdAsync()
     {
-        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+        if (_tenant.IsSuperAdmin) return Task.FromResult(Guid.Empty);
+
+        if (!Guid.TryParse(_tenant.TenantId.ToString(), out var companyId))
             throw new InvalidOperationException("Tenant not configured");
         return Task.FromResult(companyId);
     }

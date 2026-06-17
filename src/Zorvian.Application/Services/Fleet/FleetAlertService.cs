@@ -318,6 +318,8 @@ public sealed class FleetAlertService
 
     private Task<Guid> GetCompanyIdAsync()
     {
+        if (_tenant.IsSuperAdmin) return Task.FromResult(Guid.Empty);
+
         // Extract company ID from tenant context
         if (Guid.TryParse(_tenant.TenantId.ToString(), out var companyId))
             return Task.FromResult(companyId);
