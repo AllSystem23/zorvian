@@ -20,14 +20,14 @@ public static class DependencyInjectionExtensions
     public static IServiceCollection AddZorvianInfrastructure(this IServiceCollection services)
     {
         // Tenant & Interceptors
-        services.AddScoped<TenantContext>();
-        services.AddScoped<ITenantContext>(sp => sp.GetRequiredService<TenantContext>());
-        services.AddScoped<ITenantContextWriter>(sp => sp.GetRequiredService<TenantContext>());
+        services.AddSingleton<TenantContext>();
+        services.AddSingleton<ITenantContext>(sp => sp.GetRequiredService<TenantContext>());
+        services.AddSingleton<ITenantContextWriter>(sp => sp.GetRequiredService<TenantContext>());
         services.AddScoped<IUnitOfWork, UnitOfWork>();
-        services.AddScoped<Zorvian.Infrastructure.Data.AuditInterceptor>();
-        services.AddScoped<Zorvian.Infrastructure.Data.AuditImmutabilityInterceptor>();
-        services.AddScoped<Zorvian.Infrastructure.Data.EntityHistoryInterceptor>();
-        services.AddScoped<Zorvian.Infrastructure.Data.TenantSessionInterceptor>();
+        services.AddSingleton<Zorvian.Infrastructure.Data.AuditInterceptor>();
+        services.AddSingleton<Zorvian.Infrastructure.Data.AuditImmutabilityInterceptor>();
+        services.AddSingleton<Zorvian.Infrastructure.Data.EntityHistoryInterceptor>();
+        services.AddSingleton<Zorvian.Infrastructure.Data.TenantSessionInterceptor>();
 
         // Identity
         services.AddSingleton<IFirebaseAuthService, FirebaseAuthService>();
