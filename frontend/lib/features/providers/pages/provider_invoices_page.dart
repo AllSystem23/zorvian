@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
 import '../providers/provider_state.dart';
@@ -164,9 +163,11 @@ final class _RegisterInvoiceDialogState extends ConsumerState<_RegisterInvoiceDi
       widget.onSaved();
       if (mounted) Navigator.of(context).pop();
     } catch (_) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al registrar factura')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al registrar factura')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -196,7 +197,7 @@ final class _RegisterInvoiceDialogState extends ConsumerState<_RegisterInvoiceDi
               const SizedBox(height: 12),
               if (_milestones != null)
                 DropdownButtonFormField<String>(
-                  value: _selectedMilestoneId,
+                  initialValue: _selectedMilestoneId,
                   decoration: const InputDecoration(labelText: 'Hito'),
                   items: _milestones!.map<DropdownMenuItem<String>>((m) => DropdownMenuItem<String>(
                     value: m['id'] as String?,
@@ -246,7 +247,9 @@ final class _RegisterInvoiceDialogState extends ConsumerState<_RegisterInvoiceDi
                     firstDate: DateTime.now().subtract(const Duration(days: 365)),
                     lastDate: DateTime.now(),
                   );
-                  if (date != null) setState(() => _invoiceDate = date);
+                  if (date != null) {
+                    setState(() => _invoiceDate = date);
+                  }
                 },
                 child: InputDecorator(
                   decoration: const InputDecoration(labelText: 'Fecha de Factura'),
@@ -275,7 +278,7 @@ final class _ContractDropdown extends ConsumerWidget {
     final contractsAsync = ref.watch(allContractsProvider);
     return contractsAsync.when(
       data: (contracts) => DropdownButtonFormField<String>(
-        value: value,
+        initialValue: value,
         decoration: const InputDecoration(labelText: 'Contrato'),
         items: contracts.map((c) => DropdownMenuItem(
           value: c.id,
@@ -285,7 +288,7 @@ final class _ContractDropdown extends ConsumerWidget {
         validator: (v) => v == null ? 'Seleccione un contrato' : null,
       ),
       loading: () => const SizedBox(height: 56, child: Center(child: LinearProgressIndicator())),
-      error: (_, __) => const Text('Error al cargar contratos'),
+      error: (_, _) => const Text('Error al cargar contratos'),
     );
   }
 }

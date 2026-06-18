@@ -23,6 +23,7 @@ public interface IAccountRepository
 public interface IAccountingEntryRepository
 {
     Task<AccountingEntry?> GetByIdAsync(Guid id);
+    Task<List<AccountingEntry>> GetPostedWithDetailsAsync(Guid? periodId, Guid companyId, DateTime? toDate = null);
     Task<List<AccountingEntry>> GetFilteredAsync(Guid? periodId, string? referenceType, string? status, DateTime? fromDate, DateTime? toDate, Guid companyId, int page, int pageSize);
     Task<int> GetFilteredCountAsync(Guid? periodId, string? referenceType, string? status, DateTime? fromDate, DateTime? toDate, Guid companyId);
     Task<string> GenerateEntryNumberAsync(Guid companyId);

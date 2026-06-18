@@ -393,6 +393,9 @@ public sealed class AuthService
 
     public async Task<AuthResponse?> SwitchTenantAsync(Guid userId, string newTenantId)
     {
+        if (string.IsNullOrWhiteSpace(newTenantId))
+            return null;
+
         var user = await _authRepo.GetUserWithRolesAsync(userId);
         if (user is null) return null;
 
@@ -405,6 +408,10 @@ public sealed class AuthService
             var hasAccess = await _authRepo.UserHasTenantAccessAsync(userId, newTenantId);
             if (!hasAccess) return null;
         }
+
+        var targetCompany = (await _authRepo.GetCompaniesByTenantIdsAsync([newTenantId]))
+            .FirstOrDefault(c => c.TenantId == newTenantId && !c.IsDeleted);
+        if (targetCompany is null) return null;
 
         user.LastLoginAt = DateTime.UtcNow;
         // Do NOT overwrite TenantId in the DB for SuperAdmin ("superadmin" must stay intact).

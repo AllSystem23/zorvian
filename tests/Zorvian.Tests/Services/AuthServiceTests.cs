@@ -122,4 +122,53 @@ public sealed class AuthServiceTests
 
         Assert.False(result);
     }
+
+    [Fact]
+    public async Task SwitchTenantAsync_WhenSuperAdminAndCompanyExists_ReturnsAuthResponse()
+    {
+        var userId = Guid.NewGuid();
+        var tenantId = Guid.NewGuid().ToString();
+        var superAdminRole = new Role { Id = Guid.NewGuid(), Name = RoleType.SuperAdmin, DisplayName = "Super Admin" };
+        var user = new User
+        {
+            Id = userId,
+            Email = "super@zorvian.app",
+            DisplayName = "Super Admin",
+            UserRoles = { new UserRole { RoleId = superAdminRole.Id, Role = superAdminRole } },
+        };
+        var company = new Company { Id = Guid.NewGuid(), TenantId = tenantId, Name = "Company A" };
+
+        _authRepo.Setup(r => r.GetUserWithRolesAsync(userId)).ReturnsAsync(user);
+        _authRepo.Setup(r => r.GetCompaniesByTenantIdsAsync(It.Is<List<string>>(ids => ids.Contains(tenantId))))
+            .ReturnsAsync([company]);
+        _authRepo.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
+        _jwt.Setup(j => j.GenerateTokens(user, superAdminRole, tenantId))
+            .Returns(("access-token", "refresh-token", 3600));
+
+        var result = await _sut.SwitchTenantAsync(userId, tenantId);
+
+        Assert.NotNull(result);
+        Assert.Equal(tenantId, result.User.TenantId);
+        _authRepo.Verify(r => r.UserHasTenantAccessAsync(It.IsAny<Guid>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SwitchTenantAsync_WhenCompanyDoesNotExist_ReturnsNull()
+    {
+        var userId = Guid.NewGuid();
+        var tenantId = Guid.NewGuid().ToString();
+        var user = new User
+        {
+            Id = userId,
+            UserRoles = { new UserRole { Role = new Role { Name = RoleType.SuperAdmin, DisplayName = "Super Admin" } } },
+        };
+
+        _authRepo.Setup(r => r.GetUserWithRolesAsync(userId)).ReturnsAsync(user);
+        _authRepo.Setup(r => r.GetCompaniesByTenantIdsAsync(It.Is<List<string>>(ids => ids.Contains(tenantId))))
+            .ReturnsAsync([]);
+
+        var result = await _sut.SwitchTenantAsync(userId, tenantId);
+
+        Assert.Null(result);
+    }
 }

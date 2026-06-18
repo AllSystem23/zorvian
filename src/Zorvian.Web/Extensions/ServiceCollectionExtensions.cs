@@ -241,9 +241,14 @@ public static class ServiceCollectionExtensions
     {
         if (!mockExternal)
         {
+            var connectionString = configuration.GetConnectionString("ZorvianDb");
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                return services.AddHangfire(config => config.UseMemoryStorage());
+            }
+
             services.AddHangfire((sp, config) =>
             {
-                var connectionString = configuration.GetConnectionString("ZorvianDb");
                 config.UsePostgreSqlStorage(options => options.UseNpgsqlConnection(connectionString!));
             });
             services.AddHangfireServer();

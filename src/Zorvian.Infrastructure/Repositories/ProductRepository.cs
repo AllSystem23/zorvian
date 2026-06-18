@@ -116,6 +116,72 @@ public sealed class ProductRepository : IProductRepository
             .ToList();
     }
 
+    public async Task<InventorySummaryRaw> GetInventorySummaryRawAsync(Guid branchId)
+    {
+        var query = _db.Set<Product>()
+            .Where(p => !p.IsDeleted)
+            .AsQueryable();
+
+        if (branchId != Guid.Empty)
+            query = query.Where(p => p.BranchId == branchId);
+
+        var totals = await query
+            .Select(p => new
+            {
+                TotalValue = p.CostPrice * p.Stock,
+                Stock = p.Stock,
+                LowStock = p.Stock <= p.MinStock ? 1 : 0,
+                OutOfStock = p.Stock <= 0 ? 1 : 0
+            })
+            .GroupBy(_ => 1)
+            .Select(g => new InventorySummaryRaw(
+                g.Sum(x => x.TotalValue),
+                g.Count(),
+                g.Sum(x => x.LowStock),
+                g.Sum(x => x.OutOfStock),
+                g.Count() > 0 ? (double)g.Sum(x => x.Stock) / g.Count() : 0,
+                new List<InventoryCategoryRaw>(),
+                new List<InventorySlowMoverRaw>()))
+            .SingleOrDefaultAsync();
+
+        var categories = await query
+            .GroupBy(p => p.Category != null ? p.Category.Name : "Sin categoría")
+            .Select(g => new InventoryCategoryRaw(
+                g.Key,
+                g.Count(),
+                g.Sum(p => p.CostPrice * p.Stock),
+                g.Sum(p => p.SellingPrice * p.Stock)))
+            .OrderByDescending(c => c.TotalCost)
+            .ToListAsync();
+
+        var slowMovers = await _db.Database.SqlQueryRaw<InventorySlowMoverRaw>(@"
+            SELECT
+                p.""Name"" AS ""ProductName"",
+                p.""Stock"",
+                COALESCE((
+                    SELECT MAX(im.""CreatedAt"")
+                    FROM ""InventoryMovements"" im
+                    WHERE im.""ProductId"" = p.""Id""
+                      AND (@emptyBranch = true OR im.""BranchId"" = @branchId)
+                      AND im.""IsDeleted"" = false
+                ), TIMESTAMP '0001-01-01') AS ""LastMovement""
+            FROM ""Products"" p
+            WHERE (@emptyBranch = true OR p.""BranchId"" = @branchId)
+              AND p.""IsDeleted"" = false
+              AND p.""Stock"" > 0
+            ORDER BY ""LastMovement"" ASC
+            LIMIT 10",
+            new Npgsql.NpgsqlParameter("@branchId", branchId),
+            new Npgsql.NpgsqlParameter("@emptyBranch", branchId == Guid.Empty))
+            .ToListAsync();
+
+        return totals ?? new InventorySummaryRaw(0, 0, 0, 0, 0, categories, slowMovers) with
+        {
+            ByCategory = categories,
+            TopSlowMovers = slowMovers
+        };
+    }
+
     public async Task<int> GetTotalCountAsync(Guid branchId) =>
         await _db.Set<Product>().CountAsync(p => p.BranchId == branchId && p.IsActive);
 

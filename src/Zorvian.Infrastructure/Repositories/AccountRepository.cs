@@ -57,6 +57,22 @@ public sealed class AccountingEntryRepository : IAccountingEntryRepository
             .Include(e => e.Details).ThenInclude(d => d.Account)
             .FirstOrDefaultAsync(e => e.Id == id);
 
+    public async Task<List<AccountingEntry>> GetPostedWithDetailsAsync(Guid? periodId, Guid companyId, DateTime? toDate = null)
+    {
+        var query = _db.Set<AccountingEntry>()
+            .Include(e => e.Details).ThenInclude(d => d.Account)
+            .Where(e => e.CompanyId == companyId && e.Status == "posted")
+            .AsQueryable();
+
+        if (periodId.HasValue)
+            query = query.Where(e => e.AccountingPeriodId == periodId.Value);
+
+        if (toDate.HasValue)
+            query = query.Where(e => e.EntryDate < toDate.Value);
+
+        return await query.ToListAsync();
+    }
+
     public async Task<List<AccountingEntry>> GetFilteredAsync(Guid? periodId, string? referenceType, string? status, DateTime? fromDate, DateTime? toDate, Guid companyId, int page, int pageSize)
     {
         var query = _db.Set<AccountingEntry>()

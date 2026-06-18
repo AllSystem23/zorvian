@@ -78,29 +78,12 @@ public sealed class BiService
         var topSelling = await _productRepo.GetTopSellingAsync(Guid.Empty, 5);
         
         var yesterday = DateTime.UtcNow.Date.AddDays(-1);
-        var yesterdaySales = await _saleRepo.GetFilteredAsync(
-            null, null, null, yesterday, yesterday.AddDays(1), null, NullBranch, 1, int.MaxValue);
-        var yesterdayTotal = yesterdaySales.Sum(s => CurrencyConverter.ToReporting(s.Total, s.CurrencyCode, s.ExchangeRateToReporting, cc));
-        var salesChange = yesterdayTotal > 0 ? (double)((scalars.TodaySales - yesterdayTotal) / yesterdayTotal) * 100 : 0;
-
-        var lastMonthStart = new DateTime(now.Year, now.Month, 1).AddMonths(-1);
-        var lastMonthSales = await _saleRepo.GetFilteredAsync(
-            null, null, null,
-            lastMonthStart,
-            new DateTime(now.Year, now.Month, 1),
-            null, NullBranch, 1, int.MaxValue);
-        var lastMonthTotal = lastMonthSales.Sum(s => CurrencyConverter.ToReporting(s.Total, s.CurrencyCode, s.ExchangeRateToReporting, cc));
-        var monthChange = lastMonthTotal > 0 ? (double)((scalars.MonthSales - lastMonthTotal) / lastMonthTotal) * 100 : 0;
-
-        var weekStart = DateTime.UtcNow.Date.AddDays(-6);
-        var weekSales = new List<decimal>();
-        for (int i = 0; i < 7; i++)
-        {
-            var day = weekStart.AddDays(i);
-            var daySales = await _saleRepo.GetFilteredAsync(
-                null, null, null, day, day.AddDays(1), null, NullBranch, 1, int.MaxValue);
-            weekSales.Add(daySales.Sum(s => CurrencyConverter.ToReporting(s.Total, s.CurrencyCode, s.ExchangeRateToReporting, cc)));
-        }
+        var todayStart = DateTime.UtcNow.Date;
+        var monthStart = new DateTime(now.Year, now.Month, 1);
+        var lastMonthStart = monthStart.AddMonths(-1);
+        var weekStart = todayStart.AddDays(-6);
+        var salesMetrics = await _saleRepo.GetExecutiveSalesMetricsRawAsync(
+            lastMonthStart, monthStart, todayStart, yesterday, weekStart, todayStart.AddDays(1), NullBranch, cc);
 
         var collectionRate = scalars.TotalPortfolio > 0 ? (double)(scalars.MonthlyRecovery / scalars.TotalPortfolio) * 100 : 0;
         
@@ -120,7 +103,7 @@ public sealed class BiService
             alerts.Add(new("inventory", $"{scalars.LowStockCount} productos con stock bajo", "medium"));
 
         return new BiExecutiveResponse(
-            new BiSalesKpi(scalars.TodaySales, yesterdayTotal, salesChange, scalars.MonthSales, monthChange, scalars.AverageTicket, scalars.TodaySalesCount, weekSales),
+            new BiSalesKpi(salesMetrics.TodaySales, salesMetrics.YesterdaySales, salesMetrics.SalesChangePercent, salesMetrics.MonthSales, salesMetrics.MonthSalesChangePercent, salesMetrics.AverageTicket, salesMetrics.TodaySalesCount, salesMetrics.WeeklyTrend),
             new BiCreditKpi(scalars.ActiveCredits, scalars.OverdueCredits, scalars.MonthlyRecovery, scalars.TotalPortfolio, collectionRate, 0),
             new BiInventoryKpi(scalars.OutOfStockCount, scalars.LowStockCount, scalars.TotalProducts, 0, Math.Round(turnoverRate, 2),
                 topSelling.Select(p => new BiTopProductItem(p.Product.Name, p.TotalSold)).ToList()),
@@ -135,17 +118,7 @@ public sealed class BiService
         var cc = await GetCompanyCurrencyAsync();
         var toDate = DateTime.UtcNow;
         var fromDate = toDate.AddMonths(-months);
-        var sales = await _saleRepo.GetFilteredAsync(null, null, null, fromDate, toDate, null, NullBranch, 1, int.MaxValue);
-
-        var monthly = sales
-            .GroupBy(s => new { s.CreatedAt.Year, s.CreatedAt.Month })
-            .Select(g => new BiMonthSales(
-                g.Key.Year, g.Key.Month,
-                g.Sum(s => CurrencyConverter.ToReporting(s.Total, s.CurrencyCode, s.ExchangeRateToReporting, cc)), g.Count(),
-                g.Count() > 0 ? g.Sum(s => CurrencyConverter.ToReporting(s.Total, s.CurrencyCode, s.ExchangeRateToReporting, cc)) / g.Count() : 0,
-                0, 0))
-            .OrderBy(m => m.Year).ThenBy(m => m.Month)
-            .ToList();
+        var monthly = await _saleRepo.GetSalesTrendRawAsync(fromDate, toDate, NullBranch, cc);
 
         var total = monthly.Sum(m => m.Total);
         var avg = monthly.Any() ? total / monthly.Count : 0;
@@ -153,7 +126,8 @@ public sealed class BiService
             ? (double)((monthly.Last().Total - monthly.First().Total) / (monthly.First().Total > 0 ? monthly.First().Total : 1)) * 100
             : 0;
 
-        return new BiSalesTrendResponse(monthly, Math.Round(change, 1), total, Math.Round(avg, 2));
+        return new BiSalesTrendResponse(monthly.Select(m => new BiMonthSales(
+            m.Year, m.Month, m.Total, m.Count, m.AverageTicket, 0, 0)).ToList(), Math.Round(change, 1), total, Math.Round(avg, 2));
     }
 
     public Task<BiSalesByCategoryResponse> GetSalesByCategoryAsync(DateTime? from, DateTime? to)
@@ -184,8 +158,9 @@ public sealed class BiService
     public async Task<BiArAgingResponse> GetArAgingAsync()
     {
         var cc = await GetCompanyCurrencyAsync();
-        var credits = await _creditRepo.GetFilteredAsync(null, null, null, NullBranch, 1, int.MaxValue);
-        var openCredits = credits.Where(c => c.Status == "active" || c.Status == "overdue").ToList();
+        var openCredits = (await _creditRepo.GetFilteredAsync(null, null, null, NullBranch, 1, int.MaxValue))
+            .Where(c => !c.IsDeleted && (c.Status == "active" || c.Status == "overdue"))
+            .ToList();
         var totalPortfolio = openCredits.Sum(c => CurrencyConverter.ToReporting(c.Balance, c.CurrencyCode, c.ExchangeRateToReporting, cc));
         var now = DateOnly.FromDateTime(DateTime.UtcNow);
 
@@ -194,8 +169,9 @@ public sealed class BiService
 
         foreach (var credit in openCredits)
         {
-            var installments = await _creditRepo.GetInstallmentsByCreditIdAsync(credit.Id);
-            var pendingInst = installments.Where(i => i.Status == "pending" || i.Status == "overdue").ToList();
+            var pendingInst = credit.Installments
+                .Where(i => !i.IsDeleted && (i.Status == "pending" || i.Status == "overdue"))
+                .ToList();
 
             var cCur = 0m; var c30 = 0m; var c60 = 0m; var c90 = 0m; var c90p = 0m;
 
@@ -356,13 +332,8 @@ public sealed class BiService
         period ??= await _periodRepo.GetCurrentOpenAsync(CompanyId);
         if (period == null) return new BiCashFlowResponse([], [], [], 0, 0, 0, DateTime.UtcNow);
 
-        var entries = await _entryRepo.GetFilteredAsync(period.Id, null, "posted", null, null, CompanyId, 1, int.MaxValue);
-        var allDetails = new List<AccountingEntryDetail>();
-        foreach (var e in entries)
-        {
-            var full = await _entryRepo.GetByIdAsync(e.Id);
-            if (full != null) allDetails.AddRange(full.Details);
-        }
+        var entries = await _entryRepo.GetPostedWithDetailsAsync(period.Id, CompanyId);
+        var allDetails = entries.SelectMany(e => e.Details).ToList();
 
         var cashAccounts = await _accountRepo.GetByCodesAsync(["1.1.01", "1.1.02"], CompanyId);
         var cashAccountIds = cashAccounts.Select(a => a.Id).ToHashSet();
@@ -407,39 +378,20 @@ public sealed class BiService
 
     public async Task<BiInventorySummaryResponse> GetInventorySummaryAsync()
     {
-        var allProducts = await _productRepo.GetFilteredAsync(null, null, null, null, null, NullBranch, 1, int.MaxValue);
-        var lowStock = await _productRepo.GetLowStockAsync(NullBranch);
-        var outOfStock = await _productRepo.GetOutOfStockAsync(NullBranch);
-
-        var totalValue = allProducts.Sum(p => p.CostPrice * p.Stock);
-        var totalProducts = allProducts.Count;
-        var turnoverRate = allProducts.Any() ? (double)allProducts.Sum(p => p.Stock) / allProducts.Count : 0;
-
-        var byCategory = allProducts
-            .GroupBy(p => p.Category?.Name ?? "Sin categoría")
-            .Select(g => new BiCategoryInventoryItem(
-                g.Key, g.Count(),
-                g.Sum(p => p.CostPrice * p.Stock),
-                g.Sum(p => p.SellingPrice * p.Stock)))
-            .OrderByDescending(c => c.TotalCost)
-            .ToList();
-
-        var slowMovers = allProducts
-            .Where(p => p.Stock > 0)
-            .OrderBy(p => p.InventoryMovements?.Any() == true
-                ? p.InventoryMovements.Max(m => m.CreatedAt)
-                : DateTime.MinValue)
-            .Take(10)
+        var summary = await _productRepo.GetInventorySummaryRawAsync(NullBranch);
+        var slowMovers = summary.TopSlowMovers
             .Select(p => new BiSlowMoverItem(
-                p.Name, p.Stock,
-                p.InventoryMovements?.Any() == true
-                    ? (int)(DateTime.UtcNow - p.InventoryMovements.Max(m => m.CreatedAt)).TotalDays / 30
-                    : 99))
+                p.ProductName,
+                p.Stock,
+                p.LastMovement == DateTime.MinValue ? 99 : Math.Max(0, (int)(DateTime.UtcNow - p.LastMovement).TotalDays / 30)))
             .ToList();
 
         return new BiInventorySummaryResponse(
-            totalValue, totalProducts, lowStock.Count, outOfStock.Count,
-            Math.Round(turnoverRate, 2), 0, byCategory, slowMovers
+            summary.TotalValue, summary.TotalProducts, summary.LowStockCount, summary.OutOfStockCount,
+            summary.TurnoverRate, 0,
+            summary.ByCategory.Select(c => new BiCategoryInventoryItem(
+                c.CategoryName, c.Count, c.TotalCost, c.TotalValue)).ToList(),
+            slowMovers
         );
     }
 
@@ -489,9 +441,8 @@ public sealed class BiService
 
     private async Task<List<TrialBalanceItem>> GetTrialBalanceAsync(Guid periodId)
     {
-        var posted = await _entryRepo.GetFilteredAsync(periodId, null, "posted", null, null, CompanyId, 1, int.MaxValue);
-        var allEntries = await Task.WhenAll(posted.Select(async e => await _entryRepo.GetByIdAsync(e.Id)));
-        var details = allEntries.Where(e => e != null).SelectMany(e => e!.Details).ToList();
+        var entries = await _entryRepo.GetPostedWithDetailsAsync(periodId, CompanyId);
+        var details = entries.SelectMany(e => e.Details).ToList();
         var accounts = await _accountRepo.GetAllAsync(CompanyId);
         var leafAccounts = accounts.Where(a => a.Level >= 2 && a.IsActive).ToList();
 
@@ -521,19 +472,15 @@ public sealed class BiService
     {
         var period = await _periodRepo.GetByIdAsync(periodId);
         if (period == null) return 0;
-        var entries = await _entryRepo.GetFilteredAsync(null, null, "posted", null, period.OpenedAt ?? period.CreatedAt, CompanyId, 1, int.MaxValue);
+        var entries = await _entryRepo.GetPostedWithDetailsAsync(null, CompanyId, period.OpenedAt ?? period.CreatedAt);
         var cashAccounts = await _accountRepo.GetByCodesAsync(["1.1.01", "1.1.02"], CompanyId);
         var cashIds = cashAccounts.Select(a => a.Id).ToHashSet();
         var balance = 0m;
         foreach (var e in entries)
         {
-            var full = await _entryRepo.GetByIdAsync(e.Id);
-            if (full != null)
-            {
-                var cashDetail = full.Details.FirstOrDefault(d => cashIds.Contains(d.AccountId));
-                if (cashDetail != null)
-                    balance += cashDetail.DebitAmount - cashDetail.CreditAmount;
-            }
+            var cashDetail = e.Details.FirstOrDefault(d => cashIds.Contains(d.AccountId));
+            if (cashDetail != null)
+                balance += cashDetail.DebitAmount - cashDetail.CreditAmount;
         }
         return balance;
     }

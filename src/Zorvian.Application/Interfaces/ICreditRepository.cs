@@ -1,3 +1,4 @@
+using Zorvian.Application.DTOs.Credit;
 using Zorvian.Core.Entities;
 
 namespace Zorvian.Application.Interfaces;
@@ -12,7 +13,9 @@ public interface ICreditRepository
     Task<int> GetOverdueCreditsCountAsync(Guid branchId);
     Task<decimal> GetMonthlyRecoveryAsync(Guid branchId);
     Task<decimal> GetTotalPortfolioAsync(Guid branchId);
+    Task<OverdueDashboardScalars> GetOverdueDashboardScalarsRawAsync(Guid branchId);
     Task<List<CreditInstallment>> GetOverdueInstallmentsAsync(Guid branchId);
+    Task<List<CreditInstallment>> GetCriticalOverdueInstallmentsAsync(Guid branchId, int limit);
     Task<List<CreditInstallment>> GetInstallmentsByCreditIdAsync(Guid creditId);
     Task AddAsync(Credit credit);
     Task UpdateAsync(Credit credit);

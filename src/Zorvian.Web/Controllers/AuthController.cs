@@ -192,6 +192,9 @@ public sealed class AuthController : ControllerBase
         var userId = GetCurrentUserId();
         if (userId is null) return Unauthorized();
 
+        if (string.IsNullOrWhiteSpace(request.TenantId))
+            return BadRequest(new { error = "El tenantId es requerido" });
+
         var result = await _authService.SwitchTenantAsync(userId.Value, request.TenantId);
         if (result is null)
             return Unauthorized(new { error = "No tienes acceso a esta empresa" });

@@ -39,9 +39,10 @@ public sealed class TenantMiddleware
         Guid? employeeId = Guid.TryParse(employeeIdClaim, out var eid) ? eid : null;
         tenantWriter.SetCurrentUser(userId, employeeId);
 
-        // 3. Detectar SuperAdmin
-        var roleClaim = context.User?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
-        var isSuperAdmin = roleClaim == "SuperAdmin";
+        // 3. Detectar SuperAdmin. Se valida cualquier rol SuperAdmin en el JWT,
+        // no solo el rol primario, para usuarios con múltiples roles.
+        var isSuperAdmin = context.User?.Claims.Any(c =>
+            (c.Type == System.Security.Claims.ClaimTypes.Role || c.Type == "role") && c.Value == "SuperAdmin") == true;
         tenantWriter.SetIsSuperAdmin(isSuperAdmin);
 
         // 4. Auto-cargar primera empresa para SuperAdmin si no tiene empresa seleccionada

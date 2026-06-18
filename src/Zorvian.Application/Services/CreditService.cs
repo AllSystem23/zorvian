@@ -381,61 +381,25 @@ public sealed class CreditService
     public async Task<OverdueDashboardResponse> GetOverdueDashboardAsync()
     {
         var branchId = Guid.Empty;
-        var totalActive = await _creditRepo.GetActiveCreditsCountAsync(branchId);
-        var totalOverdue = await _creditRepo.GetOverdueCreditsCountAsync(branchId);
-        var totalPortfolio = await _creditRepo.GetTotalPortfolioAsync(branchId);
-        var monthlyRecovery = await _creditRepo.GetMonthlyRecoveryAsync(branchId);
-        var overdueInsts = await _creditRepo.GetOverdueInstallmentsAsync(branchId);
+        var scalars = await _creditRepo.GetOverdueDashboardScalarsRawAsync(branchId);
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-
-        var buckets = new List<OverdueAgingBucket>
-        {
-            new("1-30 días", 1, 30, 0, 0, 0, 0),
-            new("31-60 días", 31, 60, 0, 0, 0, 0),
-            new("61-90 días", 61, 90, 0, 0, 0, 0),
-            new("90+ días", 91, 9999, 0, 0, 0, 0),
-        };
-
-        foreach (var inst in overdueInsts)
-        {
-            var days = today.DayNumber - inst.DueDate.DayNumber;
-            var bucket = buckets.FirstOrDefault(b => days >= b.MinDays && days <= b.MaxDays);
-            if (bucket is null) continue;
-
-            var idx = buckets.IndexOf(bucket);
-            var b = buckets[idx];
-            buckets[idx] = b with
-            {
-                InstallmentCount = b.InstallmentCount + 1,
-                TotalBalance = b.TotalBalance + inst.Balance,
-                TotalAmount = b.TotalAmount + inst.Amount,
-            };
-        }
-
-        var creditIds = overdueInsts.Select(i => i.CreditId).Distinct();
-        foreach (var cid in creditIds)
-        {
-            var insts = overdueInsts.Where(i => i.CreditId == cid).ToList();
-            if (insts.Count == 0) continue;
-            var maxDays = insts.Max(i => today.DayNumber - i.DueDate.DayNumber);
-            var bucket = buckets.FirstOrDefault(b => maxDays >= b.MinDays && maxDays <= b.MaxDays);
-            if (bucket is null) continue;
-            var idx = buckets.IndexOf(bucket);
-            buckets[idx] = buckets[idx] with { CreditCount = buckets[idx].CreditCount + 1 };
-        }
-
-        var totalOverdueBalance = overdueInsts.Sum(i => i.Balance);
-        var pastDueInsts = overdueInsts.Where(i => today.DayNumber - i.DueDate.DayNumber > 90)
+        var pastDueInsts = (await _creditRepo.GetCriticalOverdueInstallmentsAsync(branchId, 10))
             .Select(i => new OverdueInstallmentResponse(
                 i.Id, i.InstallmentNumber, i.DueDate, i.Amount, i.Balance,
                 today.DayNumber - i.DueDate.DayNumber, i.Status))
-            .OrderByDescending(i => i.DaysOverdue)
-            .Take(10)
             .ToList();
 
+        var buckets = new List<OverdueAgingBucket>
+        {
+            new("1-30 días", 1, 30, scalars.Bucket1CreditCount, scalars.Bucket1InstallmentCount, scalars.Bucket1TotalBalance, scalars.Bucket1TotalAmount),
+            new("31-60 días", 31, 60, scalars.Bucket2CreditCount, scalars.Bucket2InstallmentCount, scalars.Bucket2TotalBalance, scalars.Bucket2TotalAmount),
+            new("61-90 días", 61, 90, scalars.Bucket3CreditCount, scalars.Bucket3InstallmentCount, scalars.Bucket3TotalBalance, scalars.Bucket3TotalAmount),
+            new("90+ días", 91, 9999, scalars.Bucket4CreditCount, scalars.Bucket4InstallmentCount, scalars.Bucket4TotalBalance, scalars.Bucket4TotalAmount),
+        };
+
         return new OverdueDashboardResponse(
-            totalOverdue, totalActive, totalPortfolio, totalOverdueBalance,
-            totalPortfolio > 0 ? Math.Round(monthlyRecovery / totalPortfolio * 100, 2) : 0,
+            scalars.TotalOverdueCredits, scalars.TotalActiveCredits, scalars.TotalPortfolio, scalars.TotalOverdueBalance,
+            scalars.TotalPortfolio > 0 ? Math.Round(scalars.MonthlyRecovery / scalars.TotalPortfolio * 100, 2) : 0,
             buckets, pastDueInsts
         );
     }

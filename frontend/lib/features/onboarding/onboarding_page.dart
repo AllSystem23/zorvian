@@ -125,7 +125,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                 ),
                 const SizedBox(height: 16),
                 DropdownButtonFormField<String>(
-                  value: _selectedCountry,
+                  initialValue: _selectedCountry,
                   decoration: const InputDecoration(
                     labelText: 'País / Región',
                     prefixIcon: Icon(Icons.public),

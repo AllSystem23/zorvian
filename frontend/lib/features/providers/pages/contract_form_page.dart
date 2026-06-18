@@ -174,7 +174,7 @@ final class _ContractFormPageState extends ConsumerState<ContractFormPage> {
                   const SizedBox(width: ZSpacing.md),
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: _currency,
+                      initialValue: _currency,
                       decoration: const InputDecoration(
                         labelText: 'Moneda',
                         prefixIcon: Icon(Icons.monetization_on),
@@ -205,7 +205,9 @@ final class _ContractFormPageState extends ConsumerState<ContractFormPage> {
                     firstDate: DateTime.now().subtract(const Duration(days: 365)),
                     lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
                   );
-                  if (date != null) setState(() => _startDate = date);
+                  if (date != null) {
+                    setState(() => _startDate = date);
+                  }
                 },
                 child: InputDecorator(
                   decoration: const InputDecoration(
@@ -224,7 +226,9 @@ final class _ContractFormPageState extends ConsumerState<ContractFormPage> {
                     firstDate: _startDate,
                     lastDate: _startDate.add(const Duration(days: 365 * 5)),
                   );
-                  if (date != null) setState(() => _endDate = date);
+                  if (date != null) {
+                    setState(() => _endDate = date);
+                  }
                 },
                 child: InputDecorator(
                   decoration: const InputDecoration(
@@ -269,7 +273,7 @@ final class _ProviderDropdown extends ConsumerWidget {
     final providersAsync = ref.watch(serviceProvidersProvider);
     return providersAsync.when(
       data: (providers) => DropdownButtonFormField<String>(
-        value: value,
+        initialValue: value,
         decoration: const InputDecoration(
           labelText: 'Prestador',
           prefixIcon: Icon(Icons.business),
@@ -282,7 +286,7 @@ final class _ProviderDropdown extends ConsumerWidget {
         validator: (v) => v == null ? 'Seleccione un prestador' : null,
       ),
       loading: () => const SizedBox(height: 56, child: Center(child: LinearProgressIndicator())),
-      error: (_, __) => const Text('Error al cargar prestadores'),
+      error: (_, _) => const Text('Error al cargar prestadores'),
     );
   }
 }

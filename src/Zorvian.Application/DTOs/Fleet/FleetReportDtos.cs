@@ -140,6 +140,24 @@ public sealed record FleetKpiReport(
     int OpenWorkOrders
 );
 
+public sealed class FleetKpiScalars
+{
+    public int TotalVehicles { get; set; }
+    public int ActiveVehicles { get; set; }
+    public int AvailableVehicles { get; set; }
+    public int InMaintenanceVehicles { get; set; }
+    public int OutOfServiceVehicles { get; set; }
+    public decimal FleetAvailabilityRate { get; set; }
+    public decimal AverageCostPerKm { get; set; }
+    public decimal AverageFuelEfficiency { get; set; }
+    public int TotalDeliveries { get; set; }
+    public int CompletedDeliveries { get; set; }
+    public decimal OnTimeDeliveryRate { get; set; }
+    public int ExpiringDocuments { get; set; }
+    public int OverdueMaintenance { get; set; }
+    public int OpenWorkOrders { get; set; }
+}
+
 public sealed record DriverScorecardRow(
     Guid DriverId,
     string FullName,

@@ -189,13 +189,16 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             )).toList(),
             onChanged: (newId) async {
               if (newId != null && newId != currentTenant) {
+                final tenantName = tenants.firstWhere(
+                  (t) => t['tenantId'] == newId,
+                  orElse: () => <String, dynamic>{'name': 'empresa'},
+                )['name'];
+                final messenger = ScaffoldMessenger.of(context);
                 final success = await ref.read(authProvider.notifier).switchTenant(newId);
-                if (success) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Cambiando a: ${tenants.firstWhere((t) => t['tenantId'] == newId)['name']}')),
-                    );
-                  }
+                if (mounted && success) {
+                  messenger.showSnackBar(
+                    SnackBar(content: Text('Cambiando a: $tenantName')),
+                  );
                 }
               }
             },
@@ -232,9 +235,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             label: 'Vacaciones + Permisos',
             icon: Icons.pending_actions_outlined,
             variant: ZStatVariant.warning,
-            trend: kpis.pendingRequestsTrend != null
-                ? kpis.pendingRequestsTrend!.abs()
-                : null,
+            trend: kpis.pendingRequestsTrend?.abs(),
             trendUp: (kpis.pendingRequestsTrend ?? 0) < 0,
             onTap: () => context.push('/vacations'),
           ),
@@ -381,7 +382,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   double _percentage(int part, int total) {
     if (total == 0) return 0;
-    return (part / total * 100);
+    return part / total * 100;
   }
 
   Widget _buildRecentRequestTile(RecentRequestItem item) {

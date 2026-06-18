@@ -419,6 +419,16 @@ public sealed class AccountingIntegrationTests : IDisposable
         public Task UpdateAsync(AccountingEntry entry) { db.Set<AccountingEntry>().Update(entry); return Task.CompletedTask; }
         public Task<string> GenerateEntryNumberAsync(Guid companyId) => Task.FromResult("AS-" + Guid.NewGuid().ToString("N")[..8]);
         public Task<bool> HasEntriesForAccountAsync(Guid accountId) => db.Set<AccountingEntry>().AnyAsync(e => e.Details.Any(d => d.AccountId == accountId));
+        public Task<List<AccountingEntry>> GetPostedWithDetailsAsync(Guid? periodId, Guid companyId, DateTime? toDate = null)
+        {
+            var query = db.Set<AccountingEntry>()
+                .Include(e => e.Details)
+                .Where(e => e.CompanyId == companyId && e.Status == "posted")
+                .AsQueryable();
+            if (periodId.HasValue) query = query.Where(e => e.AccountingPeriodId == periodId.Value);
+            if (toDate.HasValue) query = query.Where(e => e.EntryDate < toDate.Value);
+            return query.ToListAsync();
+        }
         public Task<List<AccountingEntry>> GetFilteredAsync(Guid? companyId, string? status, string? referenceType, DateTime? fromDate, DateTime? toDate, Guid branchId, int page, int pageSize) => throw new NotImplementedException();
         public Task<int> GetFilteredCountAsync(Guid? companyId, string? status, string? referenceType, DateTime? fromDate, DateTime? toDate, Guid branchId)
         {
@@ -473,6 +483,9 @@ public sealed class AccountingIntegrationTests : IDisposable
         public Task<decimal> GetMonthSalesAsync(Guid branchId) => throw new NotImplementedException();
         public Task<decimal> GetAverageTicketAsync(Guid branchId) => throw new NotImplementedException();
         public Task<int> GetTodaySalesCountAsync(Guid branchId) => throw new NotImplementedException();
+        public Task<List<SalesTrendMetrics>> GetSalesTrendRawAsync(DateTime from, DateTime to, Guid branchId, string currency) => Task.FromResult(new List<SalesTrendMetrics>());
+        public Task<ExecutiveSalesMetrics> GetExecutiveSalesMetricsRawAsync(DateTime lastMonthStart, DateTime monthStart, DateTime todayStart, DateTime yesterdayStart, DateTime weekStart, DateTime weekEndExclusive, Guid branchId, string currency) =>
+            Task.FromResult(new ExecutiveSalesMetrics(0, 0, 0, 0, 0, 0, 0, new List<decimal>()));
     }
 
     private sealed class ProductRepo(ZorvianDbContext db) : IProductRepository
@@ -488,6 +501,7 @@ public sealed class AccountingIntegrationTests : IDisposable
         public Task<List<Product>> GetLowStockAsync(Guid branchId) => throw new NotImplementedException();
         public Task<int> GetTotalCountAsync(Guid branchId) => throw new NotImplementedException();
         public Task<List<(Product Product, int TotalSold)>> GetTopSellingAsync(Guid branchId, int count) => throw new NotImplementedException();
+        public Task<InventorySummaryRaw> GetInventorySummaryRawAsync(Guid branchId) => Task.FromResult(new InventorySummaryRaw(0, 0, 0, 0, 0, new List<InventoryCategoryRaw>(), new List<InventorySlowMoverRaw>()));
         public Task DeleteAsync(Product product) => throw new NotImplementedException();
     }
 

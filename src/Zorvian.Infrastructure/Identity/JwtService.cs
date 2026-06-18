@@ -45,9 +45,29 @@ public sealed class JwtService : IJwtService
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         };
 
-        foreach (var permission in role.RolePermissions ?? [])
+        var roleNames = user.UserRoles
+            .Select(ur => ur.Role.Name.ToString())
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Distinct()
+            .ToList();
+        var primaryRoleName = role.Name.ToString();
+        if (!roleNames.Contains(primaryRoleName))
+            roleNames.Insert(0, primaryRoleName);
+
+        foreach (var roleName in roleNames)
         {
-            claims.Add(new Claim("permission", permission.PermissionCode));
+            claims.Add(new Claim(ClaimTypes.Role, roleName));
+            claims.Add(new Claim("role", roleName));
+        }
+
+        foreach (var permission in user.UserRoles
+            .Select(ur => ur.Role)
+            .SelectMany(role => role.RolePermissions ?? [])
+            .Select(p => p.PermissionCode)
+            .Where(code => !string.IsNullOrWhiteSpace(code))
+            .Distinct())
+        {
+            claims.Add(new Claim("permission", permission));
         }
 
         var token = new JwtSecurityToken(

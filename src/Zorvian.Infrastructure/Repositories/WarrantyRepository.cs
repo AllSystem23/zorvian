@@ -17,42 +17,23 @@ public sealed class WarrantyRepository : IWarrantyRepository
     }
 
     /// <summary>
-    /// Ultra-optimized: all 6 dashboard counts in a single raw SQL round-trip.
-    /// Supports SuperAdmin bypass and specific tenant filtering.
+    /// All dashboard counts in a single raw SQL round-trip using one tenant-filtered CTE.
     /// </summary>
     public async Task<WarrantyDashboardScalars> GetDashboardScalarsRawAsync(string tenantId, bool isSuperAdmin)
     {
         var sql = @"
+            WITH warranties AS (
+                SELECT ""Status"", ""SlaBreachedAt""
+                FROM ""Warranties""
+                WHERE (""TenantId"" = @tenantId OR @isSuperAdmin = true) AND ""IsDeleted"" = false
+            )
             SELECT
-                (SELECT COUNT(*) FROM ""Warranties"" w
-                 WHERE (w.""TenantId"" = @tenantId OR @isSuperAdmin = true) AND w.""IsDeleted"" = false
-                   AND w.""Status"" NOT IN ('Closed', 'Delivered')
-                ) AS ""TotalActive"",
-
-                (SELECT COUNT(*) FROM ""Warranties"" w
-                 WHERE (w.""TenantId"" = @tenantId OR @isSuperAdmin = true) AND w.""IsDeleted"" = false
-                   AND w.""SlaBreachedAt"" IS NOT NULL
-                ) AS ""TotalBreachedSla"",
-
-                (SELECT COUNT(*) FROM ""Warranties"" w
-                 WHERE (w.""TenantId"" = @tenantId OR @isSuperAdmin = true) AND w.""IsDeleted"" = false
-                   AND w.""Status"" = 'Registered'
-                ) AS ""RegisteredCount"",
-
-                (SELECT COUNT(*) FROM ""Warranties"" w
-                 WHERE (w.""TenantId"" = @tenantId OR @isSuperAdmin = true) AND w.""IsDeleted"" = false
-                   AND w.""Status"" = 'InDiagnosis'
-                ) AS ""InDiagnosisCount"",
-
-                (SELECT COUNT(*) FROM ""Warranties"" w
-                 WHERE (w.""TenantId"" = @tenantId OR @isSuperAdmin = true) AND w.""IsDeleted"" = false
-                   AND w.""Status"" = 'InRepair'
-                ) AS ""InRepairCount"",
-
-                (SELECT COUNT(*) FROM ""Warranties"" w
-                 WHERE (w.""TenantId"" = @tenantId OR @isSuperAdmin = true) AND w.""IsDeleted"" = false
-                   AND w.""Status"" = 'ReadyForDelivery'
-                ) AS ""ReadyForDeliveryCount""
+                (SELECT COUNT(*) FROM warranties WHERE ""Status"" NOT IN ('Closed', 'Delivered'))::int AS ""TotalActive"",
+                (SELECT COUNT(*) FROM warranties WHERE ""SlaBreachedAt"" IS NOT NULL)::int AS ""TotalBreachedSla"",
+                (SELECT COUNT(*) FROM warranties WHERE ""Status"" = 'Registered')::int AS ""RegisteredCount"",
+                (SELECT COUNT(*) FROM warranties WHERE ""Status"" = 'InDiagnosis')::int AS ""InDiagnosisCount"",
+                (SELECT COUNT(*) FROM warranties WHERE ""Status"" = 'InRepair')::int AS ""InRepairCount"",
+                (SELECT COUNT(*) FROM warranties WHERE ""Status"" = 'ReadyForDelivery')::int AS ""ReadyForDeliveryCount""
         ";
 
         var result = await _db.Database

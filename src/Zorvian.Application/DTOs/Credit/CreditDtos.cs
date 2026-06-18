@@ -173,6 +173,31 @@ public sealed record CreateRefinancingRequest(
     string Reason
 );
 
+public sealed class OverdueDashboardScalars
+{
+    public int TotalActiveCredits { get; set; }
+    public int TotalOverdueCredits { get; set; }
+    public decimal TotalPortfolio { get; set; }
+    public decimal MonthlyRecovery { get; set; }
+    public decimal TotalOverdueBalance { get; set; }
+    public int Bucket1InstallmentCount { get; set; }
+    public int Bucket1CreditCount { get; set; }
+    public decimal Bucket1TotalBalance { get; set; }
+    public decimal Bucket1TotalAmount { get; set; }
+    public int Bucket2InstallmentCount { get; set; }
+    public int Bucket2CreditCount { get; set; }
+    public decimal Bucket2TotalBalance { get; set; }
+    public decimal Bucket2TotalAmount { get; set; }
+    public int Bucket3InstallmentCount { get; set; }
+    public int Bucket3CreditCount { get; set; }
+    public decimal Bucket3TotalBalance { get; set; }
+    public decimal Bucket3TotalAmount { get; set; }
+    public int Bucket4InstallmentCount { get; set; }
+    public int Bucket4CreditCount { get; set; }
+    public decimal Bucket4TotalBalance { get; set; }
+    public decimal Bucket4TotalAmount { get; set; }
+}
+
 public sealed record OverdueAgingBucket(
     string Label,
     int MinDays,

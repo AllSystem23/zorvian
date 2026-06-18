@@ -7,6 +7,7 @@ public interface IVehicleRepository
 {
     // Ultra-optimized: single raw SQL for ALL fleet dashboard counts (1 round-trip)
     Task<FleetDashboardScalars> GetDashboardScalarsRawAsync(string tenantId, bool isSuperAdmin);
+    Task<FleetKpiScalars> GetFleetKpiReportRawAsync(string tenantId, bool isSuperAdmin);
 
     Task<List<Vehicle>> GetAllAsync(Guid companyId);
     Task<Vehicle?> GetByIdAsync(Guid id);

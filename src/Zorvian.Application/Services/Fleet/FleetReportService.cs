@@ -304,43 +304,13 @@ public sealed class FleetReportService
 
     public async Task<FleetKpiReport> GetFleetKpisAsync()
     {
-        var companyId = await GetCompanyIdAsync();
-        var vehicles = await _vehicleRepo.GetAllAsync(companyId);
-        var deliveries = await _deliveryRepo.GetAllAsync();
-        var workOrders = await _workOrderRepo.GetAllAsync(companyId);
-        var documents = await _documentRepo.GetAllAsync(companyId);
-        var fuelRefills = await _fuelRepo.GetAllAsync(companyId);
-
-        var total = vehicles.Count;
-        var active = vehicles.Count(v => v.Status == "Active");
-        var available = vehicles.Count(v => v.Status == "Available");
-        var inMaint = vehicles.Count(v => v.Status == "Maintenance");
-        var outOfService = vehicles.Count(v => v.Status == "OutOfService");
-
-        var totalKm = fuelRefills.Where(f => f.ValidForCalculation).Sum(f => f.CurrentKm);
-        var totalLiters = fuelRefills.Where(f => f.ValidForCalculation).Sum(f => f.Liters);
-        var avgEfficiency = totalLiters > 0 ? Math.Round(totalKm / totalLiters, 2) : 0;
-
-        var totalFuelCost = fuelRefills.Sum(f => f.TotalCost);
-        var avgCostPerKm = totalKm > 0 ? Math.Round(totalFuelCost / totalKm, 2) : 0;
-
-        var completed = deliveries.Count(d => d.Status == "Delivered");
-        var totalDeliveries = deliveries.Count;
-        var onTime = deliveries.Count(d => d.Status == "Delivered" && d.DeliveredAt.HasValue &&
-            d.DeliveredAt.Value <= d.ScheduledDate.ToDateTime(TimeOnly.MinValue).AddDays(1));
-
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var expiringSoon = documents.Count(d => d.ExpiryDate != null && d.ExpiryDate.Value <= today.AddDays(30) && d.Status == "Valid");
-        var overdueMaint = vehicles.Count(v => v.Status == "Maintenance");
-        var openWO = workOrders.Count(w => w.Status != "Closed" && w.Status != "Cancelled");
+        var scalars = await _vehicleRepo.GetFleetKpiReportRawAsync(_tenant.TenantId.Value.ToString(), _tenant.IsSuperAdmin);
 
         return new FleetKpiReport(
-            total, active, available, inMaint, outOfService,
-            total > 0 ? Math.Round((decimal)active / total * 100, 1) : 0,
-            avgCostPerKm, avgEfficiency,
-            totalDeliveries, completed,
-            totalDeliveries > 0 ? Math.Round((decimal)onTime / totalDeliveries * 100, 1) : 0,
-            expiringSoon, overdueMaint, openWO);
+            scalars.TotalVehicles, scalars.ActiveVehicles, scalars.AvailableVehicles, scalars.InMaintenanceVehicles, scalars.OutOfServiceVehicles,
+            scalars.FleetAvailabilityRate, scalars.AverageCostPerKm, scalars.AverageFuelEfficiency,
+            scalars.TotalDeliveries, scalars.CompletedDeliveries, scalars.OnTimeDeliveryRate,
+            scalars.ExpiringDocuments, scalars.OverdueMaintenance, scalars.OpenWorkOrders);
     }
 
     public async Task<DriverScorecardReport> GetDriverScorecardAsync(FleetReportRequest request)

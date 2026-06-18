@@ -26,70 +26,40 @@ public sealed class DashboardRepository : IDashboardRepository
     }
 
     /// <summary>
-    /// Ultra-optimized: returns ALL scalar KPI values in a single raw SQL round-trip.
-    /// Uses 11 correlated subqueries — the DB executes them in one network call.
+    /// Optimized: one raw SQL round-trip for all scalar HR KPIs.
+    /// CTEs materialize tenant-filtered rows once; FILTER/COUNT aggregates avoid repeated table scans.
     /// </summary>
     public async Task<DashboardKpiScalars> GetAllKpiScalarsRawAsync(
         Guid? companyId, bool isSuperAdmin, DateOnly thirtyDaysAgo, int currentMonth, int lastMonth)
     {
         var sql = @"
+            WITH employees AS (
+                SELECT ""Status"", ""DateOfBirth"", ""HireDate"", ""TerminationDate""
+                FROM ""Employees""
+                WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId::text) AND ""IsDeleted"" = false
+            ),
+            vacations AS (
+                SELECT ""Status"", ""UpdatedAt""
+                FROM ""VacationRequests""
+                WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId::text) AND ""IsDeleted"" = false
+            ),
+            permissions AS (
+                SELECT ""Status"", ""UpdatedAt""
+                FROM ""PermissionRequests""
+                WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId::text) AND ""IsDeleted"" = false
+            )
             SELECT
-                (SELECT COUNT(*) FROM ""Employees"" e
-                 WHERE (@isSuperAdmin = true OR e.""TenantId"" = @tenantId::text) AND e.""IsDeleted"" = false
-                ) AS ""TotalEmployees"",
-
-                (SELECT COUNT(*) FROM ""Employees"" e
-                 WHERE (@isSuperAdmin = true OR e.""TenantId"" = @tenantId::text) AND e.""IsDeleted"" = false
-                   AND e.""Status"" = 'active'
-                ) AS ""ActiveEmployees"",
-
-                (SELECT COUNT(*) FROM ""VacationRequests"" v
-                 WHERE (@isSuperAdmin = true OR v.""TenantId"" = @tenantId::text) AND v.""IsDeleted"" = false
-                   AND v.""Status"" = 'pending'
-                ) AS ""PendingVacationRequests"",
-
-                (SELECT COUNT(*) FROM ""PermissionRequests"" p
-                 WHERE (@isSuperAdmin = true OR p.""TenantId"" = @tenantId::text) AND p.""IsDeleted"" = false
-                   AND p.""Status"" = 'pending'
-                ) AS ""PendingPermissionRequests"",
-
-                (SELECT COUNT(*) FROM ""Employees"" e
-                 WHERE (@isSuperAdmin = true OR e.""TenantId"" = @tenantId::text) AND e.""IsDeleted"" = false
-                   AND e.""Status"" = 'active' AND EXTRACT(MONTH FROM e.""DateOfBirth"") = @currentMonth
-                ) AS ""BirthdayCount"",
-
-                (SELECT COUNT(*) FROM ""Employees"" e
-                 WHERE (@isSuperAdmin = true OR e.""TenantId"" = @tenantId::text) AND e.""IsDeleted"" = false
-                   AND e.""Status"" = 'active' AND EXTRACT(MONTH FROM e.""HireDate"") = @currentMonth
-                ) AS ""AnniversaryCount"",
-
-                (SELECT COUNT(*) FROM ""Employees"" e
-                 WHERE (@isSuperAdmin = true OR e.""TenantId"" = @tenantId::text) AND e.""IsDeleted"" = false
-                   AND e.""Status"" = 'active' AND EXTRACT(MONTH FROM e.""DateOfBirth"") = @lastMonth
-                ) AS ""PrevBirthdayCount"",
-
-                (SELECT COUNT(*) FROM ""Employees"" e
-                 WHERE (@isSuperAdmin = true OR e.""TenantId"" = @tenantId::text) AND e.""IsDeleted"" = false
-                   AND e.""Status"" = 'active' AND EXTRACT(MONTH FROM e.""HireDate"") = @lastMonth
-                ) AS ""PrevAnniversaryCount"",
-
-                (SELECT COUNT(*) FROM ""VacationRequests"" v
-                 WHERE (@isSuperAdmin = true OR v.""TenantId"" = @tenantId::text) AND v.""IsDeleted"" = false
-                   AND (v.""Status"" = 'approved' OR v.""Status"" = 'rejected')
-                   AND v.""UpdatedAt"" IS NOT NULL AND v.""UpdatedAt""::date >= @sinceDate
-                ) AS ""ResolvedVacationCount"",
-
-                (SELECT COUNT(*) FROM ""PermissionRequests"" p
-                 WHERE (@isSuperAdmin = true OR p.""TenantId"" = @tenantId::text) AND p.""IsDeleted"" = false
-                   AND (p.""Status"" = 'approved' OR p.""Status"" = 'rejected')
-                   AND p.""UpdatedAt"" IS NOT NULL AND p.""UpdatedAt""::date >= @sinceDate
-                ) AS ""ResolvedPermissionCount"",
-
-                (SELECT COUNT(*) FROM ""Employees"" e
-                 WHERE (@isSuperAdmin = true OR e.""TenantId"" = @tenantId::text) AND e.""IsDeleted"" = false
-                   AND e.""HireDate"" <= @thirtyDaysAgo
-                   AND (e.""TerminationDate"" IS NULL OR e.""TerminationDate"" > @thirtyDaysAgo)
-                ) AS ""PreviousMonthActiveEmployees""
+                (SELECT COUNT(*) FROM employees)::int AS ""TotalEmployees"",
+                (SELECT COUNT(*) FROM employees WHERE ""Status"" = 'active')::int AS ""ActiveEmployees"",
+                (SELECT COUNT(*) FROM vacations WHERE ""Status"" = 'pending')::int AS ""PendingVacationRequests"",
+                (SELECT COUNT(*) FROM permissions WHERE ""Status"" = 'pending')::int AS ""PendingPermissionRequests"",
+                (SELECT COUNT(*) FROM employees WHERE ""Status"" = 'active' AND EXTRACT(MONTH FROM ""DateOfBirth"") = @currentMonth)::int AS ""BirthdayCount"",
+                (SELECT COUNT(*) FROM employees WHERE ""Status"" = 'active' AND EXTRACT(MONTH FROM ""HireDate"") = @currentMonth)::int AS ""AnniversaryCount"",
+                (SELECT COUNT(*) FROM employees WHERE ""Status"" = 'active' AND EXTRACT(MONTH FROM ""DateOfBirth"") = @lastMonth)::int AS ""PrevBirthdayCount"",
+                (SELECT COUNT(*) FROM employees WHERE ""Status"" = 'active' AND EXTRACT(MONTH FROM ""HireDate"") = @lastMonth)::int AS ""PrevAnniversaryCount"",
+                (SELECT COUNT(*) FROM vacations WHERE (""Status"" = 'approved' OR ""Status"" = 'rejected') AND ""UpdatedAt"" >= @sinceDate)::int AS ""ResolvedVacationCount"",
+                (SELECT COUNT(*) FROM permissions WHERE (""Status"" = 'approved' OR ""Status"" = 'rejected') AND ""UpdatedAt"" >= @sinceDate)::int AS ""ResolvedPermissionCount"",
+                (SELECT COUNT(*) FROM employees WHERE ""HireDate"" <= @thirtyDaysAgo AND (""TerminationDate"" IS NULL OR ""TerminationDate"" > @thirtyDaysAgo))::int AS ""PreviousMonthActiveEmployees""
         ";
 
         var result = await _db.Database
@@ -107,102 +77,108 @@ public sealed class DashboardRepository : IDashboardRepository
 
     public async Task<ExecutiveKpiScalars> GetExecutiveKpiScalarsRawAsync(Guid? companyId, bool isSuperAdmin)
     {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var monthStart = new DateOnly(today.Year, today.Month, 1);
         var tenantIdValue = companyId?.ToString() ?? string.Empty;
         var sql = @"
+            WITH sales AS (
+                SELECT
+                    SUM(""Total"") FILTER (WHERE ""SaleDate"" >= @today::date) AS ""TodaySales"",
+                    SUM(""Total"") AS ""MonthSales"",
+                    AVG(""Total"") AS ""AverageTicket"",
+                    COUNT(*) FILTER (WHERE ""SaleDate"" >= @today::date) AS ""TodaySalesCount""
+                FROM ""Sales""
+                WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
+                  AND ""SaleDate"" >= @monthStart::date
+            ),
+            credits AS (
+                SELECT
+                    COUNT(*) FILTER (WHERE ""Status"" = 'active') AS ""ActiveCredits"",
+                    COUNT(*) FILTER (WHERE ""Status"" = 'overdue') AS ""OverdueCredits"",
+                    COALESCE(SUM(""Balance"") FILTER (WHERE ""Status"" <> 'paid'), 0) AS ""TotalPortfolio""
+                FROM ""Credits""
+                WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
+            ),
+            payments AS (
+                SELECT COALESCE(SUM(""Amount""), 0) AS ""MonthlyRecovery""
+                FROM ""CreditPayments""
+                WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
+                  AND ""PaymentDate"" >= @monthStart::date
+            ),
+            products AS (
+                SELECT
+                    COUNT(*) FILTER (WHERE ""Stock"" <= 0) AS ""OutOfStockCount"",
+                    COUNT(*) FILTER (WHERE ""Stock"" > 0 AND ""Stock"" <= ""MinStock"") AS ""LowStockCount"",
+                    COUNT(*) AS ""TotalProducts""
+                FROM ""Products""
+                WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
+            ),
+            cash AS (
+                SELECT
+                    COALESCE(SUM(""Amount"") FILTER (WHERE ""Type"" = 'income'), 0) AS ""TodayIncome"",
+                    COALESCE(SUM(""Amount"") FILTER (WHERE ""Type"" = 'expense'), 0) AS ""TodayExpense""
+                FROM ""CashMovements""
+                WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
+                  AND ""MovementDate"" >= @today::date
+            ),
+            registers AS (
+                SELECT COUNT(*) FILTER (WHERE ""Status"" = 'open') AS ""OpenRegisters""
+                FROM ""CashRegisters""
+                WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
+            ),
+            employees AS (
+                SELECT
+                    COUNT(*) FILTER (WHERE ""Status"" = 'active') AS ""ActiveEmployees"",
+                    COUNT(*) AS ""TotalEmployees""
+                FROM ""Employees""
+                WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
+            ),
+            vacations AS (
+                SELECT COUNT(*) FILTER (WHERE ""Status"" = 'pending') AS ""PendingVacations""
+                FROM ""VacationRequests""
+                WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
+            ),
+            permissions AS (
+                SELECT COUNT(*) FILTER (WHERE ""Status"" = 'pending') AS ""PendingPermissions""
+                FROM ""PermissionRequests""
+                WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
+            )
             SELECT
-                (SELECT COALESCE(SUM(""Total""), 0) FROM ""Sales""
-                 WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
-                   AND ""SaleDate"" >= CURRENT_DATE
-                ) AS ""TodaySales"",
-
-                (SELECT COALESCE(SUM(""Total""), 0) FROM ""Sales""
-                 WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
-                   AND ""SaleDate"" >= DATE_TRUNC('month', CURRENT_DATE)
-                ) AS ""MonthSales"",
-
-                (SELECT COALESCE(AVG(""Total""), 0) FROM ""Sales""
-                 WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
-                   AND ""SaleDate"" >= DATE_TRUNC('month', CURRENT_DATE)
-                ) AS ""AverageTicket"",
-
-                (SELECT COUNT(*) FROM ""Sales""
-                 WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
-                   AND ""SaleDate"" >= CURRENT_DATE
-                ) AS ""TodaySalesCount"",
-
-                (SELECT COUNT(*) FROM ""Credits""
-                 WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
-                   AND ""Status"" = 'active'
-                ) AS ""ActiveCredits"",
-
-                (SELECT COUNT(*) FROM ""Credits""
-                 WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
-                   AND ""Status"" = 'overdue'
-                ) AS ""OverdueCredits"",
-
-                (SELECT COALESCE(SUM(""Amount""), 0) FROM ""CreditPayments""
-                 WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
-                   AND ""PaymentDate"" >= DATE_TRUNC('month', CURRENT_DATE)
-                ) AS ""MonthlyRecovery"",
-
-                (SELECT COALESCE(SUM(""RemainingAmount""), 0) FROM ""Credits""
-                 WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
-                   AND ""Status"" != 'paid'
-                ) AS ""TotalPortfolio"",
-
-                (SELECT COUNT(*) FROM ""Products""
-                 WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
-                   AND ""Stock"" <= 0
-                ) AS ""OutOfStockCount"",
-
-                (SELECT COUNT(*) FROM ""Products""
-                 WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
-                   AND ""Stock"" > 0 AND ""Stock"" <= ""MinStock""
-                ) AS ""LowStockCount"",
-
-                (SELECT COUNT(*) FROM ""Products""
-                 WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
-                ) AS ""TotalProducts"",
-
-                (SELECT COALESCE(SUM(""Amount""), 0) FROM ""CashMovements""
-                 WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
-                   AND ""Type"" = 'income' AND ""MovementDate"" >= CURRENT_DATE
-                ) AS ""TodayIncome"",
-
-                (SELECT COALESCE(SUM(""Amount""), 0) FROM ""CashMovements""
-                 WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
-                   AND ""Type"" = 'expense' AND ""MovementDate"" >= CURRENT_DATE
-                ) AS ""TodayExpense"",
-
-                (SELECT COUNT(*) FROM ""CashRegisters""
-                 WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
-                   AND ""Status"" = 'open'
-                ) AS ""OpenRegisters"",
-
-                (SELECT COUNT(*) FROM ""Employees""
-                 WHERE ((@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false)
-                   AND ""Status"" = 'active'
-                ) AS ""ActiveEmployees"",
-
-                (SELECT COUNT(*) FROM ""Employees""
-                 WHERE ((@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false)
-                ) AS ""TotalEmployees"",
-
-                (SELECT COUNT(*) FROM ""VacationRequests""
-                 WHERE ((@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false)
-                   AND ""Status"" = 'pending'
-                ) AS ""PendingVacations"",
-
-                (SELECT COUNT(*) FROM ""PermissionRequests""
-                 WHERE ((@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false)
-                   AND ""Status"" = 'pending'
-                ) AS ""PendingPermissions""
+                COALESCE(s.""TodaySales"", 0)::decimal AS ""TodaySales"",
+                COALESCE(s.""MonthSales"", 0)::decimal AS ""MonthSales"",
+                COALESCE(s.""AverageTicket"", 0)::decimal AS ""AverageTicket"",
+                COALESCE(s.""TodaySalesCount"", 0)::int AS ""TodaySalesCount"",
+                COALESCE(c.""ActiveCredits"", 0)::int AS ""ActiveCredits"",
+                COALESCE(c.""OverdueCredits"", 0)::int AS ""OverdueCredits"",
+                COALESCE(p.""MonthlyRecovery"", 0)::decimal AS ""MonthlyRecovery"",
+                COALESCE(c.""TotalPortfolio"", 0)::decimal AS ""TotalPortfolio"",
+                COALESCE(pr.""OutOfStockCount"", 0)::int AS ""OutOfStockCount"",
+                COALESCE(pr.""LowStockCount"", 0)::int AS ""LowStockCount"",
+                COALESCE(pr.""TotalProducts"", 0)::int AS ""TotalProducts"",
+                COALESCE(ca.""TodayIncome"", 0)::decimal AS ""TodayIncome"",
+                COALESCE(ca.""TodayExpense"", 0)::decimal AS ""TodayExpense"",
+                COALESCE(r.""OpenRegisters"", 0)::int AS ""OpenRegisters"",
+                COALESCE(e.""ActiveEmployees"", 0)::int AS ""ActiveEmployees"",
+                COALESCE(e.""TotalEmployees"", 0)::int AS ""TotalEmployees"",
+                COALESCE(v.""PendingVacations"", 0)::int AS ""PendingVacations"",
+                COALESCE(pm.""PendingPermissions"", 0)::int AS ""PendingPermissions""
+            FROM sales s
+            CROSS JOIN credits c
+            CROSS JOIN payments p
+            CROSS JOIN products pr
+            CROSS JOIN cash ca
+            CROSS JOIN registers r
+            CROSS JOIN employees e
+            CROSS JOIN vacations v
+            CROSS JOIN permissions pm
         ";
 
         var result = await _db.Database
             .SqlQueryRaw<ExecutiveKpiScalars>(sql,
                 new Npgsql.NpgsqlParameter("@tenantId", tenantIdValue),
-                new Npgsql.NpgsqlParameter("@isSuperAdmin", isSuperAdmin))
+                new Npgsql.NpgsqlParameter("@isSuperAdmin", isSuperAdmin),
+                new Npgsql.NpgsqlParameter("@today", today),
+                new Npgsql.NpgsqlParameter("@monthStart", monthStart))
             .FirstOrDefaultAsync();
 
         return result ?? new ExecutiveKpiScalars();

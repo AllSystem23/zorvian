@@ -120,6 +120,127 @@ public sealed class SaleRepository : ISaleRepository
             .CountAsync();
     }
 
+    public async Task<List<SalesTrendMetrics>> GetSalesTrendRawAsync(DateTime from, DateTime to, Guid branchId, string currency)
+    {
+        var query = _db.Set<Sale>()
+            .Where(s => !s.IsDeleted && s.SaleDate >= from && s.SaleDate <= to)
+            .AsQueryable();
+
+        if (branchId != Guid.Empty)
+            query = query.Where(s => s.BranchId == branchId);
+
+        return await query
+            .Select(s => new
+            {
+                Year = s.SaleDate.Year,
+                Month = s.SaleDate.Month,
+                Amount = s.CurrencyCode == currency
+                    || !s.ExchangeRateToReporting.HasValue
+                    || s.ExchangeRateToReporting.Value <= 0
+                        ? s.Total
+                        : s.Total * s.ExchangeRateToReporting.Value
+            })
+            .GroupBy(s => new { s.Year, s.Month })
+            .OrderBy(s => s.Key.Year)
+            .ThenBy(s => s.Key.Month)
+            .Select(s => new SalesTrendMetrics(
+                s.Key.Year,
+                s.Key.Month,
+                s.Sum(x => x.Amount),
+                s.Count(),
+                s.Average(x => x.Amount)))
+            .ToListAsync();
+    }
+
+    public async Task<ExecutiveSalesMetrics> GetExecutiveSalesMetricsRawAsync(
+        DateTime lastMonthStart,
+        DateTime monthStart,
+        DateTime todayStart,
+        DateTime yesterdayStart,
+        DateTime weekStart,
+        DateTime weekEndExclusive,
+        Guid branchId,
+        string currency)
+    {
+        var query = _db.Set<Sale>()
+            .Where(s => !s.IsDeleted && s.SaleDate >= lastMonthStart && s.SaleDate < weekEndExclusive)
+            .AsQueryable();
+
+        if (branchId != Guid.Empty)
+            query = query.Where(s => s.BranchId == branchId);
+
+        var periods = await query
+            .Select(s => new
+            {
+                Period = s.SaleDate >= todayStart
+                    ? "today"
+                    : s.SaleDate >= yesterdayStart
+                        ? "yesterday"
+                        : s.SaleDate >= monthStart
+                            ? "month"
+                            : "lastMonth",
+                Amount = s.CurrencyCode == currency
+                    || !s.ExchangeRateToReporting.HasValue
+                    || s.ExchangeRateToReporting.Value <= 0
+                        ? s.Total
+                        : s.Total * s.ExchangeRateToReporting.Value
+            })
+            .GroupBy(s => s.Period)
+            .Select(s => new { s.Key, Total = s.Sum(x => x.Amount), Count = s.Count() })
+            .ToListAsync();
+
+        var periodMap = periods.ToDictionary(p => p.Key, p => (Total: p.Total, Count: p.Count));
+        var today = periodMap.GetValueOrDefault("today");
+        var yesterday = periodMap.GetValueOrDefault("yesterday");
+        var month = periodMap.GetValueOrDefault("month");
+        var lastMonth = periodMap.GetValueOrDefault("lastMonth");
+
+        var weekQuery = _db.Set<Sale>()
+            .Where(s => !s.IsDeleted && s.SaleDate >= weekStart && s.SaleDate < weekEndExclusive);
+
+        if (branchId != Guid.Empty)
+            weekQuery = weekQuery.Where(s => s.BranchId == branchId);
+
+        var weekly = await weekQuery
+            .Select(s => new
+            {
+                Day = s.SaleDate.Date,
+                Amount = s.CurrencyCode == currency
+                    || !s.ExchangeRateToReporting.HasValue
+                    || s.ExchangeRateToReporting.Value <= 0
+                        ? s.Total
+                        : s.Total * s.ExchangeRateToReporting.Value
+            })
+            .GroupBy(s => s.Day)
+            .OrderBy(s => s.Key)
+            .Select(s => new { s.Key, Total = s.Sum(x => x.Amount) })
+            .ToListAsync();
+
+        var weeklyMap = weekly.ToDictionary(w => w.Key, w => w.Total);
+        var weeklyTrend = new List<decimal>(7);
+        for (var i = 0; i < 7; i++)
+        {
+            weeklyTrend.Add(weeklyMap.GetValueOrDefault(weekStart.AddDays(i)));
+        }
+
+        var salesChange = yesterday.Total > 0
+            ? (double)((today.Total - yesterday.Total) / yesterday.Total) * 100
+            : 0;
+        var monthChange = lastMonth.Total > 0
+            ? (double)((month.Total - lastMonth.Total) / lastMonth.Total) * 100
+            : 0;
+
+        return new ExecutiveSalesMetrics(
+            today.Total,
+            yesterday.Total,
+            salesChange,
+            month.Total,
+            monthChange,
+            month.Count > 0 ? month.Total / month.Count : 0,
+            today.Count,
+            weeklyTrend);
+    }
+
     public async Task AddAsync(Sale sale) =>
         await _db.Set<Sale>().AddAsync(sale);
 

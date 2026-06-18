@@ -133,7 +133,7 @@ final class _ProviderFormPageState extends ConsumerState<ProviderFormPage> {
               ),
               const SizedBox(height: ZSpacing.md),
               DropdownButtonFormField<String>(
-                value: _serviceCategory,
+                initialValue: _serviceCategory,
                 decoration: const InputDecoration(
                   labelText: 'Categoría de Servicio',
                   prefixIcon: Icon(Icons.category),

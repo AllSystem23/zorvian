@@ -23,9 +23,8 @@ public sealed class RegionalDashboardRepository : IRegionalDashboardRepository
 
     public async Task<decimal> GetPayrollTotalAsync(Guid companyId, string countryCode)
     {
-        // Placeholder logic as per original implementation
-        return await _context.PayrollConcepts
-            .Where(x => x.CompanyId == companyId && x.CountryCode == countryCode)
-            .SumAsync(x => 0);
+        return await _context.PayrollDetailConcepts
+            .Where(x => x.CompanyId == companyId && !x.IsDeleted)
+            .SumAsync(x => (decimal?)x.Amount) ?? 0;
     }
 }
