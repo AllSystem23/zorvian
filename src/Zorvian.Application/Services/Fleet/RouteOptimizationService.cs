@@ -118,7 +118,7 @@ public sealed class RouteOptimizationService
         {
             selected = activeDrivers
                 .OrderBy(d => d.LicenseExpiryDate < DateOnly.FromDateTime(DateTime.UtcNow) ? 1 : 0)
-                .ThenBy(d => d.LicenseCategory.Name) // Prefer higher license categories
+                .ThenBy(d => d.LicenseCategory?.Name ?? "")
                 .FirstOrDefault();
         }
 

@@ -159,7 +159,9 @@ public sealed class FinancialReportService
         var items = new List<GeneralLedgerItem>();
         foreach (var entry in allEntries.Where(e => e.Details.Any(d => d.AccountId == accountId)))
         {
-            var detail = entry.Details.First(d => d.AccountId == accountId);
+            var detail = entry.Details.FirstOrDefault(d => d.AccountId == accountId);
+            if (detail is null) continue;
+
             var debit = Convert(detail.DebitAmount, entry, cc);
             var credit = Convert(detail.CreditAmount, entry, cc);
             runningBalance += isDebitNormal ? debit - credit : credit - debit;

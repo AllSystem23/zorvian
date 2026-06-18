@@ -136,8 +136,8 @@ public sealed class GpsService
 
         return latest.Select(g => new VehiclePositionSummary(
             g.VehicleId,
-            g.Vehicle.Plate,
-            $"{g.Vehicle.Brand.Name} {g.Vehicle.Model}",
+            g.Vehicle?.Plate ?? "",
+            $"{g.Vehicle?.Brand?.Name ?? ""} {g.Vehicle?.Model ?? ""}".Trim(),
             g.Latitude,
             g.Longitude,
             g.Speed,
@@ -145,7 +145,7 @@ public sealed class GpsService
             g.GpsTimestamp,
             g.IgnitionOn,
             g.FuelLevel,
-            g.Vehicle.Driver?.FullName)).ToList();
+            g.Vehicle?.Driver?.FullName)).ToList();
     }
 
     /// <summary>Get GPS history for a specific vehicle.</summary>
@@ -155,6 +155,8 @@ public sealed class GpsService
         if (positions.Count == 0) return null;
 
         var vehicle = positions.First().Vehicle;
+        if (vehicle is null) return null;
+
         return new GpsHistoryResponse(
             vehicleId,
             vehicle.Plate,

@@ -30,8 +30,9 @@ public sealed class ReportService : IReportService
             .FirstOrDefaultAsync(d => d.Id == detailId);
 
         if (detail is null) throw new KeyNotFoundException("Payroll detail not found");
+        if (detail.Employee is null) throw new KeyNotFoundException("Employee not found for payroll detail");
 
-        var company = await _db.Companies.FirstOrDefaultAsync(c => c.TenantId == detail.Employee!.TenantId);
+        var company = await _db.Companies.FirstOrDefaultAsync(c => c.TenantId == detail.Employee.TenantId);
 
         var document = Document.Create(container =>
         {
@@ -214,8 +215,8 @@ public sealed class ReportService : IReportService
         var vacations = await _db.VacationRequests
             .Where(v => v.StartDate.Year == year)
             .Include(v => v.Employee)
-            .OrderBy(v => v.Employee!.LastName)
-            .ThenBy(v => v.Employee!.FirstName)
+            .OrderBy(v => v.Employee == null ? "" : v.Employee.LastName)
+            .ThenBy(v => v.Employee == null ? "" : v.Employee.FirstName)
             .ToListAsync();
 
         using var workbook = new XLWorkbook();
@@ -257,8 +258,8 @@ public sealed class ReportService : IReportService
             .Where(p => p.StartDate.Year == year)
             .Include(p => p.Employee)
             .Include(p => p.LeaveType)
-            .OrderBy(p => p.Employee!.LastName)
-            .ThenBy(p => p.Employee!.FirstName)
+            .OrderBy(p => p.Employee == null ? "" : p.Employee.LastName)
+            .ThenBy(p => p.Employee == null ? "" : p.Employee.FirstName)
             .ToListAsync();
 
         using var workbook = new XLWorkbook();
@@ -299,8 +300,8 @@ public sealed class ReportService : IReportService
             .Where(a => a.Date.Year == year
                 && a.Date.Month == month)
             .Include(a => a.Employee)
-            .OrderBy(a => a.Employee!.LastName)
-            .ThenBy(a => a.Employee!.FirstName)
+            .OrderBy(a => a.Employee == null ? "" : a.Employee.LastName)
+            .ThenBy(a => a.Employee == null ? "" : a.Employee.FirstName)
             .ThenBy(a => a.Date)
             .ToListAsync();
 

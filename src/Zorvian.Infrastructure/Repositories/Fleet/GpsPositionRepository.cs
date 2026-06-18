@@ -22,7 +22,7 @@ public sealed class GpsPositionRepository : IGpsPositionRepository
         await _db.Set<GpsPosition>()
             .Include(g => g.Vehicle)
             .ThenInclude(v => v.Branch)
-            .Where(g => g.Vehicle.Branch.CompanyId == companyId)
+            .Where(g => g.Vehicle != null && g.Vehicle.Branch != null && g.Vehicle.Branch.CompanyId == companyId)
             .OrderByDescending(g => g.GpsTimestamp)
             .ToListAsync();
 
@@ -48,7 +48,7 @@ public sealed class GpsPositionRepository : IGpsPositionRepository
             .ThenInclude(v => v.Driver)
             .Include(g => g.Vehicle)
             .ThenInclude(v => v.Branch)
-            .Where(g => g.Vehicle.Branch.CompanyId == companyId)
+            .Where(g => g.Vehicle != null && g.Vehicle.Branch != null && g.Vehicle.Branch.CompanyId == companyId)
             .GroupBy(g => g.VehicleId)
             .Select(g => g.OrderByDescending(x => x.GpsTimestamp).First())
             .ToListAsync();
