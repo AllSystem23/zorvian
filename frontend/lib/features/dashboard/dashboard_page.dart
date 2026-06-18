@@ -51,6 +51,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
     final dash = ref.watch(dashboardProvider);
+    final kpis = dash.kpis ?? DashboardKpis.empty();
     final user = auth.displayName ?? auth.email?.split('@').first ?? 'Usuario';
 
     return CallbackShortcuts(
@@ -80,11 +81,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                               children: [
                                 _buildHeader(user),
                                 const SizedBox(height: 32),
-                                if (dash.kpis != null) ..._buildKpiSection(dash.kpis!),
+                                ..._buildKpiSection(kpis),
                                 const SizedBox(height: 40),
                                 _buildModuleGrid(),
                                 const SizedBox(height: 40),
-                                if (dash.kpis != null) _buildAnalysisSection(dash.kpis!),
+                                _buildAnalysisSection(kpis),
                                 const SizedBox(height: 40),
                                 _buildRecentActivitySection(dash),
                               ],

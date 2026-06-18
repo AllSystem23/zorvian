@@ -249,6 +249,11 @@ class DashboardNotifier extends Notifier<DashboardState> {
         loading: false,
       );
     } on DioException catch (error) {
+      if (_isEmptyDashboardDioError(error)) {
+        state = DashboardState(kpis: DashboardKpis.empty());
+        return;
+      }
+
       state = state.copyWith(
         error: _friendlyDashboardError(error),
         loading: false,
@@ -277,26 +282,35 @@ List<Map<String, dynamic>> _readList(Map<String, dynamic> json, String key) {
   return const [];
 }
 
+bool _isEmptyDashboardDioError(DioException error) {
+  final statusCode = error.response?.statusCode;
+  final detail = _extractDioMessage(error).toLowerCase();
+
+  return statusCode == 500 ||
+      detail.contains('no data') ||
+      detail.contains('no hay datos') ||
+      detail.contains('empty');
+}
+
 String _friendlyDashboardError(DioException error) {
   final statusCode = error.response?.statusCode;
   final detail = _extractDioMessage(error).toLowerCase();
 
   if (detail.contains('no data') ||
       detail.contains('no hay datos') ||
-      detail.contains('empty')) {
-    return 'No hay datos disponibles aún. El dashboard se mostrará vacío hasta que registres información.';
+      detail.contains('empty') ||
+      statusCode == 500) {
+    return 'No hay datos disponibles para mostrar aún. El dashboard se actualizará cuando se registre información.';
   }
 
   return switch (statusCode) {
     401 => 'Tu sesión expiró. Inicia sesión nuevamente.',
     403 => 'No tienes permiso para ver el dashboard.',
-    404 => 'El endpoint del dashboard no existe.',
-    500 =>
-      'El servidor respondió con error. Si la base está vacía, el dashboard debería verse sin datos.',
-    502 => 'El servicio API no está disponible temporalmente.',
-    503 => 'El servicio API está temporalmente ocupado.',
+    404 => 'El endpoint del dashboard no está disponible.',
+    502 => 'El servicio no está disponible temporalmente.',
+    503 => 'El servicio está temporalmente ocupado.',
     _ =>
-      'No se pudo cargar el dashboard. Verifica la conexión o reintenta más tarde.',
+      'No se pudo conectar con el servicio. Verifica tu conexión e inténtalo nuevamente.',
   };
 }
 
