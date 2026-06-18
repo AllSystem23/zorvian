@@ -108,13 +108,23 @@ public static class ServiceCollectionExtensions
             {
                 options.UseInMemoryDatabase("ZorvianInMemoryDb")
                         .AddInterceptors(entityHistoryInterceptor, auditInterceptor, immutabilityInterceptor, encryptionInterceptor)
-                        .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+                        .ConfigureWarnings(w =>
+                        {
+                            w.Ignore(RelationalEventId.PendingModelChangesWarning);
+                            w.Ignore(RelationalEventId.MultipleCollectionIncludeWarning);
+                            w.Ignore(new EventId(10622, "RequiredRelatedEntityWithGlobalQueryFilterWarning"));
+                        });
             }
             else
             {
                 options.UseNpgsql(connStr)
                         .AddInterceptors(tenantSessionInterceptor, entityHistoryInterceptor, auditInterceptor, immutabilityInterceptor, encryptionInterceptor)
-                        .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+                        .ConfigureWarnings(w =>
+                        {
+                            w.Ignore(RelationalEventId.PendingModelChangesWarning);
+                            w.Ignore(RelationalEventId.MultipleCollectionIncludeWarning);
+                            w.Ignore(new EventId(10622, "RequiredRelatedEntityWithGlobalQueryFilterWarning"));
+                        });
             }
         });
         return services;
