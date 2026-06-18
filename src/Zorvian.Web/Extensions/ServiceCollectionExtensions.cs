@@ -107,14 +107,22 @@ public static class ServiceCollectionExtensions
             if (mockExternal || string.IsNullOrEmpty(connStr))
             {
                 options.UseInMemoryDatabase("ZorvianInMemoryDb")
-                       .AddInterceptors(entityHistoryInterceptor, auditInterceptor, immutabilityInterceptor, encryptionInterceptor)
-                       .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+                        .AddInterceptors(entityHistoryInterceptor, auditInterceptor, immutabilityInterceptor, encryptionInterceptor)
+                        .ConfigureWarnings(w =>
+                        {
+                            w.Ignore(RelationalEventId.PendingModelChangesWarning);
+                            w.Ignore(CoreEventId.ManyServiceProvidersCreatedWarning);
+                        });
             }
             else
             {
                 options.UseNpgsql(connStr)
-                       .AddInterceptors(tenantSessionInterceptor, entityHistoryInterceptor, auditInterceptor, immutabilityInterceptor, encryptionInterceptor)
-                       .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+                        .AddInterceptors(tenantSessionInterceptor, entityHistoryInterceptor, auditInterceptor, immutabilityInterceptor, encryptionInterceptor)
+                        .ConfigureWarnings(w =>
+                        {
+                            w.Ignore(RelationalEventId.PendingModelChangesWarning);
+                            w.Ignore(CoreEventId.ManyServiceProvidersCreatedWarning);
+                        });
             }
         });
         return services;
