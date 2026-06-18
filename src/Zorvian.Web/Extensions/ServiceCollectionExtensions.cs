@@ -93,7 +93,7 @@ public static class ServiceCollectionExtensions
 
     public static IServiceCollection AddZorvianDatabase(this IServiceCollection services, IConfiguration configuration, bool mockExternal)
     {
-        services.AddScoped<EncryptionInterceptor>();
+        services.AddSingleton<EncryptionInterceptor>();
 
         services.AddDbContext<ZorvianDbContext>((sp, options) =>
         {
@@ -110,6 +110,7 @@ public static class ServiceCollectionExtensions
                         .AddInterceptors(entityHistoryInterceptor, auditInterceptor, immutabilityInterceptor, encryptionInterceptor)
                         .ConfigureWarnings(w =>
                         {
+                            w.Ignore(CoreEventId.ManyServiceProvidersCreatedWarning);
                             w.Ignore(RelationalEventId.PendingModelChangesWarning);
                             w.Ignore(RelationalEventId.MultipleCollectionIncludeWarning);
                             w.Ignore(new EventId(10622, "RequiredRelatedEntityWithGlobalQueryFilterWarning"));
@@ -121,6 +122,7 @@ public static class ServiceCollectionExtensions
                         .AddInterceptors(tenantSessionInterceptor, entityHistoryInterceptor, auditInterceptor, immutabilityInterceptor, encryptionInterceptor)
                         .ConfigureWarnings(w =>
                         {
+                            w.Ignore(CoreEventId.ManyServiceProvidersCreatedWarning);
                             w.Ignore(RelationalEventId.PendingModelChangesWarning);
                             w.Ignore(RelationalEventId.MultipleCollectionIncludeWarning);
                             w.Ignore(new EventId(10622, "RequiredRelatedEntityWithGlobalQueryFilterWarning"));
