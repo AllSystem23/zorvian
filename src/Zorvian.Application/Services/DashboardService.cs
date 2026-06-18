@@ -43,7 +43,9 @@ public sealed class DashboardService
         {
             return await LoadSummaryAsync();
         }
-        catch (Exception ex) when (IsEmptyDataException(ex))
+        catch (Exception ex) when (IsEmptyDataException(ex)
+            || ex is InvalidOperationException
+            || ex is NullReferenceException)
         {
             return DashboardSummaryResponse.Empty;
         }
@@ -62,6 +64,13 @@ public sealed class DashboardService
             _tenant.EffectiveCompanyId,
             _tenant.IsSuperAdmin,
             thirtyDaysAgo, now.Month, lastMonth);
+
+        if (scalars.TotalEmployees == 0
+            && scalars.PendingVacationRequests == 0
+            && scalars.PendingPermissionRequests == 0)
+        {
+            return DashboardSummaryResponse.Empty;
+        }
 
         // Phase 2: EF Core queries sequentially (safe for DbContext)
         var byDept = await _repo.GetEmployeesByDepartmentAsync();
