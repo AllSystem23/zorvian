@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart' show dioClientProvider;
 
@@ -26,18 +27,22 @@ final class FleetDashboardData {
     this.alerts = const [],
   });
 
-  factory FleetDashboardData.fromJson(Map<String, dynamic> j) => FleetDashboardData(
-    totalVehicles: (j['totalVehicles'] as num?)?.toInt() ?? 0,
-    activeVehicles: (j['activeVehicles'] as num?)?.toInt() ?? 0,
-    inMaintenance: (j['inMaintenance'] as num?)?.toInt() ?? 0,
-    availableDrivers: (j['availableDrivers'] as num?)?.toInt() ?? 0,
-    activeRoutes: (j['activeRoutes'] as num?)?.toInt() ?? 0,
-    pendingDeliveries: (j['pendingDeliveries'] as num?)?.toInt() ?? 0,
-    tripsToday: (j['tripsToday'] as num?)?.toInt() ?? 0,
-    expiringDocuments: (j['expiringDocuments'] as num?)?.toInt() ?? 0,
-    overdueMaintenance: (j['overdueMaintenance'] as num?)?.toInt() ?? 0,
-    alerts: ((j['alerts'] as List?) ?? []).map((e) => AlertItem.fromJson(e)).toList(),
-  );
+  factory FleetDashboardData.fromJson(Map<String, dynamic> j) =>
+      FleetDashboardData(
+        totalVehicles: (j['totalVehicles'] as num?)?.toInt() ?? 0,
+        activeVehicles: (j['activeVehicles'] as num?)?.toInt() ?? 0,
+        inMaintenance: (j['inMaintenance'] as num?)?.toInt() ?? 0,
+        availableDrivers: (j['availableDrivers'] as num?)?.toInt() ?? 0,
+        activeRoutes: (j['activeRoutes'] as num?)?.toInt() ?? 0,
+        pendingDeliveries: (j['pendingDeliveries'] as num?)?.toInt() ?? 0,
+        tripsToday: (j['tripsToday'] as num?)?.toInt() ?? 0,
+        expiringDocuments: (j['expiringDocuments'] as num?)?.toInt() ?? 0,
+        overdueMaintenance: (j['overdueMaintenance'] as num?)?.toInt() ?? 0,
+        alerts: ((j['alerts'] as List?) ?? [])
+            .whereType<Map<String, dynamic>>()
+            .map((e) => AlertItem.fromJson(e))
+            .toList(),
+      );
 }
 
 final class AlertItem {
@@ -95,11 +100,27 @@ final class FleetDashboardNotifier extends Notifier<FleetDashboardState> {
     try {
       final dio = ref.read(dioClientProvider);
       final r = await dio.get('fleet/dashboard');
-      state = FleetDashboardState(data: FleetDashboardData.fromJson(r.data));
+      final data = r.data;
+      state = FleetDashboardState(
+        data: data is Map<String, dynamic>
+            ? FleetDashboardData.fromJson(data)
+            : const FleetDashboardData(),
+      );
+    } on DioException {
+      state = state.copyWith(
+        error: 'No se pudo cargar el dashboard de flota',
+        loading: false,
+      );
     } catch (_) {
-      state = state.copyWith(error: 'Error al cargar dashboard', loading: false);
+      state = state.copyWith(
+        error: 'Error al cargar dashboard',
+        loading: false,
+      );
     }
   }
 }
 
-final fleetDashboardProvider = NotifierProvider<FleetDashboardNotifier, FleetDashboardState>(FleetDashboardNotifier.new);
+final fleetDashboardProvider =
+    NotifierProvider<FleetDashboardNotifier, FleetDashboardState>(
+      FleetDashboardNotifier.new,
+    );

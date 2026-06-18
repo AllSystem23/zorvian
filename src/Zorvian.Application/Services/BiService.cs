@@ -106,7 +106,7 @@ public sealed class BiService
             new BiSalesKpi(salesMetrics.TodaySales, salesMetrics.YesterdaySales, salesMetrics.SalesChangePercent, salesMetrics.MonthSales, salesMetrics.MonthSalesChangePercent, salesMetrics.AverageTicket, salesMetrics.TodaySalesCount, salesMetrics.WeeklyTrend),
             new BiCreditKpi(scalars.ActiveCredits, scalars.OverdueCredits, scalars.MonthlyRecovery, scalars.TotalPortfolio, collectionRate, 0),
             new BiInventoryKpi(scalars.OutOfStockCount, scalars.LowStockCount, scalars.TotalProducts, 0, Math.Round(turnoverRate, 2),
-                topSelling.Select(p => new BiTopProductItem(p.Product.Name, p.TotalSold)).ToList()),
+                topSelling.Select(p => new BiTopProductItem(p.Product?.Name ?? "Producto eliminado", p.TotalSold)).ToList()),
             new BiCashKpi(scalars.TodayIncome, scalars.TodayExpense, scalars.TodayIncome - scalars.TodayExpense, scalars.OpenRegisters),
             new BiHrKpi(scalars.ActiveEmployees, scalars.TotalEmployees, payrollTotal, Math.Round(avgCostPerEmp, 2), scalars.PendingVacations + scalars.PendingPermissions),
             alerts

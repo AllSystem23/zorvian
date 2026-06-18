@@ -142,6 +142,20 @@ public sealed class DashboardService
 
     public async Task<DashboardKpisResponse> GetKpisAsync()
     {
+        try
+        {
+            return await LoadKpisAsync();
+        }
+        catch (Exception ex) when (IsEmptyDataException(ex)
+            || ex is InvalidOperationException
+            || ex is NullReferenceException)
+        {
+            return DashboardKpisResponse.Empty;
+        }
+    }
+
+    private async Task<DashboardKpisResponse> LoadKpisAsync()
+    {
         var now = DateTime.UtcNow;
         var thirtyDaysAgo = DateOnly.FromDateTime(now.AddDays(-30));
         var lastMonth = now.Month == 1 ? 12 : now.Month - 1;
@@ -151,6 +165,13 @@ public sealed class DashboardService
             _tenant.EffectiveCompanyId,
             _tenant.IsSuperAdmin,
             thirtyDaysAgo, now.Month, lastMonth);
+
+        if (scalars.TotalEmployees == 0
+            && scalars.PendingVacationRequests == 0
+            && scalars.PendingPermissionRequests == 0)
+        {
+            return DashboardKpisResponse.Empty;
+        }
 
         // Phase 2: Department query (after raw SQL — safe for DbContext)
         var byDept = await _repo.GetEmployeesByDepartmentAsync();
