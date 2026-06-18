@@ -2583,6 +2583,7 @@ public sealed class ZorvianDbContext : DbContext
 
         builder.Entity<Zorvian.Core.Entities.Fleet.FleetDocument>(e =>
         {
+            e.ToTable("FleetDocuments");
             e.HasKey(x => x.Id);
             e.Property(x => x.EntityType).HasMaxLength(20).IsRequired();
             e.Property(x => x.DocumentNumber).HasMaxLength(50).IsRequired();
