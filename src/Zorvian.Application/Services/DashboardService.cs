@@ -39,6 +39,18 @@ public sealed class DashboardService
     /// </summary>
     public async Task<DashboardSummaryResponse> GetSummaryAsync()
     {
+        try
+        {
+            return await LoadSummaryAsync();
+        }
+        catch (Exception ex) when (IsEmptyDataException(ex))
+        {
+            return DashboardSummaryResponse.Empty;
+        }
+    }
+
+    private async Task<DashboardSummaryResponse> LoadSummaryAsync()
+    {
         var now = DateTime.UtcNow;
         var thirtyDaysAgo = DateOnly.FromDateTime(now.AddDays(-30));
         var lastMonth = now.Month == 1 ? 12 : now.Month - 1;
@@ -108,6 +120,15 @@ public sealed class DashboardService
         recentRequests = recentRequests.OrderByDescending(r => r.CreatedAt).Take(10).ToList();
 
         return new DashboardSummaryResponse(kpis, calendarEvents, recentRequests);
+    }
+
+    private static bool IsEmptyDataException(Exception ex)
+    {
+        var message = ex.Message.ToLowerInvariant();
+        return message.Contains("no data", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("empty", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("no hay datos", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("vacía", StringComparison.OrdinalIgnoreCase);
     }
 
     public async Task<DashboardKpisResponse> GetKpisAsync()

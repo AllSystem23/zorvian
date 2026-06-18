@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
 
@@ -31,22 +32,58 @@ class DashboardKpis {
     required this.workAnniversariesThisMonth,
   });
 
-  factory DashboardKpis.fromJson(Map<String, dynamic> json) => DashboardKpis(
-    totalEmployees: json['totalEmployees'] as int,
-    activeEmployees: json['activeEmployees'] as int,
-    inactiveEmployees: json['inactiveEmployees'] as int,
-    activeEmployeesTrend: (json['activeEmployeesTrend'] as num?)?.toDouble(),
-    pendingRequestsTrend: (json['pendingRequestsTrend'] as num?)?.toDouble(),
-    birthdaysTrend: (json['birthdaysTrend'] as num?)?.toDouble(),
-    anniversariesTrend: (json['anniversariesTrend'] as num?)?.toDouble(),
-    employeesByDepartment: (json['employeesByDepartment'] as List)
-        .map((e) => DepartmentCount.fromJson(e))
-        .toList(),
-    pendingVacationRequests: json['pendingVacationRequests'] as int,
-    pendingPermissionRequests: json['pendingPermissionRequests'] as int,
-    birthdaysThisMonth: json['birthdaysThisMonth'] as int,
-    workAnniversariesThisMonth: json['workAnniversariesThisMonth'] as int,
+  factory DashboardKpis.empty() => const DashboardKpis(
+    totalEmployees: 0,
+    activeEmployees: 0,
+    inactiveEmployees: 0,
+    employeesByDepartment: [],
+    pendingVacationRequests: 0,
+    pendingPermissionRequests: 0,
+    birthdaysThisMonth: 0,
+    workAnniversariesThisMonth: 0,
   );
+
+  factory DashboardKpis.fromJson(Map<String, dynamic> json) => DashboardKpis(
+    totalEmployees: _readInt(json, 'totalEmployees'),
+    activeEmployees: _readInt(json, 'activeEmployees'),
+    inactiveEmployees: _readInt(json, 'inactiveEmployees'),
+    activeEmployeesTrend: _readDouble(json, 'activeEmployeesTrend'),
+    pendingRequestsTrend: _readDouble(json, 'pendingRequestsTrend'),
+    birthdaysTrend: _readDouble(json, 'birthdaysTrend'),
+    anniversariesTrend: _readDouble(json, 'anniversariesTrend'),
+    employeesByDepartment: _readList(
+      json,
+      'employeesByDepartment',
+    ).map((e) => DepartmentCount.fromJson(e)).toList(),
+    pendingVacationRequests: _readInt(json, 'pendingVacationRequests'),
+    pendingPermissionRequests: _readInt(json, 'pendingPermissionRequests'),
+    birthdaysThisMonth: _readInt(json, 'birthdaysThisMonth'),
+    workAnniversariesThisMonth: _readInt(json, 'workAnniversariesThisMonth'),
+  );
+
+  static int _readInt(Map<String, dynamic> json, String key) {
+    final value = json[key];
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return 0;
+  }
+
+  static double? _readDouble(Map<String, dynamic> json, String key) {
+    final value = json[key];
+    if (value is num) return value.toDouble();
+    return null;
+  }
+
+  static List<Map<String, dynamic>> _readList(
+    Map<String, dynamic> json,
+    String key,
+  ) {
+    final value = json[key];
+    if (value is List) {
+      return value.whereType<Map<String, dynamic>>().toList();
+    }
+    return const [];
+  }
 }
 
 class DepartmentCount {
@@ -55,10 +92,13 @@ class DepartmentCount {
 
   const DepartmentCount({required this.departmentName, required this.count});
 
-  factory DepartmentCount.fromJson(Map<String, dynamic> json) => DepartmentCount(
-    departmentName: json['departmentName'] as String,
-    count: json['count'] as int,
-  );
+  factory DepartmentCount.fromJson(Map<String, dynamic> json) =>
+      DepartmentCount(
+        departmentName: (json['departmentName'] as String?)?.isNotEmpty == true
+            ? json['departmentName'] as String
+            : 'Sin departamento',
+        count: json['count'] is num ? (json['count'] as num).toInt() : 0,
+      );
 }
 
 class CalendarEvent {
@@ -81,13 +121,25 @@ class CalendarEvent {
   });
 
   factory CalendarEvent.fromJson(Map<String, dynamic> json) => CalendarEvent(
-    employeeId: json['employeeId'] as String,
-    employeeName: json['employeeName'] as String,
-    employeeCode: json['employeeCode'] as String,
-    type: json['type'] as String,
-    startDate: json['startDate'] as String,
-    endDate: json['endDate'] as String,
-    status: json['status'] as String,
+    employeeId: (json['employeeId'] as String?)?.isNotEmpty == true
+        ? json['employeeId'] as String
+        : '',
+    employeeName: (json['employeeName'] as String?)?.isNotEmpty == true
+        ? json['employeeName'] as String
+        : 'Empleado',
+    employeeCode: (json['employeeCode'] as String?) ?? '',
+    type: (json['type'] as String?)?.isNotEmpty == true
+        ? json['type'] as String
+        : 'vacation',
+    startDate: (json['startDate'] as String?)?.isNotEmpty == true
+        ? json['startDate'] as String
+        : '',
+    endDate: (json['endDate'] as String?)?.isNotEmpty == true
+        ? json['endDate'] as String
+        : '',
+    status: (json['status'] as String?)?.isNotEmpty == true
+        ? json['status'] as String
+        : 'pending',
   );
 }
 
@@ -108,14 +160,25 @@ class RecentRequestItem {
     required this.createdAt,
   });
 
-  factory RecentRequestItem.fromJson(Map<String, dynamic> json) => RecentRequestItem(
-    id: json['id'] as String,
-    requestType: json['requestType'] as String,
-    employeeName: json['employeeName'] as String,
-    status: json['status'] as String,
-    description: json['description'] as String?,
-    createdAt: json['createdAt'] as String,
-  );
+  factory RecentRequestItem.fromJson(Map<String, dynamic> json) =>
+      RecentRequestItem(
+        id: (json['id'] as String?)?.isNotEmpty == true
+            ? json['id'] as String
+            : '',
+        requestType: (json['requestType'] as String?)?.isNotEmpty == true
+            ? json['requestType'] as String
+            : 'permission',
+        employeeName: (json['employeeName'] as String?)?.isNotEmpty == true
+            ? json['employeeName'] as String
+            : 'Empleado',
+        status: (json['status'] as String?)?.isNotEmpty == true
+            ? json['status'] as String
+            : 'pending',
+        description: json['description'] as String?,
+        createdAt: (json['createdAt'] as String?)?.isNotEmpty == true
+            ? json['createdAt'] as String
+            : '',
+      );
 }
 
 class DashboardState {
@@ -157,31 +220,96 @@ class DashboardNotifier extends Notifier<DashboardState> {
     try {
       final dio = ref.read(dioClientProvider);
       final timeout = const Duration(seconds: 45);
-      
+
       final response = await dio.get('dashboard/summary').timeout(timeout);
       final data = response.data;
 
       if (data is! Map<String, dynamic>) {
-         throw Exception('Formato de datos inválido en Dashboard');
+        throw Exception('Formato de datos inválido en Dashboard');
       }
 
+      final kpisJson = _readMap(data, 'kpis');
+      final calendarJson = _readList(data, 'calendarEvents');
+      final requestsJson = _readList(data, 'recentRequests');
+
       state = DashboardState(
-        kpis: DashboardKpis.fromJson(data['kpis'] as Map<String, dynamic>),
-        calendarEvents: (data['calendarEvents'] as List)
-            .map((e) => CalendarEvent.fromJson(e as Map<String, dynamic>))
+        kpis: kpisJson.isEmpty
+            ? DashboardKpis.empty()
+            : DashboardKpis.fromJson(kpisJson),
+        calendarEvents: calendarJson
+            .map((e) => CalendarEvent.fromJson(e))
             .toList(),
-        recentRequests: (data['recentRequests'] as List)
-            .map((e) => RecentRequestItem.fromJson(e as Map<String, dynamic>))
+        recentRequests: requestsJson
+            .map((e) => RecentRequestItem.fromJson(e))
             .toList(),
       );
     } on TimeoutException {
-      state = state.copyWith(error: 'Tiempo de espera agotado al cargar dashboard', loading: false);
+      state = state.copyWith(
+        error: 'Tiempo de espera agotado al cargar dashboard',
+        loading: false,
+      );
+    } on DioException catch (error) {
+      state = state.copyWith(
+        error: _friendlyDashboardError(error),
+        loading: false,
+      );
     } catch (e) {
-      state = state.copyWith(error: 'Error al cargar dashboard: $e', loading: false);
+      state = state.copyWith(
+        error: 'Error al cargar dashboard: $e',
+        loading: false,
+      );
     }
   }
 
   Future<void> refresh() => loadAll();
+}
+
+Map<String, dynamic> _readMap(Map<String, dynamic> json, String key) {
+  final value = json[key];
+  return value is Map<String, dynamic> ? value : <String, dynamic>{};
+}
+
+List<Map<String, dynamic>> _readList(Map<String, dynamic> json, String key) {
+  final value = json[key];
+  if (value is List) {
+    return value.whereType<Map<String, dynamic>>().toList();
+  }
+  return const [];
+}
+
+String _friendlyDashboardError(DioException error) {
+  final statusCode = error.response?.statusCode;
+  final detail = _extractDioMessage(error).toLowerCase();
+
+  if (detail.contains('no data') ||
+      detail.contains('no hay datos') ||
+      detail.contains('empty')) {
+    return 'No hay datos disponibles aún. El dashboard se mostrará vacío hasta que registres información.';
+  }
+
+  return switch (statusCode) {
+    401 => 'Tu sesión expiró. Inicia sesión nuevamente.',
+    403 => 'No tienes permiso para ver el dashboard.',
+    404 => 'El endpoint del dashboard no existe.',
+    500 =>
+      'El servidor respondió con error. Si la base está vacía, el dashboard debería verse sin datos.',
+    502 => 'El servicio API no está disponible temporalmente.',
+    503 => 'El servicio API está temporalmente ocupado.',
+    _ =>
+      'No se pudo cargar el dashboard. Verifica la conexión o reintenta más tarde.',
+  };
+}
+
+String _extractDioMessage(DioException error) {
+  final data = error.response?.data;
+  if (data is Map<String, dynamic>) {
+    return (data['message']?.toString() ??
+        data['title']?.toString() ??
+        data['error']?.toString() ??
+        error.message ??
+        'Error de conexión');
+  }
+  return data?.toString() ?? error.message ?? 'Error de conexión';
 }
 
 final dashboardProvider = NotifierProvider<DashboardNotifier, DashboardState>(

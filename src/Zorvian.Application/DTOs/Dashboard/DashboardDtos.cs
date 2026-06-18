@@ -13,7 +13,23 @@ public sealed record DashboardKpisResponse(
     int PendingPermissionRequests,
     int BirthdaysThisMonth,
     int WorkAnniversariesThisMonth
-);
+)
+{
+    public static DashboardKpisResponse Empty => new(
+        0,
+        0,
+        0,
+        null,
+        null,
+        null,
+        null,
+        [],
+        0,
+        0,
+        0,
+        0
+    );
+}
 
 public sealed record DepartmentCount(
     string DepartmentName,
@@ -43,7 +59,14 @@ public sealed record DashboardSummaryResponse(
     DashboardKpisResponse Kpis,
     List<VacationCalendarEvent> CalendarEvents,
     List<RecentRequestItem> RecentRequests
-);
+)
+{
+    public static DashboardSummaryResponse Empty => new(
+        DashboardKpisResponse.Empty,
+        [],
+        []
+    );
+}
 
 /// <summary>
 /// Raw SQL result DTO — all scalar KPI values in a single DB round-trip.
