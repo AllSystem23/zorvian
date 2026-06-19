@@ -166,28 +166,28 @@ final class MobileBottomNav extends StatelessWidget {
         elevation: 0,
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined, size: 22),
-            activeIcon: Icon(Icons.home, size: 22),
+            icon: Icon(Icons.dashboard_outlined, size: 22),
+            activeIcon: Icon(Icons.dashboard, size: 22),
             label: 'Inicio',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.people_outline, size: 22),
-            activeIcon: Icon(Icons.people, size: 22),
+            icon: Icon(Icons.groups_2_outlined, size: 22),
+            activeIcon: Icon(Icons.groups_2, size: 22),
             label: 'Personas',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_bag_outlined, size: 22),
-            activeIcon: Icon(Icons.shopping_bag, size: 22),
+            icon: Icon(Icons.point_of_sale_outlined, size: 22),
+            activeIcon: Icon(Icons.point_of_sale, size: 22),
             label: 'Operaciones',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.account_balance_outlined, size: 22),
-            activeIcon: Icon(Icons.account_balance, size: 22),
+            icon: Icon(Icons.account_balance_wallet_outlined, size: 22),
+            activeIcon: Icon(Icons.account_balance_wallet, size: 22),
             label: 'Finanzas',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.more_horiz_outlined, size: 22),
-            activeIcon: Icon(Icons.more_horiz, size: 22),
+            icon: Icon(Icons.grid_view_outlined, size: 22),
+            activeIcon: Icon(Icons.grid_view, size: 22),
             label: 'Más',
           ),
         ],
