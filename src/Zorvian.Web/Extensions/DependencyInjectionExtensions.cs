@@ -97,6 +97,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<ISalaryAdvanceRepository, SalaryAdvanceRepository>();
         services.AddScoped<IWageGarnishmentRepository, WageGarnishmentRepository>();
         services.AddScoped<IBenefitProvisionRepository, BenefitProvisionRepository>();
+        services.AddScoped<IOvertimeRecordRepository, OvertimeRecordRepository>();
         services.AddScoped<ICommissionRecordRepository, CommissionRecordRepository>();
         services.AddScoped<IBonusRecordRepository, BonusRecordRepository>();
         services.AddScoped<ICountryTaxConfigRepository, CountryTaxConfigRepository>();
