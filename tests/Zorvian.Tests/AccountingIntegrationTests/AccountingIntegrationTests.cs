@@ -495,13 +495,13 @@ public sealed class AccountingIntegrationTests : IDisposable
         public Task SaveChangesAsync() => db.SaveChangesAsync();
         public Task AddAsync(Product product) => throw new NotImplementedException();
         public Task<Product?> GetByCodeAsync(string code, Guid branchId) => throw new NotImplementedException();
-        public Task<List<Product>> GetFilteredAsync(string? search, Guid? categoryId, Guid? brandId, bool? lowStock, bool? isActive, Guid branchId, int page, int pageSize) => throw new NotImplementedException();
-        public Task<int> GetFilteredCountAsync(string? search, Guid? categoryId, Guid? brandId, bool? lowStock, bool? isActive, Guid branchId) => throw new NotImplementedException();
-        public Task<List<Product>> GetOutOfStockAsync(Guid branchId) => throw new NotImplementedException();
-        public Task<List<Product>> GetLowStockAsync(Guid branchId) => throw new NotImplementedException();
-        public Task<int> GetTotalCountAsync(Guid branchId) => throw new NotImplementedException();
-        public Task<List<(Product Product, int TotalSold)>> GetTopSellingAsync(Guid branchId, int count) => throw new NotImplementedException();
-        public Task<InventorySummaryRaw> GetInventorySummaryRawAsync(Guid branchId) => Task.FromResult(new InventorySummaryRaw(0, 0, 0, 0, 0, new List<InventoryCategoryRaw>(), new List<InventorySlowMoverRaw>()));
+        public Task<List<Product>> GetFilteredAsync(string? search, Guid? categoryId, Guid? brandId, bool? lowStock, bool? isActive, Guid? branchId, int page, int pageSize) => throw new NotImplementedException();
+        public Task<int> GetFilteredCountAsync(string? search, Guid? categoryId, Guid? brandId, bool? lowStock, bool? isActive, Guid? branchId) => throw new NotImplementedException();
+        public Task<List<Product>> GetOutOfStockAsync(Guid? branchId) => throw new NotImplementedException();
+        public Task<List<Product>> GetLowStockAsync(Guid? branchId) => throw new NotImplementedException();
+        public Task<int> GetTotalCountAsync(Guid? branchId) => throw new NotImplementedException();
+        public Task<List<(Product Product, int TotalSold)>> GetTopSellingAsync(Guid? branchId, int count) => throw new NotImplementedException();
+        public Task<InventorySummaryRaw> GetInventorySummaryRawAsync(Guid? branchId) => Task.FromResult(new InventorySummaryRaw(0, 0, 0, 0, 0, new List<InventoryCategoryRaw>(), new List<InventorySlowMoverRaw>()));
         public Task DeleteAsync(Product product) => throw new NotImplementedException();
     }
 
@@ -510,8 +510,8 @@ public sealed class AccountingIntegrationTests : IDisposable
         public Task AddAsync(InventoryMovement movement) { db.Set<InventoryMovement>().Add(movement); return Task.CompletedTask; }
         public Task SaveChangesAsync() => db.SaveChangesAsync();
         public Task<InventoryMovement?> GetByIdAsync(Guid id) => throw new NotImplementedException();
-        public Task<List<InventoryMovement>> GetFilteredAsync(Guid? productId, string? movementType, DateTime? fromDate, DateTime? toDate, string? search, Guid branchId, int page, int pageSize) => throw new NotImplementedException();
-        public Task<int> GetFilteredCountAsync(Guid? productId, string? movementType, DateTime? fromDate, DateTime? toDate, string? search, Guid branchId) => throw new NotImplementedException();
+        public Task<List<InventoryMovement>> GetFilteredAsync(Guid? productId, string? movementType, DateTime? fromDate, DateTime? toDate, string? search, Guid? branchId, int page, int pageSize) => throw new NotImplementedException();
+        public Task<int> GetFilteredCountAsync(Guid? productId, string? movementType, DateTime? fromDate, DateTime? toDate, string? search, Guid? branchId) => throw new NotImplementedException();
     }
 
     private sealed class ClientRepo(ZorvianDbContext db) : IClientRepository
