@@ -388,7 +388,7 @@ public static class DependencyInjectionExtensions
         // Warranty
         services.AddScoped<WarrantySlaConfigService>();
         services.AddScoped<WarrantyProviderService>();
-        services.AddScoped<WarrantyCostService>();
+        services.AddScoped<IWarrantyCostService, WarrantyCostService>();
         services.AddScoped<WarrantyPartRequestService>();
         services.AddScoped<WarrantyCommunicationService>();
         services.AddScoped<WarrantyPartUsageService>();
