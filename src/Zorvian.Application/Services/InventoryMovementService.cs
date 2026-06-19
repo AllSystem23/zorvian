@@ -32,8 +32,27 @@ public class InventoryMovementService : IInventoryMovementService
         _goalIntegration = goalIntegration;
     }
 
+    private Guid RequireCompanyId()
+    {
+        if (_tenant.TenantId.Value == Guid.Empty)
+            throw new InvalidOperationException("Seleccione una empresa antes de registrar movimientos de inventario.");
+
+        return _tenant.TenantId.Value;
+    }
+
+    private Guid? ResolveBranchId(Guid requestBranchId)
+    {
+        if (requestBranchId != Guid.Empty)
+            return requestBranchId;
+
+        return _tenant.IsSuperAdmin ? null : _tenant.EffectiveCompanyId;
+    }
+
     public async Task<InventoryMovementResponse> CreateAsync(CreateInventoryMovementRequest request)
     {
+        var companyId = RequireCompanyId();
+        var branchId = ResolveBranchId(request.BranchId);
+
         var product = await _productRepo.GetByIdAsync(request.ProductId)
             ?? throw new InvalidOperationException("Product not found");
 
@@ -51,7 +70,9 @@ public class InventoryMovementService : IInventoryMovementService
         var movement = _mapper.Map<InventoryMovement>(request);
         movement.StockBefore = stockBefore;
         movement.StockAfter = stockAfter;
-        movement.CompanyId = Guid.Parse(_tenant.TenantId);
+        movement.CompanyId = companyId;
+        movement.BranchId = branchId ?? Guid.Empty;
+        movement.TenantId = _tenant.TenantId.ToString();
 
         await _movementRepo.AddAsync(movement);
         await _movementRepo.SaveChangesAsync();
@@ -73,8 +94,10 @@ public class InventoryMovementService : IInventoryMovementService
         var page = filter.Page ?? 1;
         var pageSize = filter.PageSize ?? 20;
 
-        var items = await _movementRepo.GetFilteredAsync(filter.ProductId, filter.MovementType, filter.FromDate, filter.ToDate, filter.Search, Guid.Empty, page, pageSize);
-        var total = await _movementRepo.GetFilteredCountAsync(filter.ProductId, filter.MovementType, filter.FromDate, filter.ToDate, filter.Search, Guid.Empty);
+        var branchId = _tenant.IsSuperAdmin ? null : _tenant.EffectiveCompanyId;
+
+        var items = await _movementRepo.GetFilteredAsync(filter.ProductId, filter.MovementType, filter.FromDate, filter.ToDate, filter.Search, branchId, page, pageSize);
+        var total = await _movementRepo.GetFilteredCountAsync(filter.ProductId, filter.MovementType, filter.FromDate, filter.ToDate, filter.Search, branchId);
 
         return new PagedResult<InventoryMovementResponse>(
             _mapper.Map<List<InventoryMovementResponse>>(items),

@@ -104,6 +104,10 @@ public sealed class PayrollController : ControllerBase
             var result = await _service.GeneratePayrollAsync(request);
             return Ok(result);
         }
+        catch (KeyNotFoundException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
         catch (InvalidOperationException ex)
         {
             return BadRequest(new { message = ex.Message });

@@ -64,6 +64,7 @@ import '../features/quotes/pages/quote_detail_page.dart';
 import '../features/quotes/pages/quote_kanban_page.dart';
 import '../features/products/pages/kardex_page.dart';
 import '../features/products/pages/inventory_dashboard_page.dart';
+import '../features/products/pages/inventory_valuation_page.dart';
 import '../features/products/pages/product_list_page.dart';
 import '../features/products/pages/product_form_page.dart';
 import '../features/categories/pages/category_list_page.dart';
@@ -178,6 +179,9 @@ final _routeRoles = <String, List<String>>{
   '/sales': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/quotes': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/products': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
+  '/products/movements': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
+  '/products/adjustments': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
+  '/products/valuation': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/categories': ['SuperAdmin', 'CompanyAdmin'],
   '/brands': ['SuperAdmin', 'CompanyAdmin'],
   '/cost-centers': ['SuperAdmin', 'CompanyAdmin'],
@@ -504,6 +508,9 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(path: 'list', name: 'product-list', builder: (_, _) => const ProductListPage()),
               GoRoute(path: 'new', name: 'product-new', builder: (_, _) => const ProductFormPage()),
               GoRoute(path: ':productId/edit', name: 'product-edit', builder: (_, state) => ProductFormPage(productId: state.pathParameters['productId']!)),
+              GoRoute(path: 'movements', name: 'product-movements', builder: (_, _) => const InventoryMovementListPage()),
+              GoRoute(path: 'adjustments', name: 'product-adjustments', builder: (_, _) => const InventoryAdjustmentPage()),
+              GoRoute(path: 'valuation', name: 'product-valuation', builder: (_, _) => const InventoryValuationPage()),
               GoRoute(path: 'kardex', name: 'product-kardex', builder: (_, _) => const KardexPage()),
             ],
           ),

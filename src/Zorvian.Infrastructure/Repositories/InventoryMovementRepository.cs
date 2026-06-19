@@ -20,13 +20,14 @@ public sealed class InventoryMovementRepository : IInventoryMovementRepository
             .Include(m => m.PerformedBy)
             .FirstOrDefaultAsync(m => m.Id == id);
 
-    public async Task<List<InventoryMovement>> GetFilteredAsync(Guid? productId, string? movementType, DateTime? fromDate, DateTime? toDate, string? search, Guid branchId, int page, int pageSize)
+    public async Task<List<InventoryMovement>> GetFilteredAsync(Guid? productId, string? movementType, DateTime? fromDate, DateTime? toDate, string? search, Guid? branchId, int page, int pageSize)
     {
         var query = _db.Set<InventoryMovement>()
             .Include(m => m.Product)
             .Include(m => m.PerformedBy)
-            .Where(m => m.BranchId == branchId)
             .AsQueryable();
+
+        if (branchId.HasValue) query = query.Where(m => m.BranchId == branchId.Value);
 
         if (productId.HasValue) query = query.Where(m => m.ProductId == productId.Value);
         if (!string.IsNullOrWhiteSpace(movementType)) query = query.Where(m => m.MovementType == movementType);
@@ -47,12 +48,13 @@ public sealed class InventoryMovementRepository : IInventoryMovementRepository
             .ToListAsync();
     }
 
-    public async Task<int> GetFilteredCountAsync(Guid? productId, string? movementType, DateTime? fromDate, DateTime? toDate, string? search, Guid branchId)
+    public async Task<int> GetFilteredCountAsync(Guid? productId, string? movementType, DateTime? fromDate, DateTime? toDate, string? search, Guid? branchId)
     {
         var query = _db.Set<InventoryMovement>()
             .Include(m => m.Product)
-            .Where(m => m.BranchId == branchId)
             .AsQueryable();
+
+        if (branchId.HasValue) query = query.Where(m => m.BranchId == branchId.Value);
 
         if (productId.HasValue) query = query.Where(m => m.ProductId == productId.Value);
         if (!string.IsNullOrWhiteSpace(movementType)) query = query.Where(m => m.MovementType == movementType);

@@ -25,10 +25,30 @@ public sealed class ProductService
         _sync = sync;
     }
 
+    private Guid RequireCompanyId()
+    {
+        if (_tenant.TenantId.Value == Guid.Empty)
+            throw new InvalidOperationException("Seleccione una empresa antes de gestionar inventario.");
+
+        return _tenant.TenantId.Value;
+    }
+
+    private Guid? ResolveBranchId(Guid? requestBranchId)
+    {
+        if (requestBranchId.HasValue && requestBranchId.Value != Guid.Empty)
+            return requestBranchId.Value;
+
+        return _tenant.IsSuperAdmin ? null : _tenant.EffectiveCompanyId;
+    }
+
     public async Task<ProductResponse> CreateAsync(CreateProductRequest request)
     {
+        var companyId = RequireCompanyId();
+        var branchId = ResolveBranchId(request.BranchId);
         var product = _mapper.Map<Product>(request);
-        product.CompanyId = Guid.Parse(_tenant.TenantId);
+        product.CompanyId = companyId;
+        product.BranchId = branchId ?? Guid.Empty;
+        product.TenantId = _tenant.TenantId.ToString();
 
         await _repo.AddAsync(product);
 
@@ -42,6 +62,7 @@ public sealed class ProductService
             movement.Notes = "Initial stock entry";
             movement.CompanyId = product.CompanyId;
             movement.BranchId = product.BranchId;
+            movement.TenantId = product.TenantId;
 
             await _movementRepo.AddAsync(movement);
         }
@@ -80,8 +101,10 @@ public sealed class ProductService
         var page = filter.Page ?? 1;
         var pageSize = filter.PageSize ?? 20;
 
-        var items = await _repo.GetFilteredAsync(filter.Search, filter.CategoryId, filter.BrandId, filter.LowStock, filter.IsActive, Guid.Empty, page, pageSize);
-        var total = await _repo.GetFilteredCountAsync(filter.Search, filter.CategoryId, filter.BrandId, filter.LowStock, filter.IsActive, Guid.Empty);
+        var branchId = _tenant.IsSuperAdmin ? null : _tenant.EffectiveCompanyId;
+
+        var items = await _repo.GetFilteredAsync(filter.Search, filter.CategoryId, filter.BrandId, filter.LowStock, filter.IsActive, branchId, page, pageSize);
+        var total = await _repo.GetFilteredCountAsync(filter.Search, filter.CategoryId, filter.BrandId, filter.LowStock, filter.IsActive, branchId);
 
         return new PagedResult<ProductListResponse>(
             _mapper.Map<List<ProductListResponse>>(items),
@@ -91,7 +114,8 @@ public sealed class ProductService
 
     public async Task<List<ProductListResponse>> GetLowStockAsync()
     {
-        var items = await _repo.GetLowStockAsync(Guid.Empty);
+        var branchId = _tenant.IsSuperAdmin ? null : _tenant.EffectiveCompanyId;
+        var items = await _repo.GetLowStockAsync(branchId);
         return _mapper.Map<List<ProductListResponse>>(items);
     }
 
@@ -100,8 +124,10 @@ public sealed class ProductService
         var page = filter.Page ?? 1;
         var pageSize = filter.PageSize ?? 20;
 
-        var items = await _movementRepo.GetFilteredAsync(filter.ProductId, filter.MovementType, filter.FromDate, filter.ToDate, null, Guid.Empty, page, pageSize);
-        var total = await _movementRepo.GetFilteredCountAsync(filter.ProductId, filter.MovementType, filter.FromDate, filter.ToDate, null, Guid.Empty);
+        var branchId = _tenant.IsSuperAdmin ? null : _tenant.EffectiveCompanyId;
+
+        var items = await _movementRepo.GetFilteredAsync(filter.ProductId, filter.MovementType, filter.FromDate, filter.ToDate, null, branchId, page, pageSize);
+        var total = await _movementRepo.GetFilteredCountAsync(filter.ProductId, filter.MovementType, filter.FromDate, filter.ToDate, null, branchId);
 
         return new PagedResult<InventoryMovementResponse>(
             _mapper.Map<List<InventoryMovementResponse>>(items),

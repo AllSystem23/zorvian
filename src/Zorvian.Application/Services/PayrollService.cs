@@ -73,6 +73,14 @@ public sealed class PayrollService
         _sickLeaveRepo = sickLeaveRepo;
     }
 
+    private Guid RequireCompanyId()
+    {
+        if (_tenant.TenantId.Value == Guid.Empty)
+            throw new InvalidOperationException("Seleccione una empresa antes de procesar nómina.");
+
+        return _tenant.TenantId.Value;
+    }
+
     // --- Deduction Types ---
 
     public async Task<List<DeductionTypeResponse>> GetDeductionTypesAsync()
@@ -188,6 +196,7 @@ public sealed class PayrollService
             EndDate = request.EndDate,
             PaymentDate = request.PaymentDate,
             Status = "open",
+            TenantId = _tenant.TenantId.ToString(),
         };
         await _repo.AddPeriodAsync(entity);
         await _repo.SaveChangesAsync();
@@ -212,13 +221,19 @@ public sealed class PayrollService
     {
         var period = await _repo.GetPeriodByIdAsync(request.PayrollPeriodId)
             ?? throw new KeyNotFoundException("Payroll period not found");
+        if (period.Status != "open")
+            throw new InvalidOperationException("Solo se pueden generar corridas para períodos abiertos.");
 
-        var company = await _companyRepo.GetByTenantIdAsync(_tenant.TenantId) 
-            ?? throw new KeyNotFoundException("Company not found");
+        var companyId = RequireCompanyId();
+        var company = await _companyRepo.GetByTenantIdAsync(companyId.ToString()) 
+            ?? throw new KeyNotFoundException("Company not found for selected tenant.");
         var taxConfig = await _taxConfigRepo.GetByCountryCodeAsync(company.Country ?? "NIC")
             ?? throw new KeyNotFoundException("Tax configuration not found for country");
 
         var activeEmployees = await _employeeRepo.GetFilteredAsync(null, "active", null, 1, 10000);
+        if (activeEmployees.Count == 0)
+            throw new InvalidOperationException("No hay empleados activos para procesar nómina.");
+
         var conceptDefinitions = await _conceptRepo.GetAllAsync(_tenant.TenantId);
         var strategy = _calcFactory.GetStrategy(company.Country ?? "NIC");
 
@@ -284,7 +299,7 @@ public sealed class PayrollService
             var totalEmpDeductions = inssDeduction + irDeduction + loanDeduction + advanceDeduction + garnishmentDeduction;
 
             var concepts = new List<PayrollDetailConcept>();
-            var tenantId = Guid.Parse(_tenant.TenantId);
+            var tenantId = companyId;
 
             void AddConcept(string code, decimal amount, bool isEmployerCost = false)
             {
@@ -361,6 +376,7 @@ public sealed class PayrollService
             TotalEmployerCosts = totalEmployerCosts,
             EmployeeCount = details.Count,
             Notes = request.Notes,
+            TenantId = _tenant.TenantId.ToString(),
         };
 
         await _repo.AddRunAsync(run);
@@ -369,6 +385,7 @@ public sealed class PayrollService
         foreach (var d in details)
         {
             d.PayrollRunId = run.Id;
+            d.TenantId = _tenant.TenantId.ToString();
         }
         run.Details = details;
         await _repo.AddDetailsAsync(details);

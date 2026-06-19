@@ -30,15 +30,16 @@ public sealed class ProductRepository : IProductRepository
             .Include(p => p.TaxCategory)
             .FirstOrDefaultAsync(p => p.Code == code && p.BranchId == branchId);
 
-    public async Task<List<Product>> GetFilteredAsync(string? search, Guid? categoryId, Guid? brandId, bool? lowStock, bool? isActive, Guid branchId, int page, int pageSize)
+    public async Task<List<Product>> GetFilteredAsync(string? search, Guid? categoryId, Guid? brandId, bool? lowStock, bool? isActive, Guid? branchId, int page, int pageSize)
     {
         var query = _db.Set<Product>()
             .Include(p => p.Category)
             .Include(p => p.Brand)
             .Include(p => p.Supplier)
             .Include(p => p.TaxCategory)
-            .Where(p => p.BranchId == branchId)
             .AsQueryable();
+
+        if (branchId.HasValue) query = query.Where(p => p.BranchId == branchId.Value);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -61,9 +62,11 @@ public sealed class ProductRepository : IProductRepository
             .ToListAsync();
     }
 
-    public async Task<int> GetFilteredCountAsync(string? search, Guid? categoryId, Guid? brandId, bool? lowStock, bool? isActive, Guid branchId)
+    public async Task<int> GetFilteredCountAsync(string? search, Guid? categoryId, Guid? brandId, bool? lowStock, bool? isActive, Guid? branchId)
     {
-        var query = _db.Set<Product>().Where(p => p.BranchId == branchId).AsQueryable();
+        var query = _db.Set<Product>().AsQueryable();
+
+        if (branchId.HasValue) query = query.Where(p => p.BranchId == branchId.Value);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -82,24 +85,42 @@ public sealed class ProductRepository : IProductRepository
         return await query.CountAsync();
     }
 
-    public async Task<List<Product>> GetLowStockAsync(Guid branchId) =>
-        await _db.Set<Product>()
+    public async Task<List<Product>> GetLowStockAsync(Guid? branchId)
+    {
+        var query = _db.Set<Product>()
             .Include(p => p.Category)
-            .Where(p => p.BranchId == branchId && p.Stock <= p.MinStock && p.IsActive)
+            .Where(p => p.Stock <= p.MinStock && p.IsActive)
+            .AsQueryable();
+
+        if (branchId.HasValue) query = query.Where(p => p.BranchId == branchId.Value);
+
+        return await query
             .OrderBy(p => p.Stock)
             .ToListAsync();
+    }
 
-    public async Task<List<Product>> GetOutOfStockAsync(Guid branchId) =>
-        await _db.Set<Product>()
+    public async Task<List<Product>> GetOutOfStockAsync(Guid? branchId)
+    {
+        var query = _db.Set<Product>()
             .Include(p => p.Category)
-            .Where(p => p.BranchId == branchId && p.Stock <= 0 && p.IsActive)
+            .Where(p => p.Stock <= 0 && p.IsActive)
+            .AsQueryable();
+
+        if (branchId.HasValue) query = query.Where(p => p.BranchId == branchId.Value);
+
+        return await query
             .OrderBy(p => p.Name)
             .ToListAsync();
+    }
 
-    public async Task<List<(Product Product, int TotalSold)>> GetTopSellingAsync(Guid branchId, int count)
+    public async Task<List<(Product Product, int TotalSold)>> GetTopSellingAsync(Guid? branchId, int count)
     {
-        var topProducts = await _db.Set<SaleDetail>()
-            .Where(d => d.BranchId == branchId)
+        var query = _db.Set<SaleDetail>()
+            .AsQueryable();
+
+        if (branchId.HasValue) query = query.Where(d => d.BranchId == branchId.Value);
+
+        var topProducts = await query
             .GroupBy(d => new { d.ProductId, d.Product!.Name })
             .OrderByDescending(g => g.Sum(d => d.Quantity))
             .Select(g => new { g.Key.ProductId, g.Key.Name, TotalSold = g.Sum(d => d.Quantity) })
@@ -116,14 +137,14 @@ public sealed class ProductRepository : IProductRepository
             .ToList();
     }
 
-    public async Task<InventorySummaryRaw> GetInventorySummaryRawAsync(Guid branchId)
+    public async Task<InventorySummaryRaw> GetInventorySummaryRawAsync(Guid? branchId)
     {
         var query = _db.Set<Product>()
             .Where(p => !p.IsDeleted)
             .AsQueryable();
 
-        if (branchId != Guid.Empty)
-            query = query.Where(p => p.BranchId == branchId);
+        if (branchId.HasValue)
+            query = query.Where(p => p.BranchId == branchId.Value);
 
         var totals = await query
             .Select(p => new
@@ -171,8 +192,8 @@ public sealed class ProductRepository : IProductRepository
               AND p.""Stock"" > 0
             ORDER BY ""LastMovement"" ASC
             LIMIT 10",
-            new Npgsql.NpgsqlParameter("@branchId", branchId),
-            new Npgsql.NpgsqlParameter("@emptyBranch", branchId == Guid.Empty))
+            new Npgsql.NpgsqlParameter("@branchId", branchId ?? Guid.Empty),
+            new Npgsql.NpgsqlParameter("@emptyBranch", !branchId.HasValue))
             .ToListAsync();
 
         return totals ?? new InventorySummaryRaw(0, 0, 0, 0, 0, categories, slowMovers) with
@@ -182,8 +203,12 @@ public sealed class ProductRepository : IProductRepository
         };
     }
 
-    public async Task<int> GetTotalCountAsync(Guid branchId) =>
-        await _db.Set<Product>().CountAsync(p => p.BranchId == branchId && p.IsActive);
+    public async Task<int> GetTotalCountAsync(Guid? branchId)
+    {
+        var query = _db.Set<Product>().Where(p => p.IsActive).AsQueryable();
+        if (branchId.HasValue) query = query.Where(p => p.BranchId == branchId.Value);
+        return await query.CountAsync();
+    }
 
     public async Task AddAsync(Product product) =>
         await _db.Set<Product>().AddAsync(product);
