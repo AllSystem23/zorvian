@@ -158,6 +158,47 @@ class AuthNotifier extends Notifier<AuthState> {
     await storage.clearTokens();
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
+
+  /// Fetches the list of tenants the current user can access.
+  Future<List<Map<String, dynamic>>> getMyTenants() async {
+    final dio = ref.read(dioClientProvider);
+    final response = await dio.get('auth/tenants', params: {'pageSize': 100});
+    final data = response.data;
+    final Iterable list = data is List ? data : (data['items'] as List<dynamic>);
+    return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  /// Switches the current user's active tenant. Returns true on success.
+  Future<bool> switchTenant(String tenantId) async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      final storage = ref.read(secureStorageProvider);
+      final response = await dio.post('auth/switch-tenant', data: {
+        'tenantId': tenantId,
+      });
+
+      final data = response.data['data'];
+      // Save new tokens issued for the switched tenant
+      if (data['accessToken'] != null) {
+        await storage.saveTokens(data['accessToken'], data['refreshToken'])
+            .catchError((_) => null);
+      }
+
+      final user = data['user'];
+      state = AuthState(
+        status: AuthStatus.authenticated,
+        userId: user['id'],
+        email: user['email'],
+        displayName: user['displayName'],
+        role: user['role'],
+        tenantId: user['tenantId'],
+        employeeId: user['employeeId'],
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
 }
 
 final authProvider = NotifierProvider<AuthNotifier, AuthState>(
