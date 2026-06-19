@@ -302,7 +302,7 @@ public static class DependencyInjectionExtensions
 
         // Banking
         services.AddScoped<BankAccountService>();
-        services.AddScoped<BankTransferService>();
+        services.AddScoped<IBankTransferService, BankTransferService>();
 
         // Electronic Invoicing
         services.AddScoped<IPartnerService, PartnerService>();
