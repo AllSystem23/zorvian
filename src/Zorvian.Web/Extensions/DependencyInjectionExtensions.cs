@@ -1,4 +1,4 @@
-using Zorvian.Application.Interfaces;
+﻿using Zorvian.Application.Interfaces;
 using Zorvian.Application.Jobs;
 using Zorvian.Application.Services;
 using Zorvian.Application.Services.CommissionEngine;
@@ -185,6 +185,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IWarrantyAttachmentRepository, WarrantyAttachmentRepository>();
         services.AddScoped<IWarrantyStateHistoryRepository, WarrantyStateHistoryRepository>();
         services.AddScoped<IServiceWorkshopRepository, ServiceWorkshopRepository>();
+        services.AddScoped<IWarrantyPartUsageRepository, WarrantyPartUsageRepository>();
 
         // Electronic Invoicing & Partners
         services.AddScoped<IPartnerRepository, PartnerRepository>();
@@ -390,6 +391,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<WarrantyCostService>();
         services.AddScoped<WarrantyPartRequestService>();
         services.AddScoped<WarrantyCommunicationService>();
+        services.AddScoped<WarrantyPartUsageService>();
         services.AddScoped<WarrantyDashboardService>();
         services.AddScoped<WarrantyTimelineService>();
         services.AddScoped<WarrantyService>();
