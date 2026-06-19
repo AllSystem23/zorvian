@@ -68,6 +68,9 @@ final class ZorvianSidebar extends ConsumerWidget {
         }
         final groupLabel = NavConfig.groupLabels[module.group] ?? module.group.toUpperCase();
         final groupColor = NavConfig.groupColors[module.group] ?? ZColors.neutral400;
+        final groupTextColor = isDark
+            ? groupColor
+            : (NavConfig.groupTextColors[module.group] ?? ZColors.neutral600);
         widgets.add(
           Padding(
             padding: const EdgeInsets.fromLTRB(ZSpacing.lg, ZSpacing.xs, ZSpacing.lg, ZSpacing.xs),
@@ -84,7 +87,7 @@ final class ZorvianSidebar extends ConsumerWidget {
                 Text(
                   groupLabel,
                   style: ZTypography.labelSmall.copyWith(
-                    color: groupColor,
+                    color: groupTextColor,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 1.2,
                     fontSize: 10,

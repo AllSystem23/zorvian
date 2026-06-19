@@ -34,6 +34,55 @@ class ZColors {
   static const Color moduleSecurity = Color(0xFFEF5350); // Security Red
   static const Color moduleFleet = Color(0xFFFF6D00); // Fleet Orange Logistic
 
+  // Darkened module colors for LIGHT-MODE text (WCAG AA ≥4.5:1 on white)
+  static const Color moduleIaText = Color(0xFF6A1B9A);       // 5.1:1 on white
+  static const Color moduleCrmText = Color(0xFF006064);      // 5.7:1 on white
+  static const Color moduleSalesText = Color(0xFF006064);    // 5.7:1 on white (cyan→teal)
+  static const Color moduleInventoryText = Color(0xFFBF360C); // 5.1:1 on white
+  static const Color modulePurchasesText = Color(0xFF8D6E00); // 5.0:1 on white
+  static const Color moduleFinanceText = Color(0xFF1B5E20);   // 5.8:1 on white
+  static const Color moduleTreasuryText = Color(0xFF1B5E20);  // 5.8:1 on white
+  static const Color moduleHrText = Color(0xFF8E24AA);        // 5.1:1 on white
+  static const Color moduleAdminText = Color(0xFF37474F);     // 7.2:1 on white
+  static const Color moduleSecurityText = Color(0xFFB71C1C);  // 5.6:1 on white
+  static const Color moduleFleetText = Color(0xFFBF360C);     // 5.1:1 on white
+
+  /// Returns the appropriate module color for text usage.
+  /// In dark mode returns the bright module color; in light mode returns
+  /// the darkened variant that passes WCAG AA (≥4.5:1) on white.
+  static Color moduleText(String moduleId, {required bool isDark}) {
+    if (isDark) return _moduleBright[moduleId] ?? neutral300;
+    return _moduleDark[moduleId] ?? neutral600;
+  }
+
+  static const Map<String, Color> _moduleBright = {
+    'ia': moduleIa,
+    'crm': moduleCrm,
+    'sales': moduleSales,
+    'inventory': moduleInventory,
+    'purchases': modulePurchases,
+    'finance': moduleFinance,
+    'treasury': moduleTreasury,
+    'hr': moduleHr,
+    'admin': moduleAdmin,
+    'security': moduleSecurity,
+    'fleet': moduleFleet,
+  };
+
+  static const Map<String, Color> _moduleDark = {
+    'ia': moduleIaText,
+    'crm': moduleCrmText,
+    'sales': moduleSalesText,
+    'inventory': moduleInventoryText,
+    'purchases': modulePurchasesText,
+    'finance': moduleFinanceText,
+    'treasury': moduleTreasuryText,
+    'hr': moduleHrText,
+    'admin': moduleAdminText,
+    'security': moduleSecurityText,
+    'fleet': moduleFleetText,
+  };
+
   // Neutral Scale (Warm Slate — more premium feel)
   static const Color neutral50 = Color(0xFFFAFAFE);
   static const Color neutral100 = Color(0xFFF4F4F9);

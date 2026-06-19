@@ -64,6 +64,7 @@ final class SidebarSection extends ConsumerWidget {
                   selected: location.startsWith(item.route),
                   collapsed: false,
                   moduleColor: module.color,
+                  moduleTextColor: module.textColor,
                 );
               }).toList(),
             ),
@@ -102,7 +103,9 @@ final class _SectionHeader extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final modColor = _moduleColor();
 
-    final baseColor = hasActiveChild ? modColor : (isDark ? ZColors.neutral400 : ZColors.neutral500);
+    final baseColor = hasActiveChild
+        ? (isDark ? modColor : module.textColor)
+        : (isDark ? ZColors.neutral400 : ZColors.neutral500);
     final bgColor = hasActiveChild
         ? modColor.withValues(alpha: isDark ? 0.15 : 0.08)
         : Colors.transparent;

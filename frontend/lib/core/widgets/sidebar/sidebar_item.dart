@@ -10,6 +10,7 @@ final class SidebarItem extends ConsumerWidget {
   final bool selected;
   final bool collapsed;
   final Color? moduleColor;
+  final Color? moduleTextColor; // WCAG AA text variant for light mode
   final VoidCallback? onTap;
 
   const SidebarItem({
@@ -18,6 +19,7 @@ final class SidebarItem extends ConsumerWidget {
     required this.selected,
     this.collapsed = false,
     this.moduleColor,
+    this.moduleTextColor,
     this.onTap,
   });
 
@@ -29,13 +31,15 @@ final class SidebarItem extends ConsumerWidget {
     final badges = ref.watch(sidebarBadgesProvider);
     final badge = item.badgeRef.isNotEmpty ? (badges[item.badgeRef] ?? 0) : 0;
     final modColor = moduleColor ?? ZColors.brandAccent;
+    final modTextColor = moduleTextColor ?? ZColors.neutral600;
 
     final bgColor = selected
         ? modColor.withValues(alpha: isDark ? 0.15 : 0.12)
         : Colors.transparent;
 
+    // In light mode, use the darkened text variant for WCAG AA compliance
     final fgColor = selected
-        ? modColor
+        ? (isDark ? modColor : modTextColor)
         : (isDark ? ZColors.neutral300 : ZColors.neutral600);
 
     return Padding(

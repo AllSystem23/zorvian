@@ -24,6 +24,7 @@ final class NavModule {
   final String label;
   final IconData icon;
   final Color color;
+  final Color textColor; // WCAG AA compliant text variant for light mode
   final String group; // Operations, Financial, Talent, Intelligence, Admin
   final List<NavItem> children;
   final List<String> roles;
@@ -33,6 +34,7 @@ final class NavModule {
     required this.label,
     required this.icon,
     required this.color,
+    this.textColor = const Color(0xFF484854), // default: neutral600
     required this.group,
     required this.children,
     this.roles = const [],
@@ -58,6 +60,15 @@ final class NavConfig {
     'admin': ZColors.moduleAdmin,
   };
 
+  /// Darkened group colors for light-mode text (WCAG AA ≥4.5:1 on white)
+  static const Map<String, Color> groupTextColors = {
+    'operations': ZColors.moduleSalesText,
+    'financial': ZColors.moduleFinanceText,
+    'talent': ZColors.moduleHrText,
+    'intelligence': ZColors.moduleIaText,
+    'admin': ZColors.moduleAdminText,
+  };
+
   static Color colorForModule(String moduleId) {
     return allModules.firstWhere((m) => m.id == moduleId, orElse: () => allModules.first).color;
   }
@@ -69,6 +80,7 @@ final class NavConfig {
       label: 'Ventas',
       icon: Icons.point_of_sale_outlined,
       color: ZColors.moduleSales,
+      textColor: ZColors.moduleSalesText,
       group: 'operations',
       children: [
         NavItem(id: 'cotizaciones', label: 'Cotizaciones', icon: Icons.request_quote_outlined, route: '/quotes'),
@@ -76,8 +88,8 @@ final class NavConfig {
         NavItem(id: 'creditos', label: 'Créditos y Cobros', icon: Icons.credit_card_outlined, route: '/credits'),
         NavItem(id: 'creditos-vencidos', label: 'Dashboard Vencimientos', icon: Icons.warning_amber_outlined, route: '/credits/overdue-dashboard', roles: ['SuperAdmin', 'CompanyAdmin', 'Supervisor']),
         NavItem(id: 'clientes', label: 'Cartera de Clientes', icon: Icons.people_alt_outlined, route: '/clients'),
-        NavItem(id: 'notas-credito', label: 'Notas de Crédito', icon: Icons.description_outlined, route: '/credit-notes'),
-        NavItem(id: 'pos', label: 'Punto de Venta', icon: Icons.point_of_sale_outlined, route: '/pos'),
+        NavItem(id: 'notas-credito', label: 'Notas de Crédito', icon: Icons.request_quote_outlined, route: '/credit-notes'),
+        NavItem(id: 'pos', label: 'Punto de Venta', icon: Icons.storefront_outlined, route: '/pos'),
         NavItem(id: 'crm', label: 'CRM', icon: Icons.handshake_outlined, route: '/crm'),
       ],
     ),
@@ -87,6 +99,7 @@ final class NavConfig {
       label: 'Inventario',
       icon: Icons.inventory_2_outlined,
       color: ZColors.moduleInventory,
+      textColor: ZColors.moduleInventoryText,
       group: 'operations',
       children: [
         NavItem(id: 'productos', label: 'Productos', icon: Icons.shopping_bag_outlined, route: '/products'),
@@ -94,7 +107,7 @@ final class NavConfig {
         NavItem(id: 'marcas', label: 'Marcas', icon: Icons.branding_watermark_outlined, route: '/brands'),
         NavItem(id: 'movimientos-inv', label: 'Movimientos de Inventario', icon: Icons.swap_horiz_outlined, route: '/inventory-movements'),
         NavItem(id: 'ajustes-inv', label: 'Ajustes de Inventario', icon: Icons.tune_outlined, route: '/inventory-adjustment'),
-        NavItem(id: 'garantias', label: 'Garantías', icon: Icons.verified_user_outlined, route: '/warranties'),
+        NavItem(id: 'garantias', label: 'Garantías', icon: Icons.shield_outlined, route: '/warranties'),
       ],
     ),
 
@@ -103,10 +116,11 @@ final class NavConfig {
       label: 'Compras',
       icon: Icons.shopping_cart_outlined,
       color: ZColors.modulePurchases,
+      textColor: ZColors.modulePurchasesText,
       group: 'operations',
       children: [
-        NavItem(id: 'compras-ordenes', label: 'Órdenes de Compra', icon: Icons.shopping_bag_outlined, route: '/purchases'),
-        NavItem(id: 'proveedores', label: 'Proveedores', icon: Icons.local_shipping_outlined, route: '/suppliers'),
+        NavItem(id: 'compras-ordenes', label: 'Órdenes de Compra', icon: Icons.receipt_outlined, route: '/purchases'),
+        NavItem(id: 'proveedores', label: 'Proveedores', icon: Icons.factory_outlined, route: '/suppliers'),
       ],
     ),
 
@@ -115,24 +129,25 @@ final class NavConfig {
       label: 'Flota y Logística',
       icon: Icons.local_shipping_outlined,
       color: ZColors.moduleFleet,
+      textColor: ZColors.moduleFleetText,
       group: 'operations',
       children: [
         NavItem(id: 'flota-dashboard', label: 'Dashboard', icon: Icons.dashboard_outlined, route: '/fleet'),
-        NavItem(id: 'flota-vehiculos', label: 'Vehículos', icon: Icons.time_to_leave_outlined, route: '/fleet/vehicles'),
+        NavItem(id: 'flota-vehiculos', label: 'Vehículos', icon: Icons.directions_car_outlined, route: '/fleet/vehicles'),
         NavItem(id: 'flota-conductores', label: 'Conductores', icon: Icons.person_outline, route: '/fleet/drivers'),
         NavItem(id: 'flota-rutas', label: 'Rutas', icon: Icons.alt_route_outlined, route: '/fleet/routes'),
-        NavItem(id: 'flota-entregas', label: 'Entregas', icon: Icons.inventory_2_outlined, route: '/fleet/deliveries'),
+        NavItem(id: 'flota-entregas', label: 'Entregas', icon: Icons.local_shipping_outlined, route: '/fleet/deliveries'),
         NavItem(id: 'flota-viajes', label: 'Viajes', icon: Icons.flight_takeoff_outlined, route: '/fleet/trips'),
         NavItem(id: 'flota-combustible', label: 'Combustible', icon: Icons.local_gas_station_outlined, route: '/fleet/fuel'),
         NavItem(id: 'flota-mantenimientos', label: 'Mantenimientos', icon: Icons.build_outlined, route: '/fleet/maintenance'),
         NavItem(id: 'flota-taller', label: 'Taller', icon: Icons.precision_manufacturing_outlined, route: '/fleet/workshop'),
-        NavItem(id: 'flota-documentos', label: 'Documentos', icon: Icons.description_outlined, route: '/fleet/documents'),
+        NavItem(id: 'flota-documentos', label: 'Documentos', icon: Icons.folder_outlined, route: '/fleet/documents'),
         NavItem(id: 'flota-gastos', label: 'Gastos', icon: Icons.account_balance_wallet_outlined, route: '/fleet/expenses'),
         NavItem(id: 'flota-gps', label: 'GPS en Tiempo Real', icon: Icons.gps_fixed_outlined, route: '/fleet/gps'),
         NavItem(id: 'flota-alertas', label: 'Alertas', icon: Icons.notifications_active_outlined, route: '/fleet/alerts'),
-        NavItem(id: 'flota-tracking', label: 'Tracking Entregas', icon: Icons.delivery_dining_outlined, route: '/fleet/tracking'),
+        NavItem(id: 'flota-tracking', label: 'Tracking Entregas', icon: Icons.route_outlined, route: '/fleet/tracking'),
         NavItem(id: 'flota-predictive', label: 'IA Predictiva', icon: Icons.psychology_outlined, route: '/fleet/predictive'),
-        NavItem(id: 'flota-reportes', label: 'Reportes', icon: Icons.analytics_outlined, route: '/fleet/reports'),
+        NavItem(id: 'flota-reportes', label: 'Reportes', icon: Icons.summarize_outlined, route: '/fleet/reports'),
       ],
     ),
 
@@ -142,6 +157,7 @@ final class NavConfig {
       label: 'Finanzas',
       icon: Icons.account_balance_outlined,
       color: ZColors.moduleFinance,
+      textColor: ZColors.moduleFinanceText,
       group: 'financial',
       children: [
         NavItem(id: 'caja', label: 'Caja', icon: Icons.monetization_on_outlined, route: '/cash-registers'),
@@ -149,7 +165,7 @@ final class NavConfig {
         NavItem(id: 'contabilidad', label: 'Contabilidad', icon: Icons.balance_outlined, route: '/accounting/trial-balance', roles: ['SuperAdmin', 'CompanyAdmin', 'Accountant']),
         NavItem(id: 'catalogo-cuentas', label: 'Catálogo de Cuentas', icon: Icons.account_tree_outlined, route: '/accounting/chart-of-accounts', roles: ['SuperAdmin', 'CompanyAdmin', 'Accountant']),
         NavItem(id: 'tipo-cambio', label: 'Tipo de Cambio', icon: Icons.currency_exchange_outlined, route: '/exchange-rates'),
-        NavItem(id: 'presupuestos', label: 'Presupuestos', icon: Icons.savings_outlined, route: '/budgets', roles: ['SuperAdmin', 'CompanyAdmin', 'Accountant']),
+        NavItem(id: 'presupuestos', label: 'Presupuestos', icon: Icons.account_balance_wallet_outlined, route: '/budgets', roles: ['SuperAdmin', 'CompanyAdmin', 'Accountant']),
         NavItem(id: 'centros-costo', label: 'Centros de Costo', icon: Icons.pie_chart_outline, route: '/cost-centers', roles: ['SuperAdmin', 'CompanyAdmin', 'Accountant']),
       ],
     ),
@@ -160,13 +176,14 @@ final class NavConfig {
       label: 'Talento Humano',
       icon: Icons.diversity_3_outlined,
       color: ZColors.moduleHr,
+      textColor: ZColors.moduleHrText,
       group: 'talent',
       children: [
         NavItem(id: 'empleados', label: 'Capital Humano', icon: Icons.people_outline, route: '/employees'),
         NavItem(id: 'asistencia', label: 'Reloj y Asistencia', icon: Icons.schedule_outlined, route: '/attendance'),
         NavItem(id: 'nomina', label: 'Gestión de Nómina', icon: Icons.receipt_long_outlined, route: '/payroll', roles: ['SuperAdmin', 'CompanyAdmin', 'Rrhh']),
         NavItem(id: 'prestadores', label: 'Prestadores Externos', icon: Icons.business_center_outlined, route: '/providers'),
-        NavItem(id: 'vacaciones', label: 'Ausencias y Vacaciones', icon: Icons.beach_access_outlined, route: '/vacations'),
+        NavItem(id: 'vacaciones', label: 'Ausencias y Vacaciones', icon: Icons.event_busy_outlined, route: '/vacations'),
         NavItem(id: 'permisos', label: 'Permisos', icon: Icons.event_available_outlined, route: '/permissions'),
         NavItem(id: 'metas', label: 'Metas e Incentivos', icon: Icons.emoji_events_outlined, route: '/goals/dashboard'),
       ],
@@ -178,6 +195,7 @@ final class NavConfig {
       label: 'BI e Inteligencia',
       icon: Icons.insights_outlined,
       color: ZColors.moduleIa,
+      textColor: ZColors.moduleIaText,
       group: 'intelligence',
       roles: ['SuperAdmin', 'CompanyAdmin'],
       children: [
@@ -194,6 +212,7 @@ final class NavConfig {
       label: 'Comunicación',
       icon: Icons.forum_outlined,
       color: ZColors.moduleCrm,
+      textColor: ZColors.moduleCrmText,
       group: 'intelligence',
       children: [
         NavItem(id: 'chat', label: 'Centro de Comunicación', icon: Icons.chat_bubble_outline, route: '/chat'),
@@ -206,16 +225,17 @@ final class NavConfig {
       label: 'Administración',
       icon: Icons.admin_panel_settings_outlined,
       color: ZColors.moduleAdmin,
+      textColor: ZColors.moduleAdminText,
       group: 'admin',
       roles: ['SuperAdmin', 'CompanyAdmin'],
       children: [
         NavItem(id: 'usuarios', label: 'Usuarios y Seguridad', icon: Icons.manage_accounts_outlined, route: '/admin/users'),
-        NavItem(id: 'sucursales', label: 'Sucursales', icon: Icons.store_mall_directory_outlined, route: '/branches'),
-        NavItem(id: 'documental', label: 'Motor Documental', icon: Icons.description_outlined, route: '/documents'),
+        NavItem(id: 'sucursales', label: 'Sucursales', icon: Icons.store_outlined, route: '/branches'),
+        NavItem(id: 'documental', label: 'Motor Documental', icon: Icons.auto_stories_outlined, route: '/documents'),
         NavItem(id: 'aprobaciones', label: 'Flujos de Aprobación', icon: Icons.fact_check_outlined, route: '/approval-pending'),
         NavItem(id: 'webhooks', label: 'Webhooks', icon: Icons.webhook_outlined, route: '/webhooks'),
         NavItem(id: 'configuracion', label: 'Ajustes del Sistema', icon: Icons.settings_outlined, route: '/settings'),
-        NavItem(id: 'auditoria', label: 'Logs de Auditoría', icon: Icons.history_outlined, route: '/audit-logs'),
+        NavItem(id: 'auditoria', label: 'Logs de Auditoría', icon: Icons.policy_outlined, route: '/audit-logs'),
       ],
     ),
   ];
@@ -241,7 +261,7 @@ final class NavConfig {
           final searchOk = item.label.toLowerCase().contains(searchQuery.toLowerCase());
           return roleOk && searchOk;
         }).toList();
-        return NavModule(id: module.id, label: module.label, icon: module.icon, color: module.color, group: module.group, children: filteredItems, roles: module.roles);
+        return NavModule(id: module.id, label: module.label, icon: module.icon, color: module.color, textColor: module.textColor, group: module.group, children: filteredItems, roles: module.roles);
       }
       return module;
     }).where((m) => m.children.isNotEmpty).toList();
