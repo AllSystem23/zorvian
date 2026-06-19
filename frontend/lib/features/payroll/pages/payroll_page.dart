@@ -27,15 +27,27 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
+    final svc = ref.read(payrollServiceProvider);
+    final dio = ref.read(dioClientProvider);
+
     try {
-      final svc = ref.read(payrollServiceProvider);
-      final dio = ref.read(dioClientProvider);
       _runs = await svc.getRuns(null);
+    } catch (e) {
+      debugPrint('PayrollPage: error loading runs: $e');
+    }
+    try {
       _periods = await svc.getPeriods(null);
+    } catch (e) {
+      debugPrint('PayrollPage: error loading periods: $e');
+    }
+    try {
       final empRes = await dio.get('employees', params: {'page': 1, 'pageSize': 1});
       _employeeCount = (empRes.data['total'] as int?) ?? 0;
-    } catch (_) {}
-    setState(() => _loading = false);
+    } catch (e) {
+      debugPrint('PayrollPage: error loading employees: $e');
+    }
+
+    if (mounted) setState(() => _loading = false);
   }
 
   @override
@@ -105,21 +117,23 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
             padding: EdgeInsets.zero,
             child: ListTile(
               leading: Icon(Icons.attach_money, color: Colors.green.shade600),
-              title: const Text('Salarios', style: TextStyle(fontSize: 13)),
-              trailing: const Icon(Icons.chevron_right, size: 18),
-              onTap: () => context.push('/payroll/salaries'),
+              title: const Text('Tipos de Deducción'),
+              subtitle: const Text('Configurar deducciones de nómina'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/payroll/deduction-types'),
             ),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 12),
         Expanded(
           child: ZCard(
             padding: EdgeInsets.zero,
             child: ListTile(
-              leading: Icon(Icons.category, color: Colors.indigo.shade400),
-              title: const Text('Deducciones', style: TextStyle(fontSize: 13)),
-              trailing: const Icon(Icons.chevron_right, size: 18),
-              onTap: () => context.push('/payroll/deduction-types'),
+              leading: Icon(Icons.calendar_month, color: Colors.blue.shade600),
+              title: const Text('Períodos'),
+              subtitle: const Text('Gestionar períodos de nómina'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/payroll/periods'),
             ),
           ),
         ),
@@ -128,27 +142,36 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
   }
 
   Widget _buildRunCard(dynamic run, ThemeData theme) {
-    final status = run['status'] as String? ?? 'draft';
-    final (label, color) = switch (status) {
-      'draft' => ('Borrador', Colors.grey),
-      'approved' => ('Aprobado', Colors.green),
-      'paid' => ('Pagado', Colors.blue),
-      'cancelled' => ('Cancelado', Colors.red),
-      _ => (status, Colors.grey),
+    final status = run['status']?.toString() ?? '';
+    final statusColor = switch (status) {
+      'draft' => Colors.orange,
+      'approved' => Colors.green,
+      'paid' => Colors.blue,
+      'cancelled' => Colors.red,
+      _ => Colors.grey,
+    };
+    final statusLabel = switch (status) {
+      'draft' => 'Borrador',
+      'approved' => 'Aprobada',
+      'paid' => 'Pagada',
+      'cancelled' => 'Anulada',
+      _ => status,
     };
 
     return ZCard(
       margin: const EdgeInsets.only(bottom: 8),
-      padding: EdgeInsets.zero,
       child: ListTile(
-        leading: Icon(Icons.receipt, color: color),
-        title: Text(run['periodName'] ?? 'Sin nombre'),
-        subtitle: Text('C\$${run['totalNetPay']?.toStringAsFixed(2) ?? '0.00'} · ${run['employeeCount']} emp.'),
-        trailing: Chip(label: Text(label, style: TextStyle(fontSize: 11, color: color)), materialTapTargetSize: MaterialTapTargetSize.shrinkWrap),
-        onTap: run['id'] != null ? () async {
-          final deleted = await context.push<bool>('/payroll/runs/${run['id']}');
-          if (deleted == true) _load();
-        } : null,
+        leading: CircleAvatar(
+          backgroundColor: statusColor.withValues(alpha: 0.1),
+          child: Icon(Icons.receipt_long, color: statusColor, size: 20),
+        ),
+        title: Text(run['periodName']?.toString() ?? 'Corrida'),
+        subtitle: Text(
+          'Neta: \$${run['totalNetPay']?.toString() ?? '0.00'} · $statusLabel',
+          style: TextStyle(color: statusColor, fontWeight: FontWeight.w500),
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => context.push('/payroll/runs/${run['id']}'),
       ),
     );
   }
@@ -160,19 +183,30 @@ class _SummaryCard extends StatelessWidget {
   final String value;
   final Color color;
 
-  const _SummaryCard({required this.icon, required this.label, required this.value, required this.color});
+  const _SummaryCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ZCard(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 8),
-          Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
-          Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          CircleAvatar(
+            backgroundColor: color.withValues(alpha: 0.1),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(value, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+              Text(label, style: Theme.of(context).textTheme.bodySmall),
+            ],
+          ),
         ],
       ),
     );

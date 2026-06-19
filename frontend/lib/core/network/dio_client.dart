@@ -54,7 +54,8 @@ class DioClient {
         }
         final data = error.response?.data;
         final msg = data is Map
-            ? (data['message'] as String? ??
+            ? (data['detail'] as String? ??
+                data['message'] as String? ??
                 data['title'] as String? ??
                 error.message ??
                 'Error de conexión')
@@ -99,12 +100,9 @@ class DioClient {
   Future<Response<T>> post<T>(String path, {dynamic data, Map<String, dynamic>? queryParameters, Options? options}) =>
       _dio.post<T>(path, data: data, queryParameters: queryParameters, options: options);
 
-  Future<Response<T>> put<T>(String path, {dynamic data, Map<String, dynamic>? queryParameters}) =>
-      _dio.put<T>(path, data: data, queryParameters: queryParameters);
+  Future<Response<T>> put<T>(String path, {dynamic data, Map<String, dynamic>? queryParameters, Options? options}) =>
+      _dio.put<T>(path, data: data, queryParameters: queryParameters, options: options);
 
-  Future<Response<T>> patch<T>(String path, {dynamic data}) =>
-      _dio.patch<T>(path, data: data);
-
-  Future<Response<T>> delete<T>(String path) =>
-      _dio.delete<T>(path);
+  Future<Response<T>> delete<T>(String path, {Map<String, dynamic>? queryParameters, Options? options}) =>
+      _dio.delete<T>(path, queryParameters: queryParameters, options: options);
 }

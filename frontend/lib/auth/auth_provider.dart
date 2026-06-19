@@ -13,8 +13,11 @@ final dioClientProvider = Provider<DioClient>((ref) {
   final storage = ref.watch(secureStorageProvider);
   return DioClient(storage, onError: (statusCode, message) {
     final notifier = ref.read(errorNotifierProvider.notifier);
-    final friendly = notifier.friendlyHttpError(statusCode);
-    notifier.showError(friendly, detail: message);
+    // Show actual backend error when available; fallback to generic friendly message
+    final displayMsg = (message.isNotEmpty && message != 'Error de conexión')
+        ? message
+        : notifier.friendlyHttpError(statusCode);
+    notifier.showError(displayMsg, detail: statusCode != null ? 'HTTP $statusCode' : null);
   }, onUnauthorized: () {
     ref.read(authProvider.notifier).logout();
   });
@@ -114,28 +117,23 @@ class AuthNotifier extends Notifier<AuthState> {
         tenantId: user['tenantId'],
         employeeId: user['employeeId'],
       );
-
       return true;
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 401) {
-        throw Exception('Credenciales inválidas. Verifica tu email y contraseña.');
-      }
-      return false;
     } catch (_) {
       return false;
     }
   }
 
-  Future<bool> loginWithFirebase(String idToken) async {
+  Future<bool> registerWithPassword(String email, String password, String displayName) async {
     try {
       final dio = ref.read(dioClientProvider);
       final storage = ref.read(secureStorageProvider);
-      final response = await dio.post('auth/login', data: {
-        'idToken': idToken,
+      final response = await dio.post('auth/register', data: {
+        'email': email,
+        'password': password,
+        'displayName': displayName,
       });
 
       final data = response.data['data'];
-      // Guardamos tokens
       await storage.saveTokens(data['accessToken'], data['refreshToken'])
           .catchError((_) => null);
 
@@ -149,10 +147,6 @@ class AuthNotifier extends Notifier<AuthState> {
         tenantId: user['tenantId'],
         employeeId: user['employeeId'],
       );
-
-      // Register FCM token in background
-      _registerFCMToken(user['id'] as String?);
-
       return true;
     } catch (_) {
       return false;
@@ -160,87 +154,9 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 
   Future<void> logout() async {
-    final dio = ref.read(dioClientProvider);
     final storage = ref.read(secureStorageProvider);
-    final refresh = await storage.getRefreshToken();
-    if (refresh != null) {
-      try {
-        await dio.post('auth/logout', data: {'refreshToken': refresh});
-      } catch (_) {}
-    }
-      await storage.clearTokens();
+    await storage.clearTokens();
     state = const AuthState(status: AuthStatus.unauthenticated);
-  }
-
-  Future<bool> switchTenant(String tenantId) async {
-    try {
-      final dio = ref.read(dioClientProvider);
-      final storage = ref.read(secureStorageProvider);
-      final response = await dio.post('auth/switch-tenant', data: {
-        'tenantId': tenantId,
-      });
-
-      final data = response.data['data'] ?? response.data;
-      await storage.saveTokens(data['accessToken'], data['refreshToken'])
-          .catchError((_) => null);
-
-      final user = data['user'];
-      state = AuthState(
-        status: AuthStatus.authenticated,
-        userId: user['id'],
-        email: user['email'],
-        displayName: user['displayName'],
-        role: user['role'],
-        tenantId: user['tenantId'],
-        employeeId: user['employeeId'],
-      );
-
-      // Invalidate providers to force data reload from the new tenant
-      ref.invalidate(dashboardProvider);
-      
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  Future<List<Map<String, dynamic>>> getMyTenants() async {
-    try {
-      final dio = ref.read(dioClientProvider);
-      final response = await dio.get('auth/tenants', params: {'pageSize': 100});
-      final data = response.data;
-      // Soporta formato plano (List) y paginado (PagedResult con .items)
-      final items = data is List ? data : (data['items'] as List<dynamic>);
-      return items.cast<Map<String, dynamic>>().toList();
-    } catch (_) {
-      return [];
-    }
-  }
-
-  Future<void> _registerFCMToken(String? userId) async {
-    if (userId == null) return;
-    try {
-      final fcmToken = await FirebaseMessaging.instance.getToken();
-      if (fcmToken == null) return;
-      final dio = ref.read(dioClientProvider);
-      await dio.post('notifications/register-device', data: {
-        'token': fcmToken,
-        'platform': _devicePlatform(),
-      });
-    } catch (_) {}
-  }
-
-  String _devicePlatform() {
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.iOS:
-        return 'ios';
-      case TargetPlatform.android:
-        return 'android';
-      case TargetPlatform.macOS:
-        return 'macos';
-      default:
-        return 'web';
-    }
   }
 }
 
