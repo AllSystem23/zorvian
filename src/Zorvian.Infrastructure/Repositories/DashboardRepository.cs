@@ -115,11 +115,11 @@ public sealed class DashboardRepository : IDashboardRepository
             ),
             cash AS (
                 SELECT
-                    COALESCE(SUM(""Amount"") FILTER (WHERE ""Type"" = 'income'), 0) AS ""TodayIncome"",
-                    COALESCE(SUM(""Amount"") FILTER (WHERE ""Type"" = 'expense'), 0) AS ""TodayExpense""
+                    COALESCE(SUM(""Amount"") FILTER (WHERE ""MovementType"" = 'income'), 0) AS ""TodayIncome"",
+                    COALESCE(SUM(""Amount"") FILTER (WHERE ""MovementType"" = 'expense'), 0) AS ""TodayExpense""
                 FROM ""CashMovements""
                 WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
-                  AND ""MovementDate"" >= @today::date
+                  AND ""CreatedAt"" >= @today::date
             ),
             registers AS (
                 SELECT COUNT(*) FILTER (WHERE ""Status"" = 'open') AS ""OpenRegisters""

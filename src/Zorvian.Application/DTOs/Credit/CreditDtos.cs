@@ -198,6 +198,22 @@ public sealed class OverdueDashboardScalars
     public decimal Bucket4TotalAmount { get; set; }
 }
 
+public sealed class CreditAgingClientItem
+{
+    public string ClientName { get; set; } = string.Empty;
+    public decimal Balance { get; set; }
+    public decimal Current { get; set; }
+    public decimal Days30 { get; set; }
+    public decimal Days60 { get; set; }
+    public decimal Days90 { get; set; }
+    public decimal Days90Plus { get; set; }
+}
+
+public sealed class CreditAgingTotalPortfolio
+{
+    public decimal TotalPortfolio { get; set; }
+}
+
 public sealed record OverdueAgingBucket(
     string Label,
     int MinDays,

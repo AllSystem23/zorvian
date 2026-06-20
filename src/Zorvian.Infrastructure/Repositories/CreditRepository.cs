@@ -168,6 +168,98 @@ public sealed class CreditRepository : ICreditRepository
             .FirstOrDefaultAsync() ?? new OverdueDashboardScalars();
     }
 
+    public async Task<decimal> GetArAgingTotalPortfolioRawAsync(Guid? companyId, bool isSuperAdmin, string currency)
+    {
+        var tenantId = companyId?.ToString() ?? string.Empty;
+        var sql = @"
+            SELECT
+                COALESCE(SUM(
+                    CASE
+                        WHEN c.""CurrencyCode"" = @currency
+                             OR c.""ExchangeRateToReporting"" IS NULL
+                             OR c.""ExchangeRateToReporting"" <= 0
+                        THEN c.""Balance""
+                        ELSE c.""Balance"" * c.""ExchangeRateToReporting""
+                    END
+                ), 0)::decimal AS ""TotalPortfolio""
+            FROM ""Credits"" c
+            WHERE (@isSuperAdmin = true OR c.""TenantId"" = @tenantId)
+              AND c.""IsDeleted"" = false
+              AND c.""Status"" IN ('active', 'overdue')
+        ";
+
+        var result = await _db.Database
+            .SqlQueryRaw<CreditAgingTotalPortfolio>(sql,
+                new Npgsql.NpgsqlParameter("@tenantId", tenantId),
+                new Npgsql.NpgsqlParameter("@isSuperAdmin", isSuperAdmin),
+                new Npgsql.NpgsqlParameter("@currency", currency))
+            .FirstOrDefaultAsync() ?? new CreditAgingTotalPortfolio();
+
+        return result.TotalPortfolio;
+    }
+
+    public async Task<List<CreditAgingClientItem>> GetArAgingClientsRawAsync(Guid? companyId, bool isSuperAdmin, string currency)
+    {
+        var tenantId = companyId?.ToString() ?? string.Empty;
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var sql = @"
+            WITH pending_inst AS (
+                SELECT
+                    cl.""Id"" AS ""ClientId"",
+                    concat_ws(' ', cl.""FirstName"", cl.""LastName"") AS ""ClientName"",
+                    CASE
+                        WHEN c.""CurrencyCode"" = @currency
+                             OR c.""ExchangeRateToReporting"" IS NULL
+                             OR c.""ExchangeRateToReporting"" <= 0
+                        THEN ci.""Balance""
+                        ELSE ci.""Balance"" * c.""ExchangeRateToReporting""
+                    END AS ""Amount"",
+                    (@today::date - ci.""DueDate"")::int AS ""DaysOverdue""
+                FROM ""CreditInstallments"" ci
+                JOIN ""Credits"" c ON c.""Id"" = ci.""CreditId""
+                JOIN ""Clients"" cl ON cl.""Id"" = c.""ClientId""
+                WHERE (@isSuperAdmin = true OR c.""TenantId"" = @tenantId)
+                  AND c.""IsDeleted"" = false
+                  AND ci.""IsDeleted"" = false
+                  AND c.""Status"" IN ('active', 'overdue')
+                  AND ci.""Status"" IN ('pending', 'overdue')
+            ),
+            client_totals AS (
+                SELECT
+                    ""ClientId"",
+                    ""ClientName"",
+                    COALESCE(SUM(""Amount"") FILTER (WHERE ""DaysOverdue"" <= 0), 0)::decimal AS ""Current"",
+                    COALESCE(SUM(""Amount"") FILTER (WHERE ""DaysOverdue"" BETWEEN 1 AND 30), 0)::decimal AS ""Days30"",
+                    COALESCE(SUM(""Amount"") FILTER (WHERE ""DaysOverdue"" BETWEEN 31 AND 60), 0)::decimal AS ""Days60"",
+                    COALESCE(SUM(""Amount"") FILTER (WHERE ""DaysOverdue"" BETWEEN 61 AND 90), 0)::decimal AS ""Days90"",
+                    COALESCE(SUM(""Amount"") FILTER (WHERE ""DaysOverdue"" > 90), 0)::decimal AS ""Days90Plus"",
+                    COALESCE(SUM(""Amount""), 0)::decimal AS ""Balance""
+                FROM pending_inst
+                GROUP BY ""ClientId"", ""ClientName""
+            )
+            SELECT
+                ""ClientName"",
+                ""Balance"",
+                ""Current"",
+                ""Days30"",
+                ""Days60"",
+                ""Days90"",
+                ""Days90Plus""
+            FROM client_totals
+            WHERE ""Balance"" > 0
+            ORDER BY ""Balance"" DESC
+            LIMIT 10
+        ";
+
+        return await _db.Database
+            .SqlQueryRaw<CreditAgingClientItem>(sql,
+                new Npgsql.NpgsqlParameter("@tenantId", tenantId),
+                new Npgsql.NpgsqlParameter("@isSuperAdmin", isSuperAdmin),
+                new Npgsql.NpgsqlParameter("@today", today),
+                new Npgsql.NpgsqlParameter("@currency", currency))
+            .ToListAsync();
+    }
+
     public async Task<List<CreditInstallment>> GetOverdueInstallmentsAsync(Guid branchId)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);

@@ -157,50 +157,25 @@ public sealed class BiService
     public async Task<BiArAgingResponse> GetArAgingAsync()
     {
         var cc = await GetCompanyCurrencyAsync();
-        var openCredits = (await _creditRepo.GetFilteredAsync(null, null, null, NullBranch, 1, int.MaxValue))
-            .Where(c => !c.IsDeleted && (c.Status == "active" || c.Status == "overdue"))
-            .ToList();
-        var totalPortfolio = openCredits.Sum(c => CurrencyConverter.ToReporting(c.Balance, c.CurrencyCode, c.ExchangeRateToReporting, cc));
-        var now = DateOnly.FromDateTime(DateTime.UtcNow);
+        var companyId = _tenant.EffectiveCompanyId;
+        var isSuperAdmin = _tenant.IsSuperAdmin;
 
-        var current = 0m; var d30 = 0m; var d60 = 0m; var d90 = 0m; var d90p = 0m;
-        var byClient = new List<BiClientAgingItem>();
+        var byClient = await _creditRepo.GetArAgingClientsRawAsync(companyId, isSuperAdmin, cc);
+        var totalPortfolio = await _creditRepo.GetArAgingTotalPortfolioRawAsync(companyId, isSuperAdmin, cc);
 
-        foreach (var credit in openCredits)
-        {
-            var pendingInst = credit.Installments
-                .Where(i => !i.IsDeleted && (i.Status == "pending" || i.Status == "overdue"))
-                .ToList();
-
-            var cCur = 0m; var c30 = 0m; var c60 = 0m; var c90 = 0m; var c90p = 0m;
-
-            foreach (var inst in pendingInst)
-            {
-                var amt = CurrencyConverter.ToReporting(inst.Amount, credit.CurrencyCode, credit.ExchangeRateToReporting, cc);
-                var daysOverdue = (now.ToDateTime(TimeOnly.MinValue) - inst.DueDate.ToDateTime(TimeOnly.MinValue)).Days;
-                if (daysOverdue <= 0) { cCur += amt; current += amt; }
-                else if (daysOverdue <= 30) { c30 += amt; d30 += amt; }
-                else if (daysOverdue <= 60) { c60 += amt; d60 += amt; }
-                else if (daysOverdue <= 90) { c90 += amt; d90 += amt; }
-                else { c90p += amt; d90p += amt; }
-            }
-
-            var clientTotal = cCur + c30 + c60 + c90 + c90p;
-            if (credit.Client != null && clientTotal > 0)
-            {
-                byClient.Add(new BiClientAgingItem(
-                    $"{credit.Client.FirstName} {credit.Client.LastName}", clientTotal,
-                    cCur, c30, c60, c90, c90p));
-            }
-        }
-
+        var current = byClient.Sum(c => c.Current);
+        var d30 = byClient.Sum(c => c.Days30);
+        var d60 = byClient.Sum(c => c.Days60);
+        var d90 = byClient.Sum(c => c.Days90);
+        var d90p = byClient.Sum(c => c.Days90Plus);
         var totalOverdue = d30 + d60 + d90 + d90p;
         var overduePct = totalPortfolio > 0 ? (double)totalOverdue / (double)totalPortfolio * 100 : 0;
 
         return new BiArAgingResponse(
             current, d30, d60, d90, d90p,
             totalOverdue, totalPortfolio, Math.Round(overduePct, 1),
-            byClient.OrderByDescending(c => c.Balance).Take(10).ToList()
+            byClient.Select(c => new BiClientAgingItem(
+                c.ClientName, c.Balance, c.Current, c.Days30, c.Days60, c.Days90, c.Days90Plus)).ToList()
         );
     }
 

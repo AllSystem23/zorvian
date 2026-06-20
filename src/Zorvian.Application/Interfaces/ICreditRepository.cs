@@ -14,6 +14,8 @@ public interface ICreditRepository
     Task<decimal> GetMonthlyRecoveryAsync(Guid branchId);
     Task<decimal> GetTotalPortfolioAsync(Guid branchId);
     Task<OverdueDashboardScalars> GetOverdueDashboardScalarsRawAsync(Guid branchId);
+    Task<decimal> GetArAgingTotalPortfolioRawAsync(Guid? companyId, bool isSuperAdmin, string currency);
+    Task<List<CreditAgingClientItem>> GetArAgingClientsRawAsync(Guid? companyId, bool isSuperAdmin, string currency);
     Task<List<CreditInstallment>> GetOverdueInstallmentsAsync(Guid branchId);
     Task<List<CreditInstallment>> GetCriticalOverdueInstallmentsAsync(Guid branchId, int limit);
     Task<List<CreditInstallment>> GetInstallmentsByCreditIdAsync(Guid creditId);
