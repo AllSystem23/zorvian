@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/biometric_provider.dart';
@@ -15,7 +16,9 @@ class _BiometricUnlockPageState extends ConsumerState<BiometricUnlockPage> with 
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _tryUnlock();
+    if (!kIsWeb) {
+      _tryUnlock();
+    }
   }
 
   @override
@@ -26,6 +29,7 @@ class _BiometricUnlockPageState extends ConsumerState<BiometricUnlockPage> with 
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (kIsWeb) return;
     if (state == AppLifecycleState.resumed) {
       final bioState = ref.read(biometricProvider);
       if (bioState.isEnabled && !bioState.isUnlocked) {
@@ -38,12 +42,14 @@ class _BiometricUnlockPageState extends ConsumerState<BiometricUnlockPage> with 
   }
 
   Future<void> _tryUnlock() async {
+    if (kIsWeb) return;
     await ref.read(biometricProvider.notifier).tryUnlock();
   }
 
   @override
   Widget build(BuildContext context) {
     final bioState = ref.watch(biometricProvider);
+    if (kIsWeb) return widget.child;
     if (bioState.isEnabled && !bioState.isUnlocked) {
       return Scaffold(
         body: Container(

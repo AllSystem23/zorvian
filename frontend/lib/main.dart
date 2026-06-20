@@ -68,7 +68,9 @@ class _AppLoaderState extends ConsumerState<_AppLoader> {
         ref.read(themeModeProvider.notifier).loadPreference();
       } catch (_) {}
       try {
-        ref.read(biometricProvider.notifier).init();
+        if (!kIsWeb) {
+          ref.read(biometricProvider.notifier).init();
+        }
       } catch (_) {}
       try {
         ref.read(authProvider.notifier).checkAuth();
