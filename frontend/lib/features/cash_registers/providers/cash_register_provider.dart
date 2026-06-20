@@ -83,7 +83,8 @@ final class CashRegisterNotifier extends Notifier<CashRegisterState> {
       final dio = ref.read(dioClientProvider);
       final r = await dio.get('cash-registers');
       final body = r.data;
-      final list = body is Map ? (body['items'] ?? []) : (body is List ? body : []);
+      final paged = body is Map ? body : null;
+      final list = paged != null ? (paged['items'] ?? []) : (body is List ? body : []);
       state = CashRegisterState(items: (list as List).map((e) => CashRegisterItem.fromJson(e as Map<String, dynamic>)).toList());
     } catch (_) {
       state = state.copyWith(error: 'Error al cargar cajas', loading: false);

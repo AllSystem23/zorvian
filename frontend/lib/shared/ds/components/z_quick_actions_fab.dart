@@ -314,7 +314,7 @@ class ZQuickActionsFAB extends StatelessWidget {
       ];
     }
 
-    return defaults;
+    return [];
   }
 
   @override
