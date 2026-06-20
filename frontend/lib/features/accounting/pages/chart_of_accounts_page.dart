@@ -142,10 +142,6 @@ final class _ChartOfAccountsPageState extends ConsumerState<ChartOfAccountsPage>
                       onRefresh: () => ref.read(accountingProvider.notifier).loadAccounts(),
                       child: ListView(children: state.accounts.map((a) => _buildAccountNode(a, 0)).toList()),
                     ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAccountDialog(),
-        child: const Icon(Icons.add),
-      ),
     );
   }
 }

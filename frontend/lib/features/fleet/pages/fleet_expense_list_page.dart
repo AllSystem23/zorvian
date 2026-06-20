@@ -254,13 +254,6 @@ final class _FleetExpenseListPageState extends ConsumerState<FleetExpenseListPag
                         ),
                       ),                    ],
                   ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final r = await context.push<bool>('/fleet/expenses/new');
-          if (r == true) ref.read(fleetExpenseProvider.notifier).load();
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 

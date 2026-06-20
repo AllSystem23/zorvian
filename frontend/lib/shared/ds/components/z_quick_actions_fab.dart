@@ -4,10 +4,16 @@ import '../ds.dart';
 
 /// ZQuickActionsFAB — Floating Action Button with contextual quick actions.
 /// Shows different actions depending on the current route context.
+/// This is the SINGLE source of FAB actions — pages should NOT define their own.
 class ZQuickActionsFAB extends StatelessWidget {
   final String currentRoute;
+  final Map<String, VoidCallback> callbacks;
 
-  const ZQuickActionsFAB({super.key, required this.currentRoute});
+  const ZQuickActionsFAB({
+    super.key,
+    required this.currentRoute,
+    this.callbacks = const {},
+  });
 
   /// Returns the appropriate quick actions based on the current route
   List<_QuickAction> _getActions() {
@@ -21,8 +27,9 @@ class ZQuickActionsFAB extends StatelessWidget {
       ),
     ];
 
-    // Context-specific actions
-    if (currentRoute.startsWith('/sales') || currentRoute.startsWith('/quotes')) {
+    // ── Sales & Quotes ──
+    if (currentRoute.startsWith('/sales') ||
+        currentRoute.startsWith('/quotes')) {
       return [
         _QuickAction(
           icon: Icons.add_shopping_cart_outlined,
@@ -40,6 +47,7 @@ class ZQuickActionsFAB extends StatelessWidget {
       ];
     }
 
+    // ── Products, Categories, Brands, Inventory ──
     if (currentRoute.startsWith('/products') ||
         currentRoute.startsWith('/categories') ||
         currentRoute.startsWith('/brands') ||
@@ -60,6 +68,7 @@ class ZQuickActionsFAB extends StatelessWidget {
       ];
     }
 
+    // ── Purchases & Suppliers ──
     if (currentRoute.startsWith('/purchases') ||
         currentRoute.startsWith('/suppliers')) {
       return [
@@ -78,6 +87,7 @@ class ZQuickActionsFAB extends StatelessWidget {
       ];
     }
 
+    // ── Clients & Credits ──
     if (currentRoute.startsWith('/clients') ||
         currentRoute.startsWith('/credits')) {
       return [
@@ -96,11 +106,13 @@ class ZQuickActionsFAB extends StatelessWidget {
       ];
     }
 
+    // ── HR: Employees, Attendance, Payroll, Vacations, Departments, Permissions ──
     if (currentRoute.startsWith('/employees') ||
         currentRoute.startsWith('/attendance') ||
         currentRoute.startsWith('/payroll') ||
         currentRoute.startsWith('/vacations') ||
-        currentRoute.startsWith('/departments')) {
+        currentRoute.startsWith('/departments') ||
+        currentRoute.startsWith('/permissions')) {
       return [
         _QuickAction(
           icon: Icons.person_add_outlined,
@@ -117,6 +129,7 @@ class ZQuickActionsFAB extends StatelessWidget {
       ];
     }
 
+    // ── Budgets & Cost Centers ──
     if (currentRoute.startsWith('/budgets') ||
         currentRoute.startsWith('/cost-centers')) {
       return [
@@ -135,23 +148,167 @@ class ZQuickActionsFAB extends StatelessWidget {
       ];
     }
 
+    // ── Cash Registers ──
     if (currentRoute.startsWith('/cash-registers')) {
       return [
         _QuickAction(
           icon: Icons.monetization_on_outlined,
-          label: 'Ver Caja',
+          label: 'Abrir Caja',
           route: '/cash-registers',
           color: ZColors.success,
+          actionId: 'cash_open',
         ),
       ];
     }
 
+    // ── Webhooks ──
     if (currentRoute.startsWith('/webhooks')) {
       return [
         _QuickAction(
           icon: Icons.webhook_outlined,
           label: 'Nuevo Webhook',
           route: '/webhooks/new',
+          color: ZColors.success,
+        ),
+      ];
+    }
+
+    // ── Accounting ──
+    if (currentRoute.startsWith('/accounting')) {
+      return [
+        _QuickAction(
+          icon: Icons.account_balance_outlined,
+          label: 'Nueva Cuenta',
+          route: '/accounting/chart-of-accounts',
+          color: ZColors.success,
+        ),
+      ];
+    }
+
+    // ── Approval Flows ──
+    if (currentRoute.startsWith('/approval')) {
+      return [
+        _QuickAction(
+          icon: Icons.approval_outlined,
+          label: 'Nuevo Flujo',
+          route: '/approval-flows/new',
+          color: ZColors.success,
+        ),
+      ];
+    }
+
+    // ── Branches ──
+    if (currentRoute.startsWith('/branches')) {
+      return [
+        _QuickAction(
+          icon: Icons.store_outlined,
+          label: 'Nueva Sucursal',
+          route: '/branches/new',
+          color: ZColors.success,
+        ),
+      ];
+    }
+
+    // ── CRM ──
+    if (currentRoute.startsWith('/crm')) {
+      return [
+        _QuickAction(
+          icon: Icons.person_add_alt_1_outlined,
+          label: 'Nuevo Lead',
+          route: '/crm',
+          color: ZColors.success,
+          actionId: 'crm_lead',
+        ),
+        _QuickAction(
+          icon: Icons.add_chart_outlined,
+          label: 'Nueva Oportunidad',
+          route: '/crm',
+          color: ZColors.info,
+          actionId: 'crm_opportunity',
+        ),
+      ];
+    }
+
+    // ── Custom Reports ──
+    if (currentRoute.startsWith('/custom-reports')) {
+      return [
+        _QuickAction(
+          icon: Icons.assessment_outlined,
+          label: 'Nuevo Reporte',
+          route: '/custom-reports/new',
+          color: ZColors.success,
+        ),
+      ];
+    }
+
+    // ── Exchange Rates ──
+    if (currentRoute.startsWith('/exchange-rates')) {
+      return [
+        _QuickAction(
+          icon: Icons.currency_exchange_outlined,
+          label: 'Nuevo Tipo de Cambio',
+          route: '/exchange-rates/new',
+          color: ZColors.success,
+        ),
+      ];
+    }
+
+    // ── Fleet ──
+    if (currentRoute.startsWith('/fleet')) {
+      return [
+        _QuickAction(
+          icon: Icons.local_shipping_outlined,
+          label: 'Nuevo Vehículo',
+          route: '/fleet/vehicles/new',
+          color: ZColors.success,
+        ),
+        _QuickAction(
+          icon: Icons.route_outlined,
+          label: 'Nuevo Viaje',
+          route: '/fleet/trips/new',
+          color: ZColors.info,
+        ),
+      ];
+    }
+
+    // ── Provider Contracts & Invoices ──
+    if (currentRoute.startsWith('/providers')) {
+      return [
+        _QuickAction(
+          icon: Icons.handshake_outlined,
+          label: 'Nuevo Contrato',
+          route: '/providers/contracts/new',
+          color: ZColors.success,
+        ),
+        _QuickAction(
+          icon: Icons.receipt_outlined,
+          label: 'Registrar Factura',
+          route: '/providers/payments',
+          color: ZColors.info,
+          actionId: 'provider_invoice_register',
+        ),
+      ];
+    }
+
+    // ── Warranties ──
+    if (currentRoute.startsWith('/warranties')) {
+      return [
+        _QuickAction(
+          icon: Icons.verified_outlined,
+          label: 'Nueva Garantía',
+          route: '/warranties/new',
+          color: ZColors.success,
+        ),
+      ];
+    }
+
+    // ── Documents ──
+    if (currentRoute.startsWith('/documents')) {
+      return [
+        _QuickAction(
+          icon: Icons.upload_file_outlined,
+          label: 'Subir Documento',
+          route: '/documents',
           color: ZColors.success,
         ),
       ];
@@ -166,18 +323,24 @@ class ZQuickActionsFAB extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (actions.length == 1) {
-      // Single action: simple FAB
+      final action = actions.first;
+      final callback = action.actionId != null
+          ? callbacks[action.actionId!]
+          : null;
       return FloatingActionButton(
-        onPressed: () => context.go(actions.first.route),
+        onPressed: callback ?? () => context.push(action.route),
         backgroundColor: isDark ? ZColors.brandAccent : ZColors.brandPrimary,
         foregroundColor: isDark ? ZColors.brandPrimary : Colors.white,
-        tooltip: actions.first.label,
-        child: Icon(actions.first.icon, size: 24),
+        tooltip: action.label,
+        child: Icon(action.icon, size: 24),
       );
     }
 
-    // Multiple actions: expandable FAB
-    return _ExpandableFAB(actions: actions, isDark: isDark);
+    return _ExpandableFAB(
+      actions: actions,
+      callbacks: callbacks,
+      isDark: isDark,
+    );
   }
 }
 
@@ -185,21 +348,28 @@ class _QuickAction {
   final IconData icon;
   final String label;
   final String route;
+  final String? actionId;
   final Color color;
 
   const _QuickAction({
     required this.icon,
     required this.label,
     required this.route,
+    this.actionId,
     required this.color,
   });
 }
 
 class _ExpandableFAB extends StatefulWidget {
   final List<_QuickAction> actions;
+  final Map<String, VoidCallback> callbacks;
   final bool isDark;
 
-  const _ExpandableFAB({required this.actions, required this.isDark});
+  const _ExpandableFAB({
+    required this.actions,
+    required this.callbacks,
+    required this.isDark,
+  });
 
   @override
   State<_ExpandableFAB> createState() => _ExpandableFABState();
@@ -258,10 +428,7 @@ class _ExpandableFABState extends State<_ExpandableFAB>
               final adjustedValue = (value - delay).clamp(0.0, 1.0);
               return Transform.scale(
                 scale: adjustedValue,
-                child: Opacity(
-                  opacity: adjustedValue,
-                  child: child,
-                ),
+                child: Opacity(opacity: adjustedValue, child: child),
               );
             },
             child: Padding(
@@ -276,9 +443,7 @@ class _ExpandableFABState extends State<_ExpandableFAB>
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: widget.isDark
-                          ? ZColors.darkSurface
-                          : Colors.white,
+                      color: widget.isDark ? ZColors.darkSurface : Colors.white,
                       borderRadius: BorderRadius.circular(ZRadii.md),
                       boxShadow: [
                         BoxShadow(
@@ -303,11 +468,16 @@ class _ExpandableFABState extends State<_ExpandableFAB>
                   FloatingActionButton.small(
                     onPressed: () {
                       _toggle();
-                      context.go(action.route);
+                      final callback = widget.callbacks[action.actionId];
+                      if (callback != null) {
+                        callback();
+                      } else {
+                        context.push(action.route);
+                      }
                     },
                     backgroundColor: action.color,
                     foregroundColor: Colors.white,
-                    heroTag: 'fab_$index',
+                    heroTag: 'fab_${action.actionId ?? action.route}',
                     child: Icon(action.icon, size: 18),
                   ),
                 ],
@@ -322,9 +492,7 @@ class _ExpandableFABState extends State<_ExpandableFAB>
           backgroundColor: widget.isDark
               ? ZColors.brandAccent
               : ZColors.brandPrimary,
-          foregroundColor: widget.isDark
-              ? ZColors.brandPrimary
-              : Colors.white,
+          foregroundColor: widget.isDark ? ZColors.brandPrimary : Colors.white,
           child: AnimatedRotation(
             turns: _isOpen ? 0.125 : 0,
             duration: const Duration(milliseconds: 200),

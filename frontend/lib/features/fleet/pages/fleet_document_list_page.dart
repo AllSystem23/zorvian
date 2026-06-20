@@ -197,15 +197,6 @@ final class _FleetDocumentListPageState extends ConsumerState<FleetDocumentListP
                     ),
                   ],
                 ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await context.push<bool>('/fleet/documents/new',
-            extra: {'entityType': widget.entityType, 'entityId': widget.entityId},
-          );
-          if (result == true) ref.read(fleetDocumentProvider.notifier).load();
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 

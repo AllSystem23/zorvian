@@ -118,13 +118,6 @@ final class _SupplierListPageState extends ConsumerState<SupplierListPage> {
                     ),
                   ],
                 ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await context.push<bool>('/suppliers/new');
-          if (result == true) ref.read(supplierProvider.notifier).load();
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 }

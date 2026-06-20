@@ -114,16 +114,6 @@ class _ExchangeRateListPageState extends ConsumerState<ExchangeRateListPage> {
                         },
                       ),
                     ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result =
-              await context.push<bool>('/exchange-rates/new');
-          if (result == true) {
-            ref.read(exchangeRateProvider.notifier).load();
-          }
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 }

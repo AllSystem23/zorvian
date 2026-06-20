@@ -100,13 +100,6 @@ class _VacationListPageState extends ConsumerState<VacationListPage> {
                         },
                       ),
                     ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await context.push<bool>('/vacations/new');
-          if (result == true) _load();
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 }

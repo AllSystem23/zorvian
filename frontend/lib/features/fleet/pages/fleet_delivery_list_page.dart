@@ -108,13 +108,6 @@ final class _FleetDeliveryListPageState extends ConsumerState<FleetDeliveryListP
                         },
                       ),
                     ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final r = await context.push<bool>('/fleet/deliveries/new');
-          if (r == true) ref.read(fleetDeliveryProvider.notifier).load();
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 

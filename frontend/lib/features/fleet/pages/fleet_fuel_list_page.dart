@@ -103,13 +103,6 @@ final class _FleetFuelListPageState extends ConsumerState<FleetFuelListPage> {
                         },
                       ),
                     ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final r = await context.push<bool>('/fleet/fuel/new');
-          if (r == true) ref.read(fleetFuelProvider.notifier).load();
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 

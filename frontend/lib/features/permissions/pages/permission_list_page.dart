@@ -120,13 +120,6 @@ class _PermissionListPageState extends ConsumerState<PermissionListPage> {
                         },
                       ),
                     ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await context.push<bool>('/permissions/new');
-          if (result == true) _load();
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 }

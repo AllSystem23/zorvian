@@ -117,13 +117,6 @@ final class _ProductListPageState extends ConsumerState<ProductListPage> {
                   ),
                 ],
               ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await context.push<bool>('/products/new');
-          if (result == true) ref.read(productProvider.notifier).load();
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 }

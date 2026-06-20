@@ -115,11 +115,6 @@ class CustomReportListPage extends ConsumerWidget {
                     },
                   ),
                 ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'custom_report_fab',
-        onPressed: () => context.push('/custom-reports/new'),
-        child: const Icon(Icons.add),
-      ),
     );
   }
 

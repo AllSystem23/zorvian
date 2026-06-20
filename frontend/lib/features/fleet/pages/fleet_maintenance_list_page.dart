@@ -128,13 +128,6 @@ final class _FleetMaintenanceListPageState extends ConsumerState<FleetMaintenanc
                         },
                       ),
                     ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final r = await context.push<bool>('/fleet/maintenance/new');
-          if (r == true) ref.read(fleetMaintenanceProvider.notifier).load();
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 

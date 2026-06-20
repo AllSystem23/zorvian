@@ -106,13 +106,6 @@ final class _FleetTripListPageState extends ConsumerState<FleetTripListPage> {
                         },
                       ),
                     ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final r = await context.push<bool>('/fleet/trips/new');
-          if (r == true) ref.read(fleetTripProvider.notifier).load();
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 

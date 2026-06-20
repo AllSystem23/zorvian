@@ -9,19 +9,12 @@ import '../../../core/entities/provider_invoice.dart';
 final class ProviderInvoicesPage extends ConsumerStatefulWidget {
   const ProviderInvoicesPage({super.key});
   @override
-  ConsumerState<ProviderInvoicesPage> createState() => _ProviderInvoicesPageState();
+  ConsumerState<ProviderInvoicesPage> createState() =>
+      _ProviderInvoicesPageState();
 }
 
-final class _ProviderInvoicesPageState extends ConsumerState<ProviderInvoicesPage> {
-  void _showRegisterDialog() {
-    showDialog(
-      context: context,
-      builder: (ctx) => _RegisterInvoiceDialog(
-        onSaved: () => ref.invalidate(allInvoicesProvider),
-      ),
-    );
-  }
-
+final class _ProviderInvoicesPageState
+    extends ConsumerState<ProviderInvoicesPage> {
   @override
   Widget build(BuildContext context) {
     final invoicesAsync = ref.watch(allInvoicesProvider);
@@ -35,16 +28,28 @@ final class _ProviderInvoicesPageState extends ConsumerState<ProviderInvoicesPag
           children: [
             invoicesAsync.when(
               data: (invoices) {
-                final pendingCount = invoices.where((i) => i.status == 'received').length;
+                final pendingCount = invoices
+                    .where((i) => i.status == 'received')
+                    .length;
                 final totalPending = invoices
                     .where((i) => i.status == 'received')
                     .fold(0.0, (sum, item) => sum + item.netAmount);
 
                 return Row(
                   children: [
-                    Expanded(child: ZStatCard(title: 'Facturas Pendientes', value: pendingCount.toString())),
+                    Expanded(
+                      child: ZStatCard(
+                        title: 'Facturas Pendientes',
+                        value: pendingCount.toString(),
+                      ),
+                    ),
                     const SizedBox(width: ZSpacing.md),
-                    Expanded(child: ZStatCard(title: 'Total por Pagar', value: 'C\$${totalPending.toStringAsFixed(2)}')),
+                    Expanded(
+                      child: ZStatCard(
+                        title: 'Total por Pagar',
+                        value: 'C\$${totalPending.toStringAsFixed(2)}',
+                      ),
+                    ),
                   ],
                 );
               },
@@ -52,65 +57,99 @@ final class _ProviderInvoicesPageState extends ConsumerState<ProviderInvoicesPag
               error: (err, _) => const SizedBox.shrink(),
             ),
             const SizedBox(height: ZSpacing.xl),
-            
-            Text('Registro de Facturas Recibidas', style: ZTypography.titleLarge),
+
+            Text(
+              'Registro de Facturas Recibidas',
+              style: ZTypography.titleLarge,
+            ),
             const SizedBox(height: ZSpacing.md),
-            
+
             invoicesAsync.when(
               data: (invoices) => invoices.isEmpty
-                    ? ZEmptyState(icon: Icons.receipt_long, title: 'Sin facturas', subtitle: 'No se han registrado facturas de prestadores.')
-                    : ZDataTable<ProviderInvoice>(
-                        columns: const [
-                          ZColumn(id: 'invoice', label: 'Factura #'),
-                          ZColumn(id: 'amount', label: 'Monto', numeric: true),
-                          ZColumn(id: 'status', label: 'Estado'),
-                          ZColumn(id: 'due', label: 'Vence'),
-                          ZColumn(id: 'actions', label: ''),
-                        ],
-                        rows: invoices,
-                        rowMapper: (i) => DataRow(cells: [
-                          DataCell(Text(i.invoiceNumber, style: ZTypography.labelMedium.copyWith(fontWeight: FontWeight.bold))),
+                  ? ZEmptyState(
+                      icon: Icons.receipt_long,
+                      title: 'Sin facturas',
+                      subtitle: 'No se han registrado facturas de prestadores.',
+                    )
+                  : ZDataTable<ProviderInvoice>(
+                      columns: const [
+                        ZColumn(id: 'invoice', label: 'Factura #'),
+                        ZColumn(id: 'amount', label: 'Monto', numeric: true),
+                        ZColumn(id: 'status', label: 'Estado'),
+                        ZColumn(id: 'due', label: 'Vence'),
+                        ZColumn(id: 'actions', label: ''),
+                      ],
+                      rows: invoices,
+                      rowMapper: (i) => DataRow(
+                        cells: [
+                          DataCell(
+                            Text(
+                              i.invoiceNumber,
+                              style: ZTypography.labelMedium.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                           DataCell(Text('${i.invoiceAmount} ${i.currency}')),
-                          DataCell(ZBadge(text: i.status, type: i.status == 'paid' ? ZBadgeType.success : ZBadgeType.neutral)),
-                          DataCell(Text(i.invoiceDate.toString().split(' ')[0])),
-                          DataCell(IconButton(
-                            icon: const Icon(Icons.payment),
-                            onPressed: () async {
-                              await ref.read(providerRepositoryProvider).programPayment(i.id, DateTime.now(), 'AUTO-PAY');
-                              ref.invalidate(allInvoicesProvider);
-                            },
-                          )),
-                        ]),
+                          DataCell(
+                            ZBadge(
+                              text: i.status,
+                              type: i.status == 'paid'
+                                  ? ZBadgeType.success
+                                  : ZBadgeType.neutral,
+                            ),
+                          ),
+                          DataCell(
+                            Text(i.invoiceDate.toString().split(' ')[0]),
+                          ),
+                          DataCell(
+                            IconButton(
+                              icon: const Icon(Icons.payment),
+                              onPressed: () async {
+                                await ref
+                                    .read(providerRepositoryProvider)
+                                    .programPayment(
+                                      i.id,
+                                      DateTime.now(),
+                                      'AUTO-PAY',
+                                    );
+                                ref.invalidate(allInvoicesProvider);
+                              },
+                            ),
+                          ),
+                        ],
                       ),
+                    ),
               loading: () => const ZSkeleton(height: 300),
-              error: (err, _) => ZAlertCard(message: 'Error al cargar facturas: $err', severity: 'high'),
+              error: (err, _) => ZAlertCard(
+                message: 'Error al cargar facturas: $err',
+                severity: 'high',
+              ),
             ),
-            
+
             const SizedBox(height: ZSpacing.xl),
             const ZAlertCard(
-              message: 'Asegúrese de aplicar el 10% de IR a los prestadores de servicios profesionales antes de programar el pago.',
+              message:
+                  'Asegúrese de aplicar el 10% de IR a los prestadores de servicios profesionales antes de programar el pago.',
               severity: 'low',
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showRegisterDialog,
-        label: const Text('Registrar Factura'),
-        icon: const Icon(Icons.post_add),
-      ),
     );
   }
 }
 
-final class _RegisterInvoiceDialog extends ConsumerStatefulWidget {
+final class RegisterInvoiceDialog extends ConsumerStatefulWidget {
   final VoidCallback onSaved;
-  const _RegisterInvoiceDialog({required this.onSaved});
+  const RegisterInvoiceDialog({super.key, required this.onSaved});
   @override
-  ConsumerState<_RegisterInvoiceDialog> createState() => _RegisterInvoiceDialogState();
+  ConsumerState<RegisterInvoiceDialog> createState() =>
+      _RegisterInvoiceDialogState();
 }
 
-final class _RegisterInvoiceDialogState extends ConsumerState<_RegisterInvoiceDialog> {
+final class _RegisterInvoiceDialogState
+    extends ConsumerState<RegisterInvoiceDialog> {
   final _formKey = GlobalKey<FormState>();
   final _invoiceNumberCtrl = TextEditingController();
   final _invoiceAmountCtrl = TextEditingController();
@@ -135,7 +174,9 @@ final class _RegisterInvoiceDialogState extends ConsumerState<_RegisterInvoiceDi
     if (_selectedContractId == null) return;
     try {
       final dio = ref.read(dioClientProvider);
-      final r = await dio.get('providers/contracts/$_selectedContractId/milestones');
+      final r = await dio.get(
+        'providers/contracts/$_selectedContractId/milestones',
+      );
       setState(() => _milestones = r.data as List);
     } catch (_) {
       setState(() => _milestones = null);
@@ -159,7 +200,9 @@ final class _RegisterInvoiceDialogState extends ConsumerState<_RegisterInvoiceDi
         netAmount: amount - withholding,
         currency: _currencyCtrl.text.trim(),
       );
-      await ref.read(providerRepositoryProvider).registerInvoice(_selectedMilestoneId!, invoice);
+      await ref
+          .read(providerRepositoryProvider)
+          .registerInvoice(_selectedMilestoneId!, invoice);
       widget.onSaved();
       if (mounted) Navigator.of(context).pop();
     } catch (_) {
@@ -199,17 +242,25 @@ final class _RegisterInvoiceDialogState extends ConsumerState<_RegisterInvoiceDi
                 DropdownButtonFormField<String>(
                   initialValue: _selectedMilestoneId,
                   decoration: const InputDecoration(labelText: 'Hito'),
-                  items: _milestones!.map<DropdownMenuItem<String>>((m) => DropdownMenuItem<String>(
-                    value: m['id'] as String?,
-                    child: Text(m['description'] as String? ?? m['id'] as String),
-                  )).toList(),
+                  items: _milestones!
+                      .map<DropdownMenuItem<String>>(
+                        (m) => DropdownMenuItem<String>(
+                          value: m['id'] as String?,
+                          child: Text(
+                            m['description'] as String? ?? m['id'] as String,
+                          ),
+                        ),
+                      )
+                      .toList(),
                   onChanged: (v) => setState(() => _selectedMilestoneId = v),
                   validator: (v) => v == null ? 'Seleccione un hito' : null,
                 ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _invoiceNumberCtrl,
-                decoration: const InputDecoration(labelText: 'Número de Factura'),
+                decoration: const InputDecoration(
+                  labelText: 'Número de Factura',
+                ),
                 validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
               ),
               const SizedBox(height: 12),
@@ -220,14 +271,17 @@ final class _RegisterInvoiceDialogState extends ConsumerState<_RegisterInvoiceDi
                       controller: _invoiceAmountCtrl,
                       decoration: const InputDecoration(labelText: 'Monto'),
                       keyboardType: TextInputType.number,
-                      validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
+                      validator: (v) =>
+                          v == null || v.isEmpty ? 'Requerido' : null,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: TextFormField(
                       controller: _withholdingCtrl,
-                      decoration: const InputDecoration(labelText: 'Retención IR'),
+                      decoration: const InputDecoration(
+                        labelText: 'Retención IR',
+                      ),
                       keyboardType: TextInputType.number,
                     ),
                   ),
@@ -244,7 +298,9 @@ final class _RegisterInvoiceDialogState extends ConsumerState<_RegisterInvoiceDi
                   final date = await showDatePicker(
                     context: context,
                     initialDate: _invoiceDate,
-                    firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                    firstDate: DateTime.now().subtract(
+                      const Duration(days: 365),
+                    ),
                     lastDate: DateTime.now(),
                   );
                   if (date != null) {
@@ -252,8 +308,12 @@ final class _RegisterInvoiceDialogState extends ConsumerState<_RegisterInvoiceDi
                   }
                 },
                 child: InputDecorator(
-                  decoration: const InputDecoration(labelText: 'Fecha de Factura'),
-                  child: Text('${_invoiceDate.day}/${_invoiceDate.month}/${_invoiceDate.year}'),
+                  decoration: const InputDecoration(
+                    labelText: 'Fecha de Factura',
+                  ),
+                  child: Text(
+                    '${_invoiceDate.day}/${_invoiceDate.month}/${_invoiceDate.year}',
+                  ),
                 ),
               ),
             ],
@@ -261,7 +321,10 @@ final class _RegisterInvoiceDialogState extends ConsumerState<_RegisterInvoiceDi
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancelar')),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
         ZButton(text: 'Guardar', onPressed: _save, isLoading: _saving),
       ],
     );
@@ -280,14 +343,18 @@ final class _ContractDropdown extends ConsumerWidget {
       data: (contracts) => DropdownButtonFormField<String>(
         initialValue: value,
         decoration: const InputDecoration(labelText: 'Contrato'),
-        items: contracts.map((c) => DropdownMenuItem(
-          value: c.id,
-          child: Text(c.contractName),
-        )).toList(),
+        items: contracts
+            .map(
+              (c) => DropdownMenuItem(value: c.id, child: Text(c.contractName)),
+            )
+            .toList(),
         onChanged: onChanged,
         validator: (v) => v == null ? 'Seleccione un contrato' : null,
       ),
-      loading: () => const SizedBox(height: 56, child: Center(child: LinearProgressIndicator())),
+      loading: () => const SizedBox(
+        height: 56,
+        child: Center(child: LinearProgressIndicator()),
+      ),
       error: (_, _) => const Text('Error al cargar contratos'),
     );
   }

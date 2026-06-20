@@ -150,13 +150,6 @@ final class _FleetVehicleListPageState extends ConsumerState<FleetVehicleListPag
                     ),
                   ],
                 ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await context.push<bool>('/fleet/vehicles/new');
-          if (result == true) ref.read(fleetProvider.notifier).load();
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 

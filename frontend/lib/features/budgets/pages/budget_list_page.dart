@@ -117,13 +117,7 @@ final class _BudgetListPageState extends ConsumerState<BudgetListPage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await context.push<bool>('/budgets/new');
-          if (result == true) ref.read(budgetProvider.notifier).load(year: _year, month: _month);
-        },
-        child: const Icon(Icons.add),
-      ),
+
     );
   }
 }

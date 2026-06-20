@@ -117,13 +117,7 @@ final class _CostCenterListPageState extends ConsumerState<CostCenterListPage> {
                     ),
                   ],
                 ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await context.push<bool>('/cost-centers/new');
-          if (result == true) ref.read(costCenterProvider.notifier).load();
-        },
-        child: const Icon(Icons.add),
-      ),
+
     );
   }
 }

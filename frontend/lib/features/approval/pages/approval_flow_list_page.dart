@@ -53,13 +53,6 @@ final class ApprovalFlowListPage extends ConsumerWidget {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await context.push<bool>('/approval-flows/new');
-          if (result == true) ref.read(approvalProvider.notifier).loadFlows();
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 }

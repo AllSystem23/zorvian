@@ -34,10 +34,6 @@ final class _PurchaseListPageState extends ConsumerState<PurchaseListPage> {
     final state = ref.watch(purchaseProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('Compras')),
-      floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.add),
-        onPressed: () => context.push('/purchases/new'),
-      ),
       body: ZAsyncRenderer<List<PurchaseItem>>(
         value: state,
         builder: (items) {

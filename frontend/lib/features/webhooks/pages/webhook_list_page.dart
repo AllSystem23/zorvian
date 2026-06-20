@@ -145,15 +145,6 @@ class _WebhookListPageState extends ConsumerState<WebhookListPage> {
                         },
                       ),
                     ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await context.push<bool>('/webhooks/new');
-          if (result == true) {
-            ref.read(webhookProvider.notifier).load();
-          }
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 }

@@ -95,13 +95,6 @@ class _DepartmentListPageState extends ConsumerState<DepartmentListPage> {
                         },
                       ),
                     ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await context.push<bool>('/departments/new');
-          if (result == true) ref.read(departmentProvider.notifier).load();
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 }

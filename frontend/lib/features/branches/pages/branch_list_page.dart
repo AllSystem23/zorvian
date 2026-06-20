@@ -82,13 +82,7 @@ class BranchListPage extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await context.push<bool>('/branches/new');
-          if (result == true) ref.invalidate(branchListProvider);
-        },
-        child: const Icon(Icons.add),
-      ),
+
     );
   }
 }

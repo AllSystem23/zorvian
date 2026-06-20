@@ -103,13 +103,6 @@ final class _QuoteListPageState extends ConsumerState<QuoteListPage> {
                     ),
                   ],
                 ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await context.push<bool>('/quotes/new');
-          if (result == true) ref.read(quoteProvider.notifier).load();
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 }

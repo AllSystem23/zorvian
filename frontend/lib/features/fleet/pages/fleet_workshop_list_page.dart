@@ -82,13 +82,6 @@ final class _FleetWorkshopListPageState extends ConsumerState<FleetWorkshopListP
                         },
                       ),
                     ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final r = await context.push<bool>('/fleet/workshop/new');
-          if (r == true) ref.read(fleetWorkshopProvider.notifier).load();
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 

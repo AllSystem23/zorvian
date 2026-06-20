@@ -120,13 +120,6 @@ final class _ClientListPageState extends ConsumerState<ClientListPage> {
                   ),
                 ],
               ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await context.push<bool>('/clients/new');
-          if (result == true) ref.read(clientProvider.notifier).load();
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 }

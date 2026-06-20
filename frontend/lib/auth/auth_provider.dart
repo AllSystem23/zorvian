@@ -1,26 +1,29 @@
-import 'package:dio/dio.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/error/error_notifier.dart';
 import '../core/network/dio_client.dart';
 import '../core/storage/secure_storage.dart';
-import '../features/dashboard/providers/dashboard_provider.dart';
 
 final secureStorageProvider = Provider<SecureStorage>((_) => SecureStorage());
 
 final dioClientProvider = Provider<DioClient>((ref) {
   final storage = ref.watch(secureStorageProvider);
-  return DioClient(storage, onError: (statusCode, message) {
-    final notifier = ref.read(errorNotifierProvider.notifier);
-    // Show actual backend error when available; fallback to generic friendly message
-    final displayMsg = (message.isNotEmpty && message != 'Error de conexión')
-        ? message
-        : notifier.friendlyHttpError(statusCode);
-    notifier.showError(displayMsg, detail: statusCode != null ? 'HTTP $statusCode' : null);
-  }, onUnauthorized: () {
-    ref.read(authProvider.notifier).logout();
-  });
+  return DioClient(
+    storage,
+    onError: (statusCode, message) {
+      final notifier = ref.read(errorNotifierProvider.notifier);
+      // Show actual backend error when available; fallback to generic friendly message
+      final displayMsg = (message.isNotEmpty && message != 'Error de conexión')
+          ? message
+          : notifier.friendlyHttpError(statusCode);
+      notifier.showError(
+        displayMsg,
+        detail: statusCode != null ? 'HTTP $statusCode' : null,
+      );
+    },
+    onUnauthorized: () {
+      ref.read(authProvider.notifier).logout();
+    },
+  );
 });
 
 enum AuthStatus { unknown, authenticated, unauthenticated }
@@ -97,14 +100,15 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final dio = ref.read(dioClientProvider);
       final storage = ref.read(secureStorageProvider);
-      final response = await dio.post('auth/login-password', data: {
-        'email': email,
-        'password': password,
-      });
+      final response = await dio.post(
+        'auth/login-password',
+        data: {'email': email, 'password': password},
+      );
 
       final data = response.data['data'];
       // Guardamos tokens
-      await storage.saveTokens(data['accessToken'], data['refreshToken'])
+      await storage
+          .saveTokens(data['accessToken'], data['refreshToken'])
           .catchError((_) => null);
 
       final user = data['user'];
@@ -123,18 +127,26 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
-  Future<bool> registerWithPassword(String email, String password, String displayName) async {
+  Future<bool> registerWithPassword(
+    String email,
+    String password,
+    String displayName,
+  ) async {
     try {
       final dio = ref.read(dioClientProvider);
       final storage = ref.read(secureStorageProvider);
-      final response = await dio.post('auth/register', data: {
-        'email': email,
-        'password': password,
-        'displayName': displayName,
-      });
+      final response = await dio.post(
+        'auth/register',
+        data: {
+          'email': email,
+          'password': password,
+          'displayName': displayName,
+        },
+      );
 
       final data = response.data['data'];
-      await storage.saveTokens(data['accessToken'], data['refreshToken'])
+      await storage
+          .saveTokens(data['accessToken'], data['refreshToken'])
           .catchError((_) => null);
 
       final user = data['user'];
@@ -164,7 +176,9 @@ class AuthNotifier extends Notifier<AuthState> {
     final dio = ref.read(dioClientProvider);
     final response = await dio.get('auth/tenants', params: {'pageSize': 100});
     final data = response.data;
-    final Iterable list = data is List ? data : (data['items'] as List<dynamic>);
+    final Iterable list = data is List
+        ? data
+        : (data['items'] as List<dynamic>);
     return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
@@ -173,14 +187,16 @@ class AuthNotifier extends Notifier<AuthState> {
     try {
       final dio = ref.read(dioClientProvider);
       final storage = ref.read(secureStorageProvider);
-      final response = await dio.post('auth/switch-tenant', data: {
-        'tenantId': tenantId,
-      });
+      final response = await dio.post(
+        'auth/switch-tenant',
+        data: {'tenantId': tenantId},
+      );
 
       final data = response.data['data'];
       // Save new tokens issued for the switched tenant
       if (data['accessToken'] != null) {
-        await storage.saveTokens(data['accessToken'], data['refreshToken'])
+        await storage
+            .saveTokens(data['accessToken'], data['refreshToken'])
             .catchError((_) => null);
       }
 

@@ -166,13 +166,6 @@ final class _FleetDriverListPageState extends ConsumerState<FleetDriverListPage>
                     ),
                   ],
                 ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await context.push<bool>('/fleet/drivers/new');
-          if (result == true) ref.read(driverProvider.notifier).load();
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 
