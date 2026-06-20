@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:signalr_netcore/signalr_client.dart';
 
@@ -61,9 +63,15 @@ class SignalRNotifier extends Notifier<NotificationState> {
       _connection!.onreconnecting(({error}) async => _setState(ZConnectionState.reconnecting));
       _connection!.onreconnected(({connectionId}) async => _setState(ZConnectionState.connected));
 
-      await _connection!.start();
+      final startFuture = _connection!.start();
+      if (startFuture == null) throw StateError('SignalR connection failed to start.');
+      await startFuture.timeout(const Duration(seconds: 10));
       _setState(ZConnectionState.connected);
     } catch (_) {
+      try {
+        await _connection?.stop();
+      } catch (_) {}
+      _connection = null;
       _setState(ZConnectionState.disconnected);
     }
   }
