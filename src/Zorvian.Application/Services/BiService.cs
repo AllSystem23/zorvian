@@ -70,7 +70,6 @@ public sealed class BiService
         var lastMonth = now.Month == 1 ? 12 : now.Month - 1;
         var hrScalarsTask = _dashRepo.GetAllKpiScalarsRawAsync(_tenant.EffectiveCompanyId, _tenant.IsSuperAdmin, thirtyDaysAgo, now.Month, lastMonth);
 
-        await Task.WhenAll(execScalarsTask, hrScalarsTask);
         var scalars = await execScalarsTask;
         var hrScalars = await hrScalarsTask;
 
