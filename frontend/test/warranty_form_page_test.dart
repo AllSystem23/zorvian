@@ -17,9 +17,9 @@ void main() {
     );
 
     // Verify presence of ZTextField labels (using text finders)
-    expect(find.text('ID Cliente'), findsOneWidget);
-    expect(find.text('ID Producto'), findsOneWidget);
-    expect(find.text('Número de Serie'), findsOneWidget);
+    expect(find.text('ID CLIENTE'), findsOneWidget);
+    expect(find.text('ID PRODUCTO'), findsOneWidget);
+    expect(find.text('NÚMERO DE SERIE'), findsOneWidget);
     
     // Verify ZButton exists
     expect(find.byType(ZButton), findsOneWidget);

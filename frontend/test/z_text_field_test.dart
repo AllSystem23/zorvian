@@ -15,7 +15,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Test Label'), findsOneWidget);
+    expect(find.text('TEST LABEL'), findsOneWidget);
     expect(find.byType(TextFormField), findsOneWidget);
   });
 }

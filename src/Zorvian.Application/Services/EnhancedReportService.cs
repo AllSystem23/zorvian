@@ -52,15 +52,18 @@ public sealed class EnhancedReportService
         var prevPeriod = await _periodRepo.GetByYearMonthAsync(
             period.Year == 1 && period.Month == 1 ? period.Year - 1 : period.Year,
             period.Month == 1 ? 12 : period.Month - 1, CompanyId);
-        var prevPeriods = (await Task.WhenAll(
-            (prevPeriod != null ? new[] { prevPeriod } : Array.Empty<AccountingPeriod>())
-            .Concat(await GetYearPeriodsAsync(period.Year, period.Month, CompanyId))
-            .Select(async p => await _entryRepo.GetFilteredAsync(p.Id, null, "posted", null, null, CompanyId, 1, int.MaxValue))
-        )).SelectMany(e => e).ToList();
+        var prevPeriods = new List<AccountingEntry>();
+        var periodsToFetch = (prevPeriod != null ? new[] { prevPeriod } : Array.Empty<AccountingPeriod>())
+            .Concat(await GetYearPeriodsAsync(period.Year, period.Month, CompanyId));
+            
+        foreach (var p in periodsToFetch)
+        {
+            var entries = await _entryRepo.GetFilteredAsync(p.Id, null, "posted", null, null, CompanyId, 1, int.MaxValue);
+            prevPeriods.AddRange(entries);
+        }
 
         var currentPosted = await _entryRepo.GetFilteredAsync(periodId, null, "posted", null, null, CompanyId, 1, int.MaxValue);
-        var currentEntries = (await Task.WhenAll(currentPosted.Select(async e => await _entryRepo.GetByIdAsync(e.Id))))
-            .Where(e => e != null).Cast<AccountingEntry>().ToList();
+        var currentEntries = await _entryRepo.GetListByIdsAsync(currentPosted.Select(e => e.Id));
         if (currentEntries.Count == 0) return null;
         var entryMap = currentEntries.ToDictionary(e => e.Id);
         var details = currentEntries.SelectMany(e => e.Details).ToList();
@@ -104,8 +107,7 @@ public sealed class EnhancedReportService
         if (period is null) return null;
         var cc = await GetCompanyCurrencyAsync();
         var posted = await _entryRepo.GetFilteredAsync(periodId, null, "posted", null, null, CompanyId, 1, int.MaxValue);
-        var entries = (await Task.WhenAll(posted.Select(async e => await _entryRepo.GetByIdAsync(e.Id))))
-            .Where(e => e != null).Cast<AccountingEntry>().ToList();
+        var entries = await _entryRepo.GetListByIdsAsync(posted.Select(e => e.Id));
         var entryMap = entries.ToDictionary(e => e.Id);
         var details = entries.SelectMany(e => e.Details).ToList();
         var accounts = await _accountRepo.GetAllAsync(CompanyId);
@@ -210,11 +212,21 @@ public sealed class EnhancedReportService
         if (periodIds.Count < 2)
             return null;
 
-        var periodResults = await Task.WhenAll(periodIds.Select(async id => await _periodRepo.GetByIdAsync(id)));
-        var periods = periodResults.Where(p => p is not null).Select(p => p!).ToArray();
+        var periodsList = new List<AccountingPeriod>();
+        foreach (var id in periodIds)
+        {
+            var p = await _periodRepo.GetByIdAsync(id);
+            if (p != null) periodsList.Add(p);
+        }
+        var periods = periodsList.ToArray();
 
-        var trialBalances = (await Task.WhenAll(periodIds.Select(async id => await _reports.GetTrialBalanceAsync(id))))
-            .Where(tb => tb != null).Cast<TrialBalanceResponse>().ToArray();
+        var trialBalancesList = new List<TrialBalanceResponse>();
+        foreach (var id in periodIds)
+        {
+            var tb = await _reports.GetTrialBalanceAsync(id);
+            if (tb != null) trialBalancesList.Add(tb);
+        }
+        var trialBalances = trialBalancesList.ToArray();
 
         var lineMap = new Dictionary<string, (string Name, string Type, List<decimal> Amounts, List<decimal> PctOfTotal)>();
         foreach (var (tb, period) in trialBalances.Zip(periods, (tb, p) => (tb, p)))

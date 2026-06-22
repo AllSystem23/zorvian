@@ -23,7 +23,8 @@ void main() {
     // Verify AppBar title
     expect(find.text('Gestión de Usuarios'), findsOneWidget);
     // Verify empty state is shown (no users in mock)
-    expect(find.text('Sin datos'), findsOneWidget);
+    // ZAsyncRenderer shows 'No hay datos disponibles.' by default for empty lists
+    expect(find.text('No hay datos disponibles.'), findsOneWidget);
   });
 }
 

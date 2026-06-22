@@ -64,14 +64,12 @@ public sealed class BiService
         var isSuperAdmin = _tenant.IsSuperAdmin;
 
         // Phase 1: High-performance scalar KPIs (2 round-trips for everything)
-        var execScalarsTask = _dashRepo.GetExecutiveKpiScalarsRawAsync(_tenant.EffectiveCompanyId, _tenant.IsSuperAdmin);
+        var scalars = await _dashRepo.GetExecutiveKpiScalarsRawAsync(_tenant.EffectiveCompanyId, _tenant.IsSuperAdmin);
+        
         var thirtyDaysAgo = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
         var now = DateTime.UtcNow;
         var lastMonth = now.Month == 1 ? 12 : now.Month - 1;
-        var hrScalarsTask = _dashRepo.GetAllKpiScalarsRawAsync(_tenant.EffectiveCompanyId, _tenant.IsSuperAdmin, thirtyDaysAgo, now.Month, lastMonth);
-
-        var scalars = await execScalarsTask;
-        var hrScalars = await hrScalarsTask;
+        var hrScalars = await _dashRepo.GetAllKpiScalarsRawAsync(_tenant.EffectiveCompanyId, _tenant.IsSuperAdmin, thirtyDaysAgo, now.Month, lastMonth);
 
         // Phase 2: Sequential EF queries for lists/complex logic
         var topSelling = await _productRepo.GetTopSellingAsync(Guid.Empty, 5);

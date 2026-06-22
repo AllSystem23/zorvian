@@ -415,6 +415,7 @@ public sealed class AccountingIntegrationTests : IDisposable
             return Task.CompletedTask;
         }
         public Task SaveChangesAsync() => db.SaveChangesAsync();
+        public Task<List<AccountingEntry>> GetListByIdsAsync(IEnumerable<Guid> ids) => db.Set<AccountingEntry>().Include(e => e.Details).Where(e => ids.Contains(e.Id)).ToListAsync();
         public Task<AccountingEntry?> GetByIdAsync(Guid id) => db.Set<AccountingEntry>().Include(e => e.Details).FirstOrDefaultAsync(e => e.Id == id);
         public Task UpdateAsync(AccountingEntry entry) { db.Set<AccountingEntry>().Update(entry); return Task.CompletedTask; }
         public Task<string> GenerateEntryNumberAsync(Guid companyId) => Task.FromResult("AS-" + Guid.NewGuid().ToString("N")[..8]);

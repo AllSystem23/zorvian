@@ -51,6 +51,13 @@ public sealed class AccountingEntryRepository : IAccountingEntryRepository
     private readonly ZorvianDbContext _db;
     public AccountingEntryRepository(ZorvianDbContext db) => _db = db;
 
+    public async Task<List<AccountingEntry>> GetListByIdsAsync(IEnumerable<Guid> ids) =>
+        await _db.Set<AccountingEntry>()
+            .Include(e => e.AccountingPeriod)
+            .Include(e => e.Details).ThenInclude(d => d.Account)
+            .Where(e => ids.Contains(e.Id))
+            .ToListAsync();
+
     public async Task<AccountingEntry?> GetByIdAsync(Guid id) =>
         await _db.Set<AccountingEntry>()
             .Include(e => e.AccountingPeriod)
@@ -115,6 +122,11 @@ public sealed class AccountingPeriodRepository : IAccountingPeriodRepository
 {
     private readonly ZorvianDbContext _db;
     public AccountingPeriodRepository(ZorvianDbContext db) => _db = db;
+
+    public async Task<List<AccountingPeriod>> GetListByIdsAsync(IEnumerable<Guid> ids) =>
+        await _db.Set<AccountingPeriod>()
+            .Where(p => ids.Contains(p.Id))
+            .ToListAsync();
 
     public async Task<List<AccountingPeriod>> GetAllAsync(Guid companyId) =>
         await _db.Set<AccountingPeriod>().Where(p => p.CompanyId == companyId).OrderByDescending(p => p.Year).ThenByDescending(p => p.Month).ToListAsync();

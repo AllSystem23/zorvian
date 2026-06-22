@@ -321,19 +321,22 @@ class _LoginFormState extends ConsumerState<LoginForm> {
                   data: theme.copyWith(
                     unselectedWidgetColor: ZColors.neutral500,
                   ),
-                  child: CheckboxListTile(
-                    value: _rememberMe,
-                    onChanged: (v) => setState(() => _rememberMe = v ?? false),
-                    title: Text(
-                      'Recordar sesión en este dispositivo',
-                      style: ZTypography.bodySmall.copyWith(color: ZColors.neutral300),
+                  child: Material(
+                    type: MaterialType.transparency,
+                    child: CheckboxListTile(
+                      value: _rememberMe,
+                      onChanged: (v) => setState(() => _rememberMe = v ?? false),
+                      title: Text(
+                        'Recordar sesión en este dispositivo',
+                        style: ZTypography.bodySmall.copyWith(color: ZColors.neutral300),
+                      ),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      activeColor: ZColors.brandAccent,
+                      checkColor: ZColors.brandPrimary,
+                      side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
                     ),
-                    controlAffinity: ListTileControlAffinity.leading,
-                    contentPadding: EdgeInsets.zero,
-                    dense: true,
-                    activeColor: ZColors.brandAccent,
-                    checkColor: ZColors.brandPrimary,
-                    side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
                   ),
                 ),
                 const SizedBox(height: 32),

@@ -22,6 +22,7 @@ public interface IAccountRepository
 
 public interface IAccountingEntryRepository
 {
+    Task<List<AccountingEntry>> GetListByIdsAsync(IEnumerable<Guid> ids);
     Task<AccountingEntry?> GetByIdAsync(Guid id);
     Task<List<AccountingEntry>> GetPostedWithDetailsAsync(Guid? periodId, Guid companyId, DateTime? toDate = null);
     Task<List<AccountingEntry>> GetFilteredAsync(Guid? periodId, string? referenceType, string? status, DateTime? fromDate, DateTime? toDate, Guid companyId, int page, int pageSize);
@@ -35,6 +36,7 @@ public interface IAccountingEntryRepository
 
 public interface IAccountingPeriodRepository
 {
+    Task<List<AccountingPeriod>> GetListByIdsAsync(IEnumerable<Guid> ids);
     Task<List<AccountingPeriod>> GetAllAsync(Guid companyId);
     Task<AccountingPeriod?> GetByIdAsync(Guid id);
     Task<AccountingPeriod?> GetCurrentOpenAsync(Guid companyId);

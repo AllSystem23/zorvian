@@ -57,8 +57,7 @@ public sealed class FinancialReportService
             throw new KeyNotFoundException("Period not found for this company");
 
         var posted = await _entryRepo.GetFilteredAsync(periodId, null, "posted", null, null, CompanyId, 1, int.MaxValue);
-        var allEntries = (await Task.WhenAll(posted.Select(async e => await _entryRepo.GetByIdAsync(e.Id))))
-            .Where(e => e != null).Cast<AccountingEntry>().ToList();
+        var allEntries = await _entryRepo.GetListByIdsAsync(posted.Select(e => e.Id));
         var entryMap = allEntries.ToDictionary(e => e.Id);
         var details = allEntries.SelectMany(e => e.Details).ToList();
 
@@ -147,8 +146,7 @@ public sealed class FinancialReportService
         if (account is null) return null;
 
         var posted = await _entryRepo.GetFilteredAsync(null, null, "posted", fromDate, toDate, CompanyId, 1, int.MaxValue);
-        var allEntries = (await Task.WhenAll(posted.Select(async e => await _entryRepo.GetByIdAsync(e.Id))))
-            .Where(e => e != null).Cast<AccountingEntry>()
+        var allEntries = (await _entryRepo.GetListByIdsAsync(posted.Select(e => e.Id)))
             .OrderBy(e => e.EntryDate)
             .ToList();
 
@@ -183,8 +181,7 @@ public sealed class FinancialReportService
     {
         var cc = await GetCompanyCurrencyAsync();
         var posted = await _entryRepo.GetFilteredAsync(null, null, "posted", fromDate, toDate, CompanyId, 1, int.MaxValue);
-        var allEntries = (await Task.WhenAll(posted.Select(async e => await _entryRepo.GetByIdAsync(e.Id))))
-            .Where(e => e != null).Cast<AccountingEntry>().ToList();
+        var allEntries = await _entryRepo.GetListByIdsAsync(posted.Select(e => e.Id));
         var entryMap = allEntries.ToDictionary(e => e.Id);
         var relevantDetails = allEntries
             .SelectMany(e => e.Details)
@@ -225,8 +222,7 @@ public sealed class FinancialReportService
 
         var budgets = await _budgetRepo.GetByPeriodAsync(year, month, CompanyId);
         var posted = await _entryRepo.GetFilteredAsync(null, null, "posted", fromDate, toDate, CompanyId, 1, int.MaxValue);
-        var allEntries = (await Task.WhenAll(posted.Select(async e => await _entryRepo.GetByIdAsync(e.Id))))
-            .Where(e => e != null).Cast<AccountingEntry>().ToList();
+        var allEntries = await _entryRepo.GetListByIdsAsync(posted.Select(e => e.Id));
         var entryMap = allEntries.ToDictionary(e => e.Id);
         var details = allEntries.SelectMany(e => e.Details).ToList();
 
