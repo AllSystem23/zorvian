@@ -128,6 +128,11 @@ public sealed class DocumentService : IDocumentService
         return await _docRepo.GetByIdAsync(documentId);
     }
 
+    public async Task<string> RenderLiquidPreviewAsync(string templateContent, object variableData)
+    {
+        return await RenderLiquidTemplate(templateContent, variableData);
+    }
+
     private async Task<string> RenderLiquidTemplate(string source, object model)
     {
         if (!_parser.TryParse(source, out var template, out var error))

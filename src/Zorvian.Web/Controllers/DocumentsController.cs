@@ -109,6 +109,36 @@ public sealed class DocumentsController : ControllerBase
     }
 
     /// <summary>
+    /// Preview: renderiza el HTML de una plantilla con datos de ejemplo SIN persistir.
+    /// </summary>
+    [RequirePermission(Permissions.DocumentRead)]
+    [HttpPost("preview")]
+    public async Task<IActionResult> PreviewTemplate([FromBody] PreviewRequest request)
+    {
+        string templateContent;
+
+        if (!string.IsNullOrEmpty(request.Content))
+        {
+            // Direct HTML content from the editor (unsaved template)
+            templateContent = request.Content;
+        }
+        else if (request.TemplateId.HasValue)
+        {
+            var template = await _templateRepo.GetByIdAsync(request.TemplateId.Value);
+            if (template == null) return NotFound(new { detail = "Plantilla no encontrada" });
+            templateContent = template.Content;
+        }
+        else
+        {
+            return BadRequest(new { detail = "Se requiere templateId o content" });
+        }
+
+        var data = request.Variables ?? GetDefaultSampleData();
+        var renderedHtml = await _documentService.RenderLiquidPreviewAsync(templateContent, data);
+        return Ok(new { html = renderedHtml });
+    }
+
+    /// <summary>
     /// REGLA DE 3 CLICS: Genera un contrato de empleado y lo deja listo para firma.
     /// </summary>
     [RequirePermission(Permissions.DocumentWrite)]
@@ -141,9 +171,56 @@ public sealed class DocumentsController : ControllerBase
         await _documentService.FinalizeAndRequestSignatureAsync(id, request.Role, request.SignerId);
         return NoContent();
     }
+
+    private static Dictionary<string, string> GetDefaultSampleData()
+    {
+        var data = new Dictionary<string, string>
+        {
+            ["Company.Name"] = "Zorvian Corp S.A.",
+            ["Company.Date"] = DateTime.Now.ToString("dd/MM/yyyy"),
+            ["Company.TaxId"] = "J001234567-8",
+            ["Employee.FullName"] = "Juan Carlos Perez",
+            ["Employee.Position"] = "Gerente de Operaciones",
+            ["Employee.Salary"] = "25,000.00",
+            ["Employee.HireDate"] = "01/03/2024",
+            ["Employee.Identification"] = "001-120590-0001X",
+            ["Sale.Number"] = "VT-2024-0001",
+            ["Sale.ClientName"] = "Maria Lopez",
+            ["Sale.Total"] = "15,750.00",
+            ["Sale.Date"] = DateTime.Now.ToString("dd/MM/yyyy"),
+            ["client_name"] = "Maria Lopez",
+            ["employee_name"] = "Juan Carlos Perez",
+            ["employee_id"] = "001-120590-0001X",
+            ["position"] = "Gerente de Operaciones",
+            ["salary"] = "25,000.00",
+            ["start_date"] = "01/03/2024",
+            ["department"] = "Operaciones",
+            ["candidate_name"] = "Ana Maria Rodriguez",
+            ["grantor_name"] = "Pedro Sanchez",
+            ["grantor_id"] = "001-150685-0002Y",
+            ["attorney_name"] = "Laura Martinez",
+            ["attorney_id"] = "001-200390-0003Z",
+            ["powers"] = "Firmar contratos, representar legalmente y gestionar cuentas bancarias.",
+            ["quote_number"] = "COT-2024-0001",
+            ["quote_date"] = DateTime.Now.ToString("dd/MM/yyyy"),
+            ["delivery_date"] = DateTime.Now.ToString("dd/MM/yyyy"),
+            ["benefits"] = "Seguro medico, bono de productividad",
+            ["payment_terms"] = "30 dias",
+            ["notes"] = "Oferta sujeta a disponibilidad de inventario.",
+            ["purpose"] = "Tramite bancario",
+            ["carrier"] = "Transportes rapidos S.A.",
+            ["received_by"] = "Roberto Díaz",
+            ["invoice_ref"] = "FAC-2024-0042",
+            ["validity_days"] = "15",
+            ["scope"] = "Para gestionar asuntos legales y financieros.",
+        };
+
+        return data;
+    }
 }
 
 public record QuickGenerateRequest(Guid EntityId, Guid TemplateId);
 public record FinalizeRequest(string Role, Guid SignerId);
 public record DocumentTemplateDto(string Name, string Category, string Content, string CountryCode, string? Module, string? Variables);
 public record GenerateDocumentRequest(Guid TemplateId, Guid EntityId, Dictionary<string, string> Variables);
+public record PreviewRequest(Guid? TemplateId, string? Content, Dictionary<string, string>? Variables);

@@ -27,4 +27,10 @@ public interface IDocumentService
     /// Obtiene el historial completo de un documento, incluyendo versiones y firmas.
     /// </summary>
     Task<GeneratedDocument?> GetDocumentDetailsAsync(Guid documentId);
+
+    /// <summary>
+    /// Renderiza un template Liquid con datos de ejemplo sin persistir nada.
+    /// Usado para vista previa en el editor de plantillas.
+    /// </summary>
+    Task<string> RenderLiquidPreviewAsync(string templateContent, object variableData);
 }

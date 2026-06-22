@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_html/flutter_html.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../auth/auth_provider.dart';
 import '../../../shared/ds/ds.dart';
 import '../models/document_models.dart';
 import '../providers/document_provider.dart';
@@ -24,6 +26,7 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
   String _module = 'Employee';
   bool _loading = false;
   bool _previewMode = false;
+  String? _renderedHtml;
 
   final _categories = ['HR', 'Sales', 'Legal', 'Finance', 'General'];
   final _modules    = ['Employee', 'Sale', 'Credit', 'Warranty', 'General'];
@@ -138,8 +141,19 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
           IconButton(
             icon: Icon(_previewMode ? Icons.edit_outlined : Icons.preview_outlined),
             tooltip: _previewMode ? 'Modo Edición' : 'Vista Previa',
-            onPressed: () => setState(() => _previewMode = !_previewMode),
+            onPressed: () => setState(() {
+              _previewMode = !_previewMode;
+              _renderedHtml = null;
+            }),
           ),
+          if (_previewMode)
+            IconButton(
+              icon: _renderedHtml != null
+                  ? const Icon(Icons.code_outlined, size: 20)
+                  : const Icon(Icons.play_circle_outline, size: 20),
+              tooltip: _renderedHtml != null ? 'Ver HTML crudo' : 'Renderizar con datos',
+              onPressed: () => _toggleRenderedPreview(),
+            ),
           const SizedBox(width: 8),
           FilledButton.icon(
             icon: _loading
@@ -253,40 +267,63 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
         padding: const EdgeInsets.all(32),
         child: Column(
           children: [
-            ZCard(
-              padding: const EdgeInsets.all(40),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Image.asset('assets/Zorvian.png', height: 36),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(_nameCtrl.text.isNotEmpty ? _nameCtrl.text : 'Sin título',
-                                style: ZTypography.titleLarge.copyWith(fontWeight: FontWeight.w700)),
-                            Text(_category.categoryLabel,
-                                style: ZTypography.labelSmall.copyWith(color: ZColors.neutral500)),
-                          ],
-                        ),
-                      ),
-                      Text('v1.0 | ${_countryCode == "ALL" ? "Global" : _countryCode}',
-                          style: ZTypography.labelSmall.copyWith(color: ZColors.neutral400)),
-                    ],
-                  ),
-                  const Divider(height: 32),
-                  SelectableText(
-                    _contentCtrl.text
-                        .replaceAll(RegExp(r'<[^>]*>'), '')
-                        .replaceAll('&nbsp;', ' '),
-                    style: ZTypography.bodyMedium.copyWith(height: 1.8),
-                  ),
-                ],
+            // Rendered preview with real Liquid data
+            if (_renderedHtml != null)
+              ZCard(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.auto_fix_high, size: 18, color: ZColors.brandAccent),
+                        const SizedBox(width: 8),
+                        Text('VISTA PREVIA RENDERIZADA', style: ZTypography.labelSmall.copyWith(color: ZColors.brandAccent, letterSpacing: 1.2, fontWeight: FontWeight.w600)),
+                        const Spacer(),
+                        Text('Datos de ejemplo', style: ZTypography.labelSmall.copyWith(color: ZColors.neutral400)),
+                      ],
+                    ),
+                    const Divider(height: 24),
+                    Html(data: _renderedHtml!),
+                  ],
+                ),
               ),
-            ),
+            // Static preview (raw Liquid text)
+            if (_renderedHtml == null)
+              ZCard(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Image.asset('assets/Zorvian.png', height: 36),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(_nameCtrl.text.isNotEmpty ? _nameCtrl.text : 'Sin título',
+                                  style: ZTypography.titleLarge.copyWith(fontWeight: FontWeight.w700)),
+                              Text(_category.categoryLabel,
+                                  style: ZTypography.labelSmall.copyWith(color: ZColors.neutral500)),
+                            ],
+                          ),
+                        ),
+                        Text('v1.0 | ${_countryCode == "ALL" ? "Global" : _countryCode}',
+                            style: ZTypography.labelSmall.copyWith(color: ZColors.neutral400)),
+                      ],
+                    ),
+                    const Divider(height: 32),
+                    SelectableText(
+                      _contentCtrl.text
+                          .replaceAll(RegExp(r'<[^>]*>'), '')
+                          .replaceAll('&nbsp;', ' '),
+                      style: ZTypography.bodyMedium.copyWith(height: 1.8),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       );
@@ -519,6 +556,33 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
   </tr>
 </table>''';
     setState(() {});
+  }
+
+  Future<void> _toggleRenderedPreview() async {
+    if (_renderedHtml != null) {
+      setState(() => _renderedHtml = null);
+      return;
+    }
+    setState(() => _loading = true);
+    try {
+      final dio = ref.read(dioClientProvider);
+      final response = await dio.post('documents/preview', data: {
+        'templateId': widget.templateId,
+        'content': _contentCtrl.text,
+        'variables': null,
+      });
+      if (mounted) {
+        setState(() {
+          _renderedHtml = response.data['html'] as String?;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loading = false);
+        ZToast.show(context, 'Error al renderizar: $e', type: ZToastType.error);
+      }
+    }
   }
 }
 
