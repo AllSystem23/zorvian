@@ -67,6 +67,17 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
     } else {
       _contentCtrl.text = _defaultTemplate();
     }
+
+    // Auto-scan content for variables on load (deferred to after first frame)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final count = _scanContentForVariables();
+        if (count > 0) {
+          setState(() {});
+          ZToast.show(context, '🔍 $count variables detectadas en el contenido', type: ZToastType.info);
+        }
+      }
+    });
   }
 
   String _defaultTemplate() => '''<div style="font-family: Arial, sans-serif; line-height: 1.6;">
@@ -352,7 +363,7 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
                 controller: _contentCtrl,
                 maxLines: null,
                 expands: true,
-                onChanged: (_) => setState(() {}),
+                onChanged: (_) => _onContentChanged(),
                 style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
                 decoration: const InputDecoration(
                   contentPadding: EdgeInsets.all(16),
@@ -394,6 +405,15 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
           label: const Text('Tabla'),
           onPressed: _insertTable,
         ),
+        const SizedBox(width: 8),
+        Tooltip(
+          message: 'Escanear contenido y detectar variables',
+          child: OutlinedButton.icon(
+            icon: const Icon(Icons.auto_fix_high, size: 16),
+            label: const Text('Detectar'),
+            onPressed: _manualScanVariables,
+          ),
+        ),
       ],
     );
   }
@@ -425,7 +445,121 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
         ? currentText.substring(0, cursorPos) + variable + currentText.substring(cursorPos)
         : currentText + variable;
     _contentCtrl.text = newText;
-    setState(() {});
+
+    // Auto-detect: extract key from {{ Key }} and auto-create custom var
+    final key = _extractKeyFromVariable(variable);
+    if (key != null && !_customVars.any((v) => v.keyCtrl.text == key)) {
+      final detectedType = _autoDetectType(key);
+      setState(() {
+        _customVars.add(_VariableDef(
+          keyCtrl: TextEditingController(text: key),
+          label: TextEditingController(text: _keyToLabel(key)),
+          type: detectedType,
+          required: false,
+        ));
+      });
+      ZToast.show(context, 'Variable detectada: ${_keyToLabel(key)} (${_typeLabel(detectedType)})', type: ZToastType.success);
+    } else {
+      setState(() {});
+    }
+  }
+
+  /// Extracts the key from a Liquid variable like "{{ Employee.Salary }}" -> "Employee.Salary"
+  String? _extractKeyFromVariable(String variable) {
+    final match = RegExp(r'\{\{\s*([\w.]+)(?:\s*\|.*)?\s*\}\}').firstMatch(variable);
+    return match?.group(1);
+  }
+
+  /// Auto-detect variable type from its key name using keyword patterns
+  static String _autoDetectType(String key) {
+    final lower = key.toLowerCase();
+
+    // Date patterns
+    if (lower.contains('date') || lower.contains('fecha') ||
+        lower.contains('hired') || lower.contains('created') ||
+        lower.contains('updated') || lower.contains('expir') ||
+        lower.contains('born') || lower.contains('birth') ||
+        lower.contains('start') || lower.contains('end') ||
+        lower.contains('deadline') || lower.contains('due')) {
+      return 'date';
+    }
+
+    // Number patterns
+    if (lower.contains('salary') || lower.contains('total') ||
+        lower.contains('amount') || lower.contains('price') ||
+        lower.contains('cost') || lower.contains('tax') ||
+        lower.contains('qty') || lower.contains('quantity') ||
+        lower.contains('num') || lower.contains('rate') ||
+        lower.contains('percent') || lower.contains('discount') ||
+        lower.contains('balance') || lower.contains('payment') ||
+        lower.contains('income') || lower.contains('expense') ||
+        lower.contains('revenue') || lower.contains('profit') ||
+        lower.contains('subtotal') || lower.contains('iva') ||
+        lower.contains('saldo') || lower.contains('monto') ||
+        lower.contains('precio') || lower.contains('costo') ||
+        lower.contains('impuesto')) {
+      return 'number';
+    }
+
+    // Checkbox patterns
+    if (lower.startsWith('is_') || lower.startsWith('has_') ||
+        lower.contains('active') || lower.contains('enabled') ||
+        lower.contains('flag') || lower.contains('approved') ||
+        lower.contains('authorized') || lower.contains('paid') ||
+        lower.contains('verified') || lower.contains('activo') ||
+        lower.contains('habilitado') || lower.contains('aprobado') ||
+        lower.contains('autorizado') || lower.contains('pagado') ||
+        lower.contains('verificado')) {
+      return 'checkbox';
+    }
+
+    return 'text';
+  }
+
+  /// Converts a dot-separated key to a human-readable label
+  /// e.g. "Employee.Salary" -> "Employee Salary"
+  static String _keyToLabel(String key) {
+    return key
+        .replaceAll('.', ' ')
+        .replaceAll('_', ' ')
+        .split(' ')
+        .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
+        .join(' ');
+  }
+
+  /// Human-readable type labels
+  static String _typeLabel(String type) => switch (type) {
+    'date' => '📅 Fecha',
+    'number' => '🔢 Numérico',
+    'checkbox' => '☑️ Casilla',
+    'select' => '📋 Selección',
+    'textarea' => '📝 Texto largo',
+    _ => '✏️ Texto',
+  };
+
+  /// Scans the HTML content for {{ variable }} patterns and auto-creates
+  /// custom variable definitions for any that are not yet defined.
+  int _scanContentForVariables() {
+    final content = _contentCtrl.text;
+    final matches = RegExp(r'\{\{\s*([\w.]+)(?:\s*\|.*)?\s*\}\}').allMatches(content);
+    final existingKeys = _customVars.map((v) => v.keyCtrl.text).toSet();
+    int added = 0;
+
+    for (final match in matches) {
+      final key = match.group(1)!;
+      if (!existingKeys.contains(key)) {
+        final detectedType = _autoDetectType(key);
+        _customVars.add(_VariableDef(
+          keyCtrl: TextEditingController(text: key),
+          label: TextEditingController(text: _keyToLabel(key)),
+          type: detectedType,
+          required: false,
+        ));
+        existingKeys.add(key);
+        added++;
+      }
+    }
+    return added;
   }
 
   void _addCustomVariable() {
@@ -579,6 +713,35 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
         ),
       ),
     );
+  }
+
+  // Debounce for content scanning
+  DateTime? _lastScanTime;
+
+  void _onContentChanged() {
+    setState(() {});
+    // Debounced auto-scan: reschedule on each keystroke, fire after 500ms of inactivity
+    _lastScanTime = DateTime.now();
+    final capturedTime = _lastScanTime!;
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted && _lastScanTime == capturedTime) {
+        final count = _scanContentForVariables();
+        if (count > 0) {
+          setState(() {});
+          ZToast.show(context, '🔍 $count nuevas variables detectadas', type: ZToastType.info);
+        }
+      }
+    });
+  }
+
+  void _manualScanVariables() {
+    final count = _scanContentForVariables();
+    if (count > 0) {
+      setState(() {});
+      ZToast.show(context, '🔍 $count variables detectadas y agregadas', type: ZToastType.success);
+    } else {
+      ZToast.show(context, '✅ No hay variables nuevas por detectar', type: ZToastType.info);
+    }
   }
 
   void _wrapSelection(String open, String close) {
