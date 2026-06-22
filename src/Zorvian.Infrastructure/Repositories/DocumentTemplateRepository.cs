@@ -15,16 +15,16 @@ public sealed class DocumentTemplateRepository : IDocumentTemplateRepository
     }
 
     public async Task<DocumentTemplate?> GetByIdAsync(Guid id) =>
-        await _db.DocumentTemplates.FirstOrDefaultAsync(t => t.Id == id);
+        await _db.DocumentTemplates.IgnoreQueryFilters().FirstOrDefaultAsync(t => t.Id == id);
 
     public async Task<List<DocumentTemplate>> GetAllAsync() =>
-        await _db.DocumentTemplates.Where(t => t.IsActive).ToListAsync();
+        await _db.DocumentTemplates.IgnoreQueryFilters().Where(t => t.IsActive).ToListAsync();
 
     public async Task<(List<DocumentTemplate> Items, int Total)> GetFilteredAsync(
         string? category, string? countryCode, string? search, string? module,
         bool? isActive, int page, int pageSize)
     {
-        var query = _db.DocumentTemplates.AsQueryable();
+        var query = _db.DocumentTemplates.IgnoreQueryFilters().AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(category))
             query = query.Where(t => t.Category == category);
@@ -50,12 +50,12 @@ public sealed class DocumentTemplateRepository : IDocumentTemplateRepository
     }
 
     public async Task<List<DocumentTemplate>> GetByCategoryAsync(string category) =>
-        await _db.DocumentTemplates
+        await _db.DocumentTemplates.IgnoreQueryFilters()
             .Where(t => t.Category == category && t.IsActive)
             .ToListAsync();
 
     public async Task<List<DocumentTemplate>> GetByCountryAsync(string countryCode) =>
-        await _db.DocumentTemplates
+        await _db.DocumentTemplates.IgnoreQueryFilters()
             .Where(t => (t.CountryCode == countryCode || t.CountryCode == "ALL") && t.IsActive)
             .ToListAsync();
 
