@@ -5,13 +5,18 @@ namespace Zorvian.Infrastructure.Services;
 
 public sealed class EmbeddingService : IEmbeddingService
 {
-    private readonly PredictionServiceClient _client;
+    private PredictionServiceClient? _client;
     private readonly string _endpoint;
 
     public EmbeddingService(string projectId, string location, string endpoint)
     {
-        _client = PredictionServiceClient.Create();
         _endpoint = $"projects/{projectId}/locations/{location}/publishers/google/models/{endpoint}";
+    }
+
+    private PredictionServiceClient GetClient()
+    {
+        _client ??= PredictionServiceClient.Create();
+        return _client;
     }
 
     public async Task<float[]> GenerateEmbeddingAsync(string text)
@@ -24,7 +29,7 @@ public sealed class EmbeddingService : IEmbeddingService
             }
         };
 
-        var response = await _client.PredictAsync(_endpoint, new[] { instance }, null);
+        var response = await GetClient().PredictAsync(_endpoint, new[] { instance }, null);
         
         // Extract embedding values from response
         var prediction = response.Predictions[0].StructValue.Fields["embedding"].ListValue;

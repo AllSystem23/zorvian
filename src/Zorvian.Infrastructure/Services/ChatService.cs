@@ -8,15 +8,20 @@ public sealed class ChatService : IChatService
 {
     private readonly ZorvianDbContext _db;
     private readonly IEmbeddingService _embeddingService;
-    private readonly Google.Cloud.AIPlatform.V1.PredictionServiceClient _client;
+    private Google.Cloud.AIPlatform.V1.PredictionServiceClient? _client;
     private readonly string _endpoint;
 
     public ChatService(ZorvianDbContext db, IEmbeddingService embeddingService, string projectId, string location)
     {
         _db = db;
         _embeddingService = embeddingService;
-        _client = Google.Cloud.AIPlatform.V1.PredictionServiceClient.Create();
         _endpoint = $"projects/{projectId}/locations/{location}/publishers/google/models/gemini-1.5-flash";
+    }
+
+    private Google.Cloud.AIPlatform.V1.PredictionServiceClient GetClient()
+    {
+        _client ??= Google.Cloud.AIPlatform.V1.PredictionServiceClient.Create();
+        return _client;
     }
 
     public async Task<string> ChatAsync(string tenantId, string question)
@@ -56,7 +61,7 @@ Pregunta:
         // Use fully qualified names to avoid ambiguity
         var instance = Google.Protobuf.WellKnownTypes.Value.Parser.ParseJson(json);
         
-        var response = await _client.PredictAsync(_endpoint, new[] { instance }, null);
+        var response = await GetClient().PredictAsync(_endpoint, new[] { instance }, null);
         
         // Extract text from response - access via AIPlatform Struct structure
         var prediction = response.Predictions[0].StructValue.Fields["candidates"].ListValue.Values[0].StructValue.Fields["content"].StructValue.Fields["parts"].ListValue.Values[0].StructValue.Fields["text"].StringValue;

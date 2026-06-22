@@ -5,13 +5,18 @@ namespace Zorvian.Infrastructure.Services;
 
 public sealed class AiDocumentService : IAiDocumentService
 {
-    private readonly PredictionServiceClient _client;
+    private PredictionServiceClient? _client;
     private readonly string _endpoint;
 
     public AiDocumentService(string projectId, string location)
     {
-        _client = PredictionServiceClient.Create();
         _endpoint = $"projects/{projectId}/locations/{location}/publishers/google/models/gemini-1.5-flash";
+    }
+
+    private PredictionServiceClient GetClient()
+    {
+        _client ??= PredictionServiceClient.Create();
+        return _client;
     }
 
     public async Task<string> SummarizeDocumentAsync(string content)
@@ -98,7 +103,7 @@ Identifica qué documentos obligatorios faltan según las políticas corporativa
     private async Task<string> PredictRawAsync(string json)
     {
         var instance = Google.Protobuf.WellKnownTypes.Value.Parser.ParseJson(json);
-        var response = await _client.PredictAsync(_endpoint, new[] { instance }, null);
+        var response = await GetClient().PredictAsync(_endpoint, new[] { instance }, null);
         
         return response.Predictions[0].StructValue.Fields["candidates"].ListValue.Values[0].StructValue.Fields["content"].StructValue.Fields["parts"].ListValue.Values[0].StructValue.Fields["text"].StringValue;
     }

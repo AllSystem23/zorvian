@@ -5,18 +5,18 @@ namespace Zorvian.Infrastructure.Services;
 
 public sealed class OcrService : IOcrService
 {
-    private readonly ImageAnnotatorClient _client;
+    private ImageAnnotatorClient? _client;
 
-    public OcrService()
+    private ImageAnnotatorClient GetClient()
     {
-        // Google Vision Client automatically uses Application Default Credentials
-        _client = ImageAnnotatorClient.Create();
+        _client ??= ImageAnnotatorClient.Create();
+        return _client;
     }
 
     public async Task<string> ExtractTextAsync(Stream fileStream)
     {
         var image = Image.FromStream(fileStream);
-        var response = await _client.DetectDocumentTextAsync(image);
+        var response = await GetClient().DetectDocumentTextAsync(image);
         return response.Text;
     }
 }
