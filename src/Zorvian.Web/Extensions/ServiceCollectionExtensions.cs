@@ -36,16 +36,18 @@ public static class ServiceCollectionExtensions
     {
         if (!mockExternal)
         {
-            try
-            {
-                var _ = FirebaseApp.DefaultInstance;
-                return services;
-            }
-            catch { }
-
             var projectId = configuration["Firebase:ProjectId"];
             var loggerFactory = LoggerFactory.Create(b => b.AddConsole());
             var logger = loggerFactory.CreateLogger("FirebaseInit");
+
+            // Skip if already initialized (e.g. by another call)
+            if (FirebaseApp.DefaultInstance != null)
+            {
+                logger.LogInformation("FirebaseApp already initialized");
+                return services;
+            }
+
+            logger.LogInformation("Initializing FirebaseApp (ProjectId={ProjectId})...", projectId);
 
             var credJson = configuration["Firebase:CredentialsJson"];
             if (!string.IsNullOrEmpty(credJson))
@@ -70,16 +72,27 @@ public static class ServiceCollectionExtensions
 
             var credPath = configuration["Firebase:CredentialsFilePath"] ?? string.Empty;
             var fbCredFile = Path.Combine(AppContext.BaseDirectory, credPath);
+            logger.LogInformation("Checking {Path}", fbCredFile);
             if (!File.Exists(fbCredFile))
+            {
                 fbCredFile = Path.Combine("/etc/secrets", credPath);
+                logger.LogInformation("File not found, checking {Path}", fbCredFile);
+            }
             if (File.Exists(fbCredFile))
             {
-                FirebaseApp.Create(new AppOptions
+                try
                 {
-                    Credential = CredentialFactory.FromFile<ServiceAccountCredential>(fbCredFile).ToGoogleCredential().CreateScoped(),
-                    ProjectId = projectId,
-                });
-                logger.LogInformation("FirebaseApp initialized from file: {Path}", fbCredFile);
+                    FirebaseApp.Create(new AppOptions
+                    {
+                        Credential = CredentialFactory.FromFile<ServiceAccountCredential>(fbCredFile).ToGoogleCredential().CreateScoped(),
+                        ProjectId = projectId,
+                    });
+                    logger.LogInformation("FirebaseApp initialized from file: {Path}", fbCredFile);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Failed to create FirebaseApp from file: {Path}", fbCredFile);
+                }
             }
             else
             {
