@@ -140,6 +140,15 @@ app.UseAuthentication();
 app.UseTenantMiddleware();
 app.UseAuthorization();
 
+// ── Seed document templates ──
+if (!mockExternal)
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<Zorvian.Infrastructure.Data.ZorvianDbContext>();
+    var seedLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    await Zorvian.Infrastructure.Data.DocumentTemplateSeeder.SeedAsync(db, seedLogger);
+}
+
 // ── Endpoints ──
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapControllers();
