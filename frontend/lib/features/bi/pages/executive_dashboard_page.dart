@@ -95,14 +95,19 @@ class _ExecutiveDashboardPageState extends ConsumerState<ExecutiveDashboardPage>
             ratiosAsync.when(
               loading: () => const SizedBox(height: 200, child: Center(child: CircularProgressIndicator())),
               error: (e, _) => ZCard(padding: const EdgeInsets.all(16), child: Text('Error: $e')),
-              data: (ratios) => Wrap(
-                spacing: 16, runSpacing: 16,
-                children: [
-                  SizedBox(width: 120, height: 120, child: BiGauge(value: ratios.currentRatio, max: 3, label: 'Liquidez', color: ratios.currentRatio >= 1.5 ? Colors.green : Colors.red)),
-                  SizedBox(width: 120, height: 120, child: BiGauge(value: ratios.quickRatio, max: 2, label: 'Prueba Ácida', color: ratios.quickRatio >= 1 ? Colors.green : Colors.red)),
-                  SizedBox(width: 120, height: 120, child: BiGauge(value: ratios.debtRatio, max: 1, label: 'Endeudamiento', color: ratios.debtRatio <= 0.5 ? Colors.green : Colors.red)),
-                  SizedBox(width: 120, height: 120, child: BiGauge(value: ratios.roe, max: 0.5, label: 'ROE', color: ratios.roe >= 0.1 ? Colors.green : Colors.red)),
-                ],
+              data: (ratios) => LayoutBuilder(
+                builder: (ctx, constraints) {
+                  final gaugeWidth = ((constraints.maxWidth - 48) / 4).clamp(80.0, 140.0);
+                  return Wrap(
+                    spacing: 12, runSpacing: 12,
+                    children: [
+                      SizedBox(width: gaugeWidth, height: gaugeWidth, child: BiGauge(value: ratios.currentRatio, max: 3, label: 'Liquidez', color: ratios.currentRatio >= 1.5 ? Colors.green : Colors.red)),
+                      SizedBox(width: gaugeWidth, height: gaugeWidth, child: BiGauge(value: ratios.quickRatio, max: 2, label: 'Prueba Ácida', color: ratios.quickRatio >= 1 ? Colors.green : Colors.red)),
+                      SizedBox(width: gaugeWidth, height: gaugeWidth, child: BiGauge(value: ratios.debtRatio, max: 1, label: 'Endeudamiento', color: ratios.debtRatio <= 0.5 ? Colors.green : Colors.red)),
+                      SizedBox(width: gaugeWidth, height: gaugeWidth, child: BiGauge(value: ratios.roe, max: 0.5, label: 'ROE', color: ratios.roe >= 0.1 ? Colors.green : Colors.red)),
+                    ],
+                  );
+                },
               ),
             ),
           ],

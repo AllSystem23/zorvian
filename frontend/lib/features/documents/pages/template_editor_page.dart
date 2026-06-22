@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -34,10 +35,12 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
     'Venta':    ['{{ Sale.Number }}', '{{ Sale.ClientName }}', '{{ Sale.Total }}', '{{ Sale.Date }}'],
   };
 
+  // ── Dynamic variables builder ──
+  final List<_VariableDef> _customVars = [];
+
   @override
   void initState() {
     super.initState();
-    // If editing, pre-fill from state
     if (widget.templateId != null) {
       final templates = ref.read(documentProvider).templates;
       final existing = templates.where((t) => t.id == widget.templateId).firstOrNull;
@@ -47,6 +50,15 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
         _category = existing.category;
         _countryCode = existing.countryCode;
         _module = existing.module ?? 'General';
+        // Parse existing variables from template
+        for (final v in existing.variables) {
+          _customVars.add(_VariableDef(
+            keyCtrl: TextEditingController(text: v.key),
+            label: TextEditingController(text: v.label),
+            type: v.type,
+            required: v.required,
+          ));
+        }
       }
     } else {
       _contentCtrl.text = _defaultTemplate();
@@ -72,12 +84,28 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
   void dispose() {
     _nameCtrl.dispose();
     _contentCtrl.dispose();
+    for (final v in _customVars) {
+      v.keyCtrl.dispose();
+      v.label.dispose();
+    }
     super.dispose();
   }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
+
+    // Build variables JSON from custom vars
+    final variablesJson = _customVars
+        .where((v) => v.keyCtrl.text.trim().isNotEmpty)
+        .map((v) => {
+          'key': v.keyCtrl.text.trim(),
+          'label': v.label.text.trim(),
+          'type': v.type,
+          'required': v.required,
+        })
+        .toList();
+
     final error = await ref.read(documentProvider.notifier).saveTemplate({
       'name': _nameCtrl.text.trim(),
       'category': _category,
@@ -86,6 +114,7 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
       'module': _module,
       'isActive': true,
       'version': '1.0',
+      'variables': variablesJson.isNotEmpty ? jsonEncode(variablesJson) : null,
     });
     if (mounted) {
       setState(() => _loading = false);
@@ -178,7 +207,7 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
             onChanged: (v) => setState(() => _countryCode = v!),
           ),
           const SizedBox(height: 32),
-          Text('VARIABLES DISPONIBLES', style: ZTypography.labelSmall.copyWith(color: ZColors.neutral500, letterSpacing: 1.2)),
+          Text('VARIABLES RÁPIDAS', style: ZTypography.labelSmall.copyWith(color: ZColors.neutral500, letterSpacing: 1.2)),
           const SizedBox(height: 12),
           for (final entry in _variables.entries) ...[
             Text(entry.key, style: ZTypography.labelMedium.copyWith(fontWeight: FontWeight.w600)),
@@ -193,6 +222,26 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
             ),
             const SizedBox(height: 16),
           ],
+          const Divider(height: 32),
+          Row(
+            children: [
+              Expanded(child: Text('VARIABLES PERSONALIZADAS', style: ZTypography.labelSmall.copyWith(color: ZColors.neutral500, letterSpacing: 1.2))),
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline, size: 20),
+                tooltip: 'Agregar variable',
+                onPressed: _addCustomVariable,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          if (_customVars.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text('Sin variables definidas. Haz clic en + para agregar.',
+                style: ZTypography.bodySmall.copyWith(color: ZColors.neutral400, fontStyle: FontStyle.italic)),
+            ),
+          for (int i = 0; i < _customVars.length; i++)
+            _buildVariableRow(i),
         ],
       ),
     );
@@ -333,6 +382,121 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
     setState(() {});
   }
 
+  void _addCustomVariable() {
+    setState(() {
+      _customVars.add(_VariableDef(
+        keyCtrl: TextEditingController(),
+        label: TextEditingController(),
+        type: 'text',
+        required: false,
+      ));
+    });
+  }
+
+  void _removeCustomVariable(int index) {
+    setState(() {
+      _customVars[index].keyCtrl.dispose();
+      _customVars[index].label.dispose();
+      _customVars.removeAt(index);
+    });
+  }
+
+  Widget _buildVariableRow(int index) {
+    final v = _customVars[index];
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 0,
+      color: ZColors.neutral50,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: ZColors.neutral200),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: TextField(
+                    controller: v.keyCtrl,
+                    decoration: InputDecoration(
+                      hintText: 'key (ej: client_name)',
+                      isDense: true,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      errorText: v.keyCtrl.text.contains(' ') ? 'Sin espacios' : null,
+                    ),
+                    style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  flex: 4,
+                  child: TextField(
+                    controller: v.label,
+                    decoration: InputDecoration(
+                      hintText: 'Etiqueta',
+                      isDense: true,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    ),
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 16),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                  onPressed: () => _removeCustomVariable(index),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    initialValue: v.type,
+                    isDense: true,
+                    items: const [
+                      DropdownMenuItem(value: 'text', child: Text('Texto')),
+                      DropdownMenuItem(value: 'number', child: Text('Número')),
+                      DropdownMenuItem(value: 'date', child: Text('Fecha')),
+                      DropdownMenuItem(value: 'textarea', child: Text('Texto largo')),
+                    ],
+                    onChanged: (val) => setState(() => v.type = val ?? 'text'),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    ),
+                    style: const TextStyle(fontSize: 11),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Checkbox(
+                      value: v.required,
+                      onChanged: (val) => setState(() => v.required = val ?? false),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    Text('Req.', style: ZTypography.labelSmall.copyWith(fontSize: 10)),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _wrapSelection(String open, String close) {
     final sel = _contentCtrl.selection;
     if (!sel.isValid) return;
@@ -385,4 +549,18 @@ class _VariableChip extends StatelessWidget {
       ),
     );
   }
+}
+
+class _VariableDef {
+  final TextEditingController keyCtrl;
+  final TextEditingController label;
+  String type;
+  bool required;
+
+  _VariableDef({
+    required this.keyCtrl,
+    required this.label,
+    required this.type,
+    required this.required,
+  });
 }

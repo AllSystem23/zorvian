@@ -116,15 +116,61 @@ class _TemplateTile extends ConsumerWidget {
 
   void _generateDialog(BuildContext context, WidgetRef ref) {
     final entityCtrl = TextEditingController();
+    final controllers = <String, TextEditingController>{};
+    for (final v in template.variables) {
+      controllers[v.key] = TextEditingController(text: v.defaultValue ?? '');
+    }
+
     ZModal.show(context, title: 'Generar Documento',
-      child: Column(children: [
-        ZTextField(controller: entityCtrl, label: 'ID Entidad'),
-        const SizedBox(height: 16),
-        ZButton(text: 'Generar', onPressed: () async {
-          Navigator.pop(context);
-          await ref.read(documentProvider.notifier).quickGenerateForEmployee(entityCtrl.text.trim(), template.id);
-        })
-      ]),
+      child: StatefulBuilder(
+        builder: (ctx, setModalState) => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ZTextField(controller: entityCtrl, label: 'ID Entidad'),
+            if (template.variables.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Variables de la Plantilla',
+                  style: ZTypography.labelMedium.copyWith(color: ZColors.brandAccent)),
+              ),
+              const SizedBox(height: 8),
+              ...template.variables.map((v) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: v.type == 'textarea'
+                  ? ZTextField(
+                      controller: controllers[v.key],
+                      label: '${v.label}${v.required ? ' *' : ''}',
+                      maxLines: 3,
+                    )
+                  : ZTextField(
+                      controller: controllers[v.key],
+                      label: '${v.label}${v.required ? ' *' : ''}',
+                    ),
+              )),
+            ],
+            const SizedBox(height: 16),
+            ZButton(text: 'Generar', onPressed: () async {
+              final variables = <String, String>{};
+              for (final v in template.variables) {
+                final val = controllers[v.key]?.text.trim() ?? '';
+                if (v.required && val.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('El campo "${v.label}" es requerido')));
+                  return;
+                }
+                variables[v.key] = val;
+              }
+              Navigator.pop(context);
+              await ref.read(documentProvider.notifier).generateDocument(
+                templateId: template.id,
+                entityId: entityCtrl.text.trim(),
+                variables: variables,
+              );
+            }),
+          ],
+        ),
+      ),
     );
   }
 }

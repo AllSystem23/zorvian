@@ -8,6 +8,9 @@ public interface IDocumentTemplateRepository
     Task<List<DocumentTemplate>> GetAllAsync();
     Task<List<DocumentTemplate>> GetByCategoryAsync(string category);
     Task<List<DocumentTemplate>> GetByCountryAsync(string countryCode);
+    Task<(List<DocumentTemplate> Items, int Total)> GetFilteredAsync(
+        string? category, string? countryCode, string? search, string? module,
+        bool? isActive, int page, int pageSize);
     Task AddAsync(DocumentTemplate template);
     Task UpdateAsync(DocumentTemplate template);
     Task DeleteAsync(DocumentTemplate template);

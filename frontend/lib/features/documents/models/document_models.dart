@@ -1,3 +1,35 @@
+import 'dart:convert';
+
+/// Defines a variable that a template accepts
+class TemplateVariable {
+  final String key;
+  final String label;
+  final String type; // text, number, date, textarea
+  final bool required;
+  final String? placeholder;
+  final String? defaultValue;
+
+  const TemplateVariable({
+    required this.key,
+    required this.label,
+    this.type = 'text',
+    this.required = false,
+    this.placeholder,
+    this.defaultValue,
+  });
+
+  factory TemplateVariable.fromJson(Map<String, dynamic> json) {
+    return TemplateVariable(
+      key: json['key'] as String,
+      label: json['label'] as String,
+      type: json['type'] as String? ?? 'text',
+      required: json['required'] as bool? ?? false,
+      placeholder: json['placeholder'] as String?,
+      defaultValue: json['default'] as String?,
+    );
+  }
+}
+
 /// Model for document templates from the backend
 class DocumentTemplate {
   final String id;
@@ -8,6 +40,7 @@ class DocumentTemplate {
   final String? module;
   final bool isActive;
   final String? version;
+  final List<TemplateVariable> variables;
 
   const DocumentTemplate({
     required this.id,
@@ -18,9 +51,22 @@ class DocumentTemplate {
     this.module,
     this.isActive = true,
     this.version,
+    this.variables = const [],
   });
 
   factory DocumentTemplate.fromJson(Map<String, dynamic> json) {
+    final rawVars = json['variables'];
+    List<TemplateVariable> vars = [];
+    if (rawVars is String && rawVars.isNotEmpty) {
+      try {
+        final parsed = _jsonDecode(rawVars);
+        if (parsed is List) {
+          vars = parsed.map((e) => TemplateVariable.fromJson(e as Map<String, dynamic>)).toList();
+        }
+      } catch (_) {}
+    } else if (rawVars is List) {
+      vars = rawVars.map((e) => TemplateVariable.fromJson(e as Map<String, dynamic>)).toList();
+    }
     return DocumentTemplate(
       id: json['id'] as String,
       name: json['name'] as String,
@@ -30,8 +76,11 @@ class DocumentTemplate {
       module: json['module'] as String?,
       isActive: json['isActive'] as bool? ?? true,
       version: json['version'] as String?,
+      variables: vars,
     );
   }
+
+  static dynamic _jsonDecode(String s) => jsonDecode(s);
 
   Map<String, dynamic> toJson() => {
     'id': id,

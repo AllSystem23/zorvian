@@ -9,12 +9,14 @@ class DocumentState {
   final List<GeneratedDocument> documents;
   final bool loading;
   final String? error;
+  final int totalTemplates;
 
   const DocumentState({
     this.templates = const [],
     this.documents = const [],
     this.loading = false,
     this.error,
+    this.totalTemplates = 0,
   });
 
   DocumentState copyWith({
@@ -22,11 +24,13 @@ class DocumentState {
     List<GeneratedDocument>? documents,
     bool? loading,
     String? error,
+    int? totalTemplates,
   }) => DocumentState(
     templates: templates ?? this.templates,
     documents: documents ?? this.documents,
     loading: loading ?? this.loading,
     error: error,
+    totalTemplates: totalTemplates ?? this.totalTemplates,
   );
 }
 
@@ -36,15 +40,31 @@ class DocumentNotifier extends Notifier<DocumentState> {
   @override
   DocumentState build() => const DocumentState();
 
-  Future<void> loadTemplates() async {
+  Future<void> loadTemplates({
+    String? category,
+    String? countryCode,
+    String? search,
+    String? module,
+    int page = 1,
+    int pageSize = 20,
+  }) async {
     state = state.copyWith(loading: true);
     try {
       final dio = ref.read(dioClientProvider);
-      final response = await dio.get('documents/templates');
-      final data = response.data as List;
-      final templates = data.map((e) => DocumentTemplate.fromJson(e)).toList();
+      final params = <String, dynamic>{
+        'page': page,
+        'pageSize': pageSize,
+      };
+      if (category != null) params['category'] = category;
+      if (countryCode != null) params['countryCode'] = countryCode;
+      if (search != null) params['search'] = search;
+      if (module != null) params['module'] = module;
+      final response = await dio.get('documents/templates', params: params);
+      final data = response.data;
+      final items = (data['items'] as List).map((e) => DocumentTemplate.fromJson(e)).toList();
       state = state.copyWith(
-        templates: templates,
+        templates: items,
+        totalTemplates: data['total'] as int,
         loading: false,
         error: null,
       );
@@ -84,6 +104,25 @@ class DocumentNotifier extends Notifier<DocumentState> {
       await dio.post('documents/quick-generate/employee-contract', data: {
         'entityId': employeeId,
         'templateId': templateId,
+      });
+      await loadDocuments();
+      return null;
+    } catch (e) {
+      return 'Error al generar el documento';
+    }
+  }
+
+  Future<String?> generateDocument({
+    required String templateId,
+    required String entityId,
+    required Map<String, String> variables,
+  }) async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      await dio.post('documents/generate', data: {
+        'templateId': templateId,
+        'entityId': entityId,
+        'variables': variables,
       });
       await loadDocuments();
       return null;

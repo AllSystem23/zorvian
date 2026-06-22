@@ -17,20 +17,31 @@ class BiGauge extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.all(4),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(label, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600])),
-            const SizedBox(height: 8),
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox(width: 80, height: 80, child: CustomPaint(painter: _GaugePainter(pct, c))),
-                Column(mainAxisSize: MainAxisSize.min, children: [
-                  Text(value.toStringAsFixed(2), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: c)),
-                  if (unit != null) Text(unit!, style: TextStyle(fontSize: 10, color: Colors.grey[600])),
-                ]),
-              ],
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600], fontSize: 11),
+            ),
+            const SizedBox(height: 4),
+            Expanded(
+              child: Center(
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    SizedBox(width: 72, height: 72, child: CustomPaint(painter: _GaugePainter(pct, c))),
+                    Column(mainAxisSize: MainAxisSize.min, children: [
+                      Text(value.toStringAsFixed(2), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: c)),
+                      if (unit != null) Text(unit!, style: TextStyle(fontSize: 9, color: Colors.grey[600])),
+                    ]),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
