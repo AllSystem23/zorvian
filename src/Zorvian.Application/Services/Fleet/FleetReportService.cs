@@ -49,9 +49,9 @@ public sealed class FleetReportService
     {
         if (_tenant.IsSuperAdmin) return Task.FromResult(Guid.Empty);
 
-        if (!Guid.TryParse(_tenant.TenantId.ToString(), out var companyId))
-            throw new InvalidOperationException("Tenant not configured");
-        return Task.FromResult(companyId);
+        if (Guid.TryParse(_tenant.TenantId.ToString(), out var companyId))
+            return Task.FromResult(companyId);
+        return Task.FromResult(Guid.Empty);
     }
 
     // ════════════════════════════════════════
