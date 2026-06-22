@@ -217,7 +217,7 @@ public sealed class FinancialReportService
     public async Task<BudgetVsActualReport> GetBudgetVsActualAsync(int year, int month)
     {
         var cc = await GetCompanyCurrencyAsync();
-        var fromDate = new DateTime(year, month, 1);
+        var fromDate = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
         var toDate = fromDate.AddMonths(1).AddDays(-1);
 
         var budgets = await _budgetRepo.GetByPeriodAsync(year, month, CompanyId);

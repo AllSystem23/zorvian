@@ -76,7 +76,7 @@ public sealed class BiService
         
         var yesterday = DateTime.UtcNow.Date.AddDays(-1);
         var todayStart = DateTime.UtcNow.Date;
-        var monthStart = new DateTime(now.Year, now.Month, 1);
+        var monthStart = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var lastMonthStart = monthStart.AddMonths(-1);
         var weekStart = todayStart.AddDays(-6);
         var salesMetrics = await _saleRepo.GetExecutiveSalesMetricsRawAsync(
@@ -369,7 +369,7 @@ public sealed class BiService
 
     public async Task<BiPayrollSummaryResponse> GetPayrollSummaryAsync(DateTime? from, DateTime? to)
     {
-        from ??= new DateTime(DateTime.UtcNow.Year, 1, 1);
+        from ??= new DateTime(DateTime.UtcNow.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         to ??= DateTime.UtcNow;
         var costs = await _dashRepo.GetPayrollCostByDepartmentAsync();
         var history = await _dashRepo.GetPayrollHistoryAsync(12);

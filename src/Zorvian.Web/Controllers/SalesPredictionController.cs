@@ -95,7 +95,7 @@ public sealed class SalesPredictionController : ControllerBase
 
         for (int day = today.Day; day <= daysInMonth; day++)
         {
-            var date = new DateTime(today.Year, today.Month, day);
+            var date = new DateTime(today.Year, today.Month, day, 0, 0, 0, DateTimeKind.Utc);
             var data = await BuildSalesDataAsync(date);
             var prediction = _mlService.Predict(data);
             totalPredicted += (decimal)prediction.PredictedSales;

@@ -242,7 +242,7 @@ public sealed class FleetReportService
         fuelRefills = fuelRefills.Where(f => f.RefillDateTime >= startDate && f.RefillDateTime <= endDate).ToList();
 
         var months = new List<(int Year, int Month)>();
-        var current = new DateTime(startDate.Year, startDate.Month, 1);
+        var current = new DateTime(startDate.Year, startDate.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         while (current <= endDate)
         {
             months.Add((current.Year, current.Month));
@@ -409,7 +409,7 @@ public sealed class FleetReportService
         fuelRefills = fuelRefills.Where(f => f.RefillDateTime >= startDate && f.RefillDateTime <= endDate).ToList();
 
         var months = new List<(int Year, int Month)>();
-        var current = new DateTime(startDate.Year, startDate.Month, 1);
+        var current = new DateTime(startDate.Year, startDate.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         while (current <= endDate)
         {
             months.Add((current.Year, current.Month));
