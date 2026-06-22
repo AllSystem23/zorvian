@@ -4,10 +4,11 @@ import 'dart:convert';
 class TemplateVariable {
   final String key;
   final String label;
-  final String type; // text, number, date, textarea
+  final String type; // text, number, date, textarea, select, checkbox
   final bool required;
   final String? placeholder;
   final String? defaultValue;
+  final List<String>? options;
 
   const TemplateVariable({
     required this.key,
@@ -16,9 +17,17 @@ class TemplateVariable {
     this.required = false,
     this.placeholder,
     this.defaultValue,
+    this.options,
   });
 
   factory TemplateVariable.fromJson(Map<String, dynamic> json) {
+    final rawOptions = json['options'];
+    List<String>? opts;
+    if (rawOptions is List) {
+      opts = rawOptions.map((e) => e.toString()).toList();
+    } else if (rawOptions is String && rawOptions.isNotEmpty) {
+      opts = rawOptions.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    }
     return TemplateVariable(
       key: json['key'] as String,
       label: json['label'] as String,
@@ -26,6 +35,7 @@ class TemplateVariable {
       required: json['required'] as bool? ?? false,
       placeholder: json['placeholder'] as String?,
       defaultValue: json['default'] as String?,
+      options: opts,
     );
   }
 }

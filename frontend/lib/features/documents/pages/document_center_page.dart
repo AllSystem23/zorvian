@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../shared/ds/ds.dart';
@@ -117,8 +118,16 @@ class _TemplateTile extends ConsumerWidget {
   void _generateDialog(BuildContext context, WidgetRef ref) {
     final entityCtrl = TextEditingController();
     final controllers = <String, TextEditingController>{};
+    final boolValues = <String, bool>{};
+    final selectedValues = <String, String?>{};
     for (final v in template.variables) {
       controllers[v.key] = TextEditingController(text: v.defaultValue ?? '');
+      if (v.type == 'checkbox') {
+        boolValues[v.key] = v.defaultValue == 'true';
+      }
+      if (v.type == 'select' && v.options != null && v.options!.isNotEmpty) {
+        selectedValues[v.key] = v.defaultValue ?? v.options!.first;
+      }
     }
 
     ZModal.show(context, title: 'Generar Documento',
@@ -135,33 +144,34 @@ class _TemplateTile extends ConsumerWidget {
                   style: ZTypography.labelMedium.copyWith(color: ZColors.brandAccent)),
               ),
               const SizedBox(height: 8),
-              ...template.variables.map((v) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: v.type == 'textarea'
-                  ? ZTextField(
-                      controller: controllers[v.key],
-                      label: '${v.label}${v.required ? ' *' : ''}',
-                      maxLines: 3,
-                    )
-                  : ZTextField(
-                      controller: controllers[v.key],
-                      label: '${v.label}${v.required ? ' *' : ''}',
-                    ),
-              )),
+              for (final v in template.variables)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildTypeWidget(v, controllers, boolValues, selectedValues, setModalState),
+                ),
             ],
             const SizedBox(height: 16),
             ZButton(text: 'Generar', onPressed: () async {
               final variables = <String, String>{};
               for (final v in template.variables) {
-                final val = controllers[v.key]?.text.trim() ?? '';
+                String val;
+                if (v.type == 'checkbox') {
+                  val = (boolValues[v.key] ?? false).toString();
+                } else if (v.type == 'select') {
+                  val = selectedValues[v.key] ?? '';
+                } else {
+                  val = controllers[v.key]?.text.trim() ?? '';
+                }
                 if (v.required && val.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('El campo "${v.label}" es requerido')));
+                  if (ctx.mounted) {
+                    ScaffoldMessenger.of(ctx).showSnackBar(
+                      SnackBar(content: Text('El campo "${v.label}" es requerido')));
+                  }
                   return;
                 }
                 variables[v.key] = val;
               }
-              Navigator.pop(context);
+              Navigator.pop(ctx);
               await ref.read(documentProvider.notifier).generateDocument(
                 templateId: template.id,
                 entityId: entityCtrl.text.trim(),
@@ -172,6 +182,60 @@ class _TemplateTile extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// Builds the appropriate input widget based on variable type
+  Widget _buildTypeWidget(
+    TemplateVariable v,
+    Map<String, TextEditingController> controllers,
+    Map<String, bool> boolValues,
+    Map<String, String?> selectedValues,
+    StateSetter setModalState,
+  ) {
+    final label = '${v.label}${v.required ? ' *' : ''}';
+
+    switch (v.type) {
+      case 'date':
+        return _DateVariableField(
+          label: label,
+          controller: controllers[v.key]!,
+          onChanged: () => setModalState(() {}),
+        );
+
+      case 'number':
+        return _NumberVariableField(
+          label: label,
+          controller: controllers[v.key]!,
+        );
+
+      case 'select':
+        return _SelectVariableField(
+          label: label,
+          options: v.options ?? [],
+          selectedValue: selectedValues[v.key],
+          onChanged: (val) => setModalState(() => selectedValues[v.key] = val),
+        );
+
+      case 'checkbox':
+        return _CheckboxVariableField(
+          label: v.label,
+          value: boolValues[v.key] ?? false,
+          onChanged: (val) => setModalState(() => boolValues[v.key] = val),
+        );
+
+      case 'textarea':
+        return ZTextField(
+          controller: controllers[v.key],
+          label: label,
+          maxLines: 3,
+        );
+
+      default: // text
+        return ZTextField(
+          controller: controllers[v.key],
+          label: label,
+        );
+    }
   }
 }
 
@@ -225,4 +289,168 @@ class _GeneratedDocumentsTab extends StatelessWidget {
     'pending_signature' => ZBadgeType.warning,
     _ => ZBadgeType.neutral,
   };
+}
+
+// ── Type-specific variable input widgets ──
+
+class _DateVariableField extends StatelessWidget {
+  final String label;
+  final TextEditingController controller;
+  final VoidCallback onChanged;
+
+  const _DateVariableField({
+    required this.label,
+    required this.controller,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () async {
+        final now = DateTime.now();
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: controller.text.isNotEmpty
+              ? DateTime.tryParse(controller.text) ?? now
+              : now,
+          firstDate: DateTime(2000),
+          lastDate: DateTime(2100),
+        );
+        if (picked != null) {
+          controller.text = '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+          onChanged();
+        }
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          isDense: true,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          prefixIcon: const Icon(Icons.calendar_today, size: 18),
+          suffixIcon: controller.text.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear, size: 16),
+                  onPressed: () {
+                    controller.clear();
+                    onChanged();
+                  },
+                )
+              : null,
+        ),
+        child: Text(
+          controller.text.isNotEmpty ? controller.text : 'Seleccionar fecha...',
+          style: TextStyle(
+            color: controller.text.isNotEmpty ? null : ZColors.neutral400,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NumberVariableField extends StatelessWidget {
+  final String label;
+  final TextEditingController controller;
+
+  const _NumberVariableField({
+    required this.label,
+    required this.controller,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: false),
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}$')),
+      ],
+      decoration: InputDecoration(
+        labelText: label,
+        isDense: true,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        prefixIcon: const Icon(Icons.numbers, size: 18),
+        hintText: '0.00',
+      ),
+      style: const TextStyle(fontSize: 14, fontFamily: 'monospace'),
+    );
+  }
+}
+
+class _SelectVariableField extends StatelessWidget {
+  final String label;
+  final List<String> options;
+  final String? selectedValue;
+  final ValueChanged<String?> onChanged;
+
+  const _SelectVariableField({
+    required this.label,
+    required this.options,
+    required this.selectedValue,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<String>(
+      initialValue: selectedValue,
+      isDense: true,
+      decoration: InputDecoration(
+        labelText: label,
+        isDense: true,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        prefixIcon: const Icon(Icons.arrow_drop_down_circle_outlined, size: 18),
+      ),
+      items: options.map((opt) => DropdownMenuItem(
+        value: opt,
+        child: Text(opt, style: const TextStyle(fontSize: 14)),
+      )).toList(),
+      onChanged: onChanged,
+    );
+  }
+}
+
+class _CheckboxVariableField extends StatelessWidget {
+  final String label;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _CheckboxVariableField({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => onChanged(!value),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: value ? ZColors.brandAccent : ZColors.neutral200,
+            width: 1.5,
+          ),
+          borderRadius: BorderRadius.circular(8),
+          color: value ? ZColors.brandAccent.withValues(alpha: 0.05) : null,
+        ),
+        child: Row(
+          children: [
+            Checkbox(
+              value: value,
+              onChanged: (_) {},
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              activeColor: ZColors.brandAccent,
+            ),
+            const SizedBox(width: 8),
+            Text(label, style: ZTypography.bodyMedium),
+          ],
+        ),
+      ),
+    );
+  }
 }

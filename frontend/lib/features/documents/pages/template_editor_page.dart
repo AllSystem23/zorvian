@@ -60,6 +60,7 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
             label: TextEditingController(text: v.label),
             type: v.type,
             required: v.required,
+            options: v.options?.join(', '),
           ));
         }
       }
@@ -90,6 +91,7 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
     for (final v in _customVars) {
       v.keyCtrl.dispose();
       v.label.dispose();
+      v.optionsCtrl.dispose();
     }
     super.dispose();
   }
@@ -101,11 +103,18 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
     // Build variables JSON from custom vars
     final variablesJson = _customVars
         .where((v) => v.keyCtrl.text.trim().isNotEmpty)
-        .map((v) => {
-          'key': v.keyCtrl.text.trim(),
-          'label': v.label.text.trim(),
-          'type': v.type,
-          'required': v.required,
+        .map((v) {
+          final map = {
+            'key': v.keyCtrl.text.trim(),
+            'label': v.label.text.trim(),
+            'type': v.type,
+            'required': v.required,
+          };
+          if (v.type == 'select' && v.optionsCtrl.text.trim().isNotEmpty) {
+            final opts = v.optionsCtrl.text.trim().split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+            map['options'] = opts;
+          }
+          return map;
         })
         .toList();
 
@@ -434,6 +443,7 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
     setState(() {
       _customVars[index].keyCtrl.dispose();
       _customVars[index].label.dispose();
+      _customVars[index].optionsCtrl.dispose();
       _customVars.removeAt(index);
     });
   }
@@ -500,9 +510,11 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
                     isDense: true,
                     items: const [
                       DropdownMenuItem(value: 'text', child: Text('Texto')),
-                      DropdownMenuItem(value: 'number', child: Text('Número')),
+                      DropdownMenuItem(value: 'number', child: Text('Numérico')),
                       DropdownMenuItem(value: 'date', child: Text('Fecha')),
                       DropdownMenuItem(value: 'textarea', child: Text('Texto largo')),
+                      DropdownMenuItem(value: 'select', child: Text('Selección')),
+                      DropdownMenuItem(value: 'checkbox', child: Text('Casilla')),
                     ],
                     onChanged: (val) => setState(() => v.type = val ?? 'text'),
                     decoration: InputDecoration(
@@ -528,6 +540,41 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
                 ),
               ],
             ),
+            // Options editor for 'select' type
+            if (v.type == 'select') ...[
+              const SizedBox(height: 6),
+              TextField(
+                controller: v.optionsCtrl,
+                decoration: InputDecoration(
+                  hintText: 'Opciones separadas por coma',
+                  isDense: true,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  prefixIcon: const Icon(Icons.list_alt, size: 14),
+                  errorText: v.optionsCtrl.text.trim().isEmpty && v.required ? 'Requerido para tipo Seleccion' : null,
+                ),
+                style: const TextStyle(fontSize: 11),
+              ),
+            ],
+            // Type-specific info row
+            if (v.type == 'date')
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text('📅 El usuario verá un selector de fecha nativo',
+                  style: ZTypography.labelSmall.copyWith(fontSize: 9, color: ZColors.neutral400, fontStyle: FontStyle.italic)),
+              ),
+            if (v.type == 'number')
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text('🔢 Campo numérico con formato de miles y decimales',
+                  style: ZTypography.labelSmall.copyWith(fontSize: 9, color: ZColors.neutral400, fontStyle: FontStyle.italic)),
+              ),
+            if (v.type == 'checkbox')
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text('☑️ El usuario verá una casilla de verificación',
+                  style: ZTypography.labelSmall.copyWith(fontSize: 9, color: ZColors.neutral400, fontStyle: FontStyle.italic)),
+              ),
           ],
         ),
       ),
@@ -618,6 +665,7 @@ class _VariableChip extends StatelessWidget {
 class _VariableDef {
   final TextEditingController keyCtrl;
   final TextEditingController label;
+  final TextEditingController optionsCtrl; // comma-separated for 'select' type
   String type;
   bool required;
 
@@ -626,5 +674,6 @@ class _VariableDef {
     required this.label,
     required this.type,
     required this.required,
-  });
+    String? options,
+  }) : optionsCtrl = TextEditingController(text: options ?? '');
 }
