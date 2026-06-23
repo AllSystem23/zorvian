@@ -10,6 +10,6 @@ public interface IFleetDocumentRepository
     Task AddAsync(FleetDocument document);
     Task UpdateAsync(FleetDocument document);
     Task DeleteAsync(FleetDocument document);
-    Task<List<FleetDocument>> GetExpiringAsync(int days);
+    Task<List<FleetDocument>> GetExpiringAsync(int days, Guid companyId);
     Task SaveChangesAsync();
 }

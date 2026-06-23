@@ -39,7 +39,8 @@ public sealed class VehicleService
         vehicle.Status = "Active";
         await _repo.AddAsync(vehicle);
         await _repo.SaveChangesAsync();
-        return _mapper.Map<VehicleResponse>(vehicle);
+        var created = await _repo.GetByIdAsync(vehicle.Id);
+        return _mapper.Map<VehicleResponse>(created!);
     }
 
     public async Task<VehicleResponse?> UpdateAsync(Guid id, UpdateVehicleRequest request)

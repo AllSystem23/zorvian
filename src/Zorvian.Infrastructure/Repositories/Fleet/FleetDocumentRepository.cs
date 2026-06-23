@@ -14,6 +14,7 @@ public sealed class FleetDocumentRepository : IFleetDocumentRepository
     public async Task<List<FleetDocument>> GetAllAsync(Guid companyId) =>
         await _db.Set<FleetDocument>()
             .Include(d => d.DocumentType)
+            .Where(d => d.TenantId == companyId.ToString())
             .OrderByDescending(d => d.ExpiryDate)
             .ToListAsync();
 
@@ -44,12 +45,12 @@ public sealed class FleetDocumentRepository : IFleetDocumentRepository
         return Task.CompletedTask;
     }
 
-    public async Task<List<FleetDocument>> GetExpiringAsync(int days)
+    public async Task<List<FleetDocument>> GetExpiringAsync(int days, Guid companyId)
     {
         var cutoff = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(days));
         return await _db.Set<FleetDocument>()
             .Include(d => d.DocumentType)
-            .Where(d => d.ExpiryDate != null && d.ExpiryDate <= cutoff && d.Status == "Valid")
+            .Where(d => d.TenantId == companyId.ToString() && d.ExpiryDate != null && d.ExpiryDate <= cutoff && d.Status == "Valid")
             .ToListAsync();
     }
 

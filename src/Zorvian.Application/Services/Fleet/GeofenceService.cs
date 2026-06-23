@@ -2,7 +2,6 @@ using AutoMapper;
 using Zorvian.Application.DTOs.Fleet;
 using Zorvian.Application.Interfaces.Fleet;
 using Zorvian.Core.Entities.Fleet;
-
 namespace Zorvian.Application.Services.Fleet;
 
 /// <summary>
@@ -54,7 +53,6 @@ public sealed class GeofenceService
         if (request.CoordinatesJson != null) geofence.CoordinatesJson = request.CoordinatesJson;
         if (request.Radius.HasValue) geofence.Radius = request.Radius;
         if (request.Active.HasValue) geofence.Active = request.Active.Value;
-
         await _repository.UpdateAsync(geofence);
         await _repository.SaveChangesAsync();
         return _mapper.Map<GeofenceResponse>(geofence);

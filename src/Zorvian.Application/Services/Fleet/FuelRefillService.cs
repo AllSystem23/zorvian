@@ -38,7 +38,8 @@ public sealed class FuelRefillService
         var entity = _mapper.Map<FuelRefill>(request);
         await _repo.AddAsync(entity);
         await _repo.SaveChangesAsync();
-        return _mapper.Map<FuelRefillResponse>(entity);
+        var created = await _repo.GetByIdAsync(entity.Id);
+        return _mapper.Map<FuelRefillResponse>(created!);
     }
 
     public async Task<FuelRefillResponse?> UpdateAsync(Guid id, UpdateFuelRefillRequest request)

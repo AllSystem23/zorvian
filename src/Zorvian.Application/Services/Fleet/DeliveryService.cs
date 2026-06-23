@@ -2,7 +2,6 @@ using AutoMapper;
 using Zorvian.Application.DTOs.Fleet;
 using Zorvian.Application.Interfaces.Fleet;
 using Zorvian.Core.Entities.Fleet;
-
 namespace Zorvian.Application.Services.Fleet;
 
 public sealed class DeliveryService

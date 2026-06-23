@@ -39,7 +39,8 @@ public sealed class DriverService
         driver.Status = "Active";
         await _repo.AddAsync(driver);
         await _repo.SaveChangesAsync();
-        return _mapper.Map<DriverResponse>(driver);
+        var created = await _repo.GetByIdAsync(driver.Id);
+        return _mapper.Map<DriverResponse>(created!);
     }
 
     public async Task<DriverResponse?> UpdateAsync(Guid id, UpdateDriverRequest request)

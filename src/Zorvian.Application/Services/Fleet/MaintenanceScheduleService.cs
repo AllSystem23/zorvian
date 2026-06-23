@@ -38,7 +38,8 @@ public sealed class MaintenanceScheduleService
         var entity = _mapper.Map<MaintenanceSchedule>(request);
         await _repo.AddAsync(entity);
         await _repo.SaveChangesAsync();
-        return _mapper.Map<MaintenanceScheduleResponse>(entity);
+        var created = await _repo.GetByIdAsync(entity.Id);
+        return _mapper.Map<MaintenanceScheduleResponse>(created!);
     }
 
     public async Task<MaintenanceScheduleResponse?> UpdateAsync(Guid id, UpdateMaintenanceScheduleRequest request)

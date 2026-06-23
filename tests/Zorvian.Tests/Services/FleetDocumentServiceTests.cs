@@ -5,6 +5,7 @@ using Zorvian.Application.DTOs.Fleet;
 using Zorvian.Application.Interfaces.Fleet;
 using Zorvian.Application.Services.Fleet;
 using Zorvian.Core.Entities.Fleet;
+using Zorvian.Core.Interfaces;
 
 namespace Zorvian.Tests.Services;
 
@@ -12,11 +13,14 @@ public sealed class FleetDocumentServiceTests
 {
     private readonly Mock<IFleetDocumentRepository> _repo = new();
     private readonly Mock<IMapper> _mapper = new();
+    private readonly Mock<ITenantContext> _tenant = new();
     private readonly FleetDocumentService _sut;
+    private readonly Guid _companyId = Guid.NewGuid();
 
     public FleetDocumentServiceTests()
     {
-        _sut = new FleetDocumentService(_repo.Object, _mapper.Object);
+        _tenant.Setup(t => t.TenantId).Returns(_companyId.ToString());
+        _sut = new FleetDocumentService(_repo.Object, _tenant.Object, _mapper.Object);
     }
 
     [Fact]
@@ -27,7 +31,7 @@ public sealed class FleetDocumentServiceTests
             new() { Id = Guid.NewGuid(), DocumentNumber = "SOAT-2026" },
         };
 
-        _repo.Setup(r => r.GetAllAsync(Guid.Empty)).ReturnsAsync(docs);
+        _repo.Setup(r => r.GetAllAsync(_companyId)).ReturnsAsync(docs);
         _mapper.Setup(m => m.Map<List<FleetDocumentResponse>>(docs)).Returns(
             docs.Select(d => new FleetDocumentResponse(
                 d.Id, "Vehicle", Guid.NewGuid(), Guid.NewGuid(), "SOAT", true,
@@ -156,7 +160,7 @@ public sealed class FleetDocumentServiceTests
     public async Task GetExpiringAsync_ReturnsMappedDocuments()
     {
         var docs = new List<FleetDocument> { new() { Id = Guid.NewGuid() } };
-        _repo.Setup(r => r.GetExpiringAsync(30)).ReturnsAsync(docs);
+        _repo.Setup(r => r.GetExpiringAsync(30, _companyId)).ReturnsAsync(docs);
         _mapper.Setup(m => m.Map<List<FleetDocumentResponse>>(docs)).Returns(
             new List<FleetDocumentResponse> { new(
                 Guid.NewGuid(), "Vehicle", Guid.NewGuid(), Guid.NewGuid(), "SOAT", true,

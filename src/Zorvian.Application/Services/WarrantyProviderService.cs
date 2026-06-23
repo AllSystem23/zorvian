@@ -35,7 +35,7 @@ public sealed class WarrantyProviderService
     public async Task<WarrantyProviderResponse> CreateAsync(CreateWarrantyProviderRequest request)
     {
         var provider = _mapper.Map<WarrantyProvider>(request);
-
+        provider.CompanyId = Guid.TryParse(_tenant.TenantId?.ToString(), out var companyId) ? companyId : Guid.Empty;
         await _repo.AddAsync(provider);
         await _repo.SaveChangesAsync();
 

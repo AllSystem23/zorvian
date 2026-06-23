@@ -3,22 +3,18 @@ using Zorvian.Application.DTOs.Common;
 using Zorvian.Application.DTOs.Employee;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
-using Zorvian.Core.Interfaces;
-
 namespace Zorvian.Application.Services;
 
 public sealed class EmployeeService
 {
     private readonly IEmployeeRepository _repo;
     private readonly IMapper _mapper;
-    private readonly ITenantContext _tenant;
     private readonly IEncryptionService _encryption;
 
-    public EmployeeService(IEmployeeRepository repo, IMapper mapper, ITenantContext tenant, IEncryptionService encryption)
+    public EmployeeService(IEmployeeRepository repo, IMapper mapper, IEncryptionService encryption)
     {
         _repo = repo;
         _mapper = mapper;
-        _tenant = tenant;
         _encryption = encryption;
     }
 

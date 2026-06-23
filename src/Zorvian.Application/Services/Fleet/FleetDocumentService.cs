@@ -2,22 +2,29 @@ using AutoMapper;
 using Zorvian.Application.DTOs.Fleet;
 using Zorvian.Application.Interfaces.Fleet;
 using Zorvian.Core.Entities.Fleet;
+using Zorvian.Core.Interfaces;
 
 namespace Zorvian.Application.Services.Fleet;
 
 public sealed class FleetDocumentService
 {
     private readonly IFleetDocumentRepository _repository;
+    private readonly ITenantContext _tenant;
     private readonly IMapper _mapper;
 
-    public FleetDocumentService(IFleetDocumentRepository repository, IMapper mapper)
+    public FleetDocumentService(IFleetDocumentRepository repository, ITenantContext tenant, IMapper mapper)
     {
         _repository = repository;
+        _tenant = tenant;
         _mapper = mapper;
     }
 
-    public async Task<List<FleetDocumentResponse>> GetAllAsync() =>
-        _mapper.Map<List<FleetDocumentResponse>>(await _repository.GetAllAsync(Guid.Empty));
+    public async Task<List<FleetDocumentResponse>> GetAllAsync()
+    {
+        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+            return [];
+        return _mapper.Map<List<FleetDocumentResponse>>(await _repository.GetAllAsync(companyId));
+    }
 
     public async Task<List<FleetDocumentResponse>> GetByEntityAsync(string entityType, Guid entityId) =>
         _mapper.Map<List<FleetDocumentResponse>>(await _repository.GetByEntityAsync(entityType, entityId));
@@ -30,7 +37,8 @@ public sealed class FleetDocumentService
         var document = _mapper.Map<FleetDocument>(request);
         await _repository.AddAsync(document);
         await _repository.SaveChangesAsync();
-        return _mapper.Map<FleetDocumentResponse>(document);
+        var created = await _repository.GetByIdAsync(document.Id);
+        return _mapper.Map<FleetDocumentResponse>(created!);
     }
 
     public async Task<FleetDocumentResponse?> UpdateAsync(Guid id, UpdateFleetDocumentRequest request)
@@ -54,6 +62,10 @@ public sealed class FleetDocumentService
         return true;
     }
 
-    public async Task<List<FleetDocumentResponse>> GetExpiringAsync(int days) =>
-        _mapper.Map<List<FleetDocumentResponse>>(await _repository.GetExpiringAsync(days));
+    public async Task<List<FleetDocumentResponse>> GetExpiringAsync(int days)
+    {
+        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+            return [];
+        return _mapper.Map<List<FleetDocumentResponse>>(await _repository.GetExpiringAsync(days, companyId));
+    }
 }

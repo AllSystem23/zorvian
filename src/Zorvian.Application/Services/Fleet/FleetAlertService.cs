@@ -149,7 +149,7 @@ public sealed class FleetAlertService
     private async Task<List<FleetAlertResponse>> CheckDocumentExpiryAsync(Guid companyId, DateOnly today)
     {
         var alerts = new List<FleetAlertResponse>();
-        var expiringDocs = await _documentRepo.GetExpiringAsync(30);
+        var expiringDocs = await _documentRepo.GetExpiringAsync(30, companyId);
 
         foreach (var doc in expiringDocs)
         {

@@ -2,7 +2,6 @@ using AutoMapper;
 using Zorvian.Application.DTOs.Fleet;
 using Zorvian.Application.Interfaces.Fleet;
 using Zorvian.Core.Entities.Fleet;
-
 namespace Zorvian.Application.Services.Fleet;
 
 public sealed class TripService
@@ -34,7 +33,8 @@ public sealed class TripService
         trip.Status = "Planned";
         await _repo.AddAsync(trip);
         await _repo.SaveChangesAsync();
-        return _mapper.Map<TripResponse>(trip);
+        var created = await _repo.GetByIdAsync(trip.Id);
+        return _mapper.Map<TripResponse>(created!);
     }
 
     public async Task<TripResponse?> UpdateAsync(Guid id, UpdateTripRequest request)

@@ -107,6 +107,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddZorvianDatabase(this IServiceCollection services, IConfiguration configuration, bool mockExternal)
     {
         services.AddSingleton<EncryptionInterceptor>();
+        services.AddScoped<TenantAuditInterceptor>();
 
         services.AddDbContext<ZorvianDbContext>((sp, options) =>
         {
@@ -115,12 +116,13 @@ public static class ServiceCollectionExtensions
             var entityHistoryInterceptor = sp.GetRequiredService<Zorvian.Infrastructure.Data.EntityHistoryInterceptor>();
             var tenantSessionInterceptor = sp.GetRequiredService<Zorvian.Infrastructure.Data.TenantSessionInterceptor>();
             var encryptionInterceptor = sp.GetRequiredService<EncryptionInterceptor>();
+            var tenantAuditInterceptor = sp.GetRequiredService<TenantAuditInterceptor>();
 
             var connStr = configuration.GetConnectionString("ZorvianDb");
             if (mockExternal || string.IsNullOrEmpty(connStr))
             {
                 options.UseInMemoryDatabase("ZorvianInMemoryDb")
-                        .AddInterceptors(entityHistoryInterceptor, auditInterceptor, immutabilityInterceptor, encryptionInterceptor)
+                        .AddInterceptors(tenantAuditInterceptor, entityHistoryInterceptor, auditInterceptor, immutabilityInterceptor, encryptionInterceptor)
                         .ConfigureWarnings(w =>
                         {
                             w.Ignore(CoreEventId.ManyServiceProvidersCreatedWarning);
@@ -132,7 +134,7 @@ public static class ServiceCollectionExtensions
             else
             {
                 options.UseNpgsql(connStr)
-                        .AddInterceptors(tenantSessionInterceptor, entityHistoryInterceptor, auditInterceptor, immutabilityInterceptor, encryptionInterceptor)
+                        .AddInterceptors(tenantAuditInterceptor, tenantSessionInterceptor, entityHistoryInterceptor, auditInterceptor, immutabilityInterceptor, encryptionInterceptor)
                         .ConfigureWarnings(w =>
                         {
                             w.Ignore(CoreEventId.ManyServiceProvidersCreatedWarning);

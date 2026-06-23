@@ -35,7 +35,7 @@ public sealed class WorkshopService
     public async Task<ServiceWorkshopResponse> CreateAsync(CreateServiceWorkshopRequest request)
     {
         var workshop = _mapper.Map<ServiceWorkshop>(request);
-
+        workshop.CompanyId = Guid.TryParse(_tenant.TenantId?.ToString(), out var companyId) ? companyId : Guid.Empty;
         await _repo.AddAsync(workshop);
         await _repo.SaveChangesAsync();
 

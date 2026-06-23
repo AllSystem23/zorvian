@@ -32,7 +32,7 @@ public sealed class FleetAlertServiceTests
             _notification.Object, _mapper.Object);
 
         // Default: all repos return empty
-        _documentRepo.Setup(r => r.GetExpiringAsync(It.IsAny<int>())).ReturnsAsync(new List<FleetDocument>());
+        _documentRepo.Setup(r => r.GetExpiringAsync(It.IsAny<int>(), It.IsAny<Guid>())).ReturnsAsync(new List<FleetDocument>());
         _driverRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(new List<Driver>());
         _vehicleRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(new List<Vehicle>());
         _fuelRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(new List<FuelRefill>());
@@ -72,7 +72,7 @@ public sealed class FleetAlertServiceTests
             CreatedAt = DateTime.UtcNow.AddMonths(-6)
         };
 
-        _documentRepo.Setup(r => r.GetExpiringAsync(30)).ReturnsAsync(new List<FleetDocument> { expiringDoc });
+        _documentRepo.Setup(r => r.GetExpiringAsync(30, It.IsAny<Guid>())).ReturnsAsync(new List<FleetDocument> { expiringDoc });
 
         var result = await _sut.GetActiveAlertsAsync();
 
@@ -94,7 +94,7 @@ public sealed class FleetAlertServiceTests
             CreatedAt = DateTime.UtcNow.AddMonths(-12)
         };
 
-        _documentRepo.Setup(r => r.GetExpiringAsync(30)).ReturnsAsync(new List<FleetDocument> { expiredDoc });
+        _documentRepo.Setup(r => r.GetExpiringAsync(30, It.IsAny<Guid>())).ReturnsAsync(new List<FleetDocument> { expiredDoc });
 
         var result = await _sut.GetActiveAlertsAsync();
 

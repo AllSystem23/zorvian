@@ -39,7 +39,8 @@ public sealed class WorkOrderService
         entity.Status = "Reported";
         await _repo.AddAsync(entity);
         await _repo.SaveChangesAsync();
-        return _mapper.Map<WorkOrderResponse>(entity);
+        var created = await _repo.GetByIdAsync(entity.Id);
+        return _mapper.Map<WorkOrderResponse>(created!);
     }
 
     public async Task<WorkOrderResponse?> UpdateAsync(Guid id, UpdateWorkOrderRequest request)
