@@ -9,6 +9,5 @@ public sealed class SalePayment : BaseEntity
     public string? ReferenceNumber { get; set; }
     public DateTime PaymentDate { get; set; }
     public Guid? CashRegisterId { get; set; }
-    public Guid CompanyId { get; set; }
     public Guid BranchId { get; set; }
 }

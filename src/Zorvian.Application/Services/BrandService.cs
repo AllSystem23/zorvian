@@ -21,7 +21,8 @@ public sealed class BrandService
 
     public async Task<List<BrandResponse>> GetAllAsync()
     {
-        var companyId = Guid.Parse(_tenant.TenantId);
+        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+            return [];
         var brands = await _repo.GetAllAsync(companyId);
         return _mapper.Map<List<BrandResponse>>(brands);
     }
@@ -29,7 +30,6 @@ public sealed class BrandService
     public async Task<BrandResponse> CreateAsync(CreateBrandRequest request)
     {
         var brand = _mapper.Map<Brand>(request);
-        brand.CompanyId = Guid.Parse(_tenant.TenantId);
 
         await _repo.AddAsync(brand);
         await _repo.SaveChangesAsync();

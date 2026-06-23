@@ -21,7 +21,6 @@ public sealed class Client : BaseEntity
     public string? References { get; set; }
     public string Status { get; set; } = "active";
     public decimal? CreditLimit { get; set; }
-    public Guid CompanyId { get; set; }
     public Guid BranchId { get; set; }
 
     public ICollection<Sale> Sales { get; set; } = [];

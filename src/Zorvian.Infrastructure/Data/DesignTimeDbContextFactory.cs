@@ -10,13 +10,21 @@ public sealed class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<Zor
 {
     public ZorvianDbContext CreateDbContext(string[] args)
     {
+        var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Development";
         var config = new ConfigurationBuilder()
             .SetBasePath(Path.Combine(Directory.GetCurrentDirectory(), "..", "Zorvian.Web"))
-            .AddJsonFile("appsettings.json")
+            .AddJsonFile("appsettings.json", optional: true)
+            .AddJsonFile($"appsettings.{env}.json", optional: true)
             .Build();
 
+        var connectionString = config.GetConnectionString("ZorvianDb")
+            ?? Environment.GetEnvironmentVariable("ConnectionStrings__ZorvianDb")
+            ?? throw new InvalidOperationException(
+                $"No connection string found. Set 'ConnectionStrings:ZorvianDb' in appsettings.json " +
+                $"or the environment variable 'ConnectionStrings__ZorvianDb' (ASPNETCORE_ENVIRONMENT={env}).");
+
         var optionsBuilder = new DbContextOptionsBuilder<ZorvianDbContext>();
-        optionsBuilder.UseNpgsql(config.GetConnectionString("ZorvianDb"));
+        optionsBuilder.UseNpgsql(connectionString);
 
         return new ZorvianDbContext(optionsBuilder.Options, new DesignTimeTenantContext());
     }

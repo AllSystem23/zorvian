@@ -86,7 +86,6 @@ public sealed class PurchaseService
             PaidAmount = 0,
             Balance = total,
             Notes = request.Notes,
-            CompanyId = companyId,
             BranchId = request.BranchId,
             Details = request.Details.Select(d => new PurchaseDetail
             {
@@ -95,7 +94,6 @@ public sealed class PurchaseService
                 UnitCost = d.UnitCost,
                 Discount = d.Discount,
                 Subtotal = d.Quantity * d.UnitCost - d.Discount,
-                CompanyId = companyId,
                 BranchId = request.BranchId,
             }).ToList(),
         };
@@ -141,7 +139,6 @@ public sealed class PurchaseService
                 StockAfter = product.Stock,
                 UnitCost = detail.UnitCost,
                 ReferenceNumber = purchase.PurchaseNumber,
-                CompanyId = companyId,
                 BranchId = request.BranchId,
             };
             await _movementRepo.AddAsync(movement);
@@ -235,7 +232,6 @@ public sealed class PurchaseService
                 UnitCost = d.UnitCost,
                 Discount = d.Discount,
                 Subtotal = d.Quantity * d.UnitCost - d.Discount,
-                CompanyId = companyId,
                 BranchId = purchase.BranchId,
             }).ToList();
 
@@ -256,7 +252,6 @@ public sealed class PurchaseService
                     StockAfter = product.Stock,
                     UnitCost = detail.UnitCost,
                     ReferenceNumber = purchase.PurchaseNumber,
-                    CompanyId = companyId,
                     BranchId = purchase.BranchId,
                 };
                 await _movementRepo.AddAsync(movement);

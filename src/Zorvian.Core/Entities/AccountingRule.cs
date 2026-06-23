@@ -8,5 +8,4 @@ public sealed class AccountingRule : BaseEntity
     public string? Formula { get; set; }
     public int SortOrder { get; set; }
     public bool IsActive { get; set; } = true;
-    public Guid CompanyId { get; set; }
 }

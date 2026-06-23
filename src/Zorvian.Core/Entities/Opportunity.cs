@@ -22,7 +22,6 @@ public sealed class Opportunity : BaseEntity
     public Employee? AssignedTo { get; set; }
     
     public string? LossReason { get; set; }
-    public Guid CompanyId { get; set; }
     public Guid? BranchId { get; set; }
 
     public ICollection<CommercialActivity> Activities { get; set; } = [];

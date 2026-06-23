@@ -66,6 +66,9 @@ public sealed class CreditService
 
     public async Task<CreditPaymentResponse> RegisterPaymentAsync(CreateCreditPaymentRequest request)
     {
+        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+            throw new InvalidOperationException("Tenant not configured");
+
         var credit = await _creditRepo.GetByIdAsync(request.CreditId)
             ?? throw new KeyNotFoundException("Credit not found");
 
@@ -114,7 +117,6 @@ public sealed class CreditService
             PaymentMethod = request.PaymentMethod,
             ReferenceNumber = request.ReferenceNumber,
             PaymentDate = DateTime.UtcNow,
-            CompanyId = Guid.Parse(_tenant.TenantId),
             BranchId = credit.BranchId,
         };
 
@@ -134,7 +136,7 @@ public sealed class CreditService
 
         await _autoAccounting.GenerateCreditPaymentEntryAsync(
             payment.Id, credit.Id, principalAmount, interestAmount,
-            Guid.Parse(_tenant.TenantId), credit.BranchId);
+            companyId, credit.BranchId);
 
         if (credit.SaleId.HasValue)
         {
@@ -166,6 +168,9 @@ public sealed class CreditService
 
     public async Task<List<LateFeeResponse>> CalculateLateFeesAsync(Guid creditId, decimal? dailyInterestRate = null)
     {
+        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+            throw new InvalidOperationException("Tenant not configured");
+
         var credit = await _creditRepo.GetByIdAsync(creditId);
         if (credit is null) return [];
 
@@ -207,7 +212,6 @@ public sealed class CreditService
                 Balance = totalAmount,
                 Status = "pending",
                 CalculatedAt = today,
-                CompanyId = Guid.Parse(_tenant.TenantId),
                 BranchId = credit.BranchId,
             };
 
@@ -253,6 +257,9 @@ public sealed class CreditService
 
     public async Task<CollectionActionResponse> AddCollectionActionAsync(CreateCollectionActionRequest request)
     {
+        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+            throw new InvalidOperationException("Tenant not configured");
+
         var credit = await _creditRepo.GetByIdAsync(request.CreditId)
             ?? throw new KeyNotFoundException("Credit not found");
 
@@ -273,7 +280,6 @@ public sealed class CreditService
             PromiseDate = request.PromiseDate,
             Result = request.Result,
             Status = "completed",
-            CompanyId = Guid.Parse(_tenant.TenantId),
             BranchId = credit.BranchId,
         };
 
@@ -296,6 +302,9 @@ public sealed class CreditService
 
     public async Task<CreditRefinancingResponse> CreateRefinancingAsync(Guid creditId, CreateRefinancingRequest request)
     {
+        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+            throw new InvalidOperationException("Tenant not configured");
+
         var credit = await _creditRepo.GetByIdAsync(creditId)
             ?? throw new KeyNotFoundException("Credit not found");
 
@@ -322,7 +331,6 @@ public sealed class CreditService
             NewStartDate = today,
             NewEndDate = today.AddMonths(request.NewInstallmentCount),
             Reason = request.Reason,
-            CompanyId = Guid.Parse(_tenant.TenantId),
             BranchId = credit.BranchId,
         };
 
@@ -361,7 +369,6 @@ public sealed class CreditService
                 PaidAmount = 0,
                 Balance = principalPortion + interestPortion,
                 Status = "pending",
-                CompanyId = Guid.Parse(_tenant.TenantId),
                 BranchId = credit.BranchId,
             });
         }
@@ -391,10 +398,10 @@ public sealed class CreditService
 
         var buckets = new List<OverdueAgingBucket>
         {
-            new("1-30 días", 1, 30, scalars.Bucket1CreditCount, scalars.Bucket1InstallmentCount, scalars.Bucket1TotalBalance, scalars.Bucket1TotalAmount),
-            new("31-60 días", 31, 60, scalars.Bucket2CreditCount, scalars.Bucket2InstallmentCount, scalars.Bucket2TotalBalance, scalars.Bucket2TotalAmount),
-            new("61-90 días", 61, 90, scalars.Bucket3CreditCount, scalars.Bucket3InstallmentCount, scalars.Bucket3TotalBalance, scalars.Bucket3TotalAmount),
-            new("90+ días", 91, 9999, scalars.Bucket4CreditCount, scalars.Bucket4InstallmentCount, scalars.Bucket4TotalBalance, scalars.Bucket4TotalAmount),
+            new("1-30 dÃ­as", 1, 30, scalars.Bucket1CreditCount, scalars.Bucket1InstallmentCount, scalars.Bucket1TotalBalance, scalars.Bucket1TotalAmount),
+            new("31-60 dÃ­as", 31, 60, scalars.Bucket2CreditCount, scalars.Bucket2InstallmentCount, scalars.Bucket2TotalBalance, scalars.Bucket2TotalAmount),
+            new("61-90 dÃ­as", 61, 90, scalars.Bucket3CreditCount, scalars.Bucket3InstallmentCount, scalars.Bucket3TotalBalance, scalars.Bucket3TotalAmount),
+            new("90+ dÃ­as", 91, 9999, scalars.Bucket4CreditCount, scalars.Bucket4InstallmentCount, scalars.Bucket4TotalBalance, scalars.Bucket4TotalAmount),
         };
 
         return new OverdueDashboardResponse(

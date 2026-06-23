@@ -6,7 +6,6 @@ public sealed class AccountLink : BaseEntity
     public string Role { get; set; } = string.Empty;
     public Guid AccountId { get; set; }
     public Account Account { get; set; } = null!;
-    public Guid CompanyId { get; set; }
 }
 
 public static class TransactionTypes

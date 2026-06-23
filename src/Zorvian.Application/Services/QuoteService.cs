@@ -38,7 +38,6 @@ public sealed class QuoteService
         quote.Subtotal = subtotal;
         quote.Tax = tax;
         quote.Total = total;
-        quote.CompanyId = companyId;
 
         quote.Details = request.Details.Select(d => new QuoteDetail
         {

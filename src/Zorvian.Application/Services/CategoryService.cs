@@ -21,7 +21,8 @@ public sealed class CategoryService
 
     public async Task<List<CategoryResponse>> GetAllAsync()
     {
-        var companyId = Guid.Parse(_tenant.TenantId);
+        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+            return [];
         var categories = await _repo.GetAllAsync(companyId);
         return _mapper.Map<List<CategoryResponse>>(categories);
     }
@@ -29,7 +30,6 @@ public sealed class CategoryService
     public async Task<CategoryResponse> CreateAsync(CreateCategoryRequest request)
     {
         var category = _mapper.Map<Category>(request);
-        category.CompanyId = Guid.Parse(_tenant.TenantId);
 
         await _repo.AddAsync(category);
         await _repo.SaveChangesAsync();

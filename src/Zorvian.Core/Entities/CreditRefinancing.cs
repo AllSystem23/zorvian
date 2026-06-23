@@ -17,6 +17,5 @@ public sealed class CreditRefinancing : BaseEntity
     public DateOnly NewStartDate { get; set; }
     public DateOnly NewEndDate { get; set; }
     public string Reason { get; set; } = string.Empty;
-    public Guid CompanyId { get; set; }
     public Guid BranchId { get; set; }
 }

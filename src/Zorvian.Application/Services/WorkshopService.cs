@@ -21,7 +21,8 @@ public sealed class WorkshopService
 
     public async Task<List<ServiceWorkshopResponse>> GetAllAsync()
     {
-        var companyId = Guid.Parse(_tenant.TenantId);
+        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+            return [];
         var workshops = await _repo.GetAllAsync(companyId);
         return _mapper.Map<List<ServiceWorkshopResponse>>(workshops);
     }
@@ -35,7 +36,6 @@ public sealed class WorkshopService
     public async Task<ServiceWorkshopResponse> CreateAsync(CreateServiceWorkshopRequest request)
     {
         var workshop = _mapper.Map<ServiceWorkshop>(request);
-        workshop.CompanyId = Guid.TryParse(_tenant.TenantId?.ToString(), out var companyId) ? companyId : Guid.Empty;
         await _repo.AddAsync(workshop);
         await _repo.SaveChangesAsync();
 

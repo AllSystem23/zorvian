@@ -2,7 +2,6 @@ namespace Zorvian.Core.Entities;
 
 public sealed class SupplierCreditNote : BaseEntity
 {
-    public Guid CompanyId { get; set; }
     public Guid BranchId { get; set; }
     public string CreditNoteNumber { get; set; } = string.Empty;
 

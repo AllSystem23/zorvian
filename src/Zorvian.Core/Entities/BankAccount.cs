@@ -11,11 +11,10 @@ namespace Zorvian.Core.Entities
         public Bank? Bank { get; set; }
 
         [Required]
-        public Guid CompanyId { get; set; }
         public Company? Company { get; set; }
 
         [Required]
-        [StringLength(255)] // Aumentado para soportar base64 de encriptación
+        [StringLength(255)] // Aumentado para soportar base64 de encriptaciÃ³n
         [Encrypted]
         public string AccountNumber { get; set; } = string.Empty;
 

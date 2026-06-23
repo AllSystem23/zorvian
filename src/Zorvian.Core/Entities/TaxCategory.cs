@@ -10,7 +10,5 @@ public sealed class TaxCategory : BaseEntity
     // Cuentas contables para este tipo de impuesto
     public string SalesAccountCode { get; set; } = string.Empty;
     public string VatAccountCode { get; set; } = string.Empty;
-    
-    public Guid CompanyId { get; set; }
     public Company Company { get; set; } = null!;
 }

@@ -9,5 +9,4 @@ public sealed class Budget : BaseEntity
     public Guid? CostCenterId { get; set; }
     public CostCenter? CostCenter { get; set; }
     public decimal BudgetedAmount { get; set; }
-    public Guid CompanyId { get; set; }
 }

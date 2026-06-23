@@ -84,7 +84,6 @@ public sealed class AccountService
             throw new InvalidOperationException($"Account code '{request.Code}' already exists");
 
         var account = _mapper.Map<Account>(request);
-        account.CompanyId = companyId;
         if (request.ParentId.HasValue)
         {
             var parent = await _repo.GetByIdAsync(request.ParentId.Value)
@@ -168,7 +167,6 @@ public sealed class AccountService
                 Name = name,
                 NormalSide = nature,
                 Level = level,
-                CompanyId = companyId,
                 IsActive = true,
                 Type = MapType(code),
                 IsSystem = isAuto,
@@ -236,21 +234,21 @@ public sealed class AccountService
             new() { Code = "1.1.02", Name = "Bancos", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
             new() { Code = "1.1.03", Name = "Clientes", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
             new() { Code = "1.1.04", Name = "Inventario", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
-            new() { Code = "1.1.05", Name = "IVA Crédito Fiscal", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
+            new() { Code = "1.1.05", Name = "IVA CrÃ©dito Fiscal", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
             new() { Code = "1.2", Name = "Activos No Circulantes", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsSystem = true, IsActive = true, ParentId = GetTempId() },
             new() { Code = "1.2.01", Name = "Propiedad, Planta y Equipo", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
-            new() { Code = "1.2.02", Name = "Depreciación Acumulada", Type = AccountTypes.Asset, NormalSide = AccountSide.Credit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
+            new() { Code = "1.2.02", Name = "DepreciaciÃ³n Acumulada", Type = AccountTypes.Asset, NormalSide = AccountSide.Credit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
 
             new() { Code = "2", Name = "Pasivos", Type = AccountTypes.Liability, NormalSide = AccountSide.Credit, Level = 0, CompanyId = companyId, IsSystem = true, IsActive = true },
             new() { Code = "2.1", Name = "Pasivos Circulantes", Type = AccountTypes.Liability, NormalSide = AccountSide.Credit, Level = 1, CompanyId = companyId, IsSystem = true, IsActive = true, ParentId = GetTempId() },
             new() { Code = "2.1.01", Name = "Proveedores", Type = AccountTypes.Liability, NormalSide = AccountSide.Credit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
-            new() { Code = "2.1.02", Name = "IVA Débito Fiscal", Type = AccountTypes.Liability, NormalSide = AccountSide.Credit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
+            new() { Code = "2.1.02", Name = "IVA DÃ©bito Fiscal", Type = AccountTypes.Liability, NormalSide = AccountSide.Credit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
             new() { Code = "2.1.03", Name = "ISR por Pagar", Type = AccountTypes.Liability, NormalSide = AccountSide.Credit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
 
             new() { Code = "3", Name = "Patrimonio", Type = AccountTypes.Equity, NormalSide = AccountSide.Credit, Level = 0, CompanyId = companyId, IsSystem = true, IsActive = true },
             new() { Code = "3.1.01", Name = "Capital Social", Type = AccountTypes.Equity, NormalSide = AccountSide.Credit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
             new() { Code = "3.1.02", Name = "Utilidades Retenidas", Type = AccountTypes.Equity, NormalSide = AccountSide.Credit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
-            new() { Code = "3.1.03", Name = "Superávit por Revaluación", Type = AccountTypes.Equity, NormalSide = AccountSide.Credit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
+            new() { Code = "3.1.03", Name = "SuperÃ¡vit por RevaluaciÃ³n", Type = AccountTypes.Equity, NormalSide = AccountSide.Credit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
 
             new() { Code = "4", Name = "Ingresos", Type = AccountTypes.Income, NormalSide = AccountSide.Credit, Level = 0, CompanyId = companyId, IsSystem = true, IsActive = true },
             new() { Code = "4.1.01", Name = "Ventas", Type = AccountTypes.Income, NormalSide = AccountSide.Credit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
@@ -262,9 +260,9 @@ public sealed class AccountService
             new() { Code = "6", Name = "Gastos", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 0, CompanyId = companyId, IsSystem = true, IsActive = true },
             new() { Code = "6.1.01", Name = "Gastos Administrativos", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
             new() { Code = "6.1.02", Name = "Gastos de Venta", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
-            new() { Code = "6.1.04", Name = "Depreciación", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
+            new() { Code = "6.1.04", Name = "DepreciaciÃ³n", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
             new() { Code = "6.1.05", Name = "Mantenimiento y Reparaciones", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
-            new() { Code = "6.2.01", Name = "Pérdida en Baja de Activos", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
+            new() { Code = "6.2.01", Name = "PÃ©rdida en Baja de Activos", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
         };
 
         // Assign parent relationships properly
@@ -331,7 +329,6 @@ public sealed class AccountingEntryService
             ReferenceType = "manual",
             Status = "posted",
             AccountingPeriodId = request.AccountingPeriodId,
-            CompanyId = CompanyId,
             TotalDebit = totalDebit,
             TotalCredit = totalCredit,
             PostedAt = DateTime.UtcNow,
@@ -341,7 +338,6 @@ public sealed class AccountingEntryService
                 DebitAmount = d.DebitAmount,
                 CreditAmount = d.CreditAmount,
                 Description = d.Description,
-                CompanyId = CompanyId,
             }).ToList(),
         };
 

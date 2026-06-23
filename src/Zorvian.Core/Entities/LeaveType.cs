@@ -12,7 +12,7 @@ public sealed class LeaveType : BaseEntity
     public int? MaxDaysPerMonth { get; set; }
     public int? MaxDaysPerYear { get; set; }
     public string? Country { get; set; } = "NI";
-    public Guid? CompanyId { get; set; } // null = global default, set = per-company override
+    // CompanyId is inherited from BaseEntity. Guid.Empty = global default, non-empty = per-company override.
 
     public Company? Company { get; set; }
     public ICollection<PermissionRequest> PermissionRequests { get; set; } = [];

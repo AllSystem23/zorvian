@@ -16,6 +16,5 @@ public sealed class LateFee : BaseEntity
     public DateOnly CalculatedAt { get; set; }
     public DateTime? PaidAt { get; set; }
     public string? Notes { get; set; }
-    public Guid CompanyId { get; set; }
     public Guid BranchId { get; set; }
 }

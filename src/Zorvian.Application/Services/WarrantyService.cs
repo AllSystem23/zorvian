@@ -41,9 +41,10 @@ public sealed class WarrantyService
     public async Task<WarrantyResponse> CreateAsync(CreateWarrantyRequest request)
     {
         var warranty = _mapper.Map<Warranty>(request);
-        warranty.WarrantyNumber = await _repo.GenerateWarrantyNumberAsync(Guid.Parse(_tenant.TenantId));
+        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+            throw new InvalidOperationException("Tenant not configured");
+        warranty.WarrantyNumber = await _repo.GenerateWarrantyNumberAsync(companyId);
         warranty.EndDate = warranty.StartDate.AddMonths(request.DurationMonths);
-        warranty.CompanyId = Guid.Parse(_tenant.TenantId);
         warranty.BranchId = request.BranchId;
 
         await _repo.AddAsync(warranty);
@@ -134,7 +135,7 @@ public sealed class WarrantyService
             1,
             0,
             request.ProviderAuthorizationCode,
-            $"RMA: Devolución de producto defectuoso {claim.Warranty.SerialNumber}",
+            $"RMA: DevoluciÃ³n de producto defectuoso {claim.Warranty.SerialNumber}",
             claim.BranchId,
             claim.Warranty.SerialNumber
         ));
@@ -146,7 +147,7 @@ public sealed class WarrantyService
             1,
             0,
             request.ProviderAuthorizationCode,
-            $"RMA: Recepción de producto nuevo (Reemplazo {claim.Warranty.WarrantyNumber})",
+            $"RMA: RecepciÃ³n de producto nuevo (Reemplazo {claim.Warranty.WarrantyNumber})",
             claim.BranchId,
             request.NewSerialNumber
         ));

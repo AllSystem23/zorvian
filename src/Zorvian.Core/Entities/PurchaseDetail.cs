@@ -10,6 +10,5 @@ public sealed class PurchaseDetail : BaseEntity
     public decimal UnitCost { get; set; }
     public decimal Discount { get; set; }
     public decimal Subtotal { get; set; }
-    public Guid CompanyId { get; set; }
     public Guid BranchId { get; set; }
 }

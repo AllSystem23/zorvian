@@ -11,5 +11,4 @@ public sealed class DepreciationEntry : BaseEntity
     public Guid? AccountingEntryId { get; set; }
     public AccountingEntry? AccountingEntry { get; set; }
     public string? Notes { get; set; }
-    public Guid CompanyId { get; set; }
 }

@@ -2,7 +2,6 @@ namespace Zorvian.Core.Entities;
 
 public sealed class Branch : BaseEntity
 {
-    public Guid CompanyId { get; set; }
     public Company Company { get; set; } = null!;
     public string Name { get; set; } = string.Empty;
     public string? Code { get; set; }

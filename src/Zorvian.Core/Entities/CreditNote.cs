@@ -11,7 +11,6 @@ public sealed class CreditNote : BaseEntity
     public decimal Subtotal { get; set; }
     public decimal Tax { get; set; }
     public decimal Total { get; set; }
-    public Guid CompanyId { get; set; }
     public Guid BranchId { get; set; }
 
     public ICollection<CreditNoteDetail> Details { get; set; } = [];

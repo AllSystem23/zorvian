@@ -54,17 +54,33 @@ services:
       - "8080:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__ZorvianDb=Host=postgres;Database=zorvian_erp;Username=zorvian;Password=zorvian_dev_2026
+      - ConnectionStrings__ZorvianDb=Host=${NEON_HOST:-localhost};Database=${NEON_DB:-zorvian};Username=${NEON_USER:-postgres};Password=${NEON_PASSWORD};SSL Mode=Require
       - Jwt__Secret=dev-secret-key-change-in-production-minimum-32-chars
-      - Firebase__ProjectId=
+      - Firebase__ProjectId=zorvian-erp
       - Firebase__CredentialsFilePath=
       - Firebase__WebApiKey=
       - Testing__MockExternalServices=false
-    depends_on:
-      postgres:
-        condition: service_healthy
     volumes:
       - ./src/Zorvian.Web:/app/logs
+
+  # ── EF Core Migration Runner ──
+  migrate:
+    image: mcr.microsoft.com/dotnet/sdk:9.0
+    container_name: zorvian-migrate
+    working_dir: /src
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__ZorvianDb=Host=${NEON_HOST:-localhost};Database=${NEON_DB:-zorvian};Username=${NEON_USER:-postgres};Password=${NEON_PASSWORD};SSL Mode=Require
+    volumes:
+      - .:/src
+    entrypoint: >
+      sh -c "
+        dotnet tool install --global dotnet-ef --version 9.0.* &&
+        export PATH=$PATH:$HOME/.dotnet/tools &&
+        dotnet restore src/Zorvian.Web/Zorvian.Web.csproj &&
+        dotnet ef database update --project src/Zorvian.Infrastructure --startup-project src/Zorvian.Web &&
+        echo 'Migracion completada exitosamente!'
+      "
 
   # ── Frontend (Flutter Web) ──
   frontend:

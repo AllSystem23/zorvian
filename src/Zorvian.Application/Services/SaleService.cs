@@ -49,7 +49,8 @@ public sealed class SaleService
 
     public async Task<SaleResponse> CreateCashSaleAsync(CreateCashSaleRequest request)
     {
-        var companyId = Guid.Parse(_tenant.TenantId);
+        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+            throw new InvalidOperationException("Tenant not configured");
         var settings = await _companyRepo.GetSettingsAsync(companyId);
         var defaultTaxRate = settings?.TaxRate ?? 0.15m;
 
@@ -80,7 +81,6 @@ public sealed class SaleService
         sale.Total = total;
         sale.PaidAmount = total;
         sale.Balance = 0;
-        sale.CompanyId = companyId;
 
         // Refactored to include Product navigation property
         var saleDetails = new List<SaleDetail>();
@@ -98,7 +98,6 @@ public sealed class SaleService
                 UnitPrice = d.UnitPrice,
                 Discount = d.Discount,
                 Subtotal = d.Quantity * d.UnitPrice - d.Discount,
-                CompanyId = companyId,
                 BranchId = request.BranchId,
             });
         }
@@ -114,7 +113,6 @@ public sealed class SaleService
                 ReferenceNumber = request.Payment.ReferenceNumber,
                 PaymentDate = DateTime.UtcNow,
                 CashRegisterId = request.Payment.CashRegisterId,
-                CompanyId = companyId,
                 BranchId = request.BranchId,
             }
         };
@@ -141,7 +139,6 @@ public sealed class SaleService
                 UnitCost = product.CostPrice,
                 ReferenceNumber = sale.InvoiceNumber,
                 PerformedByEmployeeId = request.EmployeeId,
-                CompanyId = companyId,
                 BranchId = request.BranchId,
             };
             await _movementRepo.AddAsync(movement);
@@ -163,7 +160,8 @@ public sealed class SaleService
 
     public async Task<SaleResponse> CreateCreditSaleAsync(CreateCreditSaleRequest request)
     {
-        var companyId = Guid.Parse(_tenant.TenantId);
+        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+            throw new InvalidOperationException("Tenant not configured");
         var settings = await _companyRepo.GetSettingsAsync(companyId);
         var defaultTaxRate = settings?.TaxRate ?? 0.15m;
 
@@ -198,8 +196,8 @@ public sealed class SaleService
             var currentExposure = activeCredits.Sum(c => c.Balance);
             if (currentExposure + financedAmount > client.CreditLimit.Value)
                 throw new InvalidOperationException(
-                    $"El crédito excede el límite del cliente. Límite: {client.CreditLimit.Value:N2}, " +
-                    $"Exposición actual: {currentExposure:N2}, Nuevo financiamiento: {financedAmount:N2}");
+                    $"El crÃ©dito excede el lÃ­mite del cliente. LÃ­mite: {client.CreditLimit.Value:N2}, " +
+                    $"ExposiciÃ³n actual: {currentExposure:N2}, Nuevo financiamiento: {financedAmount:N2}");
         }
 
         var sale = _mapper.Map<Sale>(request);
@@ -210,7 +208,6 @@ public sealed class SaleService
         sale.PaidAmount = request.DownPayment;
         sale.Balance = financedAmount;
         sale.Status = "pending";
-        sale.CompanyId = companyId;
 
         // Refactored to include Product navigation property
         var saleDetails = new List<SaleDetail>();
@@ -228,7 +225,6 @@ public sealed class SaleService
                 UnitPrice = d.UnitPrice,
                 Discount = d.Discount,
                 Subtotal = d.Quantity * d.UnitPrice - d.Discount,
-                CompanyId = companyId,
                 BranchId = request.BranchId,
             });
         }
@@ -244,7 +240,6 @@ public sealed class SaleService
                     Amount = request.DownPayment,
                     PaymentMethod = "cash",
                     PaymentDate = DateTime.UtcNow,
-                    CompanyId = companyId,
                     BranchId = request.BranchId,
                 }
             };
@@ -268,7 +263,6 @@ public sealed class SaleService
             EndDate = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(request.InstallmentCount)),
             NextDueDate = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)),
             Status = "active",
-            CompanyId = companyId,
             BranchId = request.BranchId,
         };
 
@@ -285,7 +279,6 @@ public sealed class SaleService
                 PaidAmount = 0,
                 Balance = installmentAmount,
                 Status = "pending",
-                CompanyId = companyId,
                 BranchId = request.BranchId,
             });
         }
@@ -314,7 +307,6 @@ public sealed class SaleService
                 UnitCost = product.CostPrice,
                 ReferenceNumber = sale.InvoiceNumber,
                 PerformedByEmployeeId = request.EmployeeId,
-                CompanyId = companyId,
                 BranchId = request.BranchId,
             };
             await _movementRepo.AddAsync(movement);

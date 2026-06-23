@@ -19,7 +19,6 @@ public sealed class ServiceWorkshop : BaseEntity
     public decimal Rating { get; set; }
     public bool IsActive { get; set; } = true;
     public string? Notes { get; set; }
-    public Guid CompanyId { get; set; }
 
     public ICollection<WorkshopTechnician> Technicians { get; set; } = [];
 }

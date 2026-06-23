@@ -18,7 +18,6 @@ public sealed class Supplier : BaseEntity
     [Encrypted]
     public string? TaxId { get; set; }
     public bool IsActive { get; set; } = true;
-    public Guid CompanyId { get; set; }
 
     public ICollection<Product> Products { get; set; } = [];
 }

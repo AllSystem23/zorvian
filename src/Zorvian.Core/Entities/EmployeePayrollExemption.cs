@@ -10,5 +10,4 @@ public sealed class EmployeePayrollExemption : BaseEntity
     
     public DateTime? ExpiryDate { get; set; }
     public bool IsActive { get; set; } = true;
-    public Guid CompanyId { get; set; }
 }

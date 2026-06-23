@@ -12,5 +12,4 @@ public sealed class AssetRevaluation : BaseEntity
     public string? ApprovedBy { get; set; }
     public Guid? AccountingEntryId { get; set; }
     public AccountingEntry? AccountingEntry { get; set; }
-    public Guid CompanyId { get; set; }
 }

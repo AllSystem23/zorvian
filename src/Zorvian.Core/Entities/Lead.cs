@@ -19,7 +19,6 @@ public sealed class Lead : BaseEntity
     public Guid? AssignedToId { get; set; }
     public Employee? AssignedTo { get; set; }
     public string? Notes { get; set; }
-    public Guid CompanyId { get; set; }
     public Guid? BranchId { get; set; }
 
     public ICollection<CommercialActivity> Activities { get; set; } = [];

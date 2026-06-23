@@ -28,5 +28,4 @@ public sealed class CustomReport : BaseEntity
     public string SortOrder { get; set; } = "asc";
     public bool IsPublic { get; set; }
     public Guid CreatedByUserId { get; set; }
-    public Guid CompanyId { get; set; }
 }

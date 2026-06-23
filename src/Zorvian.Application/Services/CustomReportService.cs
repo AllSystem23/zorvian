@@ -69,7 +69,6 @@ public sealed class CustomReportService : ICustomReportService
             SortOrder = request.SortOrder,
             IsPublic = request.IsPublic,
             CreatedByUserId = userGuid,
-            CompanyId = CompanyId,
         };
         var created = await _repo.AddAsync(entity);
         return ToResponse(created);

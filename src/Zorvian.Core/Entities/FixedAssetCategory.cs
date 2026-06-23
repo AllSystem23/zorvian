@@ -7,5 +7,4 @@ public sealed class FixedAssetCategory : BaseEntity
     public int? DefaultUsefulLifeYears { get; set; }
     public string? DefaultDepreciationMethod { get; set; }
     public bool IsActive { get; set; } = true;
-    public Guid CompanyId { get; set; }
 }

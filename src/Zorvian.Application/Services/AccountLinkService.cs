@@ -32,7 +32,6 @@ public sealed class AccountLinkService
             TransactionType = request.TransactionType,
             Role = request.Role,
             AccountId = request.AccountId,
-            CompanyId = CompanyId,
         };
         await _repo.AddAsync(link);
         await _repo.SaveChangesAsync();

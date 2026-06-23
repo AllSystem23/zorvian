@@ -57,7 +57,8 @@ public sealed class CashRegisterService
 
         var register = _mapper.Map<CashRegister>(request);
         register.EmployeeId = _tenant.CurrentEmployeeId;
-        register.CompanyId = Guid.Parse(_tenant.TenantId);
+        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+            throw new InvalidOperationException("Tenant not configured");
 
         await _registerRepo.AddAsync(register);
         await _registerRepo.SaveChangesAsync();
@@ -100,7 +101,8 @@ public sealed class CashRegisterService
 
         var movement = _mapper.Map<CashMovement>(request);
         movement.EmployeeId = _tenant.CurrentEmployeeId;
-        movement.CompanyId = Guid.Parse(_tenant.TenantId);
+        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+            throw new InvalidOperationException("Tenant not configured");
         movement.BranchId = register.BranchId;
 
         await _movementRepo.AddAsync(movement);
@@ -129,7 +131,8 @@ public sealed class CashRegisterService
     {
         var page = filter.Page ?? 1;
         var pageSize = filter.PageSize ?? 20;
-        var companyId = Guid.Parse(_tenant.TenantId);
+        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+            return new PagedResult<CashRegisterResponse>([], 0, page, pageSize);
 
         var items = await _registerRepo.GetFilteredAsync(filter.BranchId, filter.Status, filter.FromDate, filter.ToDate, companyId, page, pageSize);
         var total = await _registerRepo.GetFilteredCountAsync(filter.BranchId, filter.Status, filter.FromDate, filter.ToDate, companyId);
@@ -155,7 +158,8 @@ public sealed class CashRegisterService
         var countedTotal = request.Denominations.Sum(d => d.DenominationValue * d.Quantity);
         var difference = countedTotal - expectedBalance;
 
-        var companyId = Guid.Parse(_tenant.TenantId);
+        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+            throw new InvalidOperationException("Tenant not configured");
 
         var arqueo = new CashRegisterArqueo
         {
@@ -165,7 +169,6 @@ public sealed class CashRegisterService
             Difference = difference,
             Notes = request.Notes,
             EmployeeId = employeeId,
-            CompanyId = companyId,
             BranchId = register.BranchId,
         };
 
@@ -177,7 +180,6 @@ public sealed class CashRegisterService
                 DenominationType = d.DenominationType,
                 DenominationValue = d.DenominationValue,
                 Quantity = d.Quantity,
-                CompanyId = companyId,
                 BranchId = register.BranchId,
             });
         }

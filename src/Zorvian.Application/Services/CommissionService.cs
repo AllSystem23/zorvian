@@ -100,7 +100,8 @@ public sealed class CommissionService : ICommissionService
 
     public async Task<List<CommissionRecord>> CalculateCommissionsAsync(Guid periodId)
     {
-        var companyId = Guid.Parse(_tenant.TenantId.Value.ToString());
+        if (!Guid.TryParse(_tenant.TenantId?.ToString(), out var companyId))
+            throw new InvalidOperationException("Tenant not configured");
         var tenantId = _tenant.TenantId.Value.ToString();
 
         var records = await _engine.CalculateForPeriodAsync(periodId, companyId, tenantId);
@@ -136,7 +137,8 @@ public sealed class CommissionService : ICommissionService
 
     public async Task<List<CommissionRecord>> GetCommissionRecordsByPeriodAsync(Guid periodId)
     {
-        var companyId = Guid.Parse(_tenant.TenantId.Value.ToString());
+        if (!Guid.TryParse(_tenant.TenantId?.ToString(), out var companyId))
+            throw new InvalidOperationException("Tenant not configured");
         return await _repo.GetRecordsByPeriodAsync(periodId, companyId);
     }
 
@@ -181,8 +183,9 @@ public sealed class CommissionService : ICommissionService
     {
         // Lógica de procesamiento de ventas
         // Ejemplo: Invocar al CommissionEngine para calcular comisiones basadas en la venta
-        var tenantId = _tenant.TenantId.Value.ToString();
-        var companyId = Guid.Parse(tenantId);
+        var tenantId = _tenant.TenantId?.ToString() ?? string.Empty;
+        if (!Guid.TryParse(tenantId, out var companyId))
+            throw new InvalidOperationException("Tenant not configured");
         
         // Implementar lógica: obtener vendedores, calcular comisiones, guardar registros
         await Task.CompletedTask;

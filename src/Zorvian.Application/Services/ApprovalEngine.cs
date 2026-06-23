@@ -48,7 +48,6 @@ public sealed class ApprovalEngine : IApprovalEngine
             Status = "pending", CurrentStep = 1,
             TotalSteps = matchingSteps.Count,
             RequestedBy = requestedBy, RequestedAt = DateTime.UtcNow,
-            CompanyId = companyId,
         };
 
         await _requestRepo.AddAsync(request);

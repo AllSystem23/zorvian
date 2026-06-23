@@ -22,14 +22,16 @@ public sealed class SupplierService
 
     public async Task<List<SupplierResponse>> GetAllAsync()
     {
-        var companyId = Guid.Parse(_tenant.TenantId);
+        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+            return [];
         var suppliers = await _repo.GetAllAsync(companyId);
         return _mapper.Map<List<SupplierResponse>>(suppliers);
     }
 
     public async Task<PagedResult<SupplierResponse>> GetFilteredAsync(string? search, int page = 1, int pageSize = 20)
     {
-        var companyId = Guid.Parse(_tenant.TenantId);
+        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+            return new PagedResult<SupplierResponse>([], 0, page, pageSize);
         var items = await _repo.GetFilteredAsync(search, companyId, page, pageSize);
         var total = await _repo.GetFilteredCountAsync(search, companyId);
 
@@ -41,7 +43,8 @@ public sealed class SupplierService
 
     public async Task<SupplierResponse> CreateAsync(CreateSupplierRequest request)
     {
-        var companyId = Guid.Parse(_tenant.TenantId);
+        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+            throw new InvalidOperationException("Tenant not configured");
 
         if (!string.IsNullOrWhiteSpace(request.TaxId))
         {
@@ -51,7 +54,6 @@ public sealed class SupplierService
         }
 
         var supplier = _mapper.Map<Supplier>(request);
-        supplier.CompanyId = companyId;
         supplier.Code = await _repo.GenerateCodeAsync(companyId);
 
         await _repo.AddAsync(supplier);
@@ -65,7 +67,8 @@ public sealed class SupplierService
         var supplier = await _repo.GetByIdAsync(id);
         if (supplier is null) return null;
 
-        var companyId = Guid.Parse(_tenant.TenantId);
+        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+            throw new InvalidOperationException("Tenant not configured");
 
         if (!string.IsNullOrWhiteSpace(request.TaxId) && request.TaxId != supplier.TaxId)
         {

@@ -12,5 +12,4 @@ public sealed class WarrantyRevenueSchedule : BaseEntity
     public bool IsRecognized { get; set; }
     
     public Guid? AccountingEntryId { get; set; }
-    public Guid CompanyId { get; set; }
 }

@@ -15,6 +15,4 @@ public sealed class OvertimeRecord : BaseEntity
     public decimal Rate { get; set; }
     public decimal Amount { get; set; }
     public string Status { get; set; } = "pending";
-    
-    public Guid CompanyId { get; set; }
 }

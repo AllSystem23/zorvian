@@ -9,5 +9,4 @@ public sealed class PayrollConcept : BaseEntity
     public Guid? AccountMappingId { get; set; }
     public Account? AccountMapping { get; set; }
     public bool IsActive { get; set; } = true;
-    public Guid CompanyId { get; set; }
 }

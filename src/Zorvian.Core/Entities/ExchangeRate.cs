@@ -6,5 +6,4 @@ public sealed class ExchangeRate : BaseEntity
     public string ToCurrency { get; set; } = string.Empty;
     public decimal Rate { get; set; }
     public DateTime EffectiveDate { get; set; }
-    public Guid CompanyId { get; set; }
 }

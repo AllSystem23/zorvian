@@ -7,5 +7,4 @@ public sealed class RegionalTaxConfiguration : BaseEntity
     public decimal Rate { get; set; }
     public DateTime EffectiveDate { get; set; } = DateTime.UtcNow;
     public bool IsActive { get; set; } = true;
-    public Guid CompanyId { get; set; }
 }

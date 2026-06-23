@@ -8,7 +8,6 @@ public sealed class AccountingPeriod : BaseEntity
     public string Status { get; set; } = "open";
     public DateTime? OpenedAt { get; set; }
     public DateTime? ClosedAt { get; set; }
-    public Guid CompanyId { get; set; }
 
     public ICollection<AccountingEntry> Entries { get; set; } = [];
 }

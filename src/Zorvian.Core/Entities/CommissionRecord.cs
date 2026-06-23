@@ -29,6 +29,4 @@ public sealed class CommissionRecord : BaseEntity
     public string? Description { get; set; }
     public string? CommissionRuleId { get; set; }
     public DateTime? TransactionDate { get; set; }
-
-    public Guid CompanyId { get; set; }
 }

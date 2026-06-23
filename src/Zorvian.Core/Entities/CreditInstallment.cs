@@ -12,6 +12,5 @@ public sealed class CreditInstallment : BaseEntity
     public decimal PaidAmount { get; set; }
     public decimal Balance { get; set; }
     public string Status { get; set; } = "pending";
-    public Guid CompanyId { get; set; }
     public Guid BranchId { get; set; }
 }

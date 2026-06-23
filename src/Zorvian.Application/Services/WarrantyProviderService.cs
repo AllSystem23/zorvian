@@ -21,7 +21,8 @@ public sealed class WarrantyProviderService
 
     public async Task<List<WarrantyProviderResponse>> GetAllAsync()
     {
-        var companyId = Guid.Parse(_tenant.TenantId);
+        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+            return [];
         var providers = await _repo.GetAllAsync(companyId);
         return _mapper.Map<List<WarrantyProviderResponse>>(providers);
     }
@@ -35,7 +36,6 @@ public sealed class WarrantyProviderService
     public async Task<WarrantyProviderResponse> CreateAsync(CreateWarrantyProviderRequest request)
     {
         var provider = _mapper.Map<WarrantyProvider>(request);
-        provider.CompanyId = Guid.TryParse(_tenant.TenantId?.ToString(), out var companyId) ? companyId : Guid.Empty;
         await _repo.AddAsync(provider);
         await _repo.SaveChangesAsync();
 

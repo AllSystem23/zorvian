@@ -17,7 +17,6 @@ public sealed class WarrantyProvider : BaseEntity
     public int AvgResponseHours { get; set; } = 96;
     public bool IsActive { get; set; } = true;
     public string? Notes { get; set; }
-    public Guid CompanyId { get; set; }
 
     public ICollection<ProviderContact> Contacts { get; set; } = [];
 }

@@ -4,7 +4,6 @@ namespace Zorvian.Core.Entities;
 
 public sealed class WarrantySlaConfig : BaseEntity
 {
-    public Guid CompanyId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? CoverageType { get; set; }
     public string? Priority { get; set; }

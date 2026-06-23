@@ -16,6 +16,5 @@ public sealed class CollectionAction : BaseEntity
     public DateOnly? PromiseDate { get; set; }
     public string Status { get; set; } = "completed";
     public string? Result { get; set; }
-    public Guid CompanyId { get; set; }
     public Guid BranchId { get; set; }
 }

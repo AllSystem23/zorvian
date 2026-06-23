@@ -62,7 +62,6 @@ public sealed class FixedAssetService
 
         var asset = _mapper.Map<FixedAsset>(request);
         asset.Code = await _assetRepo.GenerateCodeAsync(companyId);
-        asset.CompanyId = companyId;
         asset.Status = "active";
         asset.IsActive = true;
 
@@ -153,7 +152,6 @@ public sealed class FixedAssetService
             AccumulatedDepreciation = newAccumulated,
             NetBookValue = netBookValue,
             AccountingEntryId = entryId,
-            CompanyId = CompanyId,
         };
 
         await _deprRepo.AddAsync(deprEntry);
@@ -209,7 +207,6 @@ public sealed class FixedAssetService
             PreviousAccumulatedDepreciation = accumulatedDep,
             Reason = request.Reason,
             ApprovedBy = request.ApprovedBy,
-            CompanyId = CompanyId,
         };
 
         asset.AcquisitionCost = request.NewValue;
@@ -251,7 +248,6 @@ public sealed class FixedAssetService
             GainOrLoss = gainOrLoss,
             Reason = request.Reason,
             ApprovedBy = request.ApprovedBy,
-            CompanyId = CompanyId,
         };
 
         asset.Status = "disposed";
@@ -287,7 +283,6 @@ public sealed class FixedAssetService
             NextMaintenanceDate = request.NextMaintenanceDate,
             EstimatedDurationHours = request.EstimatedDurationHours,
             Status = request.Status ?? "completed",
-            CompanyId = CompanyId,
         };
 
         await _maintRepo.AddAsync(maintenance);
@@ -358,7 +353,7 @@ public sealed class FixedAssetService
         var totalNetBook = netBookValues.Values.Sum();
 
         var byCategory = allAssets
-            .GroupBy(a => a.Category?.Name ?? "Sin categoría")
+            .GroupBy(a => a.Category?.Name ?? "Sin categorÃ­a")
             .Select(g => new CategorySummaryItem(
                 g.Key, g.Count(),
                 g.Sum(a => a.AcquisitionCost),

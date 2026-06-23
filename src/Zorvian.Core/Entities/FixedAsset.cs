@@ -30,7 +30,6 @@ public sealed class FixedAsset : BaseEntity
     public string? AssignedTo { get; set; }
     public string Status { get; set; } = "active";
     public bool IsActive { get; set; } = true;
-    public Guid CompanyId { get; set; }
     public Guid BranchId { get; set; }
     public string? ImageUrl { get; set; }
 

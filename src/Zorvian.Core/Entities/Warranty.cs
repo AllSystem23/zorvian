@@ -23,7 +23,6 @@ public sealed class Warranty : BaseEntity
     public string? Imei { get; set; }
     public string? LotNumber { get; set; }
     public WarrantyStatus Status { get; set; } = WarrantyStatus.Registered;
-    public Guid CompanyId { get; set; }
     public Guid BranchId { get; set; }
 
     public int? SlaHours { get; set; }

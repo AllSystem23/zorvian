@@ -17,7 +17,6 @@ public sealed class Quote : BaseEntity
     public decimal Total { get; set; }
     public QuoteStatus Status { get; set; } = QuoteStatus.Pending;
     public string? Notes { get; set; }
-    public Guid CompanyId { get; set; }
     public Guid BranchId { get; set; }
     public string CurrencyCode { get; set; } = "NIO";
     public decimal? ExchangeRateToReporting { get; set; }

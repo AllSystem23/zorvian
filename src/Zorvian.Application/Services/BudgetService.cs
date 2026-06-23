@@ -21,14 +21,16 @@ public sealed class BudgetService
 
     public async Task<List<BudgetResponse>> GetAllAsync()
     {
-        var companyId = Guid.Parse(_tenant.TenantId.ToString());
+        if (!Guid.TryParse(_tenant.TenantId?.ToString(), out var companyId))
+            return [];
         var items = await _repo.GetAllAsync(companyId);
         return _mapper.Map<List<BudgetResponse>>(items);
     }
 
     public async Task<List<BudgetResponse>> GetByPeriodAsync(int year, int month)
     {
-        var companyId = Guid.Parse(_tenant.TenantId.ToString());
+        if (!Guid.TryParse(_tenant.TenantId?.ToString(), out var companyId))
+            return [];
         var items = await _repo.GetByPeriodAsync(year, month, companyId);
         return _mapper.Map<List<BudgetResponse>>(items);
     }
@@ -36,7 +38,8 @@ public sealed class BudgetService
     public async Task<BudgetResponse> CreateAsync(CreateBudgetRequest request)
     {
         var entity = _mapper.Map<Budget>(request);
-        entity.CompanyId = Guid.Parse(_tenant.TenantId.ToString());
+        if (!Guid.TryParse(_tenant.TenantId?.ToString(), out var companyId))
+            throw new InvalidOperationException("Tenant not configured");
 
         await _repo.AddAsync(entity);
         await _repo.SaveChangesAsync();

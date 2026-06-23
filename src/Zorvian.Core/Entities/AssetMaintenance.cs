@@ -12,5 +12,4 @@ public sealed class AssetMaintenance : BaseEntity
     public DateTime? NextMaintenanceDate { get; set; }
     public int? EstimatedDurationHours { get; set; }
     public string Status { get; set; } = "completed";
-    public Guid CompanyId { get; set; }
 }

@@ -24,7 +24,6 @@ public sealed class EmployeeLoan : BaseEntity
     public DateOnly EndDate { get; set; }
     public string Status { get; set; } = "active"; // 'active', 'paid', 'cancelled'
     public string? Notes { get; set; }
-    public Guid CompanyId { get; set; }
     public Guid BranchId { get; set; }
     public ICollection<LoanInstallment> Installments { get; set; } = new List<LoanInstallment>();
 }

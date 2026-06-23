@@ -6,5 +6,4 @@ public sealed class Location : BaseEntity
     public string? Description { get; set; }
     public string? Address { get; set; }
     public bool IsActive { get; set; } = true;
-    public Guid CompanyId { get; set; }
 }

@@ -10,7 +10,6 @@ public sealed class AccountingEntry : BaseEntity
     public string Status { get; set; } = "draft";
     public Guid AccountingPeriodId { get; set; }
     public AccountingPeriod AccountingPeriod { get; set; } = null!;
-    public Guid CompanyId { get; set; }
     public Guid? BranchId { get; set; }
     public decimal TotalDebit { get; set; }
     public decimal TotalCredit { get; set; }
@@ -35,5 +34,4 @@ public sealed class AccountingEntryDetail : BaseEntity
     public string? Description { get; set; }
     public Guid? CostCenterId { get; set; }
     public CostCenter? CostCenter { get; set; }
-    public Guid CompanyId { get; set; }
 }

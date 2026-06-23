@@ -15,6 +15,5 @@ public sealed class CreditPayment : BaseEntity
     public Guid? EmployeeId { get; set; }
     public Employee? Employee { get; set; }
     public Guid? CashRegisterId { get; set; }
-    public Guid CompanyId { get; set; }
     public Guid BranchId { get; set; }
 }

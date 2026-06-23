@@ -23,6 +23,4 @@ public sealed class CommercialActivity : BaseEntity
     
     public Guid? AssignedToId { get; set; }
     public Employee? AssignedTo { get; set; }
-    
-    public Guid CompanyId { get; set; }
 }

@@ -8,7 +8,6 @@ public sealed class PipelineStage : BaseEntity
     public decimal DefaultProbability { get; set; }
     public string? Color { get; set; }
     public bool IsActive { get; set; } = true;
-    public Guid CompanyId { get; set; }
 
     public ICollection<Opportunity> Opportunities { get; set; } = [];
 }

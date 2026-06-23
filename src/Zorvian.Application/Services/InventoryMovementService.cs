@@ -70,7 +70,6 @@ public class InventoryMovementService : IInventoryMovementService
         var movement = _mapper.Map<InventoryMovement>(request);
         movement.StockBefore = stockBefore;
         movement.StockAfter = stockAfter;
-        movement.CompanyId = companyId;
         movement.BranchId = branchId ?? Guid.Empty;
         movement.TenantId = _tenant.TenantId.ToString();
 

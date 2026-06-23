@@ -6,5 +6,4 @@ public sealed class CostCenter : BaseEntity
     public string Code { get; set; } = string.Empty;
     public string? Description { get; set; }
     public bool IsActive { get; set; } = true;
-    public Guid CompanyId { get; set; }
 }

@@ -14,7 +14,6 @@ public sealed class WarrantyClaim : BaseEntity
     public DateOnly? ResolutionDate { get; set; }
     public Guid? ApprovedByEmployeeId { get; set; }
     public Employee? ApprovedBy { get; set; }
-    public Guid CompanyId { get; set; }
     public Guid BranchId { get; set; }
 
     public Guid? WorkshopId { get; set; }

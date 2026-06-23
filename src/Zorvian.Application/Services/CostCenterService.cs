@@ -21,7 +21,8 @@ public sealed class CostCenterService
 
     public async Task<List<CostCenterResponse>> GetAllAsync()
     {
-        var companyId = Guid.Parse(_tenant.TenantId.ToString());
+        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+            return [];
         var items = await _repo.GetAllAsync(companyId);
         return _mapper.Map<List<CostCenterResponse>>(items);
     }
@@ -29,7 +30,6 @@ public sealed class CostCenterService
     public async Task<CostCenterResponse> CreateAsync(CreateCostCenterRequest request)
     {
         var entity = _mapper.Map<CostCenter>(request);
-        entity.CompanyId = Guid.Parse(_tenant.TenantId.ToString());
 
         await _repo.AddAsync(entity);
         await _repo.SaveChangesAsync();

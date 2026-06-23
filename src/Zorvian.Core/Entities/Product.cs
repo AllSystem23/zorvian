@@ -23,7 +23,6 @@ public sealed class Product : BaseEntity
     public bool IsActive { get; set; } = true;
     public Guid? TaxCategoryId { get; set; }
     public TaxCategory? TaxCategory { get; set; }
-    public Guid CompanyId { get; set; }
     public Guid BranchId { get; set; }
 
     public ICollection<InventoryMovement> InventoryMovements { get; set; } = [];

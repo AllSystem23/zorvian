@@ -27,8 +27,9 @@ public sealed class ClientService
     public async Task<ClientResponse> CreateAsync(CreateClientRequest request)
     {
         var client = _mapper.Map<Client>(request);
-        client.Code = await _repo.GenerateCodeAsync(Guid.Parse(_tenant.TenantId));
-        client.CompanyId = Guid.Parse(_tenant.TenantId);
+        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+            throw new InvalidOperationException("Invalid tenant");
+        client.Code = await _repo.GenerateCodeAsync(companyId);
 
         await _repo.AddAsync(client);
         await _repo.SaveChangesAsync();

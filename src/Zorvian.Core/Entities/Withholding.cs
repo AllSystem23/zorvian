@@ -11,6 +11,5 @@ public sealed class Withholding : BaseEntity
     public string? CertificateNumber { get; set; }
     public DateOnly? IssueDate { get; set; }
     public string Status { get; set; } = "pending";
-    public Guid CompanyId { get; set; }
     public Guid BranchId { get; set; }
 }

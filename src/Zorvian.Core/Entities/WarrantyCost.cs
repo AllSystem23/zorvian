@@ -3,7 +3,6 @@ namespace Zorvian.Core.Entities;
 public sealed class WarrantyCost : BaseEntity
 {
     public Guid BranchId { get; set; }
-    public Guid CompanyId { get; set; }
     public Guid WarrantyId { get; set; }
     public Warranty Warranty { get; set; } = null!;
     public Guid? ClaimId { get; set; }

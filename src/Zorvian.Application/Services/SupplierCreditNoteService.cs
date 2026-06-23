@@ -46,7 +46,6 @@ public sealed class SupplierCreditNoteService
             Tax = request.Tax,
             Total = request.Total,
             Status = "completed",
-            CompanyId = companyId,
             BranchId = request.BranchId,
         };
 
@@ -83,7 +82,6 @@ public sealed class SupplierCreditNoteService
                     StockAfter = product.Stock,
                     UnitCost = detail.UnitPrice,
                     ReferenceNumber = creditNote.CreditNoteNumber,
-                    CompanyId = companyId,
                     BranchId = request.BranchId,
                 };
                 await _movementRepo.AddAsync(movement);

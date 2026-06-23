@@ -18,10 +18,8 @@ public sealed class CompanySettings : BaseEntity
     public decimal LateFeePercentage { get; set; } = 0.05m;
     public int LateFeeGracePeriod { get; set; } = 0;
 
-    // Facturación / IVA
+    // FacturaciÃ³n / IVA
     public bool TaxEnabled { get; set; } = true;
     public decimal TaxRate { get; set; } = 0.15m;
-
-    public Guid CompanyId { get; set; }
     public Company Company { get; set; } = null!;
 }

@@ -15,6 +15,5 @@ public sealed class WageGarnishment : BaseEntity
     public DateOnly StartDate { get; set; }
     public DateOnly? EndDate { get; set; }
     public string Status { get; set; } = "active"; // 'active', 'completed', 'cancelled'
-    public Guid CompanyId { get; set; }
     public Guid BranchId { get; set; }
 }

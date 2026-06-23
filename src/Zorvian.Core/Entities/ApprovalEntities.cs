@@ -6,7 +6,6 @@ public sealed class ApprovalFlowConfig : BaseEntity
     public string EventType { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
-    public Guid CompanyId { get; set; }
 
     public ICollection<ApprovalFlowStep> Steps { get; set; } = [];
 }
@@ -19,7 +18,6 @@ public sealed class ApprovalFlowStep : BaseEntity
     public string ApproverRole { get; set; } = string.Empty;
     public decimal? MinAmount { get; set; }
     public decimal? MaxAmount { get; set; }
-    public Guid CompanyId { get; set; }
 }
 
 public sealed class ApprovalRequest : BaseEntity
@@ -33,7 +31,6 @@ public sealed class ApprovalRequest : BaseEntity
     public string RequestedBy { get; set; } = string.Empty;
     public DateTime RequestedAt { get; set; }
     public string? Notes { get; set; }
-    public Guid CompanyId { get; set; }
 
     public ICollection<ApprovalRequestAction> Actions { get; set; } = [];
 }
@@ -47,5 +44,4 @@ public sealed class ApprovalRequestAction : BaseEntity
     public string? Comment { get; set; }
     public string ActedBy { get; set; } = string.Empty;
     public DateTime ActedAt { get; set; }
-    public Guid CompanyId { get; set; }
 }

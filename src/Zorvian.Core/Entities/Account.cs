@@ -13,7 +13,6 @@ public sealed class Account : BaseEntity
     public bool IsActive { get; set; } = true;
     public bool IsSystem { get; set; }
     public decimal OpeningBalance { get; set; }
-    public Guid CompanyId { get; set; }
     public Guid? CostCenterId { get; set; }
     public CostCenter? CostCenter { get; set; }
     public ICollection<Account> Children { get; set; } = [];

@@ -9,6 +9,5 @@ public sealed class SupplierPayment : BaseEntity
     public string? ReferenceNumber { get; set; }
     public DateTime PaymentDate { get; set; }
     public string? Notes { get; set; }
-    public Guid CompanyId { get; set; }
     public Guid BranchId { get; set; }
 }

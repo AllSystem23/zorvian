@@ -69,7 +69,7 @@ public sealed class WarrantyServiceTests
 
         savedWarranty.Should().NotBeNull();
         savedWarranty!.BranchId.Should().Be(_branchId);
-        savedWarranty.CompanyId.Should().Be(_companyId);
+        // CompanyId is now set automatically by TenantAuditInterceptor on SaveChanges
         savedWarranty.WarrantyNumber.Should().Be("GAR-20260606-0001");
     }
 

@@ -10,7 +10,6 @@ public sealed class CashRegisterArqueo : BaseEntity
     public string? Notes { get; set; }
     public Guid EmployeeId { get; set; }
     public Employee Employee { get; set; } = null!;
-    public Guid CompanyId { get; set; }
     public Guid BranchId { get; set; }
     public ICollection<CashArqueoDenomination> Denominations { get; set; } = [];
 }

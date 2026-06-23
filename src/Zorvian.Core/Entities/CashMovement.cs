@@ -14,6 +14,5 @@ public sealed class CashMovement : BaseEntity
     public Guid? RelatedCreditPaymentId { get; set; }
     public Guid? EmployeeId { get; set; }
     public Employee? Employee { get; set; }
-    public Guid CompanyId { get; set; }
     public Guid BranchId { get; set; }
 }

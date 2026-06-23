@@ -46,7 +46,6 @@ public sealed class ProductService
         var companyId = RequireCompanyId();
         var branchId = ResolveBranchId(request.BranchId);
         var product = _mapper.Map<Product>(request);
-        product.CompanyId = companyId;
         product.BranchId = branchId ?? Guid.Empty;
         product.TenantId = _tenant.TenantId.ToString();
 

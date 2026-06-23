@@ -19,7 +19,6 @@ public sealed class Purchase : BaseEntity
     public string? WithholdingType { get; set; }
     public decimal? WithholdingRate { get; set; }
     public decimal? WithholdingAmount { get; set; }
-    public Guid CompanyId { get; set; }
     public Guid BranchId { get; set; }
     public string CurrencyCode { get; set; } = "NIO";
     public decimal? ExchangeRateToReporting { get; set; }

@@ -127,7 +127,6 @@ public sealed class CommissionEngine
                         Status = "calculated",
                         CommissionRuleId = rule.Id.ToString(),
                         TransactionDate = sale.SaleDate,
-                        CompanyId = companyId,
                         TenantId = tenantId
                     });
                 }
@@ -156,7 +155,6 @@ public sealed class CommissionEngine
             BaseAmount = baseAmount,
             Amount = amount,
             Status = "calculated",
-            CompanyId = companyId,
             TenantId = tenantId,
             Description = $"Commission from {sourceType} ({scheme.Name})"
         };

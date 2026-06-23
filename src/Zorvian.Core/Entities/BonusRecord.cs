@@ -13,6 +13,4 @@ public sealed class BonusRecord : BaseEntity
     public string Description { get; set; } = string.Empty;
     public decimal Amount { get; set; }
     public string Status { get; set; } = "pending";
-    
-    public Guid CompanyId { get; set; }
 }

@@ -16,7 +16,6 @@ public sealed class CashRegister : BaseEntity
     public DateTime? ClosedAt { get; set; }
     public string Status { get; set; } = "open";
     public string? Notes { get; set; }
-    public Guid CompanyId { get; set; }
 
     public ICollection<CashMovement> Movements { get; set; } = [];
 }
