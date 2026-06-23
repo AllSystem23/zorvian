@@ -15,15 +15,33 @@ public sealed class DocumentsController : ControllerBase
     private readonly IDocumentService _documentService;
     private readonly IDocumentGenerationService _generationService;
     private readonly IDocumentTemplateRepository _templateRepo;
+    private readonly IGeneratedDocumentRepository _docRepo;
 
     public DocumentsController(
         IDocumentService documentService,
         IDocumentGenerationService generationService,
-        IDocumentTemplateRepository templateRepo)
+        IDocumentTemplateRepository templateRepo,
+        IGeneratedDocumentRepository docRepo)
     {
         _documentService = documentService;
         _generationService = generationService;
         _templateRepo = templateRepo;
+        _docRepo = docRepo;
+    }
+
+    /// <summary>
+    /// Lista documentos generados con paginación.
+    /// </summary>
+    [RequirePermission(Permissions.DocumentRead)]
+    [HttpGet]
+    public async Task<IActionResult> GetDocuments(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        page = Math.Clamp(page, 1, 1000);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+        var (items, total) = await _docRepo.GetAllPagedAsync(page, pageSize);
+        return Ok(new PagedResult<GeneratedDocument>(items, total, page, pageSize));
     }
 
     /// <summary>

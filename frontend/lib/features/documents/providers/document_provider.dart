@@ -76,12 +76,18 @@ class DocumentNotifier extends Notifier<DocumentState> {
     }
   }
 
-  Future<void> loadDocuments() async {
-    state = state.copyWith(loading: true);
+  Future<void> loadDocuments({int page = 1, int pageSize = 50}) async {
     try {
       final dio = ref.read(dioClientProvider);
-      await dio.get('documents');
-      state = state.copyWith(documents: [], loading: false);
+      final response = await dio.get('documents', params: {
+        'page': page,
+        'pageSize': pageSize,
+      });
+      final data = response.data;
+      final items = (data['items'] as List)
+          .map((e) => GeneratedDocument.fromJson(e))
+          .toList();
+      state = state.copyWith(documents: items, loading: false);
     } catch (e) {
       state = state.copyWith(documents: [], loading: false);
     }

@@ -131,6 +131,7 @@ class _TemplateTile extends ConsumerWidget {
     }
 
     ZModal.show(context, title: 'Generar Documento',
+      cancelText: 'Cancelar',
       child: StatefulBuilder(
         builder: (ctx, setModalState) => Column(
           mainAxisSize: MainAxisSize.min,
@@ -171,12 +172,27 @@ class _TemplateTile extends ConsumerWidget {
                 }
                 variables[v.key] = val;
               }
+              if (entityCtrl.text.trim().isEmpty) {
+                if (ctx.mounted) {
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    const SnackBar(content: Text('El ID de entidad es requerido')));
+                }
+                return;
+              }
               Navigator.pop(ctx);
-              await ref.read(documentProvider.notifier).generateDocument(
+              final error = await ref.read(documentProvider.notifier).generateDocument(
                 templateId: template.id,
                 entityId: entityCtrl.text.trim(),
                 variables: variables,
               );
+              if (!context.mounted) return;
+              if (error != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(error), backgroundColor: ZColors.danger));
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Documento generado exitosamente'), backgroundColor: ZColors.success));
+              }
             }),
           ],
         ),

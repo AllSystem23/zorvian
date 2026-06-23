@@ -33,6 +33,21 @@ public sealed class GeneratedDocumentRepository : IGeneratedDocumentRepository
             .Include(d => d.Template)
             .ToListAsync();
 
+    public async Task<(List<GeneratedDocument> Items, int Total)> GetAllPagedAsync(int page, int pageSize)
+    {
+        var query = _db.GeneratedDocuments
+            .Include(d => d.Template)
+            .OrderByDescending(d => d.CreatedAt);
+
+        var total = await query.CountAsync();
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (items, total);
+    }
+
     public async Task AddAsync(GeneratedDocument document) =>
         await _db.GeneratedDocuments.AddAsync(document);
 

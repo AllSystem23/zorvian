@@ -7,6 +7,7 @@ public interface IGeneratedDocumentRepository
     Task<GeneratedDocument?> GetByIdAsync(Guid id);
     Task<List<GeneratedDocument>> GetByEntityAsync(Guid entityId, string entityType);
     Task<List<GeneratedDocument>> GetPendingApprovalAsync();
+    Task<(List<GeneratedDocument> Items, int Total)> GetAllPagedAsync(int page, int pageSize);
     Task AddAsync(GeneratedDocument document);
     Task UpdateAsync(GeneratedDocument document);
     Task SaveChangesAsync();
