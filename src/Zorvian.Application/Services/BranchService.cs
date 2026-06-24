@@ -36,6 +36,10 @@ public sealed class BranchService
     public async Task<BranchResponse> CreateAsync(CreateBranchRequest request)
     {
         var branch = _mapper.Map<Branch>(request);
+        var tenantId = _tenant.TenantId.ToString() ?? string.Empty;
+        if (Guid.TryParse(tenantId, out var companyId))
+            branch.CompanyId = companyId;
+        branch.TenantId = tenantId;
 
         await _repo.AddAsync(branch);
         await _repo.SaveChangesAsync();

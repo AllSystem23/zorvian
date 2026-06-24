@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart' show dioClientProvider;
 
@@ -15,50 +16,49 @@ final class FleetCatalogItem {
   );
 }
 
+final _silentOptions = Options(extra: {'suppressGlobalError': true});
+
 final vehicleBrandListProvider =
     FutureProvider.autoDispose<List<FleetCatalogItem>>((ref) async {
   final dio = ref.read(dioClientProvider);
-  final r = await dio.get('fleet/brands');
-  final data = r.data;
-  final list = data is List ? data : (data['items'] ?? []);
-  return (list as List).map((e) => FleetCatalogItem.fromJson(e)).toList();
+  final r = await dio.get('fleet/brands', options: _silentOptions);
+  return _parseCatalogList(r.data);
 });
 
 final vehicleTypeListProvider =
     FutureProvider.autoDispose<List<FleetCatalogItem>>((ref) async {
   final dio = ref.read(dioClientProvider);
-  final r = await dio.get('fleet/vehicle-types');
-  final data = r.data;
-  final list = data is List ? data : (data['items'] ?? []);
-  return (list as List).map((e) => FleetCatalogItem.fromJson(e)).toList();
+  final r = await dio.get('fleet/vehicle-types', options: _silentOptions);
+  return _parseCatalogList(r.data);
 });
 
 final fuelTypeListProvider =
     FutureProvider.autoDispose<List<FleetCatalogItem>>((ref) async {
   final dio = ref.read(dioClientProvider);
-  final r = await dio.get('fleet/fuel-types');
-  final data = r.data;
-  final list = data is List ? data : (data['items'] ?? []);
-  return (list as List).map((e) => FleetCatalogItem.fromJson(e)).toList();
+  final r = await dio.get('fleet/fuel-types', options: _silentOptions);
+  return _parseCatalogList(r.data);
 });
 
 final driverLicenseCategoryListProvider =
     FutureProvider.autoDispose<List<FleetCatalogItem>>((ref) async {
   final dio = ref.read(dioClientProvider);
-  final r = await dio.get('fleet/driver-license-categories');
-  final data = r.data;
-  final list = data is List ? data : (data['items'] ?? []);
-  return (list as List).map((e) => FleetCatalogItem.fromJson(e)).toList();
+  final r = await dio.get('fleet/driver-license-categories', options: _silentOptions);
+  return _parseCatalogList(r.data);
 });
 
 final documentTypeListProvider =
     FutureProvider.autoDispose<List<DocumentTypeItem>>((ref) async {
   final dio = ref.read(dioClientProvider);
-  final r = await dio.get('fleet/document-types');
+  final r = await dio.get('fleet/document-types', options: _silentOptions);
   final data = r.data;
-  final list = data is List ? data : (data['items'] ?? []);
-  return (list as List).map((e) => DocumentTypeItem.fromJson(e)).toList();
+  final list = data is List ? data : (data['items'] as List? ?? []);
+  return (list).map((e) => DocumentTypeItem.fromJson(e as Map<String, dynamic>)).toList();
 });
+
+List<FleetCatalogItem> _parseCatalogList(dynamic data) {
+  final list = data is List ? data : (data['items'] as List? ?? []);
+  return list.map((e) => FleetCatalogItem.fromJson(e as Map<String, dynamic>)).toList();
+}
 
 final class DocumentTypeItem {
   final String id;

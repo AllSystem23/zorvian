@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -70,13 +71,31 @@ final class _FleetVehicleFormPageState extends ConsumerState<FleetVehicleFormPag
       _branchId = d['branchId'] as String?;
       _purchaseDate = d['purchaseDate'] != null ? DateTime.tryParse(d['purchaseDate'] as String) : null;
       setState(() {});
-    } catch (_) {
-      setState(() => _error = 'Error al cargar vehículo');
+    } catch (e) {
+      final msg = _extractError(e) ?? 'Error al cargar vehículo';
+      setState(() => _error = msg);
     }
+  }
+
+  String? _extractError(dynamic e) {
+    if (e is DioException) {
+      final data = e.response?.data;
+      if (data is Map) {
+        return (data['detail'] ?? data['message'] ?? data['title']) as String?;
+      }
+      return e.message;
+    }
+    return null;
   }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (_brandId == null || _vehicleTypeId == null || _fuelTypeId == null || _branchId == null) {
+      setState(() => _error = 'Seleccione todos los campos requeridos (marca, tipo, combustible, sucursal)');
+      return;
+    }
+
     setState(() { _loading = true; _error = null; });
     try {
       final dio = ref.read(dioClientProvider);
@@ -106,8 +125,11 @@ final class _FleetVehicleFormPageState extends ConsumerState<FleetVehicleFormPag
         await dio.post('fleet/vehicles', data: body);
       }
       if (mounted) context.pop(true);
-    } catch (_) {
-      setState(() => _error = 'Error al guardar');
+    } catch (e) {
+      final msg = e is DioException
+          ? 'Error: ${e.response?.data?['detail'] ?? e.response?.data?['message'] ?? e.message}'
+          : 'Error al guardar';
+      setState(() => _error = msg);
     } finally {
       if (mounted) setState(() => _loading = false);
     }

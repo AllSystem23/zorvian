@@ -36,6 +36,10 @@ public sealed class VehicleService
     public async Task<VehicleResponse> CreateAsync(CreateVehicleRequest request)
     {
         var vehicle = _mapper.Map<Vehicle>(request);
+        var tenantId = _tenant.TenantId.ToString() ?? string.Empty;
+        if (Guid.TryParse(tenantId, out var companyId))
+            vehicle.CompanyId = companyId;
+        vehicle.TenantId = tenantId;
         vehicle.Status = "Active";
         await _repo.AddAsync(vehicle);
         await _repo.SaveChangesAsync();

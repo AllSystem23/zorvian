@@ -34,6 +34,10 @@ public sealed class VehicleTypeService
     public async Task<VehicleTypeResponse> CreateAsync(CreateVehicleTypeRequest request)
     {
         var type = _mapper.Map<VehicleType>(request);
+        var tenantId = _tenant.TenantId.ToString() ?? string.Empty;
+        if (Guid.TryParse(tenantId, out var companyId))
+            type.CompanyId = companyId;
+        type.TenantId = tenantId;
         await _repo.AddAsync(type);
         await _repo.SaveChangesAsync();
         return _mapper.Map<VehicleTypeResponse>(type);

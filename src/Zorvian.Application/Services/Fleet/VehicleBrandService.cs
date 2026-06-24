@@ -34,6 +34,10 @@ public sealed class VehicleBrandService
     public async Task<VehicleBrandResponse> CreateAsync(CreateVehicleBrandRequest request)
     {
         var brand = _mapper.Map<VehicleBrand>(request);
+        var tenantId = _tenant.TenantId.ToString() ?? string.Empty;
+        if (Guid.TryParse(tenantId, out var companyId))
+            brand.CompanyId = companyId;
+        brand.TenantId = tenantId;
         await _repo.AddAsync(brand);
         await _repo.SaveChangesAsync();
         return _mapper.Map<VehicleBrandResponse>(brand);

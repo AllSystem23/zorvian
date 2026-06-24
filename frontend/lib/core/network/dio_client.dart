@@ -37,11 +37,11 @@ class DioClient {
         handler.next(options);
       },
       onError: (error, handler) async {
-        // No interceptar errores de auth (login, register, forgot-password)
         final isAuthEndpoint = error.requestOptions.path.contains('auth/login')
             || error.requestOptions.path.contains('auth/register')
             || error.requestOptions.path.contains('auth/forgot-password')
             || error.requestOptions.path.contains('auth/refresh');
+        final suppressGlobal = error.requestOptions.extra['suppressGlobalError'] == true;
         if (error.response?.statusCode == 401 && !isAuthEndpoint) {
           final refreshed = await _tryRefreshToken();
           if (refreshed) {
@@ -52,15 +52,17 @@ class DioClient {
           await _storage.clearTokens();
           onUnauthorized?.call();
         }
-        final data = error.response?.data;
-        final msg = data is Map
-            ? (data['detail'] as String? ??
-                data['message'] as String? ??
-                data['title'] as String? ??
-                error.message ??
-                'Error de conexión')
-            : data?.toString() ?? error.message ?? 'Error de conexión';
-        onError?.call(error.response?.statusCode, msg);
+        if (!suppressGlobal) {
+          final data = error.response?.data;
+          final msg = data is Map
+              ? (data['detail'] as String? ??
+                  data['message'] as String? ??
+                  data['title'] as String? ??
+                  error.message ??
+                  'Error de conexión')
+              : data?.toString() ?? error.message ?? 'Error de conexión';
+          onError?.call(error.response?.statusCode, msg);
+        }
         handler.next(error);
       },
     ));
