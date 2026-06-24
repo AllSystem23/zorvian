@@ -216,6 +216,14 @@ CREATE TABLE IF NOT EXISTS "Deliveries" (
     CONSTRAINT "PK_Deliveries" PRIMARY KEY ("Id")
 );
 
+ALTER TABLE "Deliveries" ADD COLUMN IF NOT EXISTS "ScheduledDate" date NOT NULL DEFAULT '2025-01-01';
+ALTER TABLE "Deliveries" ADD COLUMN IF NOT EXISTS "TimeWindowStart" time NULL;
+ALTER TABLE "Deliveries" ADD COLUMN IF NOT EXISTS "TimeWindowEnd" time NULL;
+ALTER TABLE "Deliveries" ADD COLUMN IF NOT EXISTS "DeliveredAt" timestamp with time zone NULL;
+ALTER TABLE "Deliveries" ADD COLUMN IF NOT EXISTS "PhotosJson" text NULL;
+ALTER TABLE "Deliveries" ADD COLUMN IF NOT EXISTS "GpsLatitude" double precision NULL;
+ALTER TABLE "Deliveries" ADD COLUMN IF NOT EXISTS "GpsLongitude" double precision NULL;
+
 CREATE TABLE IF NOT EXISTS "DeliveryItems" (
     "Id" uuid NOT NULL,
     "TenantId" character varying(50) NOT NULL,
