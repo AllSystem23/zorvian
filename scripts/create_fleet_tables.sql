@@ -105,6 +105,11 @@ CREATE TABLE IF NOT EXISTS "Drivers" (
     CONSTRAINT "PK_Drivers" PRIMARY KEY ("Id")
 );
 
+ALTER TABLE "Drivers" ADD COLUMN IF NOT EXISTS "BirthDate" date NOT NULL DEFAULT '2000-01-01';
+ALTER TABLE "Drivers" ADD COLUMN IF NOT EXISTS "LicenseIssueDate" date NOT NULL DEFAULT '2024-01-01';
+ALTER TABLE "Drivers" ADD COLUMN IF NOT EXISTS "LicenseExpiryDate" date NOT NULL DEFAULT '2030-01-01';
+ALTER TABLE "Drivers" ADD COLUMN IF NOT EXISTS "HireDate" date NOT NULL DEFAULT '2024-01-01';
+
 CREATE TABLE IF NOT EXISTS "VehicleBrands_DriverLicenseCategories" (
     -- Junction table placeholder, actual PKs depend on data
     "Id" uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -145,6 +150,12 @@ CREATE TABLE IF NOT EXISTS "Vehicles" (
     CONSTRAINT "PK_Vehicles" PRIMARY KEY ("Id")
 );
 
+ALTER TABLE "Vehicles" ADD COLUMN IF NOT EXISTS "Year" integer NOT NULL DEFAULT 0;
+ALTER TABLE "Vehicles" ADD COLUMN IF NOT EXISTS "PassengerCapacity" integer NULL;
+ALTER TABLE "Vehicles" ADD COLUMN IF NOT EXISTS "AssetId" uuid NULL;
+ALTER TABLE "Vehicles" ADD COLUMN IF NOT EXISTS "PurchaseDate" timestamp with time zone NULL;
+ALTER TABLE "Vehicles" ADD COLUMN IF NOT EXISTS "ImageUrl" character varying(500) NULL;
+
 CREATE TABLE IF NOT EXISTS "Routes" (
     "Id" uuid NOT NULL,
     "TenantId" character varying(50) NOT NULL,
@@ -169,6 +180,12 @@ CREATE TABLE IF NOT EXISTS "Routes" (
     "BranchId" uuid NOT NULL,
     CONSTRAINT "PK_Routes" PRIMARY KEY ("Id")
 );
+
+ALTER TABLE "Routes" ADD COLUMN IF NOT EXISTS "ScheduledDate" date NOT NULL DEFAULT '2025-01-01';
+ALTER TABLE "Routes" ADD COLUMN IF NOT EXISTS "EstimatedDeparture" time NOT NULL DEFAULT '08:00:00';
+ALTER TABLE "Routes" ADD COLUMN IF NOT EXISTS "EstimatedReturn" time NOT NULL DEFAULT '17:00:00';
+ALTER TABLE "Routes" ADD COLUMN IF NOT EXISTS "DurationEstMinutes" integer NOT NULL DEFAULT 0;
+ALTER TABLE "Routes" ADD COLUMN IF NOT EXISTS "Notes" text NULL;
 
 CREATE TABLE IF NOT EXISTS "RoutePoints" (
     "Id" uuid NOT NULL,
