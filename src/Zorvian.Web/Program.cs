@@ -235,24 +235,23 @@ if (app.Environment.IsProduction() && !mockExternal)
 
             logger.LogInformation("Migration(s) and RLS policies applied successfully");
 
-            // ── Ensure Fleet tables exist (idempotent SQL script) ──
+            // ── Ensure Fleet tables exist (embedded resource — no path fragility) ──
             try
             {
-                var fleetSqlPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "scripts", "create_fleet_tables.sql");
-                if (!File.Exists(fleetSqlPath))
-                    fleetSqlPath = Path.Combine(AppContext.BaseDirectory, "scripts", "create_fleet_tables.sql");
-                if (!File.Exists(fleetSqlPath))
-                    fleetSqlPath = Path.Combine(Directory.GetCurrentDirectory(), "scripts", "create_fleet_tables.sql");
+                var assembly = typeof(Program).Assembly;
+                var stream = assembly.GetManifestResourceStream("FleetScripts.create_fleet_tables.sql");
 
-                if (File.Exists(fleetSqlPath))
+                if (stream != null)
                 {
-                    var fleetSql = await File.ReadAllTextAsync(fleetSqlPath);
+                    using var reader = new StreamReader(stream);
+                    var fleetSql = await reader.ReadToEndAsync();
                     await db.Database.ExecuteSqlRawAsync(fleetSql);
-                    logger.LogInformation("Fleet tables ensured via SQL script");
+                    logger.LogInformation("Fleet tables ensured via embedded SQL script");
                 }
                 else
                 {
-                    logger.LogWarning("Fleet SQL script not found at any expected path. Fleet tables may need manual creation.");
+                    logger.LogWarning("Fleet SQL embedded resource not found. Available resources: {Resources}",
+                        string.Join(", ", assembly.GetManifestResourceNames()));
                 }
             }
             catch (Exception fleetEx)

@@ -36,6 +36,10 @@
     <ProjectReference Include="..\Zorvian.Application\Zorvian.Application.csproj" />
     <ProjectReference Include="..\Zorvian.Infrastructure\Zorvian.Infrastructure.csproj" />
   </ItemGroup>
+  <!-- Fleet SQL script embedded as resource -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\scripts\create_fleet_tables.sql" LogicalName="FleetScripts.create_fleet_tables.sql" />
+  </ItemGroup>
   <!-- Firebase credentials loaded via Firebase:CredentialsJson env var; never commit the JSON file -->
 
 </Project>
