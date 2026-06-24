@@ -99,7 +99,7 @@ class _FleetCatalogPageState extends ConsumerState<FleetCatalogPage>
                     Expanded(
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
-                          value: _selectedCountry,
+              value: _selectedCountry,
                           isDense: true,
                           isExpanded: true,
                           style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurface),

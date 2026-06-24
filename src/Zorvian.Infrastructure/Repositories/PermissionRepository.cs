@@ -115,7 +115,7 @@ public sealed class PermissionRepository : IPermissionRepository
     public async Task<List<LeaveType>> GetByCompanyAsync(Guid? companyId)
     {
         return await _db.LeaveTypes
-            .Where(lt => lt.CompanyId == null || lt.CompanyId == companyId)
+            .Where(lt => companyId == null || lt.CompanyId == companyId)
             .OrderBy(lt => lt.Name)
             .ToListAsync();
     }
