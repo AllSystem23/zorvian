@@ -65,20 +65,16 @@ final driverLicenseCategoryListProvider =
   }
 });
 
-/// License categories for a specific country.
-driverLicenseCategoryByCountryProvider(String countryCode) =>
-    FutureProvider.autoDispose<List<FleetCatalogItem>>((ref) async {
-  final dio = ref.read(dioClientProvider);
-  try {
+/// License categories filtered by country code.
+final driverLicenseCategoryByCountryProvider =
+    FutureProvider.autoDispose.family<List<FleetCatalogItem>, String>(
+  (ref, countryCode) async {
+    final dio = ref.read(dioClientProvider);
     final r = await dio.get('fleet/driver-license-categories',
-      params: {'countryCode': countryCode},
-      options: _silentOptions,
-    );
+        params: {'countryCode': countryCode});
     return _parseCatalogList(r.data);
-  } catch (_) {
-    return [];
-  }
-});
+  },
+);
 
 final documentTypeListProvider =
     FutureProvider.autoDispose<List<DocumentTypeItem>>((ref) async {

@@ -83,7 +83,13 @@ class _FleetCatalogPageState extends ConsumerState<FleetCatalogPage>
               final index = _tabCtrl.index;
               if (index != 3) return const SizedBox.shrink();
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: ZSpacing.md, vertical: ZSpacing.xs),
+                margin: const EdgeInsets.symmetric(horizontal: ZSpacing.md, vertical: ZSpacing.xs),
+                padding: const EdgeInsets.symmetric(horizontal: ZSpacing.md, vertical: ZSpacing.sm),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(ZRadii.md),
+                  border: Border.all(color: ZColors.border, width: 0.8),
+                ),
                 child: Row(
                   children: [
                     const Icon(Icons.flag_outlined, size: 18, color: ZColors.moduleFleet),
@@ -91,23 +97,18 @@ class _FleetCatalogPageState extends ConsumerState<FleetCatalogPage>
                     const Text('País: ', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
                     const SizedBox(width: ZSpacing.xs),
                     Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: ZSpacing.sm),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: ZColors.border, width: 0.8),
-                          borderRadius: BorderRadius.circular(ZRadii.md),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _selectedCountry,
-                            isDense: true,
-                            isExpanded: true,
-                            style: const TextStyle(fontSize: 13),
-                            items: _supportedCountries.entries
-                                .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
-                                .toList(),
-                            onChanged: (v) => setState(() => _selectedCountry = v ?? 'NIC'),
-                          ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _selectedCountry,
+                          isDense: true,
+                          isExpanded: true,
+                          style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurface),
+                          iconEnabledColor: ZColors.moduleFleet,
+                          dropdownColor: Theme.of(context).colorScheme.surface,
+                          items: _supportedCountries.entries
+                              .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+                              .toList(),
+                          onChanged: (v) => setState(() => _selectedCountry = v ?? 'NIC'),
                         ),
                       ),
                     ),
@@ -139,10 +140,9 @@ class _FleetCatalogPageState extends ConsumerState<FleetCatalogPage>
                   emptyIcon: Icons.local_gas_station_outlined,
                   emptyTitle: 'No hay combustibles registrados',
                 ),
-                _LicenseTab(
-                  countryCode: _selectedCountry,
-                  onCountryChanged: (v) => setState(() => _selectedCountry = v),
-                ),
+      _LicenseTab(
+        countryCode: _selectedCountry,
+      ),
               ],
             ),
           ),
@@ -195,24 +195,22 @@ class _CatalogTab extends ConsumerWidget {
 
 class _LicenseTab extends ConsumerWidget {
   final String countryCode;
-  final ValueChanged<String> onCountryChanged;
 
-  const _LicenseTab({required this.countryCode, required this.onCountryChanged});
+  const _LicenseTab({required this.countryCode});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final provider = driverLicenseCategoryByCountryProvider(countryCode);
-    final asyncItems = ref.watch(provider);
+    final asyncItems = ref.watch(driverLicenseCategoryByCountryProvider(countryCode));
 
     return ZAsyncRenderer<List<FleetCatalogItem>>(
       value: asyncItems,
-      onRetry: () => ref.invalidate(provider),
+      onRetry: () => ref.invalidate(driverLicenseCategoryByCountryProvider(countryCode)),
       emptyWidget: ZEmptyState(
         icon: Icons.badge_outlined,
         title: 'No hay categorías para ${_supportedCountries[countryCode] ?? countryCode}',
       ),
       builder: (items) => RefreshIndicator(
-        onRefresh: () => ref.refresh(provider.future),
+        onRefresh: () => ref.refresh(driverLicenseCategoryByCountryProvider(countryCode).future),
         child: ListView.builder(
           padding: const EdgeInsets.all(ZSpacing.md),
           itemCount: items.length,
@@ -220,7 +218,7 @@ class _LicenseTab extends ConsumerWidget {
             item: items[i],
             endpoint: 'fleet/driver-license-categories',
             emptyIcon: Icons.badge_outlined,
-            onInvalidated: () => ref.invalidate(provider),
+            onInvalidated: () => ref.invalidate(driverLicenseCategoryByCountryProvider(countryCode)),
             subtitle: items[i].countryCode.isNotEmpty ? items[i].countryCode : null,
           ),
         ),
