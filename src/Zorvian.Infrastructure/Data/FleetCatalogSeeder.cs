@@ -6,6 +6,7 @@ namespace Zorvian.Infrastructure.Data;
 
 /// <summary>
 /// Seeds Fleet catalog data (brands, vehicle types, fuel types, license categories) when tables are empty.
+/// Also handles migration of legacy license categories (without CountryCode) to per-country data.
 /// </summary>
 public static class FleetCatalogSeeder
 {
@@ -78,9 +79,29 @@ public static class FleetCatalogSeeder
         }
 
         // ── Driver License Categories (per country) ──
-        if (!await db.DriverLicenseCategories.IgnoreQueryFilters().AnyAsync())
+        // Handle 3 scenarios:
+        // 1. Table empty → seed all 38 categories
+        // 2. Table has items WITHOUT CountryCode (legacy) → delete & re-seed
+        // 3. Table has items WITH CountryCode → already migrated, skip
+        var hasAny = await db.DriverLicenseCategories.IgnoreQueryFilters().AnyAsync();
+        if (hasAny)
         {
-            logger.LogInformation("Seeding DriverLicenseCategories per country...");
+            // Check if any items lack CountryCode (legacy data)
+            var legacyCount = await db.DriverLicenseCategories.IgnoreQueryFilters()
+                .CountAsync(c => c.CountryCode == "" || c.CountryCode == null);
+            if (legacyCount > 0)
+            {
+                logger.LogWarning("Migrating {Count} legacy DriverLicenseCategories (no CountryCode) to per-country data...", legacyCount);
+                var legacy = await db.DriverLicenseCategories.IgnoreQueryFilters().ToListAsync();
+                db.DriverLicenseCategories.RemoveRange(legacy);
+                await db.SaveChangesAsync(); // Save deletion before re-seeding
+                hasAny = false; // Force re-seed below
+            }
+        }
+
+        if (!hasAny)
+        {
+            logger.LogInformation("Seeding DriverLicenseCategories per country (38 categories across 6 countries)...");
             var now = DateTime.UtcNow;
             db.DriverLicenseCategories.AddRange(
                 // ── 🇳🇮 Nicaragua (MOT) ──
