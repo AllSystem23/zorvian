@@ -9,7 +9,7 @@ namespace Zorvian.Web.Controllers.Fleet;
 
 [ApiController]
 [Authorize]
-[Route("zorvian/v1/fleet/license-categories")]
+[Route("zorvian/v1/fleet/driver-license-categories")]
 public sealed class DriverLicenseCategoriesController : ControllerBase
 {
     private readonly DriverLicenseCategoryService _service;
