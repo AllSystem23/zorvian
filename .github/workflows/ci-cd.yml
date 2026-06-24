@@ -183,6 +183,8 @@ jobs:
     needs: [frontend-build]
     if: github.ref == 'refs/heads/master' && github.event_name == 'push'
     environment: production
+    env:
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
 
     steps:
       - name: Checkout
