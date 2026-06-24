@@ -133,19 +133,23 @@ class _CatalogTab extends ConsumerWidget {
                 vertical: ZSpacing.sm,
               ),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   CircleAvatar(
                     backgroundColor: ZColors.moduleFleet.withValues(alpha: 0.12),
-                    child: Icon(emptyIcon, color: ZColors.moduleFleet, size: 20),
+                    radius: 18,
+                    child: Icon(emptyIcon, color: ZColors.moduleFleet, size: 18),
                   ),
-                  const SizedBox(width: ZSpacing.md),
-                  Expanded(
+                  const SizedBox(width: ZSpacing.sm),
+                  Flexible(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
                           item.name,
                           style: const TextStyle(fontWeight: FontWeight.w600),
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -158,15 +162,22 @@ class _CatalogTab extends ConsumerWidget {
                       ],
                     ),
                   ),
+                  const SizedBox(width: ZSpacing.xs),
                   IconButton(
-                    icon: const Icon(Icons.edit_outlined, size: 20),
+                    icon: const Icon(Icons.edit_outlined, size: 18),
                     onPressed: () => _showEditDialog(context, ref, item),
                     tooltip: 'Editar',
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.delete_outline, size: 20, color: ZColors.danger),
+                    icon: const Icon(Icons.delete_outline, size: 18, color: ZColors.danger),
                     onPressed: () => _confirmDelete(context, ref, item),
                     tooltip: 'Eliminar',
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                   ),
                 ],
               ),

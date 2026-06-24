@@ -140,14 +140,39 @@ app.UseAuthentication();
 app.UseTenantMiddleware();
 app.UseAuthorization();
 
-// ── Seed document templates ──
+// ── Ensure Fleet tables exist (always, not just in Production) ──
 if (!mockExternal)
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<Zorvian.Infrastructure.Data.ZorvianDbContext>();
-    var seedLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-    await Zorvian.Infrastructure.Data.DocumentTemplateSeeder.SeedAsync(db, seedLogger);
-    await Zorvian.Infrastructure.Data.FleetCatalogSeeder.SeedAsync(db, seedLogger);
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+
+    try
+    {
+        var assembly = typeof(Program).Assembly;
+        var stream = assembly.GetManifestResourceStream("FleetScripts.create_fleet_tables.sql");
+
+        if (stream != null)
+        {
+            using var reader = new StreamReader(stream);
+            var fleetSql = await reader.ReadToEndAsync();
+            await db.Database.ExecuteSqlRawAsync(fleetSql);
+            logger.LogInformation("Fleet tables ensured via embedded SQL script");
+        }
+        else
+        {
+            logger.LogWarning("Fleet SQL embedded resource not found. Available resources: {Resources}",
+                string.Join(", ", assembly.GetManifestResourceNames()));
+        }
+    }
+    catch (Exception fleetEx)
+    {
+        logger.LogError(fleetEx, "Failed to apply Fleet SQL script");
+    }
+
+    // Seed catalog data if tables are empty
+    await Zorvian.Infrastructure.Data.DocumentTemplateSeeder.SeedAsync(db, logger);
+    await Zorvian.Infrastructure.Data.FleetCatalogSeeder.SeedAsync(db, logger);
 }
 
 // ── Endpoints ──
@@ -234,30 +259,6 @@ if (app.Environment.IsProduction() && !mockExternal)
             ");
 
             logger.LogInformation("Migration(s) and RLS policies applied successfully");
-
-            // ── Ensure Fleet tables exist (embedded resource — no path fragility) ──
-            try
-            {
-                var assembly = typeof(Program).Assembly;
-                var stream = assembly.GetManifestResourceStream("FleetScripts.create_fleet_tables.sql");
-
-                if (stream != null)
-                {
-                    using var reader = new StreamReader(stream);
-                    var fleetSql = await reader.ReadToEndAsync();
-                    await db.Database.ExecuteSqlRawAsync(fleetSql);
-                    logger.LogInformation("Fleet tables ensured via embedded SQL script");
-                }
-                else
-                {
-                    logger.LogWarning("Fleet SQL embedded resource not found. Available resources: {Resources}",
-                        string.Join(", ", assembly.GetManifestResourceNames()));
-                }
-            }
-            catch (Exception fleetEx)
-            {
-                logger.LogError(fleetEx, "Failed to apply Fleet SQL script");
-            }
         }
     }
     catch (Exception ex)
