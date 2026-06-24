@@ -285,6 +285,10 @@ CREATE TABLE IF NOT EXISTS "Trips" (
     CONSTRAINT "PK_Trips" PRIMARY KEY ("Id")
 );
 
+ALTER TABLE "Trips" ADD COLUMN IF NOT EXISTS "StartDateTime" timestamp with time zone NOT NULL DEFAULT NOW();
+ALTER TABLE "Trips" ADD COLUMN IF NOT EXISTS "EndDateTime" timestamp with time zone NULL;
+ALTER TABLE "Trips" ADD COLUMN IF NOT EXISTS "DurationMinutes" integer NULL;
+
 CREATE TABLE IF NOT EXISTS "FuelRefills" (
     "Id" uuid NOT NULL,
     "TenantId" character varying(50) NOT NULL,
@@ -311,6 +315,10 @@ CREATE TABLE IF NOT EXISTS "FuelRefills" (
     "SupplierId" uuid NULL,
     CONSTRAINT "PK_FuelRefills" PRIMARY KEY ("Id")
 );
+
+ALTER TABLE "FuelRefills" ADD COLUMN IF NOT EXISTS "RefillDateTime" timestamp with time zone NOT NULL DEFAULT NOW();
+ALTER TABLE "FuelRefills" ADD COLUMN IF NOT EXISTS "ValidForCalculation" boolean NOT NULL DEFAULT true;
+ALTER TABLE "FuelRefills" ADD COLUMN IF NOT EXISTS "AnomalyFlag" boolean NOT NULL DEFAULT false;
 
 CREATE TABLE IF NOT EXISTS "MaintenanceTemplates" (
     "Id" uuid NOT NULL,
