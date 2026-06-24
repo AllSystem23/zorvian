@@ -77,22 +77,63 @@ public static class FleetCatalogSeeder
             );
         }
 
-        // ── Driver License Categories ──
+        // ── Driver License Categories (per country) ──
         if (!await db.DriverLicenseCategories.IgnoreQueryFilters().AnyAsync())
         {
-            logger.LogInformation("Seeding DriverLicenseCategories...");
+            logger.LogInformation("Seeding DriverLicenseCategories per country...");
             var now = DateTime.UtcNow;
             db.DriverLicenseCategories.AddRange(
-                BuildLicenseCategory("A1", "Motocicleta hasta 125cc", now),
-                BuildLicenseCategory("A2", "Motocicleta más de 125cc", now),
-                BuildLicenseCategory("B1", "Vehículo particular hasta 3,500 kg", now),
-                BuildLicenseCategory("B2", "Vehículo particular hasta 3,500 kg con remolque", now),
-                BuildLicenseCategory("C1", "Vehículo de servicio público hasta 3,500 kg", now),
-                BuildLicenseCategory("C2", "Vehículo de servicio público más de 3,500 kg", now),
-                BuildLicenseCategory("D1", "Autobús hasta 30 pasajeros", now),
-                BuildLicenseCategory("D2", "Autobús más de 30 pasajeros", now),
-                BuildLicenseCategory("E", "Vehículo articulado (cabezal + remolque)", now),
-                BuildLicenseCategory("F", "Maquinaria especial (grúa, retroexcavadora, etc.)", now)
+                // ── 🇳🇮 Nicaragua (MOT) ──
+                BuildLicenseCategory("A1", "Motocicleta hasta 125cc", "NIC", now),
+                BuildLicenseCategory("A2", "Motocicleta más de 125cc", "NIC", now),
+                BuildLicenseCategory("B1", "Vehículo particular hasta 3,500 kg", "NIC", now),
+                BuildLicenseCategory("B2", "Vehículo particular hasta 3,500 kg con remolque", "NIC", now),
+                BuildLicenseCategory("C1", "Vehículo de servicio público hasta 3,500 kg", "NIC", now),
+                BuildLicenseCategory("C2", "Vehículo de servicio público más de 3,500 kg", "NIC", now),
+                BuildLicenseCategory("D1", "Autobús hasta 30 pasajeros", "NIC", now),
+                BuildLicenseCategory("D2", "Autobús más de 30 pasajeros", "NIC", now),
+                BuildLicenseCategory("E", "Vehículo articulado (cabezal + remolque)", "NIC", now),
+                BuildLicenseCategory("F", "Maquinaria especial (grúa, retroexcavadora, etc.)", "NIC", now),
+
+                // ── 🇨🇷 Costa Rica (MTT) ──
+                BuildLicenseCategory("A1", "Motocicleta hasta 125cc", "CRI", now),
+                BuildLicenseCategory("A2", "Motocicleta más de 125cc", "CRI", now),
+                BuildLicenseCategory("B1", "Vehículo particular hasta 3,500 kg", "CRI", now),
+                BuildLicenseCategory("B2", "Vehículo particular hasta 3,500 kg con remolque", "CRI", now),
+                BuildLicenseCategory("C1", "Vehículo de servicio público hasta 3,500 kg", "CRI", now),
+                BuildLicenseCategory("C2", "Vehículo de servicio público más de 3,500 kg", "CRI", now),
+
+                // ── 🇬🇹 Guatemala (MT) ──
+                BuildLicenseCategory("A1", "Motocicleta hasta 125cc", "GTM", now),
+                BuildLicenseCategory("A2", "Motocicleta más de 125cc", "GTM", now),
+                BuildLicenseCategory("B1", "Vehículo particular hasta 3,500 kg", "GTM", now),
+                BuildLicenseCategory("B2", "Vehículo particular hasta 3,500 kg con remolque", "GTM", now),
+                BuildLicenseCategory("C1", "Vehículo de servicio público hasta 3,500 kg", "GTM", now),
+                BuildLicenseCategory("C2", "Vehículo de servicio público más de 3,500 kg", "GTM", now),
+                BuildLicenseCategory("D1", "Autobús hasta 30 pasajeros", "GTM", now),
+                BuildLicenseCategory("D2", "Autobús más de 30 pasajeros", "GTM", now),
+                BuildLicenseCategory("E", "Vehículo articulado (cabezal + remolque)", "GTM", now),
+                BuildLicenseCategory("F", "Maquinaria especial (grúa, retroexcavadora, etc.)", "GTM", now),
+
+                // ── 🇭🇳 Honduras (SCT) ──
+                BuildLicenseCategory("A1", "Motocicleta hasta 125cc", "HND", now),
+                BuildLicenseCategory("A2", "Motocicleta más de 125cc", "HND", now),
+                BuildLicenseCategory("B1", "Vehículo particular hasta 3,500 kg", "HND", now),
+                BuildLicenseCategory("B2", "Vehículo particular hasta 3,500 kg con remolque", "HND", now),
+                BuildLicenseCategory("C1", "Vehículo de servicio público", "HND", now),
+
+                // ── 🇸🇻 El Salvador (MOP) ──
+                BuildLicenseCategory("A1", "Motocicleta hasta 125cc", "SLV", now),
+                BuildLicenseCategory("A2", "Motocicleta más de 125cc", "SLV", now),
+                BuildLicenseCategory("B1", "Vehículo particular hasta 3,500 kg", "SLV", now),
+                BuildLicenseCategory("B2", "Vehículo particular hasta 3,500 kg con remolque", "SLV", now),
+                BuildLicenseCategory("C1", "Vehículo de servicio público", "SLV", now),
+
+                // ── 🇵🇦 Panamá (ATTT) ──
+                BuildLicenseCategory("A1", "Motocicleta", "PAN", now),
+                BuildLicenseCategory("B1", "Vehículo particular hasta 3,500 kg", "PAN", now),
+                BuildLicenseCategory("B2", "Vehículo particular con remolque", "PAN", now),
+                BuildLicenseCategory("C1", "Vehículo de servicio público", "PAN", now)
             );
         }
 
@@ -134,7 +175,7 @@ public static class FleetCatalogSeeder
         IsActive = true
     };
 
-    private static DriverLicenseCategory BuildLicenseCategory(string name, string? description, DateTime now) => new()
+    private static DriverLicenseCategory BuildLicenseCategory(string name, string? description, string countryCode, DateTime now) => new()
     {
         Id = Guid.NewGuid(),
         TenantId = TenantId,
@@ -142,6 +183,7 @@ public static class FleetCatalogSeeder
         CreatedBy = "system",
         Name = name,
         Description = description,
+        CountryCode = countryCode,
         IsActive = true
     };
 }

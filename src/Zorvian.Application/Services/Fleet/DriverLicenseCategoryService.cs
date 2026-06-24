@@ -19,9 +19,9 @@ public sealed class DriverLicenseCategoryService
         _mapper = mapper;
     }
 
-    public async Task<List<DriverLicenseCategoryResponse>> GetAllAsync()
+    public async Task<List<DriverLicenseCategoryResponse>> GetAllAsync(string? countryCode = null)
     {
-        var categories = await _repo.GetAllAsync();
+        var categories = await _repo.GetAllAsync(countryCode);
         return _mapper.Map<List<DriverLicenseCategoryResponse>>(categories);
     }
 

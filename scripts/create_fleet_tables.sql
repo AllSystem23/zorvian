@@ -77,6 +77,7 @@ CREATE TABLE IF NOT EXISTS "DriverLicenseCategories" (
 
 ALTER TABLE "DriverLicenseCategories" ADD COLUMN IF NOT EXISTS "Description" character varying(500) NULL;
 ALTER TABLE "DriverLicenseCategories" ADD COLUMN IF NOT EXISTS "IsActive" boolean NOT NULL DEFAULT true;
+ALTER TABLE "DriverLicenseCategories" ADD COLUMN IF NOT EXISTS "CountryCode" character varying(5) NOT NULL DEFAULT '';
 
 CREATE TABLE IF NOT EXISTS "Drivers" (
     "Id" uuid NOT NULL,

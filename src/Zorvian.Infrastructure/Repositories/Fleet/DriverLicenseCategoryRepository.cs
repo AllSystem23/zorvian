@@ -11,8 +11,13 @@ public sealed class DriverLicenseCategoryRepository : IDriverLicenseCategoryRepo
 
     public DriverLicenseCategoryRepository(ZorvianDbContext db) => _db = db;
 
-    public async Task<List<DriverLicenseCategory>> GetAllAsync() =>
-        await _db.Set<DriverLicenseCategory>().OrderBy(c => c.Name).ToListAsync();
+    public async Task<List<DriverLicenseCategory>> GetAllAsync(string? countryCode = null)
+    {
+        var query = _db.Set<DriverLicenseCategory>().AsQueryable();
+        if (!string.IsNullOrEmpty(countryCode))
+            query = query.Where(c => c.CountryCode == countryCode);
+        return await query.OrderBy(c => c.Name).ToListAsync();
+    }
 
     public async Task<DriverLicenseCategory?> GetByIdAsync(Guid id) =>
         await _db.Set<DriverLicenseCategory>().FirstOrDefaultAsync(c => c.Id == id);

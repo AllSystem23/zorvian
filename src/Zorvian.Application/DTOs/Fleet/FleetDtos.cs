@@ -12,6 +12,6 @@ public sealed record CreateFuelTypeRequest(string Name, string? Description);
 public sealed record UpdateFuelTypeRequest(string? Name, string? Description, bool? IsActive);
 public sealed record FuelTypeResponse(Guid Id, string Name, string? Description, bool IsActive);
 
-public sealed record CreateDriverLicenseCategoryRequest(string Name, string? Description);
-public sealed record UpdateDriverLicenseCategoryRequest(string? Name, string? Description, bool? IsActive);
-public sealed record DriverLicenseCategoryResponse(Guid Id, string Name, string? Description, bool IsActive);
+public sealed record CreateDriverLicenseCategoryRequest(string Name, string? Description, string CountryCode);
+public sealed record UpdateDriverLicenseCategoryRequest(string? Name, string? Description, string? CountryCode, bool? IsActive);
+public sealed record DriverLicenseCategoryResponse(Guid Id, string Name, string? Description, string CountryCode, bool IsActive);

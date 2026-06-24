@@ -18,9 +18,9 @@ public sealed class DriverLicenseCategoriesController : ControllerBase
 
     [RequirePermission(Permissions.FleetRead)]
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] string? countryCode)
     {
-        var categories = await _service.GetAllAsync();
+        var categories = await _service.GetAllAsync(countryCode);
         return Ok(categories);
     }
 

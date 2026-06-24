@@ -5,13 +5,15 @@ import '../../../auth/auth_provider.dart' show dioClientProvider;
 final class FleetCatalogItem {
   final String id;
   final String name;
+  final String countryCode;
   final bool isActive;
 
-  const FleetCatalogItem({required this.id, required this.name, this.isActive = true});
+  const FleetCatalogItem({required this.id, required this.name, this.countryCode = '', this.isActive = true});
 
   factory FleetCatalogItem.fromJson(Map<String, dynamic> j) => FleetCatalogItem(
     id: j['id'] as String,
     name: j['name'] as String? ?? '',
+    countryCode: j['countryCode'] as String? ?? '',
     isActive: j['isActive'] as bool? ?? true,
   );
 }
@@ -51,11 +53,27 @@ final fuelTypeListProvider =
   }
 });
 
+/// License categories filtered by country code.
 final driverLicenseCategoryListProvider =
     FutureProvider.autoDispose<List<FleetCatalogItem>>((ref) async {
   final dio = ref.read(dioClientProvider);
   try {
     final r = await dio.get('fleet/driver-license-categories', options: _silentOptions);
+    return _parseCatalogList(r.data);
+  } catch (_) {
+    return [];
+  }
+});
+
+/// License categories for a specific country.
+driverLicenseCategoryByCountryProvider(String countryCode) =>
+    FutureProvider.autoDispose<List<FleetCatalogItem>>((ref) async {
+  final dio = ref.read(dioClientProvider);
+  try {
+    final r = await dio.get('fleet/driver-license-categories',
+      params: {'countryCode': countryCode},
+      options: _silentOptions,
+    );
     return _parseCatalogList(r.data);
   } catch (_) {
     return [];
