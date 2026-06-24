@@ -221,9 +221,9 @@ jobs:
           node-version: '22'
 
       - name: Deploy to Firebase Hosting
-        uses: FirebaseExtended/action-hosting-deploy@v0
+        uses: FirebaseExtended/action-hosting-deploy@v1
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ZORVIAN_ERP }}
+          gcpCredentials: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ZORVIAN_ERP }}
           channelId: live
           projectId: zorvian-erp
