@@ -44,6 +44,16 @@ class _FleetCatalogPageState extends ConsumerState<FleetCatalogPage>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Catálogos de Flota'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add_circle_outline),
+            tooltip: 'Agregar al catálogo activo',
+            onPressed: () {
+              final endpoint = _tabEndpoints[_tabCtrl.index];
+              _CatalogDialog.show(context, ref: ref, endpoint: endpoint);
+            },
+          ),
+        ],
         bottom: TabBar(
           controller: _tabCtrl,
           isScrollable: true,
@@ -83,14 +93,6 @@ class _FleetCatalogPageState extends ConsumerState<FleetCatalogPage>
             emptyTitle: 'No hay categorías registradas',
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          final endpoint = _tabEndpoints[_tabCtrl.index];
-          _CatalogDialog.show(context, ref: ref, endpoint: endpoint);
-        },
-        icon: const Icon(Icons.add),
-        label: const Text('Agregar'),
       ),
     );
   }
