@@ -147,6 +147,7 @@ if (!mockExternal)
     var db = scope.ServiceProvider.GetRequiredService<Zorvian.Infrastructure.Data.ZorvianDbContext>();
     var seedLogger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     await Zorvian.Infrastructure.Data.DocumentTemplateSeeder.SeedAsync(db, seedLogger);
+    await Zorvian.Infrastructure.Data.FleetCatalogSeeder.SeedAsync(db, seedLogger);
 }
 
 // ── Endpoints ──
@@ -233,6 +234,31 @@ if (app.Environment.IsProduction() && !mockExternal)
             ");
 
             logger.LogInformation("Migration(s) and RLS policies applied successfully");
+
+            // ── Ensure Fleet tables exist (idempotent SQL script) ──
+            try
+            {
+                var fleetSqlPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "scripts", "create_fleet_tables.sql");
+                if (!File.Exists(fleetSqlPath))
+                    fleetSqlPath = Path.Combine(AppContext.BaseDirectory, "scripts", "create_fleet_tables.sql");
+                if (!File.Exists(fleetSqlPath))
+                    fleetSqlPath = Path.Combine(Directory.GetCurrentDirectory(), "scripts", "create_fleet_tables.sql");
+
+                if (File.Exists(fleetSqlPath))
+                {
+                    var fleetSql = await File.ReadAllTextAsync(fleetSqlPath);
+                    await db.Database.ExecuteSqlRawAsync(fleetSql);
+                    logger.LogInformation("Fleet tables ensured via SQL script");
+                }
+                else
+                {
+                    logger.LogWarning("Fleet SQL script not found at any expected path. Fleet tables may need manual creation.");
+                }
+            }
+            catch (Exception fleetEx)
+            {
+                logger.LogError(fleetEx, "Failed to apply Fleet SQL script");
+            }
         }
     }
     catch (Exception ex)

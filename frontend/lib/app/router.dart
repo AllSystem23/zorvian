@@ -158,6 +158,7 @@ import '../features/fleet/pages/fleet_gps_page.dart';
 import '../features/fleet/pages/fleet_alerts_page.dart';
 import '../features/fleet/pages/fleet_tracking_page.dart';
 import '../features/fleet/pages/fleet_predictive_page.dart';
+import '../features/fleet/pages/fleet_catalog_page.dart';
 
 final _routeRoles = <String, List<String>>{
   '/goals/configurator': ['SuperAdmin', 'CompanyAdmin'],
@@ -1066,6 +1067,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/fleet/predictive',
             name: 'fleet-predictive',
             builder: (_, _) => const FleetPredictivePage(),
+          ),
+          GoRoute(
+            path: '/fleet/catalogs',
+            name: 'fleet-catalogs',
+            builder: (_, _) => const FleetCatalogPage(),
           ),
         ],
       ),

@@ -1,0 +1,147 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Zorvian.Core.Entities.Fleet;
+
+namespace Zorvian.Infrastructure.Data;
+
+/// <summary>
+/// Seeds Fleet catalog data (brands, vehicle types, fuel types, license categories) when tables are empty.
+/// </summary>
+public static class FleetCatalogSeeder
+{
+    private const string TenantId = "SYSTEM";
+
+    public static async Task SeedAsync(ZorvianDbContext db, ILogger logger)
+    {
+        // ── Vehicle Brands ──
+        if (!await db.VehicleBrands.IgnoreQueryFilters().AnyAsync())
+        {
+            logger.LogInformation("Seeding VehicleBrands...");
+            var now = DateTime.UtcNow;
+            db.VehicleBrands.AddRange(
+                BuildBrand("Toyota", "Vehículos Toyota", now),
+                BuildBrand("Ford", "Vehículos Ford", now),
+                BuildBrand("Chevrolet", "Vehículos Chevrolet (GM)", now),
+                BuildBrand("Hyundai", "Vehículos Hyundai", now),
+                BuildBrand("Kia", "Vehículos Kia", now),
+                BuildBrand("Nissan", "Vehículos Nissan", now),
+                BuildBrand("Honda", "Vehículos Honda", now),
+                BuildBrand("Mitsubishi", "Vehículos Mitsubishi", now),
+                BuildBrand("Mercedes-Benz", "Vehículos Mercedes-Benz", now),
+                BuildBrand("BMW", "Vehículos BMW", now),
+                BuildBrand("Isuzu", "Vehículos Isuzu (comercial)", now),
+                BuildBrand("Hino", "Vehículos Hino (camiones)", now),
+                BuildBrand("Volkswagen", "Vehículos Volkswagen", now),
+                BuildBrand("Mazda", "Vehículos Mazda", now),
+                BuildBrand("Suzuki", "Vehículos Suzuki", now)
+            );
+        }
+
+        // ── Vehicle Types ──
+        if (!await db.VehicleTypes.IgnoreQueryFilters().AnyAsync())
+        {
+            logger.LogInformation("Seeding VehicleTypes...");
+            var now = DateTime.UtcNow;
+            db.VehicleTypes.AddRange(
+                BuildVehicleType("Sedán", "Automóvil sedan de 4 puertas", now),
+                BuildVehicleType("Camioneta", "Camioneta tipo SUV o pickup", now),
+                BuildVehicleType("SUV", "Vehículo todoterreno tipo SUV", now),
+                BuildVehicleType("Pickup", "Camión pickup de carga ligera", now),
+                BuildVehicleType("Furgoneta", "Van o furgoneta de pasajeros/carga", now),
+                BuildVehicleType("Camión", "Vehículo de carga pesada", now),
+                BuildVehicleType("Moto", "Motocicleta", now),
+                BuildVehicleType("Autobús", "Vehículo de transporte de pasajeros", now),
+                BuildVehicleType("Cabezal", "Tractor de cabezal para remolques", now),
+                BuildVehicleType("Remolque", "Remolque o semirremolque", now),
+                BuildVehicleType("Maquinaria", "Maquinaria de construcción o agrícola", now),
+                BuildVehicleType("Eléctrico", "Vehículo 100% eléctrico", now),
+                BuildVehicleType("Híbrido", "Vehículo híbrido gasolina-eléctrico", now)
+            );
+        }
+
+        // ── Fuel Types ──
+        if (!await db.FuelTypes.IgnoreQueryFilters().AnyAsync())
+        {
+            logger.LogInformation("Seeding FuelTypes...");
+            var now = DateTime.UtcNow;
+            db.FuelTypes.AddRange(
+                BuildFuelType("Gasolina", "Gasolina regular o premium", now),
+                BuildFuelType("Diésel", "Diésel regular o ultra", now),
+                BuildFuelType("Eléctrico", "Carga eléctrica (batería)", now),
+                BuildFuelType("Gas (GLP/GNV)", "Gas licuado de petróleo o gas natural vehicular", now),
+                BuildFuelType("Híbrido", "Combinación gasolina + eléctrico", now),
+                BuildFuelType("Gasolina + Gas", "Dual: gasolina y gas GLP/GNV", now),
+                BuildFuelType("Diésel + Gas", "Dual: diésel y gas GNV", now),
+                BuildFuelType("Etanol", "Combustible a base de etanol", now),
+                BuildFuelType("Hidrógeno", "Celda de combustible de hidrógeno", now)
+            );
+        }
+
+        // ── Driver License Categories ──
+        if (!await db.DriverLicenseCategories.IgnoreQueryFilters().AnyAsync())
+        {
+            logger.LogInformation("Seeding DriverLicenseCategories...");
+            var now = DateTime.UtcNow;
+            db.DriverLicenseCategories.AddRange(
+                BuildLicenseCategory("A1", "Motocicleta hasta 125cc", now),
+                BuildLicenseCategory("A2", "Motocicleta más de 125cc", now),
+                BuildLicenseCategory("B1", "Vehículo particular hasta 3,500 kg", now),
+                BuildLicenseCategory("B2", "Vehículo particular hasta 3,500 kg con remolque", now),
+                BuildLicenseCategory("C1", "Vehículo de servicio público hasta 3,500 kg", now),
+                BuildLicenseCategory("C2", "Vehículo de servicio público más de 3,500 kg", now),
+                BuildLicenseCategory("D1", "Autobús hasta 30 pasajeros", now),
+                BuildLicenseCategory("D2", "Autobús más de 30 pasajeros", now),
+                BuildLicenseCategory("E", "Vehículo articulado (cabezal + remolque)", now),
+                BuildLicenseCategory("F", "Maquinaria especial (grúa, retroexcavadora, etc.)", now)
+            );
+        }
+
+        var saved = await db.SaveChangesAsync();
+        if (saved > 0)
+            logger.LogInformation("Fleet catalog seeded successfully ({Count} rows).", saved);
+    }
+
+    private static VehicleBrand BuildBrand(string name, string? description, DateTime now) => new()
+    {
+        Id = Guid.NewGuid(),
+        TenantId = TenantId,
+        CreatedAt = now,
+        CreatedBy = "system",
+        Name = name,
+        Description = description,
+        IsActive = true
+    };
+
+    private static VehicleType BuildVehicleType(string name, string? description, DateTime now) => new()
+    {
+        Id = Guid.NewGuid(),
+        TenantId = TenantId,
+        CreatedAt = now,
+        CreatedBy = "system",
+        Name = name,
+        Description = description,
+        IsActive = true
+    };
+
+    private static FuelType BuildFuelType(string name, string? description, DateTime now) => new()
+    {
+        Id = Guid.NewGuid(),
+        TenantId = TenantId,
+        CreatedAt = now,
+        CreatedBy = "system",
+        Name = name,
+        Description = description,
+        IsActive = true
+    };
+
+    private static DriverLicenseCategory BuildLicenseCategory(string name, string? description, DateTime now) => new()
+    {
+        Id = Guid.NewGuid(),
+        TenantId = TenantId,
+        CreatedAt = now,
+        CreatedBy = "system",
+        Name = name,
+        Description = description,
+        IsActive = true
+    };
+}

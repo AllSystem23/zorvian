@@ -12,8 +12,14 @@ CREATE TABLE IF NOT EXISTS "VehicleBrands" (
     "IsDeleted" boolean NOT NULL DEFAULT false,
     "DeletedAt" timestamp with time zone NULL,
     "Name" character varying(100) NOT NULL,
+    "Description" character varying(500) NULL,
+    "IsActive" boolean NOT NULL DEFAULT true,
     CONSTRAINT "PK_VehicleBrands" PRIMARY KEY ("Id")
 );
+
+-- Ensure columns exist on pre-existing tables
+ALTER TABLE "VehicleBrands" ADD COLUMN IF NOT EXISTS "Description" character varying(500) NULL;
+ALTER TABLE "VehicleBrands" ADD COLUMN IF NOT EXISTS "IsActive" boolean NOT NULL DEFAULT true;
 
 CREATE TABLE IF NOT EXISTS "VehicleTypes" (
     "Id" uuid NOT NULL,
@@ -26,8 +32,13 @@ CREATE TABLE IF NOT EXISTS "VehicleTypes" (
     "IsDeleted" boolean NOT NULL DEFAULT false,
     "DeletedAt" timestamp with time zone NULL,
     "Name" character varying(100) NOT NULL,
+    "Description" character varying(500) NULL,
+    "IsActive" boolean NOT NULL DEFAULT true,
     CONSTRAINT "PK_VehicleTypes" PRIMARY KEY ("Id")
 );
+
+ALTER TABLE "VehicleTypes" ADD COLUMN IF NOT EXISTS "Description" character varying(500) NULL;
+ALTER TABLE "VehicleTypes" ADD COLUMN IF NOT EXISTS "IsActive" boolean NOT NULL DEFAULT true;
 
 CREATE TABLE IF NOT EXISTS "FuelTypes" (
     "Id" uuid NOT NULL,
@@ -40,8 +51,13 @@ CREATE TABLE IF NOT EXISTS "FuelTypes" (
     "IsDeleted" boolean NOT NULL DEFAULT false,
     "DeletedAt" timestamp with time zone NULL,
     "Name" character varying(100) NOT NULL,
+    "Description" character varying(500) NULL,
+    "IsActive" boolean NOT NULL DEFAULT true,
     CONSTRAINT "PK_FuelTypes" PRIMARY KEY ("Id")
 );
+
+ALTER TABLE "FuelTypes" ADD COLUMN IF NOT EXISTS "Description" character varying(500) NULL;
+ALTER TABLE "FuelTypes" ADD COLUMN IF NOT EXISTS "IsActive" boolean NOT NULL DEFAULT true;
 
 CREATE TABLE IF NOT EXISTS "DriverLicenseCategories" (
     "Id" uuid NOT NULL,
@@ -54,8 +70,13 @@ CREATE TABLE IF NOT EXISTS "DriverLicenseCategories" (
     "IsDeleted" boolean NOT NULL DEFAULT false,
     "DeletedAt" timestamp with time zone NULL,
     "Name" character varying(100) NOT NULL,
+    "Description" character varying(500) NULL,
+    "IsActive" boolean NOT NULL DEFAULT true,
     CONSTRAINT "PK_DriverLicenseCategories" PRIMARY KEY ("Id")
 );
+
+ALTER TABLE "DriverLicenseCategories" ADD COLUMN IF NOT EXISTS "Description" character varying(500) NULL;
+ALTER TABLE "DriverLicenseCategories" ADD COLUMN IF NOT EXISTS "IsActive" boolean NOT NULL DEFAULT true;
 
 CREATE TABLE IF NOT EXISTS "Drivers" (
     "Id" uuid NOT NULL,

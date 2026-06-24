@@ -147,6 +147,7 @@ final class NavConfig {
         NavItem(id: 'flota-alertas', label: 'Alertas', icon: Icons.notifications_active_outlined, route: '/fleet/alerts'),
         NavItem(id: 'flota-tracking', label: 'Tracking Entregas', icon: Icons.route_outlined, route: '/fleet/tracking'),
         NavItem(id: 'flota-predictive', label: 'IA Predictiva', icon: Icons.psychology_outlined, route: '/fleet/predictive'),
+        NavItem(id: 'flota-catalogos', label: 'Catálogos', icon: Icons.list_alt_outlined, route: '/fleet/catalogs', roles: ['SuperAdmin', 'CompanyAdmin']),
         NavItem(id: 'flota-reportes', label: 'Reportes', icon: Icons.summarize_outlined, route: '/fleet/reports'),
       ],
     ),
