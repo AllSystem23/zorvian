@@ -13,15 +13,28 @@ namespace Zorvian.Web.Controllers.Fleet;
 public sealed class DeliveriesController : ControllerBase
 {
     private readonly DeliveryService _service;
+    private readonly ILogger<DeliveriesController> _logger;
 
-    public DeliveriesController(DeliveryService service) => _service = service;
+    public DeliveriesController(DeliveryService service, ILogger<DeliveriesController> logger)
+    {
+        _service = service;
+        _logger = logger;
+    }
 
     [RequirePermission(Permissions.FleetRead)]
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var deliveries = await _service.GetAllAsync();
-        return Ok(new { items = deliveries });
+        try
+        {
+            var deliveries = await _service.GetAllAsync();
+            return Ok(new { items = deliveries });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "GetAll error");
+            return StatusCode(500, new { error = ex.GetType().Name, detail = ex.Message });
+        }
     }
 
     [RequirePermission(Permissions.FleetRead)]
