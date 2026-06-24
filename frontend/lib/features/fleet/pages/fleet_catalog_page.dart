@@ -268,12 +268,21 @@ class _CatalogItemCard extends ConsumerWidget {
                   style: const TextStyle(fontWeight: FontWeight.w600),
                   overflow: TextOverflow.ellipsis,
                 ),
+                if (item.description.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    item.description,
+                    style: const TextStyle(fontSize: 12, color: ZColors.neutral500),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
+                  ),
+                ],
                 if (subtitle != null) ...[
                   const SizedBox(height: 2),
-                  Text(subtitle!, style: TextStyle(fontSize: 11, color: ZColors.neutral500)),
-                ] else ...[
+                  Text(subtitle!, style: const TextStyle(fontSize: 11, color: ZColors.neutral500)),
+                ] else if (item.description.isEmpty) ...[
                   const SizedBox(height: 2),
-                  Text('Activo', style: TextStyle(fontSize: 12, color: ZColors.success)),
+                  const Text('Activo', style: TextStyle(fontSize: 12, color: ZColors.success)),
                 ],
               ],
             ),
@@ -365,6 +374,7 @@ class _CatalogDialog extends ConsumerStatefulWidget {
 
 class _CatalogDialogState extends ConsumerState<_CatalogDialog> {
   late final TextEditingController _nameCtrl;
+  late final TextEditingController _descCtrl;
   bool _saving = false;
 
   bool get _isEditing => widget.item != null;
@@ -375,6 +385,7 @@ class _CatalogDialogState extends ConsumerState<_CatalogDialog> {
   void initState() {
     super.initState();
     _nameCtrl = TextEditingController(text: widget.item?.name ?? '');
+    _descCtrl = TextEditingController(text: widget.item?.description ?? '');
     if (_isLicense && widget.extra != null) {
       _selectedCountry = widget.extra!['countryCode'] as String?;
     }
@@ -383,6 +394,7 @@ class _CatalogDialogState extends ConsumerState<_CatalogDialog> {
   @override
   void dispose() {
     _nameCtrl.dispose();
+    _descCtrl.dispose();
     super.dispose();
   }
 
@@ -409,6 +421,13 @@ class _CatalogDialogState extends ConsumerState<_CatalogDialog> {
             label: 'Nombre',
             prefix: const Icon(Icons.label_outline),
             validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
+          ),
+          const SizedBox(height: 12),
+          ZTextField(
+            controller: _descCtrl,
+            label: 'Descripción',
+            prefix: const Icon(Icons.description_outlined),
+            maxLines: 2,
           ),
           if (_isLicense && !_isEditing) ...[
             const SizedBox(height: 12),
@@ -447,6 +466,7 @@ class _CatalogDialogState extends ConsumerState<_CatalogDialog> {
       final dio = ref.read(dioClientProvider);
       final body = <String, dynamic>{
         'name': _nameCtrl.text.trim(),
+        'description': _descCtrl.text.trim(),
       };
 
       if (_isLicense && !_isEditing) {

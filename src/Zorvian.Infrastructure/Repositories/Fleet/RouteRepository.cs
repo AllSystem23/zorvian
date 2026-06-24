@@ -27,7 +27,7 @@ public sealed class RouteRepository : IRouteRepository
             .Include(r => r.Driver)
             .Include(r => r.CoDriver)
             .Include(r => r.Branch)
-            .Include(r => r.Points.OrderBy(p => p.Order))
+            .Include(r => r.Points)
             .FirstOrDefaultAsync(r => r.Id == id);
 
     public async Task AddAsync(Route route) =>

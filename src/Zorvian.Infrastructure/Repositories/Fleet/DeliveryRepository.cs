@@ -17,7 +17,7 @@ public sealed class DeliveryRepository : IDeliveryRepository
             .Include(d => d.Vehicle)
             .Include(d => d.Driver)
             .Include(d => d.Route)
-            .Include(d => d.Items.OrderBy(i => i.ProductId))
+            .Include(d => d.Items)
             .OrderByDescending(d => d.ScheduledDate)
             .ToListAsync();
 

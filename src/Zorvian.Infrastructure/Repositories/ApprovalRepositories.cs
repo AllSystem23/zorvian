@@ -12,19 +12,19 @@ public sealed class ApprovalFlowConfigRepository : IApprovalFlowConfigRepository
 
     public async Task<List<ApprovalFlowConfig>> GetAllAsync(Guid companyId) =>
         await _db.Set<ApprovalFlowConfig>()
-            .Include(c => c.Steps.OrderBy(s => s.StepOrder))
+            .Include(c => c.Steps)
             .Where(c => c.CompanyId == companyId)
             .OrderBy(c => c.Module).ThenBy(c => c.EventType)
             .ToListAsync();
 
     public async Task<ApprovalFlowConfig?> GetByIdAsync(Guid id) =>
         await _db.Set<ApprovalFlowConfig>()
-            .Include(c => c.Steps.OrderBy(s => s.StepOrder))
+            .Include(c => c.Steps)
             .FirstOrDefaultAsync(c => c.Id == id);
 
     public async Task<ApprovalFlowConfig?> GetByModuleAndEventAsync(string module, string eventType, Guid companyId) =>
         await _db.Set<ApprovalFlowConfig>()
-            .Include(c => c.Steps.OrderBy(s => s.StepOrder))
+            .Include(c => c.Steps)
             .FirstOrDefaultAsync(c => c.Module == module && c.EventType == eventType && c.CompanyId == companyId && c.IsActive);
 
     public async Task AddAsync(ApprovalFlowConfig config) => await _db.Set<ApprovalFlowConfig>().AddAsync(config);

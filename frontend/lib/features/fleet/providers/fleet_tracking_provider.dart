@@ -60,8 +60,13 @@ class FleetTrackingNotifier extends Notifier<FleetTrackingState> {
         recentDeliveries: items.map((e) => Map<String, dynamic>.from(e as Map)).toList(),
         loading: false,
       );
-    } catch (_) {
-      state = state.copyWith(error: 'Error al cargar entregas', loading: false);
+    } catch (e) {
+      final msg = e is DioException
+          ? (e.response?.data is Map
+              ? (e.response?.data['detail'] ?? e.response?.data['message'] ?? 'Error de conexión')
+              : e.message ?? 'Error de conexión')
+          : e.toString();
+      state = state.copyWith(error: msg, loading: false);
     }
   }
 
@@ -77,8 +82,13 @@ class FleetTrackingNotifier extends Notifier<FleetTrackingState> {
         timeline: events,
         loading: false,
       );
-    } catch (_) {
-      state = state.copyWith(error: 'Error al cargar timeline', loading: false);
+    } catch (e) {
+      final msg = e is DioException
+          ? (e.response?.data is Map
+              ? (e.response?.data['detail'] ?? e.response?.data['message'] ?? 'Error de conexión')
+              : e.message ?? 'Error de conexión')
+          : e.toString();
+      state = state.copyWith(error: msg, loading: false);
     }
   }
 
@@ -92,8 +102,13 @@ class FleetTrackingNotifier extends Notifier<FleetTrackingState> {
       });
       state = state.copyWith(confirming: false);
       await loadTrackingTimeline(deliveryId);
-    } catch (_) {
-      state = state.copyWith(confirming: false, error: 'Error al confirmar entrega');
+    } catch (e) {
+      final msg = e is DioException
+          ? (e.response?.data is Map
+              ? (e.response?.data['detail'] ?? e.response?.data['message'] ?? 'Error al confirmar entrega')
+              : e.message ?? 'Error al confirmar entrega')
+          : e.toString();
+      state = state.copyWith(confirming: false, error: msg);
     }
   }
 
@@ -104,8 +119,13 @@ class FleetTrackingNotifier extends Notifier<FleetTrackingState> {
       await dio.put('fleet/deliveries/$deliveryId/status', data: {'status': status});
       state = state.copyWith(loading: false);
       await loadTrackingTimeline(deliveryId);
-    } catch (_) {
-      state = state.copyWith(error: 'Error al actualizar estado', loading: false);
+    } catch (e) {
+      final msg = e is DioException
+          ? (e.response?.data is Map
+              ? (e.response?.data['detail'] ?? e.response?.data['message'] ?? 'Error de conexión')
+              : e.message ?? 'Error de conexión')
+          : e.toString();
+      state = state.copyWith(error: msg, loading: false);
     }
   }
 
@@ -113,8 +133,13 @@ class FleetTrackingNotifier extends Notifier<FleetTrackingState> {
     try {
       final dio = ref.read(dioClientProvider);
       await dio.post('fleet/deliveries/$deliveryId/notify-eta', data: {'notificationType': 'push'});
-    } catch (_) {
-      state = state.copyWith(error: 'Error al enviar notificación ETA');
+    } catch (e) {
+      final msg = e is DioException
+          ? (e.response?.data is Map
+              ? (e.response?.data['detail'] ?? e.response?.data['message'] ?? 'Error al enviar notificación ETA')
+              : e.message ?? 'Error al enviar notificación ETA')
+          : e.toString();
+      state = state.copyWith(error: msg);
     }
   }
 
@@ -130,8 +155,13 @@ class FleetTrackingNotifier extends Notifier<FleetTrackingState> {
         timeline: events,
         loading: false,
       );
-    } catch (_) {
-      state = state.copyWith(error: 'Entrega no encontrada', loading: false);
+    } catch (e) {
+      final msg = e is DioException
+          ? (e.response?.data is Map
+              ? (e.response?.data['detail'] ?? e.response?.data['message'] ?? 'Error de conexión')
+              : e.message ?? 'Error de conexión')
+          : e.toString();
+      state = state.copyWith(error: msg, loading: false);
     }
   }
 }

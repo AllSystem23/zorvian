@@ -20,7 +20,7 @@ public sealed class CreditRepository : ICreditRepository
             .Include(c => c.Client)
             .Include(c => c.Employee)
             .Include(c => c.Sale)
-            .Include(c => c.Installments.OrderBy(i => i.InstallmentNumber))
+            .Include(c => c.Installments)
             .Include(c => c.Payments)
             .FirstOrDefaultAsync(c => c.Id == id);
 

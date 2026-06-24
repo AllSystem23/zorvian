@@ -5,14 +5,16 @@ import '../../../auth/auth_provider.dart' show dioClientProvider;
 final class FleetCatalogItem {
   final String id;
   final String name;
+  final String description;
   final String countryCode;
   final bool isActive;
 
-  const FleetCatalogItem({required this.id, required this.name, this.countryCode = '', this.isActive = true});
+  const FleetCatalogItem({required this.id, required this.name, this.description = '', this.countryCode = '', this.isActive = true});
 
   factory FleetCatalogItem.fromJson(Map<String, dynamic> j) => FleetCatalogItem(
     id: j['id'] as String,
     name: j['name'] as String? ?? '',
+    description: j['description'] as String? ?? '',
     countryCode: j['countryCode'] as String? ?? '',
     isActive: j['isActive'] as bool? ?? true,
   );
