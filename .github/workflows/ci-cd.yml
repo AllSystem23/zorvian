@@ -215,15 +215,17 @@ jobs:
           flutter pub get
           flutter build web --release
 
-      - name: Setup Node 22 for Firebase CLI
+      - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '20'
+
+      - name: Write Firebase Service Account
+        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_ZORVIAN_ERP }}' > $RUNNER_TEMP/firebase-service-account.json
 
       - name: Deploy to Firebase Hosting
-        uses: FirebaseExtended/action-hosting-deploy@v1
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          gcpCredentials: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ZORVIAN_ERP }}
-          channelId: live
-          projectId: zorvian-erp
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-service-account.json
+        run: |
+          npm install -g firebase-tools
+          firebase deploy --only hosting --project zorvian-erp
