@@ -309,23 +309,33 @@ public sealed class GpsService
 
     private static bool IsInsideGeofence(double lat, double lng, Geofence geofence)
     {
-        if (geofence.Type == "Circle" && geofence.Radius.HasValue)
+        if (string.IsNullOrWhiteSpace(geofence.CoordinatesJson)) return false;
+
+        try
         {
-            var coords = JsonSerializer.Deserialize<List<double[]>>(geofence.CoordinatesJson);
-            if (coords != null && coords.Count > 0)
+            if (geofence.Type == "Circle" && geofence.Radius.HasValue)
             {
-                var centerLat = coords[0][0];
-                var centerLng = coords[0][1];
-                var distance = HaversineDistance(lat, lng, centerLat, centerLng);
-                return distance <= geofence.Radius.Value;
+                var coords = JsonSerializer.Deserialize<List<double[]>>(geofence.CoordinatesJson);
+                if (coords != null && coords.Count > 0)
+                {
+                    var centerLat = coords[0][0];
+                    var centerLng = coords[0][1];
+                    var distance = HaversineDistance(lat, lng, centerLat, centerLng);
+                    return distance <= geofence.Radius.Value;
+                }
+            }
+            else if (geofence.Type == "Polygon")
+            {
+                var coords = JsonSerializer.Deserialize<List<double[]>>(geofence.CoordinatesJson);
+                if (coords != null && coords.Count >= 3)
+                    return PointInPolygon(lat, lng, coords);
             }
         }
-        else if (geofence.Type == "Polygon")
+        catch (JsonException)
         {
-            var coords = JsonSerializer.Deserialize<List<double[]>>(geofence.CoordinatesJson);
-            if (coords != null && coords.Count >= 3)
-                return PointInPolygon(lat, lng, coords);
+            // Invalid JSON in CoordinatesJson — treat geofence as inactive
         }
+
         return false;
     }
 

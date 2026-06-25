@@ -601,4 +601,248 @@ public sealed class GpsServiceTests
 
         _geofenceStateRepo.Verify(r => r.SaveChangesAsync(), Times.Never);
     }
+
+    // ══════════════════════════════════════════════════════════════
+    //  Null Safety Tests
+    // ══════════════════════════════════════════════════════════════
+
+    [Fact]
+    public async Task GetFleetPositionsAsync_WithNullBrand_DoesNotThrow()
+    {
+        var vehicleId = Guid.NewGuid();
+        var vehicle = new Vehicle
+        {
+            Id = vehicleId, Plate = "ABC-123", Model = "Hilux",
+            Brand = null!, Driver = null
+        };
+
+        var positions = new List<GpsPosition>
+        {
+            new()
+            {
+                Id = Guid.NewGuid(), VehicleId = vehicleId,
+                Latitude = 12.11, Longitude = -86.23, Speed = 65,
+                Heading = 90, GpsTimestamp = DateTime.UtcNow,
+                IgnitionOn = true, FuelLevel = 75m, Vehicle = vehicle
+            }
+        };
+
+        _gpsRepo.Setup(r => r.GetLatestPerVehicleAsync(_companyId)).ReturnsAsync(positions);
+
+        var result = await _sut.GetFleetPositionsAsync();
+
+        result.Should().HaveCount(1);
+        result[0].VehiclePlate.Should().Be("ABC-123");
+        result[0].VehicleBrandModel.Should().Be("Hilux");
+        result[0].DriverName.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetFleetPositionsAsync_WithNullDriver_DoesNotThrow()
+    {
+        var vehicleId = Guid.NewGuid();
+        var brand = new VehicleBrand { Name = "Toyota" };
+        var vehicle = new Vehicle
+        {
+            Id = vehicleId, Plate = "DEF-456", Model = "Hilux",
+            Brand = brand, Driver = null
+        };
+
+        var positions = new List<GpsPosition>
+        {
+            new()
+            {
+                Id = Guid.NewGuid(), VehicleId = vehicleId,
+                Latitude = 12.11, Longitude = -86.23, Speed = 65,
+                Heading = 90, GpsTimestamp = DateTime.UtcNow,
+                IgnitionOn = true, FuelLevel = 75m, Vehicle = vehicle
+            }
+        };
+
+        _gpsRepo.Setup(r => r.GetLatestPerVehicleAsync(_companyId)).ReturnsAsync(positions);
+
+        var result = await _sut.GetFleetPositionsAsync();
+
+        result.Should().HaveCount(1);
+        result[0].DriverName.Should().BeNull();
+        result[0].VehicleBrandModel.Should().Be("Toyota Hilux");
+    }
+
+    [Fact]
+    public async Task GetFleetPositionsAsync_WithNullVehicle_DoesNotThrow()
+    {
+        var positions = new List<GpsPosition>
+        {
+            new()
+            {
+                Id = Guid.NewGuid(), VehicleId = Guid.NewGuid(),
+                Latitude = 12.11, Longitude = -86.23, Speed = 65,
+                Heading = 90, GpsTimestamp = DateTime.UtcNow,
+                Vehicle = null!
+            }
+        };
+
+        _gpsRepo.Setup(r => r.GetLatestPerVehicleAsync(_companyId)).ReturnsAsync(positions);
+
+        var result = await _sut.GetFleetPositionsAsync();
+
+        result.Should().HaveCount(1);
+        result[0].VehiclePlate.Should().BeEmpty();
+        result[0].VehicleBrandModel.Should().BeEmpty();
+        result[0].DriverName.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetFleetPositionsAsync_EmptyList_ReturnsEmpty()
+    {
+        _gpsRepo.Setup(r => r.GetLatestPerVehicleAsync(_companyId)).ReturnsAsync(new List<GpsPosition>());
+
+        var result = await _sut.GetFleetPositionsAsync();
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetVehicleHistoryAsync_WithNullVehicleOnPosition_ReturnsNull()
+    {
+        var vehicleId = Guid.NewGuid();
+        var positions = new List<GpsPosition>
+        {
+            new()
+            {
+                Id = Guid.NewGuid(), VehicleId = vehicleId,
+                Latitude = 12.11, Longitude = -86.23, Speed = 60,
+                GpsTimestamp = DateTime.UtcNow, Vehicle = null!
+            }
+        };
+
+        _gpsRepo.Setup(r => r.GetByVehicleAndDateRangeAsync(vehicleId, It.IsAny<DateTime>(), It.IsAny<DateTime>()))
+            .ReturnsAsync(positions);
+
+        var result = await _sut.GetVehicleHistoryAsync(vehicleId, DateTime.UtcNow.AddDays(-7), DateTime.UtcNow);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ReceiveBulkAsync_WithEmptyPositions_ReturnsZero()
+    {
+        _vehicleRepo.Setup(r => r.GetAllAsync(_companyId)).ReturnsAsync(new List<Vehicle>());
+
+        var request = new BulkReceiveGpsRequest(new List<ReceiveGpsPositionRequest>());
+
+        var count = await _sut.ReceiveBulkAsync(request);
+
+        count.Should().Be(0);
+        _gpsRepo.Verify(r => r.AddRangeAsync(It.IsAny<List<GpsPosition>>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CheckPointInGeofenceAsync_WithNullCoordinatesJson_DoesNotThrow()
+    {
+        var geofence = new Geofence
+        {
+            Id = Guid.NewGuid(), Name = "Test",
+            Type = "Circle", Active = true, Radius = 5.0,
+            CoordinatesJson = null!
+        };
+
+        _geofenceRepo.Setup(r => r.GetActiveAsync()).ReturnsAsync(new List<Geofence> { geofence });
+
+        var result = await _sut.CheckPointInGeofenceAsync(12.11, -86.23);
+
+        result.IsInside.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task CheckPointInGeofenceAsync_WithInvalidJson_DoesNotThrow()
+    {
+        var geofence = new Geofence
+        {
+            Id = Guid.NewGuid(), Name = "Test",
+            Type = "Circle", Active = true, Radius = 5.0,
+            CoordinatesJson = "not-json"
+        };
+
+        _geofenceRepo.Setup(r => r.GetActiveAsync()).ReturnsAsync(new List<Geofence> { geofence });
+
+        var result = await _sut.CheckPointInGeofenceAsync(12.11, -86.23);
+
+        result.IsInside.Should().BeFalse();
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    //  Error Isolation Tests
+    // ══════════════════════════════════════════════════════════════
+
+    [Fact]
+    public async Task ReceiveBulkAsync_GeofenceStateRepoThrows_PositionsStillSaved()
+    {
+        var vehicleId = Guid.NewGuid();
+        var vehicles = new List<Vehicle>
+        {
+            new() { Id = vehicleId, GpsDeviceId = "DEV-001" }
+        };
+
+        _vehicleRepo.Setup(r => r.GetAllAsync(_companyId)).ReturnsAsync(vehicles);
+        _geofenceStateRepo.Setup(r => r.GetActiveByVehicleAsync(vehicleId))
+            .ThrowsAsync(new Exception("State repo down"));
+
+        var request = new BulkReceiveGpsRequest(new List<ReceiveGpsPositionRequest>
+        {
+            new("DEV-001", vehicleId, 12.11, -86.23, null, null, null, DateTime.UtcNow, null, null, null, null, null, null, null),
+        });
+
+        var count = await _sut.ReceiveBulkAsync(request);
+
+        count.Should().Be(1);
+        _gpsRepo.Verify(r => r.AddRangeAsync(It.IsAny<List<GpsPosition>>()), Times.Once);
+        _gpsRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task ReceivePositionAsync_NotificationFails_PositionStillSaved()
+    {
+        var vehicleId = Guid.NewGuid();
+        var geofence = new Geofence
+        {
+            Id = Guid.NewGuid(), Name = "Bodega Central",
+            Type = "Circle", Active = true, Radius = 5.0,
+            CoordinatesJson = "[[12.11, -86.23]]"
+        };
+
+        _geofenceRepo.Setup(r => r.GetActiveAsync()).ReturnsAsync(new List<Geofence> { geofence });
+        _geofenceStateRepo.Setup(r => r.GetActiveByVehicleAsync(vehicleId))
+            .ReturnsAsync(new List<VehicleGeofenceState>());
+        _notification.Setup(n => n.NotifyTenantAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<string>(), It.IsAny<string?>()))
+            .ThrowsAsync(new Exception("Notification service down"));
+
+        var request = new ReceiveGpsPositionRequest(
+            "DEV-001", vehicleId, 12.11, -86.23, null, 65.5, 90,
+            DateTime.UtcNow, true, 150000m, 75m, 32m, 85m, 5, 12);
+
+        _mapper.Setup(m => m.Map<GpsPositionResponse>(It.IsAny<GpsPosition>()))
+            .Returns(new GpsPositionResponse(
+                Guid.NewGuid(), vehicleId, "ABC-123", 12.11, -86.23, null, 65.5, 90,
+                request.GpsTimestamp, true, 150000m, 75m, 32m, 85m, 5, 12));
+
+        var result = await _sut.ReceivePositionAsync(request);
+
+        result.Should().NotBeNull();
+        _gpsRepo.Verify(r => r.AddAsync(It.IsAny<GpsPosition>()), Times.Once);
+        _gpsRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetFleetPositionsAsync_GpsRepoThrows_PropagatesException()
+    {
+        _gpsRepo.Setup(r => r.GetLatestPerVehicleAsync(_companyId))
+            .ThrowsAsync(new Exception("DB connection lost"));
+
+        var act = () => _sut.GetFleetPositionsAsync();
+
+        await act.Should().ThrowAsync<Exception>().WithMessage("DB connection lost");
+    }
 }
