@@ -229,76 +229,75 @@ public sealed class AccountService
     }
 
     public async Task SeedDefaultChartOfAccountsAsync()
-
     {
         var companyId = await GetCompanyIdAsync();
         var count = (await _repo.GetAllAsync(companyId)).Count;
         if (count > 0) return;
 
+        // Step 1: Generate explicit IDs and build code→Id map for parent resolution
+        var idMap = new Dictionary<string, Guid>();
+        string[] codes = ["1","1.1","1.1.01","1.1.02","1.1.03","1.1.04","1.1.05",
+                          "1.2","1.2.01","1.2.02",
+                          "2","2.1","2.1.01","2.1.02","2.1.03",
+                          "3","3.1.01","3.1.02","3.1.03",
+                          "4","4.1.01","4.4.01",
+                          "5","5.1.01",
+                          "6","6.1.01","6.1.02","6.1.04","6.1.05","6.2.01"];
+        foreach (var code in codes) idMap[code] = Guid.NewGuid();
+
+        // Step 2: Resolve parent ID for a given code
+        Guid? ResolveParentId(string code)
+        {
+            var parts = code.Split('.');
+            if (parts.Length <= 1) return null;
+            var parentCode = code[..^parts[^1].Length].TrimEnd('.');
+            return string.IsNullOrEmpty(parentCode) ? null : idMap.GetValueOrDefault(parentCode);
+        }
+
+        // Step 3: Create all accounts with explicit IDs
         var accounts = new List<Account>
         {
-            new() { Code = "1", Name = "Activos", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 0, CompanyId = companyId, IsSystem = true, IsActive = true },
-            new() { Code = "1.1", Name = "Activos Circulantes", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsSystem = true, IsActive = true, ParentId = GetTempId() },
-            new() { Code = "1.1.01", Name = "Caja General", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
-            new() { Code = "1.1.02", Name = "Bancos", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
-            new() { Code = "1.1.03", Name = "Clientes", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
-            new() { Code = "1.1.04", Name = "Inventario", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
-            new() { Code = "1.1.05", Name = "IVA CrÃ©dito Fiscal", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
-            new() { Code = "1.2", Name = "Activos No Circulantes", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsSystem = true, IsActive = true, ParentId = GetTempId() },
-            new() { Code = "1.2.01", Name = "Propiedad, Planta y Equipo", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
-            new() { Code = "1.2.02", Name = "DepreciaciÃ³n Acumulada", Type = AccountTypes.Asset, NormalSide = AccountSide.Credit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
+            new() { Id = idMap["1"], Code = "1", Name = "Activos", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 0, CompanyId = companyId, IsSystem = true, IsActive = true },
+            new() { Id = idMap["1.1"], Code = "1.1", Name = "Activos Circulantes", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsSystem = true, IsActive = true, ParentId = ResolveParentId("1.1") },
+            new() { Id = idMap["1.1.01"], Code = "1.1.01", Name = "Caja General", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = ResolveParentId("1.1.01") },
+            new() { Id = idMap["1.1.02"], Code = "1.1.02", Name = "Bancos", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = ResolveParentId("1.1.02") },
+            new() { Id = idMap["1.1.03"], Code = "1.1.03", Name = "Clientes", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = ResolveParentId("1.1.03") },
+            new() { Id = idMap["1.1.04"], Code = "1.1.04", Name = "Inventario", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = ResolveParentId("1.1.04") },
+            new() { Id = idMap["1.1.05"], Code = "1.1.05", Name = "IVA Crédito Fiscal", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = ResolveParentId("1.1.05") },
+            new() { Id = idMap["1.2"], Code = "1.2", Name = "Activos No Circulantes", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsSystem = true, IsActive = true, ParentId = ResolveParentId("1.2") },
+            new() { Id = idMap["1.2.01"], Code = "1.2.01", Name = "Propiedad, Planta y Equipo", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = ResolveParentId("1.2.01") },
+            new() { Id = idMap["1.2.02"], Code = "1.2.02", Name = "Depreciación Acumulada", Type = AccountTypes.Asset, NormalSide = AccountSide.Credit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = ResolveParentId("1.2.02") },
 
-            new() { Code = "2", Name = "Pasivos", Type = AccountTypes.Liability, NormalSide = AccountSide.Credit, Level = 0, CompanyId = companyId, IsSystem = true, IsActive = true },
-            new() { Code = "2.1", Name = "Pasivos Circulantes", Type = AccountTypes.Liability, NormalSide = AccountSide.Credit, Level = 1, CompanyId = companyId, IsSystem = true, IsActive = true, ParentId = GetTempId() },
-            new() { Code = "2.1.01", Name = "Proveedores", Type = AccountTypes.Liability, NormalSide = AccountSide.Credit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
-            new() { Code = "2.1.02", Name = "IVA DÃ©bito Fiscal", Type = AccountTypes.Liability, NormalSide = AccountSide.Credit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
-            new() { Code = "2.1.03", Name = "ISR por Pagar", Type = AccountTypes.Liability, NormalSide = AccountSide.Credit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
+            new() { Id = idMap["2"], Code = "2", Name = "Pasivos", Type = AccountTypes.Liability, NormalSide = AccountSide.Credit, Level = 0, CompanyId = companyId, IsSystem = true, IsActive = true },
+            new() { Id = idMap["2.1"], Code = "2.1", Name = "Pasivos Circulantes", Type = AccountTypes.Liability, NormalSide = AccountSide.Credit, Level = 1, CompanyId = companyId, IsSystem = true, IsActive = true, ParentId = ResolveParentId("2.1") },
+            new() { Id = idMap["2.1.01"], Code = "2.1.01", Name = "Proveedores", Type = AccountTypes.Liability, NormalSide = AccountSide.Credit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = ResolveParentId("2.1.01") },
+            new() { Id = idMap["2.1.02"], Code = "2.1.02", Name = "IVA Débito Fiscal", Type = AccountTypes.Liability, NormalSide = AccountSide.Credit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = ResolveParentId("2.1.02") },
+            new() { Id = idMap["2.1.03"], Code = "2.1.03", Name = "ISR por Pagar", Type = AccountTypes.Liability, NormalSide = AccountSide.Credit, Level = 2, CompanyId = companyId, IsActive = true, ParentId = ResolveParentId("2.1.03") },
 
-            new() { Code = "3", Name = "Patrimonio", Type = AccountTypes.Equity, NormalSide = AccountSide.Credit, Level = 0, CompanyId = companyId, IsSystem = true, IsActive = true },
-            new() { Code = "3.1.01", Name = "Capital Social", Type = AccountTypes.Equity, NormalSide = AccountSide.Credit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
-            new() { Code = "3.1.02", Name = "Utilidades Retenidas", Type = AccountTypes.Equity, NormalSide = AccountSide.Credit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
-            new() { Code = "3.1.03", Name = "SuperÃ¡vit por RevaluaciÃ³n", Type = AccountTypes.Equity, NormalSide = AccountSide.Credit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
+            new() { Id = idMap["3"], Code = "3", Name = "Patrimonio", Type = AccountTypes.Equity, NormalSide = AccountSide.Credit, Level = 0, CompanyId = companyId, IsSystem = true, IsActive = true },
+            new() { Id = idMap["3.1.01"], Code = "3.1.01", Name = "Capital Social", Type = AccountTypes.Equity, NormalSide = AccountSide.Credit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = ResolveParentId("3.1.01") },
+            new() { Id = idMap["3.1.02"], Code = "3.1.02", Name = "Utilidades Retenidas", Type = AccountTypes.Equity, NormalSide = AccountSide.Credit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = ResolveParentId("3.1.02") },
+            new() { Id = idMap["3.1.03"], Code = "3.1.03", Name = "Superávit por Revaluación", Type = AccountTypes.Equity, NormalSide = AccountSide.Credit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = ResolveParentId("3.1.03") },
 
-            new() { Code = "4", Name = "Ingresos", Type = AccountTypes.Income, NormalSide = AccountSide.Credit, Level = 0, CompanyId = companyId, IsSystem = true, IsActive = true },
-            new() { Code = "4.1.01", Name = "Ventas", Type = AccountTypes.Income, NormalSide = AccountSide.Credit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
-            new() { Code = "4.4.01", Name = "Ganancia en Venta de Activos", Type = AccountTypes.Income, NormalSide = AccountSide.Credit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
+            new() { Id = idMap["4"], Code = "4", Name = "Ingresos", Type = AccountTypes.Income, NormalSide = AccountSide.Credit, Level = 0, CompanyId = companyId, IsSystem = true, IsActive = true },
+            new() { Id = idMap["4.1.01"], Code = "4.1.01", Name = "Ventas", Type = AccountTypes.Income, NormalSide = AccountSide.Credit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = ResolveParentId("4.1.01") },
+            new() { Id = idMap["4.4.01"], Code = "4.4.01", Name = "Ganancia en Venta de Activos", Type = AccountTypes.Income, NormalSide = AccountSide.Credit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = ResolveParentId("4.4.01") },
 
-            new() { Code = "5", Name = "Costos", Type = AccountTypes.Cost, NormalSide = AccountSide.Debit, Level = 0, CompanyId = companyId, IsSystem = true, IsActive = true },
-            new() { Code = "5.1.01", Name = "Costo de Ventas", Type = AccountTypes.Cost, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
+            new() { Id = idMap["5"], Code = "5", Name = "Costos", Type = AccountTypes.Cost, NormalSide = AccountSide.Debit, Level = 0, CompanyId = companyId, IsSystem = true, IsActive = true },
+            new() { Id = idMap["5.1.01"], Code = "5.1.01", Name = "Costo de Ventas", Type = AccountTypes.Cost, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = ResolveParentId("5.1.01") },
 
-            new() { Code = "6", Name = "Gastos", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 0, CompanyId = companyId, IsSystem = true, IsActive = true },
-            new() { Code = "6.1.01", Name = "Gastos Administrativos", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
-            new() { Code = "6.1.02", Name = "Gastos de Venta", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
-            new() { Code = "6.1.04", Name = "DepreciaciÃ³n", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
-            new() { Code = "6.1.05", Name = "Mantenimiento y Reparaciones", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
-            new() { Code = "6.2.01", Name = "PÃ©rdida en Baja de Activos", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = GetTempId() },
+            new() { Id = idMap["6"], Code = "6", Name = "Gastos", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 0, CompanyId = companyId, IsSystem = true, IsActive = true },
+            new() { Id = idMap["6.1.01"], Code = "6.1.01", Name = "Gastos Administrativos", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = ResolveParentId("6.1.01") },
+            new() { Id = idMap["6.1.02"], Code = "6.1.02", Name = "Gastos de Venta", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = ResolveParentId("6.1.02") },
+            new() { Id = idMap["6.1.04"], Code = "6.1.04", Name = "Depreciación", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = ResolveParentId("6.1.04") },
+            new() { Id = idMap["6.1.05"], Code = "6.1.05", Name = "Mantenimiento y Reparaciones", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = ResolveParentId("6.1.05") },
+            new() { Id = idMap["6.2.01"], Code = "6.2.01", Name = "Pérdida en Baja de Activos", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true, ParentId = ResolveParentId("6.2.01") },
         };
-
-        // Assign parent relationships properly
-        var codeMap = new Dictionary<string, Account>();
-        foreach (var a in accounts) codeMap[a.Code] = a;
-
-        // Fix ParentId references based on code hierarchy
-        foreach (var a in accounts)
-        {
-            if (a.ParentId == GetTempId())
-            {
-                var parentCode = a.Code.Length > 1 ? a.Code[..^a.Code.Split('.').Last().Length] : "";
-                if (parentCode.EndsWith(".")) parentCode = parentCode[..^1];
-                if (string.IsNullOrEmpty(parentCode))
-                    a.ParentId = null;
-                else if (codeMap.TryGetValue(parentCode, out var parent))
-                    a.ParentId = parent.Id;
-            }
-        }
 
         foreach (var a in accounts)
             await _repo.AddAsync(a);
         await _repo.SaveChangesAsync();
     }
-
-    private static Guid _tempId = Guid.NewGuid();
-    private static Guid GetTempId() => _tempId;
 }
 
 public sealed class AccountingEntryService
