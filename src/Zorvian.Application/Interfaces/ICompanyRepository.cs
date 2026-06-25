@@ -12,5 +12,6 @@ public interface ICompanyRepository
     Task UpdateAsync(Company company);
     Task UpdateSettingsAsync(CompanySettings settings);
     Task<bool> ExistsByTenantIdAsync(string tenantId);
+    Task<Company?> GetFirstActiveAsync();
     Task SaveChangesAsync();
 }

@@ -31,8 +31,17 @@ public sealed class AccountService
             return id;
         }
 
+        // For SuperAdmin, try to resolve the first company from the DB
         if (_tenant.IsSuperAdmin)
+        {
+            var firstCompany = await _companyRepo.GetFirstActiveAsync();
+            if (firstCompany is not null)
+            {
+                _cachedCompanyId = firstCompany.Id;
+                return firstCompany.Id;
+            }
             return Guid.Empty;
+        }
 
         var company = await _companyRepo.GetByTenantIdAsync(_tenant.TenantId ?? "");
         if (company is not null)
