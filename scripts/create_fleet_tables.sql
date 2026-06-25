@@ -459,13 +459,23 @@ CREATE TABLE IF NOT EXISTS "FleetDocuments" (
     "IsDeleted" boolean NOT NULL DEFAULT false,
     "DeletedAt" timestamp with time zone NULL,
     "EntityType" character varying(20) NOT NULL,
+    "EntityId" uuid NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
     "DocumentNumber" character varying(50) NOT NULL,
+    "IssueDate" date NOT NULL DEFAULT '2024-01-01',
+    "ExpiryDate" date NULL,
     "FileUrl" character varying(500) NULL,
     "Notes" character varying(500) NULL,
     "Status" character varying(30) NOT NULL,
+    "AlertSent" boolean NOT NULL DEFAULT false,
     "DocumentTypeId" uuid NOT NULL,
     CONSTRAINT "PK_FleetDocuments" PRIMARY KEY ("Id")
 );
+
+-- Ensure columns exist on pre-existing FleetDocuments tables
+ALTER TABLE "FleetDocuments" ADD COLUMN IF NOT EXISTS "EntityId" uuid NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000';
+ALTER TABLE "FleetDocuments" ADD COLUMN IF NOT EXISTS "IssueDate" date NOT NULL DEFAULT '2024-01-01';
+ALTER TABLE "FleetDocuments" ADD COLUMN IF NOT EXISTS "ExpiryDate" date NULL;
+ALTER TABLE "FleetDocuments" ADD COLUMN IF NOT EXISTS "AlertSent" boolean NOT NULL DEFAULT false;
 
 CREATE TABLE IF NOT EXISTS "ExpenseCategories" (
     "Id" uuid NOT NULL,
@@ -479,8 +489,11 @@ CREATE TABLE IF NOT EXISTS "ExpenseCategories" (
     "DeletedAt" timestamp with time zone NULL,
     "Name" character varying(100) NOT NULL,
     "Description" character varying(500) NULL,
+    "IsActive" boolean NOT NULL DEFAULT true,
     CONSTRAINT "PK_ExpenseCategories" PRIMARY KEY ("Id")
 );
+
+ALTER TABLE "ExpenseCategories" ADD COLUMN IF NOT EXISTS "IsActive" boolean NOT NULL DEFAULT true;
 
 CREATE TABLE IF NOT EXISTS "ExpenseSubcategories" (
     "Id" uuid NOT NULL,
@@ -494,8 +507,11 @@ CREATE TABLE IF NOT EXISTS "ExpenseSubcategories" (
     "DeletedAt" timestamp with time zone NULL,
     "Name" character varying(100) NOT NULL,
     "CategoryId" uuid NOT NULL,
+    "IsActive" boolean NOT NULL DEFAULT true,
     CONSTRAINT "PK_ExpenseSubcategories" PRIMARY KEY ("Id")
 );
+
+ALTER TABLE "ExpenseSubcategories" ADD COLUMN IF NOT EXISTS "IsActive" boolean NOT NULL DEFAULT true;
 
 CREATE TABLE IF NOT EXISTS "FleetExpenses" (
     "Id" uuid NOT NULL,
@@ -539,14 +555,24 @@ CREATE TABLE IF NOT EXISTS "GpsPositions" (
     "Longitude" double precision NOT NULL,
     "Altitude" double precision NULL,
     "Speed" double precision NULL,
+    "Heading" integer NULL,
     "Odometer" decimal(10,2) NULL,
     "FuelLevel" decimal(5,2) NULL,
     "Temperature" decimal(5,2) NULL,
     "DeviceBattery" decimal(5,2) NULL,
+    "GsmSignal" integer NULL,
+    "Satellites" integer NULL,
+    "IgnitionOn" boolean NULL,
     "VehicleId" uuid NOT NULL,
     "GpsTimestamp" timestamp with time zone NOT NULL,
     CONSTRAINT "PK_GpsPositions" PRIMARY KEY ("Id")
 );
+
+-- Ensure columns exist on pre-existing GpsPositions tables
+ALTER TABLE "GpsPositions" ADD COLUMN IF NOT EXISTS "Heading" integer NULL;
+ALTER TABLE "GpsPositions" ADD COLUMN IF NOT EXISTS "GsmSignal" integer NULL;
+ALTER TABLE "GpsPositions" ADD COLUMN IF NOT EXISTS "Satellites" integer NULL;
+ALTER TABLE "GpsPositions" ADD COLUMN IF NOT EXISTS "IgnitionOn" boolean NULL;
 
 CREATE TABLE IF NOT EXISTS "Geofences" (
     "Id" uuid NOT NULL,
@@ -561,8 +587,14 @@ CREATE TABLE IF NOT EXISTS "Geofences" (
     "Name" character varying(100) NOT NULL,
     "Type" character varying(20) NOT NULL,
     "CoordinatesJson" text NOT NULL,
+    "Radius" double precision NULL,
+    "Active" boolean NOT NULL DEFAULT true,
     CONSTRAINT "PK_Geofences" PRIMARY KEY ("Id")
 );
+
+-- Ensure columns exist on pre-existing Geofences tables
+ALTER TABLE "Geofences" ADD COLUMN IF NOT EXISTS "Radius" double precision NULL;
+ALTER TABLE "Geofences" ADD COLUMN IF NOT EXISTS "Active" boolean NOT NULL DEFAULT true;
 
 CREATE TABLE IF NOT EXISTS "DriverInfractions" (
     "Id" uuid NOT NULL,
@@ -607,8 +639,32 @@ CREATE TABLE IF NOT EXISTS "FleetAlerts" (
     "UpdatedBy" text NULL,
     "IsDeleted" boolean NOT NULL DEFAULT false,
     "DeletedAt" timestamp with time zone NULL,
+    "Category" character varying(50) NOT NULL DEFAULT '',
+    "Severity" character varying(20) NOT NULL DEFAULT 'info',
+    "EntityType" character varying(50) NULL,
+    "EntityId" uuid NULL,
+    "Title" character varying(200) NOT NULL DEFAULT '',
+    "Message" character varying(2000) NOT NULL DEFAULT '',
+    "Status" character varying(30) NOT NULL DEFAULT 'Active',
+    "NotificationSent" boolean NOT NULL DEFAULT false,
+    "AcknowledgedBy" character varying(100) NULL,
+    "AcknowledgedAt" timestamp with time zone NULL,
+    "AcknowledgementNotes" character varying(500) NULL,
     CONSTRAINT "PK_FleetAlerts" PRIMARY KEY ("Id")
 );
+
+-- Ensure columns exist on pre-existing FleetAlerts tables
+ALTER TABLE "FleetAlerts" ADD COLUMN IF NOT EXISTS "Category" character varying(50) NOT NULL DEFAULT '';
+ALTER TABLE "FleetAlerts" ADD COLUMN IF NOT EXISTS "Severity" character varying(20) NOT NULL DEFAULT 'info';
+ALTER TABLE "FleetAlerts" ADD COLUMN IF NOT EXISTS "EntityType" character varying(50) NULL;
+ALTER TABLE "FleetAlerts" ADD COLUMN IF NOT EXISTS "EntityId" uuid NULL;
+ALTER TABLE "FleetAlerts" ADD COLUMN IF NOT EXISTS "Title" character varying(200) NOT NULL DEFAULT '';
+ALTER TABLE "FleetAlerts" ADD COLUMN IF NOT EXISTS "Message" character varying(2000) NOT NULL DEFAULT '';
+ALTER TABLE "FleetAlerts" ADD COLUMN IF NOT EXISTS "Status" character varying(30) NOT NULL DEFAULT 'Active';
+ALTER TABLE "FleetAlerts" ADD COLUMN IF NOT EXISTS "NotificationSent" boolean NOT NULL DEFAULT false;
+ALTER TABLE "FleetAlerts" ADD COLUMN IF NOT EXISTS "AcknowledgedBy" character varying(100) NULL;
+ALTER TABLE "FleetAlerts" ADD COLUMN IF NOT EXISTS "AcknowledgedAt" timestamp with time zone NULL;
+ALTER TABLE "FleetAlerts" ADD COLUMN IF NOT EXISTS "AcknowledgementNotes" character varying(500) NULL;
 
 CREATE TABLE IF NOT EXISTS "FleetAlertRules" (
     "Id" uuid NOT NULL,
@@ -620,8 +676,28 @@ CREATE TABLE IF NOT EXISTS "FleetAlertRules" (
     "UpdatedBy" text NULL,
     "IsDeleted" boolean NOT NULL DEFAULT false,
     "DeletedAt" timestamp with time zone NULL,
+    "Name" character varying(100) NOT NULL DEFAULT '',
+    "Category" character varying(50) NOT NULL DEFAULT '',
+    "EventType" character varying(50) NOT NULL DEFAULT '',
+    "ThresholdValue" decimal(18,2) NOT NULL DEFAULT 0,
+    "Severity" character varying(20) NOT NULL DEFAULT 'warning',
+    "PushNotification" boolean NOT NULL DEFAULT true,
+    "InAppNotification" boolean NOT NULL DEFAULT true,
+    "IsActive" boolean NOT NULL DEFAULT true,
+    "NotifyRoles" character varying(200) NULL,
     CONSTRAINT "PK_FleetAlertRules" PRIMARY KEY ("Id")
 );
+
+-- Ensure columns exist on pre-existing FleetAlertRules tables
+ALTER TABLE "FleetAlertRules" ADD COLUMN IF NOT EXISTS "Name" character varying(100) NOT NULL DEFAULT '';
+ALTER TABLE "FleetAlertRules" ADD COLUMN IF NOT EXISTS "Category" character varying(50) NOT NULL DEFAULT '';
+ALTER TABLE "FleetAlertRules" ADD COLUMN IF NOT EXISTS "EventType" character varying(50) NOT NULL DEFAULT '';
+ALTER TABLE "FleetAlertRules" ADD COLUMN IF NOT EXISTS "ThresholdValue" decimal(18,2) NOT NULL DEFAULT 0;
+ALTER TABLE "FleetAlertRules" ADD COLUMN IF NOT EXISTS "Severity" character varying(20) NOT NULL DEFAULT 'warning';
+ALTER TABLE "FleetAlertRules" ADD COLUMN IF NOT EXISTS "PushNotification" boolean NOT NULL DEFAULT true;
+ALTER TABLE "FleetAlertRules" ADD COLUMN IF NOT EXISTS "InAppNotification" boolean NOT NULL DEFAULT true;
+ALTER TABLE "FleetAlertRules" ADD COLUMN IF NOT EXISTS "IsActive" boolean NOT NULL DEFAULT true;
+ALTER TABLE "FleetAlertRules" ADD COLUMN IF NOT EXISTS "NotifyRoles" character varying(200) NULL;
 
 CREATE TABLE IF NOT EXISTS "VehicleGeofenceStates" (
     "Id" uuid NOT NULL,
@@ -636,8 +712,80 @@ CREATE TABLE IF NOT EXISTS "VehicleGeofenceStates" (
     "IsInside" boolean NOT NULL,
     "VehicleId" uuid NOT NULL,
     "GeofenceId" uuid NOT NULL,
+    "EnteredAt" timestamp with time zone NOT NULL DEFAULT NOW(),
+    "ExitedAt" timestamp with time zone NULL,
+    "LastPositionId" uuid NULL,
     CONSTRAINT "PK_VehicleGeofenceStates" PRIMARY KEY ("Id")
 );
+
+-- Ensure columns exist on pre-existing VehicleGeofenceStates tables
+ALTER TABLE "VehicleGeofenceStates" ADD COLUMN IF NOT EXISTS "EnteredAt" timestamp with time zone NOT NULL DEFAULT NOW();
+ALTER TABLE "VehicleGeofenceStates" ADD COLUMN IF NOT EXISTS "ExitedAt" timestamp with time zone NULL;
+ALTER TABLE "VehicleGeofenceStates" ADD COLUMN IF NOT EXISTS "LastPositionId" uuid NULL;
+
+-- ══════════════════════════════════════════════════════════════
+-- Ensure ALL missing columns exist on pre-existing Fleet tables
+-- (comprehensive audit: entity vs SQL schema)
+-- ══════════════════════════════════════════════════════════════
+
+-- DocumentTypes
+ALTER TABLE "DocumentTypes" ADD COLUMN IF NOT EXISTS "HasExpiry" boolean NOT NULL DEFAULT false;
+ALTER TABLE "DocumentTypes" ADD COLUMN IF NOT EXISTS "AlertDaysBefore" integer NOT NULL DEFAULT 30;
+ALTER TABLE "DocumentTypes" ADD COLUMN IF NOT EXISTS "IsRequired" boolean NOT NULL DEFAULT false;
+ALTER TABLE "DocumentTypes" ADD COLUMN IF NOT EXISTS "IsActive" boolean NOT NULL DEFAULT true;
+
+-- Workshops
+ALTER TABLE "Workshops" ADD COLUMN IF NOT EXISTS "IsInternal" boolean NOT NULL DEFAULT false;
+ALTER TABLE "Workshops" ADD COLUMN IF NOT EXISTS "IsActive" boolean NOT NULL DEFAULT true;
+
+-- FailureTypes
+ALTER TABLE "FailureTypes" ADD COLUMN IF NOT EXISTS "IsActive" boolean NOT NULL DEFAULT true;
+
+-- FleetExpenses
+ALTER TABLE "FleetExpenses" ADD COLUMN IF NOT EXISTS "ExpenseDate" timestamp with time zone NOT NULL DEFAULT NOW();
+ALTER TABLE "FleetExpenses" ADD COLUMN IF NOT EXISTS "Reimbursable" boolean NOT NULL DEFAULT false;
+ALTER TABLE "FleetExpenses" ADD COLUMN IF NOT EXISTS "Reimbursed" boolean NOT NULL DEFAULT false;
+ALTER TABLE "FleetExpenses" ADD COLUMN IF NOT EXISTS "Approved" boolean NOT NULL DEFAULT false;
+
+-- RoutePoints
+ALTER TABLE "RoutePoints" ADD COLUMN IF NOT EXISTS "Order" integer NOT NULL DEFAULT 0;
+ALTER TABLE "RoutePoints" ADD COLUMN IF NOT EXISTS "TimeWindowStart" time NULL;
+ALTER TABLE "RoutePoints" ADD COLUMN IF NOT EXISTS "TimeWindowEnd" time NULL;
+ALTER TABLE "RoutePoints" ADD COLUMN IF NOT EXISTS "DurationEstMinutes" integer NULL;
+
+-- DriverInfractions
+ALTER TABLE "DriverInfractions" ADD COLUMN IF NOT EXISTS "InfractionDate" timestamp with time zone NOT NULL DEFAULT NOW();
+ALTER TABLE "DriverInfractions" ADD COLUMN IF NOT EXISTS "Points" integer NULL;
+
+-- DriverTrainings
+ALTER TABLE "DriverTrainings" ADD COLUMN IF NOT EXISTS "TrainingDate" date NOT NULL DEFAULT '2024-01-01';
+ALTER TABLE "DriverTrainings" ADD COLUMN IF NOT EXISTS "ExpiryDate" date NULL;
+
+-- MaintenanceSchedules
+ALTER TABLE "MaintenanceSchedules" ADD COLUMN IF NOT EXISTS "IntervalValue" integer NOT NULL DEFAULT 0;
+ALTER TABLE "MaintenanceSchedules" ADD COLUMN IF NOT EXISTS "NextExecutionDate" timestamp with time zone NULL;
+ALTER TABLE "MaintenanceSchedules" ADD COLUMN IF NOT EXISTS "NextExecutionKm" decimal(10,2) NULL;
+ALTER TABLE "MaintenanceSchedules" ADD COLUMN IF NOT EXISTS "NextExecutionHourMeter" decimal(10,2) NULL;
+ALTER TABLE "MaintenanceSchedules" ADD COLUMN IF NOT EXISTS "LastExecutionDate" timestamp with time zone NULL;
+ALTER TABLE "MaintenanceSchedules" ADD COLUMN IF NOT EXISTS "LastExecutionKm" decimal(10,2) NULL;
+ALTER TABLE "MaintenanceSchedules" ADD COLUMN IF NOT EXISTS "ToleranceValue" integer NOT NULL DEFAULT 0;
+
+-- MaintenanceTemplates
+ALTER TABLE "MaintenanceTemplates" ADD COLUMN IF NOT EXISTS "DefaultIntervalKm" integer NULL;
+ALTER TABLE "MaintenanceTemplates" ADD COLUMN IF NOT EXISTS "DefaultIntervalDays" integer NULL;
+ALTER TABLE "MaintenanceTemplates" ADD COLUMN IF NOT EXISTS "DefaultIntervalHours" integer NULL;
+ALTER TABLE "MaintenanceTemplates" ADD COLUMN IF NOT EXISTS "IsActive" boolean NOT NULL DEFAULT true;
+
+-- WorkOrderParts
+ALTER TABLE "WorkOrderParts" ADD COLUMN IF NOT EXISTS "WarrantyExpiry" timestamp with time zone NULL;
+
+-- WorkOrders
+ALTER TABLE "WorkOrders" ADD COLUMN IF NOT EXISTS "ReportDateTime" timestamp with time zone NOT NULL DEFAULT NOW();
+ALTER TABLE "WorkOrders" ADD COLUMN IF NOT EXISTS "StartDate" timestamp with time zone NULL;
+ALTER TABLE "WorkOrders" ADD COLUMN IF NOT EXISTS "EndDate" timestamp with time zone NULL;
+ALTER TABLE "WorkOrders" ADD COLUMN IF NOT EXISTS "DowntimeHours" integer NULL;
+ALTER TABLE "WorkOrders" ADD COLUMN IF NOT EXISTS "DocumentsJson" text NULL;
+ALTER TABLE "WorkOrders" ADD COLUMN IF NOT EXISTS "ApprovedBy" uuid NULL;
 
 -- Create indexes for Fleet tables
 CREATE UNIQUE INDEX IF NOT EXISTS "IX_Vehicles_Code_TenantId" ON "Vehicles" ("Code", "TenantId");
@@ -664,3 +812,7 @@ CREATE INDEX IF NOT EXISTS "IX_MaintenanceSchedules_VehicleId" ON "MaintenanceSc
 CREATE INDEX IF NOT EXISTS "IX_FuelRefills_VehicleId" ON "FuelRefills" ("VehicleId");
 CREATE INDEX IF NOT EXISTS "IX_Routes_BranchId" ON "Routes" ("BranchId");
 CREATE INDEX IF NOT EXISTS "IX_Drivers_BranchId" ON "Drivers" ("BranchId");
+
+-- Fleet query optimization indexes
+CREATE INDEX IF NOT EXISTS "IX_FleetDocuments_TenantId_ExpiryDate" ON "FleetDocuments" ("TenantId", "ExpiryDate") WHERE "ExpiryDate" IS NOT NULL AND "IsDeleted" = false;
+CREATE INDEX IF NOT EXISTS "IX_FleetAlerts_TenantId_Status" ON "FleetAlerts" ("TenantId", "Status") WHERE "IsDeleted" = false;

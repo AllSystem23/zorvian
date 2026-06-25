@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.Extensions.Logging;
 using Zorvian.Application.DTOs.Fleet;
 using Zorvian.Application.Interfaces;
 using Zorvian.Application.Interfaces.Fleet;
@@ -23,6 +24,7 @@ public sealed class FleetAlertService
     private readonly ITenantContext _tenant;
     private readonly INotificationService _notification;
     private readonly IMapper _mapper;
+    private readonly ILogger<FleetAlertService> _logger;
 
     public FleetAlertService(
         IFleetDocumentRepository documentRepo,
@@ -32,7 +34,8 @@ public sealed class FleetAlertService
         IWorkOrderRepository workOrderRepo,
         ITenantContext tenant,
         INotificationService notification,
-        IMapper mapper)
+        IMapper mapper,
+        ILogger<FleetAlertService> logger)
     {
         _documentRepo = documentRepo;
         _driverRepo = driverRepo;
@@ -42,6 +45,7 @@ public sealed class FleetAlertService
         _tenant = tenant;
         _notification = notification;
         _mapper = mapper;
+        _logger = logger;
     }
 
     // ── Alert CRUD ──
@@ -128,20 +132,21 @@ public sealed class FleetAlertService
         var today = DateOnly.FromDateTime(now);
         var companyId = await GetCompanyIdAsync();
 
-        // 1. Document expiry alerts
-        alerts.AddRange(await CheckDocumentExpiryAsync(companyId, today));
+        // Each check is isolated so one failure doesn't prevent the others from running.
+        try { alerts.AddRange(await CheckDocumentExpiryAsync(companyId, today)); }
+        catch (Exception ex) { _logger.LogWarning(ex, "FleetAlert: document expiry check failed"); }
 
-        // 2. Driver license expiry alerts
-        alerts.AddRange(await CheckDriverLicenseExpiryAsync(companyId, today));
+        try { alerts.AddRange(await CheckDriverLicenseExpiryAsync(companyId, today)); }
+        catch (Exception ex) { _logger.LogWarning(ex, "FleetAlert: driver license check failed"); }
 
-        // 3. Maintenance overdue alerts
-        alerts.AddRange(await CheckMaintenanceOverdueAsync(companyId, now));
+        try { alerts.AddRange(await CheckMaintenanceOverdueAsync(companyId, now)); }
+        catch (Exception ex) { _logger.LogWarning(ex, "FleetAlert: maintenance check failed"); }
 
-        // 4. Fuel anomaly alerts
-        alerts.AddRange(await CheckFuelAnomaliesAsync(companyId));
+        try { alerts.AddRange(await CheckFuelAnomaliesAsync(companyId)); }
+        catch (Exception ex) { _logger.LogWarning(ex, "FleetAlert: fuel anomaly check failed"); }
 
-        // 5. Open work order alerts
-        alerts.AddRange(await CheckOpenWorkOrdersAsync(companyId));
+        try { alerts.AddRange(await CheckOpenWorkOrdersAsync(companyId)); }
+        catch (Exception ex) { _logger.LogWarning(ex, "FleetAlert: work order check failed"); }
 
         return alerts;
     }
@@ -210,10 +215,11 @@ public sealed class FleetAlertService
         var inMaintenance = vehicles.Where(v => v.Status == "Maintenance").ToList();
         foreach (var vehicle in inMaintenance)
         {
+            var brandName = vehicle.Brand?.Name ?? "N/A";
             alerts.Add(new FleetAlertResponse(
                 Guid.Empty, "Maintenance", "info", "Vehicle", vehicle.Id,
                 $"Vehículo en mantenimiento: {vehicle.Plate}",
-                $"El vehículo {vehicle.Brand.Name} {vehicle.Model} ({vehicle.Plate}) está actualmente en mantenimiento.",
+                $"El vehículo {brandName} {vehicle.Model} ({vehicle.Plate}) está actualmente en mantenimiento.",
                 "Active", false, null, null, null,
                 vehicle.CreatedAt));
         }
@@ -222,10 +228,11 @@ public sealed class FleetAlertService
         var outOfService = vehicles.Where(v => v.Status == "OutOfService").ToList();
         foreach (var vehicle in outOfService)
         {
+            var brandName = vehicle.Brand?.Name ?? "N/A";
             alerts.Add(new FleetAlertResponse(
                 Guid.Empty, "Maintenance", "critical", "Vehicle", vehicle.Id,
                 $"Vehículo fuera de servicio: {vehicle.Plate}",
-                $"El vehículo {vehicle.Brand.Name} {vehicle.Model} ({vehicle.Plate}) está fuera de servicio.",
+                $"El vehículo {brandName} {vehicle.Model} ({vehicle.Plate}) está fuera de servicio.",
                 "Active", false, null, null, null,
                 vehicle.CreatedAt));
         }
@@ -241,10 +248,11 @@ public sealed class FleetAlertService
 
         foreach (var refill in anomalous)
         {
+            var vehiclePlate = refill.Vehicle?.Plate ?? "N/A";
             alerts.Add(new FleetAlertResponse(
                 Guid.Empty, "Fuel", "warning", "Vehicle", refill.VehicleId,
-                $"Anomalía de combustible: {refill.Vehicle.Plate}",
-                $"Se detectó una anomalía en el abastecimiento del vehículo {refill.Vehicle.Plate} " +
+                $"Anomalía de combustible: {vehiclePlate}",
+                $"Se detectó una anomalía en el abastecimiento del vehículo {vehiclePlate} " +
                 $"el {refill.RefillDateTime:dd/MM/yyyy}. Litros: {refill.Liters}, Costo: {refill.TotalCost}.",
                 "Active", false, null, null, null,
                 refill.CreatedAt));
@@ -264,11 +272,12 @@ public sealed class FleetAlertService
 
         foreach (var wo in openHighPriority)
         {
+            var vehiclePlate = wo.Vehicle?.Plate ?? "N/A";
             var severity = wo.Priority == "Urgent" ? "critical" : "warning";
             alerts.Add(new FleetAlertResponse(
                 Guid.Empty, "Maintenance", severity, "WorkOrder", wo.Id,
-                $"OT {wo.Priority}: {wo.Number} — {wo.Vehicle.Plate}",
-                $"La orden de trabajo {wo.Number} ({wo.Priority}) para el vehículo {wo.Vehicle.Plate} " +
+                $"OT {wo.Priority}: {wo.Number} — {vehiclePlate}",
+                $"La orden de trabajo {wo.Number} ({wo.Priority}) para el vehículo {vehiclePlate} " +
                 $"está en estado '{wo.Status}'.",
                 "Active", false, null, null, null,
                 wo.CreatedAt));
