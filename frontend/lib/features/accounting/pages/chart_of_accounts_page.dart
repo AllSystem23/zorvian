@@ -2,6 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/accounting_provider.dart';
 
+const _typeLabels = {
+  'Asset': 'Activo',
+  'Liability': 'Pasivo',
+  'Equity': 'Patrimonio',
+  'Income': 'Ingreso',
+  'Cost': 'Costo',
+  'Expense': 'Gasto',
+};
+
+const _sideLabels = {
+  'Debit': 'Débito',
+  'Credit': 'Crédito',
+};
+
 final class ChartOfAccountsPage extends ConsumerStatefulWidget {
   const ChartOfAccountsPage({super.key});
   @override
@@ -61,7 +75,7 @@ final class _ChartOfAccountsPageState extends ConsumerState<ChartOfAccountsPage>
               dense: true,
               leading: Icon(_typeIcon(a.type), size: 18, color: _typeColor(a.type)),
               title: Text('${a.code} - ${a.name}', style: TextStyle(fontWeight: depth <= 1 ? FontWeight.bold : FontWeight.normal, fontSize: depth <= 1 ? 14 : 13)),
-              subtitle: Text(a.type, style: TextStyle(fontSize: 11, color: _typeColor(a.type))),
+              subtitle: Text(_typeLabels[a.type] ?? a.type, style: TextStyle(fontSize: 11, color: _typeColor(a.type))),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -279,7 +293,7 @@ final class _AccountFormDialogState extends ConsumerState<_AccountFormDialog> {
               DropdownButtonFormField<String>(
                 initialValue: _type,
                 decoration: const InputDecoration(labelText: 'Tipo'),
-                items: types.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+                items: types.map((t) => DropdownMenuItem(value: t, child: Text(_typeLabels[t] ?? t))).toList(),
                 onChanged: (v) {
                   if (v != null) setState(() => _type = v);
                 },
@@ -287,7 +301,7 @@ final class _AccountFormDialogState extends ConsumerState<_AccountFormDialog> {
               DropdownButtonFormField<String>(
                 initialValue: _normalSide,
                 decoration: const InputDecoration(labelText: 'Naturaleza'),
-                items: sides.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                items: sides.map((s) => DropdownMenuItem(value: s, child: Text(_sideLabels[s] ?? s))).toList(),
                 onChanged: (v) {
                   if (v != null) setState(() => _normalSide = v);
                 },
