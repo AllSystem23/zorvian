@@ -47,7 +47,7 @@ final class ZorvianSidebar extends ConsumerWidget {
           Expanded(
             child: ListView(
               padding: EdgeInsets.only(top: ZSpacing.xs, bottom: ZSpacing.sm),
-              children: _buildGroupedModules(modules, context, isDark),
+              children: _buildGroupedModules(modules, context, isDark, collapsed),
             ),
           ),
           _SidebarFooter(collapsed: collapsed, shellRef: shellRef),
@@ -56,7 +56,7 @@ final class ZorvianSidebar extends ConsumerWidget {
     );
   }
 
-  List<Widget> _buildGroupedModules(List<NavModule> modules, BuildContext context, bool isDark) {
+  List<Widget> _buildGroupedModules(List<NavModule> modules, BuildContext context, bool isDark, bool collapsed) {
     final widgets = <Widget>[];
     String? lastGroup;
     int groupIndex = 0;
@@ -64,39 +64,55 @@ final class ZorvianSidebar extends ConsumerWidget {
     for (final module in modules) {
       if (module.group != lastGroup) {
         if (groupIndex > 0) {
-          widgets.add(const SizedBox(height: ZSpacing.xs));
+          widgets.add(SizedBox(height: collapsed ? ZSpacing.xs * 0.5 : ZSpacing.xs));
         }
-        final groupLabel = NavConfig.groupLabels[module.group] ?? module.group.toUpperCase();
-        final groupColor = NavConfig.groupColors[module.group] ?? ZColors.neutral400;
-        final groupTextColor = isDark
-            ? groupColor
-            : (NavConfig.groupTextColors[module.group] ?? ZColors.neutral600);
-        widgets.add(
-          Padding(
-            padding: const EdgeInsets.fromLTRB(ZSpacing.lg, ZSpacing.xs, ZSpacing.lg, ZSpacing.xs),
-            child: Row(
-              children: [
-                Container(
-                  width: 8, height: 8,
+        if (collapsed) {
+          widgets.add(
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Center(
+                child: Container(
+                  width: 16, height: 1,
                   decoration: BoxDecoration(
-                    color: groupColor,
-                    borderRadius: BorderRadius.circular(2),
+                    color: isDark ? ZColors.neutral700 : ZColors.neutral300,
                   ),
                 ),
-                const SizedBox(width: ZSpacing.sm),
-                Text(
-                  groupLabel,
-                  style: ZTypography.labelSmall.copyWith(
-                    color: groupTextColor,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.2,
-                    fontSize: 10,
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-        );
+          );
+        } else {
+          final groupLabel = NavConfig.groupLabels[module.group] ?? module.group.toUpperCase();
+          final groupColor = NavConfig.groupColors[module.group] ?? ZColors.neutral400;
+          final groupTextColor = isDark
+              ? groupColor
+              : (NavConfig.groupTextColors[module.group] ?? ZColors.neutral600);
+          widgets.add(
+            Padding(
+              padding: const EdgeInsets.fromLTRB(ZSpacing.lg, ZSpacing.xs, ZSpacing.lg, ZSpacing.xs),
+              child: Row(
+                children: [
+                  Container(
+                    width: 8, height: 8,
+                    decoration: BoxDecoration(
+                      color: groupColor,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: ZSpacing.sm),
+                  Text(
+                    groupLabel,
+                    style: ZTypography.labelSmall.copyWith(
+                      color: groupTextColor,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 1.2,
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
         lastGroup = module.group;
         groupIndex++;
       }
@@ -105,7 +121,7 @@ final class ZorvianSidebar extends ConsumerWidget {
           module: module,
           location: location,
           role: role,
-          collapsed: false,
+          collapsed: collapsed,
         ),
       );
     }

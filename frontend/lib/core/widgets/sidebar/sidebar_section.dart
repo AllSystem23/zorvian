@@ -44,7 +44,6 @@ final class SidebarSection extends ConsumerWidget {
           hasActiveChild: hasActiveChild,
           onTap: () {
             if (collapsed && module.children.isNotEmpty) {
-              Scaffold.maybeOf(context)?.openEndDrawer();
               context.go(module.children.first.route);
             } else {
               ref.read(expandedModulesProvider.notifier).toggle(module.id);
