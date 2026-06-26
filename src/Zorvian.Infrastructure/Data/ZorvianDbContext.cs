@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -99,7 +99,7 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>();
     public DbSet<IntercompanyTransaction> IntercompanyTransactions => Set<IntercompanyTransaction>();
 
-    // New Module: CrÃ©ditos
+    // New Module: CrÃƒÂ©ditos
     public DbSet<Credit> Credits => Set<Credit>();
     public DbSet<CreditInstallment> CreditInstallments => Set<CreditInstallment>();
     public DbSet<CreditPayment> CreditPayments => Set<CreditPayment>();
@@ -120,7 +120,7 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<SupplierCreditNote> SupplierCreditNotes => Set<SupplierCreditNote>();
     public DbSet<Withholding> Withholdings => Set<Withholding>();
 
-    // New Module: GarantÃ­as
+    // New Module: GarantÃƒÂ­as
     public DbSet<Warranty> Warranties => Set<Warranty>();
     public DbSet<WarrantyClaim> WarrantyClaims => Set<WarrantyClaim>();
     public DbSet<ServiceWorkshop> ServiceWorkshops => Set<ServiceWorkshop>();
@@ -171,7 +171,7 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<AccountingRuleTemplate> AccountingRuleTemplates => Set<AccountingRuleTemplate>();
     public DbSet<EmployeePayrollExemption> EmployeePayrollExemptions => Set<EmployeePayrollExemption>();
     
-    // New Module: TesorerÃ­a
+    // New Module: TesorerÃƒÂ­a
     public DbSet<Bank> Banks => Set<Bank>();
     public DbSet<BankAccount> BankAccounts => Set<BankAccount>();
     public DbSet<Checkbook> Checkbooks => Set<Checkbook>();
@@ -179,7 +179,7 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<CheckAuditTrail> CheckAuditTrails => Set<CheckAuditTrail>();
     public DbSet<CheckPrintTemplate> CheckPrintTemplates => Set<CheckPrintTemplate>();
     
-    // New Module: NÃ³mina Avanzada
+    // New Module: NÃƒÂ³mina Avanzada
     public DbSet<SickLeaveRecord> SickLeaveRecords => Set<SickLeaveRecord>();
     public DbSet<TerminationRecord> TerminationRecords => Set<TerminationRecord>();
 
@@ -195,12 +195,12 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<Incentive> Incentives => Set<Incentive>();
     public DbSet<IncentivePayment> IncentivePayments => Set<IncentivePayment>();
 
-    // New Module: KPI y DesempeÃ±o
+    // New Module: KPI y DesempeÃƒÂ±o
     public DbSet<KpiDefinition> KpiDefinitions => Set<KpiDefinition>();
     public DbSet<KpiRecord> KpiRecords => Set<KpiRecord>();
     public DbSet<Ranking> Rankings => Set<Ranking>();
 
-    // New Module: FacturaciÃ³n ElectrÃ³nica
+    // New Module: FacturaciÃƒÂ³n ElectrÃƒÂ³nica
     public DbSet<ElectronicInvoice> ElectronicInvoices => Set<ElectronicInvoice>();
     public DbSet<ElectronicInvoiceXml> ElectronicInvoiceXmls => Set<ElectronicInvoiceXml>();
 
@@ -219,7 +219,7 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<DocumentVersion> DocumentVersions => Set<DocumentVersion>();
     public DbSet<DocumentSignature> DocumentSignatures => Set<DocumentSignature>();
 
-    // New Module: Flota y LogÃ­stica
+    // New Module: Flota y LogÃƒÂ­stica
     public DbSet<Zorvian.Core.Entities.Fleet.VehicleBrand> VehicleBrands => Set<Zorvian.Core.Entities.Fleet.VehicleBrand>();
     public DbSet<Zorvian.Core.Entities.Fleet.VehicleType> VehicleTypes => Set<Zorvian.Core.Entities.Fleet.VehicleType>();
     public DbSet<Zorvian.Core.Entities.Fleet.FuelType> FuelTypes => Set<Zorvian.Core.Entities.Fleet.FuelType>();
@@ -1077,7 +1077,7 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(m => (m.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !m.IsDeleted);
         });
 
-        // ---- New Module: CrÃ©ditos ----
+        // ---- New Module: CrÃƒÂ©ditos ----
         builder.Entity<Credit>(e =>
         {
             e.HasKey(c => c.Id);
@@ -1410,7 +1410,7 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(b => (b.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !b.IsDeleted);
         });
 
-        // ---- New Module: TesorerÃ­a ----
+        // ---- New Module: TesorerÃƒÂ­a ----
         builder.Entity<Bank>(e =>
         {
             e.HasKey(b => b.Id);
@@ -1754,7 +1754,7 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(d => (d.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !d.IsDeleted);
         });
 
-        // ---- New Module: GarantÃ­as ----
+        // ---- New Module: GarantÃƒÂ­as ----
         builder.Entity<Warranty>(e =>
         {
             e.HasKey(w => w.Id);
@@ -2165,6 +2165,69 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
         });
 
+        builder.Entity<GoalAssignment>(e =>
+        {
+            e.HasKey(a => a.Id);
+            e.Property(a => a.Status).HasMaxLength(20).IsRequired();
+            e.HasOne(a => a.GoalDefinition)
+                .WithMany(g => g.Assignments)
+                .HasForeignKey(a => a.GoalDefinitionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(a => a.Employee)
+                .WithMany()
+                .HasForeignKey(a => a.EmployeeId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(a => new { a.GoalDefinitionId, a.EmployeeId });
+            e.HasQueryFilter(a => (a.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !a.IsDeleted);
+        });
+
+        builder.Entity<GoalProgress>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.Property(p => p.PeriodKey).HasMaxLength(20);
+            e.HasOne(p => p.GoalAssignment)
+                .WithMany(a => a.ProgressEntries)
+                .HasForeignKey(p => p.GoalAssignmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(p => new { p.GoalAssignmentId, p.EvaluationDate });
+            e.HasQueryFilter(p => (p.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !p.IsDeleted);
+        });
+
+        builder.Entity<Incentive>(e =>
+        {
+            e.HasKey(i => i.Id);
+            e.Property(i => i.Name).HasMaxLength(100).IsRequired();
+            e.Property(i => i.IncentiveType).HasMaxLength(20).IsRequired();
+            e.Property(i => i.Currency).HasMaxLength(3).IsRequired();
+            e.Property(i => i.PaymentTrigger).HasMaxLength(20).IsRequired();
+            e.Property(i => i.Status).HasMaxLength(20).IsRequired();
+            e.HasOne(i => i.GoalDefinition)
+                .WithMany()
+                .HasForeignKey(i => i.GoalDefinitionId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasQueryFilter(i => (i.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !i.IsDeleted);
+        });
+
+        builder.Entity<IncentivePayment>(e =>
+        {
+            e.HasKey(ip => ip.Id);
+            e.Property(ip => ip.Status).HasMaxLength(20).IsRequired();
+            e.HasOne(ip => ip.Incentive)
+                .WithMany()
+                .HasForeignKey(ip => ip.IncentiveId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(ip => ip.GoalAssignment)
+                .WithMany(a => a.IncentivePayments)
+                .HasForeignKey(ip => ip.GoalAssignmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(ip => ip.Employee)
+                .WithMany()
+                .HasForeignKey(ip => ip.EmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(ip => new { ip.GoalAssignmentId, ip.EmployeeId });
+            e.HasQueryFilter(ip => (ip.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !ip.IsDeleted);
+        });
+
         builder.Entity<RegionalTaxConfiguration>(e =>
         {
             e.HasKey(x => x.Id);
@@ -2242,7 +2305,7 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(h => (h.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !h.IsDeleted);
         });
 
-        // ---- FacturaciÃ³n ElectrÃ³nica ----
+        // ---- FacturaciÃƒÂ³n ElectrÃƒÂ³nica ----
         builder.Entity<ElectronicInvoice>(e =>
         {
             e.HasKey(x => x.Id);
@@ -2333,7 +2396,7 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(s => (s.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !s.IsDeleted);
         });
 
-        // â”€â”€ Fleet Module â”€â”€
+        // Ã¢â€â‚¬Ã¢â€â‚¬ Fleet Module Ã¢â€â‚¬Ã¢â€â‚¬
         builder.Entity<Zorvian.Core.Entities.Fleet.VehicleBrand>(e =>
         {
             e.HasKey(x => x.Id);
