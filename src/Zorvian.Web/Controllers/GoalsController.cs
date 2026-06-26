@@ -16,6 +16,12 @@ public sealed class GoalsController : ControllerBase
 
     public GoalsController(GoalService service) => _service = service;
 
+    [Audit("Goal", "ReadDashboard")]
+    [HttpGet("dashboard")]
+    [RequirePermission(Permissions.GoalRead)]
+    public async Task<IActionResult> GetDashboard() =>
+        Ok(await _service.GetDashboardAsync());
+
     [Audit("Goal", "ReadDefinitions")]
     [HttpGet("definitions")]
     [RequirePermission(Permissions.GoalRead)]

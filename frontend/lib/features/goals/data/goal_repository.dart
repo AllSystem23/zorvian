@@ -43,6 +43,11 @@ class GoalRepository {
     final response = await _apiClient.get('goals/incentive-payments', params: {'employeeId': employeeId});
     return (response.data as List).cast<Map<String, dynamic>>();
   }
+
+  Future<Map<String, dynamic>> getDashboard() async {
+    final response = await _apiClient.get('goals/dashboard');
+    return response.data as Map<String, dynamic>;
+  }
 }
 
 final goalRepositoryProvider = Provider<GoalRepository>((ref) {

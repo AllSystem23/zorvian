@@ -25,4 +25,6 @@ public interface IGoalRepository
     Task<List<IncentivePayment>> GetIncentivePaymentsByAssignmentIdAsync(Guid assignmentId);
     Task<List<IncentivePayment>> GetIncentivePaymentsByEmployeeIdAsync(Guid employeeId);
     Task AddIncentivePaymentAsync(IncentivePayment payment);
+    Task<List<GoalProgress>> GetAllProgressAsync();
+    Task<List<IncentivePayment>> GetAllIncentivePaymentsAsync();
 }

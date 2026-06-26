@@ -1,4 +1,5 @@
 using AutoMapper;
+using Zorvian.Application.DTOs.Goal;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
@@ -20,6 +21,89 @@ public sealed class GoalService
 
     public async Task<List<GoalDefinition>> GetGoalDefinitionsAsync() =>
         await _repo.GetGoalDefinitionsAsync();
+
+    public async Task<GoalDashboardDto> GetDashboardAsync()
+    {
+        var definitions = await _repo.GetGoalDefinitionsAsync();
+        var allAssignments = await _repo.GetGoalAssignmentsAsync();
+        var allProgress = await _repo.GetAllProgressAsync();
+        var allPayments = await _repo.GetAllIncentivePaymentsAsync();
+
+        var activeGoals = definitions.Count(g => g.Status == "active");
+
+        // Compute per-goal stats
+        var goalStats = new List<GoalStatsDto>();
+        foreach (var def in definitions)
+        {
+            var assignments = allAssignments.Where(a => a.GoalDefinitionId == def.Id).ToList();
+            var latestProgress = allProgress
+                .Where(p => p.GoalAssignment.GoalDefinitionId == def.Id)
+                .GroupBy(p => p.GoalAssignmentId)
+                .Select(g => g.First())
+                .ToList();
+
+            var avgCompliance = latestProgress.Count > 0
+                ? latestProgress.Average(p => p.CompliancePercentage)
+                : 0m;
+
+            var totalTarget = assignments.Sum(a => a.TargetValue);
+            var totalCurrent = latestProgress.Sum(p => p.CurrentValue);
+
+            goalStats.Add(new GoalStatsDto
+            {
+                GoalId = def.Id,
+                GoalName = def.Name,
+                GoalType = def.GoalType,
+                Status = def.Status,
+                Participants = assignments.Count,
+                AverageCompliance = Math.Round(avgCompliance, 1),
+                TargetValue = totalTarget,
+                CurrentValue = totalCurrent,
+            });
+        }
+
+        // Global compliance: weighted average across all assignments with progress
+        var allLatestProgress = allProgress
+            .GroupBy(p => p.GoalAssignmentId)
+            .Select(g => g.First())
+            .ToList();
+
+        var globalCompliance = allLatestProgress.Count > 0
+            ? allLatestProgress.Average(p => p.CompliancePercentage)
+            : 0m;
+
+        // Incentive budget: sum of all approved incentive payments
+        var incentiveBudget = allPayments
+            .Where(p => p.Status == "approved")
+            .Sum(p => p.FinalAmount);
+
+        // Low performers: assignments below 50% compliance
+        var lowPerformers = allLatestProgress
+            .Where(p => p.CompliancePercentage < 50 && p.GoalAssignment.Employee is not null)
+            .Select(p => new LowPerformerDto
+            {
+                EmployeeId = p.GoalAssignment.EmployeeId ?? Guid.Empty,
+                EmployeeName = $"{p.GoalAssignment.Employee?.FirstName} {p.GoalAssignment.Employee?.LastName}",
+                EmployeeCode = p.GoalAssignment.Employee?.EmployeeCode ?? "",
+                GoalId = p.GoalAssignment.GoalDefinitionId,
+                GoalName = p.GoalAssignment.GoalDefinition?.Name ?? "",
+                CompliancePercentage = p.CompliancePercentage,
+                TargetValue = p.GoalAssignment.TargetValue,
+                CurrentValue = p.CurrentValue,
+            })
+            .ToList();
+
+        return new GoalDashboardDto
+        {
+            GlobalCompliance = Math.Round(globalCompliance, 1),
+            IncentiveBudget = incentiveBudget,
+            TotalGoals = definitions.Count,
+            ActiveGoals = activeGoals,
+            TotalAssignments = allAssignments.Count,
+            GoalStats = goalStats,
+            LowPerformers = lowPerformers,
+        };
+    }
 
     public async Task<GoalDefinition?> GetGoalDefinitionByIdAsync(Guid id) =>
         await _repo.GetGoalDefinitionByIdAsync(id);

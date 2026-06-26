@@ -23,23 +23,9 @@ final assignmentsByGoalProvider = FutureProvider.family<List<GoalAssignment>, St
   return repository.getAssignmentsByGoal(goalId);
 });
 
-final goalDashboardStatsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  final definitions = await ref.watch(goalDefinitionsProvider.future);
+final goalDashboardProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   final repository = ref.watch(goalRepositoryProvider);
-  
-  final stats = <Map<String, dynamic>>[];
-  for (final def in definitions) {
-    final assignments = await repository.getAssignmentsByGoal(def.id);
-    final participants = assignments.length;
-    final avgCompliance = assignments.isEmpty ? 0.0 : 0.0;
-    
-    stats.add({
-      'definition': def,
-      'participants': participants,
-      'average': avgCompliance,
-    });
-  }
-  return stats;
+  return repository.getDashboard();
 });
 
 final incentivePaymentsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
@@ -50,17 +36,15 @@ final incentivePaymentsProvider = FutureProvider<List<Map<String, dynamic>>>((re
 });
 
 final goalStatsProvider = Provider((ref) {
-  final assignments = ref.watch(employeeGoalsProvider).value ?? [];
-  if (assignments.isEmpty) return {'total': 0, 'completed': 0, 'percentage': 0.0};
-  
-  final total = assignments.length;
-  // Simulación de cálculo de cumplimiento
-  final completed = assignments.where((a) => a.status == 'completed').length;
-  final percentage = total > 0 ? (completed / total) : 0.0;
-  
-  return {
-    'total': total,
-    'completed': completed,
-    'percentage': percentage,
-  };
+  final dashboardAsync = ref.watch(goalDashboardProvider);
+  return dashboardAsync.when(
+    data: (data) => {
+      'total': data['totalGoals'] ?? 0,
+      'active': data['activeGoals'] ?? 0,
+      'globalCompliance': data['globalCompliance'] ?? 0.0,
+      'incentiveBudget': data['incentiveBudget'] ?? 0.0,
+    },
+    loading: () => {'total': 0, 'active': 0, 'globalCompliance': 0.0, 'incentiveBudget': 0.0},
+    error: (_, __) => {'total': 0, 'active': 0, 'globalCompliance': 0.0, 'incentiveBudget': 0.0},
+  );
 });

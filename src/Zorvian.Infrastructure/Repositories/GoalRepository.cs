@@ -124,4 +124,21 @@ public sealed class GoalRepository : IGoalRepository
 
     public async Task AddIncentivePaymentAsync(IncentivePayment payment) =>
         await _db.IncentivePayments.AddAsync(payment);
+
+    public async Task<List<GoalProgress>> GetAllProgressAsync() =>
+        await _db.GoalProgressEntries
+            .Include(p => p.GoalAssignment)
+                .ThenInclude(a => a.GoalDefinition)
+            .Include(p => p.GoalAssignment)
+                .ThenInclude(a => a.Employee)
+            .OrderByDescending(p => p.EvaluationDate)
+            .ToListAsync();
+
+    public async Task<List<IncentivePayment>> GetAllIncentivePaymentsAsync() =>
+        await _db.IncentivePayments
+            .Include(p => p.Incentive)
+            .Include(p => p.GoalAssignment)
+                .ThenInclude(a => a.GoalDefinition)
+            .Include(p => p.Employee)
+            .ToListAsync();
 }
