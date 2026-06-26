@@ -432,7 +432,7 @@ class _CatalogDialogState extends ConsumerState<_CatalogDialog> {
           if (_isLicense && !_isEditing) ...[
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _selectedCountry,
+              initialValue: _selectedCountry,
               decoration: const InputDecoration(
                 labelText: 'País',
                 prefixIcon: Icon(Icons.flag_outlined),

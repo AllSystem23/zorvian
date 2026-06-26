@@ -33,7 +33,7 @@ class ZPeriodDropdown extends StatelessWidget {
     return Container(
       padding: padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: isDark ? ZColors.darkSurface : Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(ZRadii.md),
         border: Border.all(color: isDark ? ZColors.darkBorder : ZColors.border),
         boxShadow: [ZShadows.sm],
@@ -52,7 +52,7 @@ class ZPeriodDropdown extends StatelessWidget {
               size: 18,
               color: isDark ? ZColors.neutral300 : ZColors.neutral600,
             ),
-            dropdownColor: isDark ? ZColors.darkSurface : Colors.white,
+            dropdownColor: Theme.of(context).colorScheme.surface,
             style: ZTypography.labelMedium.copyWith(
               fontWeight: FontWeight.w600,
               color: isDark ? ZColors.neutral100 : ZColors.neutral800,

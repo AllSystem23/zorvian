@@ -161,6 +161,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             underline: const SizedBox(),
             isDense: true,
             icon: Icon(Icons.business, size: 16, color: ZColors.brandPrimary),
+            dropdownColor: Theme.of(context).colorScheme.surface,
             style: ZTypography.labelSmall.copyWith(color: ZColors.brandPrimary, fontWeight: FontWeight.bold),
             items: tenants.map((t) => DropdownMenuItem(
               value: t['tenantId'] as String,
