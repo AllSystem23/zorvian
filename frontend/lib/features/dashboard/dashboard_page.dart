@@ -101,7 +101,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   }
 
   Widget _buildHeader(String user) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final auth = ref.watch(authProvider);
     
     return Row(
@@ -133,38 +132,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             ],
           ),
         ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: isDark ? ZColors.darkSurface : Colors.white,
-            borderRadius: BorderRadius.circular(ZRadii.md),
-            border: Border.all(color: isDark ? ZColors.darkBorder : ZColors.border),
-            boxShadow: [ZShadows.sm],
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.calendar_today_outlined, size: 16, color: ZColors.neutral500),
-              const SizedBox(width: 12),
-              DropdownButton<String>(
-                value: _selectedPeriod,
-                underline: const SizedBox(),
-                icon: Icon(
-                  Icons.keyboard_arrow_down,
-                  size: 18,
-                  color: isDark ? ZColors.neutral300 : ZColors.neutral600,
-                ),
-                dropdownColor: isDark ? ZColors.darkSurface : Colors.white,
-                style: ZTypography.labelMedium.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? ZColors.neutral100 : ZColors.neutral800,
-                ),
-                items: ['Hoy', 'Esta Semana', 'Este Mes', 'Este Trimestre']
-                    .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                    .toList(),
-                onChanged: (v) => setState(() => _selectedPeriod = v!),
-              ),
-            ],
-          ),
+        ZPeriodDropdown(
+          value: _selectedPeriod,
+          onChanged: (v) => setState(() => _selectedPeriod = v!),
         ),
       ],
     );
