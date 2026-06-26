@@ -117,13 +117,6 @@ final class _BrandListPageState extends ConsumerState<BrandListPage> {
                     ),
                   ],
                 ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await context.push<bool>('/brands/new');
-          if (result == true) ref.read(brandProvider.notifier).load();
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 }

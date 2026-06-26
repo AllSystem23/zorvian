@@ -62,8 +62,14 @@ class ZQuickActionsFAB extends StatelessWidget {
         _QuickAction(
           icon: Icons.category_outlined,
           label: 'Nueva Categoría',
-          route: '/categories',
+          route: '/categories/new',
           color: ZColors.warning,
+        ),
+        _QuickAction(
+          icon: Icons.branding_watermark_outlined,
+          label: 'Nueva Marca',
+          route: '/brands/new',
+          color: ZColors.info,
         ),
       ];
     }

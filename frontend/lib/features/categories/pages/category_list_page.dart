@@ -117,13 +117,6 @@ final class _CategoryListPageState extends ConsumerState<CategoryListPage> {
                     ),
                   ],
                 ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final result = await context.push<bool>('/categories/new');
-          if (result == true) ref.read(categoryProvider.notifier).load();
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 }
