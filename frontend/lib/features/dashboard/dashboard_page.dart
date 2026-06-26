@@ -149,40 +149,24 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         final tenants = snapshot.data!;
         final currentTenant = ref.watch(authProvider).tenantId;
 
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          decoration: BoxDecoration(
-            color: ZColors.brandPrimary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(ZRadii.full),
-            border: Border.all(color: ZColors.brandPrimary.withValues(alpha: 0.2)),
-          ),
-          child: DropdownButton<String>(
-            value: currentTenant,
-            underline: const SizedBox(),
-            isDense: true,
-            icon: Icon(Icons.business, size: 16, color: ZColors.brandPrimary),
-            dropdownColor: Theme.of(context).colorScheme.surface,
-            style: ZTypography.labelSmall.copyWith(color: ZColors.brandPrimary, fontWeight: FontWeight.bold),
-            items: tenants.map((t) => DropdownMenuItem(
-              value: t['tenantId'] as String,
-              child: Text(t['name'] as String),
-            )).toList(),
-            onChanged: (newId) async {
-              if (newId != null && newId != currentTenant) {
-                final tenantName = tenants.firstWhere(
-                  (t) => t['tenantId'] == newId,
-                  orElse: () => <String, dynamic>{'name': 'empresa'},
-                )['name'];
-                final messenger = ScaffoldMessenger.of(context);
-                final success = await ref.read(authProvider.notifier).switchTenant(newId);
-                if (mounted && success) {
-                  messenger.showSnackBar(
-                    SnackBar(content: Text('Cambiando a: $tenantName')),
-                  );
-                }
+        return ZCompanyDropdown(
+          tenants: tenants,
+          currentTenantId: currentTenant,
+          onChanged: (newId) async {
+            if (newId != null && newId != currentTenant) {
+              final tenantName = tenants.firstWhere(
+                (t) => t['tenantId'] == newId,
+                orElse: () => <String, dynamic>{'name': 'empresa'},
+              )['name'];
+              final messenger = ScaffoldMessenger.of(context);
+              final success = await ref.read(authProvider.notifier).switchTenant(newId);
+              if (mounted && success) {
+                messenger.showSnackBar(
+                  SnackBar(content: Text('Cambiando a: $tenantName')),
+                );
               }
-            },
-          ),
+            }
+          },
         );
       },
     );
