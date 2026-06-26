@@ -125,7 +125,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   ),
                   if (auth.role == 'SuperAdmin') ...[
                     const SizedBox(width: 12),
-                    _buildCompanySelector(),
+                    const ZCompanySwitcher(),
                   ],
                 ],
               ),
@@ -140,37 +140,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     );
   }
 
-  Widget _buildCompanySelector() {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: ref.read(authProvider.notifier).getMyTenants(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data!.length <= 1) return const SizedBox();
-        
-        final tenants = snapshot.data!;
-        final currentTenant = ref.watch(authProvider).tenantId;
 
-        return ZCompanyDropdown(
-          tenants: tenants,
-          currentTenantId: currentTenant,
-          onChanged: (newId) async {
-            if (newId != null && newId != currentTenant) {
-              final tenantName = tenants.firstWhere(
-                (t) => t['tenantId'] == newId,
-                orElse: () => <String, dynamic>{'name': 'empresa'},
-              )['name'];
-              final messenger = ScaffoldMessenger.of(context);
-              final success = await ref.read(authProvider.notifier).switchTenant(newId);
-              if (mounted && success) {
-                messenger.showSnackBar(
-                  SnackBar(content: Text('Cambiando a: $tenantName')),
-                );
-              }
-            }
-          },
-        );
-      },
-    );
-  }
 
   List<Widget> _buildKpiSection(DashboardKpis kpis) {
     return [
