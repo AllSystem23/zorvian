@@ -23,7 +23,7 @@ class _DepartmentListPageState extends ConsumerState<DepartmentListPage> {
     final ok = await ZModal.confirm(
       context,
       title: 'Eliminar departamento',
-      message: '¿Eliminar $name? Los empleados asignados quedarán sin departamento.',
+      message: '¿Eliminar $name? Los trabajadores asignados quedarán sin departamento.',
       confirmText: 'Eliminar',
       cancelText: 'Cancelar',
       confirmColor: Colors.red,
@@ -65,7 +65,7 @@ class _DepartmentListPageState extends ConsumerState<DepartmentListPage> {
                               child: Text(d.code, style: TextStyle(fontSize: 12, color: theme.colorScheme.onPrimaryContainer)),
                             ),
                             title: Text(d.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                            subtitle: Text('${d.employeeCount} empleados · ${d.description}'),
+                            subtitle: Text('${d.employeeCount} trabajadores · ${d.description}'),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [

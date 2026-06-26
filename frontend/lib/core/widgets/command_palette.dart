@@ -22,7 +22,7 @@ class CommandItem {
 
 final List<CommandItem> _commands = [
   CommandItem(icon: Icons.dashboard, label: 'Dashboard', route: '/dashboard', shortcut: 'G D', keywords: ['inicio', 'home']),
-  CommandItem(icon: Icons.people, label: 'Empleados', route: '/employees', shortcut: 'G E', keywords: ['lista', 'personal']),
+  CommandItem(icon: Icons.people, label: 'Trabajadores', route: '/employees', shortcut: 'G E', keywords: ['lista', 'personal']),
   CommandItem(icon: Icons.business, label: 'Departamentos', route: '/departments', shortcut: 'G P', keywords: ['areas']),
   CommandItem(icon: Icons.beach_access, label: 'Vacaciones', route: '/vacations', shortcut: 'G V', keywords: ['dias', 'descanso']),
   CommandItem(icon: Icons.description, label: 'Permisos', route: '/permissions', shortcut: 'G R', keywords: ['ausencia', 'licencia']),

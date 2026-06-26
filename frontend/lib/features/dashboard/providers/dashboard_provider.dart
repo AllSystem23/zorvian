@@ -126,7 +126,7 @@ class CalendarEvent {
         : '',
     employeeName: (json['employeeName'] as String?)?.isNotEmpty == true
         ? json['employeeName'] as String
-        : 'Empleado',
+        : 'Trabajador',
     employeeCode: (json['employeeCode'] as String?) ?? '',
     type: (json['type'] as String?)?.isNotEmpty == true
         ? json['type'] as String
@@ -170,7 +170,7 @@ class RecentRequestItem {
             : 'permission',
         employeeName: (json['employeeName'] as String?)?.isNotEmpty == true
             ? json['employeeName'] as String
-            : 'Empleado',
+            : 'Trabajador',
         status: (json['status'] as String?)?.isNotEmpty == true
             ? json['status'] as String
             : 'pending',

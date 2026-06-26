@@ -90,7 +90,7 @@ class _OperationalDashboardPageState extends ConsumerState<OperationalDashboardP
                       spacing: 12, runSpacing: 12,
                       children: [
                         SizedBox(width: (constraints.maxWidth - 12) / 2, child: BiKpiCard(label: 'Costo Total', value: '\$${pr.totalCost.toStringAsFixed(0)}', icon: Icons.attach_money, color: Colors.red, sparklineData: [])),
-                        SizedBox(width: (constraints.maxWidth - 12) / 2, child: BiKpiCard(label: 'Promedio/Empleado', value: '\$${pr.averagePerEmployee.toStringAsFixed(0)}', icon: Icons.people, color: Colors.blue, sparklineData: [])),
+                        SizedBox(width: (constraints.maxWidth - 12) / 2, child: BiKpiCard(label: 'Promedio/Trabajador', value: '\$${pr.averagePerEmployee.toStringAsFixed(0)}', icon: Icons.people, color: Colors.blue, sparklineData: [])),
                         SizedBox(width: (constraints.maxWidth - 12) / 2, child: BiKpiCard(label: 'Horas Extra', value: '\$${pr.overtimeTotal.toStringAsFixed(0)}', icon: Icons.access_time, color: Colors.orange, sparklineData: [])),
                         SizedBox(width: (constraints.maxWidth - 12) / 2, child: BiKpiCard(label: 'Costos Patronales', value: '\$${pr.employerCostTotal.toStringAsFixed(0)}', icon: Icons.business, color: Colors.purple, sparklineData: [])),
                       ],

@@ -109,7 +109,7 @@ final class _ExecutiveDashboardPageState extends ConsumerState<ExecutiveDashboar
                         _KpiData(Icons.people, 'Activos', '${state.kpis!.activeEmployees}', const Color(0xFF4F46E5)),
                         _KpiData(Icons.beach_access, 'Vacaciones pend.', '${state.kpis!.pendingVacations}', const Color(0xFFD97706)),
                         _KpiData(Icons.description, 'Permisos activos', '${state.kpis!.activePermissions}', const Color(0xFFDC2626)),
-                        _KpiData(Icons.people_outline, 'Total empleados', '${state.kpis!.totalEmployees}', const Color(0xFF64748B)),
+                        _KpiData(Icons.people_outline, 'Total trabajadores', '${state.kpis!.totalEmployees}', const Color(0xFF64748B)),
                       ])),
                       const SizedBox(height: 24),
                       _buildQuickActions(context),

@@ -298,7 +298,7 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
               label: 'Tipo de Trabajador',
               prefixIcon: Icons.group_outlined,
               items: const [
-                DropdownMenuItem(value: 'employee', child: Text('Empleado Interno')),
+                DropdownMenuItem(value: 'employee', child: Text('Trabajador Interno')),
                 DropdownMenuItem(value: 'contractor', child: Text('Contratista')),
               ],
               onChanged: (v) => setState(() { _collaboratorType = v!; _onFieldChanged(); }),

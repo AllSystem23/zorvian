@@ -172,7 +172,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
                 TextFormField(
                   controller: _employeesCtrl,
                   decoration: const InputDecoration(
-                    labelText: 'Empleados estimados',
+                    labelText: 'Trabajadores estimados',
                     prefixIcon: Icon(Icons.people),
                   ),
                   keyboardType: TextInputType.number,

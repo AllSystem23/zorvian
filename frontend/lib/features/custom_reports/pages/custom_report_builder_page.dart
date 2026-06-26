@@ -223,7 +223,7 @@ class _CustomReportBuilderPageState extends ConsumerState<CustomReportBuilderPag
                 DropdownMenuItem(value: 'products', child: Text('Productos')),
                 DropdownMenuItem(value: 'clients', child: Text('Clientes')),
                 DropdownMenuItem(value: 'suppliers', child: Text('Proveedores')),
-                DropdownMenuItem(value: 'employees', child: Text('Empleados')),
+                DropdownMenuItem(value: 'employees', child: Text('Trabajadores')),
               ],
               onChanged: (v) {
                 if (v == null) return;

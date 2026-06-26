@@ -81,7 +81,7 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Detalle por Empleado', style: ZTypography.titleLarge),
+                          Text('Detalle por Trabajador', style: ZTypography.titleLarge),
                           if (_run!['status'] == 'approved')
                             ZButton(
                               text: 'Exportar ACH',
@@ -97,7 +97,7 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
                         height: 500,
                         child: ZDataTable<dynamic>(
                           columns: const [
-                            ZColumn(id: 'name', label: 'Empleado'),
+                            ZColumn(id: 'name', label: 'Trabajador'),
                             ZColumn(id: 'salary', label: 'Salario Base', numeric: true),
                             ZColumn(id: 'inss', label: 'INSS', numeric: true),
                             ZColumn(id: 'ir', label: 'IR', numeric: true),
@@ -162,7 +162,7 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
             ZStatCard(title: 'Salarios', value: 'C\$ ${_run!["totalSalaries"]?.toStringAsFixed(2) ?? "0.00"}', icon: Icons.attach_money_outlined, variant: ZStatVariant.neutral),
             ZStatCard(title: 'Deducciones', value: '- C\$ ${_run!["totalDeductions"]?.toStringAsFixed(2) ?? "0.00"}', icon: Icons.money_off_outlined, variant: ZStatVariant.danger),
             ZStatCard(title: 'Neto a Pagar', value: 'C\$ ${_run!["totalNetPay"]?.toStringAsFixed(2) ?? "0.00"}', icon: Icons.payments_outlined, variant: ZStatVariant.success),
-            ZStatCard(title: 'Empleados', value: '${_run!["employeeCount"] ?? 0}', icon: Icons.people_outline, variant: ZStatVariant.info),
+            ZStatCard(title: 'Trabajadores', value: '${_run!["employeeCount"] ?? 0}', icon: Icons.people_outline, variant: ZStatVariant.info),
           ],
         ),
       ],

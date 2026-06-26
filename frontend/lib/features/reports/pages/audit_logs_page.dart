@@ -55,7 +55,7 @@ class _AuditLogsPageState extends ConsumerState<AuditLogsPage> {
                     ),
                     items: const [
                       DropdownMenuItem(value: null, child: Text('Todas')),
-                      DropdownMenuItem(value: 'Employee', child: Text('Empleados')),
+                      DropdownMenuItem(value: 'Employee', child: Text('Trabajadores')),
                       DropdownMenuItem(value: 'Vacation', child: Text('Vacaciones')),
                       DropdownMenuItem(value: 'Permission', child: Text('Permisos')),
                     ],

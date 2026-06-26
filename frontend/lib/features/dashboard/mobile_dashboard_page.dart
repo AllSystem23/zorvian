@@ -114,7 +114,7 @@ class _MobileDashboardPageState extends ConsumerState<MobileDashboardPage> {
     if (kpis == null) return const SizedBox.shrink();
 
     final metrics = [
-      _MetricData('Empleados', '${kpis.totalEmployees}', Icons.people_outline, ZColors.brandPrimary),
+      _MetricData('Trabajadores', '${kpis.totalEmployees}', Icons.people_outline, ZColors.brandPrimary),
       _MetricData('Activos', '${kpis.activeEmployees}', Icons.check_circle_outline, ZColors.success),
       _MetricData('Vacaciones', '${kpis.pendingVacationRequests}', Icons.beach_access_outlined, ZColors.warning),
       _MetricData('Permisos', '${kpis.pendingPermissionRequests}', Icons.event_available_outlined, ZColors.info),
@@ -147,7 +147,7 @@ class _MobileDashboardPageState extends ConsumerState<MobileDashboardPage> {
     final actions = [
       _ActionData(Icons.add_shopping_cart_outlined, 'Nueva Venta', '/sales/new', ZColors.success),
       _ActionData(Icons.request_quote_outlined, 'Cotizar', '/quotes/new', ZColors.info),
-      _ActionData(Icons.person_add_outlined, 'Empleado', '/employees/new', ZColors.brandPrimary),
+      _ActionData(Icons.person_add_outlined, 'Trabajador', '/employees/new', ZColors.brandPrimary),
       _ActionData(Icons.inventory_2_outlined, 'Producto', '/products/new', ZColors.warning),
     ];
 

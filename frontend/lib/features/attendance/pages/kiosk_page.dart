@@ -119,7 +119,7 @@ class _KioskPageState extends ConsumerState<KioskPage> {
             borderRadius: BorderRadius.circular(16),
           ),
           child: Text(
-            kioskState.employeeCode.isEmpty ? 'Código de empleado' : kioskState.employeeCode,
+            kioskState.employeeCode.isEmpty ? 'Código de trabajador' : kioskState.employeeCode,
             style: theme.textTheme.headlineMedium?.copyWith(
               letterSpacing: 6,
               fontWeight: FontWeight.bold,

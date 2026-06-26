@@ -265,7 +265,7 @@ final class _MobileLayout extends ConsumerWidget {
       '/dashboard': 'Dashboard',
       '/dashboard-v2': 'Dashboard',
       '/executive-dashboard': 'Panel Ejecutivo',
-      '/employees': 'Empleados',
+      '/employees': 'Trabajadores',
       '/attendance': 'Asistencia',
       '/payroll': 'Nómina',
       '/vacations': 'Vacaciones',

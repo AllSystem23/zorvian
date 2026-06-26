@@ -60,7 +60,7 @@ class KioskNotifier extends Notifier<KioskState> {
 
   Future<bool> _performAction(String action) async {
     if (state.employeeCode.isEmpty) {
-      state = state.copyWith(error: 'Ingrese un código de empleado');
+      state = state.copyWith(error: 'Ingrese un código de trabajador');
       return false;
     }
 
@@ -75,8 +75,8 @@ class KioskNotifier extends Notifier<KioskState> {
       state = state.copyWith(loading: false, successType: action, error: null, employeeName: name);
       return true;
     } catch (e) {
-      final msg = e.toString().contains('Empleado no encontrado')
-          ? 'Empleado no encontrado'
+      final msg = e.toString().contains('Trabajador no encontrado')
+          ? 'Trabajador no encontrado'
           : e.toString().contains('Ya existe')
               ? 'Ya registró asistencia hoy'
               : 'Error al registrar';

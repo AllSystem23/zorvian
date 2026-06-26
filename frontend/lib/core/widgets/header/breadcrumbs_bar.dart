@@ -16,7 +16,7 @@ final class BreadcrumbBar extends StatelessWidget {
     'financial': 'Financiero',
     'commercial': 'Comercial',
     'operational': 'Operacional',
-    'employees': 'Empleados',
+    'employees': 'Trabajadores',
     'attendance': 'Asistencia',
     'history': 'Historial',
     'kiosk': 'Kiosko',

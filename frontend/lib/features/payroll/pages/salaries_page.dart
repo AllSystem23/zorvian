@@ -53,7 +53,7 @@ class _SalariesPageState extends ConsumerState<SalariesPage> {
               valueListenable: selectedEmployee,
               builder: (_, v, _) => DropdownButtonFormField<String>(
                 initialValue: v,
-                decoration: const InputDecoration(labelText: 'Empleado', isDense: true),
+                decoration: const InputDecoration(labelText: 'Trabajador', isDense: true),
                 items: _employees.map<DropdownMenuItem<String>>((e) => DropdownMenuItem(value: e['id'] as String?, child: Text(e['fullName'] ?? e['firstName'] ?? ''))).toList(),
                 onChanged: (val) => selectedEmployee.value = val,
               ),
@@ -129,7 +129,7 @@ class _SalariesPageState extends ConsumerState<SalariesPage> {
               ? EmptyState(
                   icon: Icons.attach_money,
                   title: 'Sin salarios',
-                  subtitle: 'Registre salarios para los empleados',
+                  subtitle: 'Registre salarios para los trabajadores',
                   actionLabel: 'Nuevo salario',
                   onAction: _create,
                 )

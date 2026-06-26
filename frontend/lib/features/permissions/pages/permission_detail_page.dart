@@ -173,7 +173,7 @@ class _PermissionDetailPageState extends ConsumerState<PermissionDetailPage> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                _infoRow('Empleado', '${p['employeeName'] ?? ''} (${p['employeeCode'] ?? ''})'),
+                _infoRow('Trabajador', '${p['employeeName'] ?? ''} (${p['employeeCode'] ?? ''})'),
                 _infoRow('Período', '${p['startDate'] ?? ''} → ${p['endDate'] ?? ''}'),
                 _infoRow('Días totales', '${p['totalDays'] ?? 0}'),
                 _infoRow('Días hábiles', '${p['businessDays'] ?? 0}'),

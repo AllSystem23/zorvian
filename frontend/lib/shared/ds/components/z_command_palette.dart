@@ -45,7 +45,7 @@ class ZCommandPalette extends StatefulWidget {
       category: 'Navegación',
     ),
     const ZCommandItem(
-      label: 'Empleados',
+      label: 'Trabajadores',
       icon: Icons.badge,
       route: '/employees',
       category: 'RRHH',

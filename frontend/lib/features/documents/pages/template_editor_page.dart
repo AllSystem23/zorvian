@@ -33,7 +33,7 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
   final _countries  = ['ALL', 'NI', 'CR', 'PA', 'GT', 'MX', 'CO'];
 
   final _variables = {
-    'Empleado': ['{{ Employee.FullName }}', '{{ Employee.Position }}', '{{ Employee.Salary }}', '{{ Employee.HireDate }}', '{{ Employee.Identification }}'],
+    'Trabajador': ['{{ Employee.FullName }}', '{{ Employee.Position }}', '{{ Employee.Salary }}', '{{ Employee.HireDate }}', '{{ Employee.Identification }}'],
     'Empresa':  ['{{ Company.Name }}', '{{ Company.Date }}'],
     'Venta':    ['{{ Sale.Number }}', '{{ Sale.ClientName }}', '{{ Sale.Total }}', '{{ Sale.Date }}'],
   };

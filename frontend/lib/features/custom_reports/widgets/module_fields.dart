@@ -18,7 +18,7 @@ const Map<String, List<AvailableField>> moduleFields = {
     AvailableField('paymentMethod', 'Método Pago', 'string'),
     AvailableField('currencyCode', 'Moneda', 'string'),
     AvailableField('clientName', 'Cliente', 'string'),
-    AvailableField('employeeName', 'Empleado', 'string'),
+    AvailableField('employeeName', 'Trabajador', 'string'),
     AvailableField('branchName', 'Sucursal', 'string'),
     AvailableField('createdAt', 'Creado', 'date'),
   ],
@@ -31,7 +31,7 @@ const Map<String, List<AvailableField>> moduleFields = {
     AvailableField('status', 'Estado', 'string'),
     AvailableField('currencyCode', 'Moneda', 'string'),
     AvailableField('supplierName', 'Proveedor', 'string'),
-    AvailableField('employeeName', 'Empleado', 'string'),
+    AvailableField('employeeName', 'Trabajador', 'string'),
     AvailableField('createdAt', 'Creado', 'date'),
   ],
   'products': [

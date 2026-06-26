@@ -94,7 +94,7 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
       children: [
         Expanded(child: _SummaryCard(
           icon: Icons.people,
-          label: 'Empleados',
+          label: 'Trabajadores',
           value: _employeeCount.toString(),
           color: const Color(0xFF4F46E5),
         )),
