@@ -88,6 +88,12 @@ public class InventoryMovementService : IInventoryMovementService
         return _mapper.Map<InventoryMovementResponse>(movement);
     }
 
+    public async Task<InventoryMovementResponse?> GetByIdAsync(Guid id)
+    {
+        var movement = await _movementRepo.GetByIdAsync(id);
+        return movement is null ? null : _mapper.Map<InventoryMovementResponse>(movement);
+    }
+
     public async Task<PagedResult<InventoryMovementResponse>> GetFilteredAsync(InventoryMovementFilterRequest filter)
     {
         var page = filter.Page ?? 1;

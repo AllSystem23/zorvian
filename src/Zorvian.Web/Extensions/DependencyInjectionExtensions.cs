@@ -323,8 +323,10 @@ public static class DependencyInjectionExtensions
         services.AddScoped<BrandService>();
         services.AddScoped<SupplierService>();
         services.AddScoped<ProductService>();
+        services.AddScoped<TaxCategoryService>();
         services.AddScoped<IFiscalService, FiscalService>();
         services.AddScoped<IInventoryMovementService, InventoryMovementService>();
+        services.AddScoped<InventoryMovementService>();
         services.AddScoped<PurchaseService>();
         services.AddScoped<SupplierPaymentService>();
         services.AddScoped<SupplierCreditNoteService>();
@@ -389,6 +391,8 @@ public static class DependencyInjectionExtensions
         services.AddScoped<WarrantySlaConfigService>();
         services.AddScoped<WarrantyProviderService>();
         services.AddScoped<IWarrantyCostService, WarrantyCostService>();
+        services.AddScoped<WarrantyCostService>();
+        services.AddScoped<WarrantyProfitabilityReportService>();
         services.AddScoped<WarrantyPartRequestService>();
         services.AddScoped<WarrantyCommunicationService>();
         services.AddScoped<WarrantyPartUsageService>();

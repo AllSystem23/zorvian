@@ -6,7 +6,7 @@ using Zorvian.Web.Authorization;
 namespace Zorvian.Web.Controllers;
 
 [ApiController]
-[Route("api/v1/warranty-dashboard")]
+[Route("zorvian/v1/warranty-dashboard")]
 [Authorize]
 public sealed class WarrantyDashboardController : ControllerBase
 {

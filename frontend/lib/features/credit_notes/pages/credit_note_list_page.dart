@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import '../../../auth/auth_provider.dart';
 import '../providers/credit_note_provider.dart';
 
 final class CreditNoteListPage extends ConsumerStatefulWidget {
@@ -18,13 +16,6 @@ final class _CreditNoteListPageState extends ConsumerState<CreditNoteListPage> {
   }
 
   void _ensureCompanyAndLoad() {
-    final auth = ref.read(authProvider);
-    if (auth.role == 'SuperAdmin' && (auth.tenantId == null || auth.tenantId!.isEmpty || auth.tenantId == 'superadmin')) {
-      Future.microtask(() {
-        if (mounted) context.go('/onboarding');
-      });
-      return;
-    }
     Future.microtask(() => ref.read(creditNoteProvider.notifier).load());
   }
 

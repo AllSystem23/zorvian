@@ -18,7 +18,7 @@ public sealed class CreditNoteRepository : ICreditNoteRepository
         await _db.Set<CreditNote>()
             .Include(cn => cn.Sale)
             .Include(cn => cn.Details).ThenInclude(d => d.Product)
-            .Where(cn => cn.CompanyId == companyId)
+            .Where(cn => companyId == Guid.Empty || cn.CompanyId == companyId)
             .OrderByDescending(cn => cn.IssueDate)
             .ToListAsync();
 

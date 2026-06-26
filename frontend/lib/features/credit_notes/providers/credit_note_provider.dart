@@ -41,11 +41,6 @@ final class CreditNoteNotifier extends Notifier<CreditNoteState> {
   CreditNoteState build() => const CreditNoteState();
 
   Future<void> load() async {
-    final auth = ref.read(authProvider);
-    if (auth.role == 'SuperAdmin' && (auth.tenantId == null || auth.tenantId!.isEmpty || auth.tenantId == 'superadmin')) {
-      state = state.copyWith(loading: false, error: null);
-      return;
-    }
     state = state.copyWith(loading: true, error: null);
     try {
       final dio = ref.read(dioClientProvider);

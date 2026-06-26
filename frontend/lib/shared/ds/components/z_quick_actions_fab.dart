@@ -325,6 +325,18 @@ class ZQuickActionsFAB extends StatelessWidget {
       ];
     }
 
+    // ── POS (Punto de Venta) ──
+    if (currentRoute.startsWith('/pos')) {
+      return [
+        _QuickAction(
+          icon: Icons.person_add_outlined,
+          label: 'Nuevo Cliente',
+          route: '/clients/new',
+          color: ZColors.success,
+        ),
+      ];
+    }
+
     return [];
   }
 
@@ -332,6 +344,8 @@ class ZQuickActionsFAB extends StatelessWidget {
   Widget build(BuildContext context) {
     final actions = _getActions();
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    if (actions.isEmpty) return const SizedBox.shrink();
 
     if (actions.length == 1) {
       final action = actions.first;

@@ -1,7 +1,5 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
-
-part 'brand_provider.g.dart';
 
 final class BrandItem {
   final String id;
@@ -17,13 +15,29 @@ final class BrandItem {
   );
 }
 
-@riverpod
-class BrandNotifier extends _$BrandNotifier {
+final class BrandState {
+  final List<BrandItem> items;
+  final bool loading;
+  final String? error;
+  const BrandState({this.items = const [], this.loading = false, this.error});
+  BrandState copyWith({List<BrandItem>? items, bool? loading, String? error}) =>
+    BrandState(items: items ?? this.items, loading: loading ?? this.loading, error: error ?? this.error);
+}
+
+final class BrandNotifier extends Notifier<BrandState> {
   @override
-  Future<List<BrandItem>> build() async {
-    final dio = ref.read(dioClientProvider);
-    final r = await dio.get('brands');
-    final data = r.data as List;
-    return data.map((e) => BrandItem.fromJson(e)).toList();
+  BrandState build() => const BrandState();
+  Future<void> load() async {
+    state = state.copyWith(loading: true, error: null);
+    try {
+      final dio = ref.read(dioClientProvider);
+      final r = await dio.get('brands');
+      final data = r.data as List;
+      state = BrandState(items: data.map((e) => BrandItem.fromJson(e)).toList());
+    } catch (_) {
+      state = state.copyWith(error: 'Error al cargar marcas', loading: false);
+    }
   }
 }
+
+final brandProvider = NotifierProvider<BrandNotifier, BrandState>(BrandNotifier.new);

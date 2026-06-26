@@ -39,8 +39,7 @@ public sealed class TenantMiddleware
         Guid? employeeId = Guid.TryParse(employeeIdClaim, out var eid) ? eid : null;
         tenantWriter.SetCurrentUser(userId, employeeId);
 
-        // 3. Detectar SuperAdmin. Se valida cualquier rol SuperAdmin en el JWT,
-        // no solo el rol primario, para usuarios con múltiples roles.
+        // 3. Detectar SuperAdmin
         var isSuperAdmin = context.User?.Claims.Any(c =>
             (c.Type == System.Security.Claims.ClaimTypes.Role || c.Type == "role") && c.Value == "SuperAdmin") == true;
         tenantWriter.SetIsSuperAdmin(isSuperAdmin);
@@ -55,19 +54,11 @@ public sealed class TenantMiddleware
 
             if (firstCompany is not null)
             {
-                // Usar el TenantId de la compañía si es un GUID válido, de lo contrario usar su Id
                 var companyTenantId = Guid.TryParse(firstCompany.TenantId, out _)
                     ? firstCompany.TenantId
                     : firstCompany.Id.ToString();
 
                 tenantWriter.SetTenantId(companyTenantId);
-                logger.LogInformation(
-                    "SuperAdmin auto-loaded company: {CompanyName} (TenantId: {TenantId}, CompanyId: {CompanyId})",
-                    firstCompany.Name, companyTenantId, firstCompany.Id);
-            }
-            else
-            {
-                logger.LogWarning("SuperAdmin has no companies in the system. Redirect to onboarding needed.");
             }
         }
 

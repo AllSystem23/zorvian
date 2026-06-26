@@ -303,6 +303,17 @@ public sealed class MappingProfile : Profile
         CreateMap<Product, ProductListResponse>()
             .ForMember(d => d.CategoryName, o => o.MapFrom(s => s.Category != null ? s.Category.Name : null));
 
+        // Tax Category
+        CreateMap<CreateTaxCategoryRequest, TaxCategory>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.Company, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<UpdateTaxCategoryRequest, TaxCategory>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.Company, o => o.Ignore())
+            .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
+        CreateMap<TaxCategory, TaxCategoryResponse>();
+
         // Inventory Movement
         CreateMap<CreateInventoryMovementRequest, InventoryMovement>()
             .ForMember(d => d.Id, o => o.Ignore())

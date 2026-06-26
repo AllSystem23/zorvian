@@ -24,7 +24,9 @@ public sealed class WarrantyPartRequestRepository : IWarrantyPartRequestReposito
             .ToListAsync();
 
     public async Task<WarrantyPartRequest?> GetByIdAsync(Guid id) =>
-        await _db.Set<WarrantyPartRequest>().FindAsync(id);
+        await _db.Set<WarrantyPartRequest>()
+            .Include(r => r.Warranty)
+            .FirstOrDefaultAsync(r => r.Id == id);
 
     public async Task AddAsync(WarrantyPartRequest request) =>
         await _db.Set<WarrantyPartRequest>().AddAsync(request);

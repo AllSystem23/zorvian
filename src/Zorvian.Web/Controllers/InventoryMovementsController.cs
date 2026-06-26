@@ -35,6 +35,16 @@ public sealed class InventoryMovementsController : ControllerBase
         }
     }
 
+    [RequirePermission(Permissions.InventoryRead)]
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetById(Guid id)
+    {
+        var movement = await _service.GetByIdAsync(id);
+        if (movement is null)
+            return NotFound(new { error = "Inventory movement not found" });
+        return Ok(movement);
+    }
+
     [HttpGet]
     [RequirePermission(Permissions.InventoryRead)]
     public async Task<IActionResult> GetList([FromQuery] InventoryMovementFilterRequest filter)

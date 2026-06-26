@@ -6,7 +6,7 @@ using Zorvian.Application.DTOs.Warranty;
 namespace Zorvian.Web.Controllers;
 
 [ApiController]
-[Route("api/v1/public/warranties")]
+[Route("zorvian/v1/public/warranties")]
 public sealed class PublicWarrantiesController : ControllerBase
 {
     private readonly IWarrantyRepository _repo;

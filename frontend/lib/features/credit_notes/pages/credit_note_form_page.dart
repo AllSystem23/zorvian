@@ -35,11 +35,6 @@ final class _CreditNoteFormPageState extends ConsumerState<CreditNoteFormPage> {
   }
 
   Future<void> _loadSale() async {
-    final auth = ref.read(authProvider);
-    if (auth.role == 'SuperAdmin' && (auth.tenantId == null || auth.tenantId!.isEmpty || auth.tenantId == 'superadmin')) {
-      if (mounted) context.go('/onboarding');
-      return;
-    }
     try {
       final dio = ref.read(dioClientProvider);
       final r = await dio.get('sales/${widget.saleId}');
@@ -64,11 +59,6 @@ final class _CreditNoteFormPageState extends ConsumerState<CreditNoteFormPage> {
   }
 
   Future<void> _save() async {
-    final auth = ref.read(authProvider);
-    if (auth.role == 'SuperAdmin' && (auth.tenantId == null || auth.tenantId!.isEmpty || auth.tenantId == 'superadmin')) {
-      if (mounted) context.go('/onboarding');
-      return;
-    }
     if (_reasonCtrl.text.trim().isEmpty) {
       setState(() => _error = 'Ingrese un motivo');
       return;

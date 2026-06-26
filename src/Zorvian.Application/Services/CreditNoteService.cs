@@ -55,6 +55,8 @@ public sealed class CreditNoteService
         var sale = await _saleRepo.GetByIdAsync(request.SaleId)
             ?? throw new KeyNotFoundException("Sale not found");
         var companyId = CompanyId;
+        if (companyId == Guid.Empty)
+            throw new InvalidOperationException("Selecciona una compañía primero.");
         var creditNoteNumber = await _repo.GenerateCreditNoteNumberAsync(companyId);
 
         var details = new List<CreditNoteDetail>();

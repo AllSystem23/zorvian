@@ -8,7 +8,7 @@ using Zorvian.Web.Filters;
 namespace Zorvian.Web.Controllers;
 
 [ApiController]
-[Route("api/v1/warranty-sla-configs")]
+[Route("zorvian/v1/warranty-sla-configs")]
 [Authorize]
 public sealed class WarrantySlaConfigsController : ControllerBase
 {

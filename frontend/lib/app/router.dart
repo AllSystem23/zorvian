@@ -68,7 +68,9 @@ import '../features/products/pages/inventory_valuation_page.dart';
 import '../features/products/pages/product_list_page.dart';
 import '../features/products/pages/product_form_page.dart';
 import '../features/categories/pages/category_list_page.dart';
+import '../features/categories/pages/category_form_page.dart';
 import '../features/brands/pages/brand_list_page.dart';
+import '../features/brands/pages/brand_form_page.dart';
 import '../features/cost_centers/pages/cost_center_list_page.dart';
 import '../features/cost_centers/pages/cost_center_form_page.dart';
 import '../features/budgets/pages/budget_list_page.dart';
@@ -521,11 +523,19 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/categories',
             name: 'categories',
             builder: (_, _) => const CategoryListPage(),
+            routes: [
+              GoRoute(path: 'new', name: 'category-new', builder: (_, _) => const CategoryFormPage()),
+              GoRoute(path: ':categoryId/edit', name: 'category-edit', builder: (_, state) => CategoryFormPage(categoryId: state.pathParameters['categoryId']!)),
+            ],
           ),
           GoRoute(
             path: '/brands',
             name: 'brands',
             builder: (_, _) => const BrandListPage(),
+            routes: [
+              GoRoute(path: 'new', name: 'brand-new', builder: (_, _) => const BrandFormPage()),
+              GoRoute(path: ':brandId/edit', name: 'brand-edit', builder: (_, state) => BrandFormPage(brandId: state.pathParameters['brandId']!)),
+            ],
           ),
           GoRoute(
             path: '/cost-centers',

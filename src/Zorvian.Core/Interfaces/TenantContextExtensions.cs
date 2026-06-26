@@ -24,15 +24,19 @@ public static class TenantContextExtensions
 
     /// <summary>
     /// Resuelve el CompanyId para operaciones de ESCRITURA.
-    /// Lanza excepción clara si el SuperAdmin no tiene una empresa seleccionada.
-    /// Nunca retorna Guid.Empty porque eso corrompería datos.
+    /// Para SuperAdmin, devuelve Guid.Empty para que los servicios manejen
+    /// el contexto según corresponda (ej: usar el CompanyId de la entidad padre).
+    /// Para usuarios normales sin empresa, lanza excepción.
     /// </summary>
     public static Guid RequireCompanyId(this ITenantContext tenant)
     {
         if (tenant.TenantId.TryGetCompanyId(out var id) && id != Guid.Empty)
             return id;
 
-        throw new InvalidOperationException("Select a company first. SuperAdmin must switch to a company before making changes.");
+        if (tenant.IsSuperAdmin)
+            return Guid.Empty;
+
+        throw new InvalidOperationException("Tenant not configured. Switch to a company first.");
     }
 
     /// <summary>
