@@ -8,6 +8,7 @@ public interface ILateFeeRepository
     Task<List<LateFee>> GetByCreditIdAsync(Guid creditId);
     Task<List<LateFee>> GetByInstallmentIdAsync(Guid installmentId);
     Task<List<LateFee>> GetPendingByCreditIdAsync(Guid creditId);
+    Task<List<LateFee>> GetAllAsync();
     Task<LateFee?> GetByInstallmentAndDateAsync(Guid installmentId, DateOnly calculatedAt);
     Task AddAsync(LateFee lateFee);
     Task UpdateAsync(LateFee lateFee);

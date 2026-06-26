@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Zorvian.Application.DTOs.ML;
 using Zorvian.Core.Entities;
-using Zorvian.Core.Interfaces;
 using Zorvian.Infrastructure.Data;
 
 namespace Zorvian.Infrastructure.Services;
@@ -9,23 +8,21 @@ namespace Zorvian.Infrastructure.Services;
 public sealed class AccountingAssistantService
 {
     private readonly ZorvianDbContext _db;
-    private readonly ITenantContext _tenant;
     private readonly ExpenseClassificationService _classifier;
 
-    public AccountingAssistantService(ZorvianDbContext db, ITenantContext tenant, ExpenseClassificationService classifier)
+    public AccountingAssistantService(ZorvianDbContext db, ExpenseClassificationService classifier)
     {
         _db = db;
-        _tenant = tenant;
         _classifier = classifier;
     }
 
     public async Task<AccountingAnomalyReportDto> DetectAnomaliesAsync(int daysBack = 30)
     {
-        var tenantId = _tenant.TenantId;
         var since = DateTime.UtcNow.AddDays(-daysBack);
 
+        // HasQueryFilter already handles TenantId and IsDeleted filtering
         var entries = await _db.AccountingEntries
-            .Where(e => e.TenantId == tenantId && e.EntryDate >= since && !e.IsDeleted)
+            .Where(e => e.EntryDate >= since)
             .Include(e => e.Details)
             .ThenInclude(d => d.Account)
             .ToListAsync();

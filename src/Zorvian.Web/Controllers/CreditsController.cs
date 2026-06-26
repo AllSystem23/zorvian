@@ -141,4 +141,28 @@ public sealed class CreditsController : ControllerBase
         var result = await _service.GetOverdueDashboardAsync();
         return Ok(result);
     }
+
+    [HttpGet("overdue-dashboard/late-fees")]
+    [RequirePermission(Permissions.CreditRead)]
+    public async Task<IActionResult> GetAllLateFees()
+    {
+        var result = await _service.GetAllLateFeesAsync();
+        return Ok(result);
+    }
+
+    [HttpGet("overdue-dashboard/refinancings")]
+    [RequirePermission(Permissions.CreditRead)]
+    public async Task<IActionResult> GetAllRefinancings()
+    {
+        var result = await _service.GetAllRefinancingsAsync();
+        return Ok(result);
+    }
+
+    [HttpGet("overdue-dashboard/collection-actions")]
+    [RequirePermission(Permissions.CreditRead)]
+    public async Task<IActionResult> GetAllCollectionActions([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    {
+        var result = await _service.GetAllCollectionActionsAsync(page, pageSize);
+        return Ok(result);
+    }
 }

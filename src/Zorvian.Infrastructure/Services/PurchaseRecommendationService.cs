@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Zorvian.Application.DTOs.ML;
-using Zorvian.Core.Interfaces;
 using Zorvian.Infrastructure.Data;
 
 namespace Zorvian.Infrastructure.Services;
@@ -8,23 +7,19 @@ namespace Zorvian.Infrastructure.Services;
 public sealed class PurchaseRecommendationService
 {
     private readonly ZorvianDbContext _db;
-    private readonly ITenantContext _tenant;
 
-    public PurchaseRecommendationService(ZorvianDbContext db, ITenantContext tenant)
+    public PurchaseRecommendationService(ZorvianDbContext db)
     {
         _db = db;
-        _tenant = tenant;
     }
 
     public async Task<PurchaseRecommendationSummaryDto> GetRecommendationsAsync(int demandDays = 30, int leadTimeDays = 7)
     {
-        var tenantId = _tenant.TenantId;
         var demandSince = DateTime.UtcNow.Date.AddDays(-demandDays);
 
+        // HasQueryFilter already handles TenantId + IsDeleted for SaleDetail, Sale, and Product
         var productDemand = await _db.SaleDetails
-            .Where(sd => sd.Sale.TenantId == tenantId
-                && sd.Sale.SaleDate >= demandSince
-                && !sd.Sale.IsDeleted)
+            .Where(sd => sd.Sale.SaleDate >= demandSince)
             .GroupBy(sd => sd.ProductId)
             .Select(g => new
             {
@@ -35,7 +30,7 @@ public sealed class PurchaseRecommendationService
             .ToDictionaryAsync(x => x.ProductId);
 
         var products = await _db.Products
-            .Where(p => p.TenantId == tenantId && !p.IsDeleted && p.IsActive)
+            .Where(p => p.IsActive)
             .Include(p => p.Supplier)
             .Include(p => p.Category)
             .OrderBy(p => p.Stock)

@@ -20,37 +20,45 @@ class ProductRepository {
       _ref.read(connectivityProvider) == ConnectivityStatus.online;
 
   Future<List<ProductItem>> getAll() async {
-    if (_isOnline) {
-      try {
-        await _syncEngine.push().timeout(const Duration(seconds: 5));
-        final since = await _syncEngine.lastSyncedAt('Product');
-        await _syncEngine
-            .pull('Product', since: since)
-            .timeout(const Duration(seconds: 10));
-      } catch (_) {
-        // fallback to local
+    try {
+      if (_isOnline) {
+        try {
+          await _syncEngine.push().timeout(const Duration(seconds: 5));
+        } catch (_) {
+          // push failed, continue to local fallback
+        }
+        try {
+          final since = await _syncEngine.lastSyncedAt('Product');
+          await _syncEngine
+              .pull('Product', since: since)
+              .timeout(const Duration(seconds: 10));
+        } catch (_) {
+          // pull failed, fallback to local
+        }
       }
+      final local = await _db.getAllProducts();
+      return local
+          .map(
+            (p) => ProductItem(
+              id: p.id,
+              code: p.code,
+              name: p.name,
+              description: p.description,
+              categoryName: p.categoryName,
+              brandName: p.brandName,
+              price: p.price,
+              cost: p.cost,
+              stock: p.stock,
+              minStock: p.minStock,
+              maxStock: p.maxStock,
+              unit: p.unit,
+              isActive: p.isActive,
+            ),
+          )
+          .toList();
+    } catch (_) {
+      return [];
     }
-    final local = await _db.getAllProducts();
-    return local
-        .map(
-          (p) => ProductItem(
-            id: p.id,
-            code: p.code,
-            name: p.name,
-            description: p.description,
-            categoryName: p.categoryName,
-            brandName: p.brandName,
-            price: p.price,
-            cost: p.cost,
-            stock: p.stock,
-            minStock: p.minStock,
-            maxStock: p.maxStock,
-            unit: p.unit,
-            isActive: p.isActive,
-          ),
-        )
-        .toList();
   }
 
   Future<Map<String, dynamic>?> getById(String id) async {

@@ -31,6 +31,17 @@ public sealed class CollectionActionRepository : ICollectionActionRepository
     public async Task<int> GetCountByCreditIdAsync(Guid creditId) =>
         await _db.Set<CollectionAction>().CountAsync(ca => ca.CreditId == creditId);
 
+    public async Task<List<CollectionAction>> GetAllAsync(int page, int pageSize) =>
+        await _db.Set<CollectionAction>()
+            .Include(ca => ca.Employee)
+            .OrderByDescending(ca => ca.ActionDate)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+    public async Task<int> GetTotalCountAsync() =>
+        await _db.Set<CollectionAction>().CountAsync();
+
     public async Task AddAsync(CollectionAction action) =>
         await _db.Set<CollectionAction>().AddAsync(action);
 

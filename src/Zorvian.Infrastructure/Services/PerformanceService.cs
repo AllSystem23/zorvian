@@ -60,9 +60,10 @@ public sealed class PerformanceService
 
     public async Task<List<ObjectiveResponse>> GetObjectivesAsync(Guid employeeId)
     {
+        // HasQueryFilter already handles TenantId + IsDeleted
         var objectives = await _db.Objectives
             .Include(o => o.KeyResults)
-            .Where(o => o.EmployeeId == employeeId && (o.TenantId == _tenant.TenantId || _tenant.IsSuperAdmin))
+            .Where(o => o.EmployeeId == employeeId)
             .ToListAsync();
             
         return objectives.Select(MapToResponse).ToList();

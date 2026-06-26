@@ -116,8 +116,8 @@ final syncEngineProvider = Provider<SyncEngine>((ref) {
   final db = ref.read(appDatabaseProvider);
   final dio = ref.read(dioClientProvider);
   final engine = SyncEngine(db, dio);
-  engine.registerRepository('products', ProductLocalRepository(db));
-  engine.registerRepository('quotes', QuoteLocalRepository(db));
+  engine.registerRepository('Product', ProductLocalRepository(db));
+  engine.registerRepository('Quote', QuoteLocalRepository(db));
   return engine;
 });
 

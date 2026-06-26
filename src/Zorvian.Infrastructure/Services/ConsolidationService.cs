@@ -20,8 +20,13 @@ public sealed class ConsolidationService : IConsolidationService
         // En un entorno de producción, esto requeriría una lógica contable compleja
         // de eliminación de saldos intercompañía.
         
+        // Convert companyIds to strings for comparison since TenantId is stored as string.
+        // HasQueryFilter already isolates by TenantId for non-SuperAdmins; for SuperAdmin
+        // (who needs cross-company consolidation), the filter passes everything through,
+        // so we explicitly filter by the requested company IDs as strings.
+        var tenantIds = companyIds.Select(id => id.ToString()).ToList();
         var lines = await _context.AccountingEntries
-            .Where(e => companyIds.Contains(Guid.Parse(e.TenantId)) && e.EntryDate >= startDate && e.EntryDate <= endDate)
+            .Where(e => tenantIds.Contains(e.TenantId) && e.EntryDate >= startDate && e.EntryDate <= endDate)
             .SelectMany(e => e.Details)
             .GroupBy(d => d.Account.Name)
             .Select(g => new ConsolidatedLineItemDto(g.Key, g.Sum(d => d.DebitAmount - d.CreditAmount)))

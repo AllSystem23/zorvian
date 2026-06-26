@@ -19,6 +19,13 @@ public sealed class CreditRefinancingRepository : ICreditRefinancingRepository
             .ToListAsync();
     }
 
+    public async Task<List<CreditRefinancing>> GetAllAsync()
+    {
+        return await _db.Set<CreditRefinancing>()
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync();
+    }
+
     public async Task AddAsync(CreditRefinancing refinancing)
         => await _db.Set<CreditRefinancing>().AddAsync(refinancing);
 

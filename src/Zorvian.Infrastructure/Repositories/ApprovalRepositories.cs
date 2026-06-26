@@ -41,7 +41,7 @@ public sealed class ApprovalRequestRepository : IApprovalRequestRepository
     public async Task<List<ApprovalRequest>> GetPendingByRoleAsync(string approverRole, Guid companyId) =>
         await _db.Set<ApprovalRequest>()
             .Include(r => r.Actions)
-            .Where(r => r.Status == "pending" && r.CompanyId == companyId)
+            .Where(r => r.Status == "pending" && (companyId == Guid.Empty || r.CompanyId == companyId))
             .OrderByDescending(r => r.RequestedAt)
             .ToListAsync();
 

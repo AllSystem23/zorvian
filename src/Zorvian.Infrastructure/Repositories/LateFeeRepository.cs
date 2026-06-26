@@ -35,6 +35,11 @@ public sealed class LateFeeRepository : ILateFeeRepository
             .Where(lf => lf.CreditId == creditId && lf.Status == "pending")
             .ToListAsync();
 
+    public async Task<List<LateFee>> GetAllAsync() =>
+        await _db.Set<LateFee>()
+            .OrderByDescending(lf => lf.CalculatedAt)
+            .ToListAsync();
+
     public async Task<LateFee?> GetByInstallmentAndDateAsync(Guid installmentId, DateOnly calculatedAt) =>
         await _db.Set<LateFee>()
             .FirstOrDefaultAsync(lf =>

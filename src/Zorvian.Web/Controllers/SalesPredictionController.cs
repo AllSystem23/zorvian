@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Zorvian.Application.DTOs.ML;
-using Zorvian.Core.Interfaces;
 using Zorvian.Infrastructure.Data;
 using Zorvian.Infrastructure.Services;
 using Zorvian.Web.Authorization;
@@ -16,13 +15,11 @@ public sealed class SalesPredictionController : ControllerBase
 {
     private readonly SalesPredictionService _mlService;
     private readonly ZorvianDbContext _db;
-    private readonly ITenantContext _tenant;
 
-    public SalesPredictionController(SalesPredictionService mlService, ZorvianDbContext db, ITenantContext tenant)
+    public SalesPredictionController(SalesPredictionService mlService, ZorvianDbContext db)
     {
         _mlService = mlService;
         _db = db;
-        _tenant = tenant;
     }
 
     [HttpGet("next-week")]
@@ -101,11 +98,9 @@ public sealed class SalesPredictionController : ControllerBase
             totalPredicted += (decimal)prediction.PredictedSales;
         }
 
+        // HasQueryFilter already handles TenantId + IsDeleted
         var currentMonthSales = await _db.Sales
-            .Where(s => (s.TenantId == _tenant.TenantId || _tenant.IsSuperAdmin)
-                && s.SaleDate.Year == today.Year
-                && s.SaleDate.Month == today.Month
-                && !s.IsDeleted)
+            .Where(s => s.SaleDate.Year == today.Year && s.SaleDate.Month == today.Month)
             .SumAsync(s => s.Total);
 
         return Ok(new
@@ -121,20 +116,14 @@ public sealed class SalesPredictionController : ControllerBase
 
     private async Task<SalesData> BuildSalesDataAsync(DateTime date)
     {
-        var tenantId = _tenant.TenantId;
-
+        // HasQueryFilter already handles TenantId + IsDeleted
         var previousDaySales = await _db.Sales
-            .Where(s => (s.TenantId == tenantId || _tenant.IsSuperAdmin)
-                && s.SaleDate.Date == date.AddDays(-1).Date
-                && !s.IsDeleted)
+            .Where(s => s.SaleDate.Date == date.AddDays(-1).Date)
             .SumAsync(s => s.Total);
 
         var weekAgo = date.AddDays(-7);
         var previousWeekSales = await _db.Sales
-            .Where(s => (s.TenantId == tenantId || _tenant.IsSuperAdmin)
-                && s.SaleDate.Date >= weekAgo.Date
-                && s.SaleDate.Date < date.Date
-                && !s.IsDeleted)
+            .Where(s => s.SaleDate.Date >= weekAgo.Date && s.SaleDate.Date < date.Date)
             .SumAsync(s => s.Total);
 
         return new SalesData

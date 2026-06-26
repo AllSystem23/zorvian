@@ -385,6 +385,27 @@ public sealed class CreditService
         return _mapper.Map<List<CreditRefinancingResponse>>(list);
     }
 
+    public async Task<List<LateFeeResponse>> GetAllLateFeesAsync()
+    {
+        var lateFees = await _lateFeeRepo.GetAllAsync();
+        return _mapper.Map<List<LateFeeResponse>>(lateFees);
+    }
+
+    public async Task<List<CreditRefinancingResponse>> GetAllRefinancingsAsync()
+    {
+        var list = await _refinancingRepo.GetAllAsync();
+        return _mapper.Map<List<CreditRefinancingResponse>>(list);
+    }
+
+    public async Task<PagedResult<CollectionActionResponse>> GetAllCollectionActionsAsync(int page = 1, int pageSize = 20)
+    {
+        var items = await _collectionActionRepo.GetAllAsync(page, pageSize);
+        var total = await _collectionActionRepo.GetTotalCountAsync();
+        return new PagedResult<CollectionActionResponse>(
+            _mapper.Map<List<CollectionActionResponse>>(items), total, page, pageSize
+        );
+    }
+
     public async Task<OverdueDashboardResponse> GetOverdueDashboardAsync()
     {
         var branchId = Guid.Empty;

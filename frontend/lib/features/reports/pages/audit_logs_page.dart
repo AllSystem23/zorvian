@@ -19,6 +19,17 @@ class AuditFilter {
   final int page;
 
   AuditFilter({this.entityName, this.action, this.page = 1});
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AuditFilter &&
+          entityName == other.entityName &&
+          action == other.action &&
+          page == other.page;
+
+  @override
+  int get hashCode => Object.hash(entityName, action, page);
 }
 
 class AuditLogsPage extends ConsumerStatefulWidget {

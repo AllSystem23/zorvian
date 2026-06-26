@@ -18,7 +18,7 @@ public sealed class AuditLogsController : ControllerBase
         _repo = repo;
     }
 
-    [Audit("AuditLog", "Read")]
+    // Do NOT add [Audit] here — reading audit logs should not create audit entries (cascade risk)
     [HttpGet("logs")]
     [RequirePermission(Permissions.AuditRead)]
     public async Task<IActionResult> GetLogs(

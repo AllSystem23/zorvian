@@ -219,36 +219,56 @@ final class _NewSalePageState extends ConsumerState<NewSalePage> {
             );
           }),
           const SizedBox(height: 8),
-          if (products.error != null)
-            Text(products.error!, style: TextStyle(color: theme.colorScheme.error))
-          else
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _searchCtrl,
-                    decoration: InputDecoration(
-                      hintText: 'Buscar producto...',
-                      prefixIcon: const Icon(Icons.search),
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.qr_code_scanner, size: 20),
-                        tooltip: 'Escanear código',
-                        onPressed: () => showScannerDialog(context, onScan: _scanProduct),
-                      ),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _searchCtrl,
+                  decoration: InputDecoration(
+                    hintText: 'Buscar producto...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.qr_code_scanner, size: 20),
+                      tooltip: 'Escanear código',
+                      onPressed: () => showScannerDialog(context, onScan: _scanProduct),
                     ),
-                    onChanged: (v) => setState(() {}),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
                   ),
+                  onChanged: (v) => setState(() {}),
                 ),
-              ],
-            ),
+              ),
+            ],
+          ),
           const SizedBox(height: 4),
-          if (_searchCtrl.text.isNotEmpty)
+          if (products.error != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: theme.colorScheme.error, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(products.error!, style: TextStyle(color: theme.colorScheme.error, fontSize: 13))),
+                  TextButton.icon(
+                    onPressed: () => ref.read(productProvider.notifier).load(),
+                    icon: const Icon(Icons.refresh, size: 16),
+                    label: const Text('Reintentar'),
+                  ),
+                ],
+              ),
+            ),
+          if (products.loading)
+            const SizedBox(height: 4, child: LinearProgressIndicator()),
+          if (_searchCtrl.text.isNotEmpty && !products.loading)
             SizedBox(
               height: 160,
-              child: products.loading
-                  ? const Center(child: CircularProgressIndicator())
+              child: products.items.isEmpty
+                  ? Center(
+                      child: Text(
+                        products.error != null ? 'No se pudieron cargar productos' : 'No se encontraron productos',
+                        style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+                      ),
+                    )
                   : ListView(
                       children: products.items
                           .where((p) => p.name.toLowerCase().contains(_searchCtrl.text.toLowerCase()) || p.code.toLowerCase().contains(_searchCtrl.text.toLowerCase()))

@@ -103,7 +103,9 @@ public sealed class ApprovalEngine : IApprovalEngine
 
     public async Task<List<ApprovalRequestResponse>> GetPendingAsync()
     {
-        var items = await _requestRepo.GetPendingByRoleAsync("", CompanyId);
+        // ResolveCompanyId returns Guid.Empty for SuperAdmin without company (read-only)
+        var companyId = _tenant.ResolveCompanyId();
+        var items = await _requestRepo.GetPendingByRoleAsync("", companyId);
         return _mapper.Map<List<ApprovalRequestResponse>>(items);
     }
 
