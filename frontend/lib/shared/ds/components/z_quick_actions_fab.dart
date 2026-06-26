@@ -21,7 +21,7 @@ class ZQuickActionsFAB extends StatelessWidget {
     final defaults = [
       _QuickAction(
         icon: Icons.person_add_outlined,
-        label: 'Nuevo Empleado',
+        label: 'Nuevo Trabajador',
         route: '/employees/new',
         color: ZColors.brandPrimary,
       ),
@@ -106,17 +106,28 @@ class ZQuickActionsFAB extends StatelessWidget {
       ];
     }
 
-    // ── HR: Employees, Attendance, Payroll, Vacations, Departments, Permissions ──
+    // ── HR: Permissions ──
+    if (currentRoute.startsWith('/permissions')) {
+      return [
+        _QuickAction(
+          icon: Icons.event_available_outlined,
+          label: 'Nuevo Permiso',
+          route: '/permissions/new',
+          color: ZColors.success,
+        ),
+      ];
+    }
+
+    // ── HR: Employees, Attendance, Payroll, Vacations, Departments ──
     if (currentRoute.startsWith('/employees') ||
         currentRoute.startsWith('/attendance') ||
         currentRoute.startsWith('/payroll') ||
         currentRoute.startsWith('/vacations') ||
-        currentRoute.startsWith('/departments') ||
-        currentRoute.startsWith('/permissions')) {
+        currentRoute.startsWith('/departments')) {
       return [
         _QuickAction(
           icon: Icons.person_add_outlined,
-          label: 'Nuevo Empleado',
+          label: 'Nuevo Trabajador',
           route: '/employees/new',
           color: ZColors.success,
         ),
