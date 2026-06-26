@@ -29,6 +29,10 @@ public sealed class SupplierCreditNotesController : ControllerBase
             var creditNote = await _service.CreateAsync(request);
             return Ok(creditNote);
         }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("company first", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(new { error = ex.Message, redirectTo = "/onboarding" });
+        }
         catch (InvalidOperationException ex)
         {
             return BadRequest(new { error = ex.Message });

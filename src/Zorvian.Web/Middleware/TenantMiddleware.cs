@@ -46,7 +46,7 @@ public sealed class TenantMiddleware
         tenantWriter.SetIsSuperAdmin(isSuperAdmin);
 
         // 4. Auto-cargar primera empresa para SuperAdmin si no tiene empresa seleccionada
-        if (isSuperAdmin && tenantContext.TenantId.Value == Guid.Empty)
+        if (isSuperAdmin && !tenantContext.HasValidCompany())
         {
             using var scope = context.RequestServices.CreateScope();
             var authRepo = scope.ServiceProvider.GetRequiredService<IAuthRepository>();
@@ -55,12 +55,19 @@ public sealed class TenantMiddleware
 
             if (firstCompany is not null)
             {
-                tenantWriter.SetTenantId(firstCompany.TenantId);
-                logger.LogInformation("SuperAdmin auto-loaded company: {CompanyName} (TenantId: {TenantId})", firstCompany.Name, firstCompany.TenantId);
+                // Usar el TenantId de la compañía si es un GUID válido, de lo contrario usar su Id
+                var companyTenantId = Guid.TryParse(firstCompany.TenantId, out _)
+                    ? firstCompany.TenantId
+                    : firstCompany.Id.ToString();
+
+                tenantWriter.SetTenantId(companyTenantId);
+                logger.LogInformation(
+                    "SuperAdmin auto-loaded company: {CompanyName} (TenantId: {TenantId}, CompanyId: {CompanyId})",
+                    firstCompany.Name, companyTenantId, firstCompany.Id);
             }
             else
             {
-                logger.LogWarning("SuperAdmin has no companies in the system");
+                logger.LogWarning("SuperAdmin has no companies in the system. Redirect to onboarding needed.");
             }
         }
 

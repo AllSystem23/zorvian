@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -34,6 +35,11 @@ final class _CreditNoteFormPageState extends ConsumerState<CreditNoteFormPage> {
   }
 
   Future<void> _loadSale() async {
+    final auth = ref.read(authProvider);
+    if (auth.role == 'SuperAdmin' && (auth.tenantId == null || auth.tenantId!.isEmpty || auth.tenantId == 'superadmin')) {
+      if (mounted) context.go('/onboarding');
+      return;
+    }
     try {
       final dio = ref.read(dioClientProvider);
       final r = await dio.get('sales/${widget.saleId}');
@@ -58,6 +64,11 @@ final class _CreditNoteFormPageState extends ConsumerState<CreditNoteFormPage> {
   }
 
   Future<void> _save() async {
+    final auth = ref.read(authProvider);
+    if (auth.role == 'SuperAdmin' && (auth.tenantId == null || auth.tenantId!.isEmpty || auth.tenantId == 'superadmin')) {
+      if (mounted) context.go('/onboarding');
+      return;
+    }
     if (_reasonCtrl.text.trim().isEmpty) {
       setState(() => _error = 'Ingrese un motivo');
       return;
@@ -78,10 +89,15 @@ final class _CreditNoteFormPageState extends ConsumerState<CreditNoteFormPage> {
           'quantity': i.quantity,
           'unitPrice': i.unitPrice,
         }).toList(),
-      });
+      }, options: Options(extra: {'suppressGlobalError': true}));
       if (mounted) context.pop(true);
-    } catch (_) {
-      setState(() => _error = 'Error al crear nota de crédito');
+    } catch (e) {
+      var msg = 'Error al crear nota de crédito';
+      if (e is DioException && e.response?.data is Map && e.response?.data['redirectTo'] != null && mounted) {
+        context.go('/onboarding');
+        return;
+      }
+      setState(() => _error = msg);
     } finally {
       if (mounted) setState(() => _saving = false);
     }

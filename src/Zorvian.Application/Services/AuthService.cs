@@ -214,6 +214,7 @@ public sealed class AuthService
             Token = refreshToken,
             ExpiresAt = DateTime.UtcNow.AddDays(7),
             DeviceFingerprint = deviceFingerprint,
+            TenantId = tenantId,
         };
         await _authRepo.AddRefreshTokenAsync(refreshTokenEntity);
         await _authRepo.SaveChangesAsync();
@@ -255,7 +256,11 @@ public sealed class AuthService
         var primaryRole = user.UserRoles.FirstOrDefault()?.Role
             ?? new Role { Name = Core.Enums.RoleType.Employee, DisplayName = "Empleado" };
 
-        var tenantId = user.TenantId;
+        // Use the stored tenant_id from the refresh token to preserve company context
+        // across token refreshes, especially for SuperAdmin whose DB TenantId stays "superadmin".
+        var tenantId = !string.IsNullOrEmpty(storedToken.TenantId)
+            ? storedToken.TenantId
+            : user.TenantId;
         var (accessToken, newRefreshToken, expiresIn) = _jwt.GenerateTokens(user, primaryRole, tenantId);
 
         storedToken.ReplacedByToken = newRefreshToken;
@@ -266,6 +271,7 @@ public sealed class AuthService
             Token = newRefreshToken,
             ExpiresAt = DateTime.UtcNow.AddDays(7),
             DeviceFingerprint = request.DeviceFingerprint,
+            TenantId = tenantId,
         };
         await _authRepo.AddRefreshTokenAsync(newRefreshTokenEntity);
         await _authRepo.SaveChangesAsync();
@@ -431,6 +437,7 @@ public sealed class AuthService
             UserId = user.Id,
             Token = refreshToken,
             ExpiresAt = DateTime.UtcNow.AddDays(7),
+            TenantId = newTenantId,
         };
         await _authRepo.AddRefreshTokenAsync(refreshTokenEntity);
         await _authRepo.SaveChangesAsync();

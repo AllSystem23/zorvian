@@ -49,8 +49,12 @@ public sealed class CreditNotesController : ControllerBase
     {
         try
         {
-            var item = await _service.CreateAsync(request);
-            return CreatedAtAction(nameof(GetById), new { id = item.Id }, item);
+            var creditNote = await _service.CreateAsync(request);
+            return CreatedAtAction(nameof(GetById), new { id = creditNote.Id }, creditNote);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("company first", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(new { error = ex.Message, redirectTo = "/onboarding" });
         }
         catch (InvalidOperationException ex)
         {

@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
 
@@ -40,14 +41,22 @@ final class CreditNoteNotifier extends Notifier<CreditNoteState> {
   CreditNoteState build() => const CreditNoteState();
 
   Future<void> load() async {
+    final auth = ref.read(authProvider);
+    if (auth.role == 'SuperAdmin' && (auth.tenantId == null || auth.tenantId!.isEmpty || auth.tenantId == 'superadmin')) {
+      state = state.copyWith(loading: false, error: null);
+      return;
+    }
     state = state.copyWith(loading: true, error: null);
     try {
       final dio = ref.read(dioClientProvider);
-      final r = await dio.get('credit-notes');
+      final r = await dio.get('credit-notes', options: Options(extra: {'suppressGlobalError': true}));
       final data = r.data as List;
       state = CreditNoteState(items: data.map((e) => CreditNoteItem.fromJson(e)).toList());
-    } catch (_) {
-      state = state.copyWith(error: 'Error al cargar notas de crédito', loading: false);
+    } catch (e) {
+      final msg = e is DioException && e.response?.data is Map && e.response?.data['redirectTo'] != null
+          ? null
+          : 'Error al cargar notas de crédito';
+      state = state.copyWith(error: msg, loading: false);
     }
   }
 }

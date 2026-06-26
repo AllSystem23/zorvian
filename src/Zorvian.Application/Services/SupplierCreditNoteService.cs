@@ -32,8 +32,7 @@ public sealed class SupplierCreditNoteService
 
     public async Task<SupplierCreditNoteResponse> CreateAsync(CreateSupplierCreditNoteRequest request)
     {
-        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
-            throw new InvalidOperationException("Invalid tenant");
+        var companyId = _tenant.RequireCompanyId();
 
         var creditNote = new SupplierCreditNote
         {

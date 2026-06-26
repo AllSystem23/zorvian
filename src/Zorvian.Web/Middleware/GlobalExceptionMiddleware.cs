@@ -45,7 +45,12 @@ public sealed class GlobalExceptionMiddleware
         {
             _logger.LogWarning(ex, "Invalid operation at {Path}: {Message}", context.Request.Path, ex.Message);
             context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-            await WriteResponse(context, new { message = ex.Message });
+            
+            object responseBody = ex.Message.Contains("company first", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("tenant not configured", StringComparison.OrdinalIgnoreCase)
+                ? new { message = ex.Message, redirectTo = "/onboarding" }
+                : new { message = ex.Message };
+            
+            await WriteResponse(context, responseBody);
         }
         catch (ArgumentException ex)
         {
@@ -91,28 +96,30 @@ public sealed class GlobalExceptionMiddleware
         }
     }
 
-    private static async Task WriteResponse(HttpContext context, object body)
-    {
-        context.Response.ContentType = "application/problem+json";
-
-        var bodyType = body.GetType();
-        var message = bodyType.GetProperty("message")?.GetValue(body) as string;
-        var details = bodyType.GetProperty("details")?.GetValue(body);
-
-        var problemDetails = new
+        private static async Task WriteResponse(HttpContext context, object body)
         {
-            type = $"https://zorvian.app/errors/{(int)context.Response.StatusCode}",
-            title = GetTitleForStatus(context.Response.StatusCode),
-            status = context.Response.StatusCode,
-            detail = message,
-            instance = context.Request.Path.Value,
-            traceId = context.TraceIdentifier,
-            errors = details
-        };
+            context.Response.ContentType = "application/problem+json";
 
-        var json = JsonSerializer.Serialize(problemDetails, JsonOptions);
-        await context.Response.WriteAsync(json);
-    }
+            var bodyType = body.GetType();
+            var message = bodyType.GetProperty("message")?.GetValue(body) as string;
+            var details = bodyType.GetProperty("details")?.GetValue(body);
+            var redirectTo = bodyType.GetProperty("redirectTo")?.GetValue(body) as string;
+
+            var problemDetails = new
+            {
+                type = $"https://zorvian.app/errors/{(int)context.Response.StatusCode}",
+                title = GetTitleForStatus(context.Response.StatusCode),
+                status = context.Response.StatusCode,
+                detail = message,
+                instance = context.Request.Path.Value,
+                traceId = context.TraceIdentifier,
+                errors = details,
+                redirectTo = redirectTo
+            };
+
+            var json = JsonSerializer.Serialize(problemDetails, JsonOptions);
+            await context.Response.WriteAsync(json);
+        }
 
     private static string GetTitleForStatus(int statusCode) => statusCode switch
     {
