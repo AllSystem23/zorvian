@@ -3,17 +3,20 @@ using Zorvian.Application.DTOs.Common;
 using Zorvian.Application.DTOs.Employee;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
+
 namespace Zorvian.Application.Services;
 
 public sealed class EmployeeService
 {
     private readonly IEmployeeRepository _repo;
+    private readonly IProviderRepository _providerRepo;
     private readonly IMapper _mapper;
     private readonly IEncryptionService _encryption;
 
-    public EmployeeService(IEmployeeRepository repo, IMapper mapper, IEncryptionService encryption)
+    public EmployeeService(IEmployeeRepository repo, IProviderRepository providerRepo, IMapper mapper, IEncryptionService encryption)
     {
         _repo = repo;
+        _providerRepo = providerRepo;
         _mapper = mapper;
         _encryption = encryption;
     }
@@ -22,6 +25,7 @@ public sealed class EmployeeService
     {
         var employee = _mapper.Map<Employee>(request);
         employee.EmployeeCode = request.EmployeeCode ?? GenerateEmployeeCode();
+        employee.CollaboratorType = request.CollaboratorType ?? "employee";
         EncryptPii(employee);
 
         await _repo.AddAsync(employee);
@@ -35,6 +39,20 @@ public sealed class EmployeeService
         });
 
         await _repo.SaveChangesAsync();
+
+        // Link to service contract if CollaboratorType is contractor and ContractId provided
+        if (employee.CollaboratorType == "contractor" && request.ContractId.HasValue)
+        {
+            var contract = await _providerRepo.GetContractByIdAsync(request.ContractId.Value);
+            var provider = contract?.ServiceProvider;
+            if (provider is not null)
+            {
+                provider.EmployeeId = employee.Id;
+                await _providerRepo.UpdateProviderAsync(provider);
+                employee.ServiceProviderDetails = provider;
+                await _repo.SaveChangesAsync();
+            }
+        }
 
         DecryptPii(employee);
         return _mapper.Map<EmployeeResponse>(employee);

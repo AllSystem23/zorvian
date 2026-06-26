@@ -6,6 +6,7 @@ public sealed record CreateEmployeeRequest(
     string Email,
     string? Phone,
     string? EmployeeCode,
+    string? CollaboratorType,
     DateOnly? DateOfBirth,
     string? Gender,
     string? IdentificationType,
@@ -17,7 +18,8 @@ public sealed record CreateEmployeeRequest(
     string? SalaryType,
     string? BankName,
     string? BankAccountNumber,
-    string? BankAccountType
+    string? BankAccountType,
+    Guid? ContractId
 );
 
 public sealed record UpdateEmployeeRequest(
@@ -26,6 +28,7 @@ public sealed record UpdateEmployeeRequest(
     string? Email,
     string? Phone,
     string? EmployeeCode,
+    string? CollaboratorType,
     DateOnly? DateOfBirth,
     string? Gender,
     string? IdentificationType,
@@ -37,7 +40,8 @@ public sealed record UpdateEmployeeRequest(
     string? Status,
     string? BankName,
     string? BankAccountNumber,
-    string? BankAccountType
+    string? BankAccountType,
+    Guid? ContractId
 );
 
 public sealed record EmployeeResponse(
@@ -60,7 +64,9 @@ public sealed record EmployeeResponse(
     string SalaryType,
     string? BankName,
     string? BankAccountNumber,
-    string? BankAccountType
+    string? BankAccountType,
+    string CollaboratorType,
+    Guid? ContractId
 );
 
 public sealed record EmployeeListResponse(

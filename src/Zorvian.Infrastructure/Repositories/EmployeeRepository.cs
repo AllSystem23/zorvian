@@ -17,6 +17,8 @@ public sealed class EmployeeRepository : IEmployeeRepository
     public async Task<Employee?> GetByIdAsync(Guid id) =>
         await _db.Employees
             .Include(e => e.Department)
+            .Include(e => e.ServiceProviderDetails)
+                .ThenInclude(sp => sp!.Contracts)
             .FirstOrDefaultAsync(e => e.Id == id);
 
     public async Task<List<Employee>> GetFilteredAsync(

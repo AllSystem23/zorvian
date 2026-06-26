@@ -669,6 +669,25 @@ final routerProvider = Provider<GoRouter>((ref) {
                 builder: (_, _) => const ProviderContractsPage(),
               ),
               GoRoute(
+                path: 'contracts/new',
+                name: 'contract-new',
+                builder: (_, state) => ContractFormPage(
+                  providerId: state.uri.queryParameters['providerId'],
+                ),
+              ),
+              GoRoute(
+                path: 'contracts/:contractId',
+                name: 'contract-detail',
+                builder: (_, state) => ServiceContractDetailPage(id: state.pathParameters['contractId']!),
+              ),
+              GoRoute(
+                path: 'contracts/:contractId/edit',
+                name: 'contract-edit',
+                builder: (_, state) => ContractFormPage(
+                  contractId: state.pathParameters['contractId']!,
+                ),
+              ),
+              GoRoute(
                 path: ':providerId',
                 name: 'provider-detail',
                 builder: (_, state) => ProviderDetailPage(id: state.pathParameters['providerId']!),
@@ -683,28 +702,9 @@ final routerProvider = Provider<GoRouter>((ref) {
                 ],
               ),
               GoRoute(
-                path: 'contracts/:contractId',
-                name: 'contract-detail',
-                builder: (_, state) => ServiceContractDetailPage(id: state.pathParameters['contractId']!),
-              ),
-              GoRoute(
                 path: 'payments',
                 name: 'provider-payments',
                 builder: (_, _) => const ProviderInvoicesPage(),
-              ),
-              GoRoute(
-                path: 'contracts/new',
-                name: 'contract-new',
-                builder: (_, state) => ContractFormPage(
-                  providerId: state.uri.queryParameters['providerId'],
-                ),
-              ),
-              GoRoute(
-                path: 'contracts/:contractId/edit',
-                name: 'contract-edit',
-                builder: (_, state) => ContractFormPage(
-                  contractId: state.pathParameters['contractId']!,
-                ),
               ),
             ],
           ),

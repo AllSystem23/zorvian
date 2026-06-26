@@ -27,7 +27,8 @@ class ProviderRepository {
   }
 
   Future<ServiceContract> createContract(Map<String, dynamic> data) async {
-    final response = await _apiClient.post('providers/contracts', data: data);
+    final providerId = data['serviceProviderId'] as String? ?? '';
+    final response = await _apiClient.post('providers/$providerId/contracts', data: data);
     return ServiceContract.fromJson(response.data);
   }
 

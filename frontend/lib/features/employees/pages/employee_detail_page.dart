@@ -29,7 +29,7 @@ class _EmployeeDetailPageState extends ConsumerState<EmployeeDetailPage> {
       final r = await dio.get('employees/${widget.employeeId}');
       setState(() { _employee = r.data; _loading = false; });
     } catch (_) {
-      setState(() { _error = 'Error al cargar empleado'; _loading = false; });
+      setState(() { _error = 'Error al cargar trabajador'; _loading = false; });
     }
   }
 
@@ -46,8 +46,8 @@ class _EmployeeDetailPageState extends ConsumerState<EmployeeDetailPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    if (_loading) return Scaffold(appBar: AppBar(title: const Text('Empleado')), body: const Center(child: CircularProgressIndicator()));
-    if (_error != null) return Scaffold(appBar: AppBar(title: const Text('Empleado')), body: Center(child: Text(_error!)));
+    if (_loading) return Scaffold(appBar: AppBar(title: const Text('Trabajador')), body: const Center(child: CircularProgressIndicator()));
+    if (_error != null) return Scaffold(appBar: AppBar(title: const Text('Trabajador')), body: Center(child: Text(_error!)));
     final e = _employee!;
 
     return Scaffold(

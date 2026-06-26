@@ -71,7 +71,7 @@ class _EmployeeListPageState extends ConsumerState<EmployeeListPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Empleados'),
+        title: const Text('Trabajadores'),
         actions: [
           IconButton(
             icon: const Icon(Icons.upload_file),
@@ -87,7 +87,7 @@ class _EmployeeListPageState extends ConsumerState<EmployeeListPage> {
             child: ZTextField(
               controller: _searchCtrl,
               label: 'Buscar',
-              hint: 'Buscar empleado...',
+              hint: 'Buscar trabajador...',
               prefix: const Icon(Icons.search),
             ),
           ),
@@ -97,8 +97,8 @@ class _EmployeeListPageState extends ConsumerState<EmployeeListPage> {
               builder: (state) {
                 return state.items.isEmpty
                     ? ZEmptyState.list(
-                        itemType: 'empleados',
-                        actionLabel: 'Nuevo Empleado',
+                        itemType: 'trabajadores',
+                        actionLabel: 'Nuevo Trabajador',
                         onAction: () => context.push('/employees/new'),
                       )
                     : RefreshIndicator(

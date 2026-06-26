@@ -32,6 +32,8 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
   String? _selectedDeptId;
   String _salaryType = 'monthly';
   String _bankAccountType = 'ahorro';
+  String _collaboratorType = 'employee';
+  String? _selectedContractId;
   bool _loading = false;
   String? _error;
   bool _isEditing = false;
@@ -82,10 +84,12 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
         _bankNameCtrl.text = data['bankName'] ?? '';
         _bankAccountCtrl.text = data['bankAccountNumber'] ?? '';
         _bankAccountType = data['bankAccountType'] as String? ?? 'ahorro';
+        _collaboratorType = data['collaboratorType'] as String? ?? 'employee';
+        _selectedContractId = data['contractId'] as String?;
         _hasChanges = false;
       });
     } catch (_) {
-      setState(() => _error = 'Error al cargar empleado');
+      setState(() => _error = 'Error al cargar trabajador');
     }
   }
 
@@ -102,7 +106,9 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
         'phone': _phoneCtrl.text.trim(),
         'position': _positionCtrl.text.trim(),
         'departmentId': _selectedDeptId,
+        'collaboratorType': _collaboratorType,
         'salaryType': _salaryType,
+        if (_selectedContractId != null) 'contractId': _selectedContractId,
         'bankName': _bankNameCtrl.text.trim(),
         'bankAccountNumber': _bankAccountCtrl.text.trim(),
         'bankAccountType': _bankAccountType,
@@ -119,7 +125,7 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
         context.pop(true);
       }
     } catch (e) {
-      setState(() => _error = 'Error al guardar empleado');
+      setState(() => _error = 'Error al guardar trabajador');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -160,7 +166,7 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
     return Scaffold(
       backgroundColor: isDark ? ZColors.darkBackground : ZColors.neutral50,
       appBar: AppBar(
-        title: Text(_isEditing ? 'Editar Colaborador' : 'Registro de Colaborador'),
+        title: Text(_isEditing ? 'Editar Trabajador' : 'Registro de Trabajador'),
         actions: [
           if (_hasChanges)
             Center(
@@ -287,8 +293,25 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
               decoration: const InputDecoration(labelText: 'Teléfono de Contacto', prefixIcon: Icon(Icons.phone_outlined)),
               keyboardType: TextInputType.phone,
             ),
+            ZDropdownFormField<String>(
+              value: _collaboratorType,
+              label: 'Tipo de Trabajador',
+              prefixIcon: Icons.group_outlined,
+              items: const [
+                DropdownMenuItem(value: 'employee', child: Text('Empleado Interno')),
+                DropdownMenuItem(value: 'contractor', child: Text('Contratista')),
+              ],
+              onChanged: (v) => setState(() { _collaboratorType = v!; _onFieldChanged(); }),
+            ),
           ],
         ),
+        if (_collaboratorType == 'contractor') ...[
+          const SizedBox(height: 16),
+          _ContractSelector(
+            selectedContractId: _selectedContractId,
+            onChanged: (v) => setState(() { _selectedContractId = v; _onFieldChanged(); }),
+          ),
+        ],
       ],
     );
   }
@@ -391,6 +414,57 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
         const SizedBox(height: 4),
         Text(subtitle, style: ZTypography.bodyMedium.copyWith(color: ZColors.neutral500)),
       ],
+    );
+  }
+}
+
+class _ContractSelector extends ConsumerStatefulWidget {
+  final String? selectedContractId;
+  final ValueChanged<String?> onChanged;
+  const _ContractSelector({required this.selectedContractId, required this.onChanged});
+
+  @override
+  ConsumerState<_ContractSelector> createState() => _ContractSelectorState();
+}
+
+class _ContractSelectorState extends ConsumerState<_ContractSelector> {
+  late final Future<dynamic> _contractsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    final dio = ref.read(dioClientProvider);
+    _contractsFuture = dio.get('providers/contracts');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+      future: _contractsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox(height: 56, child: Center(child: LinearProgressIndicator()));
+        }
+        if (snapshot.hasError) {
+          return const Text('Error al cargar contratos');
+        }
+        final contracts = (snapshot.data?.data as List? ?? []);
+        if (contracts.isEmpty) {
+          return ZAlertCard(
+            message: 'No hay contratos de prestadores disponibles. Cree uno primero en Prestadores > Contratos.',
+            severity: 'info',
+          );
+        }
+        return ZDropdownFormField<String>(
+          value: widget.selectedContractId,
+          label: 'Contrato de Servicio',
+          prefixIcon: Icons.description_outlined,
+          items: contracts.map<DropdownMenuItem<String>>((c) => DropdownMenuItem(
+            value: c['id'] as String,
+            child: Text('${c['contractNumber']} - ${c['contractName']}'),
+          )).toList(),              onChanged: widget.onChanged,
+        );
+      },
     );
   }
 }

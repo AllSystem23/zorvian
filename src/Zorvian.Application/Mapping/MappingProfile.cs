@@ -80,7 +80,9 @@ public sealed class MappingProfile : Profile
             .ForMember(d => d.PerformedInventoryMovements, o => o.Ignore())
             .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
         CreateMap<Employee, EmployeeResponse>()
-            .ForMember(d => d.DepartmentName, o => o.MapFrom(s => s.Department != null ? s.Department.Name : ""));
+            .ForMember(d => d.DepartmentName, o => o.MapFrom(s => s.Department != null ? s.Department.Name : ""))
+            .ForMember(d => d.CollaboratorType, o => o.MapFrom(s => s.CollaboratorType))
+            .ForMember(d => d.ContractId, o => o.MapFrom(s => s.ServiceProviderDetails != null && s.ServiceProviderDetails.Contracts != null && s.ServiceProviderDetails.Contracts.Any() ? s.ServiceProviderDetails.Contracts.First().Id : (Guid?)null));
         CreateMap<Employee, EmployeeListResponse>()
             .ForMember(d => d.FullName, o => o.MapFrom(s => $"{s.FirstName} {s.LastName}"))
             .ForMember(d => d.DepartmentName, o => o.MapFrom(s => s.Department != null ? s.Department.Name : ""));

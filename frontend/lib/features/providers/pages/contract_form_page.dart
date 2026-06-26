@@ -81,7 +81,7 @@ final class _ContractFormPageState extends ConsumerState<ContractFormPage> {
       if (_isEditing) {
         await dio.put('providers/contracts/${widget.contractId}', data: body);
       } else {
-        await dio.post('providers/contracts', data: body);
+        await dio.post('providers/$_selectedProviderId/contracts', data: body);
       }
       if (mounted) context.pop(true);
     } catch (_) {
