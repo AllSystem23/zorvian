@@ -208,6 +208,8 @@ final _routeRoles = <String, List<String>>{
   '/exchange-rates': ['SuperAdmin', 'CompanyAdmin'],
   '/custom-reports': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/webhooks': ['SuperAdmin', 'CompanyAdmin'],
+  '/accounting': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
+  '/accounting/reports': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
   '/accounting/reports/equity': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
   '/accounting/reports/comparative': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
   '/accounting/ai-assistant': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
@@ -791,6 +793,16 @@ final routerProvider = Provider<GoRouter>((ref) {
                 },
               ),
             ],
+          ),
+          GoRoute(
+            path: '/accounting',
+            name: 'accounting',
+            redirect: (_, _) => '/accounting/trial-balance',
+          ),
+          GoRoute(
+            path: '/accounting/reports',
+            name: 'accounting-reports',
+            redirect: (_, _) => '/accounting/reports/equity',
           ),
           GoRoute(
             path: '/accounting/reports/equity',

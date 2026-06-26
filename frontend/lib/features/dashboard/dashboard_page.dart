@@ -148,8 +148,16 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               DropdownButton<String>(
                 value: _selectedPeriod,
                 underline: const SizedBox(),
-                icon: const Icon(Icons.keyboard_arrow_down, size: 18),
-                style: ZTypography.labelMedium.copyWith(fontWeight: FontWeight.w600),
+                icon: Icon(
+                  Icons.keyboard_arrow_down,
+                  size: 18,
+                  color: isDark ? ZColors.neutral300 : ZColors.neutral600,
+                ),
+                dropdownColor: isDark ? ZColors.darkSurface : Colors.white,
+                style: ZTypography.labelMedium.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? ZColors.neutral100 : ZColors.neutral800,
+                ),
                 items: ['Hoy', 'Esta Semana', 'Este Mes', 'Este Trimestre']
                     .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                     .toList(),

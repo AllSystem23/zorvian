@@ -111,7 +111,8 @@ final class BreadcrumbBar extends StatelessWidget {
 
     // Always start with "Inicio" as home
     items.add(BreadcrumbItem(
-      label: '🏠 Inicio',
+      label: 'Inicio',
+      icon: Icons.home_outlined,
       onTap: () => context.go('/dashboard'),
     ));
 
@@ -164,12 +165,26 @@ final class BreadcrumbBar extends StatelessWidget {
                 ),
               ),
             if (i == items.length - 1)
-              Text(
-                items[i].label,
-                style: ZTypography.bodySmall.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? ZColors.neutral200 : ZColors.neutral700,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (items[i].icon != null)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 4),
+                      child: Icon(
+                        items[i].icon,
+                        size: 14,
+                        color: isDark ? ZColors.neutral200 : ZColors.neutral700,
+                      ),
+                    ),
+                  Text(
+                    items[i].label,
+                    style: ZTypography.bodySmall.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? ZColors.neutral200 : ZColors.neutral700,
+                    ),
+                  ),
+                ],
               )
             else
               InkWell(
@@ -180,13 +195,29 @@ final class BreadcrumbBar extends StatelessWidget {
                     horizontal: 4,
                     vertical: 2,
                   ),
-                  child: Text(
-                    items[i].label,
-                    style: ZTypography.bodySmall.copyWith(
-                      color: isDark
-                          ? ZColors.neutral400
-                          : ZColors.neutral500,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (items[i].icon != null)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 4),
+                          child: Icon(
+                            items[i].icon,
+                            size: 14,
+                            color: isDark
+                                ? ZColors.neutral400
+                                : ZColors.neutral500,
+                          ),
+                        ),
+                      Text(
+                        items[i].label,
+                        style: ZTypography.bodySmall.copyWith(
+                          color: isDark
+                              ? ZColors.neutral400
+                              : ZColors.neutral500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -209,7 +240,8 @@ final class BreadcrumbBar extends StatelessWidget {
 /// Simple breadcrumb item data class
 class BreadcrumbItem {
   final String label;
+  final IconData? icon;
   final VoidCallback? onTap;
 
-  const BreadcrumbItem({required this.label, this.onTap});
+  const BreadcrumbItem({required this.label, this.icon, this.onTap});
 }

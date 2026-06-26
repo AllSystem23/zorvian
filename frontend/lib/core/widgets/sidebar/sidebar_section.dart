@@ -61,7 +61,9 @@ final class SidebarSection extends ConsumerWidget {
                 if (!roleOk) return const SizedBox.shrink();
                 return SidebarItem(
                   item: item,
-                  selected: location.startsWith(item.route),
+                  selected: item.selectedExact
+                      ? location == item.route
+                      : location.startsWith(item.route),
                   collapsed: false,
                   moduleColor: module.color,
                   moduleTextColor: module.textColor,

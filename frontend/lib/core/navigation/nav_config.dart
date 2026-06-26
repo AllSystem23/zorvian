@@ -8,6 +8,7 @@ final class NavItem {
   final String route;
   final List<String> roles;
   final String badgeRef;
+  final bool selectedExact;
 
   const NavItem({
     required this.id,
@@ -16,6 +17,7 @@ final class NavItem {
     required this.route,
     this.roles = const [],
     this.badgeRef = '',
+    this.selectedExact = false,
   });
 }
 
@@ -132,7 +134,7 @@ final class NavConfig {
       textColor: ZColors.moduleFleetText,
       group: 'operations',
       children: [
-        NavItem(id: 'flota-dashboard', label: 'Dashboard', icon: Icons.dashboard_outlined, route: '/fleet'),
+        NavItem(id: 'flota-dashboard', label: 'Dashboard', icon: Icons.dashboard_outlined, route: '/fleet', selectedExact: true),
         NavItem(id: 'flota-vehiculos', label: 'Vehículos', icon: Icons.directions_car_outlined, route: '/fleet/vehicles'),
         NavItem(id: 'flota-conductores', label: 'Conductores', icon: Icons.person_outline, route: '/fleet/drivers'),
         NavItem(id: 'flota-rutas', label: 'Rutas', icon: Icons.alt_route_outlined, route: '/fleet/routes'),
