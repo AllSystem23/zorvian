@@ -405,6 +405,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, _) => const CompanySettingsPage(),
           ),
           GoRoute(
+            path: '/admin',
+            name: 'admin',
+            redirect: (_, _) => '/admin/companies',
+          ),
+          GoRoute(
             path: '/admin/users',
             name: 'admin-users',
             builder: (_, _) => const UserListPage(),
