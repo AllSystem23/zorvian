@@ -3,7 +3,6 @@ using Zorvian.Application.DTOs.Company;
 using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
 using Zorvian.Core.Interfaces;
-using Zorvian.Application.Interfaces;
 
 namespace Zorvian.Tests.Services;
 
@@ -33,6 +32,7 @@ public sealed class CompanyServiceTests
             TaxId: "J123456789",
             Phone: "+50588888888",
             Address: "Managua, Nicaragua",
+            Email: null,
             Country: "Nicaragua",
             Currency: "NIO",
             Timezone: "America/Managua"
@@ -59,6 +59,7 @@ public sealed class CompanyServiceTests
             TaxId: null,
             Phone: null,
             Address: null,
+            Email: null,
             Country: "Nicaragua",
             Currency: "NIO",
             Timezone: "America/Managua"
@@ -89,10 +90,12 @@ public sealed class CompanyServiceTests
             TaxId: "J999",
             Phone: null,
             Address: null,
+            Email: null,
             Country: "Nicaragua",
             Currency: "USD",
             Timezone: null,
-            LogoUrl: null
+            LogoUrl: null,
+            MaxEmployees: null
         );
 
         var result = await _sut.UpdateAsync(request);

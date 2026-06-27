@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Zorvian.Application.Services;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Interfaces;
-using Zorvian.Application.Services;
 using Moq;
 
 namespace Zorvian.Tests.Authorization;

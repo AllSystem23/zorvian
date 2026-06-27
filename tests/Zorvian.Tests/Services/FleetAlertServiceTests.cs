@@ -391,7 +391,7 @@ public sealed class FleetAlertServiceTests
             ExpiryDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(3)),
             EntityType = "Driver",
             EntityId = Guid.NewGuid(),
-            DocumentType = null,
+            DocumentType = null!,
             CreatedAt = DateTime.UtcNow
         };
 
