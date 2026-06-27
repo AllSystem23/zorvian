@@ -90,12 +90,15 @@ class _LogoCompact extends StatelessWidget {
 }
 
 /// Company selector — real dropdown connected to backend
+/// For SuperAdmin, selecting a company triggers switch-tenant to set backend context.
 class _CompanySelector extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final companyBranch = ref.watch(companyBranchProvider);
     final companiesAsync = ref.watch(companyListProvider);
+    final auth = ref.watch(authProvider);
+    final isSuperAdmin = auth.role == 'SuperAdmin';
 
     return companiesAsync.when(
       loading: () => _SelectorChip(
@@ -113,24 +116,50 @@ class _CompanySelector extends ConsumerWidget {
         if (companies.isEmpty) {
           return _SelectorChip(
             icon: Icons.business_outlined,
-            label: 'Sin empresas',
+            label: isSuperAdmin ? 'Gestionar empresas' : 'Sin empresas',
             isDark: isDark,
           );
         }
+        // Auto-select first company if none selected yet
+        if (companyBranch.companyId == null && companies.isNotEmpty) {
+          final first = companies.first;
+          final firstName = first['name'] ?? first['legalName'] ?? 'Empresa';
+          final firstId = first['id'] as String? ?? '';
+          final tenantId = first['tenantId'] as String? ?? '';
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ref.read(companyBranchProvider.notifier).selectCompany(firstId, firstName);
+            // For SuperAdmin, switch to this tenant on first load
+            if (isSuperAdmin && tenantId.isNotEmpty) {
+              _switchToTenant(ref, tenantId);
+            }
+          });
+        }
+        final displayName = companyBranch.companyName ??
+            (companies.isNotEmpty ? (companies.first['name'] ?? companies.first['legalName'] ?? 'Empresa') : 'Empresa');
         return MenuAnchor(
           menuChildren: companies.map((c) {
             final name = c['name'] ?? c['legalName'] ?? 'Sin nombre';
             final id = c['id'] ?? '';
+            final tenantId = c['tenantId'] as String? ?? '';
+            final isActive = c['isActive'] as bool? ?? true;
             final isSelected = companyBranch.companyId == id;
             return MenuItemButton(
               leadingIcon: isSelected
                   ? const Icon(Icons.check, size: 16, color: ZColors.brandPrimary)
                   : const Icon(Icons.business_outlined, size: 16),
+              trailingIcon: !isActive
+                  ? const Icon(Icons.block, size: 14, color: ZColors.danger)
+                  : null,
               child: Text(name, style: TextStyle(
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                color: !isActive ? ZColors.neutral400 : null,
               )),
               onPressed: () {
                 ref.read(companyBranchProvider.notifier).selectCompany(id, name);
+                // For SuperAdmin, switch tenant to set backend context
+                if (isSuperAdmin && tenantId.isNotEmpty) {
+                  _switchToTenant(ref, tenantId);
+                }
               },
             );
           }).toList(),
@@ -139,7 +168,7 @@ class _CompanySelector extends ConsumerWidget {
               onTap: controller.open,
               child: _SelectorChip(
                 icon: Icons.business_outlined,
-                label: companyBranch.companyName ?? 'Empresa',
+                label: displayName,
                 isDark: isDark,
               ),
             );
@@ -147,6 +176,14 @@ class _CompanySelector extends ConsumerWidget {
         );
       },
     );
+  }
+
+  Future<void> _switchToTenant(WidgetRef ref, String tenantId) async {
+    // switchTenant updates authProvider state, which companyListProvider watches,
+    // triggering an automatic re-fetch with the new tenant context.
+    await ref.read(authProvider.notifier).switchTenant(tenantId);
+    // Also invalidate branches since the tenant context changed
+    ref.invalidate(headerBranchListProvider);
   }
 }
 
@@ -174,10 +211,21 @@ class _BranchSelector extends ConsumerWidget {
         if (branches.isEmpty) {
           return _SelectorChip(
             icon: Icons.storefront_outlined,
-            label: 'Sin sucursales',
+            label: companyBranch.branchName ?? 'Sin sucursales',
             isDark: isDark,
           );
         }
+        // Auto-select first branch if none selected yet
+        if (companyBranch.branchId == null && branches.isNotEmpty) {
+          final first = branches.first;
+          final firstName = first['name'] as String? ?? 'Sucursal';
+          final firstId = first['id'] as String? ?? '';
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ref.read(companyBranchProvider.notifier).selectBranch(firstId, firstName);
+          });
+        }
+        final displayName = companyBranch.branchName ??
+            (branches.isNotEmpty ? (branches.first['name'] as String? ?? 'Sucursal') : 'Sucursal');
         return MenuAnchor(
           menuChildren: branches.map((b) {
             final name = b['name'] ?? 'Sin nombre';
@@ -200,7 +248,7 @@ class _BranchSelector extends ConsumerWidget {
               onTap: controller.open,
               child: _SelectorChip(
                 icon: Icons.storefront_outlined,
-                label: companyBranch.branchName ?? 'Sucursal',
+                label: displayName,
                 isDark: isDark,
               ),
             );

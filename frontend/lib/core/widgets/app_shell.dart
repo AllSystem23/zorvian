@@ -9,6 +9,7 @@ import '../../features/providers/pages/provider_invoices_page.dart';
 import '../../features/providers/providers/provider_state.dart';
 import '../../shared/ds/ds.dart';
 import '../navigation/nav_provider.dart';
+import '../providers/company_branch_provider.dart';
 import '../theme/theme_provider.dart';
 import 'responsive_layout.dart';
 import 'sidebar/sidebar.dart';
@@ -31,6 +32,34 @@ final class _AppShellState extends ConsumerState<AppShell> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _trackNavigation();
+      _ensureSuperAdminTenant();
+    });
+  }
+
+  /// For SuperAdmin: auto-switch to first available company on app start.
+  /// This ensures the backend tenant context is set BEFORE any page loads.
+  void _ensureSuperAdminTenant() {
+    final auth = ref.read(authProvider);
+    if (auth.role != 'SuperAdmin') return;
+    final companyBranch = ref.read(companyBranchProvider);
+    // If already has a company selected, skip
+    if (companyBranch.companyId != null) return;
+    // Fetch companies and auto-switch
+    ref.read(companyListProvider.future).then((companies) {
+      if (companies.isEmpty) return;
+      final first = companies.first;
+      final companyId = first['id'] as String? ?? '';
+      final companyName = first['name'] as String? ?? first['legalName'] as String? ?? 'Empresa';
+      final tenantId = first['tenantId'] as String? ?? '';
+      if (companyId.isEmpty || tenantId.isEmpty) return;
+      // Set company in local state
+      ref.read(companyBranchProvider.notifier).selectCompany(companyId, companyName);
+      // Switch tenant on backend to set proper context
+      ref.read(authProvider.notifier).switchTenant(tenantId).then((success) {
+        if (success) {
+          ref.invalidate(headerBranchListProvider);
+        }
+      });
     });
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 import '../../../shared/ds/ds.dart';
 import '../providers/company_settings_provider.dart';
 
@@ -47,13 +48,21 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
   Future<void> _saveCompany() async {
     try {
       final dio = ref.read(dioClientProvider);
-      await dio.put('companies/current', data: {
+      final auth = ref.read(authProvider);
+      final companyBranch = ref.read(companyBranchProvider);
+      final data = {
         'name': _nameCtrl.text,
         'legalName': _legalCtrl.text,
         'taxId': _taxIdCtrl.text,
         'currency': _currencyCtrl.text,
         'timezone': _timezoneCtrl.text,
-      });
+      };
+      if (auth.role == 'SuperAdmin' && companyBranch.companyId != null) {
+        await dio.put('companies/${companyBranch.companyId}', data: data);
+      } else {
+        await dio.put('companies/current', data: data);
+      }
+      ref.invalidate(companyInfoProvider);
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Empresa actualizada')));
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -101,7 +110,20 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
                 const SizedBox(height: 12),
                 companyAsync.when(
                   loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (e, stack) => Text('Error: $e'),
+                  error: (e, stack) => Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Error: $e', style: const TextStyle(color: Colors.red)),
+                      const SizedBox(height: 12),
+                      ZTextField(controller: _nameCtrl, label: 'Nombre'),
+                      const SizedBox(height: 12),
+                      ZTextField(controller: _legalCtrl, label: 'Razón Social'),
+                      const SizedBox(height: 12),
+                      ZTextField(controller: _taxIdCtrl, label: 'RUC/NIT'),
+                      const SizedBox(height: 12),
+                      ZButton(text: 'Guardar Empresa', onPressed: _saveCompany),
+                    ],
+                  ),
                   data: (c) {
                     _nameCtrl.text = c['name'] ?? '';
                     _legalCtrl.text = c['legalName'] ?? '';
