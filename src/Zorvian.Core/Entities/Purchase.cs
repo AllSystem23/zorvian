@@ -22,6 +22,9 @@ public sealed class Purchase : BaseEntity
     public Guid BranchId { get; set; }
     public string CurrencyCode { get; set; } = "NIO";
     public decimal? ExchangeRateToReporting { get; set; }
+    public string CountryCode { get; set; } = "NIC";
+    public Guid? PurchaseOrderId { get; set; }
+    public PurchaseOrder? PurchaseOrder { get; set; }
 
     public ICollection<PurchaseDetail> Details { get; set; } = [];
     public ICollection<SupplierPayment> Payments { get; set; } = [];

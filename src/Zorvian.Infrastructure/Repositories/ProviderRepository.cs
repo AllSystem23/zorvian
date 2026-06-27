@@ -20,6 +20,13 @@ public sealed class ProviderRepository : IProviderRepository
             .Include(p => p.Contracts)
             .ToListAsync();
 
+    public async Task<List<ServiceProvider>> GetProvidersByCountryAsync(string countryCode) =>
+        await _db.ServiceProviders
+            .Include(p => p.Employee)
+            .Include(p => p.Contracts)
+            .Where(p => p.CountryCode == countryCode)
+            .ToListAsync();
+
     public async Task<ServiceProvider?> GetProviderByIdAsync(Guid id) =>
         await _db.ServiceProviders
             .Include(p => p.Employee)
@@ -57,6 +64,13 @@ public sealed class ProviderRepository : IProviderRepository
         await _db.ServiceContracts
             .Include(c => c.ServiceProvider)
             .Include(c => c.Milestones)
+            .ToListAsync();
+
+    public async Task<List<ServiceContract>> GetContractsByCountryAsync(string countryCode) =>
+        await _db.ServiceContracts
+            .Include(c => c.ServiceProvider)
+            .Include(c => c.Milestones)
+            .Where(c => c.CountryCode == countryCode)
             .ToListAsync();
 
     public async Task<ServiceContract?> GetContractByIdAsync(Guid id) =>
@@ -116,6 +130,14 @@ public sealed class ProviderRepository : IProviderRepository
             .Include(i => i.PaymentMilestone)
             .ThenInclude(m => m.ServiceContract)
             .ThenInclude(c => c.ServiceProvider)
+            .ToListAsync();
+
+    public async Task<List<ProviderInvoice>> GetInvoicesByCountryAsync(string countryCode) =>
+        await _db.ProviderInvoices
+            .Include(i => i.PaymentMilestone)
+            .ThenInclude(m => m.ServiceContract)
+            .ThenInclude(c => c.ServiceProvider)
+            .Where(i => i.PaymentMilestone.ServiceContract.CountryCode == countryCode)
             .ToListAsync();
 
     public async Task<ProviderInvoice?> GetInvoiceByIdAsync(Guid id) =>

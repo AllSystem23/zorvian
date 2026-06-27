@@ -16,6 +16,7 @@ public sealed class ServiceProvider : BaseEntity
     public string ServiceCategory { get; set; } = string.Empty;
     public string? InsurancePolicy { get; set; }
     public DateOnly? InsuranceExpiration { get; set; }
+    public string CountryCode { get; set; } = "ALL";
     public string Status { get; set; } = "active";
 
     public ICollection<ServiceContract> Contracts { get; set; } = [];

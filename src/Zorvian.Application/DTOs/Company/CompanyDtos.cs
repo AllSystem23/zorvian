@@ -6,10 +6,10 @@ public sealed record CreateCompanyRequest(
     string? TaxId,
     string? Phone,
     string? Address,
-    int MaxEmployees = 50,
-    string Country = "Nicaragua",
-    string Currency = "NIO",
-    string Timezone = "America/Managua"
+    string Country,
+    string Currency,
+    string Timezone,
+    int MaxEmployees = 50
 );
 
 public sealed record CompanyResponse(
@@ -21,6 +21,7 @@ public sealed record CompanyResponse(
     string? Phone,
     string? Email,
     string? LogoUrl,
+    string Country,
     string Currency,
     string Timezone,
     int MaxEmployees
@@ -32,6 +33,7 @@ public sealed record UpdateCompanyRequest(
     string? TaxId,
     string? Phone,
     string? Address,
+    string? Country,
     string? Currency,
     string? Timezone,
     string? LogoUrl
@@ -71,4 +73,20 @@ public sealed record UpdateCompanySettingsRequest(
     int? LateFeeGracePeriod,
     bool? TaxEnabled,
     decimal? TaxRate
+);
+
+public sealed record CompanyListItemResponse(
+    Guid Id,
+    string TenantId,
+    string Name,
+    string LegalName,
+    string? TaxId,
+    string? LogoUrl,
+    string Country,
+    string Currency,
+    string Timezone,
+    bool IsActive,
+    string SubscriptionPlan,
+    int MaxEmployees,
+    DateTime CreatedAt
 );

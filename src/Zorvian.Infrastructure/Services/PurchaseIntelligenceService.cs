@@ -55,6 +55,7 @@ Devuelve SOLO un JSON estrictamente con esta estructura:
             BranchId: Guid.Empty,
             CurrencyCode: rawData.CurrencyCode ?? "NIO", // Fallback a NIO si la IA no detecta moneda
             ExchangeRateToReporting: 1.0m,
+            CountryCode: null,
             Details: rawData.Details.Select(d => new PurchaseDetailItem(
                 Guid.Empty, d.ProductName, d.Quantity, d.UnitCost, 0, d.Quantity * d.UnitCost
             )).ToList()

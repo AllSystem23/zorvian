@@ -46,6 +46,9 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<PayrollRun> PayrollRuns => Set<PayrollRun>();
     public DbSet<PayrollDetail> PayrollDetails => Set<PayrollDetail>();
     public DbSet<PayrollDetailConcept> PayrollDetailConcepts => Set<PayrollDetailConcept>();
+    // NOTE: CountryTaxConfig is a GLOBAL catalog table — no tenant isolation applied by design.
+    // All companies share the same country tax configurations. If per-tenant customization is
+    // needed in the future, move to a per-tenant HasQueryFilter approach.
     public DbSet<CountryTaxConfig> CountryTaxConfigs => Set<CountryTaxConfig>();
     public DbSet<OvertimeRecord> OvertimeRecords => Set<OvertimeRecord>();
     public DbSet<CommissionRecord> CommissionRecords => Set<CommissionRecord>();
@@ -116,6 +119,8 @@ public sealed class ZorvianDbContext : DbContext
     // New Module: Compras
     public DbSet<Purchase> Purchases => Set<Purchase>();
     public DbSet<PurchaseDetail> PurchaseDetails => Set<PurchaseDetail>();
+    public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
+    public DbSet<PurchaseOrderDetail> PurchaseOrderDetails => Set<PurchaseOrderDetail>();
     public DbSet<SupplierPayment> SupplierPayments => Set<SupplierPayment>();
     public DbSet<SupplierCreditNote> SupplierCreditNotes => Set<SupplierCreditNote>();
     public DbSet<Withholding> Withholdings => Set<Withholding>();
@@ -359,9 +364,9 @@ public sealed class ZorvianDbContext : DbContext
             e.Property(c => c.Name).HasMaxLength(255).IsRequired();
             e.Property(c => c.LegalName).HasMaxLength(255).IsRequired();
             e.Property(c => c.TaxId).HasMaxLength(50);
-            e.Property(c => c.Country).HasMaxLength(100);
+            e.Property(c => c.Country).HasMaxLength(100).IsRequired();
             e.Property(c => c.Currency).HasMaxLength(3);
-            e.Property(c => c.Timezone).HasMaxLength(50);
+            e.Property(c => c.Timezone).HasMaxLength(50).IsRequired();
             e.HasQueryFilter(c => (c.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !c.IsDeleted);
         });
 
@@ -605,7 +610,9 @@ public sealed class ZorvianDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(lt => lt.CompanyId)
                 .OnDelete(DeleteBehavior.SetNull);
-            e.HasIndex(lt => lt.Code).IsUnique();
+            // Index scoped to tenant so different companies can have the same leave type code
+            e.HasIndex(lt => new { lt.Code, lt.TenantId }).IsUnique();
+            e.HasQueryFilter(lt => (lt.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !lt.IsDeleted);
         });
 
         builder.Entity<PermissionRequest>(e =>
@@ -1547,6 +1554,55 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(pd => (pd.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !pd.IsDeleted);
         });
 
+        // ---- PurchaseOrder Configuration ----
+        builder.Entity<PurchaseOrder>(e =>
+        {
+            e.HasKey(o => o.Id);
+            e.Property(o => o.OrderNumber).HasMaxLength(30).IsRequired();
+            e.Property(o => o.Status).HasMaxLength(30).IsRequired();
+            e.Property(o => o.Subtotal).HasColumnType("decimal(18,2)");
+            e.Property(o => o.Tax).HasColumnType("decimal(18,2)");
+            e.Property(o => o.Discount).HasColumnType("decimal(18,2)");
+            e.Property(o => o.Total).HasColumnType("decimal(18,2)");
+            e.Property(o => o.CurrencyCode).HasMaxLength(3);
+            e.Property(o => o.CountryCode).HasMaxLength(3).IsRequired();
+            e.Property(o => o.ExchangeRateToReporting).HasColumnType("decimal(18,6)");
+            e.Property(o => o.Notes).HasMaxLength(500);
+            e.HasOne(o => o.Supplier)
+                .WithMany()
+                .HasForeignKey(o => o.SupplierId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(o => o.OrderNumber).IsUnique();
+            e.HasQueryFilter(o => (o.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !o.IsDeleted);
+        });
+
+        builder.Entity<PurchaseOrderDetail>(e =>
+        {
+            e.HasKey(d => d.Id);
+            e.Property(d => d.UnitCost).HasColumnType("decimal(19,4)");
+            e.Property(d => d.Discount).HasColumnType("decimal(18,2)");
+            e.Property(d => d.Subtotal).HasColumnType("decimal(18,2)");
+            e.HasOne(d => d.PurchaseOrder)
+                .WithMany(o => o.Details)
+                .HasForeignKey(d => d.PurchaseOrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(d => d.Product)
+                .WithMany()
+                .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(d => (d.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !d.IsDeleted);
+        });
+
+        // Add Purchase -> PurchaseOrder relationship
+        builder.Entity<Purchase>(e =>
+        {
+            e.Property(p => p.CountryCode).HasMaxLength(3).IsRequired();
+            e.HasOne(p => p.PurchaseOrder)
+                .WithMany()
+                .HasForeignKey(p => p.PurchaseOrderId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
         // ---- SupplierPayment Configuration ----
         builder.Entity<SupplierPayment>(e =>
         {
@@ -2353,7 +2409,32 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(p => (p.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !p.IsDeleted);
         });
 
-        // ---- Motor Documental Configuration ----
+                // ---- New Module: Prestadores de Servicios ----
+        builder.Entity<ServiceProvider>(e =>
+        {
+            e.HasKey(sp => sp.Id);
+            e.Property(sp => sp.BusinessName).HasMaxLength(255).IsRequired();
+            e.Property(sp => sp.CountryCode).HasMaxLength(3).IsRequired();
+            e.Property(sp => sp.ServiceCategory).HasMaxLength(100).IsRequired();
+            e.Property(sp => sp.Status).HasMaxLength(20).IsRequired();
+            e.HasOne(sp => sp.Employee).WithOne(em => em.ServiceProviderDetails).HasForeignKey<ServiceProvider>(sp => sp.EmployeeId).OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(sp => (sp.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !sp.IsDeleted);
+        });
+
+        builder.Entity<ServiceContract>(e =>
+        {
+            e.HasKey(sc => sc.Id);
+            e.Property(sc => sc.ContractNumber).HasMaxLength(50).IsRequired();
+            e.Property(sc => sc.ContractName).HasMaxLength(255).IsRequired();
+            e.Property(sc => sc.Currency).HasMaxLength(3).IsRequired();
+            e.Property(sc => sc.CountryCode).HasMaxLength(3).IsRequired();
+            e.Property(sc => sc.Status).HasMaxLength(20).IsRequired();
+            e.Property(sc => sc.TotalContractAmount).HasColumnType("decimal(18,2)");
+            e.HasOne(sc => sc.ServiceProvider).WithMany(sp => sp.Contracts).HasForeignKey(sc => sc.ServiceProviderId).OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(sc => (sc.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !sc.IsDeleted);
+        });
+
+// ---- Motor Documental Configuration ----
         builder.Entity<DocumentTemplate>(e =>
         {
             e.HasKey(t => t.Id);

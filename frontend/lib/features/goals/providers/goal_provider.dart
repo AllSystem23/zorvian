@@ -45,6 +45,6 @@ final goalStatsProvider = Provider((ref) {
       'incentiveBudget': data['incentiveBudget'] ?? 0.0,
     },
     loading: () => {'total': 0, 'active': 0, 'globalCompliance': 0.0, 'incentiveBudget': 0.0},
-    error: (_, __) => {'total': 0, 'active': 0, 'globalCompliance': 0.0, 'incentiveBudget': 0.0},
+    error: (_, _) => {'total': 0, 'active': 0, 'globalCompliance': 0.0, 'incentiveBudget': 0.0},
   );
 });

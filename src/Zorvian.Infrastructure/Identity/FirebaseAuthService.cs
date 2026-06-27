@@ -65,6 +65,18 @@ public sealed class FirebaseAuthService : IFirebaseAuthService
         }
     }
 
+    public async Task UpdatePasswordAsync(string firebaseUid, string newPassword)
+    {
+        var args = new UserRecordArgs { Uid = firebaseUid, Password = newPassword };
+        await FirebaseAuth.DefaultInstance.UpdateUserAsync(args);
+    }
+
+    public async Task UpdateEmailAsync(string firebaseUid, string newEmail)
+    {
+        var args = new UserRecordArgs { Uid = firebaseUid, Email = newEmail };
+        await FirebaseAuth.DefaultInstance.UpdateUserAsync(args);
+    }
+
     public async Task<FirebaseUser?> SignInWithPasswordAsync(string email, string password)
     {
         try

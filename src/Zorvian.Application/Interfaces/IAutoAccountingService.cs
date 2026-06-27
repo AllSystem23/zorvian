@@ -10,7 +10,7 @@ public interface IAutoAccountingService
     // Original methods reconstructed from code analysis
     Task<Guid> GenerateSaleEntryAsync(Guid saleId, List<SaleDetail> details, decimal discount, decimal paidAmount, string saleType, Guid? costCenterId = null);
     Task<Guid> GenerateCostOfSaleEntryAsync(Guid saleId, decimal totalCost, Guid? costCenterId = null);
-    Task<Guid> GeneratePurchaseEntryAsync(Guid purchaseId, List<PurchaseDetail> details, decimal discount, decimal total);
+    Task<Guid> GeneratePurchaseEntryAsync(Guid purchaseId, List<PurchaseDetail> details, decimal discount, decimal total, string countryCode);
     Task<Guid> GenerateCashMovementEntryAsync(Guid cashMovementId);
     Task<Guid> GenerateCreditPaymentEntryAsync(Guid paymentId, Guid creditId, decimal principal, decimal interest, Guid companyId, Guid branchId);
     Task<Guid> GenerateSupplierPaymentEntryAsync(Guid paymentId, Guid purchaseId, decimal amount, Guid companyId, Guid branchId);

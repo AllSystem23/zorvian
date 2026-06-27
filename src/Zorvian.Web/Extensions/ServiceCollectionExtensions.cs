@@ -117,12 +117,13 @@ public static class ServiceCollectionExtensions
             var tenantSessionInterceptor = sp.GetRequiredService<Zorvian.Infrastructure.Data.TenantSessionInterceptor>();
             var encryptionInterceptor = sp.GetRequiredService<EncryptionInterceptor>();
             var tenantAuditInterceptor = sp.GetRequiredService<TenantAuditInterceptor>();
+            var fileCleanupInterceptor = sp.GetRequiredService<Zorvian.Infrastructure.Data.FileCleanupSaveChangesInterceptor>();
 
             var connStr = configuration.GetConnectionString("ZorvianDb");
             if (mockExternal || string.IsNullOrEmpty(connStr))
             {
                 options.UseInMemoryDatabase("ZorvianInMemoryDb")
-                        .AddInterceptors(tenantAuditInterceptor, entityHistoryInterceptor, auditInterceptor, immutabilityInterceptor, encryptionInterceptor)
+                        .AddInterceptors(fileCleanupInterceptor, tenantAuditInterceptor, entityHistoryInterceptor, auditInterceptor, immutabilityInterceptor, encryptionInterceptor)
                         .ConfigureWarnings(w =>
                         {
                             w.Ignore(CoreEventId.ManyServiceProvidersCreatedWarning);
@@ -134,7 +135,7 @@ public static class ServiceCollectionExtensions
             else
             {
                 options.UseNpgsql(connStr)
-                        .AddInterceptors(tenantAuditInterceptor, tenantSessionInterceptor, entityHistoryInterceptor, auditInterceptor, immutabilityInterceptor, encryptionInterceptor)
+                        .AddInterceptors(fileCleanupInterceptor, tenantAuditInterceptor, tenantSessionInterceptor, entityHistoryInterceptor, auditInterceptor, immutabilityInterceptor, encryptionInterceptor)
                         .ConfigureWarnings(w =>
                         {
                             w.Ignore(CoreEventId.ManyServiceProvidersCreatedWarning);

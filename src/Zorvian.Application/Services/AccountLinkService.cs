@@ -68,21 +68,44 @@ public sealed class AccountLinkService
             links.Add(new() { TransactionType = "Sale", Role = AccountRoles.Inventory, AccountId = inventoryAccount.Id, CompanyId = CompanyId });
             links.Add(new() { TransactionType = "Purchase", Role = AccountRoles.Inventory, AccountId = inventoryAccount.Id, CompanyId = CompanyId });
             links.Add(new() { TransactionType = "InventoryMovement", Role = AccountRoles.Inventory, AccountId = inventoryAccount.Id, CompanyId = CompanyId });
+            links.Add(new() { TransactionType = "SupplierCreditNote", Role = AccountRoles.Inventory, AccountId = inventoryAccount.Id, CompanyId = CompanyId });
         }
         if (clientsAccount != null)
+        {
             links.Add(new() { TransactionType = "Sale", Role = AccountRoles.AccountsReceivable, AccountId = clientsAccount.Id, CompanyId = CompanyId });
+            links.Add(new() { TransactionType = "Check", Role = AccountRoles.AccountsReceivable, AccountId = clientsAccount.Id, CompanyId = CompanyId });
+            links.Add(new() { TransactionType = "CreditPayment", Role = AccountRoles.AccountsReceivable, AccountId = clientsAccount.Id, CompanyId = CompanyId });
+            links.Add(new() { TransactionType = "Collection", Role = AccountRoles.AccountsReceivable, AccountId = clientsAccount.Id, CompanyId = CompanyId });
+        }
         if (cashAccount != null)
+        {
             links.Add(new() { TransactionType = "Sale", Role = AccountRoles.Cash, AccountId = cashAccount.Id, CompanyId = CompanyId });
+            links.Add(new() { TransactionType = "BankDeposit", Role = AccountRoles.Cash, AccountId = cashAccount.Id, CompanyId = CompanyId });
+            links.Add(new() { TransactionType = "SupplierPayment", Role = AccountRoles.Cash, AccountId = cashAccount.Id, CompanyId = CompanyId });
+            links.Add(new() { TransactionType = "CreditPayment", Role = AccountRoles.Cash, AccountId = cashAccount.Id, CompanyId = CompanyId });
+            links.Add(new() { TransactionType = "CashMovement", Role = AccountRoles.Cash, AccountId = cashAccount.Id, CompanyId = CompanyId });
+            links.Add(new() { TransactionType = "Collection", Role = AccountRoles.Cash, AccountId = cashAccount.Id, CompanyId = CompanyId });
+        }
         if (salesAccount != null)
             links.Add(new() { TransactionType = "Sale", Role = AccountRoles.SalesRevenue, AccountId = salesAccount.Id, CompanyId = CompanyId });
         if (costAccount != null)
+        {
             links.Add(new() { TransactionType = "Sale", Role = AccountRoles.CostOfSales, AccountId = costAccount.Id, CompanyId = CompanyId });
+            links.Add(new() { TransactionType = "BankCommission", Role = AccountRoles.BankExpense, AccountId = costAccount.Id, CompanyId = CompanyId });
+        }
         if (vatPayableAccount != null)
             links.Add(new() { TransactionType = "Sale", Role = AccountRoles.VatPayable, AccountId = vatPayableAccount.Id, CompanyId = CompanyId });
         if (suppliersAccount != null)
+        {
             links.Add(new() { TransactionType = "Purchase", Role = AccountRoles.AccountsPayable, AccountId = suppliersAccount.Id, CompanyId = CompanyId });
+            links.Add(new() { TransactionType = "SupplierPayment", Role = AccountRoles.AccountsPayable, AccountId = suppliersAccount.Id, CompanyId = CompanyId });
+            links.Add(new() { TransactionType = "SupplierCreditNote", Role = AccountRoles.AccountsPayable, AccountId = suppliersAccount.Id, CompanyId = CompanyId });
+        }
         if (vatReceivableAccount != null)
+        {
             links.Add(new() { TransactionType = "Purchase", Role = AccountRoles.VatReceivable, AccountId = vatReceivableAccount.Id, CompanyId = CompanyId });
+            links.Add(new() { TransactionType = "SupplierCreditNote", Role = AccountRoles.VatReceivable, AccountId = vatReceivableAccount.Id, CompanyId = CompanyId });
+        }
         if (inventoryAccount != null)
             links.Add(new() { TransactionType = "InventoryMovement", Role = AccountRoles.InventoryAdjustment, AccountId = inventoryAccount.Id, CompanyId = CompanyId });
 

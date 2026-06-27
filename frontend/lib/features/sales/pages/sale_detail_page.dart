@@ -53,6 +53,15 @@ final class _SaleDetailPageState extends ConsumerState<SaleDetailPage> {
         title: Text('Factura ${d.invoiceNumber}'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.bolt, size: 20),
+            tooltip: 'Generar Documento (3 clics)',
+            onPressed: () => context.push('/documents/quick-generate', extra: {
+              'entityType': 'sale',
+              'entityId': widget.saleId,
+              'entityDisplayName': 'Factura ${d.invoiceNumber}',
+            }),
+          ),
+          IconButton(
             icon: const Icon(Icons.assignment_return, size: 20),
             tooltip: 'Nota de Crédito',
             onPressed: () async {

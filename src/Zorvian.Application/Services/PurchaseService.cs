@@ -49,8 +49,19 @@ public sealed class PurchaseService
         if (!Guid.TryParse(_tenant.TenantId, out var companyId))
             throw new InvalidOperationException("Invalid tenant");
 
+        var company = await _companyRepo.GetByIdAsync(companyId)
+            ?? throw new InvalidOperationException("Company not found");
         var settings = await _companyRepo.GetSettingsAsync(companyId);
         var defaultTaxRate = settings?.TaxRate ?? 0.15m;
+        var countryCode = request.CountryCode ?? company.Country switch
+        {
+            "Nicaragua" => "NIC",
+            "Costa Rica" => "CRI",
+            "El Salvador" => "SLV",
+            "Honduras" => "HND",
+            "Guatemala" => "GTM",
+            _ => "NIC"
+        };
 
         var supplier = await _supplierRepo.GetByIdAsync(request.SupplierId)
             ?? throw new InvalidOperationException("Supplier not found");
@@ -87,6 +98,7 @@ public sealed class PurchaseService
             Balance = total,
             Notes = request.Notes,
             BranchId = request.BranchId,
+            CountryCode = countryCode,
             Details = request.Details.Select(d => new PurchaseDetail
             {
                 ProductId = d.ProductId,
@@ -147,7 +159,7 @@ public sealed class PurchaseService
         await _purchaseRepo.SaveChangesAsync();
 
         await _autoAccounting.GeneratePurchaseEntryAsync(
-            purchase.Id, purchase.Details.ToList(), purchase.Discount, purchase.Total);
+            purchase.Id, purchase.Details.ToList(), purchase.Discount, purchase.Total, purchase.CountryCode);
     }
 
     public async Task<PurchaseResponse?> CompleteApprovedPurchaseAsync(Guid purchaseId)
@@ -160,7 +172,7 @@ public sealed class PurchaseService
         await _purchaseRepo.SaveChangesAsync();
 
         await _autoAccounting.GeneratePurchaseEntryAsync(
-            purchase.Id, purchase.Details.ToList(), purchase.Discount, purchase.Total);
+            purchase.Id, purchase.Details.ToList(), purchase.Discount, purchase.Total, purchase.CountryCode);
 
         return await GetByIdAsync(purchase.Id);
     }
@@ -342,6 +354,7 @@ public sealed class PurchaseService
             purchase.Notes,
             purchase.CurrencyCode,
             purchase.ExchangeRateToReporting,
+            purchase.CountryCode,
             purchase.Details.Select(d => new PurchaseDetailItem(
                 d.ProductId,
                 d.Product?.Name ?? "",
@@ -363,7 +376,7 @@ public sealed class PurchaseService
 
         return new PagedResult<PurchaseListResponse>(
             items.Select(p => new PurchaseListResponse(
-                p.Id, p.PurchaseNumber, p.Supplier?.Name ?? "", p.CreatedAt, p.Status, p.Total, p.PaidAmount, p.Balance, p.CurrencyCode
+                p.Id, p.PurchaseNumber, p.Supplier?.Name ?? "", p.CreatedAt, p.Status, p.Total, p.PaidAmount, p.Balance, p.CurrencyCode, p.CountryCode
             )).ToList(),
             total, page, pageSize
         );

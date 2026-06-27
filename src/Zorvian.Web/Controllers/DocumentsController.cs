@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Common;
+using Zorvian.Application.DTOs.Document;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
+using Zorvian.Infrastructure.Services;
 using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers;
@@ -16,22 +18,22 @@ public sealed class DocumentsController : ControllerBase
     private readonly IDocumentGenerationService _generationService;
     private readonly IDocumentTemplateRepository _templateRepo;
     private readonly IGeneratedDocumentRepository _docRepo;
+    private readonly QuestPdfService _pdfService;
 
     public DocumentsController(
         IDocumentService documentService,
         IDocumentGenerationService generationService,
         IDocumentTemplateRepository templateRepo,
-        IGeneratedDocumentRepository docRepo)
+        IGeneratedDocumentRepository docRepo,
+        QuestPdfService pdfService)
     {
         _documentService = documentService;
         _generationService = generationService;
         _templateRepo = templateRepo;
         _docRepo = docRepo;
+        _pdfService = pdfService;
     }
 
-    /// <summary>
-    /// Lista documentos generados con paginación.
-    /// </summary>
     [RequirePermission(Permissions.DocumentRead)]
     [HttpGet]
     public async Task<IActionResult> GetDocuments(
@@ -44,9 +46,6 @@ public sealed class DocumentsController : ControllerBase
         return Ok(new PagedResult<GeneratedDocument>(items, total, page, pageSize));
     }
 
-    /// <summary>
-    /// Lista plantillas con paginación y filtros.
-    /// </summary>
     [RequirePermission(Permissions.DocumentRead)]
     [HttpGet("templates")]
     public async Task<IActionResult> GetTemplates(
@@ -65,9 +64,6 @@ public sealed class DocumentsController : ControllerBase
         return Ok(new PagedResult<DocumentTemplate>(items, total, page, pageSize));
     }
 
-    /// <summary>
-    /// Crea una nueva plantilla.
-    /// </summary>
     [RequirePermission(Permissions.DocumentWrite)]
     [HttpPost("templates")]
     public async Task<IActionResult> CreateTemplate([FromBody] DocumentTemplateDto dto)
@@ -87,9 +83,6 @@ public sealed class DocumentsController : ControllerBase
         return CreatedAtAction(nameof(GetTemplateById), new { id = template.Id }, template);
     }
 
-    /// <summary>
-    /// Obtiene una plantilla por ID.
-    /// </summary>
     [RequirePermission(Permissions.DocumentRead)]
     [HttpGet("templates/{id}")]
     public async Task<IActionResult> GetTemplateById(Guid id)
@@ -99,20 +92,17 @@ public sealed class DocumentsController : ControllerBase
         return Ok(template);
     }
 
-    /// <summary>
-    /// Sugiere plantillas para un módulo específico.
-    /// </summary>
     [RequirePermission(Permissions.DocumentRead)]
     [HttpGet("suggestions")]
-    public async Task<IActionResult> GetSuggestions([FromQuery] string module, [FromQuery] string @event, [FromQuery] string countryCode = "NI")
+    public async Task<IActionResult> GetSuggestions(
+        [FromQuery] string module,
+        [FromQuery] string @event,
+        [FromQuery] string countryCode = "NI")
     {
         var templates = await _documentService.SuggestTemplatesAsync(module, @event, countryCode);
         return Ok(templates);
     }
 
-    /// <summary>
-    /// Genera un documento desde cualquier plantilla con variables dinámicas.
-    /// </summary>
     [RequirePermission(Permissions.DocumentWrite)]
     [HttpPost("generate")]
     public async Task<IActionResult> GenerateDocument([FromBody] GenerateDocumentRequest request)
@@ -120,15 +110,11 @@ public sealed class DocumentsController : ControllerBase
         var template = await _templateRepo.GetByIdAsync(request.TemplateId);
         if (template == null) return NotFound(new { detail = "Plantilla no encontrada" });
 
-        // Flatten variables directly so Liquid templates use {{ client_name }} not {{ Vars.client_name }}
         var data = request.Variables;
         var doc = await _documentService.GenerateProfessionalDocumentAsync(request.TemplateId, request.EntityId, data);
         return Ok(doc);
     }
 
-    /// <summary>
-    /// Preview: renderiza el HTML de una plantilla con datos de ejemplo SIN persistir.
-    /// </summary>
     [RequirePermission(Permissions.DocumentRead)]
     [HttpPost("preview")]
     public async Task<IActionResult> PreviewTemplate([FromBody] PreviewRequest request)
@@ -137,7 +123,6 @@ public sealed class DocumentsController : ControllerBase
 
         if (!string.IsNullOrEmpty(request.Content))
         {
-            // Direct HTML content from the editor (unsaved template)
             templateContent = request.Content;
         }
         else if (request.TemplateId.HasValue)
@@ -156,32 +141,68 @@ public sealed class DocumentsController : ControllerBase
         return Ok(new { html = renderedHtml });
     }
 
-    /// <summary>
-    /// REGLA DE 3 CLICS: Genera un contrato de empleado y lo deja listo para firma.
-    /// </summary>
-    [RequirePermission(Permissions.DocumentWrite)]
-    [HttpPost("quick-generate/employee-contract")]
-    public async Task<IActionResult> QuickGenerateEmployeeContract([FromBody] QuickGenerateRequest request)
+    /// Obtiene el contexto de una entidad para previsualizar datos antes de generar.
+    [RequirePermission(Permissions.DocumentRead)]
+    [HttpGet("entity-context")]
+    public async Task<IActionResult> GetEntityContext(
+        [FromQuery] string entityType,
+        [FromQuery] Guid entityId)
     {
-        var doc = await _generationService.QuickGenerateEmployeeContractAsync(request.EntityId, request.TemplateId);
-        return Ok(doc);
+        var context = await _generationService.GetEntityContextAsync(entityType, entityId);
+        if (context == null)
+            return NotFound(new { detail = $"Entidad {entityType} con ID {entityId} no encontrada" });
+        return Ok(context);
     }
 
-    /// <summary>
-    /// Obtiene los detalles de un documento, incluyendo versiones y estado de firmas.
-    /// </summary>
+    /// REGLA DE 3 CLICS: Genera cualquier documento en un solo paso.
+    [RequirePermission(Permissions.DocumentWrite)]
+    [HttpPost("quick-generate")]
+    public async Task<IActionResult> QuickGenerate([FromBody] QuickGenerateRequest request)
+    {
+        try
+        {
+            var result = await _generationService.QuickGenerateAsync(
+                request.EntityType, request.EntityId, request.TemplateId);
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { detail = ex.Message });
+        }
+    }
+
+    [RequirePermission(Permissions.DocumentWrite)]
+    [HttpPost("quick-generate/employee-contract")]
+    public async Task<IActionResult> QuickGenerateEmployeeContract([FromBody] QuickGenerateLegacyRequest request)
+    {
+        var result = await _generationService.QuickGenerateAsync(
+            "employee", request.EntityId, request.TemplateId);
+        return Ok(result);
+    }
+
     [RequirePermission(Permissions.DocumentRead)]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetDetails(Guid id)
     {
         var doc = await _documentService.GetDocumentDetailsAsync(id);
         if (doc == null) return NotFound();
-        return Ok(doc);
+
+        var templateName = doc.Template?.Name;
+        var versions = doc.Versions
+            .OrderByDescending(v => v.VersionNumber)
+            .Select(v => new DocumentVersionItem(v.VersionNumber, v.ChangesSummary, v.CreatedAt))
+            .ToList();
+
+        var signatures = doc.Signatures
+            .Select(s => new DocumentSignatureItem(s.Id, s.SignerRole, s.Status, s.SignedAt))
+            .ToList();
+
+        return Ok(new DocumentDetailResponse(
+            doc.Id, doc.Name, doc.EntityType, doc.Status,
+            doc.CreatedAt, doc.Summary, templateName,
+            versions, signatures));
     }
 
-    /// <summary>
-    /// Un solo click para finalizar y solicitar firma si el documento está en draft.
-    /// </summary>
     [RequirePermission(Permissions.DocumentWrite)]
     [HttpPost("{id}/finalize")]
     public async Task<IActionResult> Finalize(Guid id, [FromBody] FinalizeRequest request)
@@ -190,9 +211,26 @@ public sealed class DocumentsController : ControllerBase
         return NoContent();
     }
 
+    [RequirePermission(Permissions.DocumentRead)]
+    [HttpGet("{id}/pdf")]
+    public async Task<IActionResult> DownloadPdf(Guid id)
+    {
+        var doc = await _docRepo.GetByIdAsync(id);
+        if (doc == null) return NotFound();
+
+        var versions = await _docRepo.GetVersionsAsync(id);
+        var latest = versions.MaxBy(v => v.VersionNumber);
+        if (latest == null || string.IsNullOrEmpty(latest.Content))
+            return NotFound(new { detail = "No hay contenido renderizado para este documento" });
+
+        var pdfBytes = _pdfService.RenderHtmlToPdf(latest.Content);
+        var fileName = $"{doc.Name}.pdf".Replace(" ", "_").Replace("/", "-");
+        return File(pdfBytes, "application/pdf", fileName);
+    }
+
     private static Dictionary<string, string> GetDefaultSampleData()
     {
-        var data = new Dictionary<string, string>
+        return new Dictionary<string, string>
         {
             ["Company.Name"] = "Zorvian Corp S.A.",
             ["Company.Date"] = DateTime.Now.ToString("dd/MM/yyyy"),
@@ -232,12 +270,10 @@ public sealed class DocumentsController : ControllerBase
             ["validity_days"] = "15",
             ["scope"] = "Para gestionar asuntos legales y financieros.",
         };
-
-        return data;
     }
 }
 
-public record QuickGenerateRequest(Guid EntityId, Guid TemplateId);
+public record QuickGenerateLegacyRequest(Guid EntityId, Guid TemplateId);
 public record FinalizeRequest(string Role, Guid SignerId);
 public record DocumentTemplateDto(string Name, string Category, string Content, string CountryCode, string? Module, string? Variables);
 public record GenerateDocumentRequest(Guid TemplateId, Guid EntityId, Dictionary<string, string> Variables);

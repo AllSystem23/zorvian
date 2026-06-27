@@ -23,6 +23,77 @@ public sealed class CompaniesController : ControllerBase
     }
 
     /// <summary>
+    /// Lista todas las empresas (solo SuperAdmin).
+    /// </summary>
+    [HttpGet("all")]
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<IActionResult> GetAll()
+    {
+        var companies = await _companyService.GetAllAsync();
+        return Ok(companies);
+    }
+
+    /// <summary>
+    /// Actualiza cualquier empresa por ID (solo SuperAdmin).
+    /// </summary>
+    [Audit("Company", "AdminUpdate")]
+    [HttpPut("{id:guid}")]
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<IActionResult> AdminUpdate(Guid id, [FromBody] UpdateCompanyRequest request)
+    {
+        var result = await _companyService.UpdateByIdAsync(id, request);
+        if (result is null)
+            return NotFound(new { error = "Empresa no encontrada" });
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Sube o reemplaza el logo de una empresa.
+    /// </summary>
+    [Audit("Company", "UploadLogo")]
+    [HttpPost("{id:guid}/logo")]
+    [Authorize(Roles = "SuperAdmin,CompanyAdmin")]
+    [RequestSizeLimit(5 * 1024 * 1024)] // 5 MB
+    public async Task<IActionResult> UploadLogo(Guid id, IFormFile file)
+    {
+        if (file is null || file.Length == 0)
+            return BadRequest(new { error = "No se proporcionó un archivo" });
+
+        var allowedTypes = new[] { "image/png", "image/jpeg", "image/webp" };
+        if (!allowedTypes.Contains(file.ContentType))
+            return BadRequest(new { error = "Solo se permiten archivos PNG, JPG o WebP" });
+
+        await using var stream = file.OpenReadStream();
+        var url = await _companyService.UploadLogoAsync(id, stream, file.ContentType);
+
+        if (url is null)
+            return NotFound(new { error = "Empresa no encontrada" });
+
+        return Ok(new { logoUrl = url });
+    }
+
+    /// <summary>
+    /// Desactiva una empresa (solo SuperAdmin).
+    /// </summary>
+    [Audit("Company", "AdminDeactivate")]
+    [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<IActionResult> AdminDeactivate(Guid id)
+    {
+        try
+        {
+            var result = await _companyService.DeactivateAsync(id);
+            if (!result)
+                return NotFound(new { error = "Empresa no encontrada" });
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
     /// Crea una nueva empresa en el sistema.
     /// </summary>
     [HttpPost]

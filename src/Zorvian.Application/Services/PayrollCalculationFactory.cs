@@ -14,7 +14,16 @@ public sealed class PayrollCalculationFactory
 
     public IPayrollCalculationStrategy GetStrategy(string countryCode)
     {
-        return _strategies.FirstOrDefault(s => s.CountryCode == countryCode)
-            ?? throw new NotSupportedException($"Country code {countryCode} not supported.");
+        var strategy = _strategies.FirstOrDefault(s =>
+            s.CountryCode.Equals(countryCode, StringComparison.OrdinalIgnoreCase));
+
+        if (strategy is not null)
+            return strategy;
+
+        var supported = string.Join(", ", _strategies.Select(s => s.CountryCode));
+        throw new NotSupportedException(
+            $"No payroll strategy found for country code '{countryCode}'. " +
+            $"Supported codes: {supported}. " +
+            $"Verify the Company.Country field or register a new IPayrollCalculationStrategy.");
     }
 }

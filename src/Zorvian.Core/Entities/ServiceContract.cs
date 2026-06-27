@@ -15,6 +15,7 @@ public sealed class ServiceContract : BaseEntity
     public decimal TotalContractAmount { get; set; }
 
     public string Currency { get; set; } = "NIO";
+    public string CountryCode { get; set; } = "ALL";
     public string? PaymentTerms { get; set; }
     public string? PaymentMilestonesJson { get; set; }
     public DateOnly StartDate { get; set; }

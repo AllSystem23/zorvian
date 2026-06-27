@@ -6,6 +6,8 @@ public interface IFirebaseAuthService
     Task<FirebaseUserCreated> CreateUserAsync(string email, string password, string displayName);
     Task<FirebaseUserCreated?> GetUserByEmailAsync(string email);
     Task<FirebaseUser?> SignInWithPasswordAsync(string email, string password);
+    Task UpdatePasswordAsync(string firebaseUid, string newPassword);
+    Task UpdateEmailAsync(string firebaseUid, string newEmail);
 }
 
 public sealed record FirebaseUser(string Uid, string Email, string Name, string? Picture);

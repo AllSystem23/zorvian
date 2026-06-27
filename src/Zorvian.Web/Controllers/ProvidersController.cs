@@ -148,4 +148,39 @@ public sealed class ProvidersController : ControllerBase
         var result = await _service.ProgramPaymentAsync(id, DateOnly.FromDateTime(DateTime.UtcNow), null);
         return result is null ? NotFound() : Ok(result);
     }
+
+    [Audit("Provider", "Rankings")]
+    [HttpGet("rankings")]
+    [RequirePermission(Permissions.ProviderRead)]
+    public async Task<IActionResult> GetRankings([FromQuery] string? countryCode) =>
+        Ok(await _service.GetRankingsAsync(countryCode));
+
+    [Audit("Provider", "RankingHistory")]
+    [HttpGet("rankings/history")]
+    [RequirePermission(Permissions.ProviderRead)]
+    public async Task<IActionResult> GetRankingHistory([FromQuery] string? countryCode) =>
+        Ok(await _service.GetRankingHistoryAsync(countryCode));
+
+    [Audit("Provider", "Dashboard")]
+    [HttpGet("dashboard")]
+    [RequirePermission(Permissions.ProviderRead)]
+    public async Task<IActionResult> GetDashboard([FromQuery] string? countryCode) =>
+        Ok(await _service.GetDashboardAsync(countryCode));
+
+    [Audit("Provider", "Notifications")]
+    [HttpGet("notifications")]
+    [RequirePermission(Permissions.ProviderRead)]
+    public async Task<IActionResult> GetNotifications([FromQuery] string? countryCode) =>
+        Ok(await _service.GetNotificationsAsync(countryCode));
+
+    [Audit("Provider", "CompleteMilestoneWithApproval")]
+    [HttpPut("milestones/{id:guid}/complete-approval")]
+    [RequirePermission(Permissions.ProviderWrite)]
+    public async Task<IActionResult> CompleteMilestoneWithApproval(Guid id)
+    {
+        var user = User.Identity?.Name ?? "system";
+        var (success, approvalRequestId) = await _service.CompleteMilestoneWithApprovalAsync(id, user);
+        if (!success) return NotFound();
+        return Ok(new { status = approvalRequestId.HasValue ? "pending_approval" : "completed", approvalRequestId });
+    }
 }

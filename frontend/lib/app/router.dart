@@ -17,6 +17,7 @@ import '../features/settings/pages/leave_types_page.dart';
 import '../features/settings/pages/leave_type_form_page.dart';
 import '../features/admin/pages/user_list_page.dart';
 import '../features/admin/pages/invite_user_page.dart';
+import '../features/admin/pages/super_admin_companies_page.dart';
 import '../features/branches/pages/branch_list_page.dart';
 import '../features/branches/pages/branch_form_page.dart';
 import '../features/departments/pages/department_form_page.dart';
@@ -51,6 +52,7 @@ import '../features/providers/pages/service_contract_detail_page.dart';
 import '../features/providers/pages/provider_contracts_page.dart';
 import '../features/providers/pages/contract_form_page.dart';
 import '../features/providers/pages/provider_invoices_page.dart';
+import '../features/providers/pages/provider_dashboard_page.dart';
 import '../features/unauthorized/unauthorized_page.dart';
 import '../features/clients/pages/client_list_page.dart';
 import '../features/clients/pages/client_form_page.dart';
@@ -93,6 +95,9 @@ import '../features/purchases/pages/purchase_list_page.dart';
 import '../features/purchases/pages/purchase_form_page.dart';
 import '../features/purchases/pages/purchase_detail_page.dart';
 import '../features/purchases/pages/inventory_adjustment_page.dart';
+import '../features/purchase_orders/pages/purchase_order_list_page.dart';
+import '../features/purchase_orders/pages/purchase_order_form_page.dart';
+import '../features/purchase_orders/pages/purchase_order_detail_page.dart';
 import '../features/approval/pages/approval_flow_list_page.dart';
 import '../features/approval/pages/approval_flow_form_page.dart';
 import '../features/approval/pages/approval_pending_page.dart';
@@ -127,6 +132,8 @@ import '../features/treasury/pages/bank_deposit_page.dart';
 import '../features/treasury/pages/bank_commission_page.dart';
 import '../features/treasury/pages/bank_collection_page.dart';
 import '../features/documents/pages/document_center_page.dart';
+import '../features/documents/pages/document_detail_page.dart';
+import '../features/documents/pages/quick_generate_wizard_page.dart';
 import '../features/documents/pages/template_editor_page.dart';
 import '../features/pos/pages/pos_page.dart';
 import '../features/crm/pages/crm_page.dart';
@@ -176,6 +183,7 @@ final _routeRoles = <String, List<String>>{
   '/reports': ['SuperAdmin', 'CompanyAdmin', 'Rrhh'],
   '/audit-logs': ['SuperAdmin', 'CompanyAdmin'],
   '/admin': ['SuperAdmin', 'CompanyAdmin'],
+  '/admin/companies': ['SuperAdmin'],
   '/settings': ['SuperAdmin', 'CompanyAdmin'],
   '/payroll': ['SuperAdmin', 'CompanyAdmin', 'Rrhh'],
   '/clients': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
@@ -200,6 +208,7 @@ final _routeRoles = <String, List<String>>{
   '/cash-registers': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/warranties': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/providers': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor'],
+  '/providers/dashboard': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor'],
   '/branches': ['SuperAdmin', 'CompanyAdmin', 'Supervisor', 'Rrhh', 'Employee'],
   '/bi/executive': ['SuperAdmin', 'CompanyAdmin'],
   '/bi/financial': ['SuperAdmin', 'CompanyAdmin'],
@@ -404,6 +413,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/admin/invite',
             name: 'admin-invite',
             builder: (_, _) => const InviteUserPage(),
+          ),
+          GoRoute(
+            path: '/admin/companies',
+            name: 'admin-companies',
+            builder: (_, _) => const SuperAdminCompaniesPage(),
           ),
           GoRoute(
             path: '/leave-types',
@@ -664,6 +678,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           GoRoute(
+            path: '/providers/dashboard',
+            name: 'provider-dashboard',
+            builder: (_, _) => const ProviderDashboardPage(),
+          ),
+          GoRoute(
             path: '/providers',
             name: 'providers',
             builder: (_, _) => const ProviderListPage(),
@@ -725,6 +744,15 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(path: 'new', name: 'purchase-new', builder: (_, _) => const PurchaseFormPage()),
               GoRoute(path: ':purchaseId', name: 'purchase-detail', builder: (_, state) => PurchaseDetailPage(purchaseId: state.pathParameters['purchaseId']!)),
+            ],
+          ),
+          GoRoute(
+            path: '/purchase-orders',
+            name: 'purchase-orders',
+            builder: (_, _) => const PurchaseOrderListPage(),
+            routes: [
+              GoRoute(path: 'new', name: 'purchase-order-new', builder: (_, _) => const PurchaseOrderFormPage()),
+              GoRoute(path: ':purchaseOrderId', name: 'purchase-order-detail', builder: (_, state) => PurchaseOrderDetailPage(purchaseOrderId: state.pathParameters['purchaseOrderId']!)),
             ],
           ),
           GoRoute(
@@ -890,6 +918,25 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/documents',
             name: 'document-center',
             builder: (_, _) => const DocumentCenterPage(),
+            routes: [
+              GoRoute(
+                path: 'quick-generate',
+                name: 'document-quick-generate',
+                builder: (_, state) {
+                  final extra = state.extra as Map<String, dynamic>?;
+                  return QuickGenerateWizardPage(
+                    preselectedTemplateId: extra?['preselectedTemplateId'] as String?,
+                  );
+                },
+              ),
+              GoRoute(
+                path: ':documentId',
+                name: 'document-detail',
+                builder: (_, state) => DocumentDetailPage(
+                  documentId: state.pathParameters['documentId']!,
+                ),
+              ),
+            ],
           ),
           GoRoute(
             path: '/documents/templates/new',

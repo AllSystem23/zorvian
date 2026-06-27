@@ -16,6 +16,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
     private readonly ITenantContext? _tenant;
     private readonly IPayrollRepository? _payrollRepo;
     private readonly ICashMovementRepository? _cashRepo;
+    private readonly ICompanyRepository? _companyRepo;
 
     public AutoAccountingService(IAccountingRuleTemplateRepository repository)
     {
@@ -32,7 +33,8 @@ public sealed class AutoAccountingService : IAutoAccountingService
         ITenantContext tenant,
         IPayrollRepository payrollRepo,
         ICashMovementRepository cashRepo,
-        IAccountingRuleTemplateRepository templateRepo)
+        IAccountingRuleTemplateRepository templateRepo,
+        ICompanyRepository companyRepo)
     {
         _entryRepo = entryRepo;
         _periodRepo = periodRepo;
@@ -43,9 +45,30 @@ public sealed class AutoAccountingService : IAutoAccountingService
         _payrollRepo = payrollRepo;
         _cashRepo = cashRepo;
         _repository = templateRepo;
+        _companyRepo = companyRepo;
     }
 
     private Guid CompanyId => _tenant?.ResolveCompanyId() ?? throw new InvalidOperationException("Invalid tenant");
+
+    private static string MapCountryToCode(string country) => (country ?? "").ToLowerInvariant() switch
+    {
+        "nicaragua" => "NIC",
+        "costa rica" => "CRI",
+        "el salvador" => "SLV",
+        "honduras" => "HND",
+        "guatemala" => "GTM",
+        "panamá" or "panama" => "PAN",
+        _ => "NIC"
+    };
+
+    private string? _resolvedCountryCode;
+    private async Task<string> ResolveCountryCodeAsync()
+    {
+        if (_resolvedCountryCode != null) return _resolvedCountryCode;
+        var company = await _companyRepo!.GetByIdAsync(CompanyId);
+        _resolvedCountryCode = company != null ? MapCountryToCode(company.Country) : "NIC";
+        return _resolvedCountryCode;
+    }
 
     public async Task GenerateEntryAsync(string processTrigger, Guid companyId, string countryCode, object context)
     {
@@ -128,7 +151,8 @@ public sealed class AutoAccountingService : IAutoAccountingService
         var totalTax = groupedDetails.Sum(g => g.Tax);
         var total = (totalSubtotal - totalDiscount) + totalTax;
 
-        var context = new { Total = total, Subtotal = totalSubtotal, Tax = totalTax, Discount = totalDiscount, PaidAmount = paidAmount };
+        var saleCountryCode = await ResolveCountryCodeAsync();
+        var context = new { Total = total, Subtotal = totalSubtotal, Tax = totalTax, Discount = totalDiscount, PaidAmount = paidAmount, CountryCode = saleCountryCode };
         var entryDetails = new List<AccountingEntryDetail>();
 
         AccountingEntryDetail MakeDetail(Guid accountId, decimal debit, decimal credit, string desc)
@@ -162,11 +186,23 @@ public sealed class AutoAccountingService : IAutoAccountingService
 
             foreach (var group in groupedDetails)
             {
-                var salesAccountCode = group.TaxCategory?.SalesAccountCode ?? "4.1.01";
-                var vatAccountCode = group.TaxCategory?.VatAccountCode ?? "2.1.02";
+                Guid salesAccountId;
+                if (group.TaxCategory != null && !string.IsNullOrEmpty(group.TaxCategory.SalesAccountCode))
+                    salesAccountId = await GetAccountIdByCodeAsync(group.TaxCategory.SalesAccountCode);
+                else
+                {
+                    try { salesAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.SalesRevenue); }
+                    catch { salesAccountId = await GetAccountIdByCodeAsync("4.1.01"); }
+                }
 
-                var salesAccountId = await GetAccountIdByCodeAsync(salesAccountCode);
-                var vatAccountId = await GetAccountIdByCodeAsync(vatAccountCode);
+                Guid vatAccountId;
+                if (group.TaxCategory != null && !string.IsNullOrEmpty(group.TaxCategory.VatAccountCode))
+                    vatAccountId = await GetAccountIdByCodeAsync(group.TaxCategory.VatAccountCode);
+                else
+                {
+                    try { vatAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.VatPayable); }
+                    catch { vatAccountId = await GetAccountIdByCodeAsync("2.1.02"); }
+                }
 
                 entryDetails.Add(MakeDetail(salesAccountId, 0, group.Subtotal - group.Discount, $"Ventas {group.TaxCategory?.Name}"));
                 entryDetails.Add(MakeDetail(vatAccountId, 0, group.Tax, $"IVA {group.TaxCategory?.Name}"));
@@ -199,7 +235,8 @@ public sealed class AutoAccountingService : IAutoAccountingService
         var periodId = await GetPeriodIdAsync();
         var companyId = CompanyId;
 
-        var context = new { TotalCost = totalCost };
+        var costCountryCode = await ResolveCountryCodeAsync();
+        var context = new { TotalCost = totalCost, CountryCode = costCountryCode };
         var entryDetails = new List<AccountingEntryDetail>();
 
         AccountingEntryDetail MakeDetail(Guid accountId, decimal debit, decimal credit, string desc)
@@ -249,7 +286,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
         return entry.Id;
     }
 
-    public async Task<Guid> GeneratePurchaseEntryAsync(Guid purchaseId, List<PurchaseDetail> details, decimal discount, decimal total)
+    public async Task<Guid> GeneratePurchaseEntryAsync(Guid purchaseId, List<PurchaseDetail> details, decimal discount, decimal total, string countryCode)
     {
         var periodId = await GetPeriodIdAsync();
         var companyId = CompanyId;
@@ -265,7 +302,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
         var totalSubtotal = groupedDetails.Sum(g => g.Subtotal);
         var totalTax = groupedDetails.Sum(g => g.Tax);
 
-        var context = new { Total = total, Subtotal = totalSubtotal, Tax = totalTax, Discount = discount };
+        var context = new { Total = total, Subtotal = totalSubtotal, Tax = totalTax, Discount = discount, CountryCode = countryCode };
         var entryDetails = new List<AccountingEntryDetail>();
 
         AccountingEntryDetail MakeDetail(Guid accountId, decimal debit, decimal credit, string desc)
@@ -291,13 +328,22 @@ public sealed class AutoAccountingService : IAutoAccountingService
             var apAccountId = await GetAccountIdAsync(TransactionTypes.Purchase, AccountRoles.AccountsPayable);
             entryDetails.Add(MakeDetail(apAccountId, 0, total, "Compra a proveedor"));
 
+            // Cuenta de inventario: AccountLink (per-company), NO desde TaxCategory.SalesAccountCode
+            Guid invAccountId;
+            try { invAccountId = await GetAccountIdAsync(TransactionTypes.Purchase, AccountRoles.Inventory); }
+            catch { invAccountId = await GetAccountIdByCodeAsync("1.1.04"); }
+
             foreach (var group in groupedDetails)
             {
-                var invAccountCode = group.TaxCategory?.SalesAccountCode ?? "1.1.04";
-                var vatAccountCode = group.TaxCategory?.VatAccountCode ?? "1.1.05";
-
-                var invAccountId = await GetAccountIdByCodeAsync(invAccountCode);
-                var vatAccountId = await GetAccountIdByCodeAsync(vatAccountCode);
+                var vatAccountCode = group.TaxCategory?.VatAccountCode;
+                Guid vatAccountId;
+                try { vatAccountId = await GetAccountIdAsync(TransactionTypes.Purchase, AccountRoles.VatReceivable); }
+                catch
+                {
+                    vatAccountId = !string.IsNullOrEmpty(vatAccountCode)
+                        ? await GetAccountIdByCodeAsync(vatAccountCode)
+                        : await GetAccountIdByCodeAsync("1.1.05");
+                }
 
                 entryDetails.Add(MakeDetail(invAccountId, group.Subtotal, 0, $"Inventario {group.TaxCategory?.Name}"));
                 entryDetails.Add(MakeDetail(vatAccountId, group.Tax, 0, $"IVA CrÃ©dito {group.TaxCategory?.Name}"));
@@ -340,7 +386,8 @@ public sealed class AutoAccountingService : IAutoAccountingService
         var totalSubtotal = groupedDetails.Sum(g => g.Subtotal);
         var totalTax = groupedDetails.Sum(g => g.Tax);
 
-        var context = new { Total = total, Subtotal = totalSubtotal, Tax = totalTax };
+        var revCountryCode = await ResolveCountryCodeAsync();
+        var context = new { Total = total, Subtotal = totalSubtotal, Tax = totalTax, CountryCode = revCountryCode };
         var entryDetails = new List<AccountingEntryDetail>();
 
         AccountingEntryDetail MakeDetail(Guid accountId, decimal debit, decimal credit, string desc)
@@ -366,17 +413,25 @@ public sealed class AutoAccountingService : IAutoAccountingService
             var apAccountId = await GetAccountIdAsync(TransactionTypes.Purchase, AccountRoles.AccountsPayable);
             entryDetails.Add(MakeDetail(apAccountId, total, 0, "AnulaciÃ³n compra - proveedor"));
 
+            // Cuenta de inventario: AccountLink, NO desde TaxCategory.SalesAccountCode
+            Guid invAcctId;
+            try { invAcctId = await GetAccountIdAsync(TransactionTypes.Purchase, AccountRoles.Inventory); }
+            catch { invAcctId = await GetAccountIdByCodeAsync("1.1.04"); }
+            entryDetails.Add(MakeDetail(invAcctId, 0, totalSubtotal, "AnulaciÃ³n compra - inventario"));
+
             foreach (var group in groupedDetails)
             {
-                var invAccountCode = group.TaxCategory?.SalesAccountCode ?? "1.1.04";
-                var vatAccountCode = group.TaxCategory?.VatAccountCode ?? "1.1.05";
-
-                var invAcctId = await GetAccountIdByCodeAsync(invAccountCode);
-                entryDetails.Add(MakeDetail(invAcctId, 0, group.Subtotal, "AnulaciÃ³n compra - inventario"));
-
                 if (group.Tax > 0)
                 {
-                    var vatAcctId = await GetAccountIdByCodeAsync(vatAccountCode);
+                    var vatAccountCode = group.TaxCategory?.VatAccountCode;
+                    Guid vatAcctId;
+                    try { vatAcctId = await GetAccountIdAsync(TransactionTypes.Purchase, AccountRoles.VatReceivable); }
+                    catch
+                    {
+                        vatAcctId = !string.IsNullOrEmpty(vatAccountCode)
+                            ? await GetAccountIdByCodeAsync(vatAccountCode)
+                            : await GetAccountIdByCodeAsync("1.1.05");
+                    }
                     entryDetails.Add(MakeDetail(vatAcctId, 0, group.Tax, "AnulaciÃ³n compra - IVA"));
                 }
             }
@@ -407,7 +462,8 @@ public sealed class AutoAccountingService : IAutoAccountingService
         var companyId = CompanyId;
         var amount = quantity * unitCost;
 
-        var context = new { Amount = amount, Quantity = quantity, UnitCost = unitCost };
+        var invCountryCode = await ResolveCountryCodeAsync();
+        var context = new { Amount = amount, Quantity = quantity, UnitCost = unitCost, CountryCode = invCountryCode };
         var entryDetails = new List<AccountingEntryDetail>();
 
         AccountingEntryDetail MakeDetail(Guid accountId, decimal debit, decimal credit, string desc)
@@ -470,7 +526,8 @@ public sealed class AutoAccountingService : IAutoAccountingService
         var periodId = await GetPeriodIdAsync();
         var totalAmount = principal + interest;
 
-        var context = new { Total = totalAmount, Principal = principal, Interest = interest };
+        var creditCountryCode = await ResolveCountryCodeAsync();
+        var context = new { Total = totalAmount, Principal = principal, Interest = interest, CountryCode = creditCountryCode };
         var entryDetails = new List<AccountingEntryDetail>();
 
         AccountingEntryDetail MakeDetail(Guid accountId, decimal debit, decimal credit, string desc)
@@ -602,7 +659,8 @@ public sealed class AutoAccountingService : IAutoAccountingService
         var periodId = await GetPeriodIdAsync();
         var companyId = CompanyId;
 
-        var context = new { Amount = movement.Amount };
+        var cashCountryCode = await ResolveCountryCodeAsync();
+        var context = new { Amount = movement.Amount, CountryCode = cashCountryCode };
         var entryDetails = new List<AccountingEntryDetail>();
 
         AccountingEntryDetail MakeDetail(Guid accountId, decimal debit, decimal credit, string desc)
@@ -943,20 +1001,28 @@ public sealed class AutoAccountingService : IAutoAccountingService
         var companyId = CompanyId;
         var total = subtotal + tax;
 
-        var incomeAccountCode = "4.1.01";
-        var vatAccountCode = "2.1.02";
         var costAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.CostOfSales);
         var invAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.Inventory);
 
         var taxCategory = details.FirstOrDefault()?.Product?.TaxCategory;
-        if (taxCategory != null)
+
+        Guid salesAccountId;
+        if (taxCategory != null && !string.IsNullOrEmpty(taxCategory.SalesAccountCode))
+            salesAccountId = await GetAccountIdByCodeAsync(taxCategory.SalesAccountCode);
+        else
         {
-            incomeAccountCode = taxCategory.SalesAccountCode ?? incomeAccountCode;
-            vatAccountCode = taxCategory.VatAccountCode ?? vatAccountCode;
+            try { salesAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.SalesRevenue); }
+            catch { salesAccountId = await GetAccountIdByCodeAsync("4.1.01"); }
         }
 
-        var salesAccountId = await GetAccountIdByCodeAsync(incomeAccountCode);
-        var vatAccountId = await GetAccountIdByCodeAsync(vatAccountCode);
+        Guid vatAccountId;
+        if (taxCategory != null && !string.IsNullOrEmpty(taxCategory.VatAccountCode))
+            vatAccountId = await GetAccountIdByCodeAsync(taxCategory.VatAccountCode);
+        else
+        {
+            try { vatAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.VatPayable); }
+            catch { vatAccountId = await GetAccountIdByCodeAsync("2.1.02"); }
+        }
 
         AccountingEntryDetail MakeDetail(Guid accountId, decimal debit, decimal credit, string desc)
         {
@@ -1028,7 +1094,9 @@ public sealed class AutoAccountingService : IAutoAccountingService
                 entryDetails.Add(MakeDetail(canceledApId, 0, amount, "ReversiÃ³n CxP por cancelaciÃ³n cheque"));
                 break;
             case "reconciliation":
-                var reclassAccId = await GetAccountIdByCodeAsync("1.1.03");
+                Guid reclassAccId;
+                try { reclassAccId = await GetAccountIdAsync(TransactionTypes.Check, AccountRoles.AccountsReceivable); }
+                catch { reclassAccId = await GetAccountIdByCodeAsync("1.1.03"); }
                 entryDetails.Add(MakeDetail(reclassAccId, amount, 0, $"ConciliaciÃ³n cheque #{checkId.ToString()[..8]}"));
                 entryDetails.Add(MakeDetail(bankAccId, 0, amount, "Ajuste conciliaciÃ³n bancaria"));
                 break;
@@ -1067,7 +1135,9 @@ public sealed class AutoAccountingService : IAutoAccountingService
             return new() { AccountId = accountId, DebitAmount = debit, CreditAmount = credit, Description = desc, CompanyId = companyId, CostCenterId = costCenterId };
         }
 
-        var cashAccountId = await GetAccountIdByCodeAsync("1.1.01");
+        Guid cashAccountId;
+        try { cashAccountId = await GetAccountIdAsync(TransactionTypes.BankDeposit, AccountRoles.Cash); }
+        catch { cashAccountId = await GetAccountIdByCodeAsync("1.1.01"); }
         var entryDetails = new List<AccountingEntryDetail>
         {
             MakeDetail(bankAccountId, amount, 0, "DepÃ³sito bancario"),
@@ -1142,7 +1212,9 @@ public sealed class AutoAccountingService : IAutoAccountingService
             return new() { AccountId = accountId, DebitAmount = debit, CreditAmount = credit, Description = desc, CompanyId = companyId, CostCenterId = costCenterId };
         }
 
-        var bankExpenseAccountId = await GetAccountIdByCodeAsync("5.1.01");
+        Guid bankExpenseAccountId;
+        try { bankExpenseAccountId = await GetAccountIdAsync(TransactionTypes.BankCommission, AccountRoles.BankExpense); }
+        catch { bankExpenseAccountId = await GetAccountIdByCodeAsync("5.1.01"); }
         var entryDetails = new List<AccountingEntryDetail>
         {
             MakeDetail(bankExpenseAccountId, commission, 0, "ComisiÃ³n bancaria"),
@@ -1182,8 +1254,12 @@ public sealed class AutoAccountingService : IAutoAccountingService
 
         var cashAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.Cash);
         var arAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.AccountsReceivable);
-        var interestIncomeAccountId = await GetAccountIdByCodeAsync("4.3.01");
-        var lateFeeIncomeAccountId = await GetAccountIdByCodeAsync("4.3.02");
+        Guid interestIncomeAccountId;
+        try { interestIncomeAccountId = await GetAccountIdAsync(TransactionTypes.Collection, AccountRoles.InterestIncome); }
+        catch { interestIncomeAccountId = await GetAccountIdByCodeAsync("4.3.01"); }
+        Guid lateFeeIncomeAccountId;
+        try { lateFeeIncomeAccountId = await GetAccountIdAsync(TransactionTypes.Collection, AccountRoles.LateFeeIncome); }
+        catch { lateFeeIncomeAccountId = await GetAccountIdByCodeAsync("4.3.02"); }
 
         var total = amount + interest + lateFee;
         var entryDetails = new List<AccountingEntryDetail>
@@ -1229,7 +1305,9 @@ public sealed class AutoAccountingService : IAutoAccountingService
             return new() { AccountId = accountId, DebitAmount = debit, CreditAmount = credit, Description = desc, CompanyId = companyId, CostCenterId = costCenterId };
         }
 
-        var advancesAccountId = await GetAccountIdByCodeAsync("1.1.06");
+        Guid advancesAccountId;
+        try { advancesAccountId = await GetAccountIdAsync(TransactionTypes.AdvanceToSupplier, AccountRoles.Advances); }
+        catch { advancesAccountId = await GetAccountIdByCodeAsync("1.1.06"); }
         var cashAccountId = await GetAccountIdAsync(TransactionTypes.Purchase, AccountRoles.Cash);
         var entryDetails = new List<AccountingEntryDetail>
         {
@@ -1268,7 +1346,9 @@ public sealed class AutoAccountingService : IAutoAccountingService
             return new() { AccountId = accountId, DebitAmount = debit, CreditAmount = credit, Description = desc, CompanyId = companyId, CostCenterId = costCenterId };
         }
 
-        var advancesAccountId = await GetAccountIdByCodeAsync("1.1.06");
+        Guid advancesAccountId;
+        try { advancesAccountId = await GetAccountIdAsync(TransactionTypes.AdvanceApplication, AccountRoles.Advances); }
+        catch { advancesAccountId = await GetAccountIdByCodeAsync("1.1.06"); }
         var apAccountId = await GetAccountIdAsync(TransactionTypes.Purchase, AccountRoles.AccountsPayable);
         var entryDetails = new List<AccountingEntryDetail>
         {

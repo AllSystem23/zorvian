@@ -44,6 +44,12 @@ public sealed class CompanyRepository : ICompanyRepository
     public async Task<bool> ExistsByTenantIdAsync(string tenantId) =>
         await _db.Companies.AnyAsync(c => c.TenantId == tenantId);
 
+    public async Task<List<Company>> GetAllAsync() =>
+        await _db.Companies.IgnoreQueryFilters().OrderByDescending(c => c.CreatedAt).ToListAsync();
+
+    public async Task<int> CountActiveAsync() =>
+        await _db.Companies.IgnoreQueryFilters().CountAsync(c => c.IsActive);
+
     public async Task<Company?> GetFirstActiveAsync() =>
         await _db.Companies.Where(c => c.IsActive).OrderBy(c => c.CreatedAt).FirstOrDefaultAsync();
 

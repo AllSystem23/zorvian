@@ -8,9 +8,9 @@ public sealed class Company : BaseEntity
     public string? Email { get; set; }
     public string? Phone { get; set; }
     public string? Address { get; set; }
-    public string Country { get; set; } = "Nicaragua";
+    public string Country { get; set; } = string.Empty;
     public string Currency { get; set; } = "NIO";
-    public string Timezone { get; set; } = "America/Managua";
+    public string Timezone { get; set; } = string.Empty;
     public string? LogoUrl { get; set; }
     public bool IsActive { get; set; } = true;
     public string SubscriptionPlan { get; set; } = "starter";

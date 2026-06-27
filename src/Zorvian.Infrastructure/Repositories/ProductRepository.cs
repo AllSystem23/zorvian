@@ -165,15 +165,25 @@ public sealed class ProductRepository : IProductRepository
                 new List<InventorySlowMoverRaw>()))
             .SingleOrDefaultAsync();
 
-        var categories = await query
-            .GroupBy(p => p.Category != null ? p.Category.Name : "Sin categoría")
+        var raw = await query
+            .Select(p => new
+            {
+                CategoryName = p.Category != null ? p.Category.Name : null,
+                p.CostPrice,
+                p.SellingPrice,
+                p.Stock
+            })
+            .ToListAsync();
+
+        var categories = raw
+            .GroupBy(p => p.CategoryName ?? "Sin categoría")
             .Select(g => new InventoryCategoryRaw(
                 g.Key,
                 g.Count(),
                 g.Sum(p => p.CostPrice * p.Stock),
                 g.Sum(p => p.SellingPrice * p.Stock)))
             .OrderByDescending(c => c.TotalCost)
-            .ToListAsync();
+            .ToList();
 
         var slowMovers = await _db.Database.SqlQueryRaw<InventorySlowMoverRaw>(@"
             SELECT

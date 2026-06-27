@@ -30,6 +30,7 @@ public sealed record PurchaseResponse(
     string? Notes,
     string CurrencyCode,
     decimal? ExchangeRateToReporting,
+    string CountryCode,
     List<PurchaseDetailItem> Details
 );
 
@@ -42,7 +43,8 @@ public sealed record PurchaseListResponse(
     decimal Total,
     decimal PaidAmount,
     decimal Balance,
-    string CurrencyCode
+    string CurrencyCode,
+    string CountryCode
 );
 
 public sealed record CreatePurchaseRequest(
@@ -57,6 +59,7 @@ public sealed record CreatePurchaseRequest(
     Guid BranchId,
     string? CurrencyCode,
     decimal? ExchangeRateToReporting,
+    string? CountryCode,
     List<PurchaseDetailItem> Details
 );
 

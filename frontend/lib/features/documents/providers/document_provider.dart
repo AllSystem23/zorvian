@@ -2,8 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
 import '../models/document_models.dart';
 
-// ── State ──
-
 class DocumentState {
   final List<DocumentTemplate> templates;
   final List<GeneratedDocument> documents;
@@ -34,7 +32,55 @@ class DocumentState {
   );
 }
 
-// ── Notifier ──
+class WizardState {
+  final bool active;
+  final int step;
+  final String? entityType;
+  final String? entityId;
+  final String? entityDisplayName;
+  final DocumentTemplate? selectedTemplate;
+  final EntityContext? entityContext;
+  final QuickGenerateResult? result;
+  final bool loading;
+  final String? error;
+
+  const WizardState({
+    this.active = false,
+    this.step = 1,
+    this.entityType,
+    this.entityId,
+    this.entityDisplayName,
+    this.selectedTemplate,
+    this.entityContext,
+    this.result,
+    this.loading = false,
+    this.error,
+  });
+
+  WizardState copyWith({
+    bool? active,
+    int? step,
+    String? entityType,
+    String? entityId,
+    String? entityDisplayName,
+    DocumentTemplate? selectedTemplate,
+    EntityContext? entityContext,
+    QuickGenerateResult? result,
+    bool? loading,
+    String? error,
+  }) => WizardState(
+    active: active ?? this.active,
+    step: step ?? this.step,
+    entityType: entityType ?? this.entityType,
+    entityId: entityId ?? this.entityId,
+    entityDisplayName: entityDisplayName ?? this.entityDisplayName,
+    selectedTemplate: selectedTemplate ?? this.selectedTemplate,
+    entityContext: entityContext ?? this.entityContext,
+    result: result ?? this.result,
+    loading: loading ?? this.loading,
+    error: error,
+  );
+}
 
 class DocumentNotifier extends Notifier<DocumentState> {
   @override
@@ -69,10 +115,7 @@ class DocumentNotifier extends Notifier<DocumentState> {
         error: null,
       );
     } catch (e) {
-      state = state.copyWith(
-        loading: false,
-        error: e.toString(),
-      );
+      state = state.copyWith(loading: false, error: e.toString());
     }
   }
 
@@ -136,12 +179,68 @@ class DocumentNotifier extends Notifier<DocumentState> {
       return 'Error al generar el documento';
     }
   }
-
-
 }
-
-// ── Providers ──
 
 final documentProvider = NotifierProvider<DocumentNotifier, DocumentState>(
   DocumentNotifier.new,
+);
+
+class WizardNotifier extends Notifier<WizardState> {
+  @override
+  WizardState build() => const WizardState();
+
+  void start({String? entityType, String? entityId, String? entityDisplayName}) {
+    state = WizardState(
+      active: true,
+      step: 1,
+      entityType: entityType,
+      entityId: entityId,
+      entityDisplayName: entityDisplayName,
+    );
+  }
+
+  void cancel() => state = const WizardState();
+
+  void selectTemplate(DocumentTemplate template) {
+    state = state.copyWith(selectedTemplate: template, step: 2);
+  }
+
+  Future<void> loadEntityContext() async {
+    if (state.entityType == null || state.entityId == null) return;
+    state = state.copyWith(loading: true, error: null);
+    try {
+      final dio = ref.read(dioClientProvider);
+      final response = await dio.get('documents/entity-context', params: {
+        'entityType': state.entityType,
+        'entityId': state.entityId,
+      });
+      final ctx = EntityContext.fromJson(response.data as Map<String, dynamic>);
+      state = state.copyWith(entityContext: ctx, loading: false);
+    } catch (e) {
+      state = state.copyWith(loading: false, error: 'Error al cargar contexto: $e');
+    }
+  }
+
+  Future<void> executeQuickGenerate() async {
+    if (state.selectedTemplate == null || state.entityType == null || state.entityId == null) return;
+    state = state.copyWith(loading: true, error: null);
+    try {
+      final dio = ref.read(dioClientProvider);
+      final response = await dio.post('documents/quick-generate', data: {
+        'entityType': state.entityType,
+        'entityId': state.entityId,
+        'templateId': state.selectedTemplate!.id,
+      });
+      final result = QuickGenerateResult.fromJson(response.data as Map<String, dynamic>);
+      state = state.copyWith(result: result, step: 3, loading: false);
+    } catch (e) {
+      state = state.copyWith(loading: false, error: 'Error al generar: $e');
+    }
+  }
+
+  void reset() => state = const WizardState();
+}
+
+final wizardProvider = NotifierProvider<WizardNotifier, WizardState>(
+  WizardNotifier.new,
 );

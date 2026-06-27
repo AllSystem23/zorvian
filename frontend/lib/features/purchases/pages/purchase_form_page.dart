@@ -8,6 +8,7 @@ import '../../products/providers/product_provider.dart';
 import '../../../shared/printing/qr_code_dialog.dart';
 import '../../../shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
+import '../../settings/providers/company_settings_provider.dart';
 import '../providers/purchase_provider.dart';
 
 final class _CartItem {
@@ -165,6 +166,8 @@ final class _PurchaseFormPageState extends ConsumerState<PurchaseFormPage> {
     final theme = Theme.of(context);
     final suppliers = ref.watch(supplierProvider);
     final products = ref.watch(productProvider);
+    final companySettingsAsync = ref.watch(companySettingsProvider);
+    final taxRate = (companySettingsAsync.asData?.value['taxRate'] as num?)?.toDouble() ?? 0.15;
     final filteredProducts = _searchQuery.isEmpty
         ? products.items
         : products.items.where((p) =>
@@ -175,7 +178,7 @@ final class _PurchaseFormPageState extends ConsumerState<PurchaseFormPage> {
     final subtotal = _cart.fold<double>(0, (sum, c) => sum + c.subtotal);
     final discount = double.tryParse(_discountCtrl.text) ?? 0;
     final taxable = subtotal - discount;
-    final tax = taxable * 0.15;
+    final tax = taxable * taxRate;
     final total = taxable + tax;
 
     return Scaffold(

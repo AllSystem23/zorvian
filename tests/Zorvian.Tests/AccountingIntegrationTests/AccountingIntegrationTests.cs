@@ -49,7 +49,7 @@ public sealed class AccountingIntegrationTests : IDisposable
 
         _autoAccounting = new AutoAccountingService(
             new EntryRepo(_db, _companyId), periodRepo.Object, new LinkRepo(_db), ruleRepo.Object,
-            new AccRepo(_db), _tenant.Object, payrollRepo.Object, new CashMovementRepo(_db), new AccountingRuleTemplateRepository(_db));
+            new AccRepo(_db), _tenant.Object, payrollRepo.Object, new CashMovementRepo(_db), new AccountingRuleTemplateRepository(_db), new CompanyRepository(_db));
 
         _approvalEngine.Setup(e => e.EvaluateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<string>()))
             .ReturnsAsync(new Zorvian.Application.DTOs.Approval.ApprovalEvaluationResult(false, null, null));
@@ -197,15 +197,21 @@ public sealed class AccountingIntegrationTests : IDisposable
         var supplierRepo = new SupplierRepo(_db);
         var movementRepo = new MovementRepo(_db);
 
+        var companyRepoMock = new Mock<ICompanyRepository>();
+        companyRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(new Company { Id = _companyId, Country = "Nicaragua" });
+        companyRepoMock.Setup(r => r.GetSettingsAsync(It.IsAny<Guid>()))
+            .ReturnsAsync((CompanySettings?)null);
+
         var purchaseService = new PurchaseService(
-            purchaseRepo, productRepo, movementRepo, new Mock<ICompanyRepository>().Object,
+            purchaseRepo, productRepo, movementRepo, companyRepoMock.Object,
             supplierRepo, _autoAccounting, new Mock<IWebhookService>().Object, _tenant.Object,
             new Mock<AutoMapper.IMapper>().Object, _approvalEngine.Object);
 
         var result = await purchaseService.CreateAsync(new CreatePurchaseRequest(
             supplier.Id, DateTime.UtcNow, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30)),
             "INV-001", null, null, 0, null, _branchId,
-            "NIO", null, new List<PurchaseDetailItem> { new(product.Id, "P1", 20, 50, 0, 1000) }));
+            "NIO", null, null, new List<PurchaseDetailItem> { new(product.Id, "P1", 20, 50, 0, 1000) }));
 
         Assert.NotNull(result);
         VerifyAccountingEntries(result.Id, "Purchase");
@@ -222,15 +228,21 @@ public sealed class AccountingIntegrationTests : IDisposable
         var supplierRepo = new SupplierRepo(_db);
         var movementRepo = new MovementRepo(_db);
 
+        var companyRepoMock = new Mock<ICompanyRepository>();
+        companyRepoMock.Setup(r => r.GetByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(new Company { Id = _companyId, Country = "Nicaragua" });
+        companyRepoMock.Setup(r => r.GetSettingsAsync(It.IsAny<Guid>()))
+            .ReturnsAsync((CompanySettings?)null);
+
         var purchaseService = new PurchaseService(
-            purchaseRepo, productRepo, movementRepo, new Mock<ICompanyRepository>().Object,
+            purchaseRepo, productRepo, movementRepo, companyRepoMock.Object,
             supplierRepo, _autoAccounting, new Mock<IWebhookService>().Object, _tenant.Object,
             new Mock<AutoMapper.IMapper>().Object, _approvalEngine.Object);
 
         var purchase = await purchaseService.CreateAsync(new CreatePurchaseRequest(
             supplier.Id, DateTime.UtcNow, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30)),
             "INV-002", null, null, 0, null, _branchId,
-            "NIO", null, new List<PurchaseDetailItem> { new(product.Id, "P1", 10, 100, 0, 1000) }));
+            "NIO", null, null, new List<PurchaseDetailItem> { new(product.Id, "P1", 10, 100, 0, 1000) }));
         Assert.NotNull(purchase);
 
         var cancelled = await purchaseService.CancelAsync(purchase.Id);

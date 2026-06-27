@@ -43,6 +43,11 @@ class _DocumentCenterPageState extends ConsumerState<DocumentCenterPage>
       appBar: AppBar(
         title: const Text('Centro Documental'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.bolt_outlined, color: ZColors.warning),
+            tooltip: 'Generación Rápida (3 clics)',
+            onPressed: () => context.push('/documents/quick-generate'),
+          ),
           IconButton(icon: const Icon(Icons.search), onPressed: () => ZCommandPalette.show(context)),
           const SizedBox(width: 8),
           FilledButton.icon(
@@ -69,19 +74,31 @@ class _DocumentCenterPageState extends ConsumerState<DocumentCenterPage>
                 _GeneratedDocumentsTab(documents: state.documents),
               ],
             ),
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'quick-gen',
+        backgroundColor: ZColors.brandAccent,
+        icon: const Icon(Icons.bolt, color: Colors.white),
+        label: const Text('Generar en 3 clics', style: TextStyle(color: Colors.white)),
+        onPressed: () => context.push('/documents/quick-generate'),
+      ),
     );
   }
 }
 
-// ── Tab 1: Template Library ──
-class _TemplateLibraryTab extends StatelessWidget {
+class _TemplateLibraryTab extends ConsumerWidget {
   final List<DocumentTemplate> templates;
   const _TemplateLibraryTab({required this.templates});
 
   @override
-  Widget build(BuildContext context) {
-    if (templates.isEmpty) return const ZEmptyState(icon: Icons.library_books_outlined, title: 'Sin Plantillas');
-    
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (templates.isEmpty) {
+      return const ZEmptyState(
+        icon: Icons.library_books_outlined,
+        title: 'Sin Plantillas',
+        subtitle: 'Crea tu primera plantilla documental',
+      );
+    }
+
     return ListView(
       padding: const EdgeInsets.all(24),
       children: templates.map((t) => _TemplateTile(template: t)).toList(),
@@ -97,19 +114,55 @@ class _TemplateTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return ZCard(
       margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: Icon(Icons.description_outlined, color: ZColors.brandPrimary),
-        title: Text(template.name, style: ZTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
-        subtitle: Row(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
           children: [
-            ZBadge(text: template.category.toUpperCase(), type: ZBadgeType.neutral),
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: ZColors.brandPrimary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(Icons.description_outlined, color: ZColors.brandPrimary),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(template.name, style: ZTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      ZBadge(text: template.category.categoryLabel, type: ZBadgeType.neutral),
+                      const SizedBox(width: 8),
+                      Text(template.countryCode, style: ZTypography.labelSmall),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            FilledButton.tonalIcon(
+              icon: const Icon(Icons.bolt, size: 16),
+              label: const Text('Generar'),
+              onPressed: () => context.push('/documents/quick-generate', extra: {
+                'preselectedTemplateId': template.id,
+              }),
+            ),
             const SizedBox(width: 8),
-            Text(template.countryCode, style: ZTypography.labelSmall),
+            IconButton(
+              icon: const Icon(Icons.play_circle_outline, color: ZColors.brandAccent),
+              tooltip: 'Generación avanzada',
+              onPressed: () => _generateDialog(context, ref),
+            ),
+            IconButton(
+              icon: const Icon(Icons.edit_outlined),
+              tooltip: 'Editar plantilla',
+              onPressed: () => context.push('/documents/templates/${template.id}/edit'),
+            ),
           ],
-        ),
-        trailing: IconButton(
-          icon: const Icon(Icons.play_circle_outline, color: ZColors.brandAccent),
-          onPressed: () => _generateDialog(context, ref),
         ),
       ),
     );
@@ -200,7 +253,6 @@ class _TemplateTile extends ConsumerWidget {
     );
   }
 
-  /// Builds the appropriate input widget based on variable type
   Widget _buildTypeWidget(
     TemplateVariable v,
     Map<String, TextEditingController> controllers,
@@ -217,13 +269,11 @@ class _TemplateTile extends ConsumerWidget {
           controller: controllers[v.key]!,
           onChanged: () => setModalState(() {}),
         );
-
       case 'number':
         return _NumberVariableField(
           label: label,
           controller: controllers[v.key]!,
         );
-
       case 'select':
         return _SelectVariableField(
           label: label,
@@ -231,22 +281,19 @@ class _TemplateTile extends ConsumerWidget {
           selectedValue: selectedValues[v.key],
           onChanged: (val) => setModalState(() => selectedValues[v.key] = val),
         );
-
       case 'checkbox':
         return _CheckboxVariableField(
           label: v.label,
           value: boolValues[v.key] ?? false,
           onChanged: (val) => setModalState(() => boolValues[v.key] = val),
         );
-
       case 'textarea':
         return ZTextField(
           controller: controllers[v.key],
           label: label,
           maxLines: 3,
         );
-
-      default: // text
+      default:
         return ZTextField(
           controller: controllers[v.key],
           label: label,
@@ -255,7 +302,6 @@ class _TemplateTile extends ConsumerWidget {
   }
 }
 
-// ── Tab 2: Generated Documents ──
 class _GeneratedDocumentsTab extends StatelessWidget {
   final List<GeneratedDocument> documents;
   const _GeneratedDocumentsTab({required this.documents});
@@ -266,7 +312,6 @@ class _GeneratedDocumentsTab extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          // Stat Overview
           ResponsiveGrid(
             mobileColumns: 1,
             tabletColumns: 3,
@@ -287,12 +332,15 @@ class _GeneratedDocumentsTab extends StatelessWidget {
                 ZColumn(id: 'status', label: 'Estado'),
               ],
               rows: documents,
-              rowMapper: (d) => DataRow(cells: [
-                DataCell(Text(d.name, style: const TextStyle(fontWeight: FontWeight.w600))),
-                DataCell(Text(d.entityType)),
-                DataCell(Text('${d.createdAt.day}/${d.createdAt.month}/${d.createdAt.year}')),
-                DataCell(ZBadge(text: d.status.toUpperCase(), type: _badgeType(d.status))),
-              ]),
+              rowMapper: (d) => DataRow(
+                onSelectChanged: (_) => context.push('/documents/${d.id}'),
+                cells: [
+                  DataCell(Text(d.name, style: const TextStyle(fontWeight: FontWeight.w600))),
+                  DataCell(Text(d.entityType)),
+                  DataCell(Text('${d.createdAt.day}/${d.createdAt.month}/${d.createdAt.year}')),
+                  DataCell(ZBadge(text: d.status.toUpperCase(), type: _badgeType(d.status))),
+                ],
+              ),
             ),
           ),
         ],
@@ -306,8 +354,6 @@ class _GeneratedDocumentsTab extends StatelessWidget {
     _ => ZBadgeType.neutral,
   };
 }
-
-// ── Type-specific variable input widgets ──
 
 class _DateVariableField extends StatelessWidget {
   final String label;

@@ -55,6 +55,15 @@ class _EmployeeDetailPageState extends ConsumerState<EmployeeDetailPage> {
         title: Text('${e['firstName']} ${e['lastName']}'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.bolt),
+            tooltip: 'Generar Documento (3 clics)',
+            onPressed: () => context.push('/documents/quick-generate', extra: {
+              'entityType': 'employee',
+              'entityId': widget.employeeId,
+              'entityDisplayName': '${e['firstName']} ${e['lastName']}',
+            }),
+          ),
+          IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () => context.push('/employees/${widget.employeeId}/edit'),
           ),

@@ -35,6 +35,7 @@ public sealed record UpdateEmployeeRequest(
     string? IdentificationNumber,
     Guid? DepartmentId,
     string? Position,
+    DateOnly? HireDate,
     decimal? Salary,
     string? SalaryType,
     string? Status,

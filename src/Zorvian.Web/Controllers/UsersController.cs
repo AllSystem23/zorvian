@@ -142,6 +142,14 @@ public sealed class UsersController : ControllerBase
         if (user is null)
             return NotFound(new { error = "User not found" });
 
+        // SuperAdmin no puede desactivarse a sí mismo
+        if (currentUserRole == RoleType.SuperAdmin.ToString())
+        {
+            var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (user.Id.ToString() == currentUserId)
+                return BadRequest(new { error = "No puedes desactivar tu propia cuenta de SuperAdmin" });
+        }
+
         if (currentUserRole == RoleType.CompanyAdmin.ToString())
         {
             var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;

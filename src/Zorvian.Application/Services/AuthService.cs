@@ -197,6 +197,135 @@ public sealed class AuthService
         );
     }
 
+    public async Task<bool> UpdateDisplayNameAsync(Guid userId, string displayName)
+    {
+        var user = await _authRepo.GetUserWithRolesAsync(userId);
+        if (user is null) return false;
+
+        user.DisplayName = displayName;
+        await _authRepo.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<ChangePasswordResponse> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword)
+    {
+        var user = await _authRepo.GetUserWithRolesAsync(userId);
+        if (user is null)
+            return new ChangePasswordResponse(false, "Usuario no encontrado");
+
+        // Verify current password against local hash
+        if (user.PasswordHash is not null && !PasswordHelper.Verify(currentPassword, user.PasswordHash))
+            return new ChangePasswordResponse(false, "La contraseña actual es incorrecta");
+
+        // Update password in Firebase Auth
+        if (!string.IsNullOrEmpty(user.FirebaseUid))
+        {
+            try
+            {
+                await _firebase.UpdatePasswordAsync(user.FirebaseUid, newPassword);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to update Firebase password for user {UserId}", userId);
+                return new ChangePasswordResponse(false, "Error al actualizar contraseña en el servidor de autenticación");
+            }
+        }
+
+        // Update local hash
+        user.PasswordHash = PasswordHelper.Hash(newPassword);
+        await _authRepo.SaveChangesAsync();
+
+        return new ChangePasswordResponse(true, null);
+    }
+
+    private readonly Dictionary<string, (string Code, Guid UserId, DateTime ExpiresAt)> _emailChangeTokens = new();
+
+    public async Task<bool> RequestEmailChangeAsync(Guid userId, string newEmail)
+    {
+        var user = await _authRepo.GetUserWithRolesAsync(userId);
+        if (user is null) return false;
+
+        // Check if email is already taken
+        var existing = await _authRepo.GetUserByEmailAsync(newEmail);
+        if (existing is not null) return false;
+
+        // Generate 6-digit verification code
+        var code = Random.Shared.Next(100000, 999999).ToString();
+        _emailChangeTokens[newEmail.ToLower()] = (code, userId, DateTime.UtcNow.AddMinutes(15));
+
+        // Send verification email
+        await _email.SendEmailAsync(
+            newEmail,
+            "Verificación de cambio de email — Zorvian ERP",
+            $"""
+            <div style="font-family: 'Inter', sans-serif; max-width: 480px; margin: 0 auto;">
+                <div style="background: linear-gradient(135deg, #1A0A3E, #7C4DFF); padding: 32px; border-radius: 16px 16px 0 0; text-align: center;">
+                    <h1 style="color: #fff; margin: 0; font-size: 24px;">Cambio de Email</h1>
+                </div>
+                <div style="background: #fff; padding: 32px; border-radius: 0 0 16px 16px; color: #333;">
+                    <p>Hemos recibido una solicitud para cambiar tu email en <strong>Zorvian ERP</strong>.</p>
+                    <p>Tu código de verificación es:</p>
+                    <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #1A0A3E;">
+                        {code}
+                    </div>
+                    <p style="margin-top: 16px; color: #666;">Este código expira en 15 minutos.</p>
+                    <p style="color: #666;">Nuevo email: <strong>{newEmail}</strong></p>
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+                    <p style="color: #aaa; font-size: 12px; text-align: center;">Si no solicitaste este cambio, ignora este mensaje.</p>
+                    <p style="color: #aaa; font-size: 12px; text-align: center;">© 2026 Zorvian ERP — Todos los derechos reservados.</p>
+                </div>
+            </div>
+            """
+        );
+
+        _logger.LogInformation("Email change verification code sent to {NewEmail} for user {UserId}", newEmail, userId);
+        return true;
+    }
+
+    public async Task<(bool Success, string? Error)> ConfirmEmailChangeAsync(Guid userId, string newEmail, string code)
+    {
+        var key = newEmail.ToLower();
+        if (!_emailChangeTokens.TryGetValue(key, out var stored))
+            return (false, "No se encontró una solicitud de cambio para este email");
+
+        if (stored.UserId != userId)
+            return (false, "Este código no pertenece a tu cuenta");
+
+        if (stored.ExpiresAt < DateTime.UtcNow)
+        {
+            _emailChangeTokens.Remove(key);
+            return (false, "El código ha expirado. Solicita uno nuevo");
+        }
+
+        if (stored.Code != code)
+            return (false, "Código de verificación incorrecto");
+
+        var user = await _authRepo.GetUserWithRolesAsync(userId);
+        if (user is null) return (false, "Usuario no encontrado");
+
+        // Update email in Firebase Auth
+        if (!string.IsNullOrEmpty(user.FirebaseUid))
+        {
+            try
+            {
+                await _firebase.UpdateEmailAsync(user.FirebaseUid, newEmail);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to update Firebase email for user {UserId}", userId);
+                return (false, "Error al actualizar email en el servidor de autenticación");
+            }
+        }
+
+        // Update local DB
+        user.Email = newEmail;
+        await _authRepo.SaveChangesAsync();
+
+        _emailChangeTokens.Remove(key);
+        _logger.LogInformation("Email changed from {OldEmail} to {NewEmail} for user {UserId}", user.Email, newEmail, userId);
+        return (true, null);
+    }
+
     private async Task<AuthResponse> GenerateAuthResponse(User user, string? deviceFingerprint = null)
     {
         user.LastLoginAt = DateTime.UtcNow;

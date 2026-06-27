@@ -1,10 +1,9 @@
 import 'dart:convert';
 
-/// Defines a variable that a template accepts
 class TemplateVariable {
   final String key;
   final String label;
-  final String type; // text, number, date, textarea, select, checkbox
+  final String type;
   final bool required;
   final String? placeholder;
   final String? defaultValue;
@@ -40,7 +39,6 @@ class TemplateVariable {
   }
 }
 
-/// Model for document templates from the backend
 class DocumentTemplate {
   final String id;
   final String name;
@@ -104,14 +102,13 @@ class DocumentTemplate {
   };
 }
 
-/// A generated document instance
 class GeneratedDocument {
   final String id;
   final String templateId;
   final String? templateName;
   final String entityId;
   final String entityType;
-  final String status; // draft, pending_signature, signed, archived
+  final String status;
   final String name;
   final DateTime createdAt;
   final List<DocumentSignature> signatures;
@@ -145,12 +142,11 @@ class GeneratedDocument {
   }
 }
 
-/// Signature status for a document
 class DocumentSignature {
   final String id;
   final String documentId;
   final String signerRole;
-  final String status; // pending, signed, rejected
+  final String status;
   final DateTime? signedAt;
 
   const DocumentSignature({
@@ -172,7 +168,144 @@ class DocumentSignature {
   }
 }
 
-/// Categorize documents by their visual badge color
+class EntityContext {
+  final String entityType;
+  final String entityId;
+  final String displayName;
+  final Map<String, String> data;
+
+  const EntityContext({
+    required this.entityType,
+    required this.entityId,
+    required this.displayName,
+    required this.data,
+  });
+
+  factory EntityContext.fromJson(Map<String, dynamic> json) {
+    final rawData = json['data'] as Map<String, dynamic>? ?? {};
+    return EntityContext(
+      entityType: json['entityType'] as String,
+      entityId: json['entityId'] as String,
+      displayName: json['displayName'] as String,
+      data: rawData.map((k, v) => MapEntry(k, v.toString())),
+    );
+  }
+}
+
+class QuickGenerateResult {
+  final String documentId;
+  final String name;
+  final String status;
+  final DateTime createdAt;
+  final String? pdfUrl;
+  final String? signatureToken;
+
+  const QuickGenerateResult({
+    required this.documentId,
+    required this.name,
+    required this.status,
+    required this.createdAt,
+    this.pdfUrl,
+    this.signatureToken,
+  });
+
+  factory QuickGenerateResult.fromJson(Map<String, dynamic> json) {
+    return QuickGenerateResult(
+      documentId: json['documentId'] as String,
+      name: json['name'] as String,
+      status: json['status'] as String,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      pdfUrl: json['pdfUrl'] as String?,
+      signatureToken: json['signatureToken'] as String?,
+    );
+  }
+}
+
+class DocumentDetail {
+  final String id;
+  final String name;
+  final String entityType;
+  final String status;
+  final DateTime createdAt;
+  final String? summary;
+  final String? templateName;
+  final List<DocumentVersionItem> versions;
+  final List<DocumentSignatureItem> signatures;
+
+  const DocumentDetail({
+    required this.id,
+    required this.name,
+    required this.entityType,
+    required this.status,
+    required this.createdAt,
+    this.summary,
+    this.templateName,
+    this.versions = const [],
+    this.signatures = const [],
+  });
+
+  factory DocumentDetail.fromJson(Map<String, dynamic> json) {
+    return DocumentDetail(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      entityType: json['entityType'] as String,
+      status: json['status'] as String,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+      summary: json['summary'] as String?,
+      templateName: json['templateName'] as String?,
+      versions: (json['versions'] as List<dynamic>?)
+          ?.map((v) => DocumentVersionItem.fromJson(v as Map<String, dynamic>))
+          .toList() ?? [],
+      signatures: (json['signatures'] as List<dynamic>?)
+          ?.map((s) => DocumentSignatureItem.fromJson(s as Map<String, dynamic>))
+          .toList() ?? [],
+    );
+  }
+}
+
+class DocumentVersionItem {
+  final int versionNumber;
+  final String? changesSummary;
+  final DateTime createdAt;
+
+  const DocumentVersionItem({
+    required this.versionNumber,
+    this.changesSummary,
+    required this.createdAt,
+  });
+
+  factory DocumentVersionItem.fromJson(Map<String, dynamic> json) {
+    return DocumentVersionItem(
+      versionNumber: json['versionNumber'] as int,
+      changesSummary: json['changesSummary'] as String?,
+      createdAt: DateTime.parse(json['createdAt'] as String),
+    );
+  }
+}
+
+class DocumentSignatureItem {
+  final String id;
+  final String signerRole;
+  final String status;
+  final DateTime? signedAt;
+
+  const DocumentSignatureItem({
+    required this.id,
+    required this.signerRole,
+    required this.status,
+    this.signedAt,
+  });
+
+  factory DocumentSignatureItem.fromJson(Map<String, dynamic> json) {
+    return DocumentSignatureItem(
+      id: json['id'] as String,
+      signerRole: json['signerRole'] as String,
+      status: json['status'] as String,
+      signedAt: json['signedAt'] != null ? DateTime.parse(json['signedAt'] as String) : null,
+    );
+  }
+}
+
 extension DocumentStatusExtension on String {
   String get statusLabel => switch (this) {
     'draft' => 'Borrador',

@@ -11,5 +11,5 @@
 - Revisados y corregidos pipelines CI/CD
 - Frontend Flutter: 136 issues de `flutter analyze` → 0 issues
 - Backend .NET: 0 errores, 0 advertencias de compilación
-- Backend tests: 344/344 passing
+- Backend tests: 557/557 passing
 - Frontend tests: 11/11 passing

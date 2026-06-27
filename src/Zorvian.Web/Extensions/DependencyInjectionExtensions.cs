@@ -65,6 +65,10 @@ public static class DependencyInjectionExtensions
         services.AddScoped<QuestPdfService>();
         services.AddScoped<IEmailService, EmailService>();
 
+        // File Cleanup
+        services.AddScoped<IOrphanFileCleanupService, OrphanFileCleanupService>();
+        services.AddScoped<FileCleanupSaveChangesInterceptor>();
+
         return services;
     }
 
@@ -139,6 +143,8 @@ public static class DependencyInjectionExtensions
 
         // Purchases
         services.AddScoped<IPurchaseRepository, PurchaseRepository>();
+        services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
+        services.AddScoped<PurchaseOrderService>();
         services.AddScoped<ISupplierPaymentRepository, SupplierPaymentRepository>();
         services.AddScoped<ISupplierCreditNoteRepository, SupplierCreditNoteRepository>();
         services.AddScoped<IWithholdingRepository, WithholdingRepository>();
@@ -380,7 +386,16 @@ public static class DependencyInjectionExtensions
         services.AddScoped<AccountingPeriodService>();
         services.AddScoped<AccountLinkService>();
         services.AddScoped<AutoAccountingService>(sp => new AutoAccountingService(
-            sp.GetRequiredService<IAccountingRuleTemplateRepository>()));
+            sp.GetRequiredService<IAccountingEntryRepository>(),
+            sp.GetRequiredService<IAccountingPeriodRepository>(),
+            sp.GetRequiredService<IAccountLinkRepository>(),
+            sp.GetRequiredService<IAccountingRuleRepository>(),
+            sp.GetRequiredService<IAccountRepository>(),
+            sp.GetRequiredService<ITenantContext>(),
+            sp.GetRequiredService<IPayrollRepository>(),
+            sp.GetRequiredService<ICashMovementRepository>(),
+            sp.GetRequiredService<IAccountingRuleTemplateRepository>(),
+            sp.GetRequiredService<ICompanyRepository>()));
         services.AddScoped<IAutoAccountingService>(sp => sp.GetRequiredService<AutoAccountingService>());
         services.AddScoped<FinancialReportService>();
         services.AddScoped<CostCenterService>();

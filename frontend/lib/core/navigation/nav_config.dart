@@ -121,7 +121,7 @@ final class NavConfig {
       textColor: ZColors.modulePurchasesText,
       group: 'operations',
       children: [
-        NavItem(id: 'compras-ordenes', label: 'Órdenes de Compra', icon: Icons.receipt_outlined, route: '/purchases'),
+        NavItem(id: 'compras-ordenes', label: 'Órdenes de Compra', icon: Icons.receipt_outlined, route: '/purchase-orders'),
         NavItem(id: 'proveedores', label: 'Proveedores', icon: Icons.factory_outlined, route: '/suppliers'),
       ],
     ),
@@ -186,6 +186,7 @@ final class NavConfig {
         NavItem(id: 'asistencia', label: 'Reloj y Asistencia', icon: Icons.schedule_outlined, route: '/attendance'),
         NavItem(id: 'nomina', label: 'Gestión de Nómina', icon: Icons.receipt_long_outlined, route: '/payroll', roles: ['SuperAdmin', 'CompanyAdmin', 'Rrhh']),
         NavItem(id: 'prestadores', label: 'Prestadores Externos', icon: Icons.business_center_outlined, route: '/providers'),
+        NavItem(id: 'prestadores-dashboard', label: 'Dashboard Prestadores', icon: Icons.dashboard_outlined, route: '/providers/dashboard'),
         NavItem(id: 'vacaciones', label: 'Ausencias y Vacaciones', icon: Icons.event_busy_outlined, route: '/vacations'),
         NavItem(id: 'permisos', label: 'Permisos', icon: Icons.event_available_outlined, route: '/permissions'),
         NavItem(id: 'metas', label: 'Metas e Incentivos', icon: Icons.emoji_events_outlined, route: '/goals/dashboard'),
@@ -232,6 +233,7 @@ final class NavConfig {
       group: 'admin',
       roles: ['SuperAdmin', 'CompanyAdmin'],
       children: [
+        NavItem(id: 'empresas', label: 'Gestión de Empresas', icon: Icons.business_outlined, route: '/admin/companies', roles: ['SuperAdmin']),
         NavItem(id: 'usuarios', label: 'Usuarios y Seguridad', icon: Icons.manage_accounts_outlined, route: '/admin/users'),
         NavItem(id: 'sucursales', label: 'Sucursales', icon: Icons.store_outlined, route: '/branches'),
         NavItem(id: 'documental', label: 'Motor Documental', icon: Icons.auto_stories_outlined, route: '/documents'),

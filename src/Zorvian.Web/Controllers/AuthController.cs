@@ -165,6 +165,80 @@ public sealed class AuthController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPut("me")]
+    [Authorize]
+    [Audit("Auth", "UpdateDisplayName")]
+    public async Task<IActionResult> UpdateMe([FromBody] UpdateDisplayNameRequest request)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null) return Unauthorized();
+
+        if (string.IsNullOrWhiteSpace(request.DisplayName))
+            return BadRequest(new { error = "El nombre es requerido" });
+
+        var success = await _authService.UpdateDisplayNameAsync(userId.Value, request.DisplayName);
+        if (!success) return NotFound();
+
+        return Ok(new { message = "Nombre actualizado" });
+    }
+
+    [HttpPost("change-password")]
+    [Authorize]
+    [Audit("Auth", "ChangePassword")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null) return Unauthorized();
+
+        if (string.IsNullOrWhiteSpace(request.CurrentPassword) || string.IsNullOrWhiteSpace(request.NewPassword))
+            return BadRequest(new { error = "Contraseña actual y nueva son requeridas" });
+
+        if (request.NewPassword != request.ConfirmPassword)
+            return BadRequest(new { error = "Las contraseñas nuevas no coinciden" });
+
+        if (request.NewPassword.Length < 6)
+            return BadRequest(new { error = "La nueva contraseña debe tener al menos 6 caracteres" });
+
+        var result = await _authService.ChangePasswordAsync(userId.Value, request.CurrentPassword, request.NewPassword);
+        if (!result.Success)
+            return BadRequest(new { error = result.Error });
+
+        return Ok(new { message = "Contraseña actualizada correctamente" });
+    }
+
+    [HttpPost("request-email-change")]
+    [Authorize]
+    [Audit("Auth", "RequestEmailChange")]
+    public async Task<IActionResult> RequestEmailChange([FromBody] RequestEmailChangeRequest request)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null) return Unauthorized();
+
+        if (string.IsNullOrWhiteSpace(request.NewEmail) || !request.NewEmail.Contains('@'))
+            return BadRequest(new { error = "Ingresa un email válido" });
+
+        var success = await _authService.RequestEmailChangeAsync(userId.Value, request.NewEmail);
+        if (!success)
+            return BadRequest(new { error = "Este email ya está en uso" });
+
+        return Ok(new { message = "Código de verificación enviado al nuevo email" });
+    }
+
+    [HttpPost("confirm-email-change")]
+    [Authorize]
+    [Audit("Auth", "ConfirmEmailChange")]
+    public async Task<IActionResult> ConfirmEmailChange([FromBody] ConfirmEmailChangeRequest request)
+    {
+        var userId = GetCurrentUserId();
+        if (userId is null) return Unauthorized();
+
+        var (success, error) = await _authService.ConfirmEmailChangeAsync(userId.Value, request.NewEmail, request.VerificationCode);
+        if (!success)
+            return BadRequest(new { error });
+
+        return Ok(new { message = "Email actualizado correctamente" });
+    }
+
     [HttpGet("health")]
     [AllowAnonymous]
     public IActionResult Health()

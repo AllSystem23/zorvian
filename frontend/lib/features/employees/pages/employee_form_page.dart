@@ -34,6 +34,8 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
   String _bankAccountType = 'ahorro';
   String _collaboratorType = 'employee';
   String? _selectedContractId;
+  String _status = 'active';
+  DateTime? _hireDate;
   bool _loading = false;
   String? _error;
   bool _isEditing = false;
@@ -71,6 +73,7 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
     try {
       final dio = ref.read(dioClientProvider);
       final response = await dio.get('employees/${widget.employeeId}');
+      if (!mounted) return;
       final data = response.data;
       setState(() {
         _firstNameCtrl.text = data['firstName'] ?? '';
@@ -86,6 +89,10 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
         _bankAccountType = data['bankAccountType'] as String? ?? 'ahorro';
         _collaboratorType = data['collaboratorType'] as String? ?? 'employee';
         _selectedContractId = data['contractId'] as String?;
+        _status = data['status'] as String? ?? 'active';
+        if (data['hireDate'] != null) {
+          try { _hireDate = DateTime.parse(data['hireDate'] as String); } catch (_) {}
+        }
         _hasChanges = false;
       });
     } catch (_) {
@@ -113,6 +120,8 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
         'bankAccountNumber': _bankAccountCtrl.text.trim(),
         'bankAccountType': _bankAccountType,
         if (_salaryCtrl.text.isNotEmpty) 'salary': double.tryParse(_salaryCtrl.text),
+        if (_isEditing) 'status': _status,
+        if (_hireDate != null) 'hireDate': _hireDate!.toIso8601String().substring(0, 10),
       };
 
       if (_isEditing) {
@@ -361,6 +370,22 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
               decoration: const InputDecoration(labelText: 'Monto Salarial', prefixIcon: Icon(Icons.attach_money)),
               keyboardType: TextInputType.number,
             ),
+            if (_isEditing)
+              ZDropdownFormField<String>(
+                value: _status,
+                label: 'Estado',
+                prefixIcon: Icons.flag_outlined,
+                items: const [
+                  DropdownMenuItem(value: 'active', child: Text('Activo')),
+                  DropdownMenuItem(value: 'inactive', child: Text('Inactivo')),
+                  DropdownMenuItem(value: 'terminated', child: Text('Terminado')),
+                ],
+                onChanged: (v) => setState(() { _status = v!; _onFieldChanged(); }),
+              ),
+            _HireDateField(
+              hireDate: _hireDate,
+              onChanged: (d) => setState(() { _hireDate = d; _onFieldChanged(); }),
+            ),
           ],
         ),
       ],
@@ -465,6 +490,40 @@ class _ContractSelectorState extends ConsumerState<_ContractSelector> {
           )).toList(),              onChanged: widget.onChanged,
         );
       },
+    );
+  }
+}
+
+class _HireDateField extends StatelessWidget {
+  final DateTime? hireDate;
+  final ValueChanged<DateTime?> onChanged;
+  const _HireDateField({required this.hireDate, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: hireDate ?? DateTime.now(),
+          firstDate: DateTime(2000),
+          lastDate: DateTime.now(),
+          locale: const Locale('es'),
+        );
+        onChanged(picked);
+      },
+      child: InputDecorator(
+        decoration: const InputDecoration(
+          labelText: 'Fecha de Contratación',
+          prefixIcon: Icon(Icons.calendar_today_outlined),
+        ),
+        child: Text(
+          hireDate != null ? '${hireDate!.day}/${hireDate!.month}/${hireDate!.year}' : 'Seleccionar fecha',
+          style: TextStyle(
+            color: hireDate != null ? null : Theme.of(context).hintColor,
+          ),
+        ),
+      ),
     );
   }
 }
