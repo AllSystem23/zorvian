@@ -6,6 +6,7 @@ public sealed record CreateCompanyRequest(
     string? TaxId,
     string? Phone,
     string? Address,
+    string? Email,
     string Country,
     string Currency,
     string Timezone,
@@ -33,10 +34,12 @@ public sealed record UpdateCompanyRequest(
     string? TaxId,
     string? Phone,
     string? Address,
+    string? Email,
     string? Country,
     string? Currency,
     string? Timezone,
-    string? LogoUrl
+    string? LogoUrl,
+    int? MaxEmployees
 );
 
 public sealed record CompanySettingsResponse(

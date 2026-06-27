@@ -56,6 +56,7 @@ public sealed class CompanyService
             TaxId = request.TaxId,
             Phone = request.Phone,
             Address = request.Address,
+            Email = request.Email,
             MaxEmployees = request.MaxEmployees,
             Country = request.Country,
             Currency = request.Currency,
@@ -139,10 +140,12 @@ public sealed class CompanyService
         if (request.TaxId is not null) company.TaxId = request.TaxId;
         if (request.Phone is not null) company.Phone = request.Phone;
         if (request.Address is not null) company.Address = request.Address;
+        if (request.Email is not null) company.Email = request.Email;
         if (request.Country is not null) company.Country = request.Country;
         if (request.Currency is not null) company.Currency = request.Currency;
         if (request.Timezone is not null) company.Timezone = request.Timezone;
         if (request.LogoUrl is not null) company.LogoUrl = request.LogoUrl;
+        if (request.MaxEmployees.HasValue) company.MaxEmployees = request.MaxEmployees.Value;
 
         await _repo.UpdateAsync(company);
         await _repo.SaveChangesAsync();
@@ -173,10 +176,12 @@ public sealed class CompanyService
         if (request.TaxId is not null) company.TaxId = request.TaxId;
         if (request.Phone is not null) company.Phone = request.Phone;
         if (request.Address is not null) company.Address = request.Address;
+        if (request.Email is not null) company.Email = request.Email;
         if (request.Country is not null) company.Country = request.Country;
         if (request.Currency is not null) company.Currency = request.Currency;
         if (request.Timezone is not null) company.Timezone = request.Timezone;
         if (request.LogoUrl is not null) company.LogoUrl = request.LogoUrl;
+        if (request.MaxEmployees.HasValue) company.MaxEmployees = request.MaxEmployees.Value;
 
         await _repo.UpdateAsync(company);
         await _repo.SaveChangesAsync();

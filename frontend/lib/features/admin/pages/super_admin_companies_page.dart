@@ -44,9 +44,7 @@ class _SuperAdminCompaniesPageState extends ConsumerState<SuperAdminCompaniesPag
     } catch (e) {
       if (mounted) setState(() { _error = e.toString(); _loading = false; });
     }
-  }
-
-  void _applyFilter() {
+  }      void _applyFilter() {
     if (_searchQuery.isEmpty) {
       _filtered = List.from(_companies);
     } else {
@@ -55,7 +53,9 @@ class _SuperAdminCompaniesPageState extends ConsumerState<SuperAdminCompaniesPag
         return (c['name'] as String? ?? '').toLowerCase().contains(q) ||
             (c['legalName'] as String? ?? '').toLowerCase().contains(q) ||
             (c['country'] as String? ?? '').toLowerCase().contains(q) ||
-            (c['taxId'] as String? ?? '').toLowerCase().contains(q);
+            (c['taxId'] as String? ?? '').toLowerCase().contains(q) ||
+            (c['email'] as String? ?? '').toLowerCase().contains(q) ||
+            (c['phone'] as String? ?? '').toLowerCase().contains(q);
       }).toList();
     }
   }
@@ -224,13 +224,14 @@ class _SuperAdminCompaniesPageState extends ConsumerState<SuperAdminCompaniesPag
     }
 
     final columns = [
-      const ZColumn(id: 'name', label: 'Empresa', width: 240),
-      const ZColumn(id: 'country', label: 'País', width: 120),
-      const ZColumn(id: 'currency', label: 'Moneda', width: 80),
-      const ZColumn(id: 'timezone', label: 'Zona Horaria', width: 150),
-      const ZColumn(id: 'plan', label: 'Plan', width: 100),
-      const ZColumn(id: 'status', label: 'Estado', width: 100),
-      const ZColumn(id: 'actions', label: 'Acciones', width: 180),
+      const ZColumn(id: 'name', label: 'Empresa', width: 220),
+      const ZColumn(id: 'email', label: 'Email', width: 180),
+      const ZColumn(id: 'phone', label: 'Teléfono', width: 140),
+      const ZColumn(id: 'country', label: 'País', width: 110),
+      const ZColumn(id: 'currency', label: 'Moneda', width: 70),
+      const ZColumn(id: 'plan', label: 'Plan', width: 90),
+      const ZColumn(id: 'status', label: 'Estado', width: 90),
+      const ZColumn(id: 'actions', label: 'Acciones', width: 160),
     ];
 
     return Padding(
@@ -283,7 +284,12 @@ class _SuperAdminCompaniesPageState extends ConsumerState<SuperAdminCompaniesPag
               type: ZBadgeType.neutral,
             )),
             DataCell(Text(company['currency'] as String? ?? '', style: ZTypography.bodyMedium)),
-            DataCell(Text(company['timezone'] as String? ?? '', style: ZTypography.labelSmall)),
+            DataCell(Text(company['email'] as String? ?? '—', style: ZTypography.bodyMedium.copyWith(
+              color: (company['email'] as String? ?? '').isNotEmpty ? null : ZColors.neutral400,
+            ))),
+            DataCell(Text(company['phone'] as String? ?? '—', style: ZTypography.bodyMedium.copyWith(
+              color: (company['phone'] as String? ?? '').isNotEmpty ? null : ZColors.neutral400,
+            ))),
             DataCell(ZBadge(
               text: (company['subscriptionPlan'] as String? ?? 'starter').toUpperCase(),
               type: ZBadgeType.info,
@@ -374,17 +380,45 @@ class _CompanyCreateDialogState extends ConsumerState<_CompanyCreateDialog> {
   final _nameCtrl = TextEditingController();
   final _legalNameCtrl = TextEditingController();
   final _taxIdCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _addressCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _maxEmployeesCtrl = TextEditingController(text: '50');
   String _selectedCountry = 'Nicaragua';
   bool _loading = false;
   String? _error;
 
   static const _countries = ['Nicaragua', 'Costa Rica', 'Guatemala', 'Honduras', 'El Salvador', 'Panamá'];
 
+  String _countryToCurrency(String country) => switch (country) {
+    'Nicaragua' => 'NIO',
+    'Costa Rica' => 'CRC',
+    'Guatemala' => 'GTQ',
+    'Honduras' => 'HNL',
+    'El Salvador' => 'USD',
+    'Panamá' => 'USD',
+    _ => 'NIO',
+  };
+
+  String _countryToTimezone(String country) => switch (country) {
+    'Nicaragua' => 'America/Managua',
+    'Costa Rica' => 'America/Costa_Rica',
+    'Guatemala' => 'America/Guatemala',
+    'Honduras' => 'America/Tegucigalpa',
+    'El Salvador' => 'America/El_Salvador',
+    'Panamá' => 'America/Panama',
+    _ => 'America/Managua',
+  };
+
   @override
   void dispose() {
     _nameCtrl.dispose();
     _legalNameCtrl.dispose();
     _taxIdCtrl.dispose();
+    _phoneCtrl.dispose();
+    _addressCtrl.dispose();
+    _emailCtrl.dispose();
+    _maxEmployeesCtrl.dispose();
     super.dispose();
   }
 
@@ -394,10 +428,17 @@ class _CompanyCreateDialogState extends ConsumerState<_CompanyCreateDialog> {
 
     try {
       final dio = ref.read(dioClientProvider);
-      await dio.post('seed', data: {
+      await dio.post('companies', data: {
         'name': _nameCtrl.text.trim(),
+        'legalName': _legalNameCtrl.text.trim(),
+        'taxId': _taxIdCtrl.text.trim().isNotEmpty ? _taxIdCtrl.text.trim() : null,
+        'phone': _phoneCtrl.text.trim().isNotEmpty ? _phoneCtrl.text.trim() : null,
+        'address': _addressCtrl.text.trim().isNotEmpty ? _addressCtrl.text.trim() : null,
+        'email': _emailCtrl.text.trim().isNotEmpty ? _emailCtrl.text.trim() : null,
         'country': _selectedCountry,
-        'taxId': _taxIdCtrl.text.trim(),
+        'currency': _countryToCurrency(_selectedCountry),
+        'timezone': _countryToTimezone(_selectedCountry),
+        'maxEmployees': int.tryParse(_maxEmployeesCtrl.text) ?? 50,
       });
       widget.onCreated();
       if (mounted) Navigator.of(context).pop();
@@ -445,6 +486,33 @@ class _CompanyCreateDialogState extends ConsumerState<_CompanyCreateDialog> {
                 items: _countries.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                 onChanged: (v) => setState(() => _selectedCountry = v!),
               ),
+              const SizedBox(height: ZSpacing.md),
+              ZTextField(
+                controller: _emailCtrl,
+                label: 'Correo Electrónico',
+                prefix: const Icon(Icons.email_outlined),
+                keyboardType: TextInputType.emailAddress,
+              ),
+              const SizedBox(height: ZSpacing.md),
+              ZTextField(
+                controller: _phoneCtrl,
+                label: 'Teléfono',
+                prefix: const Icon(Icons.phone_outlined),
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: ZSpacing.md),
+              ZTextField(
+                controller: _addressCtrl,
+                label: 'Dirección',
+                prefix: const Icon(Icons.location_on_outlined),
+              ),
+              const SizedBox(height: ZSpacing.md),
+              ZTextField(
+                controller: _maxEmployeesCtrl,
+                label: 'Máximo de Empleados',
+                prefix: const Icon(Icons.people_outline),
+                keyboardType: TextInputType.number,
+              ),
             ],
           ),
         ),
@@ -477,6 +545,10 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
   late final TextEditingController _nameCtrl;
   late final TextEditingController _legalNameCtrl;
   late final TextEditingController _taxIdCtrl;
+  late final TextEditingController _phoneCtrl;
+  late final TextEditingController _addressCtrl;
+  late final TextEditingController _emailCtrl;
+  late final TextEditingController _maxEmployeesCtrl;
   late String _selectedCountry;
   late String _selectedCurrency;
   late String _selectedTimezone;
@@ -500,6 +572,10 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
     _nameCtrl = TextEditingController(text: c['name'] as String? ?? '');
     _legalNameCtrl = TextEditingController(text: c['legalName'] as String? ?? '');
     _taxIdCtrl = TextEditingController(text: c['taxId'] as String? ?? '');
+    _phoneCtrl = TextEditingController(text: c['phone'] as String? ?? '');
+    _addressCtrl = TextEditingController(text: c['address'] as String? ?? '');
+    _emailCtrl = TextEditingController(text: c['email'] as String? ?? '');
+    _maxEmployeesCtrl = TextEditingController(text: (c['maxEmployees'] ?? 50).toString());
     _selectedCountry = c['country'] as String? ?? 'Nicaragua';
     _selectedCurrency = c['currency'] as String? ?? 'NIO';
     _selectedTimezone = c['timezone'] as String? ?? 'America/Managua';
@@ -511,6 +587,10 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
     _nameCtrl.dispose();
     _legalNameCtrl.dispose();
     _taxIdCtrl.dispose();
+    _phoneCtrl.dispose();
+    _addressCtrl.dispose();
+    _emailCtrl.dispose();
+    _maxEmployeesCtrl.dispose();
     super.dispose();
   }
 
@@ -596,10 +676,14 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
       await dio.put('companies/$companyId', data: {
         'name': _nameCtrl.text.trim(),
         'legalName': _legalNameCtrl.text.trim(),
-        'taxId': _taxIdCtrl.text.trim(),
+        'taxId': _taxIdCtrl.text.trim().isNotEmpty ? _taxIdCtrl.text.trim() : null,
+        'phone': _phoneCtrl.text.trim().isNotEmpty ? _phoneCtrl.text.trim() : null,
+        'address': _addressCtrl.text.trim().isNotEmpty ? _addressCtrl.text.trim() : null,
+        'email': _emailCtrl.text.trim().isNotEmpty ? _emailCtrl.text.trim() : null,
         'country': _selectedCountry,
         'currency': _selectedCurrency,
         'timezone': _selectedTimezone,
+        'maxEmployees': int.tryParse(_maxEmployeesCtrl.text) ?? 50,
       });
       widget.onSaved();
       if (mounted) Navigator.pop(context);
@@ -649,6 +733,14 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
               items: _timezones.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
               onChanged: (v) => setState(() => _selectedTimezone = v!),
             ),
+            const SizedBox(height: ZSpacing.md),
+            ZTextField(controller: _emailCtrl, label: 'Correo Electrónico', prefix: const Icon(Icons.email_outlined), keyboardType: TextInputType.emailAddress),
+            const SizedBox(height: ZSpacing.md),
+            ZTextField(controller: _phoneCtrl, label: 'Teléfono', prefix: const Icon(Icons.phone_outlined), keyboardType: TextInputType.phone),
+            const SizedBox(height: ZSpacing.md),
+            ZTextField(controller: _addressCtrl, label: 'Dirección', prefix: const Icon(Icons.location_on_outlined)),
+            const SizedBox(height: ZSpacing.md),
+            ZTextField(controller: _maxEmployeesCtrl, label: 'Máximo de Empleados', prefix: const Icon(Icons.people_outline), keyboardType: TextInputType.number),
           ],
         ),
       ),

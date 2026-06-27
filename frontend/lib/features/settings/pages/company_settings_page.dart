@@ -17,6 +17,10 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
   final _nameCtrl = TextEditingController();
   final _legalCtrl = TextEditingController();
   final _taxIdCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _addressCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _countryCtrl = TextEditingController();
   final _vacationDaysCtrl = TextEditingController();
   final _toleranceCtrl = TextEditingController();
   final _workingHoursCtrl = TextEditingController();
@@ -33,6 +37,10 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
     _nameCtrl.dispose();
     _legalCtrl.dispose();
     _taxIdCtrl.dispose();
+    _phoneCtrl.dispose();
+    _addressCtrl.dispose();
+    _emailCtrl.dispose();
+    _countryCtrl.dispose();
     _vacationDaysCtrl.dispose();
     _toleranceCtrl.dispose();
     _workingHoursCtrl.dispose();
@@ -54,6 +62,10 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
         'name': _nameCtrl.text,
         'legalName': _legalCtrl.text,
         'taxId': _taxIdCtrl.text,
+        'phone': _phoneCtrl.text.isNotEmpty ? _phoneCtrl.text : null,
+        'address': _addressCtrl.text.isNotEmpty ? _addressCtrl.text : null,
+        'email': _emailCtrl.text.isNotEmpty ? _emailCtrl.text : null,
+        'country': _countryCtrl.text,
         'currency': _currencyCtrl.text,
         'timezone': _timezoneCtrl.text,
       };
@@ -128,6 +140,10 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
                     _nameCtrl.text = c['name'] ?? '';
                     _legalCtrl.text = c['legalName'] ?? '';
                     _taxIdCtrl.text = c['taxId'] ?? '';
+                    _phoneCtrl.text = c['phone'] ?? '';
+                    _addressCtrl.text = c['address'] ?? '';
+                    _emailCtrl.text = c['email'] ?? '';
+                    _countryCtrl.text = c['country'] ?? '';
                     return Column(
                       children: [
                         ZTextField(controller: _nameCtrl, label: 'Nombre'),
@@ -135,6 +151,14 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
                         ZTextField(controller: _legalCtrl, label: 'Razón Social'),
                         const SizedBox(height: 12),
                         ZTextField(controller: _taxIdCtrl, label: 'RUC/NIT'),
+                        const SizedBox(height: 12),
+                        ZTextField(controller: _emailCtrl, label: 'Correo Electrónico'),
+                        const SizedBox(height: 12),
+                        ZTextField(controller: _phoneCtrl, label: 'Teléfono'),
+                        const SizedBox(height: 12),
+                        ZTextField(controller: _addressCtrl, label: 'Dirección'),
+                        const SizedBox(height: 12),
+                        ZTextField(controller: _countryCtrl, label: 'País'),
                         const SizedBox(height: 12),
                         ZButton(text: 'Guardar Empresa', onPressed: _saveCompany),
                       ],
