@@ -346,6 +346,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           GoRoute(
+            path: '/goals',
+            name: 'goals',
+            redirect: (_, _) => '/goals/dashboard',
+          ),
+          GoRoute(
             path: '/goals/configurator',
             name: 'goals-configurator',
             builder: (_, _) => const GoalsConfigScreen(),
@@ -764,6 +769,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/inventory-adjustment',
             name: 'inventory-adjustment',
             builder: (_, _) => const InventoryAdjustmentPage(),
+          ),
+          GoRoute(
+            path: '/bi',
+            name: 'bi',
+            redirect: (_, _) => '/bi/executive',
           ),
           GoRoute(
             path: '/bi/executive',
