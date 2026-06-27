@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart' show dioClientProvider;
+import '../../../core/utils/country_config.dart';
 import '../../../shared/ds/ds.dart';
 
 final class FleetExpenseFormPage extends ConsumerStatefulWidget {
@@ -187,7 +188,7 @@ final class _FleetExpenseFormPageState extends ConsumerState<FleetExpenseFormPag
                 const SizedBox(height: 12),
                 ZDropdownFormField<String>(
                   value: _currency,
-                  items: ['NIO', 'USD'].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                  items: CountryConfig.countries.values.map((c) => DropdownMenuItem(value: c.currency, child: Text('${c.currencySymbol} ${c.currency}'))).toList(),
                   label: 'Moneda',
                   prefixIcon: Icons.money_outlined,
                   onChanged: (v) { if (v != null) setState(() => _currency = v); },

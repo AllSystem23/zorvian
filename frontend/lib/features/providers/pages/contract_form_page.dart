@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/utils/country_config.dart';
 import '../../../shared/ds/ds.dart';
 import '../providers/provider_state.dart';
 
@@ -22,6 +23,7 @@ final class _ContractFormPageState extends ConsumerState<ContractFormPage> {
   final _paymentTermsCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
   String _currency = 'NIO';
+  String _countryCode = 'NI';
   DateTime _startDate = DateTime.now();
   DateTime? _endDate;
   bool _loading = false;
@@ -48,6 +50,7 @@ final class _ContractFormPageState extends ConsumerState<ContractFormPage> {
       _paymentTermsCtrl.text = d['paymentTerms'] ?? '';
       _notesCtrl.text = d['notes'] ?? '';
       _currency = d['currency'] ?? 'NIO';
+      _countryCode = d['countryCode'] ?? 'NI';
       _selectedProviderId = d['serviceProviderId'];
       if (d['startDate'] != null) _startDate = DateTime.parse(d['startDate']);
       if (d['endDate'] != null) _endDate = DateTime.parse(d['endDate']);
@@ -73,6 +76,7 @@ final class _ContractFormPageState extends ConsumerState<ContractFormPage> {
         'scope': _scopeCtrl.text.trim().isEmpty ? null : _scopeCtrl.text.trim(),
         'totalContractAmount': double.tryParse(_amountCtrl.text) ?? 0,
         'currency': _currency,
+        'countryCode': _countryCode,
         'paymentTerms': _paymentTermsCtrl.text.trim().isEmpty ? null : _paymentTermsCtrl.text.trim(),
         'startDate': _startDate.toIso8601String().split('T')[0],
         'endDate': _endDate?.toIso8601String().split('T')[0],
@@ -161,14 +165,27 @@ final class _ContractFormPageState extends ConsumerState<ContractFormPage> {
               Row(
                 children: [
                   Expanded(
-                    child: TextFormField(
-                      controller: _amountCtrl,
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _countryCode,
                       decoration: const InputDecoration(
-                        labelText: 'Monto Total',
-                        prefixIcon: Icon(Icons.attach_money),
+                        labelText: 'País',
+                        prefixIcon: Icon(Icons.flag),
                       ),
-                      keyboardType: TextInputType.number,
-                      validator: (v) => v == null || v.isEmpty ? 'Requerido' : null,
+                      items: const [
+                        DropdownMenuItem(value: 'NI', child: Text('Nicaragua')),
+                        DropdownMenuItem(value: 'HN', child: Text('Honduras')),
+                        DropdownMenuItem(value: 'SV', child: Text('El Salvador')),
+                        DropdownMenuItem(value: 'CR', child: Text('Costa Rica')),
+                        DropdownMenuItem(value: 'GT', child: Text('Guatemala')),
+                        DropdownMenuItem(value: 'PA', child: Text('Panamá')),
+                      ],
+                      onChanged: (v) {
+                        final cc = v ?? 'NI';
+                        setState(() {
+                          _countryCode = cc;
+                          _currency = CountryConfig.currencyForCountry(cc);
+                        });
+                      },
                     ),
                   ),
                   const SizedBox(width: ZSpacing.md),
@@ -179,10 +196,9 @@ final class _ContractFormPageState extends ConsumerState<ContractFormPage> {
                         labelText: 'Moneda',
                         prefixIcon: Icon(Icons.monetization_on),
                       ),
-                      items: const [
-                        DropdownMenuItem(value: 'NIO', child: Text('NIO')),
-                        DropdownMenuItem(value: 'USD', child: Text('USD')),
-                      ],
+                      items: CountryConfig.countries.values.map((c) =>
+                        DropdownMenuItem(value: c.currency, child: Text('${c.currencySymbol} ${c.currency}')),
+                      ).toList(),
                       onChanged: (v) => setState(() => _currency = v ?? 'NIO'),
                     ),
                   ),

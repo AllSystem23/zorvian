@@ -8,6 +8,7 @@ import '../../products/providers/product_provider.dart';
 import '../../../shared/printing/qr_code_dialog.dart';
 import '../../../shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/utils/country_config.dart';
 import '../../settings/providers/company_settings_provider.dart';
 import '../providers/purchase_provider.dart';
 
@@ -46,7 +47,7 @@ final class _PurchaseFormPageState extends ConsumerState<PurchaseFormPage> {
   bool _analyzing = false;
   String _currencyCode = 'NIO';
 
-  static const _currencies = ['NIO', 'USD'];
+  static final _currencies = CountryConfig.countries.values.map((c) => c.currency).toSet().toList();
 
   @override
   void initState() {
@@ -135,7 +136,7 @@ final class _PurchaseFormPageState extends ConsumerState<PurchaseFormPage> {
         'notes': _notesCtrl.text.isNotEmpty ? _notesCtrl.text : null,
         'branchId': '00000000-0000-0000-0000-000000000000',
         'currencyCode': _currencyCode,
-        'exchangeRateToReporting': _currencyCode == 'NIO' ? null : 36.5,
+        'exchangeRateToReporting': _currencyCode == 'NIO' ? null : CountryConfig.exchangeRateToNIO(_currencyCode),
         'details': _cart.map((c) => {
           'productId': c.productId,
           'quantity': int.tryParse(c.quantity) ?? 0,

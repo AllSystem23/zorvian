@@ -3,6 +3,7 @@ using Zorvian.Application.DTOs.Company;
 using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
 using Zorvian.Core.Interfaces;
+using Zorvian.Application.Interfaces;
 
 namespace Zorvian.Tests.Services;
 
@@ -11,13 +12,14 @@ public sealed class CompanyServiceTests
     private readonly Mock<ICompanyRepository> _repo = new();
     private readonly Mock<ITenantContext> _tenant = new();
     private readonly Mock<IFiscalService> _fiscal = new();
+    private readonly Mock<IDocumentStorageService> _storage = new();
     private readonly CompanyService _sut;
     private readonly string _tenantId = Guid.NewGuid().ToString();
 
     public CompanyServiceTests()
     {
         _tenant.Setup(t => t.TenantId).Returns(_tenantId);
-        _sut = new CompanyService(_repo.Object, _tenant.Object, _fiscal.Object);
+        _sut = new CompanyService(_repo.Object, _tenant.Object, _fiscal.Object, _storage.Object);
     }
 
     [Fact]
@@ -30,7 +32,10 @@ public sealed class CompanyServiceTests
             LegalName: "Mi Empresa S.A.",
             TaxId: "J123456789",
             Phone: "+50588888888",
-            Address: "Managua, Nicaragua"
+            Address: "Managua, Nicaragua",
+            Country: "Nicaragua",
+            Currency: "NIO",
+            Timezone: "America/Managua"
         );
 
         var result = await _sut.CreateAsync(request);
@@ -53,7 +58,10 @@ public sealed class CompanyServiceTests
             LegalName: "Otra S.A.",
             TaxId: null,
             Phone: null,
-            Address: null
+            Address: null,
+            Country: "Nicaragua",
+            Currency: "NIO",
+            Timezone: "America/Managua"
         );
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.CreateAsync(request));
@@ -81,6 +89,7 @@ public sealed class CompanyServiceTests
             TaxId: "J999",
             Phone: null,
             Address: null,
+            Country: "Nicaragua",
             Currency: "USD",
             Timezone: null,
             LogoUrl: null

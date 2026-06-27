@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../suppliers/providers/supplier_provider.dart';
 import '../../products/providers/product_provider.dart';
 import '../../settings/providers/company_settings_provider.dart';
+import '../../../core/utils/country_config.dart';
 import '../../../shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
 import '../providers/purchase_order_provider.dart';
@@ -36,9 +37,9 @@ final class _PurchaseOrderFormPageState extends ConsumerState<PurchaseOrderFormP
   final List<_CartLine> _cart = [];
   bool _saving = false;
   String _currencyCode = 'NIO';
-  String _countryCode = 'NIC';
+  String _countryCode = 'NI';
 
-  static const _currencies = ['NIO', 'USD'];
+  static final _currencies = CountryConfig.countries.values.map((c) => c.currency).toSet().toList();
 
   @override
   void initState() {
@@ -50,12 +51,13 @@ final class _PurchaseOrderFormPageState extends ConsumerState<PurchaseOrderFormP
         if (c['country'] != null) {
           final country = c['country'] as String;
           setState(() => _countryCode = switch (country) {
-            'Nicaragua' => 'NIC',
-            'Costa Rica' => 'CRI',
-            'El Salvador' => 'SLV',
-            'Honduras' => 'HND',
-            'Guatemala' => 'GTM',
-            _ => 'NIC',
+            'Nicaragua' => 'NI',
+            'Costa Rica' => 'CR',
+            'El Salvador' => 'SV',
+            'Honduras' => 'HN',
+            'Guatemala' => 'GT',
+            'Panamá' => 'PA',
+            _ => 'NI',
           });
         }
       });

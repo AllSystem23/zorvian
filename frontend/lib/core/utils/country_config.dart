@@ -50,12 +50,12 @@ class CountryConfig {
       vacationDaysPerYear: 20, maternityWeeks: 12, paternityDays: 5, taxSystem: 'IHSS',
     ),
     'SV': CountryConfig(
-      code: 'SV', name: 'El Salvador', currency: 'SVC', currencySymbol: '\$',
+      code: 'SV', name: 'El Salvador', currency: 'USD', currencySymbol: '\$',
       timezone: 'America/El_Salvador', phonePrefix: '+503', idType: 'DUI', idLength: 9,
       vacationDaysPerYear: 15, maternityWeeks: 12, paternityDays: 5, taxSystem: 'ISSS',
     ),
     'PA': CountryConfig(
-      code: 'PA', name: 'Panamá', currency: 'PAB', currencySymbol: 'B/.',
+      code: 'PA', name: 'Panamá', currency: 'USD', currencySymbol: '\$',
       timezone: 'America/Panama', phonePrefix: '+507', idType: 'Cédula', idLength: 8,
       vacationDaysPerYear: 15, maternityWeeks: 14, paternityDays: 3, taxSystem: 'CSS',
     ),
@@ -63,4 +63,20 @@ class CountryConfig {
 
   static CountryConfig? getCountry(String code) => countries[code.toUpperCase()];
   static List<CountryConfig> get allCountries => countries.values.toList();
+
+  static String currencyForCountry(String countryCode) {
+    return countries[countryCode.toUpperCase()]?.currency ?? 'NIO';
+  }
+
+  static final Map<String, double> defaultExchangeRates = {
+    'NIO': 1.0,
+    'USD': 36.5,
+    'GTQ': 4.7,
+    'HNL': 1.48,
+    'CRC': 0.066,
+  };
+
+  static double exchangeRateToNIO(String currencyCode) {
+    return defaultExchangeRates[currencyCode] ?? 1.0;
+  }
 }

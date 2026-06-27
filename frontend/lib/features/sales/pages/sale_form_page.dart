@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/utils/country_config.dart';
 import '../../../shared/ds/ds.dart';
 import '../../../shared/printing/qr_code_dialog.dart';
 import '../../clients/providers/client_provider.dart';
@@ -55,7 +56,7 @@ final class _NewSalePageState extends ConsumerState<NewSalePage> {
   double _taxRate = 0.15;
   String _currencyCode = 'NIO';
 
-  static const _currencies = ['NIO', 'USD'];
+  static final _currencies = CountryConfig.countries.values.map((c) => c.currency).toSet().toList();
 
   @override
   void initState() {
@@ -103,7 +104,7 @@ final class _NewSalePageState extends ConsumerState<NewSalePage> {
         'notes': null,
         'branchId': '00000000-0000-0000-0000-000000000000',
         'currencyCode': _currencyCode,
-        'exchangeRateToReporting': _currencyCode == 'NIO' ? null : 36.5,
+        'exchangeRateToReporting': _currencyCode == 'NIO' ? null : CountryConfig.exchangeRateToNIO(_currencyCode),
         'details': details,
       };
 

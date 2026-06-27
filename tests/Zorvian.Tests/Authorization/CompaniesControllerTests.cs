@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Zorvian.Application.Services;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Interfaces;
+using Zorvian.Application.Services;
 using Moq;
 
 namespace Zorvian.Tests.Authorization;
@@ -21,9 +22,10 @@ public class CompaniesControllerTests
         var mockRepo = new Mock<ICompanyRepository>();
         var mockTenant = new Mock<ITenantContext>();
         var mockFiscal = new Mock<IFiscalService>();
+        var mockStorage = new Mock<IDocumentStorageService>();
         mockTenant.Setup(t => t.TenantId).Returns(Guid.NewGuid().ToString());
 
-        var service = new CompanyService(mockRepo.Object, mockTenant.Object, mockFiscal.Object);
+        var service = new CompanyService(mockRepo.Object, mockTenant.Object, mockFiscal.Object, mockStorage.Object);
         _controller = new CompaniesController(service);
         
         // Setup User con permisos insuficientes

@@ -78,7 +78,7 @@ class ProviderDashboardPage extends ConsumerWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: DropdownButtonFormField<String?>(
-                value: currentCountry,
+                initialValue: currentCountry,
                 isDense: true,
                 decoration: InputDecoration(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),

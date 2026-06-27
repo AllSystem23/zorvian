@@ -20,6 +20,7 @@ final class _ProviderFormPageState extends ConsumerState<ProviderFormPage> {
   final _specializationCtrl = TextEditingController();
   final _insurancePolicyCtrl = TextEditingController();
   String _serviceCategory = 'Professional';
+  String _countryCode = 'NI';
   String _status = 'active';
   DateTime? _insuranceExpiration;
   bool _loading = false;
@@ -44,6 +45,7 @@ final class _ProviderFormPageState extends ConsumerState<ProviderFormPage> {
       _specializationCtrl.text = d['specialization'] ?? '';
       _insurancePolicyCtrl.text = d['insurancePolicy'] ?? '';
       _serviceCategory = d['serviceCategory'] ?? 'Professional';
+      _countryCode = d['countryCode'] ?? 'NI';
       _status = d['status'] ?? 'active';
       if (d['insuranceExpiration'] != null) {
         _insuranceExpiration = DateTime.tryParse(d['insuranceExpiration']);
@@ -66,6 +68,7 @@ final class _ProviderFormPageState extends ConsumerState<ProviderFormPage> {
         'professionalLicense': _licenseCtrl.text.trim().isEmpty ? null : _licenseCtrl.text.trim(),
         'specialization': _specializationCtrl.text.trim().isEmpty ? null : _specializationCtrl.text.trim(),
         'serviceCategory': _serviceCategory,
+        'countryCode': _countryCode,
         'insurancePolicy': _insurancePolicyCtrl.text.trim().isEmpty ? null : _insurancePolicyCtrl.text.trim(),
         'insuranceExpiration': _insuranceExpiration?.toIso8601String().split('T')[0],
         'status': _status,
@@ -130,6 +133,23 @@ final class _ProviderFormPageState extends ConsumerState<ProviderFormPage> {
                   labelText: 'Especialidad',
                   prefixIcon: Icon(Icons.work),
                 ),
+              ),
+              const SizedBox(height: ZSpacing.md),
+              DropdownButtonFormField<String>(
+                initialValue: _countryCode,
+                decoration: const InputDecoration(
+                  labelText: 'País',
+                  prefixIcon: Icon(Icons.flag),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'NI', child: Text('Nicaragua')),
+                  DropdownMenuItem(value: 'HN', child: Text('Honduras')),
+                  DropdownMenuItem(value: 'SV', child: Text('El Salvador')),
+                  DropdownMenuItem(value: 'CR', child: Text('Costa Rica')),
+                  DropdownMenuItem(value: 'GT', child: Text('Guatemala')),
+                  DropdownMenuItem(value: 'PA', child: Text('Panamá')),
+                ],
+                onChanged: (v) => setState(() => _countryCode = v ?? 'NI'),
               ),
               const SizedBox(height: ZSpacing.md),
               DropdownButtonFormField<String>(
