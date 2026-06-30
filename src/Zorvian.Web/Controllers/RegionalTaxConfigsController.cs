@@ -25,13 +25,7 @@ public sealed class RegionalTaxConfigsController : ControllerBase
         _tenant = tenant;
     }
 
-    private Guid ResolveCompanyId()
-    {
-        var companyId = _tenant.EffectiveCompanyId;
-        if (companyId is null)
-            throw new InvalidOperationException("No se pudo resolver la empresa del tenant actual");
-        return companyId.Value;
-    }
+    private Guid ResolveCompanyId() => _tenant.ResolveCompanyId();
 
     /// <summary>
     /// Obtiene todas las configuraciones fiscales de la empresa.
