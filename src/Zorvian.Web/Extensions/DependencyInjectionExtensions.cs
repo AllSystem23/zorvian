@@ -105,6 +105,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<ICommissionRecordRepository, CommissionRecordRepository>();
         services.AddScoped<IBonusRecordRepository, BonusRecordRepository>();
         services.AddScoped<ICountryTaxConfigRepository, CountryTaxConfigRepository>();
+        services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>();
         services.AddScoped<IVacationRepository, VacationRepository>();
         services.AddScoped<IPermissionRepository, PermissionRepository>();
         services.AddScoped<IPolicyRepository, PolicyRepository>();
@@ -375,6 +376,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IRegionalDashboardRepository, RegionalDashboardRepository>();
         services.AddScoped<IRegionalTaxConfigService, RegionalTaxConfigService>();
         services.AddScoped<ICountryTaxConfigService, CountryTaxConfigService>();
+        services.AddScoped<SubscriptionPlanService>();
         services.AddScoped<IPayrollLocalizationService, PayrollLocalizationService>();
         services.AddScoped<ISettlementPdfService, SettlementPdfService>();
         services.AddScoped<RegionalFinancialDashboardService, RegionalFinancialDashboardService>();

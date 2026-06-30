@@ -7,6 +7,7 @@ import 'package:http_parser/http_parser.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../shared/ds/ds.dart';
+import '../config/subscription_plans_config.dart';
 
 /// SuperAdmin-only page to list, edit, create, deactivate, and switch between companies.
 /// Uses ZDataTable for table rendering with search and column toggle.
@@ -292,7 +293,7 @@ class _SuperAdminCompaniesPageState extends ConsumerState<SuperAdminCompaniesPag
             DataCell(Text(company['currency'] as String? ?? '', style: ZTypography.bodyMedium)),
             DataCell(ZBadge(
               text: (company['subscriptionPlan'] as String? ?? 'starter').toUpperCase(),
-              type: ZBadgeType.info,
+              type: _planBadgeType(company['subscriptionPlan'] as String? ?? 'starter'),
             )),
             DataCell(ZBadge(
               text: isCurrent ? 'ACTIVA' : (isActive ? 'ACTIVA' : 'INACTIVA'),
@@ -345,6 +346,12 @@ class _SuperAdminCompaniesPageState extends ConsumerState<SuperAdminCompaniesPag
     }
     return _buildFallbackIcon(isCurrent);
   }
+
+  ZBadgeType _planBadgeType(String plan) => switch (plan) {
+    'professional' => ZBadgeType.accent,
+    'enterprise' => ZBadgeType.warning,
+    _ => ZBadgeType.neutral,
+  };
 
   Widget _buildFallbackIcon(bool isCurrent) {
     return Container(
@@ -553,6 +560,7 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
   late String _selectedCurrency;
   late String _selectedTimezone;
   late bool _isActive;
+  late String _subscriptionPlan;
   bool _loading = false;
   String? _error;
 
@@ -581,6 +589,7 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
     _selectedCurrency = c['currency'] as String? ?? 'NIO';
     _selectedTimezone = c['timezone'] as String? ?? 'America/Managua';
     _isActive = c['isActive'] == true;
+    _subscriptionPlan = c['subscriptionPlan'] as String? ?? 'starter';
     _currentLogoUrl = c['logoUrl'] as String?;
   }
 
@@ -687,6 +696,7 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
         'timezone': _selectedTimezone,
         'maxEmployees': int.tryParse(_maxEmployeesCtrl.text) ?? 50,
         'isActive': _isActive,
+        'subscriptionPlan': _subscriptionPlan,
       });
       widget.onSaved();
       if (mounted) Navigator.pop(context);
@@ -755,6 +765,9 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
               activeThumbColor: ZColors.brandAccent,
               onChanged: (v) => setState(() => _isActive = v),
             ),
+            const SizedBox(height: ZSpacing.md),
+            // ── Subscription Plan Selector ──
+            _buildPlanSelector(ref.watch(subscriptionPlansProvider).value ?? SubscriptionPlanConfig.fallbackAll),
           ],
         ),
       ),
@@ -837,6 +850,69 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
         size: 32,
         color: ZColors.neutral400,
       ),
+    );
+  }
+
+  Widget _buildPlanSelector(List<SubscriptionPlanConfig> plans) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('PLAN DE SUSCRIPCIÓN', style: ZTypography.labelSmall.copyWith(
+          color: ZColors.neutral500, letterSpacing: 1.2)),
+        const SizedBox(height: 12),
+        ...plans.map((plan) {
+          final isSelected = _subscriptionPlan == plan.id;
+          final priceLabel = plan.displayPrice;
+          return GestureDetector(
+            onTap: () => setState(() => _subscriptionPlan = plan.id),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isSelected ? plan.color.withValues(alpha: 0.08) : Colors.transparent,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: isSelected ? plan.color : ZColors.neutral300,
+                  width: isSelected ? 2 : 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36, height: 36,
+                    decoration: BoxDecoration(
+                      color: plan.color.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(plan.icon, size: 18, color: plan.color),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(plan.name, style: ZTypography.titleSmall.copyWith(
+                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500)),
+                            const SizedBox(width: 8),
+                            Text(priceLabel, style: ZTypography.labelSmall.copyWith(
+                              color: plan.color, fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                        Text(plan.shortDescription, style: ZTypography.bodySmall.copyWith(
+                          color: ZColors.neutral500)),
+                      ],
+                    ),
+                  ),
+                  if (isSelected)
+                    Icon(Icons.check_circle, color: plan.color, size: 20),
+                ],
+              ),
+            ),
+          );
+        }),
+      ],
     );
   }
 }

@@ -116,12 +116,14 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
   Widget _buildStepper(BuildContext context, int currentStep) {
     final steps = ['Seleccionar', 'Confirmar', 'Listo'];
     final icons = [Icons.description_outlined, Icons.visibility_outlined, Icons.check_circle_outline];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final inactiveColor = isDark ? ZColors.darkBorder : ZColors.neutral200;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 32),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        border: Border(bottom: BorderSide(color: ZColors.neutral200, width: 1)),
+        border: Border(bottom: BorderSide(color: inactiveColor, width: 1)),
       ),
       child: Row(
         children: List.generate(steps.length, (i) {
@@ -134,7 +136,7 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
                   Expanded(
                     child: Container(
                       height: 2,
-                      color: isDone ? ZColors.brandAccent : ZColors.neutral200,
+                      color: isDone ? ZColors.brandAccent : inactiveColor,
                     ),
                   ),
                 const SizedBox(width: 8),
@@ -148,7 +150,7 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
                         ? ZColors.success
                         : isActive
                             ? ZColors.brandAccent
-                            : ZColors.neutral200,
+                            : inactiveColor,
                   ),
                   child: Icon(
                     isDone ? Icons.check : icons[i],
@@ -159,8 +161,7 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
                 const SizedBox(width: 8),
                 Text(
                   steps[i],
-                  style: TextStyle(
-                    fontSize: 13,
+                  style: ZTypography.labelMedium.copyWith(
                     fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
                     color: isActive
                         ? ZColors.brandAccent

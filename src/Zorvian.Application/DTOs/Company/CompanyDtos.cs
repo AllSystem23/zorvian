@@ -40,7 +40,8 @@ public sealed record UpdateCompanyRequest(
     string? Timezone,
     string? LogoUrl,
     int? MaxEmployees,
-    bool? IsActive
+    bool? IsActive,
+    string? SubscriptionPlan
 );
 
 public sealed record CompanySettingsResponse(

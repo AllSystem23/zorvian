@@ -63,7 +63,7 @@ class _DocumentDetailPageState extends ConsumerState<DocumentDetailPage> {
     return Scaffold(
       backgroundColor: theme.brightness == Brightness.dark ? ZColors.darkBackground : ZColors.neutral50,
       appBar: AppBar(
-        title: Text(d.name, style: const TextStyle(fontSize: 16)),
+        title: Text(d.name, style: ZTypography.titleMedium),
         actions: [
           IconButton(
             icon: const Icon(Icons.download_outlined),
@@ -205,7 +205,7 @@ class _DocumentDetailPageState extends ConsumerState<DocumentDetailPage> {
                     ),
                     child: Center(
                       child: Text('v${v.versionNumber}',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: ZColors.brandAccent)),
+                        style: ZTypography.labelSmall.copyWith(fontWeight: FontWeight.w700, color: ZColors.brandAccent)),
                     ),
                   ),
                   const SizedBox(width: 12),

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Zorvian.Application.Config;
 using Zorvian.Application.DTOs.Company;
 using Zorvian.Application.Services;
 using Zorvian.Web.Authorization;
@@ -16,10 +17,12 @@ namespace Zorvian.Web.Controllers;
 public sealed class CompaniesController : ControllerBase
 {
     private readonly CompanyService _companyService;
+    private readonly SubscriptionPlanService _planService;
 
-    public CompaniesController(CompanyService companyService)
+    public CompaniesController(CompanyService companyService, SubscriptionPlanService planService)
     {
         _companyService = companyService;
+        _planService = planService;
     }
 
     /// <summary>
@@ -122,6 +125,20 @@ public sealed class CompaniesController : ControllerBase
         if (company is null)
             return NotFound(new { error = "Company not configured" });
         return Ok(company);
+    }
+
+    /// <summary>
+    /// Lista los planes de suscripción disponibles (solo SuperAdmin).
+    /// Lee desde la base de datos; fallback al config estático si la tabla está vacía.
+    /// </summary>
+    [HttpGet("subscription-plans")]
+    [Authorize(Roles = "SuperAdmin")]
+    public async Task<IActionResult> GetSubscriptionPlans()
+    {
+        var plans = await _planService.GetActivePlansAsync();
+        if (plans.Count == 0)
+            return Ok(SubscriptionPlanConfig.Plans);
+        return Ok(plans);
     }
 
     /// <summary>

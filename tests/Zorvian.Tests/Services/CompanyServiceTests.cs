@@ -98,7 +98,8 @@ public sealed class CompanyServiceTests
             Timezone: null,
             LogoUrl: null,
             MaxEmployees: null,
-            IsActive: null
+            IsActive: null,
+            SubscriptionPlan: null
         );
 
         var result = await _sut.UpdateAsync(request);

@@ -174,6 +174,7 @@ if (!mockExternal)
     await Zorvian.Infrastructure.Data.DocumentTemplateSeeder.SeedAsync(db, logger);
     await Zorvian.Infrastructure.Data.FleetCatalogSeeder.SeedAsync(db, logger);
     await Zorvian.Infrastructure.Data.CountryTaxConfigSeeder.SeedAsync(db, logger);
+    await Zorvian.Infrastructure.Data.SubscriptionPlanSeeder.SeedAsync(db, logger);
 }
 
 // ── Endpoints ──

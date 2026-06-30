@@ -18,6 +18,7 @@ import '../features/settings/pages/leave_type_form_page.dart';
 import '../features/admin/pages/user_list_page.dart';
 import '../features/admin/pages/invite_user_page.dart';
 import '../features/admin/pages/super_admin_companies_page.dart';
+import '../features/admin/pages/subscription_plans_page.dart';
 import '../features/branches/pages/branch_list_page.dart';
 import '../features/branches/pages/branch_form_page.dart';
 import '../features/departments/pages/department_form_page.dart';
@@ -186,6 +187,7 @@ final _routeRoles = <String, List<String>>{
   '/audit-logs': ['SuperAdmin', 'CompanyAdmin'],
   '/admin': ['SuperAdmin', 'CompanyAdmin'],
   '/admin/companies': ['SuperAdmin'],
+  '/admin/subscription-plans': ['SuperAdmin'],
   '/settings': ['SuperAdmin', 'CompanyAdmin'],
   '/payroll': ['SuperAdmin', 'CompanyAdmin', 'Rrhh'],
   '/clients': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
@@ -432,6 +434,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/admin/companies',
             name: 'admin-companies',
             builder: (_, _) => const SuperAdminCompaniesPage(),
+          ),
+          GoRoute(
+            path: '/admin/subscription-plans',
+            name: 'admin-subscription-plans',
+            builder: (_, _) => const SubscriptionPlansPage(),
           ),
           GoRoute(
             path: '/leave-types',

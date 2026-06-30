@@ -74,12 +74,15 @@ class _DocumentCenterPageState extends ConsumerState<DocumentCenterPage>
                 _GeneratedDocumentsTab(documents: state.documents),
               ],
             ),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'quick-gen',
-        backgroundColor: ZColors.brandAccent,
-        icon: const Icon(Icons.bolt, color: Colors.white),
-        label: const Text('Generar en 3 clics', style: TextStyle(color: Colors.white)),
-        onPressed: () => context.push('/documents/quick-generate'),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: FloatingActionButton.extended(
+          heroTag: 'quick-gen',
+          backgroundColor: ZColors.brandAccent,
+          icon: const Icon(Icons.bolt, color: Colors.white),
+          label: const Text('Generar en 3 clics', style: TextStyle(color: Colors.white)),
+          onPressed: () => context.push('/documents/quick-generate'),
+        ),
       ),
     );
   }
@@ -131,36 +134,45 @@ class _TemplateTile extends ConsumerWidget {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(template.name, style: ZTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 4),
-                  Row(
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
                     children: [
                       ZBadge(text: template.category.categoryLabel, type: ZBadgeType.neutral),
-                      const SizedBox(width: 8),
                       Text(template.countryCode, style: ZTypography.labelSmall),
                     ],
                   ),
                 ],
               ),
             ),
-            FilledButton.tonalIcon(
-              icon: const Icon(Icons.bolt, size: 16),
-              label: const Text('Generar'),
-              onPressed: () => context.push('/documents/quick-generate', extra: {
-                'preselectedTemplateId': template.id,
-              }),
-            ),
-            const SizedBox(width: 8),
-            IconButton(
-              icon: const Icon(Icons.play_circle_outline, color: ZColors.brandAccent),
-              tooltip: 'Generación avanzada',
-              onPressed: () => _generateDialog(context, ref),
-            ),
-            IconButton(
-              icon: const Icon(Icons.edit_outlined),
-              tooltip: 'Editar plantilla',
-              onPressed: () => context.push('/documents/templates/${template.id}/edit'),
+            const SizedBox(width: 12),
+            Wrap(
+              spacing: 4,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                FilledButton.tonalIcon(
+                  icon: const Icon(Icons.bolt, size: 16),
+                  label: const Text('Generar'),
+                  onPressed: () => context.push('/documents/quick-generate', extra: {
+                    'preselectedTemplateId': template.id,
+                  }),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.play_circle_outline, color: ZColors.brandAccent),
+                  tooltip: 'Generación avanzada',
+                  onPressed: () => _generateDialog(context, ref),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined),
+                  tooltip: 'Editar plantilla',
+                  onPressed: () => context.push('/documents/templates/${template.id}/edit'),
+                ),
+              ],
             ),
           ],
         ),
@@ -335,7 +347,7 @@ class _GeneratedDocumentsTab extends StatelessWidget {
               rowMapper: (d) => DataRow(
                 onSelectChanged: (_) => context.push('/documents/${d.id}'),
                 cells: [
-                  DataCell(Text(d.name, style: const TextStyle(fontWeight: FontWeight.w600))),
+                  DataCell(Text(d.name, style: ZTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600))),
                   DataCell(Text(d.entityType)),
                   DataCell(Text('${d.createdAt.day}/${d.createdAt.month}/${d.createdAt.year}')),
                   DataCell(ZBadge(text: d.status.toUpperCase(), type: _badgeType(d.status))),
@@ -389,7 +401,6 @@ class _DateVariableField extends StatelessWidget {
         decoration: InputDecoration(
           labelText: label,
           isDense: true,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           prefixIcon: const Icon(Icons.calendar_today, size: 18),
           suffixIcon: controller.text.isNotEmpty
               ? IconButton(
@@ -432,11 +443,10 @@ class _NumberVariableField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: label,
         isDense: true,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         prefixIcon: const Icon(Icons.numbers, size: 18),
         hintText: '0.00',
       ),
-      style: const TextStyle(fontSize: 14, fontFamily: 'monospace'),
+      style: ZTypography.bodyMedium.copyWith(fontFamily: 'monospace'),
     );
   }
 }
@@ -462,12 +472,11 @@ class _SelectVariableField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: label,
         isDense: true,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         prefixIcon: const Icon(Icons.arrow_drop_down_circle_outlined, size: 18),
       ),
       items: options.map((opt) => DropdownMenuItem(
         value: opt,
-        child: Text(opt, style: const TextStyle(fontSize: 14)),
+        child: Text(opt, style: ZTypography.bodyMedium),
       )).toList(),
       onChanged: onChanged,
     );
@@ -487,6 +496,7 @@ class _CheckboxVariableField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
       onTap: () => onChanged(!value),
       borderRadius: BorderRadius.circular(8),
@@ -494,7 +504,7 @@ class _CheckboxVariableField extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           border: Border.all(
-            color: value ? ZColors.brandAccent : ZColors.neutral200,
+            color: value ? ZColors.brandAccent : (isDark ? ZColors.darkBorder : ZColors.neutral200),
             width: 1.5,
           ),
           borderRadius: BorderRadius.circular(8),

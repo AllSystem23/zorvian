@@ -584,58 +584,78 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
 
   Widget _buildVariableRow(int index) {
     final v = _customVars[index];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       elevation: 0,
-      color: ZColors.neutral50,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: ZColors.neutral200),
+        side: BorderSide(color: isDark ? ZColors.darkBorder : ZColors.neutral200),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(10),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header row: delete button
             Row(
               children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: ZColors.brandAccent.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text('#${index + 1}', style: ZTypography.labelSmall.copyWith(
+                    color: ZColors.brandAccent, fontWeight: FontWeight.w700, fontSize: 10)),
+                ),
+                const SizedBox(width: 8),
                 Expanded(
-                  flex: 3,
-                  child: TextField(
-                    controller: v.keyCtrl,
-                    decoration: InputDecoration(
-                      hintText: 'key (ej: client_name)',
-                      isDense: true,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                      errorText: v.keyCtrl.text.contains(' ') ? 'Sin espacios' : null,
+                  child: Text(
+                    v.keyCtrl.text.isNotEmpty ? v.keyCtrl.text : 'Nueva variable',
+                    style: ZTypography.labelSmall.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: v.keyCtrl.text.isNotEmpty ? null : ZColors.neutral400,
                     ),
-                    style: const TextStyle(fontSize: 11, fontFamily: 'monospace'),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const SizedBox(width: 6),
-                Expanded(
-                  flex: 4,
-                  child: TextField(
-                    controller: v.label,
-                    decoration: InputDecoration(
-                      hintText: 'Etiqueta',
-                      isDense: true,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                    ),
-                    style: const TextStyle(fontSize: 11),
-                  ),
-                ),
-                const SizedBox(width: 4),
                 IconButton(
-                  icon: const Icon(Icons.close, size: 16),
+                  icon: const Icon(Icons.close, size: 16, color: ZColors.danger),
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                  constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
                   onPressed: () => _removeCustomVariable(index),
                 ),
               ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
+            // Key field - full width
+            TextField(
+              controller: v.keyCtrl,
+              decoration: InputDecoration(
+                labelText: 'Clave',
+                hintText: 'client_name',
+                isDense: true,
+                errorText: v.keyCtrl.text.contains(' ') ? 'Sin espacios' : null,
+                prefixIcon: const Icon(Icons.key, size: 16),
+              ),
+              style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 8),
+            // Label field - full width
+            TextField(
+              controller: v.label,
+              decoration: InputDecoration(
+                labelText: 'Etiqueta',
+                hintText: 'Nombre del campo',
+                isDense: true,
+                prefixIcon: const Icon(Icons.label_outline, size: 16),
+              ),
+              style: const TextStyle(fontSize: 12),
+            ),
+            const SizedBox(height: 8),
+            // Type + Required row
             Row(
               children: [
                 Expanded(
@@ -646,31 +666,48 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
                       DropdownMenuItem(value: 'text', child: Text('Texto')),
                       DropdownMenuItem(value: 'number', child: Text('Numérico')),
                       DropdownMenuItem(value: 'date', child: Text('Fecha')),
-                      DropdownMenuItem(value: 'textarea', child: Text('Texto largo')),
+                      DropdownMenuItem(value: 'textarea', child: Text('Largo')),
                       DropdownMenuItem(value: 'select', child: Text('Selección')),
                       DropdownMenuItem(value: 'checkbox', child: Text('Casilla')),
                     ],
                     onChanged: (val) => setState(() => v.type = val ?? 'text'),
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
+                      labelText: 'Tipo',
                       isDense: true,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                     ),
-                    style: const TextStyle(fontSize: 11),
+                    style: const TextStyle(fontSize: 12),
                   ),
                 ),
                 const SizedBox(width: 8),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Checkbox(
-                      value: v.required,
-                      onChanged: (val) => setState(() => v.required = val ?? false),
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      visualDensity: VisualDensity.compact,
+                InkWell(
+                  onTap: () => setState(() => v.required = !v.required),
+                  borderRadius: BorderRadius.circular(6),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: v.required ? ZColors.danger.withValues(alpha: 0.1) : null,
+                      border: Border.all(
+                        color: v.required ? ZColors.danger : ZColors.neutral300,
+                      ),
+                      borderRadius: BorderRadius.circular(6),
                     ),
-                    Text('Req.', style: ZTypography.labelSmall.copyWith(fontSize: 10)),
-                  ],
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          v.required ? Icons.star : Icons.star_border,
+                          size: 16,
+                          color: v.required ? ZColors.danger : ZColors.neutral500,
+                        ),
+                        const SizedBox(width: 4),
+                        Text('Req', style: ZTypography.labelSmall.copyWith(
+                          fontSize: 11,
+                          color: v.required ? ZColors.danger : ZColors.neutral600,
+                          fontWeight: v.required ? FontWeight.w600 : FontWeight.normal,
+                        )),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -682,8 +719,6 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
                 decoration: InputDecoration(
                   hintText: 'Opciones separadas por coma',
                   isDense: true,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   prefixIcon: const Icon(Icons.list_alt, size: 14),
                   errorText: v.optionsCtrl.text.trim().isEmpty && v.required ? 'Requerido para tipo Seleccion' : null,
                 ),

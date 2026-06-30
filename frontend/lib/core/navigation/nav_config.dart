@@ -234,6 +234,7 @@ final class NavConfig {
       roles: ['SuperAdmin', 'CompanyAdmin'],
       children: [
         NavItem(id: 'empresas', label: 'Gestión de Empresas', icon: Icons.business_outlined, route: '/admin/companies', roles: ['SuperAdmin']),
+        NavItem(id: 'planes', label: 'Planes de Suscripción', icon: Icons.workspace_premium_outlined, route: '/admin/subscription-plans', roles: ['SuperAdmin']),
         NavItem(id: 'usuarios', label: 'Usuarios y Seguridad', icon: Icons.manage_accounts_outlined, route: '/admin/users'),
         NavItem(id: 'sucursales', label: 'Sucursales', icon: Icons.store_outlined, route: '/branches'),
         NavItem(id: 'documental', label: 'Motor Documental', icon: Icons.auto_stories_outlined, route: '/documents'),

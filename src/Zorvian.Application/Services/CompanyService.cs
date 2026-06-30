@@ -1,3 +1,4 @@
+using Zorvian.Application.Config;
 using Zorvian.Application.DTOs.Company;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
@@ -243,6 +244,15 @@ public sealed class CompanyService
         if (request.LogoUrl is not null) company.LogoUrl = request.LogoUrl;
         if (request.MaxEmployees.HasValue) company.MaxEmployees = request.MaxEmployees.Value;
         if (request.IsActive.HasValue) company.IsActive = request.IsActive.Value;
+        if (request.SubscriptionPlan is not null)
+        {
+            var plan = SubscriptionPlanConfig.GetPlan(request.SubscriptionPlan);
+            if (plan is not null)
+            {
+                company.SubscriptionPlan = plan.Id;
+                company.MaxEmployees = SubscriptionPlanConfig.ClampMaxEmployees(plan.Id, company.MaxEmployees);
+            }
+        }
 
         await _repo.UpdateAsync(company);
         await _repo.SaveChangesAsync();

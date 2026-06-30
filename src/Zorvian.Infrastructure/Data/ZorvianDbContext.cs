@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -46,7 +46,7 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<PayrollRun> PayrollRuns => Set<PayrollRun>();
     public DbSet<PayrollDetail> PayrollDetails => Set<PayrollDetail>();
     public DbSet<PayrollDetailConcept> PayrollDetailConcepts => Set<PayrollDetailConcept>();
-    // NOTE: CountryTaxConfig is a GLOBAL catalog table — no tenant isolation applied by design.
+    // NOTE: CountryTaxConfig is a GLOBAL catalog table Â no tenant isolation applied by design.
     // All companies share the same country tax configurations. If per-tenant customization is
     // needed in the future, move to a per-tenant HasQueryFilter approach.
     public DbSet<CountryTaxConfig> CountryTaxConfigs => Set<CountryTaxConfig>();
@@ -102,7 +102,7 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<InventoryMovement> InventoryMovements => Set<InventoryMovement>();
     public DbSet<IntercompanyTransaction> IntercompanyTransactions => Set<IntercompanyTransaction>();
 
-    // New Module: CrÃƒÂ©ditos
+    // New Module: CrÃÂÃÂ©ditos
     public DbSet<Credit> Credits => Set<Credit>();
     public DbSet<CreditInstallment> CreditInstallments => Set<CreditInstallment>();
     public DbSet<CreditPayment> CreditPayments => Set<CreditPayment>();
@@ -125,7 +125,7 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<SupplierCreditNote> SupplierCreditNotes => Set<SupplierCreditNote>();
     public DbSet<Withholding> Withholdings => Set<Withholding>();
 
-    // New Module: GarantÃƒÂ­as
+    // New Module: GarantÃÂÃÂ­as
     public DbSet<Warranty> Warranties => Set<Warranty>();
     public DbSet<WarrantyClaim> WarrantyClaims => Set<WarrantyClaim>();
     public DbSet<ServiceWorkshop> ServiceWorkshops => Set<ServiceWorkshop>();
@@ -176,7 +176,7 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<AccountingRuleTemplate> AccountingRuleTemplates => Set<AccountingRuleTemplate>();
     public DbSet<EmployeePayrollExemption> EmployeePayrollExemptions => Set<EmployeePayrollExemption>();
     
-    // New Module: TesorerÃƒÂ­a
+    // New Module: TesorerÃÂÃÂ­a
     public DbSet<Bank> Banks => Set<Bank>();
     public DbSet<BankAccount> BankAccounts => Set<BankAccount>();
     public DbSet<Checkbook> Checkbooks => Set<Checkbook>();
@@ -184,7 +184,7 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<CheckAuditTrail> CheckAuditTrails => Set<CheckAuditTrail>();
     public DbSet<CheckPrintTemplate> CheckPrintTemplates => Set<CheckPrintTemplate>();
     
-    // New Module: NÃƒÂ³mina Avanzada
+    // New Module: NÃÂÃÂ³mina Avanzada
     public DbSet<SickLeaveRecord> SickLeaveRecords => Set<SickLeaveRecord>();
     public DbSet<TerminationRecord> TerminationRecords => Set<TerminationRecord>();
 
@@ -200,16 +200,19 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<Incentive> Incentives => Set<Incentive>();
     public DbSet<IncentivePayment> IncentivePayments => Set<IncentivePayment>();
 
-    // New Module: KPI y DesempeÃƒÂ±o
+    // New Module: KPI y DesempeÃÂÃÂ±o
     public DbSet<KpiDefinition> KpiDefinitions => Set<KpiDefinition>();
     public DbSet<KpiRecord> KpiRecords => Set<KpiRecord>();
     public DbSet<Ranking> Rankings => Set<Ranking>();
 
-    // New Module: FacturaciÃƒÂ³n ElectrÃƒÂ³nica
+    // New Module: FacturaciÃÂÃÂ³n ElectrÃÂÃÂ³nica
     public DbSet<ElectronicInvoice> ElectronicInvoices => Set<ElectronicInvoice>();
     public DbSet<ElectronicInvoiceXml> ElectronicInvoiceXmls => Set<ElectronicInvoiceXml>();
 
     // New Module: Partners (Canal)
+    public DbSet<SubscriptionPlan> SubscriptionPlans => Set<SubscriptionPlan>();
+    public DbSet<CompanyPlanPricing> CompanyPlanPricings => Set<CompanyPlanPricing>();
+
     public DbSet<Partner> Partners => Set<Partner>();
 
     // New Module: Prestadores de Servicios
@@ -224,7 +227,7 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<DocumentVersion> DocumentVersions => Set<DocumentVersion>();
     public DbSet<DocumentSignature> DocumentSignatures => Set<DocumentSignature>();
 
-    // New Module: Flota y LogÃƒÂ­stica
+    // New Module: Flota y LogÃÂÃÂ­stica
     public DbSet<Zorvian.Core.Entities.Fleet.VehicleBrand> VehicleBrands => Set<Zorvian.Core.Entities.Fleet.VehicleBrand>();
     public DbSet<Zorvian.Core.Entities.Fleet.VehicleType> VehicleTypes => Set<Zorvian.Core.Entities.Fleet.VehicleType>();
     public DbSet<Zorvian.Core.Entities.Fleet.FuelType> FuelTypes => Set<Zorvian.Core.Entities.Fleet.FuelType>();
@@ -378,6 +381,30 @@ public sealed class ZorvianDbContext : DbContext
             e.Property(x => x.Rate).HasColumnType("decimal(18,6)");
             e.HasIndex(x => new { x.FromCurrency, x.ToCurrency, x.EffectiveDate });
             e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !x.IsDeleted);
+        });
+
+        // Subscription Plans (global catalog — no tenant filter)
+        builder.Entity<SubscriptionPlan>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.HasIndex(p => p.PlanId).IsUnique();
+            e.Property(p => p.PlanId).HasMaxLength(50).IsRequired();
+            e.Property(p => p.Name).HasMaxLength(100).IsRequired();
+            e.Property(p => p.Period).HasMaxLength(30).IsRequired();
+            e.Property(p => p.ShortDescription).HasMaxLength(500);
+        });
+
+        builder.Entity<CompanyPlanPricing>(e =>
+        {
+            e.HasKey(cp => cp.Id);
+            e.Property(cp => cp.PlanId).HasMaxLength(50).IsRequired();
+            e.Property(cp => cp.CustomPeriod).HasMaxLength(30);
+            e.Property(cp => cp.Notes).HasMaxLength(500);
+            e.HasOne(cp => cp.Company)
+                .WithMany()
+                .HasForeignKey(cp => cp.CompanyId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(cp => new { cp.CompanyId, cp.PlanId, cp.IsActive });
         });
 
         builder.Entity<CustomReport>(e =>
@@ -1084,7 +1111,7 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(m => (m.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !m.IsDeleted);
         });
 
-        // ---- New Module: CrÃƒÂ©ditos ----
+        // ---- New Module: CrÃÂÃÂ©ditos ----
         builder.Entity<Credit>(e =>
         {
             e.HasKey(c => c.Id);
@@ -1417,7 +1444,7 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(b => (b.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !b.IsDeleted);
         });
 
-        // ---- New Module: TesorerÃƒÂ­a ----
+        // ---- New Module: TesorerÃÂÃÂ­a ----
         builder.Entity<Bank>(e =>
         {
             e.HasKey(b => b.Id);
@@ -1810,7 +1837,7 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(d => (d.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !d.IsDeleted);
         });
 
-        // ---- New Module: GarantÃƒÂ­as ----
+        // ---- New Module: GarantÃÂÃÂ­as ----
         builder.Entity<Warranty>(e =>
         {
             e.HasKey(w => w.Id);
@@ -2361,7 +2388,7 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(h => (h.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !h.IsDeleted);
         });
 
-        // ---- FacturaciÃƒÂ³n ElectrÃƒÂ³nica ----
+        // ---- FacturaciÃÂÃÂ³n ElectrÃÂÃÂ³nica ----
         builder.Entity<ElectronicInvoice>(e =>
         {
             e.HasKey(x => x.Id);
@@ -2477,7 +2504,7 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(s => (s.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !s.IsDeleted);
         });
 
-        // Ã¢â€â‚¬Ã¢â€â‚¬ Fleet Module Ã¢â€â‚¬Ã¢â€â‚¬
+        // ÃÂ¢Ã¢ÂÂÃ¢ÂÂ¬ÃÂ¢Ã¢ÂÂÃ¢ÂÂ¬ Fleet Module ÃÂ¢Ã¢ÂÂÃ¢ÂÂ¬ÃÂ¢Ã¢ÂÂÃ¢ÂÂ¬
         builder.Entity<Zorvian.Core.Entities.Fleet.VehicleBrand>(e =>
         {
             e.HasKey(x => x.Id);
