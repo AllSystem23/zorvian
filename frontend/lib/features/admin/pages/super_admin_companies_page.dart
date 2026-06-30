@@ -279,17 +279,17 @@ class _SuperAdminCompaniesPageState extends ConsumerState<SuperAdminCompaniesPag
                 ],
               ),
             ),
-            DataCell(ZBadge(
-              text: company['country'] as String? ?? '',
-              type: ZBadgeType.neutral,
-            )),
-            DataCell(Text(company['currency'] as String? ?? '', style: ZTypography.bodyMedium)),
             DataCell(Text(company['email'] as String? ?? '—', style: ZTypography.bodyMedium.copyWith(
               color: (company['email'] as String? ?? '').isNotEmpty ? null : ZColors.neutral400,
             ))),
             DataCell(Text(company['phone'] as String? ?? '—', style: ZTypography.bodyMedium.copyWith(
               color: (company['phone'] as String? ?? '').isNotEmpty ? null : ZColors.neutral400,
             ))),
+            DataCell(ZBadge(
+              text: company['country'] as String? ?? '',
+              type: ZBadgeType.neutral,
+            )),
+            DataCell(Text(company['currency'] as String? ?? '', style: ZTypography.bodyMedium)),
             DataCell(ZBadge(
               text: (company['subscriptionPlan'] as String? ?? 'starter').toUpperCase(),
               type: ZBadgeType.info,
@@ -552,6 +552,7 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
   late String _selectedCountry;
   late String _selectedCurrency;
   late String _selectedTimezone;
+  late bool _isActive;
   bool _loading = false;
   String? _error;
 
@@ -579,6 +580,7 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
     _selectedCountry = c['country'] as String? ?? 'Nicaragua';
     _selectedCurrency = c['currency'] as String? ?? 'NIO';
     _selectedTimezone = c['timezone'] as String? ?? 'America/Managua';
+    _isActive = c['isActive'] == true;
     _currentLogoUrl = c['logoUrl'] as String?;
   }
 
@@ -684,6 +686,7 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
         'currency': _selectedCurrency,
         'timezone': _selectedTimezone,
         'maxEmployees': int.tryParse(_maxEmployeesCtrl.text) ?? 50,
+        'isActive': _isActive,
       });
       widget.onSaved();
       if (mounted) Navigator.pop(context);
@@ -741,6 +744,17 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
             ZTextField(controller: _addressCtrl, label: 'Dirección', prefix: const Icon(Icons.location_on_outlined)),
             const SizedBox(height: ZSpacing.md),
             ZTextField(controller: _maxEmployeesCtrl, label: 'Máximo de Empleados', prefix: const Icon(Icons.people_outline), keyboardType: TextInputType.number),
+            const SizedBox(height: ZSpacing.md),
+            SwitchListTile(
+              title: const Text('Empresa activa'),
+              subtitle: Text(
+                _isActive ? 'La empresa está activa y accesible' : 'La empresa está desactivada',
+                style: ZTypography.labelSmall.copyWith(color: ZColors.neutral500),
+              ),
+              value: _isActive,
+              activeThumbColor: ZColors.brandAccent,
+              onChanged: (v) => setState(() => _isActive = v),
+            ),
           ],
         ),
       ),

@@ -11,13 +11,15 @@ public sealed class CompanyService
     private readonly ITenantContext _tenant;
     private readonly IFiscalService _fiscalService;
     private readonly IDocumentStorageService _storage;
+    private readonly IRegionalTaxConfigurationRepository _regionalTaxRepo;
 
-    public CompanyService(ICompanyRepository repo, ITenantContext tenant, IFiscalService fiscalService, IDocumentStorageService storage)
+    public CompanyService(ICompanyRepository repo, ITenantContext tenant, IFiscalService fiscalService, IDocumentStorageService storage, IRegionalTaxConfigurationRepository regionalTaxRepo)
     {
         _repo = repo;
         _tenant = tenant;
         _fiscalService = fiscalService;
         _storage = storage;
+        _regionalTaxRepo = regionalTaxRepo;
     }
 
     public async Task<List<CompanyListItemResponse>> GetAllAsync()
@@ -30,6 +32,8 @@ public sealed class CompanyService
             c.LegalName,
             c.TaxId,
             c.LogoUrl,
+            c.Email,
+            c.Phone,
             c.Country,
             c.Currency,
             c.Timezone,
@@ -78,6 +82,7 @@ public sealed class CompanyService
 
         var countryCode = MapCountryToCode(request.Country);
         await _fiscalService.SetupDefaultTaxesAsync(company.Id, countryCode);
+        await SeedRegionalTaxesAsync(company.Id, countryCode);
 
         return new CompanyResponse(
             company.Id,
@@ -107,6 +112,61 @@ public sealed class CompanyService
             "guatemala" => "GTM",
             _ => "NIC"
         };
+    }
+
+    private static List<(string CountryCode, string TaxType, decimal Rate)> GetRegionalTaxes(string countryCode)
+    {
+        return countryCode switch
+        {
+            "NIC" => [
+                ("NIC", "IVA", 0.15m),
+                ("NIC", "IR", 0.02m),
+            ],
+            "CRI" => [
+                ("CR", "IVA", 0.13m),
+                ("CR", "IVA Reducido 4%", 0.04m),
+                ("CR", "IVA Reducido 2%", 0.02m),
+                ("CR", "IVA Reducido 1%", 0.01m),
+            ],
+            "PAN" => [
+                ("PA", "ITBMS", 0.07m),
+                ("PA", "ITBMS Especial 10%", 0.10m),
+                ("PA", "ITBMS Especial 15%", 0.15m),
+            ],
+            "HND" => [
+                ("HN", "ISV", 0.15m),
+                ("HN", "ISV", 0.18m),
+            ],
+            "SLV" => [
+                ("SV", "IVA", 0.13m),
+            ],
+            "GTM" => [
+                ("GT", "IVA", 0.12m),
+            ],
+            _ => [
+                ("XX", "IVA Estándar", 0.15m),
+            ],
+        };
+    }
+
+    private async Task SeedRegionalTaxesAsync(Guid companyId, string countryCode)
+    {
+        var taxes = GetRegionalTaxes(countryCode);
+        if (taxes.Count == 0) return;
+
+        var entities = taxes.Select(t => new RegionalTaxConfiguration
+        {
+            CompanyId = companyId,
+            CountryCode = t.CountryCode,
+            TaxType = t.TaxType,
+            Rate = t.Rate,
+            EffectiveDate = DateTime.UtcNow,
+            IsActive = true,
+        }).ToList();
+
+        foreach (var entity in entities)
+            await _regionalTaxRepo.AddAsync(entity);
+        await _regionalTaxRepo.SaveChangesAsync();
     }
 
     public async Task<CompanyResponse?> GetCurrentAsync()
@@ -182,6 +242,7 @@ public sealed class CompanyService
         if (request.Timezone is not null) company.Timezone = request.Timezone;
         if (request.LogoUrl is not null) company.LogoUrl = request.LogoUrl;
         if (request.MaxEmployees.HasValue) company.MaxEmployees = request.MaxEmployees.Value;
+        if (request.IsActive.HasValue) company.IsActive = request.IsActive.Value;
 
         await _repo.UpdateAsync(company);
         await _repo.SaveChangesAsync();

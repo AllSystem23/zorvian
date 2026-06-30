@@ -2,6 +2,7 @@ using Moq;
 using Zorvian.Application.DTOs.Company;
 using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
+using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
 
 namespace Zorvian.Tests.Services;
@@ -12,13 +13,14 @@ public sealed class CompanyServiceTests
     private readonly Mock<ITenantContext> _tenant = new();
     private readonly Mock<IFiscalService> _fiscal = new();
     private readonly Mock<IDocumentStorageService> _storage = new();
+    private readonly Mock<IRegionalTaxConfigurationRepository> _regionalTaxRepo = new();
     private readonly CompanyService _sut;
     private readonly string _tenantId = Guid.NewGuid().ToString();
 
     public CompanyServiceTests()
     {
         _tenant.Setup(t => t.TenantId).Returns(_tenantId);
-        _sut = new CompanyService(_repo.Object, _tenant.Object, _fiscal.Object, _storage.Object);
+        _sut = new CompanyService(_repo.Object, _tenant.Object, _fiscal.Object, _storage.Object, _regionalTaxRepo.Object);
     }
 
     [Fact]
@@ -95,7 +97,8 @@ public sealed class CompanyServiceTests
             Currency: "USD",
             Timezone: null,
             LogoUrl: null,
-            MaxEmployees: null
+            MaxEmployees: null,
+            IsActive: null
         );
 
         var result = await _sut.UpdateAsync(request);
@@ -178,5 +181,173 @@ public sealed class CompanyServiceTests
         Assert.True(result.OvertimeEnabled);
         Assert.Equal("[{\"step\":1,\"role\":\"Rrhh\"}]", result.ApprovalFlowConfig);
         _repo.Verify(r => r.UpdateSettingsAsync(It.IsAny<Core.Entities.CompanySettings>()), Times.Once);
+    }
+
+    // ── SeedRegionalTaxesAsync tests ──
+
+    [Fact]
+    public async Task CreateAsync_SeedsRegionalTaxesForNicaragua()
+    {
+        _repo.Setup(r => r.ExistsByTenantIdAsync(_tenantId)).ReturnsAsync(false);
+
+        var request = new CreateCompanyRequest(
+            Name: "Empresa NIC",
+            LegalName: "Empresa NIC S.A.",
+            TaxId: null, Phone: null, Address: null, Email: null,
+            Country: "Nicaragua", Currency: "NIO", Timezone: "America/Managua"
+        );
+
+        await _sut.CreateAsync(request);
+
+        _regionalTaxRepo.Verify(r => r.AddAsync(It.Is<RegionalTaxConfiguration>(x =>
+            x.CountryCode == "NIC" && x.TaxType == "IVA" && x.Rate == 0.15m)), Times.Once);
+        _regionalTaxRepo.Verify(r => r.AddAsync(It.Is<RegionalTaxConfiguration>(x =>
+            x.CountryCode == "NIC" && x.TaxType == "IR" && x.Rate == 0.02m)), Times.Once);
+        _regionalTaxRepo.Verify(r => r.SaveChangesAsync(), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task CreateAsync_SeedsRegionalTaxesForCostaRica()
+    {
+        _repo.Setup(r => r.ExistsByTenantIdAsync(_tenantId)).ReturnsAsync(false);
+
+        var request = new CreateCompanyRequest(
+            Name: "Empresa CR",
+            LegalName: "Empresa CR S.A.",
+            TaxId: null, Phone: null, Address: null, Email: null,
+            Country: "Costa Rica", Currency: "CRC", Timezone: "America/Costa_Rica"
+        );
+
+        await _sut.CreateAsync(request);
+
+        _regionalTaxRepo.Verify(r => r.AddAsync(It.Is<RegionalTaxConfiguration>(x =>
+            x.CountryCode == "CR" && x.TaxType == "IVA" && x.Rate == 0.13m)), Times.Once);
+        _regionalTaxRepo.Verify(r => r.AddAsync(It.Is<RegionalTaxConfiguration>(x =>
+            x.CountryCode == "CR" && x.TaxType == "IVA Reducido 4%")), Times.Once);
+        _regionalTaxRepo.Verify(r => r.AddAsync(It.Is<RegionalTaxConfiguration>(x =>
+            x.CountryCode == "CR" && x.TaxType == "IVA Reducido 2%")), Times.Once);
+        _regionalTaxRepo.Verify(r => r.AddAsync(It.Is<RegionalTaxConfiguration>(x =>
+            x.CountryCode == "CR" && x.TaxType == "IVA Reducido 1%")), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateAsync_SeedsRegionalTaxesForPanama()
+    {
+        _repo.Setup(r => r.ExistsByTenantIdAsync(_tenantId)).ReturnsAsync(false);
+
+        var request = new CreateCompanyRequest(
+            Name: "Empresa PA",
+            LegalName: "Empresa PA S.A.",
+            TaxId: null, Phone: null, Address: null, Email: null,
+            Country: "Panamá", Currency: "USD", Timezone: "America/Panama"
+        );
+
+        await _sut.CreateAsync(request);
+
+        _regionalTaxRepo.Verify(r => r.AddAsync(It.Is<RegionalTaxConfiguration>(x =>
+            x.CountryCode == "PA" && x.TaxType == "ITBMS" && x.Rate == 0.07m)), Times.Once);
+        _regionalTaxRepo.Verify(r => r.AddAsync(It.Is<RegionalTaxConfiguration>(x =>
+            x.CountryCode == "PA" && x.TaxType == "ITBMS Especial 10%")), Times.Once);
+        _regionalTaxRepo.Verify(r => r.AddAsync(It.Is<RegionalTaxConfiguration>(x =>
+            x.CountryCode == "PA" && x.TaxType == "ITBMS Especial 15%")), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateAsync_SeedsRegionalTaxesForHonduras()
+    {
+        _repo.Setup(r => r.ExistsByTenantIdAsync(_tenantId)).ReturnsAsync(false);
+
+        var request = new CreateCompanyRequest(
+            Name: "Empresa HN",
+            LegalName: "Empresa HN S.A.",
+            TaxId: null, Phone: null, Address: null, Email: null,
+            Country: "Honduras", Currency: "HNL", Timezone: "America/Tegucigalpa"
+        );
+
+        await _sut.CreateAsync(request);
+
+        _regionalTaxRepo.Verify(r => r.AddAsync(It.Is<RegionalTaxConfiguration>(x =>
+            x.CountryCode == "HN" && x.TaxType == "ISV" && x.Rate == 0.15m)), Times.Once);
+        _regionalTaxRepo.Verify(r => r.AddAsync(It.Is<RegionalTaxConfiguration>(x =>
+            x.CountryCode == "HN" && x.TaxType == "ISV" && x.Rate == 0.18m)), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateAsync_SeedsRegionalTaxesForElSalvador()
+    {
+        _repo.Setup(r => r.ExistsByTenantIdAsync(_tenantId)).ReturnsAsync(false);
+
+        var request = new CreateCompanyRequest(
+            Name: "Empresa SV",
+            LegalName: "Empresa SV S.A.",
+            TaxId: null, Phone: null, Address: null, Email: null,
+            Country: "El Salvador", Currency: "USD", Timezone: "America/El_Salvador"
+        );
+
+        await _sut.CreateAsync(request);
+
+        _regionalTaxRepo.Verify(r => r.AddAsync(It.Is<RegionalTaxConfiguration>(x =>
+            x.CountryCode == "SV" && x.TaxType == "IVA" && x.Rate == 0.13m)), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateAsync_SeedsRegionalTaxesForGuatemala()
+    {
+        _repo.Setup(r => r.ExistsByTenantIdAsync(_tenantId)).ReturnsAsync(false);
+
+        var request = new CreateCompanyRequest(
+            Name: "Empresa GT",
+            LegalName: "Empresa GT S.A.",
+            TaxId: null, Phone: null, Address: null, Email: null,
+            Country: "Guatemala", Currency: "GTQ", Timezone: "America/Guatemala"
+        );
+
+        await _sut.CreateAsync(request);
+
+        _regionalTaxRepo.Verify(r => r.AddAsync(It.Is<RegionalTaxConfiguration>(x =>
+            x.CountryCode == "GT" && x.TaxType == "IVA" && x.Rate == 0.12m)), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateAsync_CallsFiscalServiceAndRegionalTaxRepo()
+    {
+        _repo.Setup(r => r.ExistsByTenantIdAsync(_tenantId)).ReturnsAsync(false);
+
+        var request = new CreateCompanyRequest(
+            Name: "Test",
+            LegalName: "Test S.A.",
+            TaxId: null, Phone: null, Address: null, Email: null,
+            Country: "Nicaragua", Currency: "NIO", Timezone: "America/Managua"
+        );
+
+        await _sut.CreateAsync(request);
+
+        _fiscal.Verify(f => f.SetupDefaultTaxesAsync(It.IsAny<Guid>(), "NIC"), Times.Once);
+        _regionalTaxRepo.Verify(r => r.SaveChangesAsync(), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task CreateAsync_RegionalTaxesHaveCorrectCompanyId()
+    {
+        _repo.Setup(r => r.ExistsByTenantIdAsync(_tenantId)).ReturnsAsync(false);
+
+        // Simulate EF setting the Company.Id when AddAsync is called
+        var capturedCompanyId = Guid.Empty;
+        _repo.Setup(r => r.AddAsync(It.IsAny<Core.Entities.Company>()))
+            .Callback<Core.Entities.Company>(c => c.Id = Guid.NewGuid())
+            .Returns(Task.CompletedTask);
+
+        var request = new CreateCompanyRequest(
+            Name: "Test",
+            LegalName: "Test S.A.",
+            TaxId: null, Phone: null, Address: null, Email: null,
+            Country: "Nicaragua", Currency: "NIO", Timezone: "America/Managua"
+        );
+
+        await _sut.CreateAsync(request);
+
+        // Verify regional taxes were created with a non-empty CompanyId
+        _regionalTaxRepo.Verify(r => r.AddAsync(It.Is<RegionalTaxConfiguration>(x =>
+            x.CompanyId != Guid.Empty)), Times.AtLeastOnce);
     }
 }

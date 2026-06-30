@@ -374,6 +374,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IEmployeePayrollExemptionRepository, EmployeePayrollExemptionRepository>();
         services.AddScoped<IRegionalDashboardRepository, RegionalDashboardRepository>();
         services.AddScoped<IRegionalTaxConfigService, RegionalTaxConfigService>();
+        services.AddScoped<ICountryTaxConfigService, CountryTaxConfigService>();
         services.AddScoped<IPayrollLocalizationService, PayrollLocalizationService>();
         services.AddScoped<ISettlementPdfService, SettlementPdfService>();
         services.AddScoped<RegionalFinancialDashboardService, RegionalFinancialDashboardService>();

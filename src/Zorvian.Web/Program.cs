@@ -173,6 +173,7 @@ if (!mockExternal)
     // Seed catalog data if tables are empty
     await Zorvian.Infrastructure.Data.DocumentTemplateSeeder.SeedAsync(db, logger);
     await Zorvian.Infrastructure.Data.FleetCatalogSeeder.SeedAsync(db, logger);
+    await Zorvian.Infrastructure.Data.CountryTaxConfigSeeder.SeedAsync(db, logger);
 }
 
 // ── Endpoints ──

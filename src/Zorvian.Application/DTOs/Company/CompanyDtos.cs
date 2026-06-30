@@ -39,7 +39,8 @@ public sealed record UpdateCompanyRequest(
     string? Currency,
     string? Timezone,
     string? LogoUrl,
-    int? MaxEmployees
+    int? MaxEmployees,
+    bool? IsActive
 );
 
 public sealed record CompanySettingsResponse(
@@ -85,6 +86,8 @@ public sealed record CompanyListItemResponse(
     string LegalName,
     string? TaxId,
     string? LogoUrl,
+    string? Email,
+    string? Phone,
     string Country,
     string Currency,
     string Timezone,

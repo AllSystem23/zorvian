@@ -243,6 +243,20 @@ final class NavConfig {
         NavItem(id: 'auditoria', label: 'Logs de Auditoría', icon: Icons.policy_outlined, route: '/audit-logs'),
       ],
     ),
+
+    const NavModule(
+      id: 'fiscal',
+      label: 'Configuración Fiscal',
+      icon: Icons.receipt_long_outlined,
+      color: ZColors.moduleFinance,
+      textColor: ZColors.moduleFinanceText,
+      group: 'admin',
+      roles: ['SuperAdmin', 'CompanyAdmin'],
+      children: [
+        NavItem(id: 'country-tax', label: 'Config Fiscal por País', icon: Icons.policy_outlined, route: '/admin/country-tax-configs', roles: ['SuperAdmin']),
+        NavItem(id: 'regional-tax', label: 'Tasas Fiscales Regionales', icon: Icons.receipt_long_outlined, route: '/admin/regional-tax-configs', roles: ['SuperAdmin', 'CompanyAdmin']),
+      ],
+    ),
   ];
 
   static List<NavModule> getModulesForRole(String role, {String? searchQuery}) {

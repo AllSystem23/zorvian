@@ -22,9 +22,10 @@ public class CompaniesControllerTests
         var mockTenant = new Mock<ITenantContext>();
         var mockFiscal = new Mock<IFiscalService>();
         var mockStorage = new Mock<IDocumentStorageService>();
+        var mockRegionalTax = new Mock<IRegionalTaxConfigurationRepository>();
         mockTenant.Setup(t => t.TenantId).Returns(Guid.NewGuid().ToString());
 
-        var service = new CompanyService(mockRepo.Object, mockTenant.Object, mockFiscal.Object, mockStorage.Object);
+        var service = new CompanyService(mockRepo.Object, mockTenant.Object, mockFiscal.Object, mockStorage.Object, mockRegionalTax.Object);
         _controller = new CompaniesController(service);
         
         // Setup User con permisos insuficientes

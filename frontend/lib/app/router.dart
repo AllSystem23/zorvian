@@ -114,6 +114,8 @@ import '../features/custom_reports/pages/custom_report_list_page.dart';
 import '../features/custom_reports/pages/custom_report_builder_page.dart';
 import '../features/custom_reports/pages/custom_report_result_page.dart';
 import '../features/webhooks/pages/webhook_list_page.dart';
+import '../features/fiscal/pages/country_tax_config_page.dart';
+import '../features/fiscal/pages/regional_tax_config_page.dart';
 import '../features/webhooks/pages/webhook_form_page.dart';
 import '../features/webhooks/pages/webhook_logs_page.dart';
 import '../features/accounting/pages/equity_changes_page.dart';
@@ -219,6 +221,8 @@ final _routeRoles = <String, List<String>>{
   '/exchange-rates': ['SuperAdmin', 'CompanyAdmin'],
   '/custom-reports': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/webhooks': ['SuperAdmin', 'CompanyAdmin'],
+  '/admin/country-tax-configs': ['SuperAdmin'],
+  '/admin/regional-tax-configs': ['SuperAdmin', 'CompanyAdmin'],
   '/accounting': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
   '/accounting/reports': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
   '/accounting/reports/equity': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
@@ -901,6 +905,16 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/accounting/account-links',
             name: 'accounting-account-links',
             builder: (_, _) => const AccountLinksPage(),
+          ),
+          GoRoute(
+            path: '/admin/country-tax-configs',
+            name: 'country-tax-configs',
+            builder: (_, _) => const CountryTaxConfigPage(),
+          ),
+          GoRoute(
+            path: '/admin/regional-tax-configs',
+            name: 'regional-tax-configs',
+            builder: (_, _) => const RegionalTaxConfigPage(),
           ),
           GoRoute(
             path: '/webhooks',
