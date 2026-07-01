@@ -24,13 +24,22 @@ final class WarrantyItem {
   );
 }
 
+const _sentinel = Object();
+
 final class WarrantyState {
   final List<WarrantyItem> items;
   final bool loading;
   final String? error;
   const WarrantyState({this.items = const [], this.loading = false, this.error});
-  WarrantyState copyWith({List<WarrantyItem>? items, bool? loading, String? error}) =>
-    WarrantyState(items: items ?? this.items, loading: loading ?? this.loading, error: error ?? this.error);
+
+  WarrantyState copyWith({List<WarrantyItem>? items, bool? loading, Object? error = _sentinel}) =>
+    WarrantyState(
+      items: items ?? this.items,
+      loading: loading ?? this.loading,
+      error: identical(error, _sentinel) ? this.error : error as String?,
+    );
+
+  WarrantyState clearError() => WarrantyState(items: items, loading: loading);
 }
 
 class WarrantyNotifier extends Notifier<WarrantyState> {
@@ -38,7 +47,7 @@ class WarrantyNotifier extends Notifier<WarrantyState> {
   WarrantyState build() => const WarrantyState();
 
   Future<void> load({int page = 1, int pageSize = 20, String? search, String? status}) async {
-    state = state.copyWith(loading: true, error: null);
+    state = state.copyWith(loading: true).clearError();
     try {
       final dio = ref.read(dioClientProvider);
       final params = <String, dynamic>{

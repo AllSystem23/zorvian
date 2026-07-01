@@ -369,18 +369,8 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
   }
 
   Widget _buildCostsTab() {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.attach_money, size: 48, color: ZColors.neutral300),
-          SizedBox(height: ZSpacing.md),
-          Text('Módulo de costos', style: ZTypography.titleMedium),
-          SizedBox(height: ZSpacing.xs),
-          Text('Próximamente', style: ZTypography.bodySmall),
-        ],
-      ),
-    );
+    final warrantyId = widget.warrantyId;
+    return _CostsTabBody(warrantyId: warrantyId);
   }
 
   void _onMenuAction(String action) async {
@@ -540,4 +530,285 @@ class _InfoRow extends StatelessWidget {
       ),
     );
   }
+}
+
+class _CostsTabBody extends ConsumerStatefulWidget {
+  final String warrantyId;
+  const _CostsTabBody({required this.warrantyId});
+
+  @override
+  ConsumerState<_CostsTabBody> createState() => _CostsTabBodyState();
+}
+
+class _CostsTabBodyState extends ConsumerState<_CostsTabBody> {
+  List<dynamic> _costs = [];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      final dio = ref.read(dioClientProvider);
+      final r = await dio.get('warranty-costs/by-warranty/${widget.warrantyId}');
+      _costs = r.data as List;
+    } catch (e) {
+      setState(() => _error = 'Error al cargar costos');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator(color: ZColors.brandPrimary));
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: ZColors.danger),
+            const SizedBox(height: ZSpacing.md),
+            Text(_error!, style: ZTypography.bodyMedium),
+            const SizedBox(height: ZSpacing.lg),
+            ZButton(text: 'Reintentar', icon: Icons.refresh, onPressed: _load),
+          ],
+        ),
+      );
+    }
+
+    if (_costs.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.attach_money_outlined, size: 48, color: ZColors.neutral300),
+            const SizedBox(height: ZSpacing.md),
+            Text('Sin costos registrados', style: ZTypography.titleMedium.copyWith(color: ZColors.neutral500)),
+            const SizedBox(height: ZSpacing.xs),
+            Text('Los costos de reparación y repuestos aparecerán aquí.', style: ZTypography.bodySmall),
+            const SizedBox(height: ZSpacing.lg),
+            ZButton(
+              text: 'Agregar costo',
+              icon: Icons.add,
+              type: ZButtonType.primary,
+              onPressed: () => _showAddCostDialog(),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final total = _costs.fold<double>(0, (sum, c) {
+      final qty = (c['quantity'] as num?)?.toDouble() ?? 1;
+      final unit = (c['unitCost'] as num?)?.toDouble() ?? 0;
+      return sum + (qty * unit);
+    });
+
+    return Column(
+      children: [
+        // Summary header
+        ZCard(
+          margin: const EdgeInsets.all(ZSpacing.md),
+          padding: const EdgeInsets.all(ZSpacing.md),
+          child: Row(
+            children: [
+              const Icon(Icons.receipt_long, color: ZColors.brandAccent),
+              const SizedBox(width: ZSpacing.sm),
+              Text('Total: ', style: ZTypography.titleSmall),
+              Text(
+                '\$${total.toStringAsFixed(2)}',
+                style: ZTypography.titleLarge.copyWith(color: ZColors.brandPrimary, fontWeight: FontWeight.bold),
+              ),
+              const Spacer(),
+              Text('${_costs.length} registros', style: ZTypography.bodySmall),
+              const SizedBox(width: ZSpacing.md),
+              ZButton(
+                text: 'Agregar',
+                icon: Icons.add,
+                type: ZButtonType.primary,
+                onPressed: () => _showAddCostDialog(),
+              ),
+            ],
+          ),
+        ),
+        // Cost items
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: ZSpacing.md),
+            itemCount: _costs.length,
+            separatorBuilder: (_, _) => const SizedBox(height: ZSpacing.sm),
+            itemBuilder: (_, i) {
+              final c = _costs[i] as Map<String, dynamic>;
+              final category = c['costCategory'] as String? ?? '';
+              final desc = c['description'] as String? ?? '';
+              final qty = (c['quantity'] as num?)?.toDouble() ?? 1;
+              final unit = (c['unitCost'] as num?)?.toDouble() ?? 0;
+              final totalCost = qty * unit;
+              final paidBy = c['paidBy'] as String? ?? '';
+              final isBilled = c['isBilled'] as bool? ?? false;
+
+              return ZCard(
+                padding: const EdgeInsets.all(ZSpacing.md),
+                child: Row(
+                  children: [
+                    Icon(
+                      _costCategoryIcon(category),
+                      color: _costCategoryColor(category),
+                      size: 20,
+                    ),
+                    const SizedBox(width: ZSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(category, style: ZTypography.titleSmall),
+                          if (desc.isNotEmpty)
+                            Text(desc, style: ZTypography.bodySmall.copyWith(color: ZColors.neutral600)),
+                          Text('Paid by: $paidBy · Qty: ${qty.toStringAsFixed(0)} × \$${unit.toStringAsFixed(2)}',
+                            style: ZTypography.bodySmall),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text('\$${totalCost.toStringAsFixed(2)}',
+                          style: ZTypography.titleMedium.copyWith(fontWeight: FontWeight.bold)),
+                        ZBadge(
+                          text: isBilled ? 'Facturado' : 'Pendiente',
+                          type: isBilled ? ZBadgeType.success : ZBadgeType.warning,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showAddCostDialog() {
+    final descCtrl = TextEditingController();
+    final qtyCtrl = TextEditingController(text: '1');
+    final unitCtrl = TextEditingController();
+    final invoiceCtrl = TextEditingController();
+    String category = 'Labor';
+    String paidBy = 'Company';
+    bool saving = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Agregar costo'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  initialValue: category,
+                  decoration: const InputDecoration(labelText: 'Categoría', border: OutlineInputBorder()),
+                  items: const [
+                    DropdownMenuItem(value: 'Labor', child: Text('Mano de obra')),
+                    DropdownMenuItem(value: 'Parts', child: Text('Repuestos')),
+                    DropdownMenuItem(value: 'Logistics', child: Text('Logística')),
+                    DropdownMenuItem(value: 'Other', child: Text('Otro')),
+                  ],
+                  onChanged: (v) => setDialogState(() => category = v ?? 'Labor'),
+                ),
+                const SizedBox(height: ZSpacing.md),
+                ZTextField(controller: descCtrl, label: 'Descripción'),
+                const SizedBox(height: ZSpacing.md),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ZTextField(controller: qtyCtrl, label: 'Cantidad', keyboardType: TextInputType.number),
+                    ),
+                    const SizedBox(width: ZSpacing.md),
+                    Expanded(
+                      child: ZTextField(controller: unitCtrl, label: 'Costo unitario', keyboardType: TextInputType.number),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: ZSpacing.md),
+                DropdownButtonFormField<String>(
+                  initialValue: paidBy,
+                  decoration: const InputDecoration(labelText: 'Pagado por', border: OutlineInputBorder()),
+                  items: const [
+                    DropdownMenuItem(value: 'Company', child: Text('Empresa')),
+                    DropdownMenuItem(value: 'Client', child: Text('Cliente')),
+                    DropdownMenuItem(value: 'Workshop', child: Text('Taller')),
+                    DropdownMenuItem(value: 'Warranty', child: Text('Garantía')),
+                  ],
+                  onChanged: (v) => setDialogState(() => paidBy = v ?? 'Company'),
+                ),
+                const SizedBox(height: ZSpacing.md),
+                ZTextField(controller: invoiceCtrl, label: 'N° Factura (opcional)'),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: saving ? null : () => Navigator.pop(ctx), child: const Text('Cancelar')),
+            ZButton(
+              text: 'Guardar',
+              isLoading: saving,
+              onPressed: saving ? () {} : () async {
+                final qty = double.tryParse(qtyCtrl.text) ?? 1;
+                final unit = double.tryParse(unitCtrl.text) ?? 0;
+                if (unit <= 0) return;
+                setDialogState(() => saving = true);
+                try {
+                  final dio = ref.read(dioClientProvider);
+                  await dio.post('warranty-costs', data: {
+                    'warrantyId': widget.warrantyId,
+                    'costCategory': category,
+                    'description': descCtrl.text.trim().isNotEmpty ? descCtrl.text.trim() : null,
+                    'quantity': qty,
+                    'unitCost': unit,
+                    'paidBy': paidBy,
+                    'invoiceNumber': invoiceCtrl.text.trim().isNotEmpty ? invoiceCtrl.text.trim() : null,
+                  });
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  _load();
+                } catch (e) {
+                  setDialogState(() => saving = false);
+                  if (ctx.mounted) {
+                    ScaffoldMessenger.of(ctx).showSnackBar(
+                      SnackBar(content: Text('Error al guardar: $e'), backgroundColor: ZColors.danger),
+                    );
+                  }
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData _costCategoryIcon(String category) => switch (category) {
+    'Labor' => Icons.build,
+    'Parts' => Icons.settings,
+    'Logistics' => Icons.local_shipping,
+    _ => Icons.attach_money,
+  };
+
+  Color _costCategoryColor(String category) => switch (category) {
+    'Labor' => ZColors.brandAccent,
+    'Parts' => ZColors.brandSecondary,
+    'Logistics' => ZColors.warning,
+    _ => ZColors.neutral500,
+  };
 }

@@ -94,6 +94,7 @@ import '../features/warranties/pages/warranty_list_page.dart';
 import '../features/warranties/pages/warranty_form_page.dart';
 import '../features/warranties/pages/warranty_detail_page.dart';
 import '../features/warranties/pages/warranty_dashboard_page.dart';
+import '../features/warranties/pages/warranty_tracking_page.dart';
 import '../features/purchases/pages/purchase_list_page.dart';
 import '../features/purchases/pages/purchase_form_page.dart';
 import '../features/purchases/pages/purchase_detail_page.dart';
@@ -267,7 +268,9 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (status == AuthStatus.unknown && !isSplashRoute) return '/splash';
 
-      if (status == AuthStatus.unauthenticated && !isLoginRoute) {
+      final isPublicRoute = location == '/warranties/track';
+
+      if (status == AuthStatus.unauthenticated && !isLoginRoute && !isPublicRoute) {
         return '/login';
       }
 
@@ -314,6 +317,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/onboarding',
         name: 'onboarding',
         builder: (_, _) => const OnboardingPage(),
+      ),
+      GoRoute(
+        path: '/warranties/track',
+        name: 'warranty-tracking',
+        builder: (_, _) => const WarrantyTrackingPage(),
       ),
       ShellRoute(
         builder: (_, _, child) => AppShell(child: child),
