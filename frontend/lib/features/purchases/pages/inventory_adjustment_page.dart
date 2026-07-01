@@ -38,15 +38,13 @@ final class _InventoryAdjustmentPageState extends ConsumerState<InventoryAdjustm
   }
 
   void _scanProduct(String code) {
-    final products = ref.read(productProvider).items;
-    final found = products.where((p) => p.code == code || p.id == code).toList();
-    if (found.isEmpty) {
+    final product = findProductByScan(ref.read(productProvider).items, code);
+    if (product == null) {
       if (mounted) _err('Producto no encontrado: $code');
       return;
     }
-    final p = found.first;
     setState(() {
-      _product = _SelectedProduct(id: p.id, name: p.name, code: p.code, stock: p.stock);
+      _product = _SelectedProduct(id: product.id, name: product.name, code: product.code, stock: product.stock);
       _searchCtrl.clear();
       _searchQuery = '';
     });

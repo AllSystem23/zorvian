@@ -543,9 +543,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/products',
             name: 'products',
-            builder: (_, _) => const InventoryDashboardPage(),
+            builder: (_, _) => const ProductListPage(),
             routes: [
-              GoRoute(path: 'list', name: 'product-list', builder: (_, _) => const ProductListPage()),
+              GoRoute(path: 'dashboard', name: 'product-dashboard', builder: (_, _) => const InventoryDashboardPage()),
               GoRoute(path: 'new', name: 'product-new', builder: (_, _) => const ProductFormPage()),
               GoRoute(path: ':productId/edit', name: 'product-edit', builder: (_, state) => ProductFormPage(productId: state.pathParameters['productId']!)),
               GoRoute(path: 'movements', name: 'product-movements', builder: (_, _) => const InventoryMovementListPage()),

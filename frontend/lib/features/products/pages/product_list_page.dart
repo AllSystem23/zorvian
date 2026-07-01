@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../shared/ds/components/z_empty_state.dart';
+import '../../../shared/printing/qr_code_dialog.dart';
 import '../providers/product_provider.dart';
 
 final class ProductListPage extends ConsumerStatefulWidget {
@@ -103,9 +104,11 @@ final class _ProductListPageState extends ConsumerState<ProductListPage> {
                                 PopupMenuButton<String>(
                                   onSelected: (v) {
                                     if (v == 'edit') context.push('/products/${p.id}/edit');
+                                    if (v == 'label') showProductLabelDialog(context, code: p.code, name: p.name, price: p.price, barcode: p.barcode, category: p.categoryName);
                                   },
                                   itemBuilder: (_) => [
                                     const PopupMenuItem(value: 'edit', child: Text('Editar')),
+                                    const PopupMenuItem(value: 'label', child: Text('Etiqueta QR')),
                                   ],
                                 ),
                               ],

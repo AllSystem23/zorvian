@@ -8,6 +8,7 @@ class ProductsLocal extends Table {
   TextColumn get code => text()();
   TextColumn get name => text()();
   TextColumn? get description => text().nullable()();
+  TextColumn? get barcode => text().nullable()();
   TextColumn? get categoryName => text().nullable()();
   TextColumn? get brandName => text().nullable()();
   RealColumn get price => real()();
@@ -63,7 +64,16 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.connection);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.addColumn(productsLocal, productsLocal.barcode);
+      }
+    },
+  );
 
   Future<void> upsertQuote(Map<String, dynamic> json) async {
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -99,6 +109,7 @@ class AppDatabase extends _$AppDatabase {
         code: Value(json['code'] as String? ?? existing.code),
         name: Value(json['name'] as String? ?? existing.name),
         description: Value(json['description'] as String?),
+        barcode: Value(json['barcode'] as String?),
         categoryName: Value(json['categoryName'] as String?),
         brandName: Value(json['brandName'] as String?),
         price: Value((json['sellingPrice'] as num? ?? json['price'] as num? ?? existing.price).toDouble()),
@@ -116,6 +127,7 @@ class AppDatabase extends _$AppDatabase {
         code: Value(json['code'] as String? ?? ''),
         name: Value(json['name'] as String? ?? ''),
         description: Value(json['description'] as String?),
+        barcode: Value(json['barcode'] as String?),
         categoryName: Value(json['categoryName'] as String?),
         brandName: Value(json['brandName'] as String?),
         price: Value((json['sellingPrice'] as num? ?? json['price'] as num? ?? 0).toDouble()),

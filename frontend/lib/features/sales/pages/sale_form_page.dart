@@ -135,7 +135,7 @@ final class _NewSalePageState extends ConsumerState<NewSalePage> {
   }
 
   void _scanProduct(String code) {
-    final product = ref.read(productProvider).items.where((p) => p.code.toLowerCase() == code.toLowerCase()).firstOrNull;
+    final product = findProductByScan(ref.read(productProvider).items, code);
     if (product == null) {
       _err('Producto con código "$code" no encontrado');
       return;

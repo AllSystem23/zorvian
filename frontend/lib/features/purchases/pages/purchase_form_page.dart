@@ -93,27 +93,24 @@ final class _PurchaseFormPageState extends ConsumerState<PurchaseFormPage> {
   }
 
   void _scanProduct(String code) {
-    final products = ref.read(productProvider).items;
-    final found = products.where((p) => p.code == code || p.id == code).toList();
-    if (found.isEmpty) {
+    final product = findProductByScan(ref.read(productProvider).items, code);
+    if (product == null) {
       if (mounted) _err('Producto no encontrado: $code');
       return;
     }
-    for (final p in found) {
-      final existing = _cart.indexWhere((c) => c.productId == p.id);
-      if (existing >= 0) {
-        setState(() {
-          final qty = (double.tryParse(_cart[existing].quantity) ?? 0) + 1;
-          _cart[existing].quantity = qty.toStringAsFixed(0);
-        });
-      } else {
-        setState(() {
-          _cart.add(_CartItem(
-            productId: p.id, productName: p.name, stock: p.stock,
-            quantity: '1', unitCost: p.cost ?? 0, discount: '0',
-          ));
-        });
-      }
+    final existing = _cart.indexWhere((c) => c.productId == product.id);
+    if (existing >= 0) {
+      setState(() {
+        final qty = (double.tryParse(_cart[existing].quantity) ?? 0) + 1;
+        _cart[existing].quantity = qty.toStringAsFixed(0);
+      });
+    } else {
+      setState(() {
+        _cart.add(_CartItem(
+          productId: product.id, productName: product.name, stock: product.stock,
+          quantity: '1', unitCost: product.cost ?? 0, discount: '0',
+        ));
+      });
     }
   }
 

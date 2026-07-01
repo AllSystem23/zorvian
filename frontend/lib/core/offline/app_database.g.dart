@@ -47,6 +47,17 @@ class $ProductsLocalTable extends ProductsLocal
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _barcodeMeta = const VerificationMeta(
+    'barcode',
+  );
+  @override
+  late final GeneratedColumn<String> barcode = GeneratedColumn<String>(
+    'barcode',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _categoryNameMeta = const VerificationMeta(
     'categoryName',
   );
@@ -158,6 +169,7 @@ class $ProductsLocalTable extends ProductsLocal
     code,
     name,
     description,
+    barcode,
     categoryName,
     brandName,
     price,
@@ -209,6 +221,12 @@ class $ProductsLocalTable extends ProductsLocal
           data['description']!,
           _descriptionMeta,
         ),
+      );
+    }
+    if (data.containsKey('barcode')) {
+      context.handle(
+        _barcodeMeta,
+        barcode.isAcceptableOrUnknown(data['barcode']!, _barcodeMeta),
       );
     }
     if (data.containsKey('category_name')) {
@@ -313,6 +331,10 @@ class $ProductsLocalTable extends ProductsLocal
         DriftSqlType.string,
         data['${effectivePrefix}description'],
       ),
+      barcode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}barcode'],
+      ),
       categoryName: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}category_name'],
@@ -368,6 +390,7 @@ class ProductsLocalData extends DataClass
   final String code;
   final String name;
   final String? description;
+  final String? barcode;
   final String? categoryName;
   final String? brandName;
   final double price;
@@ -383,6 +406,7 @@ class ProductsLocalData extends DataClass
     required this.code,
     required this.name,
     this.description,
+    this.barcode,
     this.categoryName,
     this.brandName,
     required this.price,
@@ -402,6 +426,9 @@ class ProductsLocalData extends DataClass
     map['name'] = Variable<String>(name);
     if (!nullToAbsent || description != null) {
       map['description'] = Variable<String>(description);
+    }
+    if (!nullToAbsent || barcode != null) {
+      map['barcode'] = Variable<String>(barcode);
     }
     if (!nullToAbsent || categoryName != null) {
       map['category_name'] = Variable<String>(categoryName);
@@ -430,6 +457,9 @@ class ProductsLocalData extends DataClass
       description: description == null && nullToAbsent
           ? const Value.absent()
           : Value(description),
+      barcode: barcode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(barcode),
       categoryName: categoryName == null && nullToAbsent
           ? const Value.absent()
           : Value(categoryName),
@@ -457,6 +487,7 @@ class ProductsLocalData extends DataClass
       code: serializer.fromJson<String>(json['code']),
       name: serializer.fromJson<String>(json['name']),
       description: serializer.fromJson<String?>(json['description']),
+      barcode: serializer.fromJson<String?>(json['barcode']),
       categoryName: serializer.fromJson<String?>(json['categoryName']),
       brandName: serializer.fromJson<String?>(json['brandName']),
       price: serializer.fromJson<double>(json['price']),
@@ -477,6 +508,7 @@ class ProductsLocalData extends DataClass
       'code': serializer.toJson<String>(code),
       'name': serializer.toJson<String>(name),
       'description': serializer.toJson<String?>(description),
+      'barcode': serializer.toJson<String?>(barcode),
       'categoryName': serializer.toJson<String?>(categoryName),
       'brandName': serializer.toJson<String?>(brandName),
       'price': serializer.toJson<double>(price),
@@ -495,6 +527,7 @@ class ProductsLocalData extends DataClass
     String? code,
     String? name,
     Value<String?> description = const Value.absent(),
+    Value<String?> barcode = const Value.absent(),
     Value<String?> categoryName = const Value.absent(),
     Value<String?> brandName = const Value.absent(),
     double? price,
@@ -510,6 +543,7 @@ class ProductsLocalData extends DataClass
     code: code ?? this.code,
     name: name ?? this.name,
     description: description.present ? description.value : this.description,
+    barcode: barcode.present ? barcode.value : this.barcode,
     categoryName: categoryName.present ? categoryName.value : this.categoryName,
     brandName: brandName.present ? brandName.value : this.brandName,
     price: price ?? this.price,
@@ -529,6 +563,7 @@ class ProductsLocalData extends DataClass
       description: data.description.present
           ? data.description.value
           : this.description,
+      barcode: data.barcode.present ? data.barcode.value : this.barcode,
       categoryName: data.categoryName.present
           ? data.categoryName.value
           : this.categoryName,
@@ -551,6 +586,7 @@ class ProductsLocalData extends DataClass
           ..write('code: $code, ')
           ..write('name: $name, ')
           ..write('description: $description, ')
+          ..write('barcode: $barcode, ')
           ..write('categoryName: $categoryName, ')
           ..write('brandName: $brandName, ')
           ..write('price: $price, ')
@@ -571,6 +607,7 @@ class ProductsLocalData extends DataClass
     code,
     name,
     description,
+    barcode,
     categoryName,
     brandName,
     price,
@@ -590,6 +627,7 @@ class ProductsLocalData extends DataClass
           other.code == this.code &&
           other.name == this.name &&
           other.description == this.description &&
+          other.barcode == this.barcode &&
           other.categoryName == this.categoryName &&
           other.brandName == this.brandName &&
           other.price == this.price &&
@@ -607,6 +645,7 @@ class ProductsLocalCompanion extends UpdateCompanion<ProductsLocalData> {
   final Value<String> code;
   final Value<String> name;
   final Value<String?> description;
+  final Value<String?> barcode;
   final Value<String?> categoryName;
   final Value<String?> brandName;
   final Value<double> price;
@@ -623,6 +662,7 @@ class ProductsLocalCompanion extends UpdateCompanion<ProductsLocalData> {
     this.code = const Value.absent(),
     this.name = const Value.absent(),
     this.description = const Value.absent(),
+    this.barcode = const Value.absent(),
     this.categoryName = const Value.absent(),
     this.brandName = const Value.absent(),
     this.price = const Value.absent(),
@@ -640,6 +680,7 @@ class ProductsLocalCompanion extends UpdateCompanion<ProductsLocalData> {
     required String code,
     required String name,
     this.description = const Value.absent(),
+    this.barcode = const Value.absent(),
     this.categoryName = const Value.absent(),
     this.brandName = const Value.absent(),
     required double price,
@@ -666,6 +707,7 @@ class ProductsLocalCompanion extends UpdateCompanion<ProductsLocalData> {
     Expression<String>? code,
     Expression<String>? name,
     Expression<String>? description,
+    Expression<String>? barcode,
     Expression<String>? categoryName,
     Expression<String>? brandName,
     Expression<double>? price,
@@ -683,6 +725,7 @@ class ProductsLocalCompanion extends UpdateCompanion<ProductsLocalData> {
       if (code != null) 'code': code,
       if (name != null) 'name': name,
       if (description != null) 'description': description,
+      if (barcode != null) 'barcode': barcode,
       if (categoryName != null) 'category_name': categoryName,
       if (brandName != null) 'brand_name': brandName,
       if (price != null) 'price': price,
@@ -702,6 +745,7 @@ class ProductsLocalCompanion extends UpdateCompanion<ProductsLocalData> {
     Value<String>? code,
     Value<String>? name,
     Value<String?>? description,
+    Value<String?>? barcode,
     Value<String?>? categoryName,
     Value<String?>? brandName,
     Value<double>? price,
@@ -719,6 +763,7 @@ class ProductsLocalCompanion extends UpdateCompanion<ProductsLocalData> {
       code: code ?? this.code,
       name: name ?? this.name,
       description: description ?? this.description,
+      barcode: barcode ?? this.barcode,
       categoryName: categoryName ?? this.categoryName,
       brandName: brandName ?? this.brandName,
       price: price ?? this.price,
@@ -747,6 +792,9 @@ class ProductsLocalCompanion extends UpdateCompanion<ProductsLocalData> {
     }
     if (description.present) {
       map['description'] = Variable<String>(description.value);
+    }
+    if (barcode.present) {
+      map['barcode'] = Variable<String>(barcode.value);
     }
     if (categoryName.present) {
       map['category_name'] = Variable<String>(categoryName.value);
@@ -791,6 +839,7 @@ class ProductsLocalCompanion extends UpdateCompanion<ProductsLocalData> {
           ..write('code: $code, ')
           ..write('name: $name, ')
           ..write('description: $description, ')
+          ..write('barcode: $barcode, ')
           ..write('categoryName: $categoryName, ')
           ..write('brandName: $brandName, ')
           ..write('price: $price, ')
@@ -1989,6 +2038,7 @@ typedef $$ProductsLocalTableCreateCompanionBuilder =
       required String code,
       required String name,
       Value<String?> description,
+      Value<String?> barcode,
       Value<String?> categoryName,
       Value<String?> brandName,
       required double price,
@@ -2007,6 +2057,7 @@ typedef $$ProductsLocalTableUpdateCompanionBuilder =
       Value<String> code,
       Value<String> name,
       Value<String?> description,
+      Value<String?> barcode,
       Value<String?> categoryName,
       Value<String?> brandName,
       Value<double> price,
@@ -2046,6 +2097,11 @@ class $$ProductsLocalTableFilterComposer
 
   ColumnFilters<String> get description => $composableBuilder(
     column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get barcode => $composableBuilder(
+    column: $table.barcode,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2129,6 +2185,11 @@ class $$ProductsLocalTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get barcode => $composableBuilder(
+    column: $table.barcode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get categoryName => $composableBuilder(
     column: $table.categoryName,
     builder: (column) => ColumnOrderings(column),
@@ -2203,6 +2264,9 @@ class $$ProductsLocalTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get barcode =>
+      $composableBuilder(column: $table.barcode, builder: (column) => column);
+
   GeneratedColumn<String> get categoryName => $composableBuilder(
     column: $table.categoryName,
     builder: (column) => column,
@@ -2275,6 +2339,7 @@ class $$ProductsLocalTableTableManager
                 Value<String> code = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String?> description = const Value.absent(),
+                Value<String?> barcode = const Value.absent(),
                 Value<String?> categoryName = const Value.absent(),
                 Value<String?> brandName = const Value.absent(),
                 Value<double> price = const Value.absent(),
@@ -2291,6 +2356,7 @@ class $$ProductsLocalTableTableManager
                 code: code,
                 name: name,
                 description: description,
+                barcode: barcode,
                 categoryName: categoryName,
                 brandName: brandName,
                 price: price,
@@ -2309,6 +2375,7 @@ class $$ProductsLocalTableTableManager
                 required String code,
                 required String name,
                 Value<String?> description = const Value.absent(),
+                Value<String?> barcode = const Value.absent(),
                 Value<String?> categoryName = const Value.absent(),
                 Value<String?> brandName = const Value.absent(),
                 required double price,
@@ -2325,6 +2392,7 @@ class $$ProductsLocalTableTableManager
                 code: code,
                 name: name,
                 description: description,
+                barcode: barcode,
                 categoryName: categoryName,
                 brandName: brandName,
                 price: price,

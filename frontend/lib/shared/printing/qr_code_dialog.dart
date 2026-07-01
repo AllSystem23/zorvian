@@ -124,3 +124,60 @@ final class _BarcodeScannerWidgetState extends State<_BarcodeScannerWidget> {
     );
   }
 }
+
+void showProductLabelDialog(BuildContext context, {
+  required String code,
+  required String name,
+  required double price,
+  String? barcode,
+  String? category,
+}) {
+  final qrData = [
+    'Código: $code',
+    'Producto: $name',
+    if (barcode != null && barcode.isNotEmpty) 'Barcode: $barcode',
+    'Precio: C\$ ${price.toStringAsFixed(2)}',
+    if (category != null && category.isNotEmpty) 'Categoría: $category',
+  ].join('\n');
+
+  showDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Row(
+        children: [
+          Icon(Icons.label, size: 22),
+          SizedBox(width: 8),
+          Text('Etiqueta de producto', style: TextStyle(fontSize: 16)),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          QrImageView(
+            data: qrData,
+            version: QrVersions.auto,
+            size: 200,
+            eyeStyle: QrEyeStyle(eyeShape: QrEyeShape.square, color: Theme.of(context).colorScheme.primary),
+            dataModuleStyle: QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Theme.of(context).colorScheme.primary),
+            backgroundColor: Colors.white,
+            padding: const EdgeInsets.all(12),
+          ),
+          const SizedBox(height: 12),
+          Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), textAlign: TextAlign.center),
+          const SizedBox(height: 4),
+          Text('C\$ ${price.toStringAsFixed(2)}', style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold)),
+          if (barcode != null && barcode.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(barcode, style: const TextStyle(fontSize: 11, fontFamily: 'monospace')),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: const Text('Cerrar'),
+        ),
+      ],
+    ),
+  );
+}

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../shared/ds/ds.dart';
+import '../../../shared/printing/qr_code_dialog.dart';
 
 final class ProductFormPage extends ConsumerStatefulWidget {
   final String? productId;
@@ -16,6 +17,7 @@ final class _ProductFormPageState extends ConsumerState<ProductFormPage> {
   final _codeCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
+  final _barcodeCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
   final _costCtrl = TextEditingController();
   final _stockCtrl = TextEditingController();
@@ -43,6 +45,7 @@ final class _ProductFormPageState extends ConsumerState<ProductFormPage> {
       _codeCtrl.text = d['code'] ?? '';
       _nameCtrl.text = d['name'] ?? '';
       _descCtrl.text = d['description'] ?? '';
+      _barcodeCtrl.text = d['barcode'] ?? '';
       _priceCtrl.text = (d['sellingPrice'] ?? d['price'] ?? 0).toString();
       _costCtrl.text = (d['costPrice'] ?? d['cost'] ?? 0).toString();
       _stockCtrl.text = (d['stock'] ?? 0).toString();
@@ -67,6 +70,7 @@ final class _ProductFormPageState extends ConsumerState<ProductFormPage> {
         'code': _codeCtrl.text.trim(),
         'name': _nameCtrl.text.trim(),
         'description': _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
+        'barcode': _barcodeCtrl.text.trim().isEmpty ? null : _barcodeCtrl.text.trim(),
         'price': double.tryParse(_priceCtrl.text) ?? 0,
         'cost': double.tryParse(_costCtrl.text),
         'stock': double.tryParse(_stockCtrl.text) ?? 0,
@@ -93,6 +97,7 @@ final class _ProductFormPageState extends ConsumerState<ProductFormPage> {
   @override
   void dispose() {
     _codeCtrl.dispose(); _nameCtrl.dispose(); _descCtrl.dispose();
+    _barcodeCtrl.dispose();
     _priceCtrl.dispose(); _costCtrl.dispose(); _stockCtrl.dispose();
     _minStockCtrl.dispose(); _maxStockCtrl.dispose(); _unitCtrl.dispose();
     super.dispose();
@@ -121,6 +126,26 @@ final class _ProductFormPageState extends ConsumerState<ProductFormPage> {
               TextFormField(controller: _nameCtrl, decoration: const InputDecoration(labelText: 'Nombre', prefixIcon: Icon(Icons.inventory_2)), validator: (v) => v == null || v.isEmpty ? 'Requerido' : null),
               const SizedBox(height: 12),
               TextFormField(controller: _descCtrl, decoration: const InputDecoration(labelText: 'Descripción', prefixIcon: Icon(Icons.description)), maxLines: 2),
+              const SizedBox(height: 12),
+              Row(children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _barcodeCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Código de barras',
+                      prefixIcon: Icon(Icons.qr_code),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.qr_code_scanner),
+                  tooltip: 'Escanear código de barras',
+                  onPressed: () => showScannerDialog(context, onScan: (code) {
+                    setState(() => _barcodeCtrl.text = code);
+                  }),
+                ),
+              ]),
               const SizedBox(height: 12),
               Row(children: [
                 Expanded(child: TextFormField(controller: _priceCtrl, decoration: const InputDecoration(labelText: 'Precio', prefixIcon: Icon(Icons.attach_money)), keyboardType: TextInputType.number, validator: (v) => v == null || v.isEmpty ? 'Requerido' : null)),

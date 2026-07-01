@@ -6,6 +6,7 @@ final class ProductItem {
   final String code;
   final String name;
   final String? description;
+  final String? barcode;
   final String? categoryName;
   final String? brandName;
   final double price;
@@ -18,7 +19,7 @@ final class ProductItem {
 
   const ProductItem({
     required this.id, required this.code, required this.name,
-    this.description, this.categoryName, this.brandName,
+    this.description, this.barcode, this.categoryName, this.brandName,
     required this.price, this.cost, required this.stock,
     required this.minStock, required this.maxStock, required this.unit, required this.isActive,
   });
@@ -28,6 +29,7 @@ final class ProductItem {
     code: j['code'] as String? ?? '',
     name: j['name'] as String? ?? '',
     description: j['description'] as String?,
+    barcode: j['barcode'] as String?,
     categoryName: j['categoryName'] as String?,
     brandName: j['brandName'] as String?,
     price: (j['sellingPrice'] as num?)?.toDouble() ?? (j['price'] as num?)?.toDouble() ?? 0,
@@ -38,6 +40,14 @@ final class ProductItem {
     unit: j['unitOfMeasure'] as String? ?? j['unit'] as String? ?? 'pz',
     isActive: j['isActive'] as bool? ?? true,
   );
+
+  ProductItem? findMatchByScan(String scanValue) {
+    final lower = scanValue.toLowerCase();
+    if (barcode != null && barcode!.toLowerCase() == lower) return this;
+    if (code.toLowerCase() == lower) return this;
+    if (id == scanValue) return this;
+    return null;
+  }
 }
 
 final class ProductState {
@@ -66,3 +76,10 @@ final class ProductNotifier extends Notifier<ProductState> {
 }
 
 final productProvider = NotifierProvider<ProductNotifier, ProductState>(ProductNotifier.new);
+
+ProductItem? findProductByScan(List<ProductItem> products, String scanValue) {
+  for (final p in products) {
+    if (p.findMatchByScan(scanValue) != null) return p;
+  }
+  return null;
+}
