@@ -92,6 +92,8 @@ import '../features/cash_registers/pages/cash_register_arqueo_page.dart';
 import '../features/dashboard_v2/dashboard_v2_page.dart';
 import '../features/warranties/pages/warranty_list_page.dart';
 import '../features/warranties/pages/warranty_form_page.dart';
+import '../features/warranties/pages/warranty_detail_page.dart';
+import '../features/warranties/pages/warranty_dashboard_page.dart';
 import '../features/purchases/pages/purchase_list_page.dart';
 import '../features/purchases/pages/purchase_form_page.dart';
 import '../features/purchases/pages/purchase_detail_page.dart';
@@ -692,9 +694,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/warranties',
             name: 'warranties',
-            builder: (_, _) => const WarrantyListPage(),
+            builder: (_, _) => const WarrantyDashboardPage(),
             routes: [
+              GoRoute(path: 'list', name: 'warranty-list', builder: (_, _) => const WarrantyListPage()),
               GoRoute(path: 'new', name: 'warranty-new', builder: (_, _) => const WarrantyFormPage()),
+              GoRoute(path: ':warrantyId', name: 'warranty-detail', builder: (_, state) => WarrantyDetailPage(warrantyId: state.pathParameters['warrantyId']!)),
               GoRoute(path: ':warrantyId/edit', name: 'warranty-edit', builder: (_, state) => WarrantyFormPage(warrantyId: state.pathParameters['warrantyId']!)),
             ],
           ),

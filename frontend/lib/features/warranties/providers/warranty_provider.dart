@@ -36,14 +36,18 @@ final class WarrantyState {
 class WarrantyNotifier extends Notifier<WarrantyState> {
   @override
   WarrantyState build() => const WarrantyState();
-  Future<void> load({int page = 1, int pageSize = 20}) async {
+
+  Future<void> load({int page = 1, int pageSize = 20, String? search, String? status}) async {
     state = state.copyWith(loading: true, error: null);
     try {
       final dio = ref.read(dioClientProvider);
-      final r = await dio.get('warranties', params: {
+      final params = <String, dynamic>{
         'page': page,
         'pageSize': pageSize,
-      });
+      };
+      if (search != null && search.isNotEmpty) params['search'] = search;
+      if (status != null && status != 'all') params['status'] = status;
+      final r = await dio.get('warranties', params: params);
       final data = r.data;
       final items = (data['items'] as List).map((e) => WarrantyItem.fromJson(e)).toList();
       state = WarrantyState(items: items);

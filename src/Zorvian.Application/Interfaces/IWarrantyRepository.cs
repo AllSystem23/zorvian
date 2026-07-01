@@ -20,5 +20,6 @@ public interface IWarrantyRepository
     Task<string> GenerateWarrantyNumberAsync(Guid companyId);
     Task AddAsync(Warranty warranty);
     Task UpdateAsync(Warranty warranty);
+    void Delete(Warranty warranty);
     Task SaveChangesAsync();
 }

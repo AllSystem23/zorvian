@@ -132,5 +132,7 @@ public sealed class WarrantyRepository : IWarrantyRepository
 
     public async Task UpdateAsync(Warranty warranty) => await Task.FromResult(_db.Set<Warranty>().Update(warranty));
 
+    public void Delete(Warranty warranty) => _db.Set<Warranty>().Remove(warranty);
+
     public async Task SaveChangesAsync() => await _db.SaveChangesAsync();
 }

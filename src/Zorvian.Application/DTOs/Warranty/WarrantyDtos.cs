@@ -100,3 +100,15 @@ public sealed record WarrantyFilterRequest(
     int? Page = 1,
     int? PageSize = 20
 );
+
+public sealed record UpdateWarrantyRequest(
+    string? SerialNumber,
+    string? Imei,
+    string? LotNumber,
+    string? Terms,
+    int? DurationMonths
+);
+
+public sealed record UpdateWarrantyStatusRequest(
+    string Status
+);

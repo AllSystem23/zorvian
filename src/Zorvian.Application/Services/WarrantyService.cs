@@ -59,6 +59,45 @@ public sealed class WarrantyService
         return warranty is null ? null : _mapper.Map<WarrantyResponse>(warranty);
     }
 
+    public async Task<WarrantyResponse> UpdateAsync(Guid id, UpdateWarrantyRequest request)
+    {
+        var warranty = await _repo.GetByIdAsync(id)
+            ?? throw new KeyNotFoundException("Warranty not found");
+
+        if (!string.IsNullOrEmpty(request.SerialNumber)) warranty.SerialNumber = request.SerialNumber;
+        if (!string.IsNullOrEmpty(request.Imei)) warranty.Imei = request.Imei;
+        if (!string.IsNullOrEmpty(request.LotNumber)) warranty.LotNumber = request.LotNumber;
+        if (!string.IsNullOrEmpty(request.Terms)) warranty.Terms = request.Terms;
+        if (request.DurationMonths.HasValue)
+        {
+            warranty.DurationMonths = request.DurationMonths.Value;
+            warranty.EndDate = warranty.StartDate.AddMonths(request.DurationMonths.Value);
+        }
+
+        await _repo.SaveChangesAsync();
+        return _mapper.Map<WarrantyResponse>(warranty);
+    }
+
+    public async Task DeleteAsync(Guid id)
+    {
+        var warranty = await _repo.GetByIdAsync(id)
+            ?? throw new KeyNotFoundException("Warranty not found");
+        _repo.Delete(warranty);
+        await _repo.SaveChangesAsync();
+    }
+
+    public async Task<WarrantyResponse> UpdateStatusAsync(Guid id, WarrantyStatus newStatus)
+    {
+        var warranty = await _repo.GetByIdAsync(id)
+            ?? throw new KeyNotFoundException("Warranty not found");
+
+        WarrantyStateMachine.EnsureCanTransition(warranty.Status, newStatus);
+        warranty.Status = newStatus;
+
+        await _repo.SaveChangesAsync();
+        return _mapper.Map<WarrantyResponse>(warranty);
+    }
+
     public async Task<PagedResult<WarrantyListResponse>> GetFilteredAsync(WarrantyFilterRequest filter)
     {
         var page = filter.Page ?? 1;
@@ -84,6 +123,7 @@ public sealed class WarrantyService
         claim.BranchId = warranty.BranchId;
 
         warranty.Claims.Add(claim);
+        WarrantyStateMachine.EnsureCanTransition(warranty.Status, WarrantyStatus.PendingReview);
         warranty.Status = WarrantyStatus.PendingReview;
 
         await _repo.SaveChangesAsync();
@@ -100,7 +140,8 @@ public sealed class WarrantyService
         claim.TechnicianId = request.TechnicianId;
         claim.WorkshopAssignedAt = DateTime.UtcNow;
         // In a real implementation, we would fetch WorkshopBrand to get SLA
-        claim.SlaDeadline = DateTime.UtcNow.AddHours(request.SlaHoursOverride ?? 48); 
+        claim.SlaDeadline = DateTime.UtcNow.AddHours(request.SlaHoursOverride ?? 48);
+        WarrantyStateMachine.EnsureCanTransition(claim.Status, WarrantyStatus.SentToWorkshop);
         claim.Status = WarrantyStatus.SentToWorkshop;
 
         await _repo.SaveChangesAsync();

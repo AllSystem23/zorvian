@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Warranty;
 using Zorvian.Application.Services;
+using Zorvian.Core.Enums;
 using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
@@ -37,6 +38,35 @@ public sealed class WarrantiesController : ControllerBase
         var warranty = await _service.GetByIdAsync(id);
         if (warranty is null)
             return NotFound(new { error = "Warranty not found" });
+        return Ok(warranty);
+    }
+
+    [Audit("Warranty", "Update")]
+    [RequirePermission(Permissions.WarrantyWrite)]
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateWarrantyRequest request)
+    {
+        var warranty = await _service.UpdateAsync(id, request);
+        return Ok(warranty);
+    }
+
+    [Audit("Warranty", "Delete")]
+    [RequirePermission(Permissions.WarrantyWrite)]
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        await _service.DeleteAsync(id);
+        return NoContent();
+    }
+
+    [Audit("Warranty", "UpdateStatus")]
+    [RequirePermission(Permissions.WarrantyWrite)]
+    [HttpPatch("{id:guid}/status")]
+    public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateWarrantyStatusRequest request)
+    {
+        if (!Enum.TryParse<WarrantyStatus>(request.Status, true, out var status))
+            return BadRequest(new { error = "Invalid status value" });
+        var warranty = await _service.UpdateStatusAsync(id, status);
         return Ok(warranty);
     }
 
