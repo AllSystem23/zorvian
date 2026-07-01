@@ -20,6 +20,7 @@ public sealed class WarrantyServiceTests
     private readonly Mock<ITenantContext> _tenant = new();
     private readonly IMapper _mapper;
     private readonly Mock<IGoalIntegrationService> _goalIntegration = new();
+    private readonly Mock<IWarrantyEventRepository> _eventRepo = new();
     private readonly WarrantyService _sut;
     private readonly Guid _companyId = Guid.NewGuid();
     private readonly Guid _branchId = Guid.NewGuid();
@@ -31,7 +32,7 @@ public sealed class WarrantyServiceTests
         _tenant.Setup(t => t.TenantId).Returns(_companyId.ToString());
         _repo.Setup(r => r.GenerateWarrantyNumberAsync(_companyId)).ReturnsAsync("GAR-20260606-0001");
         _mapper = Mock.Of<IMapper>();
-        _sut = new WarrantyService(_repo.Object, _workshopRepo.Object, _providerRepo.Object, _inventoryService.Object, _tenant.Object, _mapper, _goalIntegration.Object);
+        _sut = new WarrantyService(_repo.Object, _workshopRepo.Object, _providerRepo.Object, _inventoryService.Object, _tenant.Object, _mapper, _goalIntegration.Object, _eventRepo.Object);
     }
 
     [Fact]

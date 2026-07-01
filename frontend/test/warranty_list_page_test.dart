@@ -26,7 +26,7 @@ class WarrantyNotifierMock extends WarrantyNotifier {
   @override
   WarrantyState build() => const WarrantyState(items: []);
   @override
-  Future<void> load({int page = 1, int pageSize = 20}) async {
+  Future<void> load({int page = 1, int pageSize = 20, String? search, String? status}) async {
     state = const WarrantyState(items: []);
   }
 }
