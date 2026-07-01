@@ -14,6 +14,7 @@ class WarrantyDashboardPage extends ConsumerStatefulWidget {
 class _WarrantyDashboardPageState extends ConsumerState<WarrantyDashboardPage> {
   Map<String, dynamic>? _metrics;
   bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -22,19 +23,21 @@ class _WarrantyDashboardPageState extends ConsumerState<WarrantyDashboardPage> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    setState(() { _loading = true; _error = null; });
     try {
       final dio = ref.read(dioClientProvider);
       final r = await dio.get('warranty-dashboard/metrics');
       _metrics = r.data as Map<String, dynamic>;
-    } catch (_) {}
-    setState(() => _loading = false);
+    } catch (e) {
+      setState(() => _error = 'Error al cargar métricas');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: isDark ? ZColors.darkBackground : ZColors.neutral50,
@@ -49,72 +52,105 @@ class _WarrantyDashboardPageState extends ConsumerState<WarrantyDashboardPage> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(ZSpacing.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Resumen de Garantías', style: ZTypography.titleLarge),
-                  const SizedBox(height: ZSpacing.md),
-                  ResponsiveGrid(
-                    mobileColumns: 1,
-                    tabletColumns: 2,
-                    desktopColumns: 4,
+          ? _buildDashboardSkeleton()
+          : _error != null
+              ? ZErrorDisplay(message: _error!, onRetry: _load)
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(ZSpacing.lg),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ZStatCard(
-                        title: 'Total',
-                        value: '${_metrics?['total'] ?? 0}',
-                        icon: Icons.shield_outlined,
-                        variant: ZStatVariant.primary,
+                      const Text('Resumen', style: ZTypography.titleLarge),
+                      const SizedBox(height: ZSpacing.md),
+                      ResponsiveGrid(
+                        mobileColumns: 1,
+                        tabletColumns: 2,
+                        desktopColumns: 4,
+                        children: [
+                          ZStatCard(
+                            title: 'Total activas',
+                            value: '${_metrics?['totalActive'] ?? 0}',
+                            icon: Icons.shield_outlined,
+                            variant: ZStatVariant.primary,
+                          ),
+                          ZStatCard(
+                            title: 'Registradas',
+                            value: '${_metrics?['registeredCount'] ?? 0}',
+                            icon: Icons.fiber_new_outlined,
+                            variant: ZStatVariant.info,
+                          ),
+                          ZStatCard(
+                            title: 'En reparación',
+                            value: '${_metrics?['inRepairCount'] ?? 0}',
+                            icon: Icons.build_outlined,
+                            variant: ZStatVariant.warning,
+                          ),
+                          ZStatCard(
+                            title: 'SLA vencido',
+                            value: '${_metrics?['totalBreachedSla'] ?? 0}',
+                            icon: Icons.warning_amber_outlined,
+                            variant: ZStatVariant.danger,
+                          ),
+                        ],
                       ),
-                      ZStatCard(
-                        title: 'Activas',
-                        value: '${_metrics?['active'] ?? 0}',
-                        icon: Icons.check_circle_outline,
-                        variant: ZStatVariant.info,
-                      ),
-                      ZStatCard(
-                        title: 'En reparación',
-                        value: '${_metrics?['inRepair'] ?? 0}',
-                        icon: Icons.build_outlined,
-                        variant: ZStatVariant.warning,
-                      ),
-                      ZStatCard(
-                        title: 'Vencidas',
-                        value: '${_metrics?['expired'] ?? 0}',
-                        icon: Icons.warning_amber_outlined,
-                        variant: ZStatVariant.danger,
+
+                      const SizedBox(height: ZSpacing.xxl),
+
+                      const Text('Acciones rápidas', style: ZTypography.titleLarge),
+                      const SizedBox(height: ZSpacing.md),
+                      ResponsiveGrid(
+                        mobileColumns: 2,
+                        tabletColumns: 3,
+                        desktopColumns: 4,
+                        children: [
+                          _ActionCard(
+                            label: 'Lista de garantías',
+                            icon: Icons.list,
+                            color: ZColors.brandPrimary,
+                            route: '/warranties/list',
+                          ),
+                          _ActionCard(
+                            label: 'Nueva garantía',
+                            icon: Icons.add_circle_outline,
+                            color: ZColors.success,
+                            route: '/warranties/new',
+                          ),
+                          _ActionCard(
+                            label: 'Configurar SLA',
+                            icon: Icons.timer_outlined,
+                            color: ZColors.brandAccent,
+                            route: '/warranties',
+                          ),
+                          _ActionCard(
+                            label: 'Reportes',
+                            icon: Icons.analytics_outlined,
+                            color: ZColors.brandTeal,
+                            route: '/warranties',
+                          ),
+                        ],
                       ),
                     ],
                   ),
+                ),
+    );
+  }
 
-                  const SizedBox(height: ZSpacing.xxl),
-
-                  const Text('Acciones rápidas', style: ZTypography.titleLarge),
-                  const SizedBox(height: ZSpacing.md),
-                  ResponsiveGrid(
-                    mobileColumns: 2,
-                    tabletColumns: 3,
-                    desktopColumns: 4,
-                    children: [
-                      _ActionCard(
-                        label: 'Lista de garantías',
-                        icon: Icons.list,
-                        color: ZColors.brandPrimary,
-                        route: '/warranties',
-                      ),
-                      _ActionCard(
-                        label: 'Nueva garantía',
-                        icon: Icons.add_circle_outline,
-                        color: ZColors.success,
-                        route: '/warranties/new',
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+  Widget _buildDashboardSkeleton() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(ZSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ZSkeleton.header(),
+          const SizedBox(height: ZSpacing.md),
+          ResponsiveGrid(
+            mobileColumns: 1,
+            tabletColumns: 2,
+            desktopColumns: 4,
+            children: List.generate(4, (_) => ZSkeleton.statCard()),
+          ),
+        ],
+      ),
     );
   }
 }

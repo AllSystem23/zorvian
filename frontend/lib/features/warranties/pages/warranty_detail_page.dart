@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zorvian/shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
+import '../utils/warranty_utils.dart';
 
 final class WarrantyDetailPage extends ConsumerStatefulWidget {
   final String warrantyId;
@@ -17,6 +18,7 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
   Map<String, dynamic>? _warranty;
   List<dynamic> _timeline = [];
   bool _loading = true;
+  bool _actionLoading = false;
   String? _error;
 
   @override
@@ -35,49 +37,31 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
 
       try {
         final tr = await dio.get('warranties/${widget.warrantyId}/timeline');
-        _timeline = tr.data as List? ?? [];
+        if (tr.data is List) _timeline = tr.data as List;
       } catch (_) {}
-
-      setState(() {});
-    } catch (_) {
+    } catch (e) {
       setState(() => _error = 'Error al cargar garantía');
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  Color _statusColor(String status) => switch (status) {
-    'Registered' => ZColors.brandPrimary,
-    'PendingReview' => ZColors.warning,
-    'InDiagnosis' => ZColors.brandSecondary,
-    'SentToWorkshop' => ZColors.brandSecondary,
-    'InRepair' => ZColors.brandAccent,
-    'Repaired' => ZColors.success,
-    'ReplacementApproved' => ZColors.success,
-    'ReadyForDelivery' => ZColors.brandAccent,
-    'Delivered' => ZColors.success,
-    'Closed' => ZColors.neutral900,
-    'Rejected' => ZColors.danger,
-    'Cancelled' => ZColors.danger,
-    _ => ZColors.brandSecondary,
-  };
-
-  String _statusLabel(String status) => switch (status) {
-    'Registered' => 'Registrada',
-    'PendingReview' => 'Revisión',
-    'InDiagnosis' => 'Diagnóstico',
-    'SentToWorkshop' => 'En taller',
-    'InRepair' => 'Reparando',
-    'PendingParts' => 'Repuestos',
-    'Repaired' => 'Reparada',
-    'ReplacementApproved' => 'Reemplazo',
-    'ReadyForDelivery' => 'Lista para entregar',
-    'Delivered' => 'Entregada',
-    'Closed' => 'Cerrada',
-    'Rejected' => 'Rechazada',
-    'Cancelled' => 'Cancelada',
-    _ => status,
-  };
+  Future<void> _updateStatus(String status) async {
+    setState(() => _actionLoading = true);
+    try {
+      final dio = ref.read(dioClientProvider);
+      await dio.patch('warranties/${widget.warrantyId}/status', data: {'status': status});
+      _load();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: ZColors.danger),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _actionLoading = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -90,14 +74,17 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
     if (_loading) {
       return Scaffold(
         appBar: AppBar(title: const Text('Garantía')),
-        body: const Center(child: CircularProgressIndicator()),
+        body: _buildDetailSkeleton(),
       );
     }
 
     if (_error != null || _warranty == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Garantía')),
-        body: Center(child: Text(_error ?? 'No encontrada')),
+        body: ZErrorDisplay(
+          message: _error ?? 'Garantía no encontrada',
+          onRetry: _load,
+        ),
       );
     }
 
@@ -116,7 +103,7 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
             onPressed: () => context.push('/warranties/${widget.warrantyId}/edit'),
           ),
           PopupMenuButton<String>(
-            onSelected: (v) => _onMenuAction(v),
+            onSelected: _onMenuAction,
             itemBuilder: (_) => [
               if (status == 'Registered' || status == 'PendingReview')
                 const PopupMenuItem(value: 'claim', child: Text('Crear reclamo')),
@@ -141,55 +128,75 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: _actionLoading
+          ? const Center(child: CircularProgressIndicator())
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                _buildInfoTab(w, status, isExpired),
+                _buildClaimsTab(w),
+                _buildTimelineTab(),
+                _buildCostsTab(),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildDetailSkeleton() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(ZSpacing.lg),
+      child: Column(
         children: [
-          _buildInfoTab(w, status, isExpired),
-          _buildClaimsTab(w),
-          _buildTimelineTab(),
-          _buildCostsTab(),
+          ZSkeleton.card(height: 80),
+          const SizedBox(height: ZSpacing.lg),
+          ZSkeleton.header(),
+          const SizedBox(height: ZSpacing.md),
+          ZSkeleton.listTile(),
+          const SizedBox(height: ZSpacing.sm),
+          ZSkeleton.listTile(),
+          const SizedBox(height: ZSpacing.sm),
+          ZSkeleton.listTile(),
         ],
       ),
     );
   }
 
   Widget _buildInfoTab(Map<String, dynamic> w, String status, bool isExpired) {
+    final step = warrantyWorkflowStep(status);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(ZSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Status Banner ──
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(ZSpacing.lg),
-            decoration: BoxDecoration(
-              color: _statusColor(status).withAlpha(20),
-              borderRadius: BorderRadius.circular(ZRadii.lg),
-              border: Border.all(color: _statusColor(status).withAlpha(50)),
-            ),
-            child: Row(children: [
-              Icon(Icons.shield, color: _statusColor(status), size: 28),
-              const SizedBox(width: ZSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(_statusLabel(status), style: ZTypography.titleLarge.copyWith(color: _statusColor(status))),
-                    if (isExpired)
-                      const Text('Garantía vencida', style: TextStyle(color: ZColors.danger, fontSize: 12, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
-            ]),
+          // ── Workflow Stepper ──
+          ZStepper(
+            currentStep: step,
+            steps: warrantyWorkflowSteps,
+            orientation: ZStepperOrientation.horizontal,
           ),
           const SizedBox(height: ZSpacing.xl),
+
+          // ── Status Banner ──
+          if (isExpired)
+            Padding(
+              padding: const EdgeInsets.only(bottom: ZSpacing.md),
+              child: ZAlertCard(message: 'Esta garantía ha vencido', severity: 'high'),
+            ),
+
+          // ── SLA Progress ──
+          if (w['slaDeadline'] != null) ...[
+            _buildSlaProgress(w),
+            const SizedBox(height: ZSpacing.lg),
+          ],
 
           // ── Producto ──
           _SectionTitle(title: 'Producto'),
           const SizedBox(height: ZSpacing.sm),
           _InfoRow(label: 'Nombre', value: w['productName'] ?? '-'),
-          _InfoRow(label: 'Código', value: w['productId']?.toString().substring(0, 8) ?? '-'),
+          _InfoRow(label: 'Código', value: (w['productId'] ?? '-').toString().length > 8
+              ? (w['productId'] as String).substring(0, 8)
+              : (w['productId'] ?? '-').toString()),
           if (w['brandName'] != null) _InfoRow(label: 'Marca', value: w['brandName']),
           if (w['categoryName'] != null) _InfoRow(label: 'Categoría', value: w['categoryName']),
           if (w['serialNumber'] != null && w['serialNumber'].toString().isNotEmpty)
@@ -226,19 +233,65 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
     );
   }
 
+  Widget _buildSlaProgress(Map<String, dynamic> w) {
+    final slaDeadline = DateTime.tryParse(w['slaDeadline'] ?? '');
+    if (slaDeadline == null) return const SizedBox.shrink();
+
+    final now = DateTime.now();
+    final total = slaDeadline.difference(now.add(const Duration(days: 30))).inHours;
+    final remaining = slaDeadline.difference(now).inHours;
+    final progress = total > 0 ? (total - remaining) / total : 1.0;
+    final isBreached = now.isAfter(slaDeadline);
+
+    return ZCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Icon(Icons.timer, size: 18, color: isBreached ? ZColors.danger : ZColors.brandAccent),
+            const SizedBox(width: ZSpacing.sm),
+            Text('SLA', style: ZTypography.titleSmall),
+            const Spacer(),
+            ZBadge(
+              text: isBreached ? 'Vencido' : '${remaining}h restantes',
+              type: isBreached ? ZBadgeType.danger : ZBadgeType.success,
+            ),
+          ]),
+          const SizedBox(height: ZSpacing.sm),
+          ZProgress(
+            label: 'Tiempo de respuesta',
+            value: progress.clamp(0.0, 1.0),
+            showValue: false,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildClaimsTab(Map<String, dynamic> w) {
     final claims = w['claims'] as List? ?? [];
     if (claims.isEmpty) {
-      return ZEmptyState.list(
-        itemType: 'reclamos',
-        actionLabel: 'Crear Reclamo',
-        onAction: () => _showCreateClaimDialog(),
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.report_problem_outlined, size: 48, color: ZColors.neutral300),
+            const SizedBox(height: ZSpacing.md),
+            Text('Sin reclamos', style: ZTypography.titleMedium.copyWith(color: ZColors.neutral500)),
+            const SizedBox(height: ZSpacing.lg),
+            ZButton(
+              text: 'Crear reclamo',
+              onPressed: () => _showCreateClaimDialog(),
+            ),
+          ],
+        ),
       );
     }
+
     return ListView.separated(
       padding: const EdgeInsets.all(ZSpacing.lg),
       itemCount: claims.length,
-      separatorBuilder: (_, _) => const Divider(),
+      separatorBuilder: (_, _) => const SizedBox(height: ZSpacing.sm),
       itemBuilder: (_, i) {
         final c = claims[i] as Map<String, dynamic>;
         final claimStatus = c['status'] as String? ?? '';
@@ -247,14 +300,10 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(children: [
-                Icon(Icons.report_problem, size: 18, color: _statusColor(claimStatus)),
+                Icon(Icons.report_problem, size: 18, color: warrantyStatusColor(claimStatus)),
                 const SizedBox(width: ZSpacing.sm),
                 Expanded(child: Text(c['description'] ?? '-', style: ZTypography.titleMedium)),
-                Chip(
-                  label: Text(_statusLabel(claimStatus), style: const TextStyle(fontSize: 10)),
-                  backgroundColor: _statusColor(claimStatus).withAlpha(30),
-                  padding: EdgeInsets.zero,
-                ),
+                ZBadge(text: warrantyStatusLabel(claimStatus), type: warrantyBadgeType(claimStatus)),
               ]),
               if (c['failureType'] != null) ...[
                 const SizedBox(height: ZSpacing.xs),
@@ -267,7 +316,7 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
               if (c['slaDeadline'] != null) ...[
                 const SizedBox(height: ZSpacing.xs),
                 Text('SLA: ${c['slaDeadline']}', style: ZTypography.bodySmall.copyWith(
-                  color: DateTime.parse(c['slaDeadline']).isBefore(DateTime.now())
+                  color: DateTime.tryParse(c['slaDeadline'])?.isBefore(DateTime.now()) == true
                       ? ZColors.danger : ZColors.neutral600,
                 )),
               ],
@@ -280,62 +329,102 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
 
   Widget _buildTimelineTab() {
     if (_timeline.isEmpty) {
-      return const Center(child: Text('Sin eventos registrados', style: ZTypography.bodyMedium));
-    }
-    return ListView.builder(
-      padding: const EdgeInsets.all(ZSpacing.lg),
-      itemCount: _timeline.length,
-      itemBuilder: (_, i) {
-        final event = _timeline[i] as Map<String, dynamic>;
-        return ZTimeline(
-          items: [
-            TimelineItem(
-              title: event['title'] ?? event['action'] ?? 'Evento',
-              subtitle: event['description'] ?? event['details'] ?? '',
-              date: event['timestamp'] ?? event['createdAt'] ?? '',
-              icon: Icons.circle,
-              iconColor: _statusColor(event['status'] ?? ''),
-            ),
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.timeline, size: 48, color: ZColors.neutral300),
+            SizedBox(height: ZSpacing.md),
+            Text('Sin eventos registrados', style: ZTypography.bodyMedium),
           ],
-        );
-      },
-    );
+        ),
+      );
+    }
+
+    // Construir items del timeline correctamente
+    final items = _timeline.map((e) {
+      final event = e as Map<String, dynamic>;
+      return TimelineItem(
+        title: event['title'] ?? event['action'] ?? 'Evento',
+        subtitle: event['description'] ?? event['details'] ?? '',
+        date: event['timestamp'] ?? event['createdAt'] ?? '',
+        icon: Icons.circle,
+        iconColor: warrantyStatusColor(event['status'] ?? ''),
+      );
+    }).toList();
+
+    // Marcar el último item
+    if (items.isNotEmpty) {
+      items[items.length - 1] = TimelineItem(
+        title: items[items.length - 1].title,
+        subtitle: items[items.length - 1].subtitle,
+        date: items[items.length - 1].date,
+        icon: items[items.length - 1].icon,
+        iconColor: items[items.length - 1].iconColor,
+        isLast: true,
+      );
+    }
+
+    return ZTimeline(items: items);
   }
 
   Widget _buildCostsTab() {
-    return const Center(child: Text('Módulo de costos en desarrollo', style: ZTypography.bodyMedium));
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.attach_money, size: 48, color: ZColors.neutral300),
+          SizedBox(height: ZSpacing.md),
+          Text('Módulo de costos', style: ZTypography.titleMedium),
+          SizedBox(height: ZSpacing.xs),
+          Text('Próximamente', style: ZTypography.bodySmall),
+        ],
+      ),
+    );
   }
 
   void _onMenuAction(String action) async {
-    final dio = ref.read(dioClientProvider);
     switch (action) {
       case 'claim':
         _showCreateClaimDialog();
         break;
       case 'complete':
-        await dio.patch('warranties/${widget.warrantyId}/status', data: {'status': 'Repaired'});
-        _load();
+        final confirm = await ZConfirmDialog.show(
+          context,
+          title: 'Marcar como reparada',
+          message: '¿La garantía ha sido reparada exitosamente?',
+          confirmLabel: 'Confirmar',
+        );
+        if (confirm == true) _updateStatus('Repaired');
         break;
       case 'deliver':
-        await dio.patch('warranties/${widget.warrantyId}/status', data: {'status': 'Delivered'});
-        _load();
+        final confirm = await ZConfirmDialog.show(
+          context,
+          title: 'Marcar como entregada',
+          message: '¿El producto ha sido entregado al cliente?',
+          confirmLabel: 'Confirmar',
+        );
+        if (confirm == true) _updateStatus('Delivered');
         break;
       case 'close':
-        await dio.patch('warranties/${widget.warrantyId}/status', data: {'status': 'Closed'});
-        _load();
+        final confirm = await ZConfirmDialog.show(
+          context,
+          title: 'Cerrar garantía',
+          message: '¿Desea cerrar esta garantía? Esta acción no se puede deshacer.',
+          confirmLabel: 'Cerrar',
+          isDestructive: true,
+        );
+        if (confirm == true) _updateStatus('Closed');
         break;
       case 'cancel':
         final confirm = await ZConfirmDialog.show(
           context,
           title: 'Cancelar garantía',
-          message: '¿Estás seguro de cancelar esta garantía?',
+          message: '¿Está seguro de cancelar esta garantía? Esta acción no se puede deshacer.',
           confirmLabel: 'Cancelar garantía',
           isDestructive: true,
         );
-        if (confirm == true) {
-          await dio.patch('warranties/${widget.warrantyId}/status', data: {'status': 'Cancelled'});
-          _load();
-        }
+        if (confirm == true) _updateStatus('Cancelled');
         break;
     }
   }
@@ -344,6 +433,7 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
     final descCtrl = TextEditingController();
     String failureType = 'defect';
     String priority = 'medium';
+    bool saving = false;
 
     showDialog(
       context: context,
@@ -383,19 +473,33 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+            TextButton(
+              onPressed: saving ? null : () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
             ZButton(
               text: 'Crear reclamo',
-              onPressed: () async {
+              isLoading: saving,
+              onPressed: saving ? () {} : () async {
                 if (descCtrl.text.trim().isEmpty) return;
-                final dio = ref.read(dioClientProvider);
-                await dio.post('warranties/${widget.warrantyId}/claims', data: {
-                  'description': descCtrl.text.trim(),
-                  'failureType': failureType,
-                  'priority': priority,
-                });
-                if (ctx.mounted) Navigator.pop(ctx);
-                _load();
+                setDialogState(() => saving = true);
+                try {
+                  final dio = ref.read(dioClientProvider);
+                  await dio.post('warranties/${widget.warrantyId}/claims', data: {
+                    'description': descCtrl.text.trim(),
+                    'failureType': failureType,
+                    'priority': priority,
+                  });
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  _load();
+                } catch (e) {
+                  setDialogState(() => saving = false);
+                  if (ctx.mounted) {
+                    ScaffoldMessenger.of(ctx).showSnackBar(
+                      SnackBar(content: Text('Error al crear reclamo: $e'), backgroundColor: ZColors.danger),
+                    );
+                  }
+                }
               },
             ),
           ],
@@ -428,7 +532,7 @@ class _InfoRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 120,
+            width: 100,
             child: Text(label, style: ZTypography.bodySmall.copyWith(color: ZColors.neutral500)),
           ),
           Expanded(child: Text(value, style: ZTypography.bodyMedium.copyWith(fontWeight: FontWeight.w500))),
