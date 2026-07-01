@@ -110,6 +110,7 @@ final class NavConfig {
         NavItem(id: 'movimientos-inv', label: 'Movimientos de Inventario', icon: Icons.swap_horiz_outlined, route: '/inventory-movements'),
         NavItem(id: 'ajustes-inv', label: 'Ajustes de Inventario', icon: Icons.tune_outlined, route: '/inventory-adjustment'),
         NavItem(id: 'garantias', label: 'Garantías', icon: Icons.shield_outlined, route: '/warranties'),
+        NavItem(id: 'talleres', label: 'Talleres', icon: Icons.build_outlined, route: '/workshops'),
       ],
     ),
 

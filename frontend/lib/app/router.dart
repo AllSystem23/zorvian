@@ -95,6 +95,9 @@ import '../features/warranties/pages/warranty_form_page.dart';
 import '../features/warranties/pages/warranty_detail_page.dart';
 import '../features/warranties/pages/warranty_dashboard_page.dart';
 import '../features/warranties/pages/warranty_tracking_page.dart';
+import '../features/workshops/pages/workshop_list_page.dart';
+import '../features/workshops/pages/workshop_form_page.dart';
+import '../features/workshops/pages/workshop_detail_page.dart';
 import '../features/purchases/pages/purchase_list_page.dart';
 import '../features/purchases/pages/purchase_form_page.dart';
 import '../features/purchases/pages/purchase_detail_page.dart';
@@ -214,6 +217,7 @@ final _routeRoles = <String, List<String>>{
   '/credits/overdue-dashboard': ['SuperAdmin', 'CompanyAdmin', 'Supervisor'],
   '/cash-registers': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/warranties': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
+  '/workshops': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/providers': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor'],
   '/providers/dashboard': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor'],
   '/branches': ['SuperAdmin', 'CompanyAdmin', 'Supervisor', 'Rrhh', 'Employee'],
@@ -708,6 +712,16 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(path: 'new', name: 'warranty-new', builder: (_, _) => const WarrantyFormPage()),
               GoRoute(path: ':warrantyId', name: 'warranty-detail', builder: (_, state) => WarrantyDetailPage(warrantyId: state.pathParameters['warrantyId']!)),
               GoRoute(path: ':warrantyId/edit', name: 'warranty-edit', builder: (_, state) => WarrantyFormPage(warrantyId: state.pathParameters['warrantyId']!)),
+            ],
+          ),
+          GoRoute(
+            path: '/workshops',
+            name: 'workshops',
+            builder: (_, _) => const WorkshopListPage(),
+            routes: [
+              GoRoute(path: 'new', name: 'workshop-new', builder: (_, _) => const WorkshopFormPage()),
+              GoRoute(path: ':workshopId', name: 'workshop-detail', builder: (_, state) => WorkshopDetailPage(workshopId: state.pathParameters['workshopId']!)),
+              GoRoute(path: ':workshopId/edit', name: 'workshop-edit', builder: (_, state) => WorkshopFormPage(workshopId: state.pathParameters['workshopId']!)),
             ],
           ),
           GoRoute(

@@ -19,6 +19,7 @@ public sealed class WarrantyService
     private readonly ITenantContext _tenant;
     private readonly IMapper _mapper;
     private readonly IGoalIntegrationService _goalIntegration;
+    private readonly IWarrantyEventRepository _eventRepo;
 
     public WarrantyService(
         IWarrantyRepository repo, 
@@ -27,7 +28,8 @@ public sealed class WarrantyService
         IInventoryMovementService inventoryService,
         ITenantContext tenant, 
         IMapper mapper,
-        IGoalIntegrationService goalIntegration)
+        IGoalIntegrationService goalIntegration,
+        IWarrantyEventRepository eventRepo)
     {
         _repo = repo;
         _workshopRepo = workshopRepo;
@@ -36,6 +38,7 @@ public sealed class WarrantyService
         _tenant = tenant;
         _mapper = mapper;
         _goalIntegration = goalIntegration;
+        _eventRepo = eventRepo;
     }
 
     public async Task<WarrantyResponse> CreateAsync(CreateWarrantyRequest request)
@@ -136,13 +139,34 @@ public sealed class WarrantyService
         var claim = await _repo.GetClaimByIdAsync(claimId)
             ?? throw new KeyNotFoundException("Claim not found");
 
+        var workshop = await _workshopRepo.GetByIdAsync(request.WorkshopId)
+            ?? throw new KeyNotFoundException("Workshop not found");
+
         claim.WorkshopId = request.WorkshopId;
         claim.TechnicianId = request.TechnicianId;
         claim.WorkshopAssignedAt = DateTime.UtcNow;
-        // In a real implementation, we would fetch WorkshopBrand to get SLA
-        claim.SlaDeadline = DateTime.UtcNow.AddHours(request.SlaHoursOverride ?? 48);
+
+        var slaHours = request.SlaHoursOverride ?? workshop.AvgRepairHours;
+        claim.SlaDeadline = DateTime.UtcNow.AddHours(slaHours);
         WarrantyStateMachine.EnsureCanTransition(claim.Status, WarrantyStatus.SentToWorkshop);
         claim.Status = WarrantyStatus.SentToWorkshop;
+
+        await _eventRepo.AddAsync(new Core.Entities.WarrantyEvent
+        {
+            WarrantyId = claim.WarrantyId,
+            ClaimId = claim.Id,
+            EventType = "WorkshopAssigned",
+            Description = $"Taller \"{workshop.Name}\" asignado. SLA: {slaHours}h",
+            EventData = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                workshopId = request.WorkshopId,
+                workshopName = workshop.Name,
+                technicianId = request.TechnicianId,
+                slaHours
+            }),
+            OccurredAt = DateTime.UtcNow,
+            IsMilestone = true
+        });
 
         await _repo.SaveChangesAsync();
 

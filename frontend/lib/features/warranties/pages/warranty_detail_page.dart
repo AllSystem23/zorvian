@@ -294,7 +294,9 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
       separatorBuilder: (_, _) => const SizedBox(height: ZSpacing.sm),
       itemBuilder: (_, i) {
         final c = claims[i] as Map<String, dynamic>;
+        final claimId = c['id'] as String? ?? '';
         final claimStatus = c['status'] as String? ?? '';
+        final canAssignWorkshop = claimStatus == 'PendingReview' || claimStatus == 'InDiagnosis';
         return ZCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -319,6 +321,18 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
                   color: DateTime.tryParse(c['slaDeadline'])?.isBefore(DateTime.now()) == true
                       ? ZColors.danger : ZColors.neutral600,
                 )),
+              ],
+              if (canAssignWorkshop) ...[
+                const SizedBox(height: ZSpacing.sm),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ZButton(
+                    text: 'Asignar taller',
+                    icon: Icons.build,
+                    type: ZButtonType.secondary,
+                    onPressed: () => _showAssignWorkshopDialog(claimId),
+                  ),
+                ),
               ],
             ],
           ),
@@ -494,6 +508,124 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showAssignWorkshopDialog(String claimId) async {
+    List<dynamic> workshops = [];
+    bool loading = true;
+    String? selectedWorkshopId;
+    String? error;
+
+    try {
+      final dio = ref.read(dioClientProvider);
+      final r = await dio.get('service-workshops');
+      workshops = r.data as List;
+    } catch (e) {
+      error = 'Error al cargar talleres';
+    }
+    loading = false;
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          if (loading) {
+            return const AlertDialog(
+              content: SizedBox(height: 100, child: Center(child: CircularProgressIndicator())),
+            );
+          }
+          if (error != null) {
+            return AlertDialog(
+              title: const Text('Error'),
+              content: Text(error),
+              actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cerrar'))],
+            );
+          }
+          if (workshops.isEmpty) {
+            return AlertDialog(
+              title: const Text('Sin talleres'),
+              content: const Text('No hay talleres registrados. Cree uno primero.'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cerrar')),
+                ZButton(
+                  text: 'Crear taller',
+                  type: ZButtonType.primary,
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    context.push('/workshops/new');
+                  },
+                ),
+              ],
+            );
+          }
+          return AlertDialog(
+            title: const Text('Asignar taller'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text('Seleccione el taller para este reclamo:', style: ZTypography.bodyMedium),
+                  const SizedBox(height: ZSpacing.md),
+                  ...workshops.map((w) {
+                    final wid = w['id'] as String;
+                    final name = w['name'] as String? ?? '';
+                    final city = w['city'] as String? ?? '';
+                    final avgRepair = w['avgRepairHours'] ?? 72;
+                    final isSelected = selectedWorkshopId == wid;
+                    return Card(
+                      color: isSelected ? ZColors.brandPrimary.withAlpha(15) : null,
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: isSelected ? ZColors.brandPrimary : ZColors.neutral200,
+                          child: Icon(Icons.build, color: isSelected ? Colors.white : ZColors.neutral500),
+                        ),
+                        title: Text(name),
+                        subtitle: Text('$city · ~${avgRepair}h reparación'),
+                        trailing: isSelected
+                            ? const Icon(Icons.check_circle, color: ZColors.brandPrimary)
+                            : null,
+                        onTap: () => setDialogState(() => selectedWorkshopId = wid),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+              ZButton(
+                text: 'Asignar',
+                type: ZButtonType.primary,
+                onPressed: selectedWorkshopId == null
+                    ? () {}
+                    : () async {
+                        Navigator.pop(ctx);
+                        setState(() => _actionLoading = true);
+                        try {
+                          final dio = ref.read(dioClientProvider);
+                          await dio.post('warranties/claims/$claimId/assign-workshop', data: {
+                            'workshopId': selectedWorkshopId,
+                          });
+                          _load();
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error: $e'), backgroundColor: ZColors.danger),
+                            );
+                          }
+                        } finally {
+                          if (mounted) setState(() => _actionLoading = false);
+                        }
+                      },
+              ),
+            ],
+          );
+        },
       ),
     );
   }
