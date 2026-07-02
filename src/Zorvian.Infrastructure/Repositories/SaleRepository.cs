@@ -84,6 +84,12 @@ public sealed class SaleRepository : ISaleRepository
 
     public async Task<string> GenerateInvoiceNumberAsync(Guid companyId)
     {
+        if (_db.Database.ProviderName != "Microsoft.EntityFrameworkCore.InMemory")
+        {
+            await _db.Database.ExecuteSqlRawAsync(
+                @"SELECT 1 FROM ""Companies"" WHERE ""Id"" = {0} FOR UPDATE", companyId);
+        }
+
         var count = await _db.Set<Sale>().CountAsync(s => s.CompanyId == companyId);
         return $"FAC-{DateTime.UtcNow:yyyyMMdd}-{(count + 1):D4}";
     }
@@ -252,4 +258,31 @@ public sealed class SaleRepository : ISaleRepository
 
     public async Task SaveChangesAsync() =>
         await _db.SaveChangesAsync();
+
+    private Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? _transaction;
+
+    public async Task BeginTransactionAsync()
+    {
+        _transaction = await _db.Database.BeginTransactionAsync();
+    }
+
+    public async Task CommitTransactionAsync()
+    {
+        if (_transaction is not null)
+        {
+            await _transaction.CommitAsync();
+            await _transaction.DisposeAsync();
+            _transaction = null;
+        }
+    }
+
+    public async Task RollbackTransactionAsync()
+    {
+        if (_transaction is not null)
+        {
+            await _transaction.RollbackAsync();
+            await _transaction.DisposeAsync();
+            _transaction = null;
+        }
+    }
 }

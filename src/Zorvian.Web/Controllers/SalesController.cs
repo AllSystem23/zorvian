@@ -24,15 +24,8 @@ public sealed class SalesController : ControllerBase
     [RequirePermission(Permissions.SaleWrite)]
     public async Task<IActionResult> CreateCashSale([FromBody] CreateCashSaleRequest request)
     {
-        try
-        {
-            var sale = await _service.CreateCashSaleAsync(request);
-            return CreatedAtAction(nameof(GetById), new { id = sale.Id }, sale);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        var sale = await _service.CreateCashSaleAsync(request);
+        return CreatedAtAction(nameof(GetById), new { id = sale.Id }, sale);
     }
 
     [Audit("Sale", "Create")]
@@ -40,15 +33,8 @@ public sealed class SalesController : ControllerBase
     [RequirePermission(Permissions.SaleWrite)]
     public async Task<IActionResult> CreateCreditSale([FromBody] CreateCreditSaleRequest request)
     {
-        try
-        {
-            var sale = await _service.CreateCreditSaleAsync(request);
-            return CreatedAtAction(nameof(GetById), new { id = sale.Id }, sale);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
+        var sale = await _service.CreateCreditSaleAsync(request);
+        return CreatedAtAction(nameof(GetById), new { id = sale.Id }, sale);
     }
 
     [HttpGet("{id:guid}")]

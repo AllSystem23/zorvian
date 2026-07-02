@@ -22,6 +22,16 @@ public sealed class ProductRepository : IProductRepository
             .Include(p => p.TaxCategory)
             .FirstOrDefaultAsync(p => p.Id == id);
 
+    public async Task<Product?> GetByIdForUpdateAsync(Guid id)
+    {
+        if (_db.Database.ProviderName != "Microsoft.EntityFrameworkCore.InMemory")
+        {
+            await _db.Database.ExecuteSqlRawAsync(
+                @"SELECT 1 FROM ""Products"" WHERE ""Id"" = {0} FOR UPDATE", id);
+        }
+        return await GetByIdAsync(id);
+    }
+
     public async Task<Product?> GetByCodeAsync(string code, Guid branchId) =>
         await _db.Set<Product>()
             .Include(p => p.Category)

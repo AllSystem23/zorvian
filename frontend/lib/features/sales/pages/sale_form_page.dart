@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 import '../../../core/utils/country_config.dart';
 import '../../../shared/ds/ds.dart';
 import '../../../shared/printing/qr_code_dialog.dart';
@@ -81,9 +82,23 @@ final class _NewSalePageState extends ConsumerState<NewSalePage> {
   double get _tax => _taxEnabled ? _taxable * _taxRate : 0;
   double get _total => _taxable + _tax;
 
+  String? _validate() {
+    if (_selectedClient == null) return 'Seleccione un cliente';
+    if (_cart.isEmpty) return 'Agregue al menos un producto';
+    final branchState = ref.read(companyBranchProvider);
+    if (branchState.branchId == null || branchState.branchId == '00000000-0000-0000-0000-000000000000') {
+      return 'Seleccione una sucursal en el encabezado';
+    }
+    final auth = ref.read(authProvider);
+    if (auth.employeeId == null || auth.employeeId == '00000000-0000-0000-0000-000000000000') {
+      return 'Empleado no configurado en su perfil';
+    }
+    return null;
+  }
+
   Future<void> _save() async {
-    if (_selectedClient == null) { _err('Seleccione un cliente'); return; }
-    if (_cart.isEmpty) { _err('Agregue al menos un producto'); return; }
+    final validationError = _validate();
+    if (validationError != null) { _err(validationError); return; }
 
     setState(() => _saving = true);
     try {
@@ -97,12 +112,15 @@ final class _NewSalePageState extends ConsumerState<NewSalePage> {
         'subtotal': c.subtotal,
       }).toList();
 
+      final auth = ref.read(authProvider);
+      final branchState = ref.read(companyBranchProvider);
+
       final basePayload = {
         'clientId': _selectedClient!.id,
-        'employeeId': '00000000-0000-0000-0000-000000000000',
+        'employeeId': auth.employeeId,
         'discount': _discount,
         'notes': null,
-        'branchId': '00000000-0000-0000-0000-000000000000',
+        'branchId': branchState.branchId,
         'currencyCode': _currencyCode,
         'exchangeRateToReporting': _currencyCode == 'NIO' ? null : CountryConfig.exchangeRateToNIO(_currencyCode),
         'details': details,

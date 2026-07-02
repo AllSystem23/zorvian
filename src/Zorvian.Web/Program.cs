@@ -19,10 +19,10 @@ builder.Services.AddResponseCompression(options =>
 });
 
 // ── Controllers, OpenAPI ──
-builder.Services.AddScoped<Zorvian.Web.Filters.ValidationFilter<object>>();
+builder.Services.AddScoped<Zorvian.Web.Filters.ValidationFilter>();
 builder.Services.AddControllers(options =>
 {
-    options.Filters.AddService<Zorvian.Web.Filters.ValidationFilter<object>>();
+    options.Filters.AddService<Zorvian.Web.Filters.ValidationFilter>();
 });
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();

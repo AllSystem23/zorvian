@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../shared/ds/components/z_async_renderer.dart';
+import '../../../shared/ds/components/z_badge.dart';
 import '../../../shared/ds/components/z_empty_state.dart';
+import '../../../shared/ds/components/z_error_boundary.dart';
+import '../../../shared/ds/components/z_pagination.dart';
+import '../../../shared/ds/components/z_search_field.dart';
+import '../../../shared/ds/tokens/colors.dart';
 import '../providers/sale_provider.dart';
 
 final class SaleListPage extends ConsumerStatefulWidget {
@@ -14,8 +18,10 @@ final class SaleListPage extends ConsumerStatefulWidget {
 final class _SaleListPageState extends ConsumerState<SaleListPage> {
   final _searchCtrl = TextEditingController();
 
-  void _onSearch(String v) {
-    ref.read(saleProvider.notifier).load(search: v.isNotEmpty ? v : null);
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() => ref.read(saleProvider.notifier).load());
   }
 
   @override
@@ -26,66 +32,86 @@ final class _SaleListPageState extends ConsumerState<SaleListPage> {
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(saleProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Ventas')),
-      body: ZAsyncRenderer<List<SaleItem>>(
-        value: ref.watch(saleProvider),
-        builder: (items) => Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: TextField(
-                controller: _searchCtrl,
-                decoration: InputDecoration(
-                  hintText: 'Buscar por cliente o factura...',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _searchCtrl.text.isNotEmpty
-                      ? IconButton(icon: const Icon(Icons.clear), onPressed: () { _searchCtrl.clear(); _onSearch(''); })
-                      : null,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                ),
-                onChanged: _onSearch,
-              ),
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'newSale',
+        icon: const Icon(Icons.add),
+        label: const Text('Nueva Venta'),
+        onPressed: () async {
+          await context.push('/sales/new');
+          ref.read(saleProvider.notifier).load();
+        },
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: ZSearchField(
+              controller: _searchCtrl,
+              hintText: 'Buscar por cliente o factura...',
+              onChanged: (v) => ref.read(saleProvider.notifier).load(search: v.isNotEmpty ? v : null),
             ),
-            Expanded(
-              child: items.isEmpty
-                  ? _searchCtrl.text.isNotEmpty
-                      ? const ZEmptyState.search()
-                      : ZEmptyState.list(
-                          itemType: 'ventas',
-                          actionLabel: 'Nueva Venta',
-                          onAction: () => context.push('/sales/new'),
-                        )
-                  : RefreshIndicator(
-                      onRefresh: () => ref.read(saleProvider.notifier).load(),
-                      child: ListView.separated(
-                        itemCount: items.length,
-                        separatorBuilder: (_, _) => const Divider(height: 1),
-                        itemBuilder: (_, i) {
-                          final s = items[i];
-                          final statusColor = switch (s.status) {
-                            'completed' => Colors.green,
-                            'cancelled' => Colors.red,
-                            _ => Colors.orange,
-                          };
-                          return ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: statusColor.withAlpha(30),
-                              child: Text(s.invoiceNumber.length > 4 ? s.invoiceNumber.substring(s.invoiceNumber.length - 4) : s.invoiceNumber,
-                                style: TextStyle(fontSize: 10, color: statusColor, fontWeight: FontWeight.bold)),
+          ),
+          Expanded(
+            child: state.loading && state.items.isEmpty
+                ? const Center(child: CircularProgressIndicator())
+                : state.error != null
+                    ? Center(child: ZErrorDisplay(message: state.error!, onRetry: () => ref.read(saleProvider.notifier).load()))
+                    : state.items.isEmpty
+                        ? _searchCtrl.text.isNotEmpty
+                            ? const ZEmptyState.search()
+                            : ZEmptyState.list(
+                                itemType: 'ventas',
+                                actionLabel: 'Nueva Venta',
+                                onAction: () async {
+                                  await context.push('/sales/new');
+                                  ref.read(saleProvider.notifier).load();
+                                },
+                              )
+                        : RefreshIndicator(
+                            onRefresh: () => ref.read(saleProvider.notifier).load(search: _searchCtrl.text.isNotEmpty ? _searchCtrl.text : null),
+                            child: ListView.separated(
+                              itemCount: state.items.length + 1,
+                              separatorBuilder: (_, _) => const Divider(height: 1),
+                              itemBuilder: (_, i) {
+                                if (i == state.items.length) {
+                                  return ZPagination(
+                                    currentPage: state.page,
+                                    totalPages: (state.total / state.pageSize).ceil(),
+                                    totalItems: state.total,
+                                    pageSize: state.pageSize,
+                                    onPageChanged: (p) => ref.read(saleProvider.notifier).load(page: p),
+                                  );
+                                }
+                                final s = state.items[i];
+                                final badgeType = switch (s.status) {
+                                  'completed' => ZBadgeType.success,
+                                  'cancelled' => ZBadgeType.danger,
+                                  _ => ZBadgeType.warning,
+                                };
+                                return ListTile(
+                                  leading: CircleAvatar(
+                                    backgroundColor: ZColors.neutral100,
+                                    child: Text(
+                                      s.invoiceNumber.length > 4
+                                          ? s.invoiceNumber.substring(s.invoiceNumber.length - 4)
+                                          : s.invoiceNumber,
+                                      style: TextStyle(fontSize: 10, color: ZColors.neutral600, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                  title: Text(s.clientName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                  subtitle: Text('\$${s.total.toStringAsFixed(0)} \u00b7 ${s.saleType} \u00b7 ${s.saleDate.length >= 10 ? s.saleDate.substring(0, 10) : s.saleDate}'),
+                                  trailing: ZBadge(text: s.status, type: badgeType),
+                                  onTap: () => context.push('/sales/${s.id}'),
+                                );
+                              },
                             ),
-                            title: Text(s.clientName, style: const TextStyle(fontWeight: FontWeight.w600)),
-                            subtitle: Text('\$${s.total.toStringAsFixed(0)} · ${s.saleType} · ${s.saleDate.length >= 10 ? s.saleDate.substring(0, 10) : s.saleDate}'),
-                            trailing: Chip(label: Text(s.status, style: TextStyle(fontSize: 11, color: statusColor)), materialTapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                            onTap: () => context.push('/sales/${s.id}'),
-                          );
-                        },
-                      ),
-                    ),
-            ),
-          ],
-        ),
+                          ),
+          ),
+        ],
       ),
     );
   }

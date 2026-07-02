@@ -20,15 +20,15 @@ final class SaleItem {
   });
 
   factory SaleItem.fromJson(Map<String, dynamic> j) => SaleItem(
-    id: j['id'] as String? ?? '',
-    invoiceNumber: j['invoiceNumber'] as String? ?? '',
-    clientName: j['clientName'] as String? ?? '',
-    saleDate: j['saleDate'] as String? ?? '',
-    saleType: j['saleType'] as String? ?? '',
+    id: (j['id'] ?? '').toString(),
+    invoiceNumber: (j['invoiceNumber'] ?? '').toString(),
+    clientName: (j['clientName'] ?? '').toString(),
+    saleDate: (j['saleDate'] ?? '').toString(),
+    saleType: (j['saleType'] ?? '').toString(),
     total: (j['total'] as num?)?.toDouble() ?? 0,
     balance: (j['balance'] as num?)?.toDouble() ?? 0,
-    status: j['status'] as String? ?? '',
-    currencyCode: j['currencyCode'] as String? ?? 'NIO',
+    status: (j['status'] ?? '').toString(),
+    currencyCode: (j['currencyCode'] ?? 'NIO').toString(),
   );
 }
 
@@ -45,8 +45,8 @@ final class SaleDetailItem {
   });
 
   factory SaleDetailItem.fromJson(Map<String, dynamic> j) => SaleDetailItem(
-    productName: j['productName'] as String? ?? '',
-    quantity: j['quantity'] as int? ?? 0,
+    productName: (j['productName'] ?? '').toString(),
+    quantity: (j['quantity'] as num?)?.toInt() ?? 0,
     unitPrice: (j['unitPrice'] as num?)?.toDouble() ?? 0,
     discount: (j['discount'] as num?)?.toDouble() ?? 0,
     subtotal: (j['subtotal'] as num?)?.toDouble() ?? 0,
@@ -80,43 +80,98 @@ final class SaleDetail {
   });
 
   factory SaleDetail.fromJson(Map<String, dynamic> j) => SaleDetail(
-    id: j['id'] as String? ?? '',
-    invoiceNumber: j['invoiceNumber'] as String? ?? '',
-    clientName: j['clientName'] as String? ?? '',
-    saleDate: j['saleDate'] as String? ?? '',
-    saleType: j['saleType'] as String? ?? '',
+    id: (j['id'] ?? '').toString(),
+    invoiceNumber: (j['invoiceNumber'] ?? '').toString(),
+    clientName: (j['clientName'] ?? '').toString(),
+    saleDate: (j['saleDate'] ?? '').toString(),
+    saleType: (j['saleType'] ?? '').toString(),
     subtotal: (j['subtotal'] as num?)?.toDouble() ?? 0,
     tax: (j['tax'] as num?)?.toDouble() ?? 0,
     discount: (j['discount'] as num?)?.toDouble() ?? 0,
     total: (j['total'] as num?)?.toDouble() ?? 0,
     paidAmount: (j['paidAmount'] as num?)?.toDouble() ?? 0,
     balance: (j['balance'] as num?)?.toDouble() ?? 0,
-    status: j['status'] as String? ?? '',
+    status: (j['status'] ?? '').toString(),
     notes: j['notes'] as String?,
-    currencyCode: j['currencyCode'] as String? ?? 'NIO',
-    details: (j['details'] as List?)?.map((e) => SaleDetailItem.fromJson(e as Map<String, dynamic>)).toList() ?? [],
-    creditId: j['creditId'] as String?,
+    currencyCode: (j['currencyCode'] ?? 'NIO').toString(),
+    details: (j['details'] as List?)
+        ?.map((e) => SaleDetailItem.fromJson(e as Map<String, dynamic>))
+        .toList() ?? [],
+    creditId: (j['creditId'] as String?),
   );
 }
 
-final class SaleNotifier extends AsyncNotifier<List<SaleItem>> {
+final class SaleState {
+  final List<SaleItem> items;
+  final int total;
+  final int page;
+  final int pageSize;
+  final String? search;
+  final bool loading;
+  final String? error;
+
+  const SaleState({
+    this.items = const [],
+    this.total = 0,
+    this.page = 1,
+    this.pageSize = 20,
+    this.search,
+    this.loading = false,
+    this.error,
+  });
+
+  SaleState copyWith({
+    List<SaleItem>? items,
+    int? total,
+    int? page,
+    int? pageSize,
+    String? search,
+    bool? loading,
+    String? error,
+  }) => SaleState(
+    items: items ?? this.items,
+    total: total ?? this.total,
+    page: page ?? this.page,
+    pageSize: pageSize ?? this.pageSize,
+    search: search ?? this.search,
+    loading: loading ?? this.loading,
+    error: error,
+  );
+}
+
+final class SaleNotifier extends Notifier<SaleState> {
   @override
-  FutureOr<List<SaleItem>> build() => _load();
+  SaleState build() => const SaleState();
 
-  Future<List<SaleItem>> _load({String? search}) async {
-    final dio = ref.read(dioClientProvider);
-    final params = <String, dynamic>{};
-    if (search != null && search.isNotEmpty) params['search'] = search;
-    final r = await dio.get('sales', params: params);
-    final body = r.data;
-    final list = body is Map ? (body['items'] ?? []) : (body is List ? body : []);
-    return (list as List).map((e) => SaleItem.fromJson(e as Map<String, dynamic>)).toList();
-  }
+  Future<void> load({String? search, int? page}) async {
+    state = state.copyWith(loading: true, error: null);
+    try {
+      final dio = ref.read(dioClientProvider);
+      final params = <String, dynamic>{
+        'page': page ?? state.page,
+        'pageSize': state.pageSize,
+      };
+      if (search != null && search.isNotEmpty) params['search'] = search;
 
-  Future<void> load({String? search}) async {
-    state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() => _load(search: search));
+      final r = await dio.get('sales', params: params);
+      final body = r.data as Map<String, dynamic>;
+      final items = (body['items'] as List?)
+              ?.map((e) => SaleItem.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [];
+
+      state = state.copyWith(
+        items: items,
+        total: (body['total'] as num?)?.toInt() ?? items.length,
+        page: (body['page'] as num?)?.toInt() ?? (page ?? state.page),
+        pageSize: (body['pageSize'] as num?)?.toInt() ?? state.pageSize,
+        search: search,
+        loading: false,
+      );
+    } catch (e) {
+      state = state.copyWith(loading: false, error: e.toString());
+    }
   }
 }
 
-final saleProvider = AsyncNotifierProvider<SaleNotifier, List<SaleItem>>(SaleNotifier.new);
+final saleProvider = NotifierProvider<SaleNotifier, SaleState>(SaleNotifier.new);

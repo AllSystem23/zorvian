@@ -499,6 +499,9 @@ public sealed class AccountingIntegrationTests : IDisposable
         public Task<List<SalesTrendMetrics>> GetSalesTrendRawAsync(DateTime from, DateTime to, Guid branchId, string currency) => Task.FromResult(new List<SalesTrendMetrics>());
         public Task<ExecutiveSalesMetrics> GetExecutiveSalesMetricsRawAsync(DateTime lastMonthStart, DateTime monthStart, DateTime todayStart, DateTime yesterdayStart, DateTime weekStart, DateTime weekEndExclusive, Guid branchId, string currency) =>
             Task.FromResult(new ExecutiveSalesMetrics(0, 0, 0, 0, 0, 0, 0, new List<decimal>()));
+        public Task BeginTransactionAsync() => Task.CompletedTask;
+        public Task CommitTransactionAsync() => db.SaveChangesAsync();
+        public Task RollbackTransactionAsync() => Task.CompletedTask;
     }
 
     private sealed class ProductRepo(ZorvianDbContext db) : IProductRepository
@@ -516,6 +519,7 @@ public sealed class AccountingIntegrationTests : IDisposable
         public Task<List<(Product Product, int TotalSold)>> GetTopSellingAsync(Guid? branchId, int count) => throw new NotImplementedException();
         public Task<InventorySummaryRaw> GetInventorySummaryRawAsync(Guid? branchId) => Task.FromResult(new InventorySummaryRaw(0, 0, 0, 0, 0, new List<InventoryCategoryRaw>(), new List<InventorySlowMoverRaw>()));
         public Task DeleteAsync(Product product) => throw new NotImplementedException();
+        public Task<Product?> GetByIdForUpdateAsync(Guid id) => GetByIdAsync(id);
     }
 
     private sealed class MovementRepo(ZorvianDbContext db) : IInventoryMovementRepository

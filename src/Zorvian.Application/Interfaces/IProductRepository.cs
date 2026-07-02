@@ -29,6 +29,7 @@ public sealed class InventorySlowMoverRaw
 public interface IProductRepository
 {
     Task<Product?> GetByIdAsync(Guid id);
+    Task<Product?> GetByIdForUpdateAsync(Guid id);
     Task<Product?> GetByCodeAsync(string code, Guid branchId);
     Task<List<Product>> GetFilteredAsync(string? search, Guid? categoryId, Guid? brandId, bool? lowStock, bool? isActive, Guid? branchId, int page, int pageSize);
     Task<int> GetFilteredCountAsync(string? search, Guid? categoryId, Guid? brandId, bool? lowStock, bool? isActive, Guid? branchId);

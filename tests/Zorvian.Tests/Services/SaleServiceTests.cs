@@ -131,7 +131,7 @@ public sealed class SaleServiceTests
             CostPrice = 300m,
             TaxCategory = new TaxCategory { Rate = 0.16m, Name = "16%" }
         };
-        _productRepo.Setup(r => r.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync(product);
+        _productRepo.Setup(r => r.GetByIdForUpdateAsync(It.IsAny<Guid>())).ReturnsAsync(product);
 
         var sale = MakeSale(saleId);
         sale.Details = new List<SaleDetail> { new() { Product = product, Quantity = 2, UnitPrice = 500m, Discount = 0, Subtotal = 1000m } };
@@ -192,7 +192,7 @@ public sealed class SaleServiceTests
             CostPrice = 300m,
             TaxCategory = new TaxCategory { Rate = 0.0m, Name = "Exento" }
         };
-        _productRepo.Setup(r => r.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync(product);
+        _productRepo.Setup(r => r.GetByIdForUpdateAsync(It.IsAny<Guid>())).ReturnsAsync(product);
 
         var result = await _sut.CreateCashSaleAsync(request);
 
@@ -244,7 +244,7 @@ public sealed class SaleServiceTests
         _mapper.Setup(m => m.Map<SaleResponse>(sale)).Returns(expectedResponse);
 
         var product = new Product { Id = Guid.NewGuid(), Stock = 10, CostPrice = 2000m };
-        _productRepo.Setup(r => r.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync(product);
+        _productRepo.Setup(r => r.GetByIdForUpdateAsync(It.IsAny<Guid>())).ReturnsAsync(product);
 
         var result = await _sut.CreateCreditSaleAsync(request);
 

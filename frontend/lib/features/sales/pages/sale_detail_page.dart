@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
-import '../../../shared/ds/ds.dart';
+import '../../../shared/ds/components/z_badge.dart';
+import '../../../shared/ds/components/z_card.dart';
+import '../../../shared/ds/components/z_error_boundary.dart';
+import '../../../shared/ds/components/z_skeleton.dart';
+import '../../../shared/ds/tokens/colors.dart';
 import '../../../shared/printing/pdf_generator.dart';
 import '../../../shared/printing/print_share_sheet.dart';
 import '../../../shared/printing/print_utils.dart';
@@ -33,20 +37,39 @@ final class _SaleDetailPageState extends ConsumerState<SaleDetailPage> {
       final dio = ref.read(dioClientProvider);
       final r = await dio.get('sales/${widget.saleId}');
       setState(() { _data = SaleDetail.fromJson(r.data as Map<String, dynamic>); _loading = false; });
-    } catch (_) {
-      setState(() { _error = 'Error al cargar venta'; _loading = false; });
+    } catch (e) {
+      setState(() { _error = 'Error al cargar venta: $e'; _loading = false; });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    if (_loading) return Scaffold(appBar: AppBar(title: const Text('Venta')), body: const Center(child: CircularProgressIndicator()));
-    if (_error != null) return Scaffold(appBar: AppBar(title: const Text('Venta')), body: Center(child: Text(_error!)));
+
+    if (_loading) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Venta')),
+        body: ZSkeleton.card(height: 200),
+      );
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Venta')),
+        body: ZErrorDisplay(
+          message: _error!,
+          onRetry: _load,
+        ),
+      );
+    }
 
     final d = _data!;
     final isCash = d.saleType == 'cash';
-    final stColor = switch (d.status) { 'completed' => Colors.green, 'cancelled' => Colors.red, _ => Colors.orange };
+    final badgeType = switch (d.status) {
+      'completed' => ZBadgeType.success,
+      'cancelled' => ZBadgeType.danger,
+      _ => ZBadgeType.warning,
+    };
 
     return Scaffold(
       appBar: AppBar(
@@ -155,7 +178,7 @@ final class _SaleDetailPageState extends ConsumerState<SaleDetailPage> {
               children: [
                 Row(children: [
                   Expanded(child: Text(d.clientName, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold))),
-                  Chip(label: Text(d.status, style: const TextStyle(fontSize: 11, color: Colors.white)), backgroundColor: stColor, materialTapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                  ZBadge(text: d.status, type: badgeType),
                 ]),
                 const SizedBox(height: 8),
                 _row('Factura', d.invoiceNumber),
@@ -169,9 +192,9 @@ final class _SaleDetailPageState extends ConsumerState<SaleDetailPage> {
                 if (!isCash) ...[
                   const Divider(),
                   _row('Pagado', '\$${d.paidAmount.toStringAsFixed(2)}'),
-                  _row('Saldo', '\$${d.balance.toStringAsFixed(2)}', bold: true, color: Colors.red),
+                  _row('Saldo', '\$${d.balance.toStringAsFixed(2)}', bold: true, color: ZColors.danger),
                   if (d.creditId != null)
-                    _row('Crédito', d.creditId!, color: Colors.blue),
+                    _row('Crédito', d.creditId!, color: ZColors.info),
                 ],
                 if (d.notes != null && d.notes!.isNotEmpty) ...[
                   const Divider(),
