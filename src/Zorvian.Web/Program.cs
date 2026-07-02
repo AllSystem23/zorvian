@@ -140,13 +140,47 @@ app.UseAuthentication();
 app.UseTenantMiddleware();
 app.UseAuthorization();
 
-// ── Ensure Fleet tables exist (always, not just in Production) ──
+// ── Auto-migrate + seed in non-test environments ──
 if (!mockExternal)
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<Zorvian.Infrastructure.Data.ZorvianDbContext>();
     var logger = app.Services.GetRequiredService<ILogger<Program>>();
 
+    // 1. Apply pending EF Core migrations so tables exist before seeding
+    try
+    {
+        var pending = await db.Database.GetPendingMigrationsAsync();
+        var pendingList = pending.ToList();
+        if (pendingList.Count > 0)
+        {
+            logger.LogInformation("Applying {Count} pending migration(s): {Migrations}",
+                pendingList.Count, string.Join(", ", pendingList));
+            await db.Database.MigrateAsync();
+
+            // Activate Row Level Security (RLS) in Neon/Postgres
+            await db.Database.ExecuteSqlRawAsync(@"
+                DO $$ 
+                DECLARE 
+                    r RECORD;
+                BEGIN
+                    FOR r IN (SELECT table_name FROM information_schema.columns WHERE column_name = 'TenantId' AND table_schema = 'public') 
+                    LOOP
+                        EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', r.table_name);
+                        EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_policy ON %I', r.table_name);
+                        EXECUTE format('CREATE POLICY tenant_isolation_policy ON %I USING (""TenantId"" = current_setting(''app.tenant_id'') OR current_setting(''app.is_super_admin'') = ''true'')', r.table_name);
+                    END LOOP;
+                END $$;
+            ");
+            logger.LogInformation("Migration(s) and RLS policies applied successfully");
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Migration failed — app may still start if DB is already compatible");
+    }
+
+    // 2. Ensure Fleet tables exist via embedded SQL
     try
     {
         var assembly = typeof(Program).Assembly;
@@ -170,7 +204,7 @@ if (!mockExternal)
         logger.LogError(fleetEx, "Failed to apply Fleet SQL script");
     }
 
-    // Seed catalog data if tables are empty
+    // 3. Seed catalog data if tables are empty
     await Zorvian.Infrastructure.Data.DocumentTemplateSeeder.SeedAsync(db, logger);
     await Zorvian.Infrastructure.Data.FleetCatalogSeeder.SeedAsync(db, logger);
     await Zorvian.Infrastructure.Data.CountryTaxConfigSeeder.SeedAsync(db, logger);
@@ -226,47 +260,6 @@ if (!mockExternal)
     recurringJobManager.AddOrUpdate<Zorvian.Application.Jobs.VacationAutomatedJob>("vacation-accrual", j => j.RunAsync(), "0 0 1 * *");
     recurringJobManager.AddOrUpdate<Zorvian.Web.Jobs.FleetAlertJob>("fleet-alert-check", j => j.RunAsync(), "0 */6 * * *");
     recurringJobManager.AddOrUpdate<Zorvian.Web.Jobs.FleetExpenseNotificationJob>("fleet-expense-notification", j => j.RunAsync(), "0 8 * * *");
-}
-
-// ── Auto-migrate in Production ──
-if (app.Environment.IsProduction() && !mockExternal)
-{
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<Zorvian.Infrastructure.Data.ZorvianDbContext>();
-    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-
-    try
-    {
-        var pending = await db.Database.GetPendingMigrationsAsync();
-        var pendingList = pending.ToList();
-
-        if (pendingList.Count > 0)
-        {
-            logger.LogInformation("Applying {Count} pending migration(s): {Migrations}", pendingList.Count, string.Join(", ", pendingList));
-            await db.Database.MigrateAsync();
-            
-            // ── Activate Row Level Security (RLS) in Neon/Postgres ──
-            await db.Database.ExecuteSqlRawAsync(@"
-                DO $$ 
-                DECLARE 
-                    r RECORD;
-                BEGIN
-                    FOR r IN (SELECT table_name FROM information_schema.columns WHERE column_name = 'TenantId' AND table_schema = 'public') 
-                    LOOP
-                        EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', r.table_name);
-                        EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_policy ON %I', r.table_name);
-                        EXECUTE format('CREATE POLICY tenant_isolation_policy ON %I USING (""TenantId"" = current_setting(''app.tenant_id'') OR current_setting(''app.is_super_admin'') = ''true'')', r.table_name);
-                    END LOOP;
-                END $$;
-            ");
-
-            logger.LogInformation("Migration(s) and RLS policies applied successfully");
-        }
-    }
-    catch (Exception ex)
-    {
-        logger.LogError(ex, "Migration failed");
-    }
 }
 
 app.Run();

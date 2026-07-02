@@ -404,6 +404,11 @@ public sealed class ZorvianDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(cp => cp.CompanyId)
                 .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(cp => cp.Plan)
+                .WithMany()
+                .HasForeignKey(cp => cp.PlanId)
+                .HasPrincipalKey(sp => sp.PlanId)
+                .OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(cp => new { cp.CompanyId, cp.PlanId, cp.IsActive });
         });
 
@@ -2257,7 +2262,7 @@ public sealed class ZorvianDbContext : DbContext
                 .HasForeignKey(a => a.GoalDefinitionId)
                 .OnDelete(DeleteBehavior.Cascade);
             e.HasOne(a => a.Employee)
-                .WithMany()
+                .WithMany(emp => emp.GoalAssignments)
                 .HasForeignKey(a => a.EmployeeId)
                 .OnDelete(DeleteBehavior.SetNull);
             e.HasIndex(a => new { a.GoalDefinitionId, a.EmployeeId });
@@ -2304,7 +2309,7 @@ public sealed class ZorvianDbContext : DbContext
                 .HasForeignKey(ip => ip.GoalAssignmentId)
                 .OnDelete(DeleteBehavior.Cascade);
             e.HasOne(ip => ip.Employee)
-                .WithMany()
+                .WithMany(emp => emp.IncentivePayments)
                 .HasForeignKey(ip => ip.EmployeeId)
                 .OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(ip => new { ip.GoalAssignmentId, ip.EmployeeId });
