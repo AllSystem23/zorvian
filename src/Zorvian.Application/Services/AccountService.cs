@@ -1,6 +1,7 @@
 using AutoMapper;
 using Zorvian.Application.DTOs.Accounting;
 using Zorvian.Application.DTOs.Common;
+using Zorvian.Application.Helpers;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
@@ -408,44 +409,323 @@ public sealed class AccountingEntryService
     );
 }
 
+public sealed record PeriodCloseValidation(
+    bool CanClose,
+    List<string> Warnings,
+    List<string> Errors
+);
+
 public sealed class AccountingPeriodService
 {
     private readonly IAccountingPeriodRepository _repo;
+    private readonly IFiscalYearRepository _fiscalYearRepo;
+    private readonly ICompanyRepository _companyRepo;
     private readonly ITenantContext _tenant;
 
-    public AccountingPeriodService(IAccountingPeriodRepository repo, ITenantContext tenant)
-    { _repo = repo; _tenant = tenant; }
+    public AccountingPeriodService(
+        IAccountingPeriodRepository repo,
+        IFiscalYearRepository fiscalYearRepo,
+        ICompanyRepository companyRepo,
+        ITenantContext tenant)
+    {
+        _repo = repo;
+        _fiscalYearRepo = fiscalYearRepo;
+        _companyRepo = companyRepo;
+        _tenant = tenant;
+    }
 
     private Guid CompanyId => _tenant.ResolveCompanyId();
 
     public async Task<List<AccountingPeriodResponse>> GetAllAsync()
     {
         var periods = await _repo.GetAllAsync(CompanyId);
-        return periods.Select(p => new AccountingPeriodResponse(p.Id, p.Year, p.Month, p.Name, p.Status, p.OpenedAt, p.ClosedAt)).ToList();
+        return periods.Select(p => new AccountingPeriodResponse(
+            p.Id, p.Year, p.Month, p.Name, p.Status, p.OpenedAt, p.ClosedAt,
+            p.FiscalYearId, p.FiscalYear?.Name, p.CloseNotes, p.ReopenedAt, p.ReopenReason
+        )).ToList();
     }
 
-    public async Task<AccountingPeriodResponse> OpenAsync(int year, int month)
+    public async Task<AccountingPeriodResponse> OpenAsync(int year, int month, Guid? fiscalYearId = null)
     {
         var existing = await _repo.GetByYearMonthAsync(year, month, CompanyId);
         if (existing != null) throw new InvalidOperationException("Period already exists");
 
+        if (fiscalYearId == null)
+        {
+            var fiscalYear = await _fiscalYearRepo.GetByYearAsync(year, CompanyId);
+            if (fiscalYear == null)
+            {
+                var settings = await _companyRepo.GetSettingsAsync(CompanyId);
+                var (fyStart, fyEnd, _) = FiscalYearHelper.ResolveFiscalYearDates(
+                    year, settings?.FiscalYearStartMonth, null);
+
+                fiscalYear = new FiscalYear
+                {
+                    Year = year,
+                    Name = $"Año Fiscal {year}",
+                    StartDate = fyStart,
+                    EndDate = fyEnd,
+                    Status = FiscalYearStatus.Open,
+                    OpenedAt = DateTime.UtcNow,
+                    CompanyId = CompanyId,
+                };
+                await _fiscalYearRepo.AddAsync(fiscalYear);
+                await _fiscalYearRepo.SaveChangesAsync();
+            }
+            fiscalYearId = fiscalYear.Id;
+        }
+
         var period = new AccountingPeriod
         {
-            Year = year, Month = month, Name = $"{month:D2}-{year}",
-            Status = "open", OpenedAt = DateTime.UtcNow, CompanyId = CompanyId
+            Year = year, Month = month,
+            Name = $"{month:D2}-{year}",
+            Status = PeriodStatus.Open,
+            OpenedAt = DateTime.UtcNow,
+            FiscalYearId = fiscalYearId,
+            CompanyId = CompanyId,
         };
         await _repo.AddAsync(period);
         await _repo.SaveChangesAsync();
-        return new AccountingPeriodResponse(period.Id, period.Year, period.Month, period.Name, period.Status, period.OpenedAt, period.ClosedAt);
+        return new AccountingPeriodResponse(period.Id, period.Year, period.Month, period.Name, period.Status, period.OpenedAt, period.ClosedAt, period.FiscalYearId);
     }
 
-    public async Task<AccountingPeriodResponse> CloseAsync(Guid id)
+    public async Task<PeriodCloseValidation> ValidateCloseAsync(Guid id)
     {
         var period = await _repo.GetByIdAsync(id) ?? throw new KeyNotFoundException("Period not found");
-        period.Status = "closed";
+        var errors = new List<string>();
+        var warnings = new List<string>();
+
+        if (period.Status == PeriodStatus.Closed)
+            errors.Add("El período ya está cerrado");
+
+        // Validate sequential closing: previous month must be closed first
+        var prevMonth = period.Month == 1 ? 12 : period.Month - 1;
+        var prevYear = period.Month == 1 ? period.Year - 1 : period.Year;
+        if (prevYear >= 2020) // avoid checking before company inception
+        {
+            var prevPeriod = await _repo.GetByYearMonthAsync(prevYear, prevMonth, CompanyId);
+            if (prevPeriod != null && prevPeriod.Status == PeriodStatus.Open)
+                errors.Add($"El período anterior ({prevPeriod.Name}) aún está abierto. Debe cerrarlo primero.");
+        }
+
+        var entryCount = await _repo.GetEntryCountAsync(id);
+        if (entryCount == 0)
+            warnings.Add("El período no tiene asientos contables");
+
+        var hasUnposted = await _repo.HasUnpostedEntriesAsync(id);
+        if (hasUnposted)
+            errors.Add("Hay asientos en estado borrador sin contabilizar");
+
+        var totalDebit = await _repo.GetTotalDebitAsync(id);
+        var totalCredit = await _repo.GetTotalCreditAsync(id);
+        if (totalDebit != totalCredit)
+            errors.Add($"El período no está balanceado: Débitos {totalDebit:N2} vs Créditos {totalCredit:N2} (diferencia: {Math.Abs(totalDebit - totalCredit):N2})");
+
+        var hasUnaccountedSales = await _repo.HasUnaccountedSalesAsync(id, CompanyId);
+        if (hasUnaccountedSales)
+            warnings.Add("Hay ventas en el período sin asiento contable");
+
+        var hasUnaccountedCN = await _repo.HasUnaccountedCreditNotesAsync(id, CompanyId);
+        if (hasUnaccountedCN)
+            warnings.Add("Hay notas de crédito en el período sin asiento contable");
+
+        var hasPendingPayroll = await _repo.HasPendingPayrollAsync(id, CompanyId);
+        if (hasPendingPayroll)
+            errors.Add("Hay nóminas en el período sin asiento contable");
+
+        var hasUnaccountedCash = await _repo.HasUnaccountedCashMovementsAsync(id, CompanyId);
+        if (hasUnaccountedCash)
+            warnings.Add("Hay movimientos de caja aprobados sin asiento contable");
+
+        var hasUnaccountedInventory = await _repo.HasUnaccountedInventoryMovementsAsync(id, CompanyId);
+        if (hasUnaccountedInventory)
+            warnings.Add("Hay movimientos de inventario en el período sin asiento contable");
+
+        return new PeriodCloseValidation(
+            CanClose: errors.Count == 0,
+            Warnings: warnings,
+            Errors: errors
+        );
+    }
+
+    public async Task<AccountingPeriodResponse> CloseAsync(Guid id, string? notes = null)
+    {
+        var validation = await ValidateCloseAsync(id);
+        if (!validation.CanClose)
+            throw new InvalidOperationException(
+                $"No se puede cerrar el período:\n{string.Join("\n", validation.Errors)}");
+
+        var period = await _repo.GetByIdAsync(id) ?? throw new KeyNotFoundException("Period not found");
+        period.Status = PeriodStatus.Closed;
         period.ClosedAt = DateTime.UtcNow;
+        period.ClosedBy = _tenant.GetUserIdentifier();
+        period.CloseNotes = notes;
+
         await _repo.UpdateAsync(period);
         await _repo.SaveChangesAsync();
-        return new AccountingPeriodResponse(period.Id, period.Year, period.Month, period.Name, period.Status, period.OpenedAt, period.ClosedAt);
+
+        // Check if all periods in the fiscal year are closed -> auto-close fiscal year
+        if (period.FiscalYearId.HasValue)
+        {
+            var fyPeriods = await _repo.GetByFiscalYearAsync(period.FiscalYearId.Value);
+            if (fyPeriods.All(p => p.Status == PeriodStatus.Closed))
+            {
+                var fiscalYear = await _fiscalYearRepo.GetByIdAsync(period.FiscalYearId.Value);
+                if (fiscalYear != null && fiscalYear.Status == FiscalYearStatus.Open)
+                {
+                    fiscalYear.Status = FiscalYearStatus.Closed;
+                    fiscalYear.ClosedAt = DateTime.UtcNow;
+                    await _fiscalYearRepo.UpdateAsync(fiscalYear);
+                    await _fiscalYearRepo.SaveChangesAsync();
+                }
+            }
+        }
+
+        return new AccountingPeriodResponse(period.Id, period.Year, period.Month, period.Name, period.Status, period.OpenedAt, period.ClosedAt,
+            period.FiscalYearId, null, period.CloseNotes, period.ReopenedAt, period.ReopenReason);
     }
+
+    public async Task<AccountingPeriodResponse> ReopenAsync(Guid id, string reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new InvalidOperationException("Debe proporcionar una razón para la re-apertura");
+
+        var period = await _repo.GetByIdAsync(id) ?? throw new KeyNotFoundException("Period not found");
+        if (period.Status != PeriodStatus.Closed)
+            throw new InvalidOperationException("Solo se puede re-abrir un período cerrado");
+
+        // Check if fiscal year is already audited -> block reopen
+        if (period.FiscalYearId.HasValue)
+        {
+            var fiscalYear = await _fiscalYearRepo.GetByIdAsync(period.FiscalYearId.Value);
+            if (fiscalYear != null && fiscalYear.Status == FiscalYearStatus.Audited)
+                throw new InvalidOperationException("No se puede re-abrir un período de un año fiscal auditado");
+        }
+
+        period.Status = PeriodStatus.Open;
+        period.ReopenedAt = DateTime.UtcNow;
+        period.ReopenedBy = _tenant.GetUserIdentifier();
+        period.ReopenReason = reason;
+
+        // If fiscal year was auto-closed, re-open it too
+        if (period.FiscalYearId.HasValue)
+        {
+            var fiscalYear = await _fiscalYearRepo.GetByIdAsync(period.FiscalYearId.Value);
+            if (fiscalYear != null && fiscalYear.Status == FiscalYearStatus.Closed)
+            {
+                fiscalYear.Status = FiscalYearStatus.Open;
+                fiscalYear.ClosedAt = null;
+                await _fiscalYearRepo.UpdateAsync(fiscalYear);
+            }
+        }
+
+        await _repo.UpdateAsync(period);
+        await _repo.SaveChangesAsync();
+
+        return new AccountingPeriodResponse(period.Id, period.Year, period.Month, period.Name, period.Status, period.OpenedAt, period.ClosedAt,
+            period.FiscalYearId, null, period.CloseNotes, period.ReopenedAt, period.ReopenReason);
+    }
+}
+
+public sealed class FiscalYearService
+{
+    private readonly IFiscalYearRepository _repo;
+    private readonly IAccountingPeriodRepository _periodRepo;
+    private readonly ICompanyRepository _companyRepo;
+    private readonly ICountryTaxConfigRepository _taxConfigRepo;
+    private readonly ITenantContext _tenant;
+
+    public FiscalYearService(IFiscalYearRepository repo, IAccountingPeriodRepository periodRepo, ICompanyRepository companyRepo, ICountryTaxConfigRepository taxConfigRepo, ITenantContext tenant)
+    { _repo = repo; _periodRepo = periodRepo; _companyRepo = companyRepo; _taxConfigRepo = taxConfigRepo; _tenant = tenant; }
+
+    private Guid CompanyId => _tenant.ResolveCompanyId();
+
+    public async Task<List<FiscalYearResponse>> GetAllAsync()
+    {
+        var years = await _repo.GetAllAsync(CompanyId);
+        return years.Select(MapYear).ToList();
+    }
+
+    public async Task<FiscalYearResponse> OpenAsync(int year, DateOnly? startDate = null, DateOnly? endDate = null)
+    {
+        var existing = await _repo.GetByYearAsync(year, CompanyId);
+        if (existing != null) throw new InvalidOperationException($"Fiscal year {year} already exists");
+
+        if (startDate == null || endDate == null)
+        {
+            var company = await _companyRepo.GetByIdAsync(CompanyId);
+            var settings = await _companyRepo.GetSettingsAsync(CompanyId);
+            var countryCode = FiscalYearHelper.MapCountryToCode(company?.Country);
+            var countryConfig = await _taxConfigRepo.GetByCountryCodeAsync(countryCode);
+            var (resolvedStart, resolvedEnd, _) = FiscalYearHelper.ResolveFiscalYearDates(
+                year, settings?.FiscalYearStartMonth, countryConfig?.DefaultFiscalStartMonth);
+            startDate ??= resolvedStart;
+            endDate ??= resolvedEnd;
+        }
+
+        var fiscalYear = new FiscalYear
+        {
+            Year = year,
+            Name = $"Año Fiscal {year}",
+            StartDate = startDate.Value,
+            EndDate = endDate.Value,
+            Status = FiscalYearStatus.Open,
+            OpenedAt = DateTime.UtcNow,
+            CompanyId = CompanyId,
+        };
+        await _repo.AddAsync(fiscalYear);
+        await _repo.SaveChangesAsync();
+        return MapYear(fiscalYear);
+    }
+
+    public async Task<FiscalYearResponse> CloseAsync(Guid id)
+    {
+        var fiscalYear = await _repo.GetByIdAsync(id) ?? throw new KeyNotFoundException("Fiscal year not found");
+        var periods = await _periodRepo.GetByFiscalYearAsync(id);
+
+        var openPeriods = periods.Where(p => p.Status == PeriodStatus.Open).ToList();
+        if (openPeriods.Any())
+            throw new InvalidOperationException(
+                $"Cannot close fiscal year: {openPeriods.Count} period(s) still open: {string.Join(", ", openPeriods.Select(p => p.Name))}");
+
+        fiscalYear.Status = FiscalYearStatus.Closed;
+        fiscalYear.ClosedAt = DateTime.UtcNow;
+        await _repo.UpdateAsync(fiscalYear);
+        await _repo.SaveChangesAsync();
+        return MapYear(fiscalYear);
+    }
+
+    /// <summary>
+    /// Returns the resolved fiscal year configuration for the current company.
+    /// Primary source: CompanySettings.FiscalYearStartMonth (configurable by admin).
+    /// Fallback: country-based auto-detection via FiscalYearHelper.
+    /// </summary>
+    public async Task<object> GetFiscalYearConfigAsync(int year)
+    {
+        var company = await _companyRepo.GetByIdAsync(CompanyId);
+        var settings = await _companyRepo.GetSettingsAsync(CompanyId);
+        int? configMonth = settings?.FiscalYearStartMonth > 0 ? settings!.FiscalYearStartMonth : null;
+
+        var (startDate, endDate, effectiveMonth) = FiscalYearHelper.ResolveFiscalYearDates(
+            year, configMonth, null);
+
+        var existingYear = await _repo.GetByYearAsync(year, CompanyId);
+
+        return new
+        {
+            Year = year,
+            Country = company?.Country ?? "",
+            ConfiguredStartMonth = configMonth,
+            EffectiveStartMonth = effectiveMonth,
+            Label = FiscalYearHelper.GetFiscalYearLabel(effectiveMonth),
+            StartDate = startDate,
+            EndDate = endDate,
+            Source = configMonth.HasValue ? "settings" : "default",
+            ExistingFiscalYearId = existingYear?.Id,
+        };
+    }
+
+    private static FiscalYearResponse MapYear(FiscalYear f) => new(
+        f.Id, f.Year, f.Name, f.StartDate, f.EndDate, f.Status, f.OpenedAt, f.ClosedAt, f.AuditedAt, f.AuditedBy
+    );
 }

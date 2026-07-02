@@ -26,13 +26,13 @@ public sealed class CountryTaxConfigSeederTests : IDisposable
     public void Dispose() => _db.Dispose();
 
     [Fact]
-    public async Task SeedAsync_CreatesSixCountryConfigs()
+    public async Task SeedAsync_CreatesNineCountryConfigs()
     {
         await CountryTaxConfigSeeder.SeedAsync(_db, _logger);
 
         var configs = await _db.CountryTaxConfigs.ToListAsync();
 
-        Assert.Equal(6, configs.Count);
+        Assert.Equal(9, configs.Count);
     }
 
     [Fact]
@@ -105,7 +105,7 @@ public sealed class CountryTaxConfigSeederTests : IDisposable
     }
 
     [Fact]
-    public async Task SeedAsync_CreatesAllSixCountryCodes()
+    public async Task SeedAsync_CreatesAllNineCountryCodes()
     {
         await CountryTaxConfigSeeder.SeedAsync(_db, _logger);
 
@@ -117,6 +117,9 @@ public sealed class CountryTaxConfigSeederTests : IDisposable
         Assert.Contains("HND", codes);
         Assert.Contains("SLV", codes);
         Assert.Contains("GTM", codes);
+        Assert.Contains("GBR", codes);
+        Assert.Contains("IND", codes);
+        Assert.Contains("USA", codes);
     }
 
     [Fact]
@@ -129,11 +132,14 @@ public sealed class CountryTaxConfigSeederTests : IDisposable
     }
 
     [Fact]
-    public async Task SeedAsync_AllConfigsHaveIrTableJson()
+    public async Task SeedAsync_AllCentralAmericanConfigsHaveIrTableJson()
     {
         await CountryTaxConfigSeeder.SeedAsync(_db, _logger);
 
-        var allHaveIr = await _db.CountryTaxConfigs.AllAsync(c => !string.IsNullOrEmpty(c.IrTableJson) && c.IrTableJson != "[]");
+        var caCodes = new[] { "NIC", "CRI", "PAN", "HND", "SLV", "GTM" };
+        var allHaveIr = await _db.CountryTaxConfigs
+            .Where(c => caCodes.Contains(c.CountryCode))
+            .AllAsync(c => !string.IsNullOrEmpty(c.IrTableJson) && c.IrTableJson != "[]");
         Assert.True(allHaveIr);
     }
 

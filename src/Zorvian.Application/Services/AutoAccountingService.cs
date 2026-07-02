@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Zorvian.Application.Helpers;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
@@ -17,6 +18,8 @@ public sealed class AutoAccountingService : IAutoAccountingService
     private readonly IPayrollRepository? _payrollRepo;
     private readonly ICashMovementRepository? _cashRepo;
     private readonly ICompanyRepository? _companyRepo;
+    private readonly IFiscalYearRepository? _fiscalYearRepo;
+    private readonly ICountryTaxConfigRepository? _taxConfigRepo;
 
     public AutoAccountingService(IAccountingRuleTemplateRepository repository)
     {
@@ -34,7 +37,8 @@ public sealed class AutoAccountingService : IAutoAccountingService
         IPayrollRepository payrollRepo,
         ICashMovementRepository cashRepo,
         IAccountingRuleTemplateRepository templateRepo,
-        ICompanyRepository companyRepo)
+        ICompanyRepository companyRepo,
+        IFiscalYearRepository fiscalYearRepo)
     {
         _entryRepo = entryRepo;
         _periodRepo = periodRepo;
@@ -46,6 +50,36 @@ public sealed class AutoAccountingService : IAutoAccountingService
         _cashRepo = cashRepo;
         _repository = templateRepo;
         _companyRepo = companyRepo;
+        _fiscalYearRepo = fiscalYearRepo;
+    }
+
+    // Constructor for DI with full dependencies
+    public AutoAccountingService(
+        IAccountingEntryRepository entryRepo,
+        IAccountingPeriodRepository periodRepo,
+        IAccountLinkRepository linkRepo,
+        IAccountingRuleRepository ruleRepo,
+        IAccountRepository accountRepo,
+        ITenantContext tenant,
+        IPayrollRepository payrollRepo,
+        ICashMovementRepository cashRepo,
+        IAccountingRuleTemplateRepository templateRepo,
+        ICompanyRepository companyRepo,
+        IFiscalYearRepository fiscalYearRepo,
+        ICountryTaxConfigRepository taxConfigRepo)
+    {
+        _entryRepo = entryRepo;
+        _periodRepo = periodRepo;
+        _linkRepo = linkRepo;
+        _ruleRepo = ruleRepo;
+        _accountRepo = accountRepo;
+        _tenant = tenant;
+        _payrollRepo = payrollRepo;
+        _cashRepo = cashRepo;
+        _repository = templateRepo;
+        _companyRepo = companyRepo;
+        _fiscalYearRepo = fiscalYearRepo;
+        _taxConfigRepo = taxConfigRepo;
     }
 
     private Guid CompanyId => _tenant?.ResolveCompanyId() ?? throw new InvalidOperationException("Invalid tenant");
@@ -58,6 +92,9 @@ public sealed class AutoAccountingService : IAutoAccountingService
         "honduras" => "HND",
         "guatemala" => "GTM",
         "panamá" or "panama" => "PAN",
+        "uk" or "united kingdom" or "reino unido" => "GBR",
+        "india" or "inglaterra" => "IND",
+        "usa" or "united states" or "estados unidos" or "eeuu" => "USA",
         _ => "NIC"
     };
 
@@ -79,27 +116,67 @@ public sealed class AutoAccountingService : IAutoAccountingService
         if (rules.ValueKind == JsonValueKind.Undefined) return;
     }
 
-    private async Task<Guid> GetPeriodIdAsync()
+    private async Task<Guid> GetPeriodIdAsync(DateTime? entryDate = null)
     {
-        var now = DateTime.UtcNow;
+        var date = entryDate ?? DateTime.UtcNow;
         var period = await _periodRepo!.GetCurrentOpenAsync(CompanyId);
         if (period != null) return period.Id;
 
-        period = await _periodRepo.GetByYearMonthAsync(now.Year, now.Month, CompanyId);
+        period = await _periodRepo.GetByYearMonthAsync(date.Year, date.Month, CompanyId);
         if (period != null)
         {
-            if (period.Status == "closed") throw new InvalidOperationException($"Period {period.Name} is closed");
+            if (period.Status == PeriodStatus.Closed) throw new InvalidOperationException($"Period {period.Name} is closed");
             return period.Id;
+        }
+
+        // Ensure fiscal year exists before creating period
+        Guid? fiscalYearId = null;
+        if (_fiscalYearRepo != null)
+        {
+            var fiscalYear = await _fiscalYearRepo.GetByYearAsync(date.Year, CompanyId);
+            if (fiscalYear == null)
+            {
+                var settings = _companyRepo != null ? await _companyRepo.GetSettingsAsync(CompanyId) : null;
+                var company = _companyRepo != null ? await _companyRepo.GetByIdAsync(CompanyId) : null;
+                var countryCode = FiscalYearHelper.MapCountryToCode(company?.Country);
+                var countryConfig = _taxConfigRepo != null ? await _taxConfigRepo.GetByCountryCodeAsync(countryCode) : null;
+                var (fyStart, fyEnd, _) = FiscalYearHelper.ResolveFiscalYearDates(
+                    date.Year, settings?.FiscalYearStartMonth, countryConfig?.DefaultFiscalStartMonth);
+                fiscalYear = new FiscalYear
+                {
+                    Year = date.Year,
+                    Name = $"Año Fiscal {date.Year}",
+                    StartDate = fyStart,
+                    EndDate = fyEnd,
+                    Status = FiscalYearStatus.Open,
+                    OpenedAt = DateTime.UtcNow,
+                    CompanyId = CompanyId,
+                };
+                await _fiscalYearRepo.AddAsync(fiscalYear);
+                await _fiscalYearRepo.SaveChangesAsync();
+            }
+            fiscalYearId = fiscalYear.Id;
         }
 
         period = new AccountingPeriod
         {
-            Year = now.Year, Month = now.Month, Name = $"{now.Month:00}-{now.Year}",
-            Status = "open", OpenedAt = DateTime.UtcNow, CompanyId = CompanyId
+            Year = date.Year, Month = date.Month, Name = $"{date.Month:00}-{date.Year}",
+            Status = PeriodStatus.Open, OpenedAt = DateTime.UtcNow,
+            FiscalYearId = fiscalYearId,
+            CompanyId = CompanyId
         };
         await _periodRepo.AddAsync(period);
         await _periodRepo.SaveChangesAsync();
         return period.Id;
+    }
+
+    private static void EnsureBalanced(List<AccountingEntryDetail> details)
+    {
+        var debit = details.Sum(d => d.DebitAmount);
+        var credit = details.Sum(d => d.CreditAmount);
+        if (debit != credit)
+            throw new InvalidOperationException(
+                $"Asiento contable no balanceado: Débitos {debit:N2} vs Créditos {credit:N2} (diferencia: {Math.Abs(debit - credit):N2})");
     }
 
     private async Task<Guid> GetAccountIdAsync(string transactionType, string role)
@@ -108,13 +185,52 @@ public sealed class AutoAccountingService : IAutoAccountingService
         if (link != null) return link.AccountId;
 
         link = await _linkRepo.GetByTransactionTypeAndRoleAsync("*", role, CompanyId);
-        return link?.AccountId ?? throw new InvalidOperationException($"No account linked for {transactionType}/{role}");
+        if (link != null) return link.AccountId;
+
+        // Fallback: try to find an account by name matching the role
+        var nameHint = role switch
+        {
+            AccountRoles.Cash => "Caja",
+            AccountRoles.AccountsReceivable => "Clientes",
+            AccountRoles.SalesRevenue => "Ventas",
+            AccountRoles.CostOfSales => "Costo",
+            AccountRoles.VatPayable => "IVA Debito",
+            AccountRoles.VatReceivable => "IVA Credito",
+            AccountRoles.Inventory => "Inventario",
+            _ => null,
+        };
+        if (nameHint != null)
+        {
+            var all = await _accountRepo!.GetAllAsync(CompanyId);
+            var match = all.FirstOrDefault(a => a.Name.Contains(nameHint, StringComparison.OrdinalIgnoreCase));
+            if (match != null) return match.Id;
+        }
+
+        throw new InvalidOperationException($"No account linked for {transactionType}/{role} and no match found by name");
     }
 
     private async Task<Guid> GetAccountIdByCodeAsync(string code)
     {
+        // Try exact code first
         var account = await _accountRepo!.GetByCodeAsync(code, CompanyId);
-        return account?.Id ?? throw new InvalidOperationException($"Account not found for code: {code}");
+        if (account != null) return account.Id;
+
+        // Try padded variants
+        var parts = code.Split('.');
+        if (parts.Length == 3)
+        {
+            var variants = new[]
+            {
+                $"{parts[0]}.{parts[1]}.{parts[2]}.000",
+                $"{parts[0]}.{parts[1]}.{parts[2]}.0000",
+                $"{parts[0]}.0{parts[1]}.{parts[2]}",
+                $"{parts[0]}.0{parts[1]}.0{parts[2]}",
+            };
+            account = (await _accountRepo.GetByCodesAsync(variants, CompanyId)).FirstOrDefault();
+            if (account != null) return account.Id;
+        }
+
+        throw new InvalidOperationException($"Account not found for code: {code}");
     }
 
     private decimal EvaluateFormula(string? formula, object context)
@@ -138,13 +254,16 @@ public sealed class AutoAccountingService : IAutoAccountingService
         var companyId = CompanyId;
 
         var groupedDetails = details
-            .GroupBy(d => d.Product.TaxCategory)
+            .GroupBy(d => d.Product?.TaxCategory)
             .Select(g => new {
                 TaxCategory = g.Key,
                 Subtotal = g.Sum(d => d.Subtotal),
                 Discount = g.Sum(d => d.Discount),
                 Tax = g.Sum(d => (d.Subtotal - d.Discount) * (g.Key?.Rate ?? 0))
             }).ToList();
+
+        if (groupedDetails.Any(g => g.TaxCategory == null))
+            System.Console.WriteLine($"[WARN] Sale {saleId}: products without TaxCategory will use 0% tax rate");
 
         var totalSubtotal = groupedDetails.Sum(g => g.Subtotal);
         var totalDiscount = groupedDetails.Sum(g => g.Discount);
@@ -209,6 +328,8 @@ public sealed class AutoAccountingService : IAutoAccountingService
             }
         }
 
+        EnsureBalanced(entryDetails);
+
         var entry = new AccountingEntry
         {
             EntryNumber = await GenerateNumberAsync(),
@@ -228,6 +349,91 @@ public sealed class AutoAccountingService : IAutoAccountingService
         await _entryRepo!.AddAsync(entry);
         await _entryRepo.SaveChangesAsync();
         return entry.Id;
+    }
+
+    public async Task ReverseSaleEntryAsync(Guid saleId, List<SaleDetail> details, decimal discount, string saleType, Guid? costCenterId = null)
+    {
+        var periodId = await GetPeriodIdAsync();
+        var companyId = CompanyId;
+
+        var totalSubtotal = details.Sum(d => d.Subtotal);
+        var totalDiscount = details.Sum(d => d.Discount);
+        var totalTax = details.Sum(d => (d.Subtotal - d.Discount) * (d.Product?.TaxCategory?.Rate ?? 0));
+        var total = totalSubtotal - totalDiscount + totalTax;
+
+        var groupedDetails = details
+            .GroupBy(d => d.Product?.TaxCategory)
+            .Select(g => new {
+                TaxCategory = g.Key,
+                Subtotal = g.Sum(d => d.Subtotal),
+                Discount = g.Sum(d => d.Discount),
+                Tax = g.Sum(d => (d.Subtotal - d.Discount) * (g.Key?.Rate ?? 0))
+            }).ToList();
+
+        var entryDetails = new List<AccountingEntryDetail>();
+
+        AccountingEntryDetail MakeDetail(Guid accountId, decimal debit, decimal credit, string desc)
+        {
+            return new() { AccountId = accountId, DebitAmount = debit, CreditAmount = credit, Description = desc, CompanyId = companyId, CostCenterId = costCenterId };
+        }
+
+        // Reverse payment/AR side
+        if (saleType == "cash")
+        {
+            var cashAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.Cash);
+            entryDetails.Add(MakeDetail(cashAccountId, 0, total, "Reversión venta contado"));
+        }
+        else
+        {
+            var arAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.AccountsReceivable);
+            entryDetails.Add(MakeDetail(arAccountId, 0, total, "Reversión venta crédito"));
+        }
+
+        // Reverse revenue and VAT
+        foreach (var group in groupedDetails)
+        {
+            Guid salesAccountId;
+            if (group.TaxCategory != null && !string.IsNullOrEmpty(group.TaxCategory.SalesAccountCode))
+                salesAccountId = await GetAccountIdByCodeAsync(group.TaxCategory.SalesAccountCode);
+            else
+            {
+                try { salesAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.SalesRevenue); }
+                catch { salesAccountId = await GetAccountIdByCodeAsync("4.1.01"); }
+            }
+
+            Guid vatAccountId;
+            if (group.TaxCategory != null && !string.IsNullOrEmpty(group.TaxCategory.VatAccountCode))
+                vatAccountId = await GetAccountIdByCodeAsync(group.TaxCategory.VatAccountCode);
+            else
+            {
+                try { vatAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.VatPayable); }
+                catch { vatAccountId = await GetAccountIdByCodeAsync("2.1.02"); }
+            }
+
+            entryDetails.Add(MakeDetail(salesAccountId, group.Subtotal - group.Discount, 0, $"Reversión ventas {group.TaxCategory?.Name}"));
+            entryDetails.Add(MakeDetail(vatAccountId, group.Tax, 0, $"Reversión IVA {group.TaxCategory?.Name}"));
+        }
+
+        EnsureBalanced(entryDetails);
+
+        var entry = new AccountingEntry
+        {
+            EntryNumber = await GenerateNumberAsync(),
+            EntryDate = DateTime.UtcNow,
+            Description = $"Reversión Venta #{saleId.ToString()[..8]}",
+            ReferenceType = "Sale",
+            ReferenceId = saleId,
+            Status = "posted",
+            AccountingPeriodId = periodId,
+            CostCenterId = costCenterId,
+            TotalDebit = entryDetails.Sum(d => d.DebitAmount),
+            TotalCredit = entryDetails.Sum(d => d.CreditAmount),
+            PostedAt = DateTime.UtcNow,
+            Details = entryDetails,
+        };
+
+        await _entryRepo!.AddAsync(entry);
+        await _entryRepo.SaveChangesAsync();
     }
 
     public async Task<Guid> GenerateCostOfSaleEntryAsync(Guid saleId, decimal totalCost, Guid? costCenterId = null)
@@ -264,6 +470,8 @@ public sealed class AutoAccountingService : IAutoAccountingService
             entryDetails.Add(MakeDetail(costAccountId, totalCost, 0, "Costo de venta"));
             entryDetails.Add(MakeDetail(invAccountId, 0, totalCost, "Salida de inventario"));
         }
+
+        EnsureBalanced(entryDetails);
 
         var entry = new AccountingEntry
         {
@@ -348,7 +556,15 @@ public sealed class AutoAccountingService : IAutoAccountingService
                 entryDetails.Add(MakeDetail(invAccountId, group.Subtotal, 0, $"Inventario {group.TaxCategory?.Name}"));
                 entryDetails.Add(MakeDetail(vatAccountId, group.Tax, 0, $"IVA CrÃ©dito {group.TaxCategory?.Name}"));
             }
+
+            // Validate that caller's total matches the computed sum
+            var expectedTotal = totalSubtotal + totalTax;
+            if (total != expectedTotal)
+                throw new InvalidOperationException(
+                    $"GeneratePurchaseEntryAsync: total parameter ({total:N2}) does not match subtotal+tax ({expectedTotal:N2})");
         }
+
+        EnsureBalanced(entryDetails);
 
         var entry = new AccountingEntry
         {
@@ -437,6 +653,8 @@ public sealed class AutoAccountingService : IAutoAccountingService
             }
         }
 
+        EnsureBalanced(entryDetails);
+
         var entry = new AccountingEntry
         {
             EntryNumber = await GenerateNumberAsync(),
@@ -501,6 +719,8 @@ public sealed class AutoAccountingService : IAutoAccountingService
             }
         }
 
+        EnsureBalanced(entryDetails);
+
         var entry = new AccountingEntry
         {
             EntryNumber = await GenerateNumberAsync(),
@@ -558,6 +778,8 @@ public sealed class AutoAccountingService : IAutoAccountingService
             entryDetails.Add(MakeDetail(arAccountId, 0, principal, "Pago de capital"));
             entryDetails.Add(MakeDetail(interestAccountId, 0, interest, "Intereses ganados"));
         }
+
+        EnsureBalanced(entryDetails);
 
         var entry = new AccountingEntry
         {
@@ -703,6 +925,8 @@ public sealed class AutoAccountingService : IAutoAccountingService
                 Description = movement.Concept,
             });
         }
+
+        EnsureBalanced(entryDetails);
 
         var entry = new AccountingEntry
         {
@@ -875,7 +1099,9 @@ public sealed class AutoAccountingService : IAutoAccountingService
 
         var details = new List<AccountingEntryDetail>
         {
-            new() { AccountId = accumDeprId, DebitAmount = 0, CreditAmount = accumulatedDep, Description = "Baja depreciaciÃ³n acumulada", CompanyId = companyId },
+            // Debit accumulated depreciation to remove its balance (contra-asset)
+            new() { AccountId = accumDeprId, DebitAmount = accumulatedDep, CreditAmount = 0, Description = "Baja depreciación acumulada", CompanyId = companyId },
+            // Credit asset to remove its cost
             new() { AccountId = assetAccountId, DebitAmount = 0, CreditAmount = acquisitionCost, Description = "Baja costo activo", CompanyId = companyId },
         };
 
@@ -890,12 +1116,12 @@ public sealed class AutoAccountingService : IAutoAccountingService
         }
         else if (!isGain && gainOrLoss < 0)
         {
-            details.Add(new() { AccountId = lossAccountId, DebitAmount = Math.Abs(gainOrLoss), CreditAmount = 0, Description = "PÃ©rdida en baja de activo", CompanyId = companyId });
+            details.Add(new() { AccountId = lossAccountId, DebitAmount = Math.Abs(gainOrLoss), CreditAmount = 0, Description = "Pérdida en baja de activo", CompanyId = companyId });
         }
 
+        EnsureBalanced(details);
         var totalDebit = details.Sum(d => d.DebitAmount);
         var totalCredit = details.Sum(d => d.CreditAmount);
-        var maxTotal = Math.Max(totalDebit, totalCredit);
 
         var entry = new AccountingEntry
         {
@@ -907,8 +1133,8 @@ public sealed class AutoAccountingService : IAutoAccountingService
             Status = "posted",
             AccountingPeriodId = periodId,
             BranchId = branchId,
-            TotalDebit = maxTotal,
-            TotalCredit = maxTotal,
+            TotalDebit = totalDebit,
+            TotalCredit = totalCredit,
             PostedAt = DateTime.UtcNow,
             Details = details,
         };
