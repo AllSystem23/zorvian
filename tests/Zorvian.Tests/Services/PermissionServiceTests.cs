@@ -10,6 +10,7 @@ namespace Zorvian.Tests.Services;
 
 public sealed class PermissionServiceTests
 {
+    private static readonly DateOnly _base = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(14));
     private readonly Mock<IPermissionRepository> _repo = new();
     private readonly Mock<IEmployeeRepository> _employeeRepo = new();
     private readonly Mock<ITenantContext> _tenant = new();
@@ -68,8 +69,8 @@ public sealed class PermissionServiceTests
 
         var request = new CreatePermissionRequest(
             leaveType.Id,
-            new DateOnly(2026, 7, 1),
-            new DateOnly(2026, 7, 1),
+            _base,
+            _base,
             "Asunto personal",
             "http://doc.url/file.pdf", "file.pdf"
         );
@@ -94,8 +95,8 @@ public sealed class PermissionServiceTests
 
         var request = new CreatePermissionRequest(
             leaveType.Id,
-            new DateOnly(2026, 7, 1),
-            new DateOnly(2026, 7, 3),
+            _base,
+            _base.AddDays(2),
             "Enfermo", null, null
         );
 
@@ -113,8 +114,8 @@ public sealed class PermissionServiceTests
 
         var request = new CreatePermissionRequest(
             leaveType.Id,
-            new DateOnly(2026, 7, 1),
-            new DateOnly(2026, 7, 10),
+            _base,
+            _base.AddDays(9),
             "Boda", null, null
         );
 
@@ -133,8 +134,8 @@ public sealed class PermissionServiceTests
 
         var request = new CreatePermissionRequest(
             leaveType.Id,
-            new DateOnly(2026, 7, 1),
-            new DateOnly(2026, 7, 10),
+            _base,
+            _base.AddDays(9),
             "Personal", null, null
         );
 
@@ -190,8 +191,8 @@ public sealed class PermissionServiceTests
 
         var request = new CreatePermissionRequest(
             leaveType.Id,
-            new DateOnly(2026, 7, 1),
-            new DateOnly(2026, 9, 22),
+            _base,
+            _base.AddDays(83),
             "Maternidad",
             "http://doc.url/cert.pdf", "cert.pdf"
         );
@@ -307,8 +308,8 @@ public sealed class PermissionServiceTests
 
         var request = new CreatePermissionRequest(
             leaveType.Id,
-            new DateOnly(2026, 7, 1),
-            new DateOnly(2026, 7, 10),
+            _base,
+            _base.AddDays(9),
             "Nacimiento", null, null
         );
 
@@ -326,8 +327,8 @@ public sealed class PermissionServiceTests
 
         var request = new CreatePermissionRequest(
             leaveType.Id,
-            new DateOnly(2026, 7, 1),
-            new DateOnly(2026, 10, 15),
+            _base,
+            _base.AddDays(106),
             "Maternidad",
             "http://doc.url/cert.pdf", "cert.pdf"
         );

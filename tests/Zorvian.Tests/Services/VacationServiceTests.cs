@@ -9,6 +9,7 @@ namespace Zorvian.Tests.Services;
 
 public sealed class VacationServiceTests
 {
+    private static readonly DateOnly _base = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(14));
     private readonly Mock<IVacationRepository> _repo = new();
     private readonly Mock<IEmployeeRepository> _employeeRepo = new();
     private readonly Mock<ITenantContext> _tenant = new();
@@ -71,8 +72,8 @@ public sealed class VacationServiceTests
         _repo.Setup(r => r.GetVacationDaysSumAsync(_employeeId, "pending")).ReturnsAsync(0);
 
         var request = new CreateVacationRequest(
-            new DateOnly(2026, 7, 1),
-            new DateOnly(2026, 7, 5),
+            _base,
+            _base.AddDays(4),
             null
         );
 
