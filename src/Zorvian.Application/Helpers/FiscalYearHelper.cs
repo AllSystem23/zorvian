@@ -19,10 +19,7 @@ public static class FiscalYearHelper
         "el salvador" or "salvador" => "SLV",
         "guatemala" => "GTM",
         "panamá" or "panama" => "PAN",
-        "uk" or "united kingdom" or "reino unido" => "GBR",
-        "india" => "IND",
-        "usa" or "united states" or "estados unidos" or "eeuu" => "USA",
-        _ => "NIC",
+_ => "NIC",
     };
     /// <summary>
     /// Calculates the fiscal year start date given a year and start month.
@@ -93,9 +90,6 @@ public static class FiscalYearHelper
     public static int GetDefaultFiscalStartMonth(string countryCode) => countryCode.ToUpperInvariant() switch
     {
         "NIC" or "CRI" or "HND" or "SLV" or "GTM" or "PAN" => 1,  // Central America: Calendar year
-        "GBR" => 4,   // UK: April
-        "IND" => 4,    // India: April
-        "USA" => 1,   // USA: Calendar year (configurable by company)
         _ => 1          // Default: Calendar year
     };
 }

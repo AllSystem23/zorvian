@@ -227,6 +227,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IAccountRepository, AccountRepository>();
         services.AddScoped<IAccountingEntryRepository, AccountingEntryRepository>();
         services.AddScoped<IAccountingPeriodRepository, AccountingPeriodRepository>();
+        services.AddScoped<IFiscalYearRepository, FiscalYearRepository>();
         services.AddScoped<IAccountLinkRepository, AccountLinkRepository>();
         services.AddScoped<IAccountingRuleRepository, AccountingRuleRepository>();
         services.AddScoped<ICostCenterRepository, CostCenterRepository>();
@@ -243,7 +244,13 @@ public static class DependencyInjectionExtensions
         // Core Services
         services.AddScoped<IBadgeService, BadgeService>();
         services.AddScoped<AuthService>();
-        services.AddScoped<SeedService>();
+        services.AddScoped<SeedService>(sp => new SeedService(
+            sp.GetRequiredService<ZorvianDbContext>(),
+            sp.GetRequiredService<IFirebaseAuthService>(),
+            sp.GetRequiredService<IFiscalService>(),
+            sp.GetRequiredService<AccountService>(),
+            sp.GetRequiredService<AccountLinkService>(),
+            sp.GetRequiredService<IAccountingRuleTemplateRepository>()));
         services.AddScoped<CompanyService>();
         services.AddScoped<EmployeeService>();
         services.AddScoped<DepartmentService>();
@@ -387,6 +394,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IConsolidationService, ConsolidationService>();
         services.AddScoped<AccountingEntryService>();
         services.AddScoped<AccountingPeriodService>();
+        services.AddScoped<FiscalYearService>();
         services.AddScoped<AccountLinkService>();
         services.AddScoped<AutoAccountingService>(sp => new AutoAccountingService(
             sp.GetRequiredService<IAccountingEntryRepository>(),
@@ -398,7 +406,9 @@ public static class DependencyInjectionExtensions
             sp.GetRequiredService<IPayrollRepository>(),
             sp.GetRequiredService<ICashMovementRepository>(),
             sp.GetRequiredService<IAccountingRuleTemplateRepository>(),
-            sp.GetRequiredService<ICompanyRepository>()));
+            sp.GetRequiredService<ICompanyRepository>(),
+            sp.GetRequiredService<IFiscalYearRepository>(),
+            sp.GetRequiredService<ICountryTaxConfigRepository>()));
         services.AddScoped<IAutoAccountingService>(sp => sp.GetRequiredService<AutoAccountingService>());
         services.AddScoped<FinancialReportService>();
         services.AddScoped<CostCenterService>();
