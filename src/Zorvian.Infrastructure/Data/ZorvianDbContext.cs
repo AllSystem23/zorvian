@@ -165,6 +165,7 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<AccountingEntry> AccountingEntries => Set<AccountingEntry>();
     public DbSet<AccountingEntryDetail> AccountingEntryDetails => Set<AccountingEntryDetail>();
+    public DbSet<FiscalYear> FiscalYears => Set<FiscalYear>();
     public DbSet<AccountingPeriod> AccountingPeriods => Set<AccountingPeriod>();
     public DbSet<AccountLink> AccountLinks => Set<AccountLink>();
     public DbSet<AccountingRule> AccountingRules => Set<AccountingRule>();
@@ -1346,11 +1347,28 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(a => (a.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !a.IsDeleted);
         });
 
+        builder.Entity<FiscalYear>(e =>
+        {
+            e.HasKey(f => f.Id);
+            e.Property(f => f.Name).HasMaxLength(50).IsRequired();
+            e.Property(f => f.Status).HasMaxLength(20).IsRequired();
+            e.Property(f => f.StartDate).HasColumnType("date");
+            e.Property(f => f.EndDate).HasColumnType("date");
+            e.HasIndex(f => new { f.Year, f.CompanyId }).IsUnique();
+            e.HasMany(f => f.Periods)
+                .WithOne(p => p.FiscalYear)
+                .HasForeignKey(p => p.FiscalYearId)
+                .OnDelete(DeleteBehavior.SetNull);
+            e.HasQueryFilter(f => (f.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !f.IsDeleted);
+        });
+
         builder.Entity<AccountingPeriod>(e =>
         {
             e.HasKey(p => p.Id);
             e.Property(p => p.Name).HasMaxLength(20).IsRequired();
             e.Property(p => p.Status).HasMaxLength(20).IsRequired();
+            e.Property(p => p.CloseNotes).HasMaxLength(500);
+            e.Property(p => p.ReopenReason).HasMaxLength(500);
             e.HasIndex(p => new { p.Year, p.Month, p.CompanyId }).IsUnique();
             e.HasQueryFilter(p => (p.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !p.IsDeleted);
         });

@@ -143,9 +143,32 @@ public sealed class AccountingPeriodRepository : IAccountingPeriodRepository
     public async Task<AccountingPeriod?> GetByYearMonthAsync(int year, int month, Guid companyId) =>
         await _db.Set<AccountingPeriod>().FirstOrDefaultAsync(p => p.Year == year && p.Month == month && p.CompanyId == companyId);
 
+    public async Task<List<AccountingPeriod>> GetByFiscalYearAsync(Guid fiscalYearId) =>
+        await _db.Set<AccountingPeriod>().Where(p => p.FiscalYearId == fiscalYearId).ToListAsync();
+
     public async Task AddAsync(AccountingPeriod period) => await _db.Set<AccountingPeriod>().AddAsync(period);
     public Task UpdateAsync(AccountingPeriod period) { _db.Set<AccountingPeriod>().Update(period); return Task.CompletedTask; }
     public async Task SaveChangesAsync() => await _db.SaveChangesAsync();
+}
+
+public sealed class FiscalYearRepository : IFiscalYearRepository
+{
+    private readonly ZorvianDbContext _db;
+    public FiscalYearRepository(ZorvianDbContext db) => _db = db;
+
+    public async Task<List<FiscalYear>> GetAllAsync(Guid companyId) =>
+        await _db.Set<FiscalYear>().Where(f => f.CompanyId == companyId).OrderByDescending(f => f.Year).ToListAsync();
+
+    public async Task<FiscalYear?> GetByIdAsync(Guid id) =>
+        await _db.Set<FiscalYear>().FirstOrDefaultAsync(f => f.Id == id);
+
+    public async Task<FiscalYear?> GetByYearAsync(int year, Guid companyId) =>
+        await _db.Set<FiscalYear>().FirstOrDefaultAsync(f => f.Year == year && f.CompanyId == companyId);
+
+    public async Task AddAsync(FiscalYear entity) => await _db.Set<FiscalYear>().AddAsync(entity);
+    public Task UpdateAsync(FiscalYear entity) { _db.Set<FiscalYear>().Update(entity); return Task.CompletedTask; }
+    public Task DeleteAsync(FiscalYear entity) { _db.Set<FiscalYear>().Remove(entity); return Task.CompletedTask; }
+    public async Task<int> SaveChangesAsync() => await _db.SaveChangesAsync();
 }
 
 public sealed class AccountLinkRepository : IAccountLinkRepository

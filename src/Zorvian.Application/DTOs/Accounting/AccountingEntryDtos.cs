@@ -62,7 +62,12 @@ public sealed record AccountingPeriodResponse(
     string Name,
     string Status,
     DateTime? OpenedAt,
-    DateTime? ClosedAt
+    DateTime? ClosedAt,
+    Guid? FiscalYearId = null,
+    string? FiscalYearName = null,
+    string? CloseNotes = null,
+    DateTime? ReopenedAt = null,
+    string? ReopenReason = null
 );
 
 public sealed record OpenPeriodRequest(

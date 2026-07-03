@@ -41,6 +41,7 @@ public interface IAccountingPeriodRepository
     Task<AccountingPeriod?> GetByIdAsync(Guid id);
     Task<AccountingPeriod?> GetCurrentOpenAsync(Guid companyId);
     Task<AccountingPeriod?> GetByYearMonthAsync(int year, int month, Guid companyId);
+    Task<List<AccountingPeriod>> GetByFiscalYearAsync(Guid fiscalYearId);
     Task AddAsync(AccountingPeriod period);
     Task UpdateAsync(AccountingPeriod period);
     Task SaveChangesAsync();
