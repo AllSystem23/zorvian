@@ -12,9 +12,3 @@ public sealed record FiscalYearResponse(
     DateTime? AuditedAt,
     string? AuditedBy
 );
-
-public sealed record OpenFiscalYearRequest(
-    int Year,
-    DateOnly? StartDate,
-    DateOnly? EndDate
-);

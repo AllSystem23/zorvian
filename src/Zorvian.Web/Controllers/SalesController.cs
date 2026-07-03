@@ -54,4 +54,13 @@ public sealed class SalesController : ControllerBase
         var result = await _service.GetFilteredAsync(filter);
         return Ok(result);
     }
+
+    [Audit("Sale", "Cancel")]
+    [HttpPost("{id:guid}/cancel")]
+    [RequirePermission(Permissions.SaleWrite)]
+    public async Task<IActionResult> CancelSale(Guid id)
+    {
+        await _service.CancelSaleAsync(id);
+        return Ok(new { message = "Sale cancelled successfully" });
+    }
 }

@@ -118,6 +118,36 @@ public sealed class AccountingEntryRepository : IAccountingEntryRepository
     public async Task SaveChangesAsync() => await _db.SaveChangesAsync();
 }
 
+public sealed class FiscalYearRepository : IFiscalYearRepository
+{
+    private readonly ZorvianDbContext _db;
+    public FiscalYearRepository(ZorvianDbContext db) => _db = db;
+
+    public async Task<List<FiscalYear>> GetAllAsync(Guid companyId) =>
+        await _db.Set<FiscalYear>().Where(f => f.CompanyId == companyId).OrderByDescending(f => f.Year).ToListAsync();
+
+    public async Task<FiscalYear?> GetByIdAsync(Guid id) =>
+        await _db.Set<FiscalYear>().Include(f => f.Periods).FirstOrDefaultAsync(f => f.Id == id);
+
+    public async Task<FiscalYear?> GetCurrentOpenAsync(Guid companyId) =>
+        await _db.Set<FiscalYear>().Include(f => f.Periods)
+            .FirstOrDefaultAsync(f => f.Year == DateTime.UtcNow.Year && f.Status == FiscalYearStatus.Open && f.CompanyId == companyId);
+
+    public async Task<FiscalYear?> GetByYearAsync(int year, Guid companyId) =>
+        await _db.Set<FiscalYear>().Include(f => f.Periods).FirstOrDefaultAsync(f => f.Year == year && f.CompanyId == companyId);
+
+    public async Task<FiscalYear?> GetByPeriodIdAsync(Guid periodId)
+    {
+        var period = await _db.Set<AccountingPeriod>().Include(p => p.FiscalYear).FirstOrDefaultAsync(p => p.Id == periodId);
+        return period?.FiscalYear;
+    }
+
+    public async Task AddAsync(FiscalYear fiscalYear) => await _db.Set<FiscalYear>().AddAsync(fiscalYear);
+    public Task UpdateAsync(FiscalYear fiscalYear) { _db.Set<FiscalYear>().Update(fiscalYear); return Task.CompletedTask; }
+    public Task DeleteAsync(FiscalYear fiscalYear) { _db.Set<FiscalYear>().Remove(fiscalYear); return Task.CompletedTask; }
+    public async Task SaveChangesAsync() => await _db.SaveChangesAsync();
+}
+
 public sealed class AccountingPeriodRepository : IAccountingPeriodRepository
 {
     private readonly ZorvianDbContext _db;
@@ -137,38 +167,117 @@ public sealed class AccountingPeriodRepository : IAccountingPeriodRepository
     public async Task<AccountingPeriod?> GetCurrentOpenAsync(Guid companyId)
     {
         var now = DateTime.UtcNow;
-        return await _db.Set<AccountingPeriod>().FirstOrDefaultAsync(p => p.Year == now.Year && p.Month == now.Month && p.Status == "open" && p.CompanyId == companyId);
+        return await _db.Set<AccountingPeriod>().FirstOrDefaultAsync(p => p.Year == now.Year && p.Month == now.Month && p.Status == PeriodStatus.Open && p.CompanyId == companyId);
     }
 
     public async Task<AccountingPeriod?> GetByYearMonthAsync(int year, int month, Guid companyId) =>
         await _db.Set<AccountingPeriod>().FirstOrDefaultAsync(p => p.Year == year && p.Month == month && p.CompanyId == companyId);
 
     public async Task<List<AccountingPeriod>> GetByFiscalYearAsync(Guid fiscalYearId) =>
-        await _db.Set<AccountingPeriod>().Where(p => p.FiscalYearId == fiscalYearId).ToListAsync();
+        await _db.Set<AccountingPeriod>().Where(p => p.FiscalYearId == fiscalYearId).OrderBy(p => p.Year).ThenBy(p => p.Month).ToListAsync();
+
+    public async Task<List<AccountingPeriod>> GetOpenPeriodsAsync(Guid companyId) =>
+        await _db.Set<AccountingPeriod>().Where(p => p.Status == PeriodStatus.Open && p.CompanyId == companyId).OrderBy(p => p.Year).ThenBy(p => p.Month).ToListAsync();
+
+    public async Task<int> GetEntryCountAsync(Guid periodId) =>
+        await _db.Set<AccountingEntry>().CountAsync(e => e.AccountingPeriodId == periodId);
+
+    public async Task<decimal> GetTotalDebitAsync(Guid periodId) =>
+        await _db.Set<AccountingEntry>().Where(e => e.AccountingPeriodId == periodId).SumAsync(e => e.TotalDebit);
+
+    public async Task<decimal> GetTotalCreditAsync(Guid periodId) =>
+        await _db.Set<AccountingEntry>().Where(e => e.AccountingPeriodId == periodId).SumAsync(e => e.TotalCredit);
+
+    public async Task<bool> HasUnpostedEntriesAsync(Guid periodId) =>
+        await _db.Set<AccountingEntry>().AnyAsync(e => e.AccountingPeriodId == periodId && e.Status != "posted");
+
+    public async Task<bool> HasUnaccountedSalesAsync(Guid periodId, Guid companyId)
+    {
+        var period = await GetByIdAsync(periodId);
+        if (period == null) return false;
+        var monthStart = new DateTime(period.Year, period.Month, 1);
+        var monthEnd = monthStart.AddMonths(1).AddDays(-1).AddDays(1).AddTicks(-1);
+        var saleIds = await _db.Set<Sale>().Where(s => s.CompanyId == companyId && s.SaleDate >= monthStart && s.SaleDate <= monthEnd).Select(s => s.Id).ToListAsync();
+        if (saleIds.Count == 0) return false;
+        var accountedSaleIds = await _db.Set<AccountingEntry>()
+            .Where(e => e.CompanyId == companyId && e.ReferenceType == "Sale" && saleIds.Contains(e.ReferenceId ?? Guid.Empty))
+            .Select(e => e.ReferenceId)
+            .ToListAsync();
+        return saleIds.Any(s => !accountedSaleIds.Contains(s));
+    }
+
+    public async Task<bool> HasUnaccountedCreditNotesAsync(Guid periodId, Guid companyId)
+    {
+        var period = await GetByIdAsync(periodId);
+        if (period == null) return false;
+        var monthStart = new DateTime(period.Year, period.Month, 1);
+        var monthEnd = monthStart.AddMonths(1).AddDays(-1).AddDays(1).AddTicks(-1);
+        var cnIds = await _db.Set<CreditNote>().Where(cn => cn.CompanyId == companyId && cn.IssueDate >= monthStart && cn.IssueDate <= monthEnd).Select(cn => cn.Id).ToListAsync();
+        if (cnIds.Count == 0) return false;
+        var accountedCnIds = await _db.Set<AccountingEntry>()
+            .Where(e => e.CompanyId == companyId && e.ReferenceType == "CreditNote" && cnIds.Contains(e.ReferenceId ?? Guid.Empty))
+            .Select(e => e.ReferenceId)
+            .ToListAsync();
+        return cnIds.Any(cn => !accountedCnIds.Contains(cn));
+    }
+
+    public async Task<bool> HasPendingPayrollAsync(Guid periodId, Guid companyId)
+    {
+        var period = await GetByIdAsync(periodId);
+        if (period == null) return false;
+        var monthStart = new DateTime(period.Year, period.Month, 1);
+        var monthEnd = monthStart.AddMonths(1).AddDays(-1).AddDays(1).AddTicks(-1);
+        var payrollRunIds = await _db.Set<PayrollRun>()
+            .Where(pr => pr.CompanyId == companyId && pr.CreatedAt >= monthStart && pr.CreatedAt <= monthEnd)
+            .Select(pr => pr.Id)
+            .ToListAsync();
+        if (payrollRunIds.Count == 0) return false;
+        var accountedIds = await _db.Set<AccountingEntry>()
+            .Where(e => e.CompanyId == companyId && e.ReferenceType == "Payroll" && payrollRunIds.Contains(e.ReferenceId ?? Guid.Empty))
+            .Select(e => e.ReferenceId)
+            .ToListAsync();
+        return payrollRunIds.Any(id => !accountedIds.Contains(id));
+    }
+
+    public async Task<bool> HasUnaccountedCashMovementsAsync(Guid periodId, Guid companyId)
+    {
+        var period = await GetByIdAsync(periodId);
+        if (period == null) return false;
+        var monthStart = new DateTime(period.Year, period.Month, 1);
+        var monthEnd = monthStart.AddMonths(1).AddDays(-1).AddDays(1).AddTicks(-1);
+        var movementIds = await _db.Set<CashMovement>()
+            .Where(cm => cm.CompanyId == companyId && cm.CreatedAt >= monthStart && cm.CreatedAt <= monthEnd && cm.ApprovalStatus == "approved")
+            .Select(cm => cm.Id)
+            .ToListAsync();
+        if (movementIds.Count == 0) return false;
+        var accountedIds = await _db.Set<AccountingEntry>()
+            .Where(e => e.CompanyId == companyId && e.ReferenceType == "CashMovement" && movementIds.Contains(e.ReferenceId ?? Guid.Empty))
+            .Select(e => e.ReferenceId)
+            .ToListAsync();
+        return movementIds.Any(id => !accountedIds.Contains(id));
+    }
+
+    public async Task<bool> HasUnaccountedInventoryMovementsAsync(Guid periodId, Guid companyId)
+    {
+        var period = await GetByIdAsync(periodId);
+        if (period == null) return false;
+        var monthStart = new DateTime(period.Year, period.Month, 1);
+        var monthEnd = monthStart.AddMonths(1).AddDays(-1).AddDays(1).AddTicks(-1);
+        var movementIds = await _db.Set<InventoryMovement>()
+            .Where(im => im.CompanyId == companyId && im.CreatedAt >= monthStart && im.CreatedAt <= monthEnd)
+            .Select(im => im.Id)
+            .ToListAsync();
+        if (movementIds.Count == 0) return false;
+        var accountedIds = await _db.Set<AccountingEntry>()
+            .Where(e => e.CompanyId == companyId && e.ReferenceType == "InventoryMovement" && movementIds.Contains(e.ReferenceId ?? Guid.Empty))
+            .Select(e => e.ReferenceId)
+            .ToListAsync();
+        return movementIds.Any(id => !accountedIds.Contains(id));
+    }
 
     public async Task AddAsync(AccountingPeriod period) => await _db.Set<AccountingPeriod>().AddAsync(period);
     public Task UpdateAsync(AccountingPeriod period) { _db.Set<AccountingPeriod>().Update(period); return Task.CompletedTask; }
     public async Task SaveChangesAsync() => await _db.SaveChangesAsync();
-}
-
-public sealed class FiscalYearRepository : IFiscalYearRepository
-{
-    private readonly ZorvianDbContext _db;
-    public FiscalYearRepository(ZorvianDbContext db) => _db = db;
-
-    public async Task<List<FiscalYear>> GetAllAsync(Guid companyId) =>
-        await _db.Set<FiscalYear>().Where(f => f.CompanyId == companyId).OrderByDescending(f => f.Year).ToListAsync();
-
-    public async Task<FiscalYear?> GetByIdAsync(Guid id) =>
-        await _db.Set<FiscalYear>().FirstOrDefaultAsync(f => f.Id == id);
-
-    public async Task<FiscalYear?> GetByYearAsync(int year, Guid companyId) =>
-        await _db.Set<FiscalYear>().FirstOrDefaultAsync(f => f.Year == year && f.CompanyId == companyId);
-
-    public async Task AddAsync(FiscalYear entity) => await _db.Set<FiscalYear>().AddAsync(entity);
-    public Task UpdateAsync(FiscalYear entity) { _db.Set<FiscalYear>().Update(entity); return Task.CompletedTask; }
-    public Task DeleteAsync(FiscalYear entity) { _db.Set<FiscalYear>().Remove(entity); return Task.CompletedTask; }
-    public async Task<int> SaveChangesAsync() => await _db.SaveChangesAsync();
 }
 
 public sealed class AccountLinkRepository : IAccountLinkRepository

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Zorvian.Application.Helpers;
 using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
 using Zorvian.Core.Entities;
@@ -15,14 +16,16 @@ public sealed class SeedService
     private readonly IFiscalService _fiscal;
 
     private readonly AccountService _accountService;
+    private readonly AccountLinkService _accountLinkService;
     private readonly IAccountingRuleTemplateRepository _templateRepo;
 
-    public SeedService(ZorvianDbContext db, IFirebaseAuthService firebase, IFiscalService fiscal, AccountService accountService, IAccountingRuleTemplateRepository templateRepo)
+    public SeedService(ZorvianDbContext db, IFirebaseAuthService firebase, IFiscalService fiscal, AccountService accountService, AccountLinkService accountLinkService, IAccountingRuleTemplateRepository templateRepo)
     {
         _db = db;
         _firebase = firebase;
         _fiscal = fiscal;
         _accountService = accountService;
+        _accountLinkService = accountLinkService;
         _templateRepo = templateRepo;
     }
 
@@ -129,8 +132,14 @@ public sealed class SeedService
         else if (country == "Panamá")
             await SeedPanamaLocalizationAsync(company.Id);
 
-        var settings = new CompanySettings { CompanyId = company.Id, TenantId = targetTenantId };
+        var countryCode = FiscalYearHelper.MapCountryToCode(country);
+        var countryConfig = await _db.CountryTaxConfigs.FirstOrDefaultAsync(c => c.CountryCode == countryCode && c.IsActive);
+        var settings = new CompanySettings { CompanyId = company.Id, TenantId = targetTenantId, FiscalYearStartMonth = countryConfig?.DefaultFiscalStartMonth ?? 1 };
         _db.CompanySettings.Add(settings);
+
+        // Auto-seed chart of accounts and account links for sales/accounting integration
+        await _accountService.SeedDefaultChartOfAccountsAsync();
+        await _accountLinkService.SeedDefaultLinksAsync();
 
         var roles = new List<Role>
         {

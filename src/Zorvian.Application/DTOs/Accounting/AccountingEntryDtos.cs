@@ -72,7 +72,22 @@ public sealed record AccountingPeriodResponse(
 
 public sealed record OpenPeriodRequest(
     int Year,
-    int Month
+    int Month,
+    Guid? FiscalYearId = null
+);
+
+public sealed record ClosePeriodRequest(
+    string? Notes = null
+);
+
+public sealed record ReopenPeriodRequest(
+    string Reason
+);
+
+public sealed record OpenFiscalYearRequest(
+    int Year,
+    DateOnly? StartDate = null,
+    DateOnly? EndDate = null
 );
 
 public sealed record TrialBalanceItem(

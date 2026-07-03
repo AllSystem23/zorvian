@@ -132,6 +132,7 @@ import '../features/accounting/pages/trial_balance_page.dart';
 import '../features/accounting/pages/income_statement_page.dart';
 import '../features/accounting/pages/chart_of_accounts_page.dart';
 import '../features/accounting/pages/accounting_periods_page.dart';
+import '../features/accounting/pages/fiscal_years_page.dart';
 import '../features/accounting/pages/accounting_entries_page.dart';
 import '../features/accounting/pages/account_links_page.dart';
 import '../features/treasury/pages/treasury_dashboard_page.dart';
@@ -241,6 +242,7 @@ final _routeRoles = <String, List<String>>{
   '/accounting/income-statement': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
   '/accounting/chart-of-accounts': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
   '/accounting/periods': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
+  '/accounting/fiscal-years': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
   '/accounting/entries': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
   '/accounting/account-links': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
   '/treasury': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
@@ -938,6 +940,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/accounting/account-links',
             name: 'accounting-account-links',
             builder: (_, _) => const AccountLinksPage(),
+          ),
+          GoRoute(
+            path: '/accounting/fiscal-years',
+            name: 'accounting-fiscal-years',
+            builder: (_, _) => const FiscalYearsPage(),
           ),
           GoRoute(
             path: '/admin/country-tax-configs',

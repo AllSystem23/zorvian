@@ -3,6 +3,7 @@ using Zorvian.Application.DTOs.Commercial;
 using Zorvian.Application.DTOs.Common;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
+using Zorvian.Core.Enums;
 using Zorvian.Core.Interfaces;
 
 namespace Zorvian.Application.Services;
@@ -87,7 +88,7 @@ public sealed class ClientService
         var credits = await _creditRepo.GetFilteredAsync(clientId, null, null, Guid.Empty, 1, 50);
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var activeCredits = credits.Where(c => c.Status == "active" || c.Status == "defaulted").ToList();
+        var activeCredits = credits.Where(c => c.Status == CreditStatus.Active || c.Status == CreditStatus.Defaulted).ToList();
 
         var overdueBalance = activeCredits
             .SelectMany(c => c.Installments)

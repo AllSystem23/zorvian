@@ -6,9 +6,11 @@ public interface IFiscalYearRepository
 {
     Task<List<FiscalYear>> GetAllAsync(Guid companyId);
     Task<FiscalYear?> GetByIdAsync(Guid id);
+    Task<FiscalYear?> GetCurrentOpenAsync(Guid companyId);
     Task<FiscalYear?> GetByYearAsync(int year, Guid companyId);
-    Task AddAsync(FiscalYear entity);
-    Task UpdateAsync(FiscalYear entity);
-    Task DeleteAsync(FiscalYear entity);
-    Task<int> SaveChangesAsync();
+    Task<FiscalYear?> GetByPeriodIdAsync(Guid periodId);
+    Task AddAsync(FiscalYear fiscalYear);
+    Task UpdateAsync(FiscalYear fiscalYear);
+    Task DeleteAsync(FiscalYear fiscalYear);
+    Task SaveChangesAsync();
 }

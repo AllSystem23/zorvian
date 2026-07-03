@@ -3,6 +3,7 @@ using Zorvian.Application.DTOs.Common;
 using Zorvian.Application.DTOs.Credit;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
+using Zorvian.Core.Enums;
 using Zorvian.Core.Interfaces;
 
 namespace Zorvian.Application.Services;
@@ -124,32 +125,43 @@ public sealed class CreditService
         credit.Balance = Math.Max(0, credit.TotalAmount - credit.PaidAmount);
 
         if (credit.Balance <= 0)
-            credit.Status = "canceled";
+            credit.Status = CreditStatus.Cancelled;
 
         credit.NextDueDate = credit.Installments
             .Where(i => i.Status == "pending")
             .OrderBy(i => i.DueDate)
             .FirstOrDefault()?.DueDate;
 
-        await _paymentRepo.AddAsync(payment);
-        await _paymentRepo.SaveChangesAsync();
-
-        await _autoAccounting.GenerateCreditPaymentEntryAsync(
-            payment.Id, credit.Id, principalAmount, interestAmount,
-            companyId, credit.BranchId);
-
-        if (credit.SaleId.HasValue)
+        await _saleRepo.BeginTransactionAsync();
+        try
         {
-            var sale = await _saleRepo.GetByIdAsync(credit.SaleId.Value);
-            if (sale is not null)
+            await _paymentRepo.AddAsync(payment);
+            await _paymentRepo.SaveChangesAsync();
+
+            await _autoAccounting.GenerateCreditPaymentEntryAsync(
+                payment.Id, credit.Id, principalAmount, interestAmount,
+                companyId, credit.BranchId);
+
+            if (credit.SaleId.HasValue)
             {
-                sale.PaidAmount += principalAmount;
-                sale.Balance = Math.Max(0, sale.Total - sale.PaidAmount);
-                if (sale.Balance <= 0)
-                    sale.Status = "completed";
-                await _saleRepo.UpdateAsync(sale);
-                await _saleRepo.SaveChangesAsync();
+                var sale = await _saleRepo.GetByIdAsync(credit.SaleId.Value);
+                if (sale is not null)
+                {
+                    sale.PaidAmount += principalAmount;
+                    sale.Balance = Math.Max(0, sale.Total - sale.PaidAmount);
+                    if (sale.Balance <= 0)
+                        sale.Status = SaleStatus.Completed;
+                    await _saleRepo.UpdateAsync(sale);
+                    await _saleRepo.SaveChangesAsync();
+                }
             }
+
+            await _saleRepo.CommitTransactionAsync();
+        }
+        catch
+        {
+            await _saleRepo.RollbackTransactionAsync();
+            throw;
         }
 
         return _mapper.Map<CreditPaymentResponse>(payment);
@@ -227,7 +239,7 @@ public sealed class CreditService
         {
             var allOverdue = credit.Installments.All(i => i.Status == "paid" || i.Status == "late");
             if (allOverdue && credit.Status != "defaulted")
-                credit.Status = "defaulted";
+                credit.Status = CreditStatus.Defaulted;
 
             await _creditRepo.SaveChangesAsync();
             await _lateFeeRepo.SaveChangesAsync();
@@ -308,7 +320,7 @@ public sealed class CreditService
         var credit = await _creditRepo.GetByIdAsync(creditId)
             ?? throw new KeyNotFoundException("Credit not found");
 
-        if (credit.Status == "canceled")
+            if (credit.Status == CreditStatus.Cancelled)
             throw new InvalidOperationException("Cannot refinance a paid credit");
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -344,7 +356,7 @@ public sealed class CreditService
         credit.StartDate = today;
         credit.EndDate = today.AddMonths(request.NewInstallmentCount);
         credit.NextDueDate = today.AddMonths(1);
-        credit.Status = "active";
+        credit.Status = CreditStatus.Active;
 
         foreach (var inst in credit.Installments.Where(i => i.Status != "paid"))
             inst.Status = "refinanced";

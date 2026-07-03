@@ -59,7 +59,9 @@ public sealed record CompanySettingsResponse(
     decimal LateFeePercentage,
     int LateFeeGracePeriod,
     bool TaxEnabled,
-    decimal TaxRate
+    decimal TaxRate,
+    int FiscalYearStartMonth,
+    string InssRegime
 );
 
 public sealed record UpdateCompanySettingsRequest(
@@ -77,7 +79,9 @@ public sealed record UpdateCompanySettingsRequest(
     decimal? LateFeePercentage,
     int? LateFeeGracePeriod,
     bool? TaxEnabled,
-    decimal? TaxRate
+    decimal? TaxRate,
+    int? FiscalYearStartMonth,
+    string? InssRegime
 );
 
 public sealed record CompanyListItemResponse(

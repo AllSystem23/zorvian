@@ -21,5 +21,10 @@ public sealed class CompanySettings : BaseEntity
     // FacturaciÃ³n / IVA
     public bool TaxEnabled { get; set; } = true;
     public decimal TaxRate { get; set; } = 0.15m;
+    public int FiscalYearStartMonth { get; set; } = 1;
+
+    // Régimen INSS: "integral" o "ivm"
+    public string InssRegime { get; set; } = "integral";
+
     public Company Company { get; set; } = null!;
 }

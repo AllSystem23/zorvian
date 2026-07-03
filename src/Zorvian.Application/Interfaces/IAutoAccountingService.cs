@@ -24,6 +24,7 @@ public interface IAutoAccountingService
     Task<Guid> GenerateDisposalEntryAsync(Guid disposalId, decimal acquisitionCost, decimal accumulatedDep, decimal saleAmount, decimal gainOrLoss, string disposalType, Guid companyId, Guid branchId);
     Task<Guid> GeneratePayrollEntryAsync(Guid payrollRunId);
     Task ReversePurchaseEntryAsync(Guid purchaseId, List<PurchaseDetail> details, decimal total);
+    Task ReverseSaleEntryAsync(Guid saleId, List<SaleDetail> details, decimal discount, string saleType, Guid? costCenterId = null);
 
     // Treasury methods - restored to accept Nullable Guids as expected by Controllers
     Task<Guid> GenerateCheckEntryAsync(Guid checkId, decimal amount, string checkType, Guid? bankAccountId, Guid? payeeId, Guid? costCenterId);

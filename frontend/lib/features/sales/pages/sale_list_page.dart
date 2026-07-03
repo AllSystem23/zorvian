@@ -89,8 +89,9 @@ final class _SaleListPageState extends ConsumerState<SaleListPage> {
                                 final s = state.items[i];
                                 final badgeType = switch (s.status) {
                                   'completed' => ZBadgeType.success,
-                                  'cancelled' => ZBadgeType.danger,
-                                  _ => ZBadgeType.warning,
+                                  'cancelled' || 'refunded' => ZBadgeType.danger,
+                                  'pending' => ZBadgeType.warning,
+                                  _ => ZBadgeType.neutral,
                                 };
                                 return ListTile(
                                   leading: CircleAvatar(

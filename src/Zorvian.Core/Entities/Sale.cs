@@ -15,7 +15,7 @@ public sealed class Sale : BaseEntity
     public decimal Total { get; set; }
     public decimal PaidAmount { get; set; }
     public decimal Balance { get; set; }
-    public string Status { get; set; } = "completed";
+    public string Status { get; set; } = Enums.SaleStatus.Completed;
     public string? Notes { get; set; }
     public Guid BranchId { get; set; }
     public string CurrencyCode { get; set; } = "NIO";

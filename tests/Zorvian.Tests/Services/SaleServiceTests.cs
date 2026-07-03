@@ -61,7 +61,7 @@ public sealed class SaleServiceTests
         
         var autoAccounting = new AutoAccountingService(
             mockEntryRepo.Object, mockPeriodRepo.Object, mockLinkRepo.Object, mockRuleRepo.Object, 
-            mockAccountRepo.Object, mockTenantContext.Object, mockPayrollRepo.Object, mockCashRepo.Object, new AccountingRuleTemplateRepository(_db), _companyRepo.Object);
+            mockAccountRepo.Object, mockTenantContext.Object, mockPayrollRepo.Object, mockCashRepo.Object, new AccountingRuleTemplateRepository(_db), _companyRepo.Object, new Mock<IFiscalYearRepository>().Object);
 
         _sut = new SaleService(
             _saleRepo.Object,

@@ -30,6 +30,8 @@ final class SaleItem {
     status: (j['status'] ?? '').toString(),
     currencyCode: (j['currencyCode'] ?? 'NIO').toString(),
   );
+
+  bool get isCancellable => status == 'completed' || status == 'pending';
 }
 
 final class SaleDetailItem {
@@ -99,6 +101,8 @@ final class SaleDetail {
         .toList() ?? [],
     creditId: (j['creditId'] as String?),
   );
+
+  bool get isCancellable => status == 'completed' || status == 'pending';
 }
 
 final class SaleState {

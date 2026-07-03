@@ -18,6 +18,12 @@ public sealed class TerminationController : ControllerBase
 
     [RequirePermission(Permissions.EmployeeWrite)]
     [HttpPost("calculate")]
-    public async Task<IActionResult> Calculate(Guid employeeId, TerminationReason reason, DateOnly terminationDate) =>
-        Ok(await _service.CalculateAsync(employeeId, reason, terminationDate));
+    public async Task<IActionResult> Calculate(
+        Guid employeeId,
+        TerminationReason reason,
+        DateOnly terminationDate,
+        DateOnly? paidThroughDate = null,
+        decimal overtimeHours = 0,
+        decimal overtimePay = 0) =>
+        Ok(await _service.CalculateAsync(employeeId, reason, terminationDate, paidThroughDate, overtimeHours, overtimePay));
 }

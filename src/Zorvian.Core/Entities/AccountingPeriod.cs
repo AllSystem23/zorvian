@@ -5,13 +5,15 @@ public sealed class AccountingPeriod : BaseEntity
     public int Year { get; set; }
     public int Month { get; set; }
     public string Name { get; set; } = string.Empty;
-    public string Status { get; set; } = "open";
-    public DateTime? OpenedAt { get; set; }
-    public DateTime? ClosedAt { get; set; }
+    public string Status { get; set; } = PeriodStatus.Open;
     public Guid? FiscalYearId { get; set; }
     public FiscalYear? FiscalYear { get; set; }
+    public DateTime? OpenedAt { get; set; }
+    public DateTime? ClosedAt { get; set; }
+    public string? ClosedBy { get; set; }
     public string? CloseNotes { get; set; }
     public DateTime? ReopenedAt { get; set; }
+    public string? ReopenedBy { get; set; }
     public string? ReopenReason { get; set; }
 
     public ICollection<AccountingEntry> Entries { get; set; } = [];

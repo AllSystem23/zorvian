@@ -3,6 +3,7 @@ using Zorvian.Application.DTOs.Commercial;
 using Zorvian.Application.DTOs.Common;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
+using Zorvian.Core.Enums;
 using Zorvian.Core.Interfaces;
 
 namespace Zorvian.Application.Services;
@@ -248,7 +249,7 @@ public sealed class SaleService
             sale.Total = total;
             sale.PaidAmount = request.DownPayment;
             sale.Balance = financedAmount;
-            sale.Status = "pending";
+            sale.Status = SaleStatus.Pending;
 
             var totalCost = 0m;
             foreach (var detail in request.Details)
@@ -398,5 +399,37 @@ public sealed class SaleService
             _mapper.Map<List<SaleListResponse>>(items),
             total, page, pageSize
         );
+    }
+
+    public async Task CancelSaleAsync(Guid id)
+    {
+        var sale = await _saleRepo.GetByIdAsync(id)
+            ?? throw new KeyNotFoundException("Sale not found");
+
+        if (sale.Status == SaleStatus.Cancelled)
+            throw new InvalidOperationException("Sale is already cancelled");
+
+        if (sale.Balance > 0)
+            throw new InvalidOperationException("Cannot cancel a sale with outstanding balance. Process a credit note first.");
+
+        await _saleRepo.BeginTransactionAsync();
+        try
+        {
+            sale.Status = SaleStatus.Cancelled;
+            await _saleRepo.SaveChangesAsync();
+
+            // Reverse sale accounting entries
+            await _autoAccounting.ReverseSaleEntryAsync(
+                sale.Id, sale.Details.ToList(), sale.Discount, sale.SaleType);
+            await _autoAccounting.GenerateCostOfSaleEntryAsync(
+                sale.Id, -(sale.Details.Sum(d => d.Quantity * (d.Product?.CostPrice ?? 0))));
+
+            await _saleRepo.CommitTransactionAsync();
+        }
+        catch
+        {
+            await _saleRepo.RollbackTransactionAsync();
+            throw;
+        }
     }
 }

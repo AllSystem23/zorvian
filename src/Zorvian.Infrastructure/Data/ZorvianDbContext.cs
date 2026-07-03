@@ -1370,6 +1370,7 @@ public sealed class ZorvianDbContext : DbContext
             e.Property(p => p.CloseNotes).HasMaxLength(500);
             e.Property(p => p.ReopenReason).HasMaxLength(500);
             e.HasIndex(p => new { p.Year, p.Month, p.CompanyId }).IsUnique();
+            e.HasIndex(p => p.Status);
             e.HasQueryFilter(p => (p.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !p.IsDeleted);
         });
 

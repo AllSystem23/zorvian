@@ -20,7 +20,7 @@ public sealed class Credit : BaseEntity
     public DateOnly StartDate { get; set; }
     public DateOnly EndDate { get; set; }
     public DateOnly? NextDueDate { get; set; }
-    public string Status { get; set; } = "active";
+    public string Status { get; set; } = Enums.CreditStatus.Active;
     public string? Notes { get; set; }
     public Guid BranchId { get; set; }
     public string CurrencyCode { get; set; } = "NIO";

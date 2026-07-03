@@ -6,6 +6,7 @@ import '../../../shared/ds/components/z_badge.dart';
 import '../../../shared/ds/components/z_card.dart';
 import '../../../shared/ds/components/z_error_boundary.dart';
 import '../../../shared/ds/components/z_skeleton.dart';
+import '../../../shared/ds/components/z_toast.dart';
 import '../../../shared/ds/tokens/colors.dart';
 import '../../../shared/printing/pdf_generator.dart';
 import '../../../shared/printing/print_share_sheet.dart';
@@ -39,6 +40,29 @@ final class _SaleDetailPageState extends ConsumerState<SaleDetailPage> {
       setState(() { _data = SaleDetail.fromJson(r.data as Map<String, dynamic>); _loading = false; });
     } catch (e) {
       setState(() { _error = 'Error al cargar venta: $e'; _loading = false; });
+    }
+  }
+
+  Future<void> _cancelSale() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Anular Venta'),
+        content: Text('¿Está seguro de anular la factura ${_data!.invoiceNumber}?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Anular', style: TextStyle(color: Colors.white))),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    try {
+      final dio = ref.read(dioClientProvider);
+      await dio.post('sales/${widget.saleId}/cancel');
+      ZToast.success(context, 'Venta anulada exitosamente');
+      _load();
+    } catch (e) {
+      ZToast.error(context, 'Error al anular: $e');
     }
   }
 
@@ -84,6 +108,12 @@ final class _SaleDetailPageState extends ConsumerState<SaleDetailPage> {
               'entityDisplayName': 'Factura ${d.invoiceNumber}',
             }),
           ),
+          if (d.status == 'completed' || d.status == 'pending')
+            IconButton(
+              icon: const Icon(Icons.cancel_outlined, size: 20),
+              tooltip: 'Anular Venta',
+              onPressed: () => _cancelSale(),
+            ),
           IconButton(
             icon: const Icon(Icons.assignment_return, size: 20),
             tooltip: 'Nota de Crédito',
@@ -91,6 +121,11 @@ final class _SaleDetailPageState extends ConsumerState<SaleDetailPage> {
               final result = await context.push<bool>('/credit-notes/new/${widget.saleId}');
               if (result == true) _load();
             },
+          ),
+          IconButton(
+            icon: const Icon(Icons.account_balance, size: 20),
+            tooltip: 'Asientos Contables',
+            onPressed: () => context.push('/accounting-entries?saleId=${widget.saleId}'),
           ),
           IconButton(
             icon: const Icon(Icons.qr_code, size: 20),

@@ -82,15 +82,44 @@ final class _AccountingPeriodsPageState extends ConsumerState<AccountingPeriodsP
     final confirm = await ZModal.confirm(context,
       title: 'Cerrar Período',
       message: '¿Está seguro? No podrá agregar asientos a este período.',
-      confirmText: 'Cerrir',
+      confirmText: 'Cerrar',
       cancelText: 'Cancelar',
     );
     if (confirm != true) return;
     try {
       final dio = ref.read(dioClientProvider);
-      await dio.post('accounting-periods/$id/close');
+      await dio.post('accounting-periods/$id/close', data: {});
       _load();
     } catch (_) {}
+  }
+
+  Future<void> _reopenPeriod(String id) async {
+    final reasonCtl = TextEditingController();
+    final ok = await ZModal.show<bool>(context,
+      title: 'Reabrir Período',
+      confirmText: 'Reabrir',
+      cancelText: 'Cancelar',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('Se generará un registro de auditoría con esta razón:'),
+          const SizedBox(height: 12),
+          ZTextField(controller: reasonCtl, label: 'Razón de la reapertura', maxLines: 3),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    if (reasonCtl.text.trim().isEmpty) {
+      if (mounted) ZToast.error(context, 'Debe ingresar una razón');
+      return;
+    }
+    try {
+      final dio = ref.read(dioClientProvider);
+      await dio.post('accounting-periods/$id/reopen', data: {'reason': reasonCtl.text.trim()});
+      _load();
+    } catch (e) {
+      if (mounted) ZToast.error(context, 'Error: $e');
+    }
   }
 
   @override
@@ -120,6 +149,8 @@ final class _AccountingPeriodsPageState extends ConsumerState<AccountingPeriodsP
                             Chip(label: Text(p.status, style: TextStyle(fontSize: 11, color: color)), backgroundColor: color.withAlpha(20), padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
                             if (p.status == 'open')
                               IconButton(icon: const Icon(Icons.lock_outline, size: 18), tooltip: 'Cerrar período', onPressed: () => _closePeriod(p.id)),
+                            if (p.status == 'closed')
+                              IconButton(icon: const Icon(Icons.lock_open, size: 18), tooltip: 'Reabrir período', onPressed: () => _reopenPeriod(p.id)),
                           ],
                         ),
                       );

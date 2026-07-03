@@ -42,6 +42,16 @@ public interface IAccountingPeriodRepository
     Task<AccountingPeriod?> GetCurrentOpenAsync(Guid companyId);
     Task<AccountingPeriod?> GetByYearMonthAsync(int year, int month, Guid companyId);
     Task<List<AccountingPeriod>> GetByFiscalYearAsync(Guid fiscalYearId);
+    Task<List<AccountingPeriod>> GetOpenPeriodsAsync(Guid companyId);
+    Task<int> GetEntryCountAsync(Guid periodId);
+    Task<decimal> GetTotalDebitAsync(Guid periodId);
+    Task<decimal> GetTotalCreditAsync(Guid periodId);
+    Task<bool> HasUnpostedEntriesAsync(Guid periodId);
+    Task<bool> HasUnaccountedSalesAsync(Guid periodId, Guid companyId);
+    Task<bool> HasUnaccountedCreditNotesAsync(Guid periodId, Guid companyId);
+    Task<bool> HasPendingPayrollAsync(Guid periodId, Guid companyId);
+    Task<bool> HasUnaccountedCashMovementsAsync(Guid periodId, Guid companyId);
+    Task<bool> HasUnaccountedInventoryMovementsAsync(Guid periodId, Guid companyId);
     Task AddAsync(AccountingPeriod period);
     Task UpdateAsync(AccountingPeriod period);
     Task SaveChangesAsync();

@@ -52,68 +52,79 @@ public sealed class CreditNoteService
 
     public async Task<CreditNoteResponse> CreateAsync(CreateCreditNoteRequest request)
     {
-        var sale = await _saleRepo.GetByIdAsync(request.SaleId)
-            ?? throw new KeyNotFoundException("Sale not found");
-        var companyId = CompanyId;
-        if (companyId == Guid.Empty)
-            throw new InvalidOperationException("Selecciona una compañía primero.");
-        var creditNoteNumber = await _repo.GenerateCreditNoteNumberAsync(companyId);
-
-        var details = new List<CreditNoteDetail>();
-        decimal totalSubtotal = 0, totalTax = 0, total = 0;
-
-        foreach (var item in request.Details)
+        await _saleRepo.BeginTransactionAsync();
+        try
         {
-            var product = await _productRepo.GetByIdAsync(item.ProductId)
-                ?? throw new InvalidOperationException($"Product {item.ProductId} not found");
+            var sale = await _saleRepo.GetByIdAsync(request.SaleId)
+                ?? throw new KeyNotFoundException("Sale not found");
+            var companyId = CompanyId;
+            if (companyId == Guid.Empty)
+                throw new InvalidOperationException("Selecciona una compañía primero.");
+            var creditNoteNumber = await _repo.GenerateCreditNoteNumberAsync(companyId);
 
-            var rate = product.TaxCategory?.Rate ?? 0;
-            var lineSubtotal = item.Quantity * item.UnitPrice;
-            var lineTax = lineSubtotal * rate;
-            var lineTotal = lineSubtotal + lineTax;
+            var details = new List<CreditNoteDetail>();
+            decimal totalSubtotal = 0, totalTax = 0, total = 0;
 
-            details.Add(new CreditNoteDetail
+            foreach (var item in request.Details)
             {
-                ProductId = item.ProductId, Quantity = item.Quantity,
-                UnitPrice = item.UnitPrice, Subtotal = lineSubtotal,
-                Tax = lineTax, Total = lineTotal,
+                var product = await _productRepo.GetByIdAsync(item.ProductId)
+                    ?? throw new InvalidOperationException($"Product {item.ProductId} not found");
+
+                var rate = product.TaxCategory?.Rate ?? 0;
+                var lineSubtotal = item.Quantity * item.UnitPrice;
+                var lineTax = lineSubtotal * rate;
+                var lineTotal = lineSubtotal + lineTax;
+
+                details.Add(new CreditNoteDetail
+                {
+                    ProductId = item.ProductId, Quantity = item.Quantity,
+                    UnitPrice = item.UnitPrice, Subtotal = lineSubtotal,
+                    Tax = lineTax, Total = lineTotal,
+                    CompanyId = companyId, BranchId = sale.BranchId,
+                });
+
+                totalSubtotal += lineSubtotal;
+                totalTax += lineTax;
+                total += lineTotal;
+
+                var stockBefore = product.Stock;
+                product.Stock += item.Quantity;
+
+                await _movementRepo.AddAsync(new InventoryMovement
+                {
+                    ProductId = item.ProductId, MovementType = "credit_note",
+                    Quantity = item.Quantity, StockBefore = stockBefore,
+                    StockAfter = product.Stock, UnitCost = product.CostPrice,
+                    ReferenceNumber = creditNoteNumber, CompanyId = companyId,
+                    BranchId = sale.BranchId,
+                });
+            }
+
+            var creditNote = new CreditNote
+            {
+                CreditNoteNumber = creditNoteNumber,
+                SaleId = request.SaleId,
+                IssueDate = DateTime.UtcNow,
+                Status = "issued",
+                Reason = request.Reason,
+                Subtotal = totalSubtotal, Tax = totalTax, Total = total,
                 CompanyId = companyId, BranchId = sale.BranchId,
-            });
+                Details = details,
+            };
 
-            totalSubtotal += lineSubtotal;
-            totalTax += lineTax;
-            total += lineTotal;
+            await _repo.AddAsync(creditNote);
+            await _repo.SaveChangesAsync();
 
-            var stockBefore = product.Stock;
-            product.Stock += item.Quantity;
+            await _autoAccounting.GenerateCreditNoteEntryAsync(creditNote.Id, request.SaleId, sale.SaleType, details, totalSubtotal, totalTax);
 
-            await _movementRepo.AddAsync(new InventoryMovement
-            {
-                ProductId = item.ProductId, MovementType = "credit_note",
-                Quantity = item.Quantity, StockBefore = stockBefore,
-                StockAfter = product.Stock, UnitCost = product.CostPrice,
-                ReferenceNumber = creditNoteNumber, CompanyId = companyId,
-                BranchId = sale.BranchId,
-            });
+            await _saleRepo.CommitTransactionAsync();
+
+            return (await GetByIdAsync(creditNote.Id))!;
         }
-
-        var creditNote = new CreditNote
+        catch
         {
-            CreditNoteNumber = creditNoteNumber,
-            SaleId = request.SaleId,
-            IssueDate = DateTime.UtcNow,
-            Status = "issued",
-            Reason = request.Reason,
-            Subtotal = totalSubtotal, Tax = totalTax, Total = total,
-            CompanyId = companyId, BranchId = sale.BranchId,
-            Details = details,
-        };
-
-        await _repo.AddAsync(creditNote);
-        await _repo.SaveChangesAsync();
-
-        await _autoAccounting.GenerateCreditNoteEntryAsync(creditNote.Id, request.SaleId, sale.SaleType, details, totalSubtotal, totalTax);
-
-        return (await GetByIdAsync(creditNote.Id))!;
+            await _saleRepo.RollbackTransactionAsync();
+            throw;
+        }
     }
 }

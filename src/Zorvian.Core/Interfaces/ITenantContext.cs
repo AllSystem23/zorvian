@@ -9,6 +9,7 @@ public interface ITenantContext
     bool IsSuperAdmin { get; }
     Guid? CurrentUserId { get; }
     Guid? CurrentEmployeeId { get; }
+    string? GetUserIdentifier() => CurrentUserId?.ToString();
 }
 
 public interface ITenantContextWriter

@@ -24,7 +24,7 @@ public sealed class AccountingPeriodsController : ControllerBase
     {
         try
         {
-            var period = await _service.OpenAsync(request.Year, request.Month);
+            var period = await _service.OpenAsync(request.Year, request.Month, request.FiscalYearId);
             return Ok(period);
         }
         catch (InvalidOperationException ex) { return BadRequest(new { error = ex.Message }); }
@@ -32,9 +32,29 @@ public sealed class AccountingPeriodsController : ControllerBase
 
     [HttpPost("{id:guid}/close")]
     [RequirePermission(Permissions.AccountingWrite)]
-    public async Task<IActionResult> Close(Guid id)
+    public async Task<IActionResult> Close(Guid id, [FromBody] ClosePeriodRequest request)
     {
-        var period = await _service.CloseAsync(id);
+        var period = await _service.CloseAsync(id, request?.Notes);
         return Ok(period);
+    }
+
+    [HttpPost("{id:guid}/reopen")]
+    [RequirePermission(Permissions.AccountingWrite)]
+    public async Task<IActionResult> Reopen(Guid id, [FromBody] ReopenPeriodRequest request)
+    {
+        try
+        {
+            var period = await _service.ReopenAsync(id, request.Reason);
+            return Ok(period);
+        }
+        catch (InvalidOperationException ex) { return BadRequest(new { error = ex.Message }); }
+    }
+
+    [HttpPost("{id:guid}/validate-close")]
+    [RequirePermission(Permissions.AccountingRead)]
+    public async Task<IActionResult> ValidateClose(Guid id)
+    {
+        var validation = await _service.ValidateCloseAsync(id);
+        return Ok(validation);
     }
 }

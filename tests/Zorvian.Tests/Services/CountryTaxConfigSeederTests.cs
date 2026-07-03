@@ -65,7 +65,7 @@ public sealed class CountryTaxConfigSeederTests : IDisposable
         Assert.Equal("NIO", nic.Currency);
         Assert.Equal(0.07m, nic.InssEmployeeRate);
         Assert.Equal(0.225m, nic.InssEmployerRate);
-        Assert.Equal(15, nic.VacationDaysPerYear);
+        Assert.Equal(30, nic.VacationDaysPerYear);
         Assert.True(nic.HasThirteenthMonth);
         Assert.False(nic.HasFourteenthMonth);
         Assert.True(nic.IsActive);

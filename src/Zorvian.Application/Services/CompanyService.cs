@@ -1,5 +1,6 @@
 using Zorvian.Application.Config;
 using Zorvian.Application.DTOs.Company;
+using Zorvian.Application.Helpers;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
@@ -13,14 +14,16 @@ public sealed class CompanyService
     private readonly IFiscalService _fiscalService;
     private readonly IDocumentStorageService _storage;
     private readonly IRegionalTaxConfigurationRepository _regionalTaxRepo;
+    private readonly ICountryTaxConfigRepository _taxConfigRepo;
 
-    public CompanyService(ICompanyRepository repo, ITenantContext tenant, IFiscalService fiscalService, IDocumentStorageService storage, IRegionalTaxConfigurationRepository regionalTaxRepo)
+    public CompanyService(ICompanyRepository repo, ITenantContext tenant, IFiscalService fiscalService, IDocumentStorageService storage, IRegionalTaxConfigurationRepository regionalTaxRepo, ICountryTaxConfigRepository taxConfigRepo)
     {
         _repo = repo;
         _tenant = tenant;
         _fiscalService = fiscalService;
         _storage = storage;
         _regionalTaxRepo = regionalTaxRepo;
+        _taxConfigRepo = taxConfigRepo;
     }
 
     public async Task<List<CompanyListItemResponse>> GetAllAsync()
@@ -71,17 +74,18 @@ public sealed class CompanyService
         await _repo.AddAsync(company);
         await _repo.SaveChangesAsync();
 
+        var countryCode = FiscalYearHelper.MapCountryToCode(request.Country);
+        var countryConfig = await _taxConfigRepo.GetByCountryCodeAsync(countryCode);
         var settings = new CompanySettings
         {
             CompanyId = company.Id,
             Timezone = request.Timezone,
             Currency = request.Currency,
+            FiscalYearStartMonth = countryConfig?.DefaultFiscalStartMonth ?? 1,
         };
 
         await _repo.AddSettingsAsync(settings);
         await _repo.SaveChangesAsync();
-
-        var countryCode = MapCountryToCode(request.Country);
         await _fiscalService.SetupDefaultTaxesAsync(company.Id, countryCode);
         await SeedRegionalTaxesAsync(company.Id, countryCode);
 
@@ -371,7 +375,9 @@ public sealed class CompanyService
         LateFeePercentage: 0.05m,
         LateFeeGracePeriod: 0,
         TaxEnabled: true,
-        TaxRate: 0.15m
+        TaxRate: 0.15m,
+        FiscalYearStartMonth: 1,
+        InssRegime: "integral"
     );
 
     public async Task<CompanySettingsResponse?> UpdateSettingsAsync(UpdateCompanySettingsRequest request)
@@ -397,6 +403,8 @@ public sealed class CompanyService
         if (request.LateFeeGracePeriod.HasValue) settings.LateFeeGracePeriod = request.LateFeeGracePeriod.Value;
         if (request.TaxEnabled.HasValue) settings.TaxEnabled = request.TaxEnabled.Value;
         if (request.TaxRate.HasValue) settings.TaxRate = request.TaxRate.Value;
+        if (request.FiscalYearStartMonth.HasValue) settings.FiscalYearStartMonth = request.FiscalYearStartMonth.Value;
+        if (request.InssRegime is not null) settings.InssRegime = request.InssRegime;
 
         await _repo.UpdateSettingsAsync(settings);
         await _repo.SaveChangesAsync();
@@ -419,6 +427,8 @@ public sealed class CompanyService
         s.LateFeePercentage,
         s.LateFeeGracePeriod,
         s.TaxEnabled,
-        s.TaxRate
+        s.TaxRate,
+        s.FiscalYearStartMonth,
+        s.InssRegime
     );
 }

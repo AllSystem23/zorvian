@@ -102,3 +102,12 @@
 - [x] Add password recovery flow (currently TODO placeholder)
 - [x] Add preloader/splash screen on auth check
 - [x] Add tenant switcher for multi-company users
+- [x] Add `SaleStatus`/`CreditStatus` string constants to prevent typos (`Zorvian.Core/Enums/SaleStatus.cs`)
+- [x] Auto-seed chart of accounts + account links on company creation (`SeedService.SeedAsync`)
+- [x] Fix account code mismatch: `AccountLinkService.ResolveAccountAsync` tries 3 code formats + name fallback
+- [x] Fix account code mismatch: `AutoAccountingService.GetAccountIdByCodeAsync` tries padded variants
+- [x] Add name-based fallback in `AutoAccountingService.GetAccountIdAsync` when no AccountLink found
+- [x] Add transaction safety to `CreditNoteService.CreateAsync`
+- [x] Add `CancelSaleAsync` endpoint (`POST /zorvian/v1/sales/{id}/cancel`)
+- [x] Add cancel sale + accounting entries link to frontend `sale_detail_page.dart`
+- [x] Handle null `Product.TaxCategory` gracefully in `AutoAccountingService.GenerateSaleEntryAsync`

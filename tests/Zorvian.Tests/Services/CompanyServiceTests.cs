@@ -14,13 +14,14 @@ public sealed class CompanyServiceTests
     private readonly Mock<IFiscalService> _fiscal = new();
     private readonly Mock<IDocumentStorageService> _storage = new();
     private readonly Mock<IRegionalTaxConfigurationRepository> _regionalTaxRepo = new();
+    private readonly Mock<ICountryTaxConfigRepository> _taxConfigRepo = new();
     private readonly CompanyService _sut;
     private readonly string _tenantId = Guid.NewGuid().ToString();
 
     public CompanyServiceTests()
     {
         _tenant.Setup(t => t.TenantId).Returns(_tenantId);
-        _sut = new CompanyService(_repo.Object, _tenant.Object, _fiscal.Object, _storage.Object, _regionalTaxRepo.Object);
+        _sut = new CompanyService(_repo.Object, _tenant.Object, _fiscal.Object, _storage.Object, _regionalTaxRepo.Object, _taxConfigRepo.Object);
     }
 
     [Fact]
@@ -171,7 +172,9 @@ public sealed class CompanyServiceTests
             LateFeePercentage: 5.0m,
             LateFeeGracePeriod: 3,
             TaxEnabled: true,
-            TaxRate: 15.0m
+            TaxRate: 15.0m,
+            FiscalYearStartMonth: null,
+            InssRegime: null
         );
 
         var result = await _sut.UpdateSettingsAsync(request);

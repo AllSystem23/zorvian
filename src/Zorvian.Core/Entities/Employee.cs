@@ -33,6 +33,16 @@ public sealed class Employee : BaseEntity
     public decimal? Salary { get; set; }
     public string? SalaryType { get; set; } = "monthly";
     public string Status { get; set; } = "active";
+    public bool IsTrustPosition { get; set; } // Cargo de confianza (Art. 46-47 CT)
+
+    // ── Configuración de deducciones por empleado (Excel: "¿Al Trabajador se le deduce?") ──
+    public bool DeductInss { get; set; } = true; // INSS Laboral (default SI)
+    public bool DeductIr { get; set; } = true; // IR (default SI)
+    public bool DeductAguinaldo { get; set; } = true; // Aguinaldo proporcional (default SI)
+
+    // ── Trabajadora del Hogar con Dormida Adentro (Art. 98 CT) ──
+    // Tratamiento fiscal especial: exenta de ciertas cargas sociales
+    public bool IsDomesticWorkerWithBoard { get; set; }
     public string? PhotoUrl { get; set; }
     public string? BankName { get; set; }
     public string? BankAccountNumber { get; set; }

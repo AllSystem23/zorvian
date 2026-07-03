@@ -234,6 +234,10 @@ public sealed class PayrollService
         if (activeEmployees.Count == 0)
             throw new InvalidOperationException("No hay empleados activos para procesar nómina.");
 
+        // Resolver tasas INSS según régimen de la empresa y cantidad de empleados
+        var companySettings = await _companyRepo.GetSettingsAsync(company.Id);
+        var inssRates = ResolveInssRates(taxConfig, companySettings, activeEmployees.Count);
+
         var conceptDefinitions = await _conceptRepo.GetAllAsync(_tenant.TenantId);
         var strategy = _calcFactory.GetStrategy(company.Country ?? "NIC");
 
@@ -286,13 +290,15 @@ public sealed class PayrollService
             var vacationPay = approvedVacations.Where(v => v.Status == "approved").Sum(v => v.BusinessDays * (baseSalary / 30));
 
             var grossPay = adjustedBaseSalary + empOvertime + empCommission + empBonus + vacationPay;
-            var inssDeduction = strategy.CalculateInssEmployee(grossPay, taxConfig);
+
+            // INSS empleado: usar tasa resuelta por régimen
+            var inssDeduction = Math.Min(grossPay * inssRates.EmployeeRate, taxConfig.InssEmployeeMax);
             var irDeduction = strategy.CalculateIr(grossPay, inssDeduction, taxConfig);
             
             var garnishmentDeduction = garnishments.Sum(g => g.GarnishmentType == "fixed" ? g.Value : grossPay * (g.Value / 100));
 
-            // Cálculo de costos patronales
-            var employerInss = Math.Min(grossPay * taxConfig.InssEmployerRate, taxConfig.InssEmployerMax);
+            // Cálculo de costos patronales: usar tasa resuelta por régimen + tamaño
+            var employerInss = Math.Min(grossPay * inssRates.EmployerRate, taxConfig.InssEmployerMax);
             var otherEmployerCosts = grossPay * taxConfig.OtherEmployerRate;
             var totalEmployerCost = employerInss + otherEmployerCosts;
 
@@ -526,6 +532,38 @@ public sealed class PayrollService
         if (bracket == null) return 0m;
         
         return bracket.FixedAmount + (taxableIncome - bracket.Min) * bracket.Rate;
+    }
+
+    /// <summary>
+    /// Resolves effective INSS employee and employer rates based on company regime and employee count.
+    /// For countries like Nicaragua (Decreto 06-2019), rates differ by:
+    ///   - Regime: Integral (general employment) vs IVM (disability, old age, death)
+    ///   - Company size: 50+ employees (standard) vs less than 50 (reduced rate)
+    /// Falls back to legacy single-rate fields if no regime data is configured.
+    /// </summary>
+    private static (decimal EmployeeRate, decimal EmployerRate) ResolveInssRates(
+        CountryTaxConfig taxConfig, CompanySettings? settings, int activeEmployeeCount)
+    {
+        var regime = settings?.InssRegime ?? "integral";
+        var isSmallEmployer = activeEmployeeCount < taxConfig.InssSmallEmployerThreshold;
+
+        // Try regime-specific rates first
+        return regime.ToLower() switch
+        {
+            "ivm" when taxConfig.InssIvmEmployeeRate > 0 => (
+                EmployeeRate: taxConfig.InssIvmEmployeeRate,
+                EmployerRate: isSmallEmployer ? taxConfig.InssIvmEmployerRateSmall : taxConfig.InssIvmEmployerRate
+            ),
+            "integral" when taxConfig.InssIntegralEmployeeRate > 0 => (
+                EmployeeRate: taxConfig.InssIntegralEmployeeRate,
+                EmployerRate: isSmallEmployer ? taxConfig.InssIntegralEmployerRateSmall : taxConfig.InssIntegralEmployerRate
+            ),
+            _ => (
+                // Fallback: legacy single-rate fields
+                EmployeeRate: taxConfig.InssEmployeeRate,
+                EmployerRate: taxConfig.InssEmployerRate
+            )
+        };
     }
 
     public async Task<bool> DeleteRunAsync(Guid id)
