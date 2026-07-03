@@ -187,12 +187,15 @@ public sealed class AuthService
         var primaryRole = user.UserRoles.FirstOrDefault()?.Role
             ?? new Role { Name = Core.Enums.RoleType.Employee, DisplayName = "Empleado" };
 
+        var currencyCode = await GetCompanyCurrencyAsync(user.TenantId);
+
         return new UserInfo(
             user.Id.ToString(),
             user.Email,
             user.DisplayName,
             primaryRole.Name.ToString(),
             user.TenantId,
+            currencyCode,
             user.EmployeeId?.ToString()
         );
     }
@@ -358,6 +361,7 @@ public sealed class AuthService
                 user.DisplayName,
                 primaryRole.Name.ToString(),
                 tenantId,
+                await GetCompanyCurrencyAsync(tenantId),
                 user.EmployeeId?.ToString()
             )
         );
@@ -415,6 +419,7 @@ public sealed class AuthService
                 user.DisplayName,
                 primaryRole.Name.ToString(),
                 tenantId,
+                await GetCompanyCurrencyAsync(tenantId),
                 user.EmployeeId?.ToString()
             )
         );
@@ -575,8 +580,17 @@ public sealed class AuthService
             accessToken, refreshToken, expiresIn,
             new UserInfo(
                 user.Id.ToString(), user.Email, user.DisplayName,
-                primaryRole.Name.ToString(), newTenantId, user.EmployeeId?.ToString()
+                primaryRole.Name.ToString(), newTenantId,
+                await GetCompanyCurrencyAsync(newTenantId),
+                user.EmployeeId?.ToString()
             )
         );
+    }
+
+    private async Task<string> GetCompanyCurrencyAsync(string tenantId)
+    {
+        if (string.IsNullOrEmpty(tenantId)) return "NIO";
+        var company = await _authRepo.GetCompanyByTenantIdAsync(tenantId);
+        return company?.Currency ?? "NIO";
     }
 }

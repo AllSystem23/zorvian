@@ -165,4 +165,12 @@ public sealed class AuthRepository : IAuthRepository
             .Where(c => tenantIds.Contains(c.TenantId))
             .ToListAsync();
     }
+
+    public async Task<Company?> GetCompanyByTenantIdAsync(string tenantId)
+    {
+        var query = _db.Companies.Where(c => c.TenantId == tenantId);
+        return await (NeedsBypass
+            ? query.IgnoreQueryFilters().FirstOrDefaultAsync()
+            : query.FirstOrDefaultAsync());
+    }
 }

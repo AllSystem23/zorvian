@@ -5,7 +5,8 @@ public enum TerminationReason
     VoluntaryResignation,
     JustifiedDismissal,
     UnjustifiedDismissal,
-    MutualAgreement
+    MutualAgreement,
+    EndOfContract
 }
 
 public sealed class TerminationRecord : BaseEntity

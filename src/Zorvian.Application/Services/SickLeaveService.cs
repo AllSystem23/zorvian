@@ -7,8 +7,13 @@ namespace Zorvian.Application.Services;
 public sealed class SickLeaveService
 {
     private readonly ISickLeaveRepository _repo;
+    private readonly IEmployeeRepository _employeeRepo;
 
-    public SickLeaveService(ISickLeaveRepository repo) => _repo = repo;
+    public SickLeaveService(ISickLeaveRepository repo, IEmployeeRepository employeeRepo)
+    {
+        _repo = repo;
+        _employeeRepo = employeeRepo;
+    }
 
     public async Task<List<SickLeaveResponse>> GetByEmployeeAsync(Guid employeeId)
     {
@@ -42,8 +47,10 @@ public sealed class SickLeaveService
         var record = await _repo.GetByIdAsync(id);
         if (record == null || record.Status != "pending") return false;
 
-        // In a real scenario, we'd fetch the daily wage from salary history
-        var dailyWage = 100m; 
+        // Fetch actual daily wage from employee salary record
+        var employee = await _employeeRepo.GetByIdAsync(record.EmployeeId);
+        var monthlyWage = employee?.Salary ?? 100m;
+        var dailyWage = monthlyWage / 30m; 
         var days = (record.EndDate.ToDateTime(TimeOnly.MinValue) - record.StartDate.ToDateTime(TimeOnly.MinValue)).Days + 1;
         
         record.EmployerCoverage = (dailyWage * days) * 0.4m;

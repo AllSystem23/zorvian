@@ -7,51 +7,74 @@ using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
 
+/// <summary>
+/// Corporate bank accounts controller. Manages company-level bank accounts (not employee bank accounts).
+/// </summary>
 [ApiController]
 [Authorize]
-[Route("zorvian/v1/[controller]")]
+[Route("zorvian/v1/bank-accounts")]
 public sealed class BankAccountsController : ControllerBase
 {
-    private readonly BankAccountService _service;
+    private readonly BankAccountService _employeeService;
 
-    public BankAccountsController(BankAccountService service) => _service = service;
+    public BankAccountsController(BankAccountService employeeService) => _employeeService = employeeService;
 
-    [Audit("BankAccount", "Read")]
+    /// <summary>
+    /// Placeholder: Get all corporate bank accounts for the current company.
+    /// </summary>
+    [Audit("CorporateBankAccount", "ReadList")]
     [RequirePermission(Permissions.CashRead)]
-    [HttpGet("employee/{employeeId}")]
-    public async Task<IActionResult> GetByEmployee(Guid employeeId) =>
-        Ok(await _service.GetByEmployeeIdAsync(employeeId));
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        // TODO: Implement corporate bank account repository and service
+        // For now, return empty list as placeholder
+        await Task.CompletedTask;
+        return Ok(new List<object>());
+    }
 
-    [Audit("BankAccount", "Read")]
+    /// <summary>
+    /// Placeholder: Get a corporate bank account by ID.
+    /// </summary>
+    [Audit("CorporateBankAccount", "Read")]
     [RequirePermission(Permissions.CashRead)]
-    [HttpGet("{id}")]
+    [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var result = await _service.GetByIdAsync(id);
-        return result != null ? Ok(result) : NotFound();
+        await Task.CompletedTask;
+        return NotFound(new { error = "Corporate bank account service not yet implemented" });
     }
 
+    /// <summary>
+    /// Placeholder: Create a new corporate bank account.
+    /// </summary>
     [RequirePermission(Permissions.CashWrite)]
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateEmployeeBankAccountRequest request)
+    public async Task<IActionResult> Create([FromBody] object request)
     {
-        var result = await _service.CreateAsync(request);
-        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+        await Task.CompletedTask;
+        return Ok(new { message = "Corporate bank account creation not yet implemented" });
     }
 
+    /// <summary>
+    /// Placeholder: Update a corporate bank account.
+    /// </summary>
     [RequirePermission(Permissions.CashWrite)]
-    [HttpPut("{id}")]
-    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateEmployeeBankAccountRequest request)
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> Update(Guid id, [FromBody] object request)
     {
-        var result = await _service.UpdateAsync(id, request);
-        return result != null ? Ok(result) : NotFound();
+        await Task.CompletedTask;
+        return Ok(new { message = "Corporate bank account update not yet implemented" });
     }
 
+    /// <summary>
+    /// Placeholder: Delete a corporate bank account.
+    /// </summary>
     [RequirePermission(Permissions.CashWrite)]
-    [HttpDelete("{id}")]
+    [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var result = await _service.DeleteAsync(id);
-        return result ? NoContent() : NotFound();
+        await Task.CompletedTask;
+        return Ok(new { message = "Corporate bank account deletion not yet implemented" });
     }
 }

@@ -79,6 +79,10 @@ import '../features/cost_centers/pages/cost_center_form_page.dart';
 import '../features/budgets/pages/budget_list_page.dart';
 import '../features/budgets/pages/budget_form_page.dart';
 import '../features/budgets/pages/budget_vs_actual_page.dart';
+import '../features/budgets/pages/budget_vs_actual_detail_page.dart';
+import '../features/reconciliations/pages/reconciliation_list_page.dart';
+import '../features/reconciliations/pages/reconciliation_form_page.dart';
+import '../features/reconciliations/pages/reconciliation_detail_page.dart';
 import '../features/credit_notes/pages/credit_note_list_page.dart';
 import '../features/credit_notes/pages/credit_note_form_page.dart';
 import '../features/suppliers/pages/supplier_list_page.dart';
@@ -245,7 +249,14 @@ final _routeRoles = <String, List<String>>{
   '/accounting/fiscal-years': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
   '/accounting/entries': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
   '/accounting/account-links': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
+  '/budgets/vs-actual/detail': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
+  '/reconciliations': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
   '/treasury': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
+  '/treasury/checks': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
+  '/treasury/transfers': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
+  '/treasury/deposits': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
+  '/treasury/commissions': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
+  '/treasury/collections': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
   '/pos': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/crm': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/fleet': ['SuperAdmin', 'CompanyAdmin', 'Supervisor', 'Dispatcher', 'Employee'],
@@ -610,6 +621,17 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/budgets/vs-actual',
             name: 'budget-vs-actual',
             builder: (_, _) => const BudgetVsActualPage(),
+            routes: [
+              GoRoute(
+                path: 'detail',
+                name: 'budget-vs-actual-detail',
+                builder: (_, state) {
+                  final year = int.tryParse(state.uri.queryParameters['year'] ?? '');
+                  final month = int.tryParse(state.uri.queryParameters['month'] ?? '');
+                  return BudgetVsActualDetailPage(year: year ?? DateTime.now().year, month: month ?? DateTime.now().month);
+                },
+              ),
+            ],
           ),
           GoRoute(
             path: '/credit-notes',
@@ -945,6 +967,25 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/accounting/fiscal-years',
             name: 'accounting-fiscal-years',
             builder: (_, _) => const FiscalYearsPage(),
+          ),
+          GoRoute(
+            path: '/reconciliations',
+            name: 'reconciliations',
+            builder: (_, _) => const ReconciliationListPage(),
+            routes: [
+              GoRoute(
+                path: 'new',
+                name: 'reconciliation-new',
+                builder: (_, _) => const ReconciliationFormPage(),
+              ),
+              GoRoute(
+                path: ':reconciliationId',
+                name: 'reconciliation-detail',
+                builder: (_, state) => ReconciliationDetailPage(
+                  reconciliationId: state.pathParameters['reconciliationId']!,
+                ),
+              ),
+            ],
           ),
           GoRoute(
             path: '/admin/country-tax-configs',

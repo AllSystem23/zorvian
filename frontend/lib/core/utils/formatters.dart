@@ -21,6 +21,37 @@ class ZFormatters {
     return NumberFormat.currency(symbol: currencyCode, decimalDigits: 2).format(amount);
   }
 
+  /// Compact currency format for KPI cards and dashboards.
+  ///
+  /// Shows values in compact notation: `C$ 1.5M`, `$ 2.3K`, `L 500.00`.
+  /// Falls back to [currency] for amounts under 1 000.
+  static String currencyCompact(num amount, {String currencyCode = 'NIO'}) {
+    final symbol = _currencySymbol(currencyCode);
+    final d = amount.toDouble();
+    final abs = d.abs();
+    if (abs >= 1000000) {
+      return '$symbol${(d / 1000000).toStringAsFixed(1)}M';
+    }
+    if (abs >= 1000) {
+      return '$symbol${(d / 1000).toStringAsFixed(1)}K';
+    }
+    return currency(d, currencyCode: currencyCode);
+  }
+
+  /// Returns the currency symbol for a given currency code.
+  static String _currencySymbol(String code) {
+    switch (code) {
+      case 'NIO': return 'C\$';
+      case 'USD': return '\$';
+      case 'GTQ': return 'Q';
+      case 'HNL': return 'L';
+      case 'CRC': return '₡';
+      case 'SVC': return '\$';
+      case 'PAB': return 'B/.';
+      default: return '\$';
+    }
+  }
+
   // ── Numbers ──
   static String number(double value, {int decimals = 2}) {
     return NumberFormat('#,##0.${'0' * decimals}').format(value);

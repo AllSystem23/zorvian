@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../core/network/dio_client.dart';
@@ -6,6 +7,51 @@ import '../../../core/network/dio_client.dart';
 final treasuryServiceProvider = Provider<TreasuryService>((ref) {
   final dioClient = ref.watch(dioClientProvider);
   return TreasuryService(dioClient);
+});
+
+/// Provider that loads bank accounts for dropdowns
+final treasuryBankAccountsProvider = FutureProvider<List<DropdownMenuItem<String>>>((ref) async {
+  final dio = ref.read(dioClientProvider);
+  try {
+    final res = await dio.get('finance/bank-accounts');
+    final list = res.data as List? ?? [];
+    return list.map((b) => DropdownMenuItem(
+      value: b['id']?.toString(),
+      child: Text('${b['bankName'] ?? ''} - ${b['accountNumber'] ?? ''}'),
+    )).toList();
+  } catch (_) {
+    return [];
+  }
+});
+
+/// Provider that loads cost centers for dropdowns
+final treasuryCostCentersProvider = FutureProvider<List<DropdownMenuItem<String>>>((ref) async {
+  final dio = ref.read(dioClientProvider);
+  try {
+    final res = await dio.get('cost-centers');
+    final list = res.data as List? ?? [];
+    return list.map((c) => DropdownMenuItem(
+      value: c['id']?.toString(),
+      child: Text(c['name']?.toString() ?? ''),
+    )).toList();
+  } catch (_) {
+    return [];
+  }
+});
+
+/// Provider that loads invoices for dropdown
+final treasuryInvoicesProvider = FutureProvider<List<DropdownMenuItem<String>>>((ref) async {
+  final dio = ref.read(dioClientProvider);
+  try {
+    final res = await dio.get('sales', params: {'page': 1, 'pageSize': 200});
+    final list = res.data['items'] as List? ?? res.data as List? ?? [];
+    return list.map((inv) => DropdownMenuItem(
+      value: inv['id']?.toString(),
+      child: Text('${inv['invoiceNumber'] ?? inv['number'] ?? ''}'),
+    )).toList();
+  } catch (_) {
+    return [];
+  }
 });
 
 class TreasuryService {

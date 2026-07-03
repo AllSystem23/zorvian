@@ -38,7 +38,8 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IExcelImportService, ExcelImportService>();
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<IReportExportService, ReportExportService>();
-        services.AddScoped<IReconciliationService, ReconciliationService>();
+        services.AddScoped<IReconciliationService, Zorvian.Infrastructure.Services.ReconciliationService>();
+        services.AddScoped<ITreasuryDashboardService, TreasuryDashboardService>();
         services.AddScoped<IAchExportService, AchExportService>();
         services.AddScoped<IWebhookService, WebhookService>();
         services.AddScoped<IJobScheduler, HangfireJobScheduler>();
@@ -232,6 +233,9 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IAccountingRuleRepository, AccountingRuleRepository>();
         services.AddScoped<ICostCenterRepository, CostCenterRepository>();
         services.AddScoped<IBudgetRepository, BudgetRepository>();
+        services.AddScoped<IBudgetDetailRepository, BudgetDetailRepository>();
+        services.AddScoped<IBudgetTrackingRepository, BudgetTrackingRepository>();
+        services.AddScoped<IReconciliationRepository, ReconciliationRepository>();
         services.AddScoped<ICreditNoteRepository, CreditNoteRepository>();
         services.AddScoped<IApprovalFlowConfigRepository, ApprovalFlowConfigRepository>();
         services.AddScoped<IApprovalRequestRepository, ApprovalRequestRepository>();
@@ -413,6 +417,9 @@ public static class DependencyInjectionExtensions
         services.AddScoped<FinancialReportService>();
         services.AddScoped<CostCenterService>();
         services.AddScoped<BudgetService>();
+        services.AddScoped<BudgetDetailService>();
+        services.AddScoped<BudgetTrackingService>();
+        services.AddScoped<Zorvian.Application.Services.ReconciliationService>();
         services.AddScoped<CreditNoteService>();
 
         // Warranty

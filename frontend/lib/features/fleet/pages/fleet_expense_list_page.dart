@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
-import '../../../auth/auth_provider.dart' show dioClientProvider;
+import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_currency_provider.dart';
 import '../../../shared/ds/ds.dart';
 import '../providers/fleet_expense_provider.dart';
 
@@ -43,6 +44,7 @@ final class _FleetExpenseListPageState extends ConsumerState<FleetExpenseListPag
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(fleetExpenseProvider);
+    final fmt = ref.watch(currencyFormatServiceProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -132,7 +134,7 @@ final class _FleetExpenseListPageState extends ConsumerState<FleetExpenseListPag
                     )
                   : Column(
                     children: [
-                      _ExpenseKpiBar(items: state.items, activeFilter: _filter),
+                      _ExpenseKpiBar(items: state.items, activeFilter: _filter, fmt: fmt),
                       Expanded(
                         child: RefreshIndicator(
                           onRefresh: () => ref.read(fleetExpenseProvider.notifier).load(),
@@ -187,7 +189,7 @@ final class _FleetExpenseListPageState extends ConsumerState<FleetExpenseListPag
                                       ],
                                     ),
                                     subtitle: Text(
-                                      '${e.currency} \$${e.amount.toStringAsFixed(2)} · ${e.categoryName}${e.vehiclePlate != null ? ' · ${e.vehiclePlate}' : ''}',
+                                      '${fmt.currency(e.amount)} · ${e.categoryName}${e.vehiclePlate != null ? ' · ${e.vehiclePlate}' : ''}',
                                     ),
                                     trailing: _multiSelectMode
                                         ? null
@@ -396,7 +398,8 @@ final class _FleetExpenseListPageState extends ConsumerState<FleetExpenseListPag
 class _ExpenseKpiBar extends StatelessWidget {
   final List<FleetExpenseItem> items;
   final _ExpenseFilter activeFilter;
-  const _ExpenseKpiBar({required this.items, required this.activeFilter});
+  final CurrencyFormatService fmt;
+  const _ExpenseKpiBar({required this.items, required this.activeFilter, required this.fmt});
 
   @override
   Widget build(BuildContext context) {
@@ -419,7 +422,7 @@ class _ExpenseKpiBar extends StatelessWidget {
             icon: Icons.receipt_outlined,
             label: 'Total',
             value: '$total',
-            subValue: 'C\$ ${totalAmount.toStringAsFixed(2)}',
+            subValue: fmt.currency(totalAmount),
             color: ZColors.moduleFleet,
             highlighted: activeFilter == _ExpenseFilter.all,
             progress: 1.0,
@@ -429,7 +432,7 @@ class _ExpenseKpiBar extends StatelessWidget {
             icon: Icons.schedule_outlined,
             label: 'Pendientes',
             value: '$pending',
-            subValue: 'C\$ ${pendingAmount.toStringAsFixed(2)}',
+            subValue: fmt.currency(pendingAmount),
             color: ZColors.warning,
             highlighted: activeFilter == _ExpenseFilter.pending,
             progress: total > 0 ? pending / total : 0.0,
@@ -439,7 +442,7 @@ class _ExpenseKpiBar extends StatelessWidget {
             icon: Icons.check_circle_outlined,
             label: 'Aprobados',
             value: '$approved',
-            subValue: 'C\$ ${approvedAmount.toStringAsFixed(2)}',
+            subValue: fmt.currency(approvedAmount),
             color: ZColors.success,
             highlighted: activeFilter == _ExpenseFilter.approved,
             progress: total > 0 ? approved / total : 0.0,

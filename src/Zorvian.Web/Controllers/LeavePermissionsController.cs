@@ -13,13 +13,13 @@ namespace Zorvian.Web.Controllers;
 /// </summary>
 [ApiController]
 [Authorize]
-[Route("zorvian/v1/permissions")]
-public sealed class PermissionsController : ControllerBase
+[Route("zorvian/v1/leave-permissions")]
+public sealed class LeavePermissionsController : ControllerBase
 {
     private readonly PermissionService _service;
     private readonly IDocumentStorageService _storage;
 
-    public PermissionsController(PermissionService service, IDocumentStorageService storage)
+    public LeavePermissionsController(PermissionService service, IDocumentStorageService storage)
     {
         _service = service;
         _storage = storage;

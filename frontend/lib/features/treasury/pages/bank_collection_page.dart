@@ -13,15 +13,27 @@ class BankCollectionPage extends ConsumerStatefulWidget {
 class _BankCollectionPageState extends ConsumerState<BankCollectionPage> {
   final _formKey = GlobalKey<FormState>();
   
+  String? _selectedInvoiceId;
+  String? _selectedCostCenterId;
   final _paymentIdController = TextEditingController();
   final _amountController = TextEditingController();
   final _interestController = TextEditingController();
   final _lateFeeController = TextEditingController();
-  final _invoiceIdController = TextEditingController();
-  final _costCenterIdController = TextEditingController();
+
+  @override
+  void dispose() {
+    _paymentIdController.dispose();
+    _amountController.dispose();
+    _interestController.dispose();
+    _lateFeeController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final invoices = ref.watch(treasuryInvoicesProvider);
+    final costCenters = ref.watch(treasuryCostCentersProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Registrar Cobranza')),
       body: SingleChildScrollView(
@@ -30,6 +42,7 @@ class _BankCollectionPageState extends ConsumerState<BankCollectionPage> {
           child: Form(
             key: _formKey,
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 ZTextField(controller: _paymentIdController, label: 'ID de Pago'),
                 const SizedBox(height: ZSpacing.sm),
@@ -39,9 +52,30 @@ class _BankCollectionPageState extends ConsumerState<BankCollectionPage> {
                 const SizedBox(height: ZSpacing.sm),
                 ZTextField(controller: _lateFeeController, label: 'Recargo', keyboardType: TextInputType.number),
                 const SizedBox(height: ZSpacing.sm),
-                ZTextField(controller: _invoiceIdController, label: 'ID de Factura'),
+                invoices.when(
+                  data: (items) => ZSelect<String>(
+                    value: _selectedInvoiceId,
+                    label: 'Factura',
+                    hint: 'Seleccione una factura...',
+                    items: items,
+                    onChanged: (val) => setState(() => _selectedInvoiceId = val),
+                    validator: (v) => v == null ? 'Requerido' : null,
+                  ),
+                  loading: () => const SizedBox(height: 80, child: Center(child: CircularProgressIndicator())),
+                  error: (_, __) => ZTextField(controller: TextEditingController(), label: 'ID de Factura'),
+                ),
                 const SizedBox(height: ZSpacing.sm),
-                ZTextField(controller: _costCenterIdController, label: 'ID de Centro de Costos'),
+                costCenters.when(
+                  data: (items) => ZSelect<String>(
+                    value: _selectedCostCenterId,
+                    label: 'Centro de Costos',
+                    hint: 'Seleccione un centro...',
+                    items: items,
+                    onChanged: (val) => setState(() => _selectedCostCenterId = val),
+                  ),
+                  loading: () => const SizedBox(height: 80, child: Center(child: CircularProgressIndicator())),
+                  error: (_, __) => const SizedBox.shrink(),
+                ),
                 const SizedBox(height: ZSpacing.lg),
                 ZButton(
                   text: 'Guardar Cobranza',
@@ -65,8 +99,8 @@ class _BankCollectionPageState extends ConsumerState<BankCollectionPage> {
           'amount': double.parse(_amountController.text),
           'interest': double.parse(_interestController.text),
           'lateFee': double.parse(_lateFeeController.text),
-          'invoiceId': _invoiceIdController.text,
-          'costCenterId': _costCenterIdController.text,
+          'invoiceId': _selectedInvoiceId,
+          'costCenterId': _selectedCostCenterId,
         });
         
         if (mounted) {

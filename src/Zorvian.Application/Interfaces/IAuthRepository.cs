@@ -17,6 +17,7 @@ public interface IAuthRepository
     Task AddUserTenantAsync(UserTenant userTenant);
     Task<bool> UserHasTenantAccessAsync(Guid userId, string tenantId);
     Task<List<Company>> GetCompaniesByTenantIdsAsync(List<string> tenantIds);
+    Task<Company?> GetCompanyByTenantIdAsync(string tenantId);
     Task<(List<Company> Items, int Total)> GetCompaniesPagedAsync(int page, int pageSize);
     Task<List<Company>> GetAllCompaniesAsync();
 

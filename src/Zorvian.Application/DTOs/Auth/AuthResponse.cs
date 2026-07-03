@@ -13,5 +13,6 @@ public sealed record UserInfo(
     string DisplayName,
     string Role,
     string TenantId,
+    string CurrencyCode = "NIO",
     string? EmployeeId = null
 );

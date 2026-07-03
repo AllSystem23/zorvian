@@ -1,4 +1,4 @@
-using Zorvian.Core.Enums;
+using Zorvian.Core.Entities;
 
 namespace Zorvian.Core.Models;
 
@@ -9,7 +9,7 @@ public record PayrollContext(
 );
 
 public record TerminationContext(
-    TerminationType Type,
+    TerminationReason Type,
     DateTime HireDate,
     DateTime TerminationDate,
     decimal MonthlySalary

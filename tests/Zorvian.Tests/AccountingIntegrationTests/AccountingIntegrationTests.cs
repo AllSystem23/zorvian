@@ -49,7 +49,7 @@ public sealed class AccountingIntegrationTests : IDisposable
 
         _autoAccounting = new AutoAccountingService(
             new EntryRepo(_db, _companyId), periodRepo.Object, new LinkRepo(_db), ruleRepo.Object,
-            new AccRepo(_db), _tenant.Object, payrollRepo.Object, new CashMovementRepo(_db), new AccountingRuleTemplateRepository(_db), new CompanyRepository(_db), new Mock<IFiscalYearRepository>().Object);
+            new AccRepo(_db), _tenant.Object, payrollRepo.Object, new CashMovementRepo(_db), new AccountingRuleTemplateRepository(_db), new CompanyRepository(_db), new Mock<IFiscalYearRepository>().Object, new Mock<ICountryTaxConfigRepository>().Object);
 
         _approvalEngine.Setup(e => e.EvaluateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<string>()))
             .ReturnsAsync(new Zorvian.Application.DTOs.Approval.ApprovalEvaluationResult(false, null, null));

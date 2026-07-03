@@ -122,8 +122,10 @@ final class NavConfig {
       textColor: ZColors.modulePurchasesText,
       group: 'operations',
       children: [
+        NavItem(id: 'facturas-compra', label: 'Facturas de Compra', icon: Icons.receipt_long_outlined, route: '/purchases'),
         NavItem(id: 'compras-ordenes', label: 'Órdenes de Compra', icon: Icons.receipt_outlined, route: '/purchase-orders'),
         NavItem(id: 'proveedores', label: 'Proveedores', icon: Icons.factory_outlined, route: '/suppliers'),
+        NavItem(id: 'pagos-proveedores', label: 'Pagos a Proveedores', icon: Icons.payments_outlined, route: '/providers/payments'),
       ],
     ),
 
@@ -170,6 +172,8 @@ final class NavConfig {
         NavItem(id: 'catalogo-cuentas', label: 'Catálogo de Cuentas', icon: Icons.account_tree_outlined, route: '/accounting/chart-of-accounts', roles: ['SuperAdmin', 'CompanyAdmin', 'Accountant']),
         NavItem(id: 'tipo-cambio', label: 'Tipo de Cambio', icon: Icons.currency_exchange_outlined, route: '/exchange-rates'),
         NavItem(id: 'presupuestos', label: 'Presupuestos', icon: Icons.account_balance_wallet_outlined, route: '/budgets', roles: ['SuperAdmin', 'CompanyAdmin', 'Accountant']),
+        NavItem(id: 'presupuesto-vs-real', label: 'Presupuesto vs Real', icon: Icons.compare_arrows_outlined, route: '/budgets/vs-actual', roles: ['SuperAdmin', 'CompanyAdmin', 'Accountant']),
+        NavItem(id: 'conciliaciones', label: 'Conciliaciones Bancarias', icon: Icons.compare_arrows_outlined, route: '/reconciliations', roles: ['SuperAdmin', 'CompanyAdmin', 'Accountant']),
         NavItem(id: 'centros-costo', label: 'Centros de Costo', icon: Icons.pie_chart_outline, route: '/cost-centers', roles: ['SuperAdmin', 'CompanyAdmin', 'Accountant']),
       ],
     ),

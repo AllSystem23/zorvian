@@ -40,11 +40,19 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
   String? _error;
   bool _isEditing = false;
   bool _hasChanges = false;
+  
+  // Payroll deduction fields
+  bool _deductInss = true;
+  bool _deductIr = true;
+  bool _deductAguinaldo = true;
+  bool _isTrustPosition = false;
+  bool _isDomesticWorkerWithBoard = false;
 
   final List<String> _stepLabels = [
     'Datos Personales',
     'Posición y Salario',
-    'Información Bancaria'
+    'Información Bancaria',
+    'Configuración de Nómina'
   ];
 
   @override
@@ -93,6 +101,11 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
         if (data['hireDate'] != null) {
           try { _hireDate = DateTime.parse(data['hireDate'] as String); } catch (_) {}
         }
+        _deductInss = data['deductInss'] ?? true;
+        _deductIr = data['deductIr'] ?? true;
+        _deductAguinaldo = data['deductAguinaldo'] ?? true;
+        _isTrustPosition = data['isTrustPosition'] ?? false;
+        _isDomesticWorkerWithBoard = data['isDomesticWorkerWithBoard'] ?? false;
         _hasChanges = false;
       });
     } catch (_) {
@@ -122,6 +135,11 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
         if (_salaryCtrl.text.isNotEmpty) 'salary': double.tryParse(_salaryCtrl.text),
         if (_isEditing) 'status': _status,
         if (_hireDate != null) 'hireDate': _hireDate!.toIso8601String().substring(0, 10),
+        'deductInss': _deductInss,
+        'deductIr': _deductIr,
+        'deductAguinaldo': _deductAguinaldo,
+        'isTrustPosition': _isTrustPosition,
+        'isDomesticWorkerWithBoard': _isDomesticWorkerWithBoard,
       };
 
       if (_isEditing) {
@@ -265,6 +283,7 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
       case 0: return _buildStepOne();
       case 1: return _buildStepTwo();
       case 2: return _buildStepThree();
+      case 3: return _buildStepFour();
       default: return const SizedBox.shrink();
     }
   }
@@ -439,6 +458,73 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
         const SizedBox(height: 4),
         Text(subtitle, style: ZTypography.bodyMedium.copyWith(color: ZColors.neutral500)),
       ],
+    );
+  }
+
+  Widget _buildStepFour() {
+    return Column(
+      key: const ValueKey(3),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Configuración de Nómina', 'Defina las deducciones y condiciones especiales para el cálculo de nómina.'),
+        const SizedBox(height: 24),
+        ZCard(
+          child: Column(
+            children: [
+              _buildPayrollCheckbox(
+                value: _deductInss,
+                label: 'Deducir INSS',
+                subtitle: 'Aplica deducción de seguro social al empleado',
+                onChanged: (v) => setState(() { _deductInss = v ?? false; _onFieldChanged(); }),
+              ),
+              const Divider(height: 1),
+              _buildPayrollCheckbox(
+                value: _deductIr,
+                label: 'Deducir IR',
+                subtitle: 'Aplica retención de Impuesto sobre la Renta',
+                onChanged: (v) => setState(() { _deductIr = v ?? false; _onFieldChanged(); }),
+              ),
+              const Divider(height: 1),
+              _buildPayrollCheckbox(
+                value: _deductAguinaldo,
+                label: 'Deducir Aguinaldo',
+                subtitle: 'Aplica provisión proporcional de aguinaldo',
+                onChanged: (v) => setState(() { _deductAguinaldo = v ?? false; _onFieldChanged(); }),
+              ),
+              const Divider(height: 1),
+              _buildPayrollCheckbox(
+                value: _isTrustPosition,
+                label: 'Cargo de Confianza',
+                subtitle: 'Aplica topes de indemnización según Art. 46 CT (Nicaragua)',
+                onChanged: (v) => setState(() { _isTrustPosition = v ?? false; _onFieldChanged(); }),
+              ),
+              const Divider(height: 1),
+              _buildPayrollCheckbox(
+                value: _isDomesticWorkerWithBoard,
+                label: 'Trabajador Doméstico con Board',
+                subtitle: 'Aplica 1.5× en aguinaldo e indemnización (Art. 145 CT)',
+                onChanged: (v) => setState(() { _isDomesticWorkerWithBoard = v ?? false; _onFieldChanged(); }),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPayrollCheckbox({
+    required bool value,
+    required String label,
+    required String subtitle,
+    required ValueChanged<bool?> onChanged,
+  }) {
+    return CheckboxListTile(
+      value: value,
+      onChanged: (v) => onChanged(v ?? false),
+      title: Text(label, style: ZTypography.titleSmall),
+      subtitle: Text(subtitle, style: ZTypography.bodySmall.copyWith(color: ZColors.neutral500)),
+      controlAffinity: ListTileControlAffinity.trailing,
+      dense: true,
     );
   }
 }

@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Models;
-using Zorvian.Core.Enums;
+using Zorvian.Core.Entities;
 using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers;
@@ -32,4 +32,4 @@ public sealed class SettlementController : ControllerBase
     }
 }
 
-public record SettlementRequest(Guid CompanyId, Guid EmployeeId, TerminationType TerminationType, DateTime HireDate, DateTime TerminationDate, decimal Salary);
+public record SettlementRequest(Guid CompanyId, Guid EmployeeId, TerminationReason TerminationType, DateTime HireDate, DateTime TerminationDate, decimal Salary);

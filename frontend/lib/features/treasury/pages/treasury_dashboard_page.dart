@@ -3,12 +3,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../shared/ds/ds.dart';
 import '../../../core/widgets/responsive_layout.dart';
+import '../../../core/providers/company_currency_provider.dart';
+import '../providers/treasury_dashboard_provider.dart';
 
 class TreasuryDashboardPage extends ConsumerWidget {
   const TreasuryDashboardPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final summaryAsync = ref.watch(treasuryDashboardSummaryProvider);
+    final summary = summaryAsync.asData?.value;
+    final totalBalance = summary?.totalBankBalance ?? 0;
+    final pendingDeposits = summary?.pendingDeposits ?? 0;
+    final outstandingChecks = summary?.outstandingChecks ?? 0;
+    final pendingReconciliations = summary?.pendingReconciliations ?? 0;
+    final isLoading = summaryAsync.isLoading;
+    // Company currency from auth state — dynamic per tenant
+    final fmt = ref.watch(currencyFormatServiceProvider);
+
     return Scaffold(
       backgroundColor: Theme.of(context).brightness == Brightness.dark ? ZColors.darkBackground : ZColors.neutral50,
       appBar: AppBar(
@@ -30,10 +42,21 @@ class TreasuryDashboardPage extends ConsumerWidget {
               tabletColumns: 2,
               desktopColumns: 4,
               children: [
-                const ZStatCard(title: 'Saldo Bancario Total', value: 'C\$ 1,250,400.00', icon: Icons.account_balance_outlined, variant: ZStatVariant.primary),
-                const ZStatCard(title: 'Depósitos Pendientes', value: '12', icon: Icons.move_to_inbox_outlined, variant: ZStatVariant.info),
-                const ZStatCard(title: 'Cheques por Cobrar', value: '5', icon: Icons.payments_outlined, variant: ZStatVariant.warning),
-                const ZStatCard(title: 'Conciliaciones Requeridas', value: '3', icon: Icons.compare_arrows_outlined, variant: ZStatVariant.danger),
+                GestureDetector(
+                  onTap: () => context.push('/treasury/checks'),
+                  child: ZStatCard(
+                    title: 'Saldo Bancario Total',
+                    value: isLoading ? '...' : fmt.currency(totalBalance),
+                    icon: Icons.account_balance_outlined,
+                    variant: ZStatVariant.primary,
+                  ),
+                ),
+                ZStatCard(title: 'Depósitos Pendientes', value: isLoading ? '...' : pendingDeposits.toString(), icon: Icons.move_to_inbox_outlined, variant: pendingDeposits > 0 ? ZStatVariant.warning : ZStatVariant.info),
+                ZStatCard(title: 'Cheques por Cobrar', value: isLoading ? '...' : outstandingChecks.toString(), icon: Icons.payments_outlined, variant: outstandingChecks > 0 ? ZStatVariant.warning : ZStatVariant.info),
+                GestureDetector(
+                  onTap: () => context.push('/reconciliations'),
+                  child: ZStatCard(title: 'Conciliaciones Requeridas', value: isLoading ? '...' : pendingReconciliations.toString(), icon: Icons.compare_arrows_outlined, variant: pendingReconciliations > 0 ? ZStatVariant.danger : ZStatVariant.success),
+                ),
               ],
             ),
             
@@ -76,6 +99,7 @@ class TreasuryDashboardPage extends ConsumerWidget {
             _OperationButton(label: 'Cheques', icon: Icons.payments, color: ZColors.warning, route: '/treasury/checks'),
             _OperationButton(label: 'Comisión', icon: Icons.percent, color: ZColors.brandAccent, route: '/treasury/commissions'),
             _OperationButton(label: 'Cobranza', icon: Icons.receipt_long, color: ZColors.moduleCrm, route: '/treasury/collections'),
+            _OperationButton(label: 'Conciliación', icon: Icons.compare_arrows, color: ZColors.brandAccent, route: '/reconciliations'),
           ],
         ),
       ],

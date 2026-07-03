@@ -14,6 +14,7 @@ class SecureStorage {
   static const _rememberEmailKey = 'remember_email';
   static const _rememberPasswordKey = 'remember_password';
   static const _rememberMeKey = 'remember_me';
+  static const _currencyCodeKey = 'currency_code';
 
   Future<void> saveTokens(String access, String refresh) async {
     await Future.wait([
@@ -75,6 +76,10 @@ class SecureStorage {
       _delete(_rememberMeKey),
     ]);
   }
+
+  Future<void> saveCurrencyCode(String code) => _write(_currencyCodeKey, code);
+
+  Future<String?> getCurrencyCode() => _read(_currencyCodeKey);
 
   Future<void> _write(String key, String value) async {
     _memory[key] = value;

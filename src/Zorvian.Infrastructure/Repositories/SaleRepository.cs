@@ -82,16 +82,26 @@ public sealed class SaleRepository : ISaleRepository
         return await query.CountAsync();
     }
 
+    private static readonly System.Threading.SemaphoreSlim _invoiceNumberSemaphore = new(1, 1);
+
     public async Task<string> GenerateInvoiceNumberAsync(Guid companyId)
     {
-        if (_db.Database.ProviderName != "Microsoft.EntityFrameworkCore.InMemory")
+        await _invoiceNumberSemaphore.WaitAsync();
+        try
         {
-            await _db.Database.ExecuteSqlRawAsync(
-                @"SELECT 1 FROM ""Companies"" WHERE ""Id"" = {0} FOR UPDATE", companyId);
-        }
+            if (_db.Database.ProviderName != "Microsoft.EntityFrameworkCore.InMemory")
+            {
+                await _db.Database.ExecuteSqlRawAsync(
+                    @"SELECT 1 FROM ""Companies"" WHERE ""Id"" = {0} FOR UPDATE", companyId);
+            }
 
-        var count = await _db.Set<Sale>().CountAsync(s => s.CompanyId == companyId);
-        return $"FAC-{DateTime.UtcNow:yyyyMMdd}-{(count + 1):D4}";
+            var count = await _db.Set<Sale>().CountAsync(s => s.CompanyId == companyId);
+            return $"FAC-{DateTime.UtcNow:yyyyMMdd}-{(count + 1):D4}";
+        }
+        finally
+        {
+            _invoiceNumberSemaphore.Release();
+        }
     }
 
     public async Task<decimal> GetTodaySalesAsync(Guid branchId)

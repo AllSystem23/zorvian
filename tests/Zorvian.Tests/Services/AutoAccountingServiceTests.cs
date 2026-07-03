@@ -3,6 +3,7 @@ using Xunit;
 using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
 using Zorvian.Core.Entities;
+using Zorvian.Core.Interfaces;
 using System.Text.Json;
 
 namespace Zorvian.Tests.Services;
@@ -15,7 +16,19 @@ public sealed class AutoAccountingServiceTests
     public AutoAccountingServiceTests()
     {
         _repoMock = new Mock<IAccountingRuleTemplateRepository>();
-        _sut = new AutoAccountingService(_repoMock.Object);
+        _sut = new AutoAccountingService(
+            new Mock<IAccountingEntryRepository>().Object,
+            new Mock<IAccountingPeriodRepository>().Object,
+            new Mock<IAccountLinkRepository>().Object,
+            new Mock<IAccountingRuleRepository>().Object,
+            new Mock<IAccountRepository>().Object,
+            new Mock<ITenantContext>().Object,
+            new Mock<IPayrollRepository>().Object,
+            new Mock<ICashMovementRepository>().Object,
+            _repoMock.Object,
+            new Mock<ICompanyRepository>().Object,
+            new Mock<IFiscalYearRepository>().Object,
+            new Mock<ICountryTaxConfigRepository>().Object);
     }
 
     [Fact]

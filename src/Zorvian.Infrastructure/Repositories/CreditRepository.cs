@@ -70,10 +70,20 @@ public sealed class CreditRepository : ICreditRepository
         return await query.CountAsync();
     }
 
+    private static readonly System.Threading.SemaphoreSlim _creditNumberSemaphore = new(1, 1);
+
     public async Task<string> GenerateCreditNumberAsync(Guid companyId)
     {
-        var count = await _db.Set<Credit>().CountAsync(c => c.CompanyId == companyId);
-        return $"CRE-{DateTime.UtcNow:yyyyMMdd}-{(count + 1):D4}";
+        await _creditNumberSemaphore.WaitAsync();
+        try
+        {
+            var count = await _db.Set<Credit>().CountAsync(c => c.CompanyId == companyId);
+            return $"CRE-{DateTime.UtcNow:yyyyMMdd}-{(count + 1):D4}";
+        }
+        finally
+        {
+            _creditNumberSemaphore.Release();
+        }
     }
 
     public async Task<int> GetActiveCreditsCountAsync(Guid branchId) =>

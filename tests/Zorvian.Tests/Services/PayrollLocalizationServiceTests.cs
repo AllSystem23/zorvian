@@ -5,7 +5,7 @@ using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Models;
-using Zorvian.Core.Enums;
+
 using Zorvian.Infrastructure.Data;
 using Zorvian.Core.Interfaces;
 
@@ -66,7 +66,7 @@ public sealed class PayrollLocalizationServiceTests
         var employeeId = Guid.NewGuid();
         _exemptionRepoMock.Setup(r => r.IsExemptAsync(employeeId, concept.Id)).ReturnsAsync(false);
 
-        var context = new PayrollContext(10, false, new TerminationContext(TerminationType.Resignation, DateTime.Now.AddYears(-1), DateTime.Now, 1000m));
+        var context = new PayrollContext(10, false, new TerminationContext(TerminationReason.VoluntaryResignation, DateTime.Now.AddYears(-1), DateTime.Now, 1000m));
 
         var result = await _sut.CalculateConceptAsync(concept, 1000m, context, employeeId);
 

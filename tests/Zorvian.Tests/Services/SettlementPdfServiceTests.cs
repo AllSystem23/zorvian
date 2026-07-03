@@ -2,7 +2,7 @@ using Moq;
 using Xunit;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Models;
-using Zorvian.Core.Enums;
+using Zorvian.Core.Entities;
 using Zorvian.Infrastructure.Services;
 
 namespace Zorvian.Tests.Services;
@@ -14,7 +14,7 @@ public sealed class SettlementPdfServiceTests
     {
         // Arrange
         var service = new SettlementPdfService();
-        var context = new PayrollContext(1, false, new TerminationContext(TerminationType.Resignation, DateTime.Now.AddYears(-1), DateTime.Now, 1000m));
+        var context = new PayrollContext(1, false, new TerminationContext(TerminationReason.VoluntaryResignation, DateTime.Now.AddYears(-1), DateTime.Now, 1000m));
         
         // Act
         var result = await service.GenerateSettlementPdfAsync(Guid.NewGuid(), Guid.NewGuid(), context);

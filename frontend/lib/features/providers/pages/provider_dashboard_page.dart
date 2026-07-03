@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_currency_provider.dart';
 import '../../../core/widgets/responsive_layout.dart';
 import '../../../shared/ds/ds.dart';
 
@@ -68,6 +69,7 @@ class ProviderDashboardPage extends ConsumerWidget {
     final historyAsync = ref.watch(providerRankingHistoryProvider);
 
     final currentCountry = ref.watch(selectedCountryProvider);
+    final fmt = ref.watch(currencyFormatServiceProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -126,18 +128,18 @@ class ProviderDashboardPage extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildKPIRow(data),
+                _buildKPIRow(data, fmt),
                 const SizedBox(height: 24),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(flex: 2, child: _buildMilestonesChart(data)),
                     const SizedBox(width: 16),
-                    Expanded(flex: 1, child: _buildTopProviders(data)),
+                    Expanded(flex: 1, child: _buildTopProviders(data, fmt)),
                   ],
                 ),
                 const SizedBox(height: 24),
-                _buildRecentContracts(data),
+                _buildRecentContracts(data, fmt),
                 const SizedBox(height: 24),
                 _buildRankingsSection(rankingsAsync),
                 const SizedBox(height: 24),
@@ -152,7 +154,7 @@ class ProviderDashboardPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildKPIRow(Map<String, dynamic> data) {
+  Widget _buildKPIRow(Map<String, dynamic> data, CurrencyFormatService fmt) {
     return ResponsiveGrid(
       mobileColumns: 2,
       tabletColumns: 4,
@@ -175,7 +177,7 @@ class ProviderDashboardPage extends ConsumerWidget {
         _KpiTile(
           icon: Icons.attach_money,
           label: 'Valor Total',
-          value: _formatCurrency(data['totalContractValue']),
+          value: _fmtCompact(data['totalContractValue'], fmt),
           color: ZColors.moduleSales,
         ),
         _KpiTile(
@@ -194,7 +196,7 @@ class ProviderDashboardPage extends ConsumerWidget {
           icon: Icons.receipt_long,
           label: 'Facturas Pendientes',
           value: '${data['pendingInvoices'] ?? 0}',
-          subtitle: _formatCurrency(data['pendingInvoiceAmount']),
+          subtitle: _fmtCompact(data['pendingInvoiceAmount'], fmt),
           color: ZColors.moduleFinance,
         ),
       ],
@@ -284,7 +286,7 @@ class ProviderDashboardPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildTopProviders(Map<String, dynamic> data) {
+  Widget _buildTopProviders(Map<String, dynamic> data, CurrencyFormatService fmt) {
     final topProviders = (data['topProviders'] as List?)
             ?.map((e) => Map<String, dynamic>.from(e as Map))
             .toList() ??
@@ -318,7 +320,7 @@ class ProviderDashboardPage extends ConsumerWidget {
                 ),
                 title: Text(p['businessName'] as String? ?? '', style: ZTypography.labelMedium),
                 subtitle: Text('${p['contractCount']} contratos', style: ZTypography.labelSmall),
-                trailing: Text(_formatCurrency(p['totalValue']), style: ZTypography.labelMedium.copyWith(fontWeight: FontWeight.w600)),
+                trailing: Text(_fmtCompact(p['totalValue'], fmt), style: ZTypography.labelMedium.copyWith(fontWeight: FontWeight.w600)),
               );
             }),
         ],
@@ -326,7 +328,7 @@ class ProviderDashboardPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildRecentContracts(Map<String, dynamic> data) {
+  Widget _buildRecentContracts(Map<String, dynamic> data, CurrencyFormatService fmt) {
     final recentContracts = (data['recentContracts'] as List?)
             ?.map((e) => Map<String, dynamic>.from(e as Map))
             .toList() ??
@@ -367,7 +369,7 @@ class ProviderDashboardPage extends ConsumerWidget {
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(_formatCurrency(c['totalAmount']), style: ZTypography.labelSmall.copyWith(fontWeight: FontWeight.w600)),
+                    Text(_fmtCompact(c['totalAmount'], fmt), style: ZTypography.labelSmall.copyWith(fontWeight: FontWeight.w600)),
                     const SizedBox(width: 8),
                     ZBadge(text: status.toUpperCase(), type: ZBadgeType.neutral),
                   ],
@@ -527,13 +529,9 @@ class ProviderDashboardPage extends ConsumerWidget {
     );
   }
 
-  static String _formatCurrency(dynamic value) {
-    if (value == null) return 'N/A';
-    final d = (value as num).toDouble();
-    if (d >= 1000000) return '\$${(d / 1000000).toStringAsFixed(1)}M';
-    if (d >= 1000) return '\$${(d / 1000).toStringAsFixed(1)}K';
-    return '\$${d.toStringAsFixed(2)}';
-  }
+  /// Formats a nullable dynamic value with compact currency, returning 'N/A' for null.
+  static String _fmtCompact(dynamic value, CurrencyFormatService fmt) =>
+      value == null ? 'N/A' : fmt.currencyCompact(value as num);
 }
 
 class _RankingTile extends StatelessWidget {

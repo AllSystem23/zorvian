@@ -2,7 +2,6 @@ import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import '../../../auth/auth_provider.dart';
-import '../../../core/network/api_config.dart';
 
 class SettlementService {
   final Ref _ref;
@@ -19,15 +18,10 @@ class SettlementService {
     required double accruedAguinaldo,
     required double indemnization,
   }) async {
-    final storage = _ref.read(secureStorageProvider);
-    final token = await storage.getAccessToken();
-    
-    // Base URL is managed by DioClient, but here we might need it for a direct call or use dio instance
-    final dio = Dio();
-    final url = ApiConfig.resolve('payroll/settlement/generate-pdf');
+    final dio = _ref.read(dioClientProvider);
 
-    final response = await dio.post(
-      url,
+    final response = await dio.post<dynamic>(
+      'payroll/settlement/generate-pdf',
       data: {
         'employeeId': employeeId,
         'companyId': companyId,
@@ -40,9 +34,6 @@ class SettlementService {
       },
       options: Options(
         responseType: ResponseType.bytes,
-        headers: {
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
       ),
     );
 

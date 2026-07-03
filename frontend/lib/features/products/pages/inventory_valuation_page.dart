@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
+import '../../../core/providers/company_currency_provider.dart';
 import '../../../core/widgets/responsive_layout.dart';
 import '../../../shared/ds/ds.dart';
 import '../providers/product_provider.dart';
@@ -41,7 +41,7 @@ class _InventoryValuationPageState
   Widget build(BuildContext context) {
     final state = ref.watch(productProvider);
     final theme = Theme.of(context);
-    final currency = NumberFormat.currency(locale: 'es_NI', symbol: 'C\$');
+    final fmt = ref.watch(currencyFormatServiceProvider);
 
     final items = state.items;
     final costedItems = items.where((p) => (p.cost ?? 0) > 0).toList();
@@ -55,7 +55,7 @@ class _InventoryValuationPageState
         .length;
     final outOfStock = items.where((p) => p.stock <= 0 && p.isActive).length;
     final averageCost = costedItems.isEmpty
-        ? 0
+        ? 0.0
         : costedItems.fold<double>(0, (sum, p) => sum + (p.cost ?? 0)) /
               costedItems.length;
 
@@ -113,7 +113,7 @@ class _InventoryValuationPageState
                     children: [
                       ZStatCard(
                         title: 'Valor Total (Costo)',
-                        value: currency.format(totalValue),
+                        value: fmt.currency(totalValue),
                         icon: Icons.inventory_2_outlined,
                         variant: ZStatVariant.primary,
                       ),
@@ -161,7 +161,7 @@ class _InventoryValuationPageState
                             ),
                             _MetricChip(
                               label: 'Costo promedio',
-                              value: currency.format(averageCost),
+                              value: fmt.currency(averageCost),
                             ),
                             _MetricChip(
                               label: 'Categorías',
@@ -217,7 +217,7 @@ class _InventoryValuationPageState
                             ),
                             DataCell(
                               Text(
-                                currency.format(row.value),
+                                fmt.currency(row.value),
                                 textAlign: TextAlign.right,
                               ),
                             ),

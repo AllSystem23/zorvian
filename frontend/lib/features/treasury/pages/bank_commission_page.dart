@@ -13,12 +13,21 @@ class BankCommissionPage extends ConsumerStatefulWidget {
 class _BankCommissionPageState extends ConsumerState<BankCommissionPage> {
   final _formKey = GlobalKey<FormState>();
   
+  String? _selectedBankAccountId;
   final _amountController = TextEditingController();
-  final _bankAccountIdController = TextEditingController();
   final _descriptionController = TextEditingController();
 
   @override
+  void dispose() {
+    _amountController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final bankAccounts = ref.watch(treasuryBankAccountsProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Registrar Comisión')),
       body: SingleChildScrollView(
@@ -27,8 +36,20 @@ class _BankCommissionPageState extends ConsumerState<BankCommissionPage> {
           child: Form(
             key: _formKey,
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ZTextField(controller: _bankAccountIdController, label: 'ID de Cuenta Bancaria'),
+                bankAccounts.when(
+                  data: (items) => ZSelect<String>(
+                    value: _selectedBankAccountId,
+                    label: 'Cuenta Bancaria',
+                    hint: 'Seleccione una cuenta...',
+                    items: items,
+                    onChanged: (val) => setState(() => _selectedBankAccountId = val),
+                    validator: (v) => v == null ? 'Requerido' : null,
+                  ),
+                  loading: () => const SizedBox(height: 80, child: Center(child: CircularProgressIndicator())),
+                  error: (_, __) => ZTextField(controller: TextEditingController(), label: 'ID de Cuenta Bancaria'),
+                ),
                 const SizedBox(height: ZSpacing.sm),
                 ZTextField(controller: _amountController, label: 'Monto', keyboardType: TextInputType.number),
                 const SizedBox(height: ZSpacing.sm),
@@ -53,7 +74,7 @@ class _BankCommissionPageState extends ConsumerState<BankCommissionPage> {
       try {
         await treasuryService.generateBankCommissionEntry({
           'amount': double.parse(_amountController.text),
-          'bankAccountId': _bankAccountIdController.text,
+          'bankAccountId': _selectedBankAccountId,
           'description': _descriptionController.text,
         });
         

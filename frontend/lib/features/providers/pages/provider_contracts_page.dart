@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/providers/company_currency_provider.dart';
 import '../../../shared/ds/ds.dart';
 import '../providers/provider_state.dart';
 import '../../../core/entities/service_contract.dart';
@@ -11,6 +12,7 @@ class ProviderContractsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final contractsAsync = ref.watch(allContractsProvider);
+    final fmt = ref.watch(currencyFormatServiceProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Contratos de Servicios')),
@@ -28,7 +30,7 @@ class ProviderContractsPage extends ConsumerWidget {
                   children: [
                     Expanded(child: ZStatCard(title: 'Contratos Activos', value: activeCount.toString())),
                     const SizedBox(width: ZSpacing.md),
-                    Expanded(child: ZStatCard(title: 'Compromiso Total', value: 'C\$${totalAmount.toStringAsFixed(2)}')),
+                    Expanded(child: ZStatCard(title: 'Compromiso Total', value: fmt.currency(totalAmount))),
                   ],
                 );
               },

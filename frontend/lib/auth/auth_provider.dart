@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/error/error_notifier.dart';
 import '../core/network/dio_client.dart';
+import '../core/providers/company_currency_provider.dart';
 import '../core/storage/secure_storage.dart';
 
 final secureStorageProvider = Provider<SecureStorage>((_) => SecureStorage());
@@ -36,6 +37,7 @@ class AuthState {
   final String? role;
   final String? tenantId;
   final String? employeeId;
+  final String currencyCode;
 
   const AuthState({
     this.status = AuthStatus.unknown,
@@ -45,6 +47,7 @@ class AuthState {
     this.role,
     this.tenantId,
     this.employeeId,
+    this.currencyCode = 'NIO',
   });
 
   AuthState copyWith({
@@ -55,6 +58,7 @@ class AuthState {
     String? role,
     String? tenantId,
     String? employeeId,
+    String? currencyCode,
   }) => AuthState(
     status: status ?? this.status,
     userId: userId ?? this.userId,
@@ -63,6 +67,7 @@ class AuthState {
     role: role ?? this.role,
     tenantId: tenantId ?? this.tenantId,
     employeeId: employeeId ?? this.employeeId,
+    currencyCode: currencyCode ?? this.currencyCode,
   );
 }
 
@@ -78,6 +83,8 @@ class AuthNotifier extends Notifier<AuthState> {
         final dio = ref.read(dioClientProvider);
         final response = await dio.get('auth/me');
         final user = response.data;
+        final currencyCode = user['currencyCode'] ?? 'NIO';
+        await storage.saveCurrencyCode(currencyCode);
         state = AuthState(
           status: AuthStatus.authenticated,
           userId: user['id'],
@@ -86,6 +93,7 @@ class AuthNotifier extends Notifier<AuthState> {
           role: user['role'],
           tenantId: user['tenantId'],
           employeeId: user['employeeId'],
+          currencyCode: currencyCode,
         );
       } catch (_) {
         await storage.clearTokens();
@@ -112,6 +120,8 @@ class AuthNotifier extends Notifier<AuthState> {
           .catchError((_) => null);
 
       final user = data['user'];
+      final currencyCode = user['currencyCode'] ?? 'NIO';
+      await storage.saveCurrencyCode(currencyCode);
       state = AuthState(
         status: AuthStatus.authenticated,
         userId: user['id'],
@@ -120,6 +130,7 @@ class AuthNotifier extends Notifier<AuthState> {
         role: user['role'],
         tenantId: user['tenantId'],
         employeeId: user['employeeId'],
+        currencyCode: currencyCode,
       );
       return true;
     } catch (_) {
@@ -150,6 +161,8 @@ class AuthNotifier extends Notifier<AuthState> {
           .catchError((_) => null);
 
       final user = data['user'];
+      final currencyCode = user['currencyCode'] ?? 'NIO';
+      await storage.saveCurrencyCode(currencyCode);
       state = AuthState(
         status: AuthStatus.authenticated,
         userId: user['id'],
@@ -158,6 +171,7 @@ class AuthNotifier extends Notifier<AuthState> {
         role: user['role'],
         tenantId: user['tenantId'],
         employeeId: user['employeeId'],
+        currencyCode: currencyCode,
       );
       return true;
     } catch (_) {
@@ -168,6 +182,10 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<void> logout() async {
     final storage = ref.read(secureStorageProvider);
     await storage.clearTokens();
+    // Reset both caches so the next login doesn't briefly show the previous
+    // company's currency before auth/me resolves.
+    clearCachedCurrencyCode();
+    await storage.saveCurrencyCode('NIO');
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 
@@ -201,6 +219,8 @@ class AuthNotifier extends Notifier<AuthState> {
       }
 
       final user = data['user'];
+      final currencyCode = user['currencyCode'] ?? 'NIO';
+      await storage.saveCurrencyCode(currencyCode);
       state = AuthState(
         status: AuthStatus.authenticated,
         userId: user['id'],
@@ -209,6 +229,7 @@ class AuthNotifier extends Notifier<AuthState> {
         role: user['role'],
         tenantId: user['tenantId'],
         employeeId: user['employeeId'],
+        currencyCode: currencyCode,
       );
       return true;
     } catch (_) {

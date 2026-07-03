@@ -35,7 +35,7 @@ public sealed class PayrollLocalizationService : IPayrollLocalizationService
             // 3. Liquidación Logic (Context-based)
             if (context.Termination != null)
             {
-                if (concept.Code == "INDEM_ANT" && context.Termination.Type == Zorvian.Core.Enums.TerminationType.Resignation)
+                if (concept.Code == "INDEM_ANT" && context.Termination.Type == Zorvian.Core.Entities.TerminationReason.VoluntaryResignation)
                     return 0m; 
             }
 

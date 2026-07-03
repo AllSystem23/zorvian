@@ -15,11 +15,21 @@ public sealed class TreasuryController : ControllerBase
 {
     private readonly ITreasuryService _treasury;
     private readonly IAutoAccountingService _accounting;
+    private readonly ITreasuryDashboardService _dashboard;
 
-    public TreasuryController(ITreasuryService treasury, IAutoAccountingService accounting)
+    public TreasuryController(ITreasuryService treasury, IAutoAccountingService accounting, ITreasuryDashboardService dashboard)
     {
         _treasury = treasury;
         _accounting = accounting;
+        _dashboard = dashboard;
+    }
+
+    [HttpGet("dashboard-summary")]
+    [RequirePermission(Permissions.AccountingRead)]
+    public async Task<IActionResult> GetDashboardSummary()
+    {
+        var summary = await _dashboard.GetSummaryAsync();
+        return Ok(summary);
     }
 
     private Guid CurrentUserId =>

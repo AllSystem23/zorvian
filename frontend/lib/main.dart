@@ -9,6 +9,7 @@ import 'core/services/local_notification_service.dart';
 import 'core/theme/theme_provider.dart';
 import 'features/biometrics/providers/biometric_provider.dart';
 import 'auth/auth_provider.dart';
+import 'core/providers/company_currency_provider.dart';
 
 final localNotificationServiceProvider = Provider<LocalNotificationService>((_) => LocalNotificationService());
 
@@ -63,6 +64,10 @@ class _AppLoaderState extends ConsumerState<_AppLoader> {
   @override
   void initState() {
     super.initState();
+    // Preload cached currency code from SecureStorage so it's available
+    // immediately without waiting for auth/me.
+    _preloadCurrencyCache();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       try {
         ref.read(themeModeProvider.notifier).loadPreference();
@@ -76,6 +81,18 @@ class _AppLoaderState extends ConsumerState<_AppLoader> {
         ref.read(authProvider.notifier).checkAuth();
       } catch (_) {}
     });
+  }
+
+  Future<void> _preloadCurrencyCache() async {
+    try {
+      final storage = ref.read(secureStorageProvider);
+      final cached = await storage.getCurrencyCode();
+      if (cached != null) {
+        setCachedCurrencyCode(cached);
+      }
+    } catch (_) {
+      // Silently fall back to default
+    }
   }
 
   @override

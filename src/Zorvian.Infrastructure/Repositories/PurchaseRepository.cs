@@ -98,10 +98,20 @@ public sealed class PurchaseRepository : IPurchaseRepository
         return await query.SumAsync(p => p.Balance);
     }
 
+    private static readonly System.Threading.SemaphoreSlim _purchaseNumberSemaphore = new(1, 1);
+
     public async Task<string> GeneratePurchaseNumberAsync(Guid companyId)
     {
-        var count = await _db.Set<Purchase>().CountAsync(p => p.CompanyId == companyId);
-        return $"COMP-{DateTime.UtcNow:yyyyMMdd}-{(count + 1):D4}";
+        await _purchaseNumberSemaphore.WaitAsync();
+        try
+        {
+            var count = await _db.Set<Purchase>().CountAsync(p => p.CompanyId == companyId);
+            return $"COMP-{DateTime.UtcNow:yyyyMMdd}-{(count + 1):D4}";
+        }
+        finally
+        {
+            _purchaseNumberSemaphore.Release();
+        }
     }
 
     public async Task AddAsync(Purchase purchase) =>

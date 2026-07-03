@@ -83,7 +83,7 @@ class OpportunityNotifier extends Notifier<OpportunityState> {
   Future<bool> updateOpportunityStage(String opportunityId, String newStageId) async {
     try {
       final dio = ref.read(dioClientProvider);
-      await dio.put('zorvian/v1/crm/opportunities/$opportunityId', data: {
+      await dio.put('crm/opportunities/$opportunityId', data: {
         'stageId': newStageId,
       });
       await loadPipeline();
@@ -97,7 +97,7 @@ class OpportunityNotifier extends Notifier<OpportunityState> {
   Future<bool> updateOpportunity(String id, Map<String, dynamic> data) async {
     try {
       final dio = ref.read(dioClientProvider);
-      await dio.put('zorvian/v1/crm/opportunities/$id', data: data);
+      await dio.put('crm/opportunities/$id', data: data);
       await loadPipeline();
       return true;
     } catch (e) {
@@ -109,7 +109,7 @@ class OpportunityNotifier extends Notifier<OpportunityState> {
   Future<bool> deleteOpportunity(String id) async {
     try {
       final dio = ref.read(dioClientProvider);
-      await dio.delete('zorvian/v1/crm/opportunities/$id');
+      await dio.delete('crm/opportunities/$id');
       await loadPipeline();
       return true;
     } catch (e) {

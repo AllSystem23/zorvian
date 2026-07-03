@@ -163,6 +163,10 @@ public sealed class ZorvianDbContext : DbContext
 
     // New Module: Contabilidad
     public DbSet<Account> Accounts => Set<Account>();
+    public DbSet<Reconciliation> Reconciliations => Set<Reconciliation>();
+    public DbSet<ReconciliationDetail> ReconciliationDetails => Set<ReconciliationDetail>();
+    public DbSet<BudgetDetail> BudgetDetails => Set<BudgetDetail>();
+    public DbSet<BudgetTracking> BudgetTrackings => Set<BudgetTracking>();
     public DbSet<AccountingEntry> AccountingEntries => Set<AccountingEntry>();
     public DbSet<AccountingEntryDetail> AccountingEntryDetails => Set<AccountingEntryDetail>();
     public DbSet<FiscalYear> FiscalYears => Set<FiscalYear>();

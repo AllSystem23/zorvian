@@ -87,7 +87,7 @@ class LeadNotifier extends Notifier<LeadState> {
   Future<bool> updateLead(String id, Map<String, dynamic> data) async {
     try {
       final dio = ref.read(dioClientProvider);
-      await dio.put('zorvian/v1/crm/leads/$id', data: data);
+      await dio.put('crm/leads/$id', data: data);
       await loadLeads();
       return true;
     } catch (e) {
@@ -99,7 +99,7 @@ class LeadNotifier extends Notifier<LeadState> {
   Future<bool> deleteLead(String id) async {
     try {
       final dio = ref.read(dioClientProvider);
-      await dio.delete('zorvian/v1/crm/leads/$id');
+      await dio.delete('crm/leads/$id');
       await loadLeads();
       return true;
     } catch (e) {

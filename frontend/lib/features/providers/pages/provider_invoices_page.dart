@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_currency_provider.dart';
+import '../../../shared/ds/ds.dart';
 import '../providers/provider_state.dart';
 import '../data/provider_repository.dart';
 import '../../../core/entities/provider_invoice.dart';
@@ -18,6 +19,7 @@ final class _ProviderInvoicesPageState
   @override
   Widget build(BuildContext context) {
     final invoicesAsync = ref.watch(allInvoicesProvider);
+    final fmt = ref.watch(currencyFormatServiceProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Pagos y Facturas de Prestadores')),
@@ -47,7 +49,7 @@ final class _ProviderInvoicesPageState
                     Expanded(
                       child: ZStatCard(
                         title: 'Total por Pagar',
-                        value: 'C\$${totalPending.toStringAsFixed(2)}',
+                        value: fmt.currency(totalPending),
                       ),
                     ),
                   ],

@@ -104,10 +104,20 @@ public sealed class AccountingEntryRepository : IAccountingEntryRepository
         return await query.CountAsync();
     }
 
+    private static readonly System.Threading.SemaphoreSlim _entryNumberSemaphore = new(1, 1);
+
     public async Task<string> GenerateEntryNumberAsync(Guid companyId)
     {
-        var count = await _db.Set<AccountingEntry>().CountAsync(e => e.CompanyId == companyId);
-        return $"AS-{DateTime.UtcNow:yyyyMMdd}-{(count + 1):D4}";
+        await _entryNumberSemaphore.WaitAsync();
+        try
+        {
+            var count = await _db.Set<AccountingEntry>().CountAsync(e => e.CompanyId == companyId);
+            return $"AS-{DateTime.UtcNow:yyyyMMdd}-{(count + 1):D4}";
+        }
+        finally
+        {
+            _entryNumberSemaphore.Release();
+        }
     }
 
     public async Task<bool> HasEntriesForAccountAsync(Guid accountId) =>

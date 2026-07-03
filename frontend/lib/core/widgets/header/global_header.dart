@@ -7,6 +7,7 @@ import '../../navigation/nav_provider.dart';
 import '../../providers/company_branch_provider.dart';
 import '../../services/signalr_service.dart';
 import '../../theme/theme_provider.dart';
+import '../../../core/providers/company_currency_provider.dart';
 import '../../../shared/ds/ds.dart';
 
 /// GlobalHeader — Persistent top bar across all pages.
@@ -442,6 +443,10 @@ class _QuickActions extends ConsumerWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // ── Currency Indicator ──
+        _CurrencyIndicator(),
+        const SizedBox(width: ZSpacing.sm),
+
         // ── Connectivity Indicator ──
         _ConnectivityDot(state: connState),
         const SizedBox(width: ZSpacing.sm),
@@ -788,6 +793,361 @@ class _ConnectivityDot extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Currency indicator — shows the active company currency as a compact chip
+/// in the global header so users always know which currency is in use.
+/// Tapping opens an exchange rate popup vs USD.
+class _CurrencyIndicator extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currencyCode = ref.watch(companyCurrencyProvider);
+    return Tooltip(
+      message: 'Ver tipo de cambio',
+      child: GestureDetector(
+        onTap: () => _showExchangeRateDialog(context, ref, currencyCode),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: isDark
+                  ? [ZColors.brandPrimary.withValues(alpha: 0.3), ZColors.brandAccent.withValues(alpha: 0.2)]
+                  : [ZColors.brandPrimary.withValues(alpha: 0.08), ZColors.brandAccent.withValues(alpha: 0.05)],
+            ),
+            borderRadius: BorderRadius.circular(ZRadii.md),
+            border: Border.all(
+              color: isDark
+                  ? ZColors.brandAccent.withValues(alpha: 0.3)
+                  : ZColors.brandPrimary.withValues(alpha: 0.2),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.attach_money,
+                size: 14,
+                color: isDark ? ZColors.brandAccent : ZColors.brandPrimary,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                currencyCode,
+                style: ZTypography.labelSmall.copyWith(
+                  color: isDark ? ZColors.brandAccent : ZColors.brandPrimary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shows a popup with the latest exchange rate for [currencyCode] vs USD.
+Future<void> _showExchangeRateDialog(
+    BuildContext context, WidgetRef ref, String currencyCode) async {
+  showDialog(
+    context: context,
+    builder: (ctx) => _ExchangeRatePopup(currencyCode: currencyCode),
+  );
+}
+
+/// Internal popup widget that fetches the exchange rate on init.
+class _ExchangeRatePopup extends ConsumerStatefulWidget {
+  final String currencyCode;
+  const _ExchangeRatePopup({required this.currencyCode});
+
+  @override
+  ConsumerState<_ExchangeRatePopup> createState() => _ExchangeRatePopupState();
+}
+
+class _ExchangeRatePopupState extends ConsumerState<_ExchangeRatePopup> {
+  double? _rate;
+  DateTime? _effectiveDate;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchRate();
+  }
+
+  Future<void> _fetchRate() async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      final response = await dio.get(
+        'exchange-rates/rate',
+        params: {
+          'from': widget.currencyCode,
+          'to': 'USD',
+        },
+      );
+      final data = response.data as Map<String, dynamic>;
+      setState(() {
+        _rate = (data['rate'] as num?)?.toDouble();
+        _effectiveDate = data['date'] != null
+            ? DateTime.tryParse(data['date'] as String)
+            : null;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _loading = false;
+        _error = 'No se pudo obtener el tipo de cambio';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final code = widget.currencyCode;
+
+    return Dialog(
+      backgroundColor: isDark ? ZColors.darkSurface : ZColors.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ZRadii.lg)),
+      child: Padding(
+        padding: const EdgeInsets.all(ZSpacing.lg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Header ──
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: isDark
+                          ? [ZColors.brandPrimary.withValues(alpha: 0.3), ZColors.brandAccent.withValues(alpha: 0.2)]
+                          : [ZColors.brandPrimary.withValues(alpha: 0.1), ZColors.brandAccent.withValues(alpha: 0.08)],
+                    ),
+                    borderRadius: BorderRadius.circular(ZRadii.md),
+                  ),
+                  child: Icon(
+                    Icons.currency_exchange,
+                    color: isDark ? ZColors.brandAccent : ZColors.brandPrimary,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: ZSpacing.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Tipo de Cambio',
+                        style: ZTypography.titleSmall.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? ZColors.neutral100 : ZColors.neutral900,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Moneda activa: $code',
+                        style: ZTypography.bodySmall.copyWith(
+                          color: isDark ? ZColors.neutral400 : ZColors.neutral500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, size: 18),
+                  onPressed: () => Navigator.of(context).pop(),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  splashRadius: 16,
+                ),
+              ],
+            ),
+
+            const SizedBox(height: ZSpacing.lg),
+
+            // ── Rate body ──
+            if (_loading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 32),
+                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              )
+            else if (_error != null)
+              _buildError(isDark)
+            else if (code == 'USD')
+              _buildUSDPanel(isDark)
+            else
+              _buildRatePanel(code, isDark, theme),
+
+            // ── Footer link ──
+            const SizedBox(height: ZSpacing.md),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  context.go('/exchange-rates');
+                },
+                icon: const Icon(Icons.open_in_new, size: 14),
+                label: Text(
+                  'Gestionar tipos de cambio',
+                  style: ZTypography.labelMedium.copyWith(fontSize: 12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildError(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(ZSpacing.md),
+      decoration: BoxDecoration(
+        color: (isDark ? ZColors.danger : ZColors.danger).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(ZRadii.md),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.warning_amber_rounded, size: 16, color: ZColors.danger),
+          const SizedBox(width: ZSpacing.sm),
+          Expanded(
+            child: Text(
+              _error!,
+              style: ZTypography.bodySmall.copyWith(
+                color: ZColors.danger,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUSDPanel(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(ZSpacing.md),
+      decoration: BoxDecoration(
+        color: (isDark ? ZColors.info : ZColors.info).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(ZRadii.md),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, size: 16, color: ZColors.info),
+          const SizedBox(width: ZSpacing.sm),
+          Expanded(
+            child: Text(
+              'La moneda activa es USD. No se requiere conversión.',
+              style: ZTypography.bodySmall.copyWith(
+                color: isDark ? ZColors.neutral300 : ZColors.neutral700,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRatePanel(String code, bool isDark, ThemeData theme) {
+    final invertedRate = _rate != null && _rate! > 0 ? (1 / _rate!) : null;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Rate card
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(ZSpacing.md),
+          decoration: BoxDecoration(
+            color: isDark ? ZColors.neutral800 : ZColors.neutral50,
+            borderRadius: BorderRadius.circular(ZRadii.md),
+            border: Border.all(
+              color: isDark ? ZColors.darkBorder : ZColors.border,
+            ),
+          ),
+          child: Column(
+            children: [
+              // Main rate display
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '1 $code',
+                    style: ZTypography.titleMedium.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? ZColors.neutral200 : ZColors.neutral800,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Icon(
+                      Icons.arrow_forward,
+                      size: 16,
+                      color: isDark ? ZColors.neutral500 : ZColors.neutral400,
+                    ),
+                  ),
+                  Text(
+                    _rate != null
+                        ? 'USD ${_rate!.toStringAsFixed(4)}'
+                        : 'USD (sin datos)',
+                    style: ZTypography.titleMedium.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? ZColors.brandAccent : ZColors.brandPrimary,
+                    ),
+                  ),
+                ],
+              ),
+
+              if (invertedRate != null) ...[
+                const SizedBox(height: ZSpacing.sm),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.swap_horiz, size: 12, color: isDark ? ZColors.neutral500 : ZColors.neutral400),
+                    const SizedBox(width: 4),
+                    Text(
+                      '1 USD = $code ${invertedRate.toStringAsFixed(4)}',
+                      style: ZTypography.bodySmall.copyWith(
+                        color: isDark ? ZColors.neutral500 : ZColors.neutral400,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+
+              // Effective date
+              if (_effectiveDate != null) ...[
+                const SizedBox(height: ZSpacing.sm),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.calendar_today, size: 11, color: isDark ? ZColors.neutral500 : ZColors.neutral400),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Actualizado: ${_effectiveDate!.day}/${_effectiveDate!.month}/${_effectiveDate!.year}',
+                      style: ZTypography.bodySmall.copyWith(
+                        color: isDark ? ZColors.neutral500 : ZColors.neutral400,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

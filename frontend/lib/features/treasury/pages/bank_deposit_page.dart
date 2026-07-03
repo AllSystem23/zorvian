@@ -13,12 +13,21 @@ class BankDepositPage extends ConsumerStatefulWidget {
 class _BankDepositPageState extends ConsumerState<BankDepositPage> {
   final _formKey = GlobalKey<FormState>();
   
+  String? _selectedBankAccountId;
+  String? _selectedCostCenterId;
   final _amountController = TextEditingController();
-  final _bankAccountIdController = TextEditingController(); // Debería ser un ZSelect en el futuro
-  final _costCenterIdController = TextEditingController();
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final bankAccounts = ref.watch(treasuryBankAccountsProvider);
+    final costCenters = ref.watch(treasuryCostCentersProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Registrar Depósito')),
       body: SingleChildScrollView(
@@ -27,10 +36,19 @@ class _BankDepositPageState extends ConsumerState<BankDepositPage> {
           child: Form(
             key: _formKey,
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ZTextField(
-                  controller: _bankAccountIdController,
-                  label: 'ID de Cuenta Bancaria',
+                bankAccounts.when(
+                  data: (items) => ZSelect<String>(
+                    value: _selectedBankAccountId,
+                    label: 'Cuenta Bancaria',
+                    hint: 'Seleccione una cuenta...',
+                    items: items,
+                    onChanged: (val) => setState(() => _selectedBankAccountId = val),
+                    validator: (v) => v == null ? 'Requerido' : null,
+                  ),
+                  loading: () => const SizedBox(height: 80, child: Center(child: CircularProgressIndicator())),
+                  error: (_, __) => ZTextField(controller: TextEditingController(), label: 'ID de Cuenta Bancaria'),
                 ),
                 const SizedBox(height: ZSpacing.sm),
                 ZTextField(
@@ -39,9 +57,16 @@ class _BankDepositPageState extends ConsumerState<BankDepositPage> {
                   keyboardType: TextInputType.number,
                 ),
                 const SizedBox(height: ZSpacing.sm),
-                ZTextField(
-                  controller: _costCenterIdController,
-                  label: 'ID de Centro de Costos',
+                costCenters.when(
+                  data: (items) => ZSelect<String>(
+                    value: _selectedCostCenterId,
+                    label: 'Centro de Costos',
+                    hint: 'Seleccione un centro...',
+                    items: items,
+                    onChanged: (val) => setState(() => _selectedCostCenterId = val),
+                  ),
+                  loading: () => const SizedBox(height: 80, child: Center(child: CircularProgressIndicator())),
+                  error: (_, __) => const SizedBox.shrink(),
                 ),
                 const SizedBox(height: ZSpacing.lg),
                 ZButton(
@@ -61,12 +86,10 @@ class _BankDepositPageState extends ConsumerState<BankDepositPage> {
     if (_formKey.currentState!.validate()) {
       final treasuryService = ref.read(treasuryServiceProvider);
       try {
-        // NOTA: bankMovementId debe ser proporcionado por el flujo de selección 
-        // de movimientos pendientes de depósito en una implementación completa.
         await treasuryService.generateBankDepositEntry({
           'amount': double.parse(_amountController.text),
-          'bankAccountId': _bankAccountIdController.text,
-          'costCenterId': _costCenterIdController.text,
+          'bankAccountId': _selectedBankAccountId,
+          'costCenterId': _selectedCostCenterId,
         });
         
         if (mounted) {

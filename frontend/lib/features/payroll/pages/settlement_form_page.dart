@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:universal_html/html.dart' as html;
+
+import '../../../shared/printing/platform/download_helper.dart';
 import '../../../shared/ds/ds.dart';
 import '../providers/settlement_provider.dart';
 import '../services/settlement_service.dart';
@@ -67,12 +68,7 @@ class _SettlementFormPageState extends ConsumerState<SettlementFormPage> {
             indemnization: result.severancePay,
           );
 
-      final blob = html.Blob([pdfBytes], 'application/pdf');
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      html.AnchorElement(href: url)
-        ..setAttribute('download', 'Liquidacion_${widget.employeeId}.pdf')
-        ..click();
-      html.Url.revokeObjectUrl(url);
+      downloadBytes(pdfBytes, 'Liquidacion_${widget.employeeId}.pdf');
 
       if (mounted) ZToast.success(context, 'PDF descargado exitosamente');
     } catch (e) {

@@ -9,11 +9,12 @@ namespace Zorvian.Tests.Services;
 public class SickLeaveServiceTests
 {
     private readonly Mock<ISickLeaveRepository> _mockRepo = new();
+    private readonly Mock<IEmployeeRepository> _mockEmployeeRepo = new();
     private readonly SickLeaveService _sut;
 
     public SickLeaveServiceTests()
     {
-        _sut = new SickLeaveService(_mockRepo.Object);
+        _sut = new SickLeaveService(_mockRepo.Object, _mockEmployeeRepo.Object);
     }
 
     [Fact]
