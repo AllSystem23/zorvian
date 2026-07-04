@@ -11,6 +11,18 @@ class TestSecureStorage extends SecureStorage {
 
   @override
   Future<void> clearTokens() async {}
+
+  @override
+  Future<String?> getCurrencyCode() async => null;
+
+  @override
+  Future<void> saveCurrencyCode(String code) async {}
+
+  @override
+  Future<(String? email, String? password)> getRememberedCredentials() async => (null, null);
+
+  @override
+  Future<bool> isBiometricEnabled() async => false;
 }
 
 void main() {
