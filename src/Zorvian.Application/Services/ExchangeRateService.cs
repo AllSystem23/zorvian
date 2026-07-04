@@ -42,7 +42,7 @@ public sealed class ExchangeRateService : IExchangeRateService
             FromCurrency = request.FromCurrency.ToUpperInvariant(),
             ToCurrency = request.ToCurrency.ToUpperInvariant(),
             Rate = request.Rate,
-            EffectiveDate = request.EffectiveDate,
+            EffectiveDate = DateTime.SpecifyKind(request.EffectiveDate, DateTimeKind.Utc),
         };
         var created = await _repo.AddAsync(entity);
         return ToResponse(created);
@@ -53,7 +53,7 @@ public sealed class ExchangeRateService : IExchangeRateService
         var entity = await _repo.GetByIdAsync(id);
         if (entity is null) return null;
         entity.Rate = request.Rate;
-        entity.EffectiveDate = request.EffectiveDate;
+        entity.EffectiveDate = DateTime.SpecifyKind(request.EffectiveDate, DateTimeKind.Utc);
         var updated = await _repo.UpdateAsync(entity);
         return ToResponse(updated!);
     }
@@ -67,7 +67,10 @@ public sealed class ExchangeRateService : IExchangeRateService
     {
         if (string.Equals(fromCurrency, toCurrency, StringComparison.OrdinalIgnoreCase))
             return 1m;
-        var rate = await _repo.GetLatestRateAsync(fromCurrency, toCurrency, date);
+        var utcDate = date is not null
+            ? DateTime.SpecifyKind(date.Value, DateTimeKind.Utc)
+            : (DateTime?)null;
+        var rate = await _repo.GetLatestRateAsync(fromCurrency, toCurrency, utcDate);
         return rate?.Rate;
     }
 
