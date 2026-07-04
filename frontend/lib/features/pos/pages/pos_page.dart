@@ -108,8 +108,8 @@ class _PosPageState extends ConsumerState<PosPage> {
             flex: 3,
             child: _buildProductPanel(productsAsync, posState, isDark),
           ),
-          Container(
-            width: 360,
+Container(
+            width: 420,
             decoration: BoxDecoration(
               color: isDark ? ZColors.darkSurface : ZColors.surface,
               border: Border(
@@ -117,7 +117,7 @@ class _PosPageState extends ConsumerState<PosPage> {
               ),
             ),
             child: _buildCartPanel(posState, isDark),
-        ),
+          ),
       ],
     );
   }
@@ -385,8 +385,8 @@ class _PosPageState extends ConsumerState<PosPage> {
                   subtitle: 'Selecciona productos para agregar',
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  itemCount: posState.items.length,
+padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                   itemCount: posState.items.length,
                   itemBuilder: (_, i) {
                     final item = posState.items[i];
                     return _CartItemTile(
@@ -1023,8 +1023,8 @@ class _CartItemTile extends StatelessWidget {
     final hasDiscount = discount > 0;
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      padding: const EdgeInsets.all(10),
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: isDark ? ZColors.neutral800.withValues(alpha: 0.3) : ZColors.neutral50,
         borderRadius: BorderRadius.circular(ZRadii.md),
