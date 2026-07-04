@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-
+import '../../../core/utils/formatters.dart';
 import '../../../shared/printing/platform/download_helper.dart';
 import '../../../shared/ds/ds.dart';
 import '../providers/settlement_provider.dart';
@@ -150,7 +150,7 @@ class _SettlementFormPageState extends ConsumerState<SettlementFormPage> {
             child: employeeAsync.when(
               data: (emp) => emp != null ? _buildEmployeeHeader(emp, isDark) : const SizedBox.shrink(),
               loading: () => const SizedBox(height: 80, child: Center(child: CircularProgressIndicator())),
-              error: (_, __) => const SizedBox.shrink(),
+              error: (_, _) => const SizedBox.shrink(),
             ),
           ),
 
@@ -234,7 +234,7 @@ class _SettlementFormPageState extends ConsumerState<SettlementFormPage> {
                 if (emp.hireDate != null) ...[
                   const SizedBox(height: ZSpacing.xxs),
                   Text(
-                    'Ingreso: ${DateFormat('dd/MM/yyyy').format(emp.hireDate!)}',
+                    'Ingreso: ${ZFormatters.date(emp.hireDate!)}',
                     style: ZTypography.bodySmall.copyWith(
                       color: isDark ? ZColors.neutral400 : ZColors.neutral500,
                     ),
@@ -385,7 +385,7 @@ class _SettlementFormPageState extends ConsumerState<SettlementFormPage> {
   Widget _buildTerminationDatePicker(bool isDark) {
     return _buildDatePickerField(
       label: 'FECHA DE SALIDA',
-      value: DateFormat('dd/MM/yyyy').format(_terminationDate),
+      value: ZFormatters.date(_terminationDate),
       icon: Icons.event,
       isDark: isDark,
       onTap: () async {
@@ -403,7 +403,7 @@ class _SettlementFormPageState extends ConsumerState<SettlementFormPage> {
   Widget _buildPaidThroughDatePicker(bool isDark) {
     return _buildDatePickerField(
       label: 'PAGADO HASTA (OPCIONAL)',
-      value: _paidThroughDate != null ? DateFormat('dd/MM/yyyy').format(_paidThroughDate!) : 'Al día',
+      value: _paidThroughDate != null ? ZFormatters.date(_paidThroughDate!) : 'Al día',
       icon: Icons.event_available,
       isDark: isDark,
       onTap: () async {

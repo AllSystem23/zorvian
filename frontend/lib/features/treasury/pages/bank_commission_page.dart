@@ -48,7 +48,7 @@ class _BankCommissionPageState extends ConsumerState<BankCommissionPage> {
                     validator: (v) => v == null ? 'Requerido' : null,
                   ),
                   loading: () => const SizedBox(height: 80, child: Center(child: CircularProgressIndicator())),
-                  error: (_, __) => ZTextField(controller: TextEditingController(), label: 'ID de Cuenta Bancaria'),
+                  error: (_, _) => ZTextField(controller: TextEditingController(), label: 'ID de Cuenta Bancaria'),
                 ),
                 const SizedBox(height: ZSpacing.sm),
                 ZTextField(controller: _amountController, label: 'Monto', keyboardType: TextInputType.number),

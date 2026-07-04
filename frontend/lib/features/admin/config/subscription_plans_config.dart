@@ -152,14 +152,13 @@ class _FallbackPlan extends SubscriptionPlanConfig {
     String price,
     String period,
     int maxEmployees, {
-    bool isPopular = false,
+    super.isPopular = false,
   }) : super(
           id: id,
           name: name,
           price: price,
           period: period,
           maxEmployees: maxEmployees,
-          isPopular: isPopular,
           color: (SubscriptionPlanConfig._displayData[id]?['color'] as Color?) ?? ZColors.neutral400,
           icon: (SubscriptionPlanConfig._displayData[id]?['icon'] as IconData?) ?? Icons.help_outline,
           shortDescription: (SubscriptionPlanConfig._displayData[id]?['shortDescription'] as String?) ?? '',

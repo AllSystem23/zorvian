@@ -93,35 +93,41 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
                         ],
                       ),
                       const SizedBox(height: 16),
-                      SizedBox(
-                        height: 500,
-                        child: ZDataTable<dynamic>(
-                          columns: const [
-                            ZColumn(id: 'name', label: 'Trabajador'),
-                            ZColumn(id: 'salary', label: 'Salario Base', numeric: true),
-                            ZColumn(id: 'inss', label: 'INSS', numeric: true),
-                            ZColumn(id: 'ir', label: 'IR', numeric: true),
-                            ZColumn(id: 'net', label: 'Neto', numeric: true),
-                          ],
-                          rows: details,
-                          rowMapper: (d) => DataRow(cells: [
-                            DataCell(Text(d['employeeName'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600))),
-                            DataCell(Text('C\$ ${(d['baseSalary'] as num?)?.toStringAsFixed(2) ?? '0.00'}')),
-                            DataCell(Text('C\$ ${(d['inssDeduction'] as num?)?.toStringAsFixed(2) ?? '0.00'}')),
-                            DataCell(Text('C\$ ${(d['irDeduction'] as num?)?.toStringAsFixed(2) ?? '0.00'}')),
-                            DataCell(Row(
-                              children: [
-                                Text('C\$ ${(d['netPay'] as num?)?.toStringAsFixed(2) ?? '0.00'}', style: const TextStyle(fontWeight: FontWeight.bold, color: ZColors.brandPrimary)),
-                                if (_run!['status'] == 'draft')
-                                  IconButton(
-                                    icon: const Icon(Icons.edit, size: 16),
-                                    onPressed: () => _editDetail(d),
-                                  ),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final tableH = constraints.maxWidth < 576 ? 300.0 : 500.0;
+                          return SizedBox(
+                            height: tableH,
+                            child: ZDataTable<dynamic>(
+                              columns: const [
+                                ZColumn(id: 'name', label: 'Trabajador'),
+                                ZColumn(id: 'salary', label: 'Salario Base', numeric: true),
+                                ZColumn(id: 'inss', label: 'INSS', numeric: true),
+                                ZColumn(id: 'ir', label: 'IR', numeric: true),
+                                ZColumn(id: 'net', label: 'Neto', numeric: true),
                               ],
-                            )),
-                          ]),
-                        ),
+                              rows: details,
+                              rowMapper: (d) => DataRow(cells: [
+                                DataCell(Text(d['employeeName'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600))),
+                                DataCell(Text('C\$ ${(d['baseSalary'] as num?)?.toStringAsFixed(2) ?? '0.00'}')),
+                                DataCell(Text('C\$ ${(d['inssDeduction'] as num?)?.toStringAsFixed(2) ?? '0.00'}')),
+                                DataCell(Text('C\$ ${(d['irDeduction'] as num?)?.toStringAsFixed(2) ?? '0.00'}')),
+                                DataCell(Row(
+                                  children: [
+                                    Text('C\$ ${(d['netPay'] as num?)?.toStringAsFixed(2) ?? '0.00'}', style: const TextStyle(fontWeight: FontWeight.bold, color: ZColors.brandPrimary)),
+                                    if (_run!['status'] == 'draft')
+                                      IconButton(
+                                        icon: const Icon(Icons.edit, size: 16),
+                                        onPressed: () => _editDetail(d),
+                                      ),
+                                  ],
+                                )),
+                              ]),
+                            ),
+                          );
+                        },
                       ),
+                      const SizedBox(height: 80),
                     ],
                   ),
                 ),

@@ -168,42 +168,51 @@ class _PosPageState extends ConsumerState<PosPage> {
                 );
               }
 
-              return GridView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  mainAxisSpacing: 8,
-                  crossAxisSpacing: 8,
-                  childAspectRatio: 1.8,
-                ),
-                itemCount: filtered.length,
-                itemBuilder: (_, i) {
-                  final p = filtered[i];
-                  final name = p['name'] ?? '';
-                  final code = p['code'] ?? '';
-                  final price = (p['price'] ?? 0).toDouble();
-                  final stock = (p['stock'] ?? 0).toDouble();
-                  final id = p['id'] ?? '';
+              return LayoutBuilder(
+                builder: (_, gridConstraints) {
+                  final crossCount = gridConstraints.maxWidth < 576
+                      ? 2
+                      : gridConstraints.maxWidth < 992
+                          ? 3
+                          : 4;
+                  return GridView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossCount,
+                      mainAxisSpacing: 8,
+                      crossAxisSpacing: 8,
+                      childAspectRatio: crossCount <= 2 ? 2.0 : 1.8,
+                    ),
+                    itemCount: filtered.length,
+                    itemBuilder: (_, i) {
+                      final p = filtered[i];
+                      final name = p['name'] ?? '';
+                      final code = p['code'] ?? '';
+                      final price = (p['price'] ?? 0).toDouble();
+                      final stock = (p['stock'] ?? 0).toDouble();
+                      final id = p['id'] ?? '';
 
-                  return _ProductTile(
-                    name: name,
-                    code: code,
-                    price: price,
-                    stock: stock,
-                    onTap: () {
-                      ref.read(posProvider.notifier).addItem(
-                            PosCartItem(
-                              productId: id,
-                              name: name,
-                              code: code,
-                              price: price,
+                      return _ProductTile(
+                        name: name,
+                        code: code,
+                        price: price,
+                        stock: stock,
+                        onTap: () {
+                          ref.read(posProvider.notifier).addItem(
+                                PosCartItem(
+                                  productId: id,
+                                  name: name,
+                                  code: code,
+                                  price: price,
+                                ),
+                              );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('$name agregado al carrito'),
+                              duration: const Duration(seconds: 1),
                             ),
                           );
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('$name agregado al carrito'),
-                          duration: const Duration(seconds: 1),
-                        ),
+                        },
                       );
                     },
                   );

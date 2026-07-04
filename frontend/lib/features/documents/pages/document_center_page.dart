@@ -74,16 +74,6 @@ class _DocumentCenterPageState extends ConsumerState<DocumentCenterPage>
                 _GeneratedDocumentsTab(documents: state.documents),
               ],
             ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 16),
-        child: FloatingActionButton.extended(
-          heroTag: 'quick-gen',
-          backgroundColor: ZColors.brandAccent,
-          icon: const Icon(Icons.bolt, color: Colors.white),
-          label: const Text('Generar en 3 clics', style: TextStyle(color: Colors.white)),
-          onPressed: () => context.push('/documents/quick-generate'),
-        ),
-      ),
     );
   }
 }

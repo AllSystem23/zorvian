@@ -57,24 +57,22 @@ final class _EquityChangesPageState extends ConsumerState<EquityChangesPage> {
                       const SizedBox(height: ZSpacing.lg),
                       Text('Detalle por Concepto', style: theme.textTheme.titleSmall),
                       const SizedBox(height: ZSpacing.sm),
-                      ZCard(
-                        child: DataTable(
-                          columnSpacing: 8,
-                          columns: const [
-                            DataColumn(label: Text('Concepto', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                            DataColumn(label: Text('Inicial', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)), numeric: true),
-                            DataColumn(label: Text('Aumentos', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)), numeric: true),
-                            DataColumn(label: Text('Disminuciones', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)), numeric: true),
-                            DataColumn(label: Text('Final', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)), numeric: true),
-                          ],
-                          rows: data.items.map((i) => DataRow(cells: [
-                            DataCell(Text(i.concept, style: const TextStyle(fontSize: 11))),
-                            DataCell(Text('\$${i.openingBalance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11))),
-                            DataCell(Text('\$${i.additions.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11, color: Colors.green))),
-                            DataCell(Text('\$${i.deductions.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11, color: Colors.red))),
-                            DataCell(Text('\$${i.endingBalance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-                          ])).toList(),
-                        ),
+                      ZDataTable<dynamic>(
+                        columns: const [
+                          ZColumn(id: 'concept', label: 'Concepto'),
+                          ZColumn(id: 'opening', label: 'Inicial', numeric: true),
+                          ZColumn(id: 'additions', label: 'Aumentos', numeric: true),
+                          ZColumn(id: 'deductions', label: 'Disminuciones', numeric: true),
+                          ZColumn(id: 'ending', label: 'Final', numeric: true),
+                        ],
+                        rows: data.items,
+                        rowMapper: (i) => DataRow(cells: [
+                          DataCell(Text(i.concept, style: const TextStyle(fontSize: 11))),
+                          DataCell(Text('\$${i.openingBalance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11))),
+                          DataCell(Text('\$${i.additions.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11, color: Colors.green))),
+                          DataCell(Text('\$${i.deductions.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11, color: Colors.red))),
+                          DataCell(Text('\$${i.endingBalance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
+                        ]),
                       ),
                     ],
                   ),

@@ -43,7 +43,7 @@ class _SickLeaveFormPageState extends ConsumerState<SickLeaveFormPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Nueva Incapacidad')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(MediaQuery.of(context).size.width < 576 ? 12 : MediaQuery.of(context).size.width < 992 ? 16 : 24),
         child: ZCard(
           child: Form(
             key: _formKey,

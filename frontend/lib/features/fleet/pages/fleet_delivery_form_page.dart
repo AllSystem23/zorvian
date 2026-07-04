@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart' show dioClientProvider;
+import '../../../core/utils/formatters.dart';
 import '../../../shared/ds/ds.dart';
 
 final class FleetDeliveryFormPage extends ConsumerStatefulWidget {
@@ -82,7 +83,7 @@ final class _FleetDeliveryFormPageState extends ConsumerState<FleetDeliveryFormP
     return Scaffold(
       appBar: AppBar(title: Text(_isEditing ? 'Editar entrega' : 'Nueva entrega')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(MediaQuery.of(context).size.width < 576 ? 12 : MediaQuery.of(context).size.width < 992 ? 16 : 24),
         child: Form(
           key: _formKey,
           child: Column(
@@ -116,7 +117,7 @@ final class _FleetDeliveryFormPageState extends ConsumerState<FleetDeliveryFormP
                       prefixIcon: const Icon(Icons.date_range_outlined),
                       suffixIcon: Icon(_scheduledDate != null ? Icons.check_circle : Icons.date_range, color: _scheduledDate != null ? Colors.green : null),
                     ),
-                    child: Text(_scheduledDate != null ? '${_scheduledDate!.day}/${_scheduledDate!.month}/${_scheduledDate!.year}' : 'Seleccionar fecha'),
+                    child: Text(_scheduledDate != null ? ZFormatters.date(_scheduledDate!) : 'Seleccionar fecha'),
                   ),
                 ),
               ]),

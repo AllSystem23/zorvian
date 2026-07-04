@@ -173,9 +173,12 @@ class _InventoryValuationPageState
                     ),
                   ),
                   const SizedBox(height: 24),
-                  SizedBox(
-                    height: 420,
-                    child: ZCard(
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final tableH = constraints.maxWidth < 576 ? 300.0 : 420.0;
+                      return SizedBox(
+                        height: tableH,
+                        child: ZCard(
                       padding: EdgeInsets.zero,
                       child: ZDataTable<_CategoryValuation>(
                         columns: const [
@@ -226,7 +229,9 @@ class _InventoryValuationPageState
                         emptyMessage: 'No hay productos para valorar',
                       ),
                     ),
-                  ),
+                          );
+                        },
+                      ),
                 ],
               ),
             ),

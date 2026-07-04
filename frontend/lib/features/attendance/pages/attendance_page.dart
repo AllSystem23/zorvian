@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/utils/formatters.dart';
 import '../providers/attendance_provider.dart';
 import '../../../shared/ds/ds.dart';
 
@@ -69,7 +70,7 @@ class _AttendancePageState extends ConsumerState<AttendancePage> {
                 const SizedBox(height: 4),
                 Center(
                   child: Text(
-                    '${_now.day}/${_now.month}/${_now.year}',
+                    ZFormatters.date(_now),
                     style: theme.textTheme.titleMedium?.copyWith(color: Colors.grey),
                   ),
                 ),

@@ -104,7 +104,7 @@ final class _ClientFormPageState extends ConsumerState<ClientFormPage> {
     return Scaffold(
       appBar: AppBar(title: Text(_isEditing ? 'Editar cliente' : 'Nuevo cliente')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(MediaQuery.of(context).size.width < 576 ? 12 : MediaQuery.of(context).size.width < 992 ? 16 : 24),
         child: Form(
           key: _formKey,
           child: Column(

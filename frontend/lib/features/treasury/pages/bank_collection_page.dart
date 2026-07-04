@@ -62,7 +62,7 @@ class _BankCollectionPageState extends ConsumerState<BankCollectionPage> {
                     validator: (v) => v == null ? 'Requerido' : null,
                   ),
                   loading: () => const SizedBox(height: 80, child: Center(child: CircularProgressIndicator())),
-                  error: (_, __) => ZTextField(controller: TextEditingController(), label: 'ID de Factura'),
+                  error: (_, _) => ZTextField(controller: TextEditingController(), label: 'ID de Factura'),
                 ),
                 const SizedBox(height: ZSpacing.sm),
                 costCenters.when(
@@ -74,7 +74,7 @@ class _BankCollectionPageState extends ConsumerState<BankCollectionPage> {
                     onChanged: (val) => setState(() => _selectedCostCenterId = val),
                   ),
                   loading: () => const SizedBox(height: 80, child: Center(child: CircularProgressIndicator())),
-                  error: (_, __) => const SizedBox.shrink(),
+                  error: (_, _) => const SizedBox.shrink(),
                 ),
                 const SizedBox(height: ZSpacing.lg),
                 ZButton(

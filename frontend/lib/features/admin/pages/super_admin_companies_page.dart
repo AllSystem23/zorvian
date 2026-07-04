@@ -111,13 +111,6 @@ class _SuperAdminCompaniesPageState extends ConsumerState<SuperAdminCompaniesPag
     );
   }
 
-  void _showCreateDialog() {
-    showDialog(
-      context: context,
-      builder: (_) => _CompanyCreateDialog(onCreated: _loadCompanies),
-    );
-  }
-
   Future<bool> _confirmAction(String title, String message) async {
     final result = await showDialog<bool>(
       context: context,
@@ -176,13 +169,7 @@ class _SuperAdminCompaniesPageState extends ConsumerState<SuperAdminCompaniesPag
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'create-company',
-        backgroundColor: ZColors.brandAccent,
-        icon: const Icon(Icons.add_business, color: Colors.white),
-        label: const Text('Nueva Empresa', style: TextStyle(color: Colors.white)),
-        onPressed: _showCreateDialog,
-      ),
+
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
@@ -372,17 +359,17 @@ class _SuperAdminCompaniesPageState extends ConsumerState<SuperAdminCompaniesPag
   }
 }
 
-// ─── Create Dialog ───
+// ─── Create Dialog (public for ZQuickActionsFAB callback) ───
 
-class _CompanyCreateDialog extends ConsumerStatefulWidget {
+class CompanyCreateDialog extends ConsumerStatefulWidget {
   final VoidCallback onCreated;
-  const _CompanyCreateDialog({required this.onCreated});
+  const CompanyCreateDialog({super.key, required this.onCreated});
 
   @override
-  ConsumerState<_CompanyCreateDialog> createState() => _CompanyCreateDialogState();
+  ConsumerState<CompanyCreateDialog> createState() => _CompanyCreateDialogState();
 }
 
-class _CompanyCreateDialogState extends ConsumerState<_CompanyCreateDialog> {
+class _CompanyCreateDialogState extends ConsumerState<CompanyCreateDialog> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _legalNameCtrl = TextEditingController();

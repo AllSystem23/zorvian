@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../shared/ds/ds.dart';
 import '../providers/permission_provider.dart';
 
@@ -152,7 +153,7 @@ class _PermissionFormPageState extends ConsumerState<PermissionFormPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Solicitar permiso')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(MediaQuery.of(context).size.width < 576 ? 12 : MediaQuery.of(context).size.width < 992 ? 16 : 24),
         child: Form(
           key: _formKey,
           child: Column(
@@ -196,17 +197,13 @@ class _PermissionFormPageState extends ConsumerState<PermissionFormPage> {
               const SizedBox(height: 16),
               ListTile(
                 leading: const Icon(Icons.calendar_today),
-                title: Text(_startDate != null
-                    ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'
-                    : 'Fecha inicio'),
+                title: Text(ZFormatters.dateOrNull(_startDate, fallback: 'Fecha inicio')),
                 trailing: const Icon(Icons.edit),
                 onTap: () => _pickDate(true),
               ),
               ListTile(
                 leading: const Icon(Icons.calendar_today),
-                title: Text(_endDate != null
-                    ? '${_endDate!.day}/${_endDate!.month}/${_endDate!.year}'
-                    : 'Fecha fin'),
+                title: Text(ZFormatters.dateOrNull(_endDate, fallback: 'Fecha fin')),
                 trailing: const Icon(Icons.edit),
                 onTap: () => _pickDate(false),
               ),

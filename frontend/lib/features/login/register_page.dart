@@ -157,8 +157,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
-          width: 500,
-          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 48),
+          constraints: const BoxConstraints(maxWidth: 500),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.03),
             borderRadius: BorderRadius.circular(28),

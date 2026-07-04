@@ -163,7 +163,7 @@ class _EmployeeDetailPageState extends ConsumerState<EmployeeDetailPage> {
         children: [
           Icon(icon, size: 18, color: Colors.grey),
           const SizedBox(width: 12),
-          SizedBox(width: 120, child: Text(label, style: const TextStyle(color: Colors.grey))),
+          Flexible(flex: 2, child: Text(label, style: const TextStyle(color: Colors.grey))),
           Expanded(child: Text(value ?? '—')),
         ],
       ),

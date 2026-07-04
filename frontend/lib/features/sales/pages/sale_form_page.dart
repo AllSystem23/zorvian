@@ -174,7 +174,7 @@ final class _NewSalePageState extends ConsumerState<NewSalePage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Nueva Venta')),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(MediaQuery.of(context).size.width < 576 ? 12 : MediaQuery.of(context).size.width < 992 ? 16 : 24),
         children: [
           Text('Cliente', style: theme.textTheme.titleSmall),
           const SizedBox(height: 4),

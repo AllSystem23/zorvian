@@ -36,15 +36,6 @@ final class _SaleListPageState extends ConsumerState<SaleListPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Ventas')),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'newSale',
-        icon: const Icon(Icons.add),
-        label: const Text('Nueva Venta'),
-        onPressed: () async {
-          await context.push('/sales/new');
-          ref.read(saleProvider.notifier).load();
-        },
-      ),
       body: Column(
         children: [
           Padding(

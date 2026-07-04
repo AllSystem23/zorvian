@@ -59,9 +59,11 @@ final class _SaleDetailPageState extends ConsumerState<SaleDetailPage> {
     try {
       final dio = ref.read(dioClientProvider);
       await dio.post('sales/${widget.saleId}/cancel');
+      if (!mounted) return;
       ZToast.success(context, 'Venta anulada exitosamente');
       _load();
     } catch (e) {
+      if (!mounted) return;
       ZToast.error(context, 'Error al anular: $e');
     }
   }

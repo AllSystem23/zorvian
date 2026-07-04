@@ -140,7 +140,7 @@ final class _FleetExpenseFormPageState extends ConsumerState<FleetExpenseFormPag
     return Scaffold(
       appBar: AppBar(title: Text(_isEditing ? 'Editar gasto' : 'Nuevo gasto')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(MediaQuery.of(context).size.width < 576 ? 12 : MediaQuery.of(context).size.width < 992 ? 16 : 24),
         child: Form(
           key: _formKey,
           child: Column(

@@ -103,8 +103,8 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
-          width: 460,
-          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 48),
+          constraints: const BoxConstraints(maxWidth: 460),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.03),
             borderRadius: BorderRadius.circular(28),
@@ -185,8 +185,8 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
-          width: 460,
-          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 48),
+          constraints: const BoxConstraints(maxWidth: 460),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.03),
             borderRadius: BorderRadius.circular(28),

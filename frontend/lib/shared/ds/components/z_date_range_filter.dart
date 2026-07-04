@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/utils/formatters.dart';
 import '../ds.dart';
 
 /// Date range filter widget with quick presets
@@ -139,6 +140,6 @@ class _ZDateRangeFilterState extends State<ZDateRangeFilter> {
   }
 
   String _formatDate(DateTime d) {
-    return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+    return ZFormatters.date(d);
   }
 }

@@ -17,6 +17,20 @@ class ZQuickActionsFAB extends StatelessWidget {
 
   /// Returns the appropriate quick actions based on the current route
   List<_QuickAction> _getActions() {
+    return _actionsForRoute(currentRoute, callbacks);
+  }
+
+  /// Static helper: returns whether any actions exist for [route].
+  /// Used by [AppShell] to know if extra bottom padding is needed.
+  static bool routeHasActions(String route) {
+    return _actionsForRoute(route, const {}).isNotEmpty;
+  }
+
+  /// Core logic: map route → list of quick actions.
+  static List<_QuickAction> _actionsForRoute(
+    String currentRoute,
+    Map<String, VoidCallback> callbacks,
+  ) {
     // Default actions available everywhere
     final defaults = [
       _QuickAction(
@@ -36,6 +50,7 @@ class ZQuickActionsFAB extends StatelessWidget {
           label: 'Nueva Venta',
           route: '/sales/new',
           color: ZColors.success,
+          actionId: 'new_sale',
         ),
         _QuickAction(
           icon: Icons.request_quote_outlined,
@@ -70,6 +85,18 @@ class ZQuickActionsFAB extends StatelessWidget {
           label: 'Nueva Marca',
           route: '/brands/new',
           color: ZColors.info,
+        ),
+      ];
+    }
+
+    // ── Purchase Orders ──
+    if (currentRoute.startsWith('/purchase-orders')) {
+      return [
+        _QuickAction(
+          icon: Icons.add_shopping_cart_outlined,
+          label: 'Nueva Orden',
+          route: '/purchase-orders/new',
+          color: ZColors.success,
         ),
       ];
     }
@@ -323,10 +350,10 @@ class ZQuickActionsFAB extends StatelessWidget {
     if (currentRoute.startsWith('/documents')) {
       return [
         _QuickAction(
-          icon: Icons.upload_file_outlined,
-          label: 'Subir Documento',
-          route: '/documents',
-          color: ZColors.success,
+          icon: Icons.bolt,
+          label: 'Generar en 3 clics',
+          route: '/documents/quick-generate',
+          color: ZColors.warning,
         ),
       ];
     }
@@ -339,6 +366,114 @@ class ZQuickActionsFAB extends StatelessWidget {
           label: 'Nuevo Cliente',
           route: '/clients/new',
           color: ZColors.success,
+        ),
+      ];
+    }
+
+    // ── Fiscal: Country Tax Configs & Regional Tax Configs ──
+    if (currentRoute.startsWith('/admin/country-tax-configs') ||
+        currentRoute.startsWith('/admin/regional-tax-configs')) {
+      return [
+        _QuickAction(
+          icon: Icons.add_card,
+          label: 'Nueva Configuración Fiscal',
+          route: currentRoute.contains('regional')
+              ? '/admin/regional-tax-configs'
+              : '/admin/country-tax-configs',
+          color: ZColors.success,
+          actionId: 'new_fiscal_config',
+        ),
+      ];
+    }
+
+    // ── Admin: SuperAdmin Companies ──
+    if (currentRoute.startsWith('/admin/companies') ||
+        currentRoute.startsWith('/admin/subscription-plans')) {
+      return [
+        _QuickAction(
+          icon: Icons.add_business_outlined,
+          label: 'Nueva Empresa',
+          route: '/admin/companies',
+          color: ZColors.success,
+          actionId: 'new_company',
+        ),
+      ];
+    }
+
+    // ── Treasury ──
+    if (currentRoute.startsWith('/treasury')) {
+      return [
+        _QuickAction(
+          icon: Icons.monetization_on_outlined,
+          label: 'Nuevo Cheque',
+          route: '/treasury/checks',
+          color: ZColors.success,
+        ),
+        _QuickAction(
+          icon: Icons.swap_horiz_outlined,
+          label: 'Nueva Transferencia',
+          route: '/treasury/transfers',
+          color: ZColors.info,
+        ),
+        _QuickAction(
+          icon: Icons.account_balance_outlined,
+          label: 'Nuevo Depósito',
+          route: '/treasury/deposits',
+          color: ZColors.warning,
+        ),
+      ];
+    }
+
+    // ── Reconciliations ──
+    if (currentRoute.startsWith('/reconciliations')) {
+      return [
+        _QuickAction(
+          icon: Icons.find_replace_outlined,
+          label: 'Nueva Conciliación',
+          route: '/reconciliations/new',
+          color: ZColors.success,
+        ),
+      ];
+    }
+
+    // ── Credit Notes ──
+    if (currentRoute.startsWith('/credit-notes')) {
+      return [
+        _QuickAction(
+          icon: Icons.note_add_outlined,
+          label: 'Nueva Nota de Crédito',
+          route: '/credit-notes',
+          color: ZColors.success,
+        ),
+      ];
+    }
+
+    // ── Leave Types ──
+    if (currentRoute.startsWith('/leave-types')) {
+      return [
+        _QuickAction(
+          icon: Icons.beach_access_outlined,
+          label: 'Nuevo Tipo de Permiso',
+          route: '/leave-types/new',
+          color: ZColors.success,
+        ),
+      ];
+    }
+
+    // ── Goals ──
+    if (currentRoute.startsWith('/goals')) {
+      return [
+        _QuickAction(
+          icon: Icons.emoji_events_outlined,
+          label: 'Mis Metas',
+          route: '/goals/my-goals',
+          color: ZColors.success,
+        ),
+        _QuickAction(
+          icon: Icons.settings_outlined,
+          label: 'Configurar Metas',
+          route: '/goals/configurator',
+          color: ZColors.info,
         ),
       ];
     }

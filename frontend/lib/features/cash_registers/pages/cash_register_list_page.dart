@@ -111,77 +111,82 @@ final class _CashRegisterListPageState
                   const SizedBox(height: ZSpacing.md),
 
                   // ── Data Table ──
-                  SizedBox(
-                    height: 600,
-                    child: ZDataTable<CashRegisterItem>(
-                      columns: const [
-                        ZColumn(id: 'code', label: 'Código / Terminal'),
-                        ZColumn(id: 'date', label: 'Fecha Apertura'),
-                        ZColumn(
-                          id: 'expected',
-                          label: 'Esperado',
-                          numeric: true,
-                        ),
-                        ZColumn(id: 'diff', label: 'Diferencia', numeric: true),
-                        ZColumn(id: 'status', label: 'Estado'),
-                        ZColumn(id: 'actions', label: ''),
-                      ],
-                      rows: filtered,
-                      onSearch: (v) => setState(() => _searchQuery = v),
-                      rowMapper: (c) {
-                        final diffColor = c.difference.abs() > 0.01
-                            ? ZColors.danger
-                            : ZColors.success;
-                        return DataRow(
-                          cells: [
-                            DataCell(
-                              Text(
-                                c.code,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final tableH = constraints.maxWidth < 576 ? 350.0 : 600.0;
+                      return SizedBox(
+                        height: tableH,
+                        child: ZDataTable<CashRegisterItem>(
+                          columns: const [
+                            ZColumn(id: 'code', label: 'Código / Terminal'),
+                            ZColumn(id: 'date', label: 'Fecha Apertura'),
+                            ZColumn(
+                              id: 'expected',
+                              label: 'Esperado',
+                              numeric: true,
                             ),
-                            DataCell(
-                              Text(
-                                c.openedAt.length >= 10
-                                    ? c.openedAt.substring(0, 10)
-                                    : c.openedAt,
-                              ),
-                            ),
-                            DataCell(
-                              Text(
-                                'C\$ ${c.expectedBalance.toStringAsFixed(2)}',
-                              ),
-                            ),
-                            DataCell(
-                              Text(
-                                'C\$ ${c.difference.toStringAsFixed(2)}',
-                                style: TextStyle(
-                                  color: diffColor,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            DataCell(
-                              ZBadge(
-                                text: c.status.toUpperCase(),
-                                type: c.isOpen
-                                    ? ZBadgeType.success
-                                    : ZBadgeType.neutral,
-                              ),
-                            ),
-                            DataCell(
-                              IconButton(
-                                icon: const Icon(Icons.chevron_right),
-                                onPressed: () =>
-                                    context.push('/cash-registers/${c.id}'),
-                              ),
-                            ),
+                            ZColumn(id: 'diff', label: 'Diferencia', numeric: true),
+                            ZColumn(id: 'status', label: 'Estado'),
+                            ZColumn(id: 'actions', label: ''),
                           ],
-                        );
-                      },
-                    ),
+                          rows: filtered,
+                          onSearch: (v) => setState(() => _searchQuery = v),
+                          rowMapper: (c) {
+                            final diffColor = c.difference.abs() > 0.01
+                                ? ZColors.danger
+                                : ZColors.success;
+                            return DataRow(
+                              cells: [
+                                DataCell(
+                                  Text(
+                                    c.code,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                DataCell(
+                                  Text(
+                                    c.openedAt.length >= 10
+                                        ? c.openedAt.substring(0, 10)
+                                        : c.openedAt,
+                                  ),
+                                ),
+                                DataCell(
+                                  Text(
+                                    'C\$ ${c.expectedBalance.toStringAsFixed(2)}',
+                                  ),
+                                ),
+                                DataCell(
+                                  Text(
+                                    'C\$ ${c.difference.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      color: diffColor,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                DataCell(
+                                  ZBadge(
+                                    text: c.status.toUpperCase(),
+                                    type: c.isOpen
+                                        ? ZBadgeType.success
+                                        : ZBadgeType.neutral,
+                                  ),
+                                ),
+                                DataCell(
+                                  IconButton(
+                                    icon: const Icon(Icons.chevron_right),
+                                    onPressed: () =>
+                                        context.push('/cash-registers/${c.id}'),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

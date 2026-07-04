@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../auth/auth_provider.dart';
+import '../../features/admin/pages/super_admin_companies_page.dart';
 import '../../features/cash_registers/providers/cash_register_provider.dart';
+import '../../features/fiscal/pages/country_tax_config_page.dart';
+import '../../features/fiscal/pages/regional_tax_config_page.dart';
+import '../../features/sales/providers/sale_provider.dart';
 import '../../features/crm/widgets/crm_forms.dart';
 import '../../features/fleet/providers/fleet_document_provider.dart';
 import '../../features/providers/pages/provider_invoices_page.dart';
@@ -152,6 +156,64 @@ Map<String, VoidCallback> _buildFabCallbacks(
         _openFleetDocumentForm(context, ref);
   }
 
+  // Navigate to sale creation and refresh list when returning
+  if (location.startsWith('/sales')) {
+    callbacks['new_sale'] = () {
+      context.push('/sales/new').then((_) {
+        if (context.mounted) ref.read(saleProvider.notifier).load();
+      });
+    };
+  }
+
+  // Open fiscal config form (country or regional based on route)
+  if (location.startsWith('/admin/country-tax-configs')) {
+    callbacks['new_fiscal_config'] = () {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (_) => CountryTaxConfigForm(
+          onSaved: () => ref.read(countryTaxConfigProvider.notifier).load(),
+        ),
+      );
+    };
+  }
+
+  if (location.startsWith('/admin/regional-tax-configs')) {
+    callbacks['new_fiscal_config'] = () {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (_) => RegionalTaxConfigForm(
+          onSaved: () => ref.read(regionalTaxConfigProvider.notifier).load(),
+        ),
+      );
+    };
+  }
+
+  // Open company create dialog (SuperAdmin)
+  if (location.startsWith('/admin/companies') ||
+      location.startsWith('/admin/subscription-plans')) {
+    callbacks['new_company'] = () {
+      showDialog(
+        context: context,
+        builder: (_) => CompanyCreateDialog(
+          onCreated: () {
+            // Refresh the companies list by invalidating the provider
+            ref.invalidate(companyListProvider);
+          },
+        ),
+      );
+    };
+  }
+
   return callbacks;
 }
 
@@ -221,7 +283,10 @@ final class _DesktopLayout extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hasFab = ZQuickActionsFAB.routeHasActions(location);
     final callbacks = _buildFabCallbacks(context, ref, location);
+    // Extra bottom padding when FAB is visible to prevent overlap with page content
+    final bottomPadding = hasFab ? 72.0 : ZSpacing.lg;
 
     return Material(
       color: isDark ? ZColors.darkBackground : ZColors.background,
@@ -252,7 +317,7 @@ final class _DesktopLayout extends ConsumerWidget {
                           ZSpacing.xl,
                           ZSpacing.lg,
                           ZSpacing.xl,
-                          ZSpacing.lg,
+                          bottomPadding,
                         ),
                         child: child,
                       ),
@@ -355,7 +420,9 @@ final class _MobileLayout extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pageTitle = _getPageTitle(location);
+    final hasFab = ZQuickActionsFAB.routeHasActions(location);
     final callbacks = _buildFabCallbacks(context, ref, location);
+    final bottomPadding = hasFab ? 72.0 : ZSpacing.lg;
 
     return Scaffold(
       appBar: AppBar(
@@ -399,7 +466,10 @@ final class _MobileLayout extends ConsumerWidget {
         currentRoute: location,
         callbacks: callbacks,
       ),
-      body: child,
+      body: Padding(
+        padding: EdgeInsets.only(bottom: bottomPadding),
+        child: child,
+      ),
     );
   }
 }

@@ -267,7 +267,7 @@ void main() {
         ),
       ));
 
-      expect(find.byIcon(Icons.attach_money), findsOneWidget);
+      expect(find.byIcon(Icons.currency_exchange), findsOneWidget);
       expect(find.byIcon(Icons.notifications_outlined), findsOneWidget);
       expect(find.byIcon(Icons.chat_bubble_outline), findsOneWidget);
     });

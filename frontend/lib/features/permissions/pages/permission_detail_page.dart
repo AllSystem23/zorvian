@@ -242,7 +242,7 @@ class _PermissionDetailPageState extends ConsumerState<PermissionDetailPage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 130, child: Text(label, style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.grey))),
+          Flexible(flex: 2, child: Text(label, style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.grey))),
           Expanded(child: Text(value, style: color != null ? TextStyle(color: color) : null)),
         ],
       ),

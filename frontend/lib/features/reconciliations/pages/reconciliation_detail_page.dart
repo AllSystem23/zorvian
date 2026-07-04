@@ -84,9 +84,10 @@ final class _ReconciliationDetailPageState extends ConsumerState<ReconciliationD
   }
 
   Future<void> _runAutoMatch() async {
-    await ref.read(reconciliationProvider.notifier).runAutoMatch(widget.reconciliationId);
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Auto-matching ejecutado')),
-    );
+    await ref.read(reconciliationProvider.notifier).runAutoMatch(widget.reconciliationId);    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Auto-matching ejecutado')),
+      );
+    }
   }
 }

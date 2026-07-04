@@ -48,7 +48,7 @@ class _BankDepositPageState extends ConsumerState<BankDepositPage> {
                     validator: (v) => v == null ? 'Requerido' : null,
                   ),
                   loading: () => const SizedBox(height: 80, child: Center(child: CircularProgressIndicator())),
-                  error: (_, __) => ZTextField(controller: TextEditingController(), label: 'ID de Cuenta Bancaria'),
+                  error: (_, _) => ZTextField(controller: TextEditingController(), label: 'ID de Cuenta Bancaria'),
                 ),
                 const SizedBox(height: ZSpacing.sm),
                 ZTextField(
@@ -66,7 +66,7 @@ class _BankDepositPageState extends ConsumerState<BankDepositPage> {
                     onChanged: (val) => setState(() => _selectedCostCenterId = val),
                   ),
                   loading: () => const SizedBox(height: 80, child: Center(child: CircularProgressIndicator())),
-                  error: (_, __) => const SizedBox.shrink(),
+                  error: (_, _) => const SizedBox.shrink(),
                 ),
                 const SizedBox(height: ZSpacing.lg),
                 ZButton(

@@ -79,17 +79,22 @@ class _FinancialDashboardPageState extends ConsumerState<FinancialDashboardPage>
             ratiosAsync.when(
               loading: () => const SizedBox(height: 150, child: Center(child: CircularProgressIndicator())),
               error: (e, _) => ZCard(padding: const EdgeInsets.all(16), child: Text('Error: $e')),
-              data: (r) => Wrap(
-                spacing: 16, runSpacing: 16,
-                children: [
-                  SizedBox(width: 120, height: 120, child: BiGauge(value: r.currentRatio, max: 3, label: 'Liquidez', color: r.currentRatio >= 1.5 ? Colors.green : Colors.red)),
-                  SizedBox(width: 120, height: 120, child: BiGauge(value: r.quickRatio, max: 2, label: 'Prueba Ácida', color: r.quickRatio >= 1 ? Colors.green : Colors.red)),
-                  SizedBox(width: 120, height: 120, child: BiGauge(value: r.debtRatio, max: 1, label: 'Endeudamiento', color: r.debtRatio <= 0.5 ? Colors.green : Colors.red)),
-                  SizedBox(width: 120, height: 120, child: BiGauge(value: r.grossMargin, max: 1, label: 'Margen Bruto', color: r.grossMargin >= 0.3 ? Colors.green : Colors.red)),
-                  SizedBox(width: 120, height: 120, child: BiGauge(value: r.netMargin, max: 0.5, label: 'Margen Neto', color: r.netMargin >= 0.1 ? Colors.green : Colors.red)),
-                  SizedBox(width: 120, height: 120, child: BiGauge(value: r.roe, max: 0.5, label: 'ROE', color: r.roe >= 0.1 ? Colors.green : Colors.red)),
-                  SizedBox(width: 120, height: 120, child: BiGauge(value: r.roa, max: 0.3, label: 'ROA', color: r.roa >= 0.05 ? Colors.green : Colors.red)),
-                ],
+              data: (r) => LayoutBuilder(
+                builder: (ctx, constraints) {
+                  final gaugeW = ((constraints.maxWidth - 48) / 4).clamp(80.0, 130.0);
+                  return Wrap(
+                    spacing: 12, runSpacing: 12,
+                    children: [
+                      SizedBox(width: gaugeW, height: gaugeW, child: BiGauge(value: r.currentRatio, max: 3, label: 'Liquidez', color: r.currentRatio >= 1.5 ? Colors.green : Colors.red)),
+                      SizedBox(width: gaugeW, height: gaugeW, child: BiGauge(value: r.quickRatio, max: 2, label: 'Prueba Ácida', color: r.quickRatio >= 1 ? Colors.green : Colors.red)),
+                      SizedBox(width: gaugeW, height: gaugeW, child: BiGauge(value: r.debtRatio, max: 1, label: 'Endeudamiento', color: r.debtRatio <= 0.5 ? Colors.green : Colors.red)),
+                      SizedBox(width: gaugeW, height: gaugeW, child: BiGauge(value: r.grossMargin, max: 1, label: 'Margen Bruto', color: r.grossMargin >= 0.3 ? Colors.green : Colors.red)),
+                      SizedBox(width: gaugeW, height: gaugeW, child: BiGauge(value: r.netMargin, max: 0.5, label: 'Margen Neto', color: r.netMargin >= 0.1 ? Colors.green : Colors.red)),
+                      SizedBox(width: gaugeW, height: gaugeW, child: BiGauge(value: r.roe, max: 0.5, label: 'ROE', color: r.roe >= 0.1 ? Colors.green : Colors.red)),
+                      SizedBox(width: gaugeW, height: gaugeW, child: BiGauge(value: r.roa, max: 0.3, label: 'ROA', color: r.roa >= 0.05 ? Colors.green : Colors.red)),
+                    ],
+                  );
+                },
               ),
             ),
             const SizedBox(height: 24),

@@ -109,7 +109,7 @@ final class _CreditNoteFormPageState extends ConsumerState<CreditNoteFormPage> {
           : _error != null && _items.isEmpty
               ? Center(child: Text(_error!))
               : SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(MediaQuery.of(context).size.width < 576 ? 12 : MediaQuery.of(context).size.width < 992 ? 16 : 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [

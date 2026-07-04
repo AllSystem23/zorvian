@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
+import '../../../core/utils/formatters.dart';
 import 'package:zorvian/shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
 import '../../clients/providers/client_provider.dart';
@@ -313,7 +313,7 @@ final class _WarrantyFormPageState extends ConsumerState<WarrantyFormPage> {
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(ZRadii.md)),
               prefixIcon: const Icon(Icons.calendar_today),
             ),
-            child: Text(DateFormat('dd/MM/yyyy').format(_startDate)),
+            child: Text(ZFormatters.date(_startDate)),
           ),
         ),
       ],

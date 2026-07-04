@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../shared/ds/ds.dart';
 import '../providers/public_warranty_provider.dart';
 import '../models/warranty_model.dart';
@@ -130,7 +130,6 @@ class _WarrantyTrackingPageState extends ConsumerState<WarrantyTrackingPage> {
   }
 
   Widget _buildResult(BuildContext ctx, WarrantyTrackingModel w, bool isWide) {
-    final dateFmt = DateFormat('dd/MM/yyyy');
     final color = warrantyStatusColor(w.status);
     final label = warrantyStatusLabel(w.status);
 
@@ -159,15 +158,15 @@ class _WarrantyTrackingPageState extends ConsumerState<WarrantyTrackingPage> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(child: _buildInfoSection(w, dateFmt)),
+                Expanded(child: _buildInfoSection(w)),
                 const SizedBox(width: 24),
-                Expanded(child: _buildDatesSection(w, dateFmt)),
+                Expanded(child: _buildDatesSection(w)),
               ],
             )
           else ...[
-            _buildInfoSection(w, dateFmt),
+            _buildInfoSection(w),
             const SizedBox(height: 16),
-            _buildDatesSection(w, dateFmt),
+            _buildDatesSection(w),
           ],
           if (w.termsAndConditions != null && w.termsAndConditions!.isNotEmpty) ...[
             const SizedBox(height: 20),
@@ -203,9 +202,8 @@ class _WarrantyTrackingPageState extends ConsumerState<WarrantyTrackingPage> {
                             Text(c.description!, style: ZTypography.bodySmall.copyWith(color: ZColors.neutral600)),
                         ],
                       ),
-                    ),
-                    if (c.createdAt != null)
-                      Text(dateFmt.format(c.createdAt!), style: ZTypography.bodySmall),
+                    ),                      if (c.createdAt != null)
+                      Text(ZFormatters.date(c.createdAt!), style: ZTypography.bodySmall),
                   ],
                 ),
               ),
@@ -237,7 +235,7 @@ class _WarrantyTrackingPageState extends ConsumerState<WarrantyTrackingPage> {
                         if (t.description != null)
                           Text(t.description!, style: ZTypography.bodySmall.copyWith(color: ZColors.neutral600)),
                         if (t.eventDate != null)
-                          Text(dateFmt.format(t.eventDate!), style: ZTypography.bodySmall),
+                          Text(ZFormatters.date(t.eventDate!), style: ZTypography.bodySmall),
                       ],
                     ),
                   ),
@@ -250,7 +248,7 @@ class _WarrantyTrackingPageState extends ConsumerState<WarrantyTrackingPage> {
     );
   }
 
-  Widget _buildInfoSection(WarrantyTrackingModel w, DateFormat dateFmt) {
+  Widget _buildInfoSection(WarrantyTrackingModel w) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -266,12 +264,12 @@ class _WarrantyTrackingPageState extends ConsumerState<WarrantyTrackingPage> {
     );
   }
 
-  Widget _buildDatesSection(WarrantyTrackingModel w, DateFormat dateFmt) {
+  Widget _buildDatesSection(WarrantyTrackingModel w) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _infoRow(Icons.calendar_today, 'Inicio', w.startDate != null ? dateFmt.format(w.startDate!) : '—'),
-        _infoRow(Icons.event_busy, 'Vencimiento', w.endDate != null ? dateFmt.format(w.endDate!) : '—'),
+        _infoRow(Icons.calendar_today, 'Inicio', ZFormatters.dateOrNull(w.startDate)),
+        _infoRow(Icons.event_busy, 'Vencimiento', ZFormatters.dateOrNull(w.endDate)),
         if (w.durationDays != null)
           _infoRow(Icons.timelapse, 'Duración', '${w.durationDays} días'),
       ],

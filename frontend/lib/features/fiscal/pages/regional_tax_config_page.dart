@@ -82,7 +82,7 @@ class _RegionalTaxConfigPageState extends ConsumerState<RegionalTaxConfigPage> {
         .toList();
   }
 
-  void _showForm({RegionalTaxConfigItem? existing}) {
+  void _openEditForm(RegionalTaxConfigItem existing) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -90,7 +90,7 @@ class _RegionalTaxConfigPageState extends ConsumerState<RegionalTaxConfigPage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => _RegionalTaxConfigForm(
+      builder: (_) => RegionalTaxConfigForm(
         existing: existing,
         onSaved: () => ref.read(regionalTaxConfigProvider.notifier).load(),
       ),
@@ -185,7 +185,7 @@ class _RegionalTaxConfigPageState extends ConsumerState<RegionalTaxConfigPage> {
                                   'Tasa: ${(c.rate * 100).toStringAsFixed(1)}% · Desde: ${c.effectiveDate.split('T').first}'),
                               trailing: PopupMenuButton<String>(
                                 onSelected: (v) {
-                                  if (v == 'edit') _showForm(existing: c);
+                                  if (v == 'edit') _openEditForm(c);
                                   if (v == 'delete') _confirmDelete(c);
                                 },
                                 itemBuilder: (_) => [
@@ -206,26 +206,22 @@ class _RegionalTaxConfigPageState extends ConsumerState<RegionalTaxConfigPage> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showForm(),
-        child: const Icon(Icons.add),
-      ),
-    );
+);
   }
 }
 
-// ── Form Sheet ──
-class _RegionalTaxConfigForm extends ConsumerStatefulWidget {
+// ── Form Sheet (public for ZQuickActionsFAB callback) ──
+class RegionalTaxConfigForm extends ConsumerStatefulWidget {
   final RegionalTaxConfigItem? existing;
   final VoidCallback onSaved;
 
-  const _RegionalTaxConfigForm({this.existing, required this.onSaved});
+  const RegionalTaxConfigForm({super.key, this.existing, required this.onSaved});
 
   @override
-  ConsumerState<_RegionalTaxConfigForm> createState() => _RegionalTaxConfigFormState();
+  ConsumerState<RegionalTaxConfigForm> createState() => _RegionalTaxConfigFormState();
 }
 
-class _RegionalTaxConfigFormState extends ConsumerState<_RegionalTaxConfigForm> {
+class _RegionalTaxConfigFormState extends ConsumerState<RegionalTaxConfigForm> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _countryCodeCtrl;
   late final TextEditingController _taxTypeCtrl;

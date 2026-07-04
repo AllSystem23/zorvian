@@ -10,6 +10,7 @@ import '../../theme/theme_provider.dart';
 import '../../../core/providers/company_currency_provider.dart';
 import '../../../core/utils/country_config.dart';
 import '../../../core/utils/currency_colors.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../shared/ds/ds.dart';
 
 /// GlobalHeader — Persistent top bar across all pages.
@@ -1179,7 +1180,7 @@ class _ExchangeRatePopupState extends ConsumerState<_ExchangeRatePopup> {
                   const SizedBox(width: 4),
                   Text(
                     hasApiRate
-                        ? 'Actualizado: ${_effectiveDate!.day}/${_effectiveDate!.month}/${_effectiveDate!.year}'
+                        ? 'Actualizado: ${ZFormatters.date(_effectiveDate!)}'
                         : 'Tasa referencial (configura tipos de cambio en BD)',
                     style: ZTypography.bodySmall.copyWith(
                       color: isDark ? ZColors.neutral500 : ZColors.neutral400,

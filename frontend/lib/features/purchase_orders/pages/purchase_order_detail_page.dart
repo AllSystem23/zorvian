@@ -181,6 +181,7 @@ final class _PurchaseOrderDetailPageState extends ConsumerState<PurchaseOrderDet
               ),
             if (d.status == 'partially_received')
               Center(child: ZButton(text: 'Recibir Restante', onPressed: _receive, type: ZButtonType.primary)),
+            const SizedBox(height: 80),
           ],
         ),
       ),

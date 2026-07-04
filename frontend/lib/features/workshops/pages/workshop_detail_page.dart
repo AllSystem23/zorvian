@@ -232,7 +232,7 @@ class _InfoRow extends StatelessWidget {
         children: [
           Icon(icon, size: 18, color: ZColors.neutral500),
           const SizedBox(width: ZSpacing.sm),
-          SizedBox(width: 100, child: Text(label, style: ZTypography.bodySmall.copyWith(color: ZColors.neutral500))),
+          Flexible(flex: 2, child: Text(label, style: ZTypography.bodySmall.copyWith(color: ZColors.neutral500))),
           Expanded(child: Text(value, style: ZTypography.bodyMedium)),
         ],
       ),

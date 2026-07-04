@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/utils/formatters.dart';
 import '../providers/kiosk_provider.dart';
 
 class KioskPage extends ConsumerStatefulWidget {
@@ -96,7 +97,7 @@ class _KioskPageState extends ConsumerState<KioskPage> {
 
   Widget _buildClock(ThemeData theme) {
     final timeStr = '${_now.hour.toString().padLeft(2, '0')}:${_now.minute.toString().padLeft(2, '0')}:${_now.second.toString().padLeft(2, '0')}';
-    final dateStr = '${_now.day}/${_now.month}/${_now.year}';
+    final dateStr = ZFormatters.date(_now);
     return Column(
       children: [
         Text(timeStr, style: theme.textTheme.displayLarge?.copyWith(

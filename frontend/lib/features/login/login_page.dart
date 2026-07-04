@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../auth/auth_provider.dart';
 import '../../core/widgets/particle_background.dart';
+import '../../core/widgets/responsive_layout.dart';
 import '../../shared/ds/ds.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
@@ -16,9 +17,6 @@ class LoginPage extends ConsumerStatefulWidget {
 class _LoginPageState extends ConsumerState<LoginPage> {
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
-    final isDesktop = size.width > 900;
-
     return Scaffold(
       backgroundColor: ZColors.darkBackground,
       body: Stack(
@@ -80,7 +78,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           ),
           
           SafeArea(
-            child: isDesktop ? _buildDesktopLayout() : _buildMobileLayout(),
+            child: ResponsiveBuilder(
+              builder: (_, size) => size == ScreenSize.desktop
+                  ? _buildDesktopLayout()
+                  : _buildMobileLayout(),
+            ),
           ),
         ],
       ),
@@ -93,7 +95,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         Expanded(
           flex: 4,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 80),
+            padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width > 1200 ? 80 : 40),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,

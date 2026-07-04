@@ -102,28 +102,26 @@ final class _ComparativeReportsPageState extends ConsumerState<ComparativeReport
                     const SizedBox(height: ZSpacing.lg),
                     Text('Comparativo por Línea', style: theme.textTheme.titleSmall),
                     const SizedBox(height: ZSpacing.sm),
-                    ZCard(
-                      child: DataTable(
-                        columnSpacing: 8,
-                        columns: const [
-                          DataColumn(label: Text('Concepto', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          DataColumn(label: Text('Actual', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)), numeric: true),
-                          DataColumn(label: Text('Anterior', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)), numeric: true),
-                          DataColumn(label: Text('Varianza', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)), numeric: true),
-                          DataColumn(label: Text('%', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)), numeric: true),
-                        ],
-                        rows: data.lines.map((l) {
-                          final current = l.periods.length > 1 ? l.periods[1].amount : l.periods[0].amount;
-                          final previous = l.periods[0].amount;
-                          return DataRow(cells: [
-                            DataCell(Text(l.concept, style: const TextStyle(fontSize: 11))),
-                            DataCell(Text('\$${current.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11))),
-                            DataCell(Text('\$${previous.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11))),
-                            DataCell(Text('\$${l.variance.toStringAsFixed(2)}', style: TextStyle(fontSize: 11, color: l.variance >= 0 ? Colors.green : Colors.red))),
-                            DataCell(Text('${l.variancePercent.toStringAsFixed(1)}%', style: TextStyle(fontSize: 11, color: l.variancePercent >= 0 ? Colors.green : Colors.red))),
-                          ]);
-                        }).toList(),
-                      ),
+                    ZDataTable<dynamic>(
+                      columns: const [
+                        ZColumn(id: 'concept', label: 'Concepto'),
+                        ZColumn(id: 'current', label: 'Actual', numeric: true),
+                        ZColumn(id: 'previous', label: 'Anterior', numeric: true),
+                        ZColumn(id: 'variance', label: 'Varianza', numeric: true),
+                        ZColumn(id: 'pct', label: '%', numeric: true),
+                      ],
+                      rows: data.lines,
+                      rowMapper: (l) {
+                        final current = l.periods.length > 1 ? l.periods[1].amount : l.periods[0].amount;
+                        final previous = l.periods[0].amount;
+                        return DataRow(cells: [
+                          DataCell(Text(l.concept, style: const TextStyle(fontSize: 11))),
+                          DataCell(Text('\$${current.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11))),
+                          DataCell(Text('\$${previous.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11))),
+                          DataCell(Text('\$${l.variance.toStringAsFixed(2)}', style: TextStyle(fontSize: 11, color: l.variance >= 0 ? Colors.green : Colors.red))),
+                          DataCell(Text('${l.variancePercent.toStringAsFixed(1)}%', style: TextStyle(fontSize: 11, color: l.variancePercent >= 0 ? Colors.green : Colors.red))),
+                        ]);
+                      },
                     ),
                   ],
                 ),

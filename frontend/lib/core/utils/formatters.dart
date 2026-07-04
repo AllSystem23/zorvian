@@ -70,6 +70,12 @@ class ZFormatters {
     return DateFormat('dd/MM/yyyy').format(dt);
   }
 
+  /// Formats a nullable DateTime. Returns [fallback] (default '—') when null.
+  static String dateOrNull(DateTime? dt, {String fallback = '—'}) {
+    if (dt == null) return fallback;
+    return date(dt);
+  }
+
   static String dateTime(DateTime dt) {
     return DateFormat('dd/MM/yyyy HH:mm').format(dt);
   }

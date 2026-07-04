@@ -91,11 +91,6 @@ final class _PurchaseOrderListPageState extends ConsumerState<PurchaseOrderListP
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/purchase-orders/new'),
-        icon: const Icon(Icons.add),
-        label: const Text('Nueva OC'),
-      ),
     );
   }
 }

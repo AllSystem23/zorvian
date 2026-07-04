@@ -101,7 +101,7 @@ class _CountryTaxConfigPageState extends ConsumerState<CountryTaxConfigPage> {
         .toList();
   }
 
-  void _showForm({CountryTaxConfigItem? existing}) {
+  void _openEditForm(CountryTaxConfigItem existing) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -109,7 +109,7 @@ class _CountryTaxConfigPageState extends ConsumerState<CountryTaxConfigPage> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => _CountryTaxConfigForm(
+      builder: (_) => CountryTaxConfigForm(
         existing: existing,
         onSaved: () {
           ref.read(countryTaxConfigProvider.notifier).load();
@@ -208,7 +208,7 @@ class _CountryTaxConfigPageState extends ConsumerState<CountryTaxConfigPage> {
                                   '${c.currency} · INSS Emp: ${(c.inssEmployeeRate * 100).toStringAsFixed(1)}% · Vacaciones: ${c.vacationDaysPerYear}d'),
                               trailing: PopupMenuButton<String>(
                                 onSelected: (v) {
-                                  if (v == 'edit') _showForm(existing: c);
+                                  if (v == 'edit') _openEditForm(c);
                                   if (v == 'delete') _confirmDelete(c);
                                 },
                                 itemBuilder: (_) => [
@@ -229,26 +229,22 @@ class _CountryTaxConfigPageState extends ConsumerState<CountryTaxConfigPage> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showForm(),
-        child: const Icon(Icons.add),
-      ),
-    );
+);
   }
 }
 
-// ── Form Sheet ──
-class _CountryTaxConfigForm extends ConsumerStatefulWidget {
+// ── Form Sheet (public for ZQuickActionsFAB callback) ──
+class CountryTaxConfigForm extends ConsumerStatefulWidget {
   final CountryTaxConfigItem? existing;
   final VoidCallback onSaved;
 
-  const _CountryTaxConfigForm({this.existing, required this.onSaved});
+  const CountryTaxConfigForm({super.key, this.existing, required this.onSaved});
 
   @override
-  ConsumerState<_CountryTaxConfigForm> createState() => _CountryTaxConfigFormState();
+  ConsumerState<CountryTaxConfigForm> createState() => _CountryTaxConfigFormState();
 }
 
-class _CountryTaxConfigFormState extends ConsumerState<_CountryTaxConfigForm> {
+class _CountryTaxConfigFormState extends ConsumerState<CountryTaxConfigForm> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _codeCtrl;
   late final TextEditingController _nameCtrl;

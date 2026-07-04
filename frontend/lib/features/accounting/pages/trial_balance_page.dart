@@ -82,26 +82,24 @@ final class _TrialBalancePageState extends ConsumerState<TrialBalancePage> {
                   children: [
                     Text(_data!.periodName, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                     const SizedBox(height: ZSpacing.sm),
-                    ZCard(
-                      child: DataTable(
-                        columnSpacing: 8,
-                        columns: const [
-                          DataColumn(label: Text('Código', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          DataColumn(label: Text('Cuenta', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                          DataColumn(label: Text('Saldo Inicial', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)), numeric: true),
-                          DataColumn(label: Text('Débitos', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)), numeric: true),
-                          DataColumn(label: Text('Créditos', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)), numeric: true),
-                          DataColumn(label: Text('Saldo Final', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)), numeric: true),
-                        ],
-                        rows: _data!.items.map((i) => DataRow(cells: [
-                          DataCell(Text(i.accountCode, style: const TextStyle(fontSize: 11))),
-                          DataCell(Text(i.accountName, style: const TextStyle(fontSize: 11))),
-                          DataCell(Text('\$${i.openingBalance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11))),
-                          DataCell(Text('\$${i.debitMovements.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11))),
-                          DataCell(Text('\$${i.creditMovements.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11))),
-                          DataCell(Text('\$${i.endingBalance.toStringAsFixed(2)}', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: i.endingBalance >= 0 ? Colors.green : Colors.red))),
-                        ])).toList(),
-                      ),
+                    ZDataTable<dynamic>(
+                      columns: const [
+                        ZColumn(id: 'code', label: 'Código'),
+                        ZColumn(id: 'account', label: 'Cuenta'),
+                        ZColumn(id: 'opening', label: 'Saldo Inicial', numeric: true),
+                        ZColumn(id: 'debits', label: 'Débitos', numeric: true),
+                        ZColumn(id: 'credits', label: 'Créditos', numeric: true),
+                        ZColumn(id: 'ending', label: 'Saldo Final', numeric: true),
+                      ],
+                      rows: _data!.items,
+                      rowMapper: (i) => DataRow(cells: [
+                        DataCell(Text(i.accountCode, style: const TextStyle(fontSize: 11))),
+                        DataCell(Text(i.accountName, style: const TextStyle(fontSize: 11))),
+                        DataCell(Text('\$${i.openingBalance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11))),
+                        DataCell(Text('\$${i.debitMovements.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11))),
+                        DataCell(Text('\$${i.creditMovements.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11))),
+                        DataCell(Text('\$${i.endingBalance.toStringAsFixed(2)}', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: i.endingBalance >= 0 ? Colors.green : Colors.red))),
+                      ]),
                     ),
                   ],
                 ),

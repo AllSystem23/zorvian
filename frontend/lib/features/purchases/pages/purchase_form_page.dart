@@ -192,7 +192,7 @@ final class _PurchaseFormPageState extends ConsumerState<PurchaseFormPage> {
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(MediaQuery.of(context).size.width < 576 ? 12 : MediaQuery.of(context).size.width < 992 ? 16 : 24),
         children: [
           ZCard(
             padding: const EdgeInsets.all(16),

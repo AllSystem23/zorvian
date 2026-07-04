@@ -66,7 +66,7 @@ final class _ReconciliationListPageState extends ConsumerState<ReconciliationLis
                       prefixIcon: Icon(Icons.filter_list),
                       isDense: true,
                     ),
-                    value: _statusFilter,
+                    initialValue: _statusFilter,
                     items: [
                       const DropdownMenuItem(value: null, child: Text('Todos')),
                       DropdownMenuItem(value: 'draft', child: Text('Borrador')),
@@ -121,7 +121,7 @@ final class _ReconciliationListPageState extends ConsumerState<ReconciliationLis
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                         decoration: BoxDecoration(
-                                          color: _statusColor(r.status).withOpacity(0.15),
+                                          color: _statusColor(r.status).withValues(alpha: 0.15),
                                           borderRadius: BorderRadius.circular(12),
                                         ),
                                         child: Text(
