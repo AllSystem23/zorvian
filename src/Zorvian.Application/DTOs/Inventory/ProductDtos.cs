@@ -67,6 +67,7 @@ public sealed record ProductListResponse(
     string Name,
     string? CategoryName,
     decimal SellingPrice,
+    decimal TaxRate,
     int Stock,
     int MinStock,
     bool IsActive

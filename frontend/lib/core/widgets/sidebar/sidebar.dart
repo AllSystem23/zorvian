@@ -12,17 +12,24 @@ final class ZorvianSidebar extends ConsumerWidget {
   final String role;
   final String location;
   final WidgetRef shellRef;
+  final bool? collapsedOverride;
 
   const ZorvianSidebar({
     super.key,
     required this.role,
     required this.location,
     required this.shellRef,
+    this.collapsedOverride,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final collapsed = ref.watch(sidebarCollapsedProvider);
+    final bool collapsed;
+    if (collapsedOverride != null) {
+      collapsed = collapsedOverride!;
+    } else {
+      collapsed = ref.watch(sidebarCollapsedProvider);
+    }
     final rawModules = ref.watch(filteredModulesProvider(role));
     final modules = NavConfig.getModulesByGroup(rawModules);
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -181,8 +188,7 @@ final class _SidebarHeader extends ConsumerWidget {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-              ),
-              GestureDetector(
+              ),                  GestureDetector(
                 onTap: () => ref.read(sidebarCollapsedProvider.notifier).toggle(),
                 child: Icon(Icons.menu_open, size: 18, color: isDark ? ZColors.neutral400 : ZColors.neutral500),
               ),

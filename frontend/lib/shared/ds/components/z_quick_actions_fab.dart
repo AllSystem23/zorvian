@@ -493,8 +493,12 @@ class ZQuickActionsFAB extends StatelessWidget {
       final callback = action.actionId != null
           ? callbacks[action.actionId!]
           : null;
+      final currentRoute = GoRouterState.of(context).matchedLocation;
       return FloatingActionButton(
-        onPressed: callback ?? () => context.push(action.route),
+        onPressed: callback ?? () {
+          if (currentRoute == action.route) return;
+          context.push(action.route);
+        },
         backgroundColor: isDark ? ZColors.brandAccent : ZColors.brandPrimary,
         foregroundColor: isDark ? ZColors.brandPrimary : Colors.white,
         tooltip: action.label,
@@ -634,10 +638,11 @@ class _ExpandableFABState extends State<_ExpandableFAB>
                   FloatingActionButton.small(
                     onPressed: () {
                       _toggle();
+                      final currentRoute = GoRouterState.of(context).matchedLocation;
                       final callback = widget.callbacks[action.actionId];
                       if (callback != null) {
                         callback();
-                      } else {
+                      } else if (currentRoute != action.route) {
                         context.push(action.route);
                       }
                     },

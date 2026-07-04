@@ -156,6 +156,9 @@ import '../features/crm/pages/lead_form_page.dart';
 import '../features/crm/pages/opportunity_detail_page.dart';
 import '../features/crm/pages/opportunity_form_page.dart';
 import '../features/fleet/pages/fleet_dashboard_page.dart';
+import '../features/sick_leave/pages/sick_leave_list_page.dart';
+import '../features/sick_leave/pages/sick_leave_form_page.dart';
+import '../features/not_found/not_found_page.dart';
 import '../features/fleet/pages/fleet_vehicle_list_page.dart';
 import '../features/fleet/pages/fleet_vehicle_form_page.dart';
 import '../features/fleet/pages/fleet_driver_list_page.dart';
@@ -276,6 +279,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/splash',
     debugLogDiagnostics: true,
+    errorBuilder: (context, state) => NotFoundPage(state: state),
     redirect: (context, state) {
       final status = authState.status;
       final location = state.matchedLocation;
@@ -415,6 +419,14 @@ final routerProvider = Provider<GoRouter>((ref) {
                 builder: (_, state) => EmployeeDetailPage(employeeId: state.pathParameters['employeeId']!),
                 routes: [
                   GoRoute(path: 'edit', name: 'employee-edit', builder: (_, state) => EmployeeFormPage(employeeId: state.pathParameters['employeeId']!)),
+                  GoRoute(
+                    path: 'sick-leaves',
+                    name: 'employee-sick-leaves',
+                    builder: (_, state) => SickLeaveListPage(employeeId: state.pathParameters['employeeId']!),
+                    routes: [
+                      GoRoute(path: 'new', name: 'employee-sick-leave-new', builder: (_, state) => SickLeaveFormPage(employeeId: state.pathParameters['employeeId']!)),
+                    ],
+                  ),
                 ],
               ),
             ],

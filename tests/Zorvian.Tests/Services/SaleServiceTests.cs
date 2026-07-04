@@ -22,11 +22,15 @@ public sealed class SaleServiceTests
     private readonly Mock<ITenantContext> _tenant = new();
     private readonly Mock<IMapper> _mapper = new();
     private readonly Mock<IGoalIntegrationService> _goalIntegration = new();
+    private readonly Mock<IAccountingPeriodRepository> _periodRepo = new();
     private readonly SaleService _sut;
 
     public SaleServiceTests()
     {
         _tenant.Setup(t => t.TenantId).Returns(Guid.NewGuid().ToString());
+        var companyGuid = Guid.NewGuid();
+        _periodRepo.Setup(r => r.GetCurrentOpenAsync(companyGuid)).ReturnsAsync(new AccountingPeriod { Id = companyGuid, Status = "open" });
+        _periodRepo.Setup(r => r.GetCurrentOpenAsync(It.IsAny<Guid>())).ReturnsAsync(new AccountingPeriod { Id = Guid.NewGuid(), Status = "open" });
         _mapper.Setup(m => m.Map<Sale>(It.IsAny<CreateCashSaleRequest>()))
             .Returns<CreateCashSaleRequest>(req => new Sale
             {
@@ -34,7 +38,7 @@ public sealed class SaleServiceTests
                 TenantId = _tenant.Object.TenantId,
                 ClientId = req.ClientId,
                 BranchId = req.BranchId,
-                CurrencyCode = req.CurrencyCode,
+                CurrencyCode = req.CurrencyCode ?? "NIO",
                 SaleType = "cash",
                 SaleDate = DateTime.UtcNow,
             });
@@ -55,7 +59,8 @@ public sealed class SaleServiceTests
             _webhook.Object,
             _tenant.Object,
             _mapper.Object,
-            _goalIntegration.Object);
+            _goalIntegration.Object,
+            _periodRepo.Object);
     }
 
     [Fact]

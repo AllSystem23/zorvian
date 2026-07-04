@@ -421,20 +421,170 @@ public sealed class AccountingPeriodService
     private readonly IFiscalYearRepository _fiscalYearRepo;
     private readonly ICompanyRepository _companyRepo;
     private readonly ITenantContext _tenant;
+    private readonly IAccountingEntryRepository _entryRepo;
+    private readonly IAccountRepository _accountRepo;
 
     public AccountingPeriodService(
         IAccountingPeriodRepository repo,
         IFiscalYearRepository fiscalYearRepo,
         ICompanyRepository companyRepo,
-        ITenantContext tenant)
+        ITenantContext tenant,
+        IAccountingEntryRepository entryRepo,
+        IAccountRepository accountRepo)
     {
         _repo = repo;
         _fiscalYearRepo = fiscalYearRepo;
         _companyRepo = companyRepo;
         _tenant = tenant;
+        _entryRepo = entryRepo;
+        _accountRepo = accountRepo;
     }
 
     private Guid CompanyId => _tenant.ResolveCompanyId();
+
+    private async Task<Account> ResolveRetainedEarningsAccountAsync(Guid companyId)
+    {
+        var code = "3.1.02";
+        var account = await _accountRepo.GetByCodeAsync(code, companyId)
+                      ?? await _accountRepo.GetByCodeAsync(code.Replace('.', '-'), companyId)
+                      ?? await _accountRepo.GetByCodeAsync(code.PadLeft(5, '0'), companyId);
+        if (account == null)
+        {
+            var accounts = await _accountRepo.GetAllAsync(companyId);
+            account = accounts.FirstOrDefault(a =>
+                a.Name.Contains("Utilidades Retenidas", StringComparison.OrdinalIgnoreCase) ||
+                a.Name.Contains("Retained Earnings", StringComparison.OrdinalIgnoreCase) ||
+                a.Name.Contains("Resultado", StringComparison.OrdinalIgnoreCase));
+        }
+        return account ?? throw new InvalidOperationException(
+            "Cuenta de Utilidades Retenidas no encontrada. Verifique el catálogo de cuentas.");
+    }
+
+    private static void EnsureBalanced(List<AccountingEntryDetail> details)
+    {
+        var debit = details.Sum(d => d.DebitAmount);
+        var credit = details.Sum(d => d.CreditAmount);
+        if (debit != credit)
+            throw new InvalidOperationException($"Closing entry not balanced: Debits {debit:N2} vs Credits {credit:N2} (difference: {Math.Abs(debit - credit):N2})");
+    }
+
+    private async Task GenerateClosingEntriesAsync(Guid periodId, Guid companyId)
+    {
+        var entries = await _entryRepo.GetPostedWithDetailsAsync(periodId, companyId);
+
+        var accountBalances = new Dictionary<Guid, (string Type, string NormalSide, string Code, string Name, decimal Balance)>();
+        foreach (var entry in entries)
+        {
+            foreach (var detail in entry.Details)
+            {
+                var account = detail.Account;
+                if (account.Type != AccountTypes.Income &&
+                    account.Type != AccountTypes.Cost &&
+                    account.Type != AccountTypes.Expense)
+                    continue;
+
+                if (!accountBalances.ContainsKey(account.Id))
+                    accountBalances[account.Id] = (account.Type, account.NormalSide, account.Code, account.Name, 0);
+
+                var bal = accountBalances[account.Id];
+                accountBalances[account.Id] = (bal.Type, bal.NormalSide, bal.Code, bal.Name,
+                    bal.Balance + detail.DebitAmount - detail.CreditAmount);
+            }
+        }
+
+        var closingAccounts = accountBalances
+            .Where(kv => kv.Value.Balance != 0)
+            .Select(kv => kv.Value)
+            .ToList();
+
+        if (closingAccounts.Count == 0) return;
+
+        var retainedEarnings = await ResolveRetainedEarningsAccountAsync(companyId);
+
+        var details = new List<AccountingEntryDetail>();
+        decimal totalClosingDebit = 0;
+        decimal totalClosingCredit = 0;
+
+        foreach (var acct in closingAccounts)
+        {
+            decimal closeDebit = 0;
+            decimal closeCredit = 0;
+            string typeLabel;
+
+            if (acct.Type == AccountTypes.Income)
+            {
+                closeDebit = acct.Balance < 0 ? -acct.Balance : 0;
+                closeCredit = acct.Balance > 0 ? acct.Balance : 0;
+                typeLabel = "Ingreso";
+            }
+            else
+            {
+                closeDebit = acct.Balance < 0 ? -acct.Balance : 0;
+                closeCredit = acct.Balance > 0 ? acct.Balance : 0;
+                typeLabel = acct.Type == AccountTypes.Cost ? "Costo" : "Gasto";
+            }
+
+            totalClosingDebit += closeDebit;
+            totalClosingCredit += closeCredit;
+
+            details.Add(new AccountingEntryDetail
+            {
+                AccountId = accountBalances.First(kv => kv.Value.Code == acct.Code).Key,
+                DebitAmount = closeDebit,
+                CreditAmount = closeCredit,
+                Description = $"Cierre {typeLabel}: {acct.Name} ({acct.Code})",
+                CompanyId = companyId,
+            });
+        }
+
+        // Retained Earnings: the balancing leg
+        var net = totalClosingDebit - totalClosingCredit;
+        if (net > 0)
+        {
+            details.Add(new AccountingEntryDetail
+            {
+                AccountId = retainedEarnings.Id,
+                DebitAmount = 0,
+                CreditAmount = net,
+                Description = "Utilidad neta del período",
+                CompanyId = companyId,
+            });
+        }
+        else if (net < 0)
+        {
+            details.Add(new AccountingEntryDetail
+            {
+                AccountId = retainedEarnings.Id,
+                DebitAmount = -net,
+                CreditAmount = 0,
+                Description = "Pérdida neta del período",
+                CompanyId = companyId,
+            });
+        }
+
+        EnsureBalanced(details);
+
+        var closeEntry = new AccountingEntry
+        {
+            EntryNumber = await _entryRepo.GenerateEntryNumberAsync(companyId),
+            EntryDate = DateTime.UtcNow,
+            Description = "Asiento de cierre del período",
+            ReferenceType = "PeriodClose",
+            ReferenceId = periodId,
+            Status = "posted",
+            AccountingPeriodId = periodId,
+            TotalDebit = details.Sum(d => d.DebitAmount),
+            TotalCredit = details.Sum(d => d.CreditAmount),
+            PostedAt = DateTime.UtcNow,
+            CreatedBy = _tenant.GetUserIdentifier() ?? "system",
+            TenantId = companyId.ToString(),
+            CompanyId = companyId,
+            Details = details,
+        };
+
+        await _entryRepo.AddAsync(closeEntry);
+        await _entryRepo.SaveChangesAsync();
+    }
 
     public async Task<List<AccountingPeriodResponse>> GetAllAsync()
     {
@@ -556,6 +706,10 @@ public sealed class AccountingPeriodService
                 $"No se puede cerrar el período:\n{string.Join("\n", validation.Errors)}");
 
         var period = await _repo.GetByIdAsync(id) ?? throw new KeyNotFoundException("Period not found");
+        var companyId = CompanyId;
+
+        await GenerateClosingEntriesAsync(id, companyId);
+
         period.Status = PeriodStatus.Closed;
         period.ClosedAt = DateTime.UtcNow;
         period.ClosedBy = _tenant.GetUserIdentifier();

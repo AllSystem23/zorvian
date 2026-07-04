@@ -30,7 +30,12 @@ public sealed class TerminationService
     /// <summary>
     /// Calculates the final termination settlement for an employee.
     /// </summary>
+    /// <param name="employeeId">Employee identifier.</param>
+    /// <param name="reason">Termination reason.</param>
+    /// <param name="terminationDate">Date of termination.</param>
     /// <param name="paidThroughDate">If provided, employee is paid through this date (pending salary = 0).</param>
+    /// <param name="overtimeHours">Overtime hours worked.</param>
+    /// <param name="overtimePay">Overtime pay amount.</param>
     public async Task<TerminationRecord?> CalculateAsync(Guid employeeId, TerminationReason reason, DateOnly terminationDate, DateOnly? paidThroughDate = null, decimal overtimeHours = 0, decimal overtimePay = 0)
     {
         var employee = await _employeeRepo.GetByIdAsync(employeeId)
@@ -249,7 +254,7 @@ public sealed class TerminationService
     {
         if (taxConfig == null || monthlySalary <= 0) return 0m;
 
-        var inssRate = taxConfig != null ? taxConfig.InssEmployeeRate : 0.07m;
+        var inssRate = taxConfig.InssEmployeeRate;
         var taxableMonthly = monthlySalary - Math.Round(monthlySalary * inssRate, 2);
         var taxableAnnual = taxableMonthly * 12;
 
@@ -265,14 +270,12 @@ public sealed class TerminationService
     {
         if (taxConfig == null || monthlySalary <= 0 || occasionalPaymentNet <= 0) return 0m;
 
-        var inssRate = taxConfig != null ? taxConfig.InssEmployeeRate : 0.07m;
+        var inssRate = taxConfig.InssEmployeeRate;
         var taxableMonthly = monthlySalary - Math.Round(monthlySalary * inssRate, 2);
         var taxableAnnual = taxableMonthly * 12;
 
-        // IR without the occasional payment
         var irWithout = CalculateAnnualIr(taxableAnnual, taxConfig);
 
-        // IR with the occasional payment added to annual projection
         var irWith = CalculateAnnualIr(taxableAnnual + occasionalPaymentNet, taxConfig);
 
         return Math.Round(irWith - irWithout, 2);

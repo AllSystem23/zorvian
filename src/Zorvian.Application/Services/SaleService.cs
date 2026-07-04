@@ -21,6 +21,7 @@ public sealed class SaleService
     private readonly ITenantContext _tenant;
     private readonly IMapper _mapper;
     private readonly IGoalIntegrationService _goalIntegration;
+    private readonly IAccountingPeriodRepository _periodRepo;
 
     public SaleService(
         ISaleRepository saleRepo,
@@ -33,7 +34,8 @@ public sealed class SaleService
         IWebhookService webhook,
         ITenantContext tenant,
         IMapper mapper,
-        IGoalIntegrationService goalIntegration)
+        IGoalIntegrationService goalIntegration,
+        IAccountingPeriodRepository periodRepo)
     {
         _saleRepo = saleRepo;
         _productRepo = productRepo;
@@ -46,12 +48,18 @@ public sealed class SaleService
         _tenant = tenant;
         _mapper = mapper;
         _goalIntegration = goalIntegration;
+        _periodRepo = periodRepo;
     }
 
     public async Task<SaleResponse> CreateCashSaleAsync(CreateCashSaleRequest request)
     {
         if (!Guid.TryParse(_tenant.TenantId, out var companyId))
             throw new InvalidOperationException("Tenant not configured");
+
+        var openPeriod = await _periodRepo.GetCurrentOpenAsync(companyId);
+        if (openPeriod is null)
+            throw new InvalidOperationException(
+                "No hay un período contable abierto. Debe abrir un período antes de registrar ventas.");
 
         await _saleRepo.BeginTransactionAsync();
         try
@@ -190,6 +198,11 @@ public sealed class SaleService
     {
         if (!Guid.TryParse(_tenant.TenantId, out var companyId))
             throw new InvalidOperationException("Tenant not configured");
+
+        var openPeriod = await _periodRepo.GetCurrentOpenAsync(companyId);
+        if (openPeriod is null)
+            throw new InvalidOperationException(
+                "No hay un período contable abierto. Debe abrir un período antes de registrar ventas.");
 
         await _saleRepo.BeginTransactionAsync();
         try
@@ -411,6 +424,14 @@ public sealed class SaleService
 
         if (sale.Balance > 0)
             throw new InvalidOperationException("Cannot cancel a sale with outstanding balance. Process a credit note first.");
+
+        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+            throw new InvalidOperationException("Tenant not configured");
+
+        var openPeriod = await _periodRepo.GetCurrentOpenAsync(companyId);
+        if (openPeriod is null)
+            throw new InvalidOperationException(
+                "No hay un período contable abierto. Debe abrir un período antes de cancelar ventas.");
 
         await _saleRepo.BeginTransactionAsync();
         try

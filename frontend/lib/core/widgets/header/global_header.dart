@@ -16,7 +16,9 @@ import '../../../shared/ds/ds.dart';
 /// GlobalHeader — Persistent top bar across all pages.
 /// Contains: Logo, Company/Branch selectors, Search, Notifications, Chat, Theme, User.
 final class GlobalHeader extends ConsumerWidget {
-  const GlobalHeader({super.key});
+  final VoidCallback? onMenuTap;
+
+  const GlobalHeader({super.key, this.onMenuTap});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -38,34 +40,53 @@ final class GlobalHeader extends ConsumerWidget {
         ),
       ),
       padding: EdgeInsets.symmetric(horizontal: collapsed ? ZSpacing.md : ZSpacing.lg),
-      child: Row(
-        children: [
-          // ── Logo (compact) ──
-          _LogoCompact(),
-          SizedBox(width: ZSpacing.md),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final w = constraints.maxWidth;
+          final showAll = w >= 900;
+          final showExtra = w >= 700;
 
-          // ── Tenant Switcher ──
-          _TenantSwitcher(),
-          SizedBox(width: ZSpacing.sm),
+          return Row(
+            children: [
+              // ── Hamburger menu (tablet mode) ──
+              if (onMenuTap != null)
+                IconButton(
+                  icon: const Icon(Icons.menu, size: 20),
+                  onPressed: onMenuTap,
+                  tooltip: 'Menú principal',
+                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                  padding: EdgeInsets.zero,
+                  splashRadius: 18,
+                ),
+              // ── Logo (compact) ──
+              _LogoCompact(),
+              SizedBox(width: showAll ? ZSpacing.md : ZSpacing.sm),
 
-          // ── Company Selector ──
-          _CompanySelector(),
-          SizedBox(width: ZSpacing.sm),
+              // ── Tenant Switcher (hide on compact) ──
+              if (showAll) ...[
+                _TenantSwitcher(),
+                SizedBox(width: ZSpacing.sm),
+              ],
 
-          // ── Branch Selector ──
-          _BranchSelector(),
-          SizedBox(width: ZSpacing.sm),
+              // ── Company Selector ──
+              _CompanySelector(),
+              if (showAll) ...[
+                SizedBox(width: ZSpacing.sm),
+                // ── Branch Selector (hide on compact) ──
+                _BranchSelector(),
+              ],
+              SizedBox(width: ZSpacing.sm),
 
-          // ── Search Bar (Center) ──
-          Expanded(
-            child: _SearchBar(),
-          ),
+              // ── Search Bar (Center) ──
+              Expanded(child: _SearchBar()),
 
-          SizedBox(width: ZSpacing.md),
+              SizedBox(width: showExtra ? ZSpacing.md : ZSpacing.sm),
 
-          // ── Quick Actions (Right) ──
-          _QuickActions(),
-        ],
+              // ── Quick Actions (Right) ──
+              _QuickActions(showAll: showAll, showExtra: showExtra),
+            ],
+          );
+        },
       ),
     );
   }
@@ -434,6 +455,11 @@ class _SearchBar extends ConsumerWidget {
 
 /// Quick action buttons: notifications, chat, theme, user
 class _QuickActions extends ConsumerWidget {
+  final bool showAll;
+  final bool showExtra;
+
+  const _QuickActions({this.showAll = true, this.showExtra = true});
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -446,13 +472,15 @@ class _QuickActions extends ConsumerWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // ── Currency Indicator ──
-        _CurrencyIndicator(),
-        const SizedBox(width: ZSpacing.sm),
+        // ── Currency Indicator (hide on medium/compact) ──
+        if (showAll)
+          _CurrencyIndicator(),
+        if (showAll) const SizedBox(width: ZSpacing.sm),
 
-        // ── Connectivity Indicator ──
-        _ConnectivityDot(state: connState),
-        const SizedBox(width: ZSpacing.sm),
+        // ── Connectivity Indicator (hide on medium/compact) ──
+        if (showAll)
+          _ConnectivityDot(state: connState),
+        if (showAll) const SizedBox(width: ZSpacing.sm),
 
         // ── Notifications ──
         _HeaderIconButton(
@@ -463,16 +491,17 @@ class _QuickActions extends ConsumerWidget {
           onPressed: () => _showNotificationPanel(context, ref),
         ),
 
-        // ── Chat ──
-        _HeaderIconButton(
-          icon: Icons.chat_bubble_outline,
-          tooltip: 'Centro de Comunicación',
-          badgeCount: 0,
-          isDark: isDark,
-          onPressed: () => context.go('/chat'),
-        ),
+        // ── Chat (hide on compact) ──
+        if (showExtra)
+          _HeaderIconButton(
+            icon: Icons.chat_bubble_outline,
+            tooltip: 'Centro de Comunicación',
+            badgeCount: 0,
+            isDark: isDark,
+            onPressed: () => context.go('/chat'),
+          ),
 
-        SizedBox(width: ZSpacing.xs),
+        if (showExtra) SizedBox(width: ZSpacing.xs),
 
         // ── Theme Toggle ──
         IconButton(

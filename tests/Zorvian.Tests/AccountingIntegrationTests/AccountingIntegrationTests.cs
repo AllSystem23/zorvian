@@ -75,10 +75,15 @@ public sealed class AccountingIntegrationTests : IDisposable
                 s.PaidAmount, s.Balance, s.Status ?? "", s.Notes,
                 "NIO", null, new List<SaleDetailItem>(), null));
 
+        var periodRepo = new Mock<IAccountingPeriodRepository>();
+        periodRepo.Setup(r => r.GetCurrentOpenAsync(_companyId))
+            .ReturnsAsync(new AccountingPeriod { Id = Guid.NewGuid(), Status = "open" });
+
         var saleService = new SaleService(
             saleRepo, productRepo, movementRepo, new Mock<ICompanyRepository>().Object,
             clientRepo, new Mock<ICreditRepository>().Object,
-            _autoAccounting, new Mock<IWebhookService>().Object, _tenant.Object, mapper.Object, new Mock<IGoalIntegrationService>().Object);
+            _autoAccounting, new Mock<IWebhookService>().Object, _tenant.Object, mapper.Object, new Mock<IGoalIntegrationService>().Object,
+            periodRepo.Object);
 
         var result = await saleService.CreateCashSaleAsync(new CreateCashSaleRequest(
             client.Id, Guid.NewGuid(), 0, null, _branchId,

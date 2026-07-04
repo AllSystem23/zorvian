@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/error/error_notifier.dart';
 import '../core/network/dio_client.dart';
@@ -81,7 +82,7 @@ class AuthNotifier extends Notifier<AuthState> {
     if (token != null) {
       try {
         final dio = ref.read(dioClientProvider);
-        final response = await dio.get('auth/me');
+        final response = await dio.get('auth/me', options: Options(extra: {'suppressGlobalError': true}));
         final user = response.data;
         final currencyCode = user['currencyCode'] ?? 'NIO';
         await storage.saveCurrencyCode(currencyCode);

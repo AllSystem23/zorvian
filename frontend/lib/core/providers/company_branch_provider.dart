@@ -61,7 +61,7 @@ final companyListProvider =
   final isSuperAdmin = auth.role == 'SuperAdmin';
   try {
     if (isSuperAdmin) {
-      final response = await dio.get('companies/all', options: _silentOptions).timeout(const Duration(seconds: 5));
+      final response = await dio.get('companies/all', options: _silentOptions).timeout(const Duration(seconds: 15));
       if (response.data is List) {
         return (response.data as List)
             .map((e) => Map<String, dynamic>.from(e as Map))
@@ -69,7 +69,7 @@ final companyListProvider =
       }
       return [];
     } else {
-      final response = await dio.get('companies/current', options: _silentOptions).timeout(const Duration(seconds: 5));
+      final response = await dio.get('companies/current', options: _silentOptions).timeout(const Duration(seconds: 15));
       if (response.data is Map<String, dynamic>) {
         final company = response.data as Map<String, dynamic>;
         // Filter out empty/default company responses (SuperAdmin without tenant)
@@ -90,7 +90,7 @@ final headerBranchListProvider =
     FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
   final dio = ref.read(dioClientProvider);
   try {
-    final response = await dio.get('branches', options: _silentOptions).timeout(const Duration(seconds: 5));
+    final response = await dio.get('branches', options: _silentOptions).timeout(const Duration(seconds: 15));
     if (response.data is List) {
       return (response.data as List).cast<Map<String, dynamic>>();
     }
