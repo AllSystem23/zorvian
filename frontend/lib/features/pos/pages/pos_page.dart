@@ -87,10 +87,13 @@ class _PosPageState extends ConsumerState<PosPage> {
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final isWide = constraints.maxWidth > 720;
-
-                if (isWide) {
-                  return _buildWideLayout(posState, productsAsync, isDark);
+                final width = constraints.maxWidth;
+                
+                if (width >= 1024) {
+                  return _buildDesktopLayout(posState, productsAsync, isDark);
+                }
+                if (width >= 720) {
+                  return _buildTabletLayout(posState, productsAsync, isDark);
                 }
                 return _buildMobileLayout(posState, productsAsync, isDark);
               },
@@ -101,15 +104,36 @@ class _PosPageState extends ConsumerState<PosPage> {
     );
   }
 
-  Widget _buildWideLayout(PosState posState, AsyncValue<List<Map<String, dynamic>>> productsAsync, bool isDark) {
+Widget _buildDesktopLayout(PosState posState, AsyncValue<List<Map<String, dynamic>>> productsAsync, bool isDark) {
     return Row(
       children: [
           Expanded(
             flex: 3,
             child: _buildProductPanel(productsAsync, posState, isDark),
           ),
-Container(
+        Container(
             width: 420,
+            decoration: BoxDecoration(
+              color: isDark ? ZColors.darkSurface : ZColors.surface,
+              border: Border(
+                left: BorderSide(color: isDark ? ZColors.darkBorder : ZColors.border),
+              ),
+            ),
+            child: _buildCartPanel(posState, isDark),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildTabletLayout(PosState posState, AsyncValue<List<Map<String, dynamic>>> productsAsync, bool isDark) {
+    return Row(
+      children: [
+          Expanded(
+            flex: 5,
+            child: _buildProductPanel(productsAsync, posState, isDark),
+          ),
+        Container(
+            width: 360,
             decoration: BoxDecoration(
               color: isDark ? ZColors.darkSurface : ZColors.surface,
               border: Border(
