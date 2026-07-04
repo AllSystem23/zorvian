@@ -8,6 +8,8 @@ import '../../providers/company_branch_provider.dart';
 import '../../services/signalr_service.dart';
 import '../../theme/theme_provider.dart';
 import '../../../core/providers/company_currency_provider.dart';
+import '../../../core/utils/country_config.dart';
+import '../../../core/utils/currency_colors.dart';
 import '../../../shared/ds/ds.dart';
 
 /// GlobalHeader — Persistent top bar across all pages.
@@ -805,6 +807,9 @@ class _CurrencyIndicator extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final currencyCode = ref.watch(companyCurrencyProvider);
+    final fgColor = CurrencyColors.foreground(currencyCode, isDark: isDark);
+    final gradient = CurrencyColors.gradient(currencyCode, isDark: isDark);
+
     return Tooltip(
       message: 'Ver tipo de cambio',
       child: GestureDetector(
@@ -813,30 +818,28 @@ class _CurrencyIndicator extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: isDark
-                  ? [ZColors.brandPrimary.withValues(alpha: 0.3), ZColors.brandAccent.withValues(alpha: 0.2)]
-                  : [ZColors.brandPrimary.withValues(alpha: 0.08), ZColors.brandAccent.withValues(alpha: 0.05)],
+              colors: gradient,
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
             ),
             borderRadius: BorderRadius.circular(ZRadii.md),
             border: Border.all(
-              color: isDark
-                  ? ZColors.brandAccent.withValues(alpha: 0.3)
-                  : ZColors.brandPrimary.withValues(alpha: 0.2),
+              color: fgColor.withValues(alpha: 0.3),
             ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                Icons.attach_money,
+                CurrencyColors.icon(currencyCode),
                 size: 14,
-                color: isDark ? ZColors.brandAccent : ZColors.brandPrimary,
+                color: fgColor,
               ),
               const SizedBox(width: 4),
               Text(
                 currencyCode,
                 style: ZTypography.labelSmall.copyWith(
-                  color: isDark ? ZColors.brandAccent : ZColors.brandPrimary,
+                  color: fgColor,
                   fontWeight: FontWeight.w700,
                   fontSize: 12,
                 ),
@@ -890,19 +893,52 @@ class _ExchangeRatePopupState extends ConsumerState<_ExchangeRatePopup> {
         },
       );
       final data = response.data as Map<String, dynamic>;
-      setState(() {
-        _rate = (data['rate'] as num?)?.toDouble();
-        _effectiveDate = data['date'] != null
-            ? DateTime.tryParse(data['date'] as String)
-            : null;
-        _loading = false;
-      });
+      final apiRate = (data['rate'] as num?)?.toDouble();
+
+      if (apiRate != null) {
+        setState(() {
+          _rate = apiRate;
+          _effectiveDate = data['date'] != null
+              ? DateTime.tryParse(data['date'] as String)
+              : null;
+          _loading = false;
+        });
+      } else {
+        // Fallback: usar tasa default desde CountryConfig
+        final defaultRate = _estimateRateToUSD(widget.currencyCode);
+        setState(() {
+          _rate = defaultRate;
+          _effectiveDate = null;
+          _loading = false;
+        });
+      }
     } catch (e) {
+      // Fallback en caso de error de red
+      final defaultRate = _estimateRateToUSD(widget.currencyCode);
       setState(() {
         _loading = false;
-        _error = 'No se pudo obtener el tipo de cambio';
+        _effectiveDate = null;
+        if (defaultRate != null) {
+          _rate = defaultRate;
+        } else {
+          _error = 'No se pudo obtener el tipo de cambio';
+        }
       });
     }
+  }
+
+  /// Estima la tasa de [currencyCode] a USD usando [CountryConfig.defaultExchangeRates]
+  /// que contiene tasas contra NIO. Si la moneda es NIO, retorna 1/36.5 (tasa NIO→USD).
+  double? _estimateRateToUSD(String currencyCode) {
+    final ratesToNIO = CountryConfig.defaultExchangeRates;
+    if (currencyCode == 'USD') return 1.0;
+    // defaultExchangeRates tiene tasas hacia NIO (1 USD = 36.5 NIO)
+    final usdToNIO = ratesToNIO['USD']; // 36.5
+    if (usdToNIO == null || usdToNIO <= 0) return null;
+    if (currencyCode == 'NIO') return 1.0 / usdToNIO; // 1 NIO = 0.0274 USD
+    final codeToNIO = ratesToNIO[currencyCode];
+    if (codeToNIO == null || codeToNIO <= 0) return null;
+    return codeToNIO / usdToNIO; // tasa de currencyCode → USD
   }
 
   @override
@@ -927,15 +963,15 @@ class _ExchangeRatePopupState extends ConsumerState<_ExchangeRatePopup> {
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: isDark
-                          ? [ZColors.brandPrimary.withValues(alpha: 0.3), ZColors.brandAccent.withValues(alpha: 0.2)]
-                          : [ZColors.brandPrimary.withValues(alpha: 0.1), ZColors.brandAccent.withValues(alpha: 0.08)],
+                      colors: CurrencyColors.gradient(code, isDark: isDark),
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(ZRadii.md),
                   ),
                   child: Icon(
-                    Icons.currency_exchange,
-                    color: isDark ? ZColors.brandAccent : ZColors.brandPrimary,
+                    CurrencyColors.icon(code),
+                    color: CurrencyColors.foreground(code, isDark: isDark),
                     size: 20,
                   ),
                 ),
@@ -1059,7 +1095,13 @@ class _ExchangeRatePopupState extends ConsumerState<_ExchangeRatePopup> {
   }
 
   Widget _buildRatePanel(String code, bool isDark, ThemeData theme) {
+    final hasApiRate = _effectiveDate != null;
+    final hasNoRate = _rate == null;
     final invertedRate = _rate != null && _rate! > 0 ? (1 / _rate!) : null;
+
+    if (hasNoRate) {
+      return _buildNoRatePanel(isDark);
+    }
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -1097,9 +1139,7 @@ class _ExchangeRatePopupState extends ConsumerState<_ExchangeRatePopup> {
                     ),
                   ),
                   Text(
-                    _rate != null
-                        ? 'USD ${_rate!.toStringAsFixed(4)}'
-                        : 'USD (sin datos)',
+                    'USD ${_rate!.toStringAsFixed(4)}',
                     style: ZTypography.titleMedium.copyWith(
                       fontWeight: FontWeight.w700,
                       color: isDark ? ZColors.brandAccent : ZColors.brandPrimary,
@@ -1126,28 +1166,76 @@ class _ExchangeRatePopupState extends ConsumerState<_ExchangeRatePopup> {
                 ),
               ],
 
-              // Effective date
-              if (_effectiveDate != null) ...[
-                const SizedBox(height: ZSpacing.sm),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.calendar_today, size: 11, color: isDark ? ZColors.neutral500 : ZColors.neutral400),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Actualizado: ${_effectiveDate!.day}/${_effectiveDate!.month}/${_effectiveDate!.year}',
-                      style: ZTypography.bodySmall.copyWith(
-                        color: isDark ? ZColors.neutral500 : ZColors.neutral400,
-                        fontSize: 11,
-                      ),
+              // Effective date or fallback indicator
+              const SizedBox(height: ZSpacing.sm),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    hasApiRate ? Icons.calendar_today : Icons.info_outline,
+                    size: 11,
+                    color: isDark ? ZColors.neutral500 : ZColors.neutral400,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    hasApiRate
+                        ? 'Actualizado: ${_effectiveDate!.day}/${_effectiveDate!.month}/${_effectiveDate!.year}'
+                        : 'Tasa referencial (configura tipos de cambio en BD)',
+                    style: ZTypography.bodySmall.copyWith(
+                      color: isDark ? ZColors.neutral500 : ZColors.neutral400,
+                      fontSize: 11,
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildNoRatePanel(bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(ZSpacing.md),
+      decoration: BoxDecoration(
+        color: ZColors.warning.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(ZRadii.md),
+        border: Border.all(
+          color: ZColors.warning.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline, size: 16, color: ZColors.warning),
+              const SizedBox(width: ZSpacing.sm),
+              Expanded(
+                child: Text(
+                  'No hay tipos de cambio configurados. Agrega tasas en la secci\u00f3n de administraci\u00f3n.',
+                  style: ZTypography.bodySmall.copyWith(
+                    color: isDark ? ZColors.neutral300 : ZColors.neutral700,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: ZSpacing.sm),
+          SizedBox(
+            width: double.infinity,
+            child: ZButton(
+              text: 'Configurar tipo de cambio',
+              onPressed: () {
+                Navigator.of(context).pop();
+                context.go('/exchange-rates/new');
+              },
+              type: ZButtonType.secondary,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -23,6 +23,11 @@ builder.Services.AddScoped<Zorvian.Web.Filters.ValidationFilter>();
 builder.Services.AddControllers(options =>
 {
     options.Filters.AddService<Zorvian.Web.Filters.ValidationFilter>();
+}).AddJsonOptions(options =>
+{
+    // Global converter: auto-convert incoming DateTime with Kind=Unspecified to Utc
+    // to prevent Npgsql "Cannot write DateTime with Kind=Unspecified" errors.
+    options.JsonSerializerOptions.Converters.Add(new Zorvian.Web.Json.UtcDateTimeJsonConverter());
 });
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();

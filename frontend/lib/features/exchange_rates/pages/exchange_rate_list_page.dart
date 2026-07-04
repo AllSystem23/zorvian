@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/utils/currency_colors.dart';
 import '../../../shared/ds/ds.dart';
 import '../providers/exchange_rate_provider.dart';
 
@@ -67,53 +68,172 @@ class _ExchangeRateListPageState extends ConsumerState<ExchangeRateListPage> {
                         separatorBuilder: (_, _) => const Divider(height: 1),
                         itemBuilder: (_, i) {
                           final item = state.items[i];
-                          return ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor:
-                                  theme.colorScheme.primaryContainer,
-                              child: Text(
-                                '${item.fromCurrency}/${item.toCurrency}',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color:
-                                      theme.colorScheme.onPrimaryContainer,
-                                ),
-                              ),
-                            ),
-                            title: Text(
-                              '${item.fromCurrency} → ${item.toCurrency}',
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                            subtitle: Text(
-                                'Tasa: ${item.displayRate} · Vigente: ${item.formattedDate}'),
-                            trailing: PopupMenuButton<String>(
-                              onSelected: (v) {
-                                if (v == 'edit') {
-                                  context.push(
-                                      '/exchange-rates/${item.id}/edit');
-                                }
-                                if (v == 'delete') {
-                                  _confirmDelete(
-                                      item.id,
-                                      '${item.fromCurrency}→${item.toCurrency}');
-                                }
-                              },
-                              itemBuilder: (_) => [
-                                const PopupMenuItem(
-                                    value: 'edit', child: Text('Editar')),
-                                const PopupMenuItem(
-                                  value: 'delete',
-                                  child: Text('Eliminar',
-                                      style: TextStyle(color: Colors.red)),
-                                ),
-                              ],
-                            ),
+                          return _ExchangeRateTile(
+                            item: item,
+                            onEdit: () => context.push(
+                                '/exchange-rates/${item.id}/edit'),
+                            onDelete: () => _confirmDelete(
+                                item.id,
+                                '${item.fromCurrency}→${item.toCurrency}'),
                           );
                         },
                       ),
                     ),
+    );
+  }
+}
+
+/// A polished list tile for exchange rates with a premium currency badge.
+class _ExchangeRateTile extends StatelessWidget {
+  final ExchangeRateItem item;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  const _ExchangeRateTile({
+    required this.item,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      leading: _CurrencyBadge(
+        fromCode: item.fromCurrency,
+        toCode: item.toCurrency,
+        isDark: isDark,
+      ),
+      title: Text(
+        '${item.fromCurrency} → ${item.toCurrency}',
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+      ),
+      subtitle: Row(
+        children: [
+          Text(
+            item.displayRate,
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              color: isDark ? ZColors.brandAccent : ZColors.brandPrimary,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Icon(Icons.calendar_today, size: 11,
+              color: isDark ? ZColors.neutral500 : ZColors.neutral400),
+          const SizedBox(width: 3),
+          Text(
+            item.formattedDate,
+            style: TextStyle(
+              fontSize: 11,
+              color: isDark ? ZColors.neutral500 : ZColors.neutral400,
+            ),
+          ),
+        ],
+      ),
+      trailing: PopupMenuButton<String>(
+        onSelected: (v) {
+          if (v == 'edit') onEdit();
+          if (v == 'delete') onDelete();
+        },
+        itemBuilder: (_) => [
+          const PopupMenuItem(
+              value: 'edit',
+              child: Row(
+                children: [
+                  Icon(Icons.edit_outlined, size: 18),
+                  SizedBox(width: 8),
+                  Text('Editar'),
+                ],
+              )),
+          const PopupMenuItem(
+            value: 'delete',
+            child: Row(
+              children: [
+                Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                SizedBox(width: 8),
+                Text('Eliminar', style: TextStyle(color: Colors.red)),
+              ],
+            ),
+          ),
+        ],
+      ),
+      onTap: onEdit,
+    );
+  }
+}
+
+/// Premium currency badge with gradient, icon, and dual-currency label.
+class _CurrencyBadge extends StatelessWidget {
+  final String fromCode;
+  final String toCode;
+  final bool isDark;
+
+  const _CurrencyBadge({
+    required this.fromCode,
+    required this.toCode,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bgColor = CurrencyColors.background(fromCode, isDark: isDark);
+    final fgColor = CurrencyColors.foreground(fromCode, isDark: isDark);
+    final gradient = CurrencyColors.gradient(fromCode, isDark: isDark);
+
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: fgColor.withValues(alpha: 0.3),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: bgColor.withValues(alpha: 0.2),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            fromCode,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              color: fgColor,
+              height: 1.1,
+            ),
+          ),
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 1),
+            width: 14,
+            height: 1,
+            color: fgColor.withValues(alpha: 0.4),
+          ),
+          Text(
+            toCode,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: fgColor.withValues(alpha: 0.7),
+              height: 1.1,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
