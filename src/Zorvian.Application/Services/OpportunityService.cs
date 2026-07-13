@@ -35,6 +35,16 @@ public sealed class OpportunityService
         await _opportunityRepo.UpdateAsync(opportunity);
         await _opportunityRepo.SaveChangesAsync();
     }
+
+    public async Task DeleteOpportunityAsync(Guid id)
+    {
+        var opportunity = await _opportunityRepo.GetByIdAsync(id);
+        if (opportunity != null)
+        {
+            await _opportunityRepo.DeleteAsync(opportunity);
+            await _opportunityRepo.SaveChangesAsync();
+        }
+    }
     
     public async Task<List<Opportunity>> GetByPipelineStageAsync(Guid stageId)
     {

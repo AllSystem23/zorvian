@@ -324,14 +324,27 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
               ],
               if (canAssignWorkshop) ...[
                 const SizedBox(height: ZSpacing.sm),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: ZButton(
-                    text: 'Asignar taller',
-                    icon: Icons.build,
-                    type: ZButtonType.secondary,
-                    onPressed: () => _showAssignWorkshopDialog(claimId),
-                  ),
+                const SizedBox(height: ZSpacing.sm),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    if (canAssignWorkshop)
+                      ZButton(
+                        text: 'Asignar taller',
+                        icon: Icons.build,
+                        type: ZButtonType.secondary,
+                        onPressed: () => _showAssignWorkshopDialog(claimId),
+                      ),
+                    if (claimStatus != 'ReplacementApproved' && claimStatus != 'Repaired' && claimStatus != 'Closed' && claimStatus != 'Cancelled') ...[
+                      const SizedBox(width: ZSpacing.sm),
+                      ZButton(
+                        text: 'Reemplazar',
+                        icon: Icons.swap_horiz,
+                        type: ZButtonType.primary,
+                        onPressed: () => _showProcessReplacementDialog(claimId),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ],
@@ -626,6 +639,130 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
             ],
           );
         },
+      ),
+    );
+  }
+
+  void _showProcessReplacementDialog(String claimId) {
+    final newProductIdCtrl = TextEditingController();
+    final newSerialCtrl = TextEditingController();
+    final authCodeCtrl = TextEditingController();
+    final notesCtrl = TextEditingController();
+    String strategy = 'intermediary';
+    bool saving = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Procesar Reemplazo'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Selecciona la estrategia de inventario:', style: ZTypography.bodyMedium),
+                const SizedBox(height: ZSpacing.sm),
+                Container(
+                  padding: const EdgeInsets.all(ZSpacing.sm),
+                  decoration: BoxDecoration(border: Border.all(color: ZColors.neutral200), borderRadius: BorderRadius.circular(8)),
+                  child: Column(
+                    children: [
+                      InkWell(
+                        onTap: () => setDialogState(() => strategy = 'intermediary'),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(children: [
+                            Radio<String>(
+                              value: 'intermediary',
+                              // ignore: deprecated_member_use
+                              groupValue: strategy,
+                              // ignore: deprecated_member_use
+                              onChanged: (v) => setDialogState(() => strategy = v!),
+                              activeColor: ZColors.brandPrimary,
+                            ),
+                            const Expanded(child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Como intermediario'),
+                                Text('No afecta tu stock contable', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                              ],
+                            )),
+                          ]),
+                        ),
+                      ),
+                      InkWell(
+                        onTap: () => setDialogState(() => strategy = 'store_stock'),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(children: [
+                            Radio<String>(
+                              value: 'store_stock',
+                              // ignore: deprecated_member_use
+                              groupValue: strategy,
+                              // ignore: deprecated_member_use
+                              onChanged: (v) => setDialogState(() => strategy = v!),
+                              activeColor: ZColors.brandPrimary,
+                            ),
+                            const Expanded(child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Stock propio'),
+                                Text('Genera salidas/entradas en tu inventario', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                              ],
+                            )),
+                          ]),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: ZSpacing.md),
+                ZTextField(controller: authCodeCtrl, label: 'Cód. Autorización RMA / Marca'),
+                const SizedBox(height: ZSpacing.sm),
+                ZTextField(controller: newProductIdCtrl, label: 'ID Producto Nuevo (UUID)'),
+                const SizedBox(height: ZSpacing.sm),
+                ZTextField(controller: newSerialCtrl, label: 'Nuevo N° Serie'),
+                const SizedBox(height: ZSpacing.sm),
+                ZTextField(controller: notesCtrl, label: 'Notas (Opcional)', maxLines: 2),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: saving ? null : () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            ZButton(
+              text: 'Aprobar Reemplazo',
+              isLoading: saving,
+              type: ZButtonType.primary,
+              onPressed: saving ? () {} : () async {
+                if (newProductIdCtrl.text.trim().isEmpty || authCodeCtrl.text.trim().isEmpty) return;
+                setDialogState(() => saving = true);
+                try {
+                  final dio = ref.read(dioClientProvider);
+                  await dio.post('warranties/claims/$claimId/process-replacement', data: {
+                    'providerAuthorizationCode': authCodeCtrl.text.trim(),
+                    'newProductId': newProductIdCtrl.text.trim(),
+                    'newSerialNumber': newSerialCtrl.text.trim(),
+                    'strategy': strategy,
+                    'notes': notesCtrl.text.trim().isNotEmpty ? notesCtrl.text.trim() : null,
+                  });
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  _load();
+                } catch (e) {
+                  setDialogState(() => saving = false);
+                  if (ctx.mounted) {
+                    ScaffoldMessenger.of(ctx).showSnackBar(
+                      SnackBar(content: Text('Error: $e'), backgroundColor: ZColors.danger),
+                    );
+                  }
+                }
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

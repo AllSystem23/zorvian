@@ -193,29 +193,32 @@ public sealed class WarrantyService
         var claim = await _repo.GetClaimByIdAsync(claimId)
             ?? throw new KeyNotFoundException("Claim not found");
 
-        // 1. Salida del producto defectuoso
-        await _inventoryService.CreateAsync(new CreateInventoryMovementRequest(
-            claim.Warranty.ProductId,
-            "exit", 
-            1,
-            0,
-            request.ProviderAuthorizationCode,
-            $"RMA: DevoluciÃ³n de producto defectuoso {claim.Warranty.SerialNumber}",
-            claim.BranchId,
-            claim.Warranty.SerialNumber
-        ));
+        if (request.Strategy == "store_stock")
+        {
+            // 1. Salida del producto defectuoso
+            await _inventoryService.CreateAsync(new CreateInventoryMovementRequest(
+                claim.Warranty.ProductId,
+                "exit", 
+                1,
+                0,
+                request.ProviderAuthorizationCode,
+                $"RMA: DevoluciÃ³n de producto defectuoso {claim.Warranty.SerialNumber}",
+                claim.BranchId,
+                claim.Warranty.SerialNumber
+            ));
 
-        // 2. Entrada del producto nuevo
-        await _inventoryService.CreateAsync(new CreateInventoryMovementRequest(
-            request.NewProductId,
-            "entry", 
-            1,
-            0,
-            request.ProviderAuthorizationCode,
-            $"RMA: RecepciÃ³n de producto nuevo (Reemplazo {claim.Warranty.WarrantyNumber})",
-            claim.BranchId,
-            request.NewSerialNumber
-        ));
+            // 2. Entrada del producto nuevo
+            await _inventoryService.CreateAsync(new CreateInventoryMovementRequest(
+                request.NewProductId,
+                "entry", 
+                1,
+                0,
+                request.ProviderAuthorizationCode,
+                $"RMA: RecepciÃ³n de producto nuevo (Reemplazo {claim.Warranty.WarrantyNumber})",
+                claim.BranchId,
+                request.NewSerialNumber
+            ));
+        }
 
         // 3. Actualizar estado y datos del reclamo
         claim.Status = WarrantyStatus.ReplacementApproved;

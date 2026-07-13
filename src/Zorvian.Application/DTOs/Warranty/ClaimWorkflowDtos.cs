@@ -21,5 +21,6 @@ public sealed record ProcessReplacementRequest(
     string ProviderAuthorizationCode,
     Guid NewProductId,
     string NewSerialNumber,
+    string Strategy,
     string? Notes
 );

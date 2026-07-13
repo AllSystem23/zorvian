@@ -64,6 +64,15 @@ public sealed class OpportunitiesController : ControllerBase
         await _service.UpdateOpportunityAsync(opp);
         return Ok(_mapper.Map<OpportunityResponse>(opp));
     }
+
+    [Audit("Opportunity", "Delete")]
+    [RequirePermission(Permissions.SaleWrite)]
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        await _service.DeleteOpportunityAsync(id);
+        return NoContent();
+    }
     
     [Audit("Opportunity", "ReadByStage")]
     [RequirePermission(Permissions.SaleRead)]

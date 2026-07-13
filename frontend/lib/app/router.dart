@@ -286,6 +286,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isLoginRoute = location == '/login';
       final isOnboardingRoute = location == '/onboarding';
       final isSplashRoute = location == '/splash';
+      final isRootRoute = location == '/';
+
+      if (isRootRoute) return '/splash';
 
       if (status == AuthStatus.unknown && !isSplashRoute) return '/splash';
 
@@ -800,6 +803,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                 ),
               ),
               GoRoute(
+                path: 'payments',
+                name: 'provider-payments',
+                builder: (_, _) => const ProviderInvoicesPage(),
+              ),
+              GoRoute(
                 path: ':providerId',
                 name: 'provider-detail',
                 builder: (_, state) => ProviderDetailPage(id: state.pathParameters['providerId']!),
@@ -812,11 +820,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                     ),
                   ),
                 ],
-              ),
-              GoRoute(
-                path: 'payments',
-                name: 'provider-payments',
-                builder: (_, _) => const ProviderInvoicesPage(),
               ),
             ],
           ),

@@ -105,6 +105,15 @@ public sealed class WarrantiesController : ControllerBase
         return Ok(claim);
     }
 
+    [Audit("WarrantyClaim", "ProcessReplacement")]
+    [RequirePermission(Permissions.WarrantyWrite)]
+    [HttpPost("claims/{claimId:guid}/process-replacement")]
+    public async Task<IActionResult> ProcessReplacement(Guid claimId, [FromBody] ProcessReplacementRequest request)
+    {
+        var claim = await _service.ProcessManufacturerReplacementAsync(claimId, request);
+        return Ok(claim);
+    }
+
     [RequirePermission(Permissions.WarrantyRead)]
     [HttpGet("{id:guid}/timeline")]
     public async Task<IActionResult> GetTimeline(Guid id)
