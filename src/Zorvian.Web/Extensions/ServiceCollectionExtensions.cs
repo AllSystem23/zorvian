@@ -5,6 +5,7 @@ using Google.Apis.Auth.OAuth2;
 using Hangfire;
 using Hangfire.PostgreSql;
 using Hangfire.MemoryStorage;
+using MassTransit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -13,12 +14,14 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Zorvian.Application.Interfaces;
 using Zorvian.Application.Mapping;
+using Zorvian.Application.Messages;
 using Zorvian.Application.Services;
 using Zorvian.Application.Services.DepreciationCalculators;
 using Zorvian.Application.Services.PayrollStrategies;
 using Zorvian.Core.Interfaces;
 using Zorvian.Infrastructure.Data;
 using Zorvian.Infrastructure.Identity;
+using Zorvian.Infrastructure.Messaging.Consumers;
 using Zorvian.Infrastructure.Repositories;
 using Zorvian.Infrastructure.Services;
 using Zorvian.Infrastructure.Data.Interceptors;
@@ -306,4 +309,55 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
+    public static IServiceCollection AddZorvianMessageBus(this IServiceCollection services, IConfiguration configuration, bool mockExternal)
+    {
+        services.AddMassTransit(busConfig =>
+        {
+            busConfig.AddConsumer<SaleCreatedConsumer>();
+            busConfig.AddConsumer<SaleCancelledConsumer>();
+            busConfig.AddConsumer<PaymentReceivedConsumer>();
+            busConfig.AddConsumer<EmployeeCreatedConsumer>();
+
+            if (mockExternal)
+            {
+                busConfig.UsingInMemory((context, cfg) =>
+                {
+                    cfg.ConfigureEndpoints(context);
+                });
+            }
+            else
+            {
+                var host = configuration["RabbitMQ:Host"] ?? "localhost";
+                var portRaw = configuration["RabbitMQ:Port"] ?? "5672";
+                if (!ushort.TryParse(portRaw, out var port))
+                    port = 5672;
+                var user = configuration["RabbitMQ:Username"] ?? "zorvian";
+                var pass = configuration["RabbitMQ:Password"] ?? "zorvian_dev_2026";
+                var vhost = configuration["RabbitMQ:VirtualHost"] ?? "/";
+
+                busConfig.UsingRabbitMq((context, cfg) =>
+                {
+                    cfg.Host(host, port, vhost, h =>
+                    {
+                        h.Username(user);
+                        h.Password(pass);
+                    });
+
+                    cfg.ConfigureEndpoints(context);
+
+                    cfg.UseMessageRetry(r => r.Interval(3, TimeSpan.FromSeconds(5)));
+
+                    cfg.UseCircuitBreaker(cb =>
+                    {
+                        cb.TrackingPeriod = TimeSpan.FromMinutes(1);
+                        cb.TripThreshold = 15;
+                        cb.ActiveThreshold = 10;
+                        cb.ResetInterval = TimeSpan.FromMinutes(5);
+                    });
+                });
+            }
+        });
+
+        return services;
+    }
 }

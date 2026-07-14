@@ -32,9 +32,10 @@ public sealed class OcrProcessingJob
             permission.OcrResult = extractedText;
             await _repo.SaveChangesAsync();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Log failure
+            // TODO: Inject ILogger and log the exception
+            System.Diagnostics.Debug.WriteLine($"[OcrProcessingJob] Failed to process permission {permissionRequestId}: {ex.Message}");
         }
     }
 }

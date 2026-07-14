@@ -18,24 +18,29 @@ public sealed class AbsenteeismTrainingJob
 
     public async Task RunAsync()
     {
-        // 1. Fetch historical data (e.g., last 6 months)
         var sixMonthsAgo = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-6));
+
         var records = await _db.AttendanceRecords
             .Include(r => r.Employee)
             .Where(r => r.Date >= sixMonthsAgo)
+            .OrderBy(r => r.EmployeeId)
+            .ThenBy(r => r.Date)
             .ToListAsync();
 
-        // 2. Transform into ML data
+        var absenceCounts = records
+            .Where(r => r.Status != "present")
+            .GroupBy(r => r.EmployeeId)
+            .ToDictionary(g => g.Key, g => g.Count());
+
         var trainingData = records.Select(r => new AttendanceData
         {
             DayOfWeek = (float)r.Date.DayOfWeek,
             Month = (float)r.Date.Month,
-            IsHoliday = 0, // Simplified: needs integration with a HolidayService
-            PreviousAbsenceCount = (float)_db.AttendanceRecords.Count(ar => ar.EmployeeId == r.EmployeeId && ar.Date < r.Date && ar.Status != "present"),
+            IsHoliday = 0,
+            PreviousAbsenceCount = (float)(absenceCounts.GetValueOrDefault(r.EmployeeId, 0)),
             Label = r.Status != "present" ? 1 : 0
         }).ToList();
 
-        // 3. Train
         _mlService.Train(trainingData);
     }
 }

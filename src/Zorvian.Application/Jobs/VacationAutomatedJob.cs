@@ -30,28 +30,36 @@ public sealed class VacationAutomatedJob
     {
         var companies = await _authRepo.GetAllCompaniesAsync();
         var year = DateTime.UtcNow.Year;
+        const int pageSize = 200;
 
         foreach (var company in companies.Where(c => !c.IsDeleted))
         {
             _tenantWriter.SetTenantId(company.TenantId);
-            
-            var employees = await _employeeRepo.GetFilteredAsync(null, "active", null, 1, 1000);
-            
-            foreach (var employee in employees)
+
+            var page = 1;
+            while (true)
             {
-                var config = await _taxConfigRepo.GetByCountryCodeAsync(employee.CountryCode);
-                if (config == null) continue;
+                var employees = await _employeeRepo.GetFilteredAsync(null, "active", null, page, pageSize);
+                if (employees.Count == 0) break;
 
-                var balance = await _vacationRepo.GetLeaveBalanceAsync(employee.Id, year) 
-                    ?? new LeaveBalances { EmployeeId = employee.Id, Year = year };
+                foreach (var employee in employees)
+                {
+                    var config = await _taxConfigRepo.GetByCountryCodeAsync(employee.CountryCode);
+                    if (config == null) continue;
 
-                // Acumulación mensual: (días anuales / 12)
-                balance.VacationDaysAccrued += (decimal)config.VacationDaysPerYear / 12;
-                
-                if (balance.Id == Guid.Empty)
-                    await _vacationRepo.AddLeaveBalanceAsync(balance);
-                    
-                await _vacationRepo.SaveChangesAsync();
+                    var balance = await _vacationRepo.GetLeaveBalanceAsync(employee.Id, year)
+                        ?? new LeaveBalances { EmployeeId = employee.Id, Year = year };
+
+                    balance.VacationDaysAccrued += (decimal)config.VacationDaysPerYear / 12;
+
+                    if (balance.Id == Guid.Empty)
+                        await _vacationRepo.AddLeaveBalanceAsync(balance);
+
+                    await _vacationRepo.SaveChangesAsync();
+                }
+
+                if (employees.Count < pageSize) break;
+                page++;
             }
         }
     }

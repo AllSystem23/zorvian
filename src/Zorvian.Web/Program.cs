@@ -56,6 +56,9 @@ builder.Services.AddZorvianAuthentication(builder.Configuration);
 // ── SignalR ──
 builder.Services.AddSignalR();
 
+// ── Message Bus (MassTransit + RabbitMQ) ──
+builder.Services.AddZorvianMessageBus(builder.Configuration, mockExternal);
+
 // ── Hangfire ──
 builder.Services.AddZorvianHangfire(builder.Configuration, mockExternal);
 
@@ -265,6 +268,8 @@ if (!mockExternal)
     recurringJobManager.AddOrUpdate<Zorvian.Application.Jobs.VacationAutomatedJob>("vacation-accrual", j => j.RunAsync(), "0 0 1 * *");
     recurringJobManager.AddOrUpdate<Zorvian.Web.Jobs.FleetAlertJob>("fleet-alert-check", j => j.RunAsync(), "0 */6 * * *");
     recurringJobManager.AddOrUpdate<Zorvian.Web.Jobs.FleetExpenseNotificationJob>("fleet-expense-notification", j => j.RunAsync(), "0 8 * * *");
+    recurringJobManager.AddOrUpdate<Zorvian.Web.Jobs.HealthCheckJob>("health-check", j => j.RunAsync(), "0 * * * *");
+    recurringJobManager.AddOrUpdate<Zorvian.Application.Jobs.WarrantySlaMonitorJob>("warranty-sla-monitor", j => j.RunAsync(), "0 */4 * * *");
 }
 
 app.Run();
