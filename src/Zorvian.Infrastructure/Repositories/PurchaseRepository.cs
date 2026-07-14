@@ -98,20 +98,17 @@ public sealed class PurchaseRepository : IPurchaseRepository
         return await query.SumAsync(p => p.Balance);
     }
 
-    private static readonly System.Threading.SemaphoreSlim _purchaseNumberSemaphore = new(1, 1);
-
     public async Task<string> GeneratePurchaseNumberAsync(Guid companyId)
     {
-        await _purchaseNumberSemaphore.WaitAsync();
-        try
+        if (_db.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
         {
             var count = await _db.Set<Purchase>().CountAsync(p => p.CompanyId == companyId);
             return $"COMP-{DateTime.UtcNow:yyyyMMdd}-{(count + 1):D4}";
         }
-        finally
-        {
-            _purchaseNumberSemaphore.Release();
-        }
+
+        // Use PostgreSQL sequence for atomic, thread-safe number generation
+        var raw = await _db.Database.SqlQueryRaw<int>("SELECT nextval('seq_purchase_number')::int").FirstOrDefaultAsync();
+        return $"COMP-{DateTime.UtcNow:yyyyMMdd}-{raw:D4}";
     }
 
     public async Task AddAsync(Purchase purchase) =>

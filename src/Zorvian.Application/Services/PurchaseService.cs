@@ -1,7 +1,9 @@
 using AutoMapper;
+using MassTransit;
 using Zorvian.Application.DTOs.Commercial;
 using Zorvian.Application.DTOs.Common;
 using Zorvian.Application.Interfaces;
+using Zorvian.Application.Messages;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
 
@@ -19,6 +21,7 @@ public sealed class PurchaseService
     private readonly ITenantContext _tenant;
     private readonly IMapper _mapper;
     private readonly IApprovalEngine _approvalEngine;
+    private readonly IPublishEndpoint _publishEndpoint;
 
     public PurchaseService(
         IPurchaseRepository purchaseRepo,
@@ -30,7 +33,8 @@ public sealed class PurchaseService
         IWebhookService webhook,
         ITenantContext tenant,
         IMapper mapper,
-        IApprovalEngine approvalEngine)
+        IApprovalEngine approvalEngine,
+        IPublishEndpoint publishEndpoint)
     {
         _purchaseRepo = purchaseRepo;
         _productRepo = productRepo;
@@ -42,6 +46,7 @@ public sealed class PurchaseService
         _tenant = tenant;
         _mapper = mapper;
         _approvalEngine = approvalEngine;
+        _publishEndpoint = publishEndpoint;
     }
 
     public async Task<PurchaseResponse> CreateAsync(CreatePurchaseRequest request)
@@ -127,6 +132,24 @@ public sealed class PurchaseService
 
         await _webhook.PublishAsync(purchase.TenantId, "purchase.created", new { PurchaseId = purchase.Id, PurchaseNumber = purchase.PurchaseNumber, Total = total });
 
+        // Publish MassTransit event after all operations complete
+        await _publishEndpoint.Publish(new PurchaseCreatedEvent
+        {
+            PurchaseId = purchase.Id,
+            CompanyId = companyId,
+            SupplierId = request.SupplierId,
+            Total = purchase.Total,
+            CurrencyCode = purchase.CurrencyCode ?? "NIO",
+            PurchaseDate = DateTime.UtcNow,
+            Items = purchase.Details.Select(d => new PurchaseItem
+            {
+                ProductId = d.ProductId,
+                Quantity = d.Quantity,
+                UnitCost = d.UnitCost,
+                Subtotal = d.Subtotal,
+            }).ToList(),
+        });
+
         return await GetByIdAsync(purchase.Id) ?? throw new InvalidOperationException("Failed to create purchase");
     }
 
@@ -173,6 +196,27 @@ public sealed class PurchaseService
 
         await _autoAccounting.GeneratePurchaseEntryAsync(
             purchase.Id, purchase.Details.ToList(), purchase.Discount, purchase.Total, purchase.CountryCode);
+
+        // Publish MassTransit event after approval completes
+        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+            companyId = purchase.CompanyId;
+
+        await _publishEndpoint.Publish(new PurchaseCreatedEvent
+        {
+            PurchaseId = purchase.Id,
+            CompanyId = companyId,
+            SupplierId = purchase.SupplierId,
+            Total = purchase.Total,
+            CurrencyCode = purchase.CurrencyCode ?? "NIO",
+            PurchaseDate = DateTime.UtcNow,
+            Items = purchase.Details.Select(d => new PurchaseItem
+            {
+                ProductId = d.ProductId,
+                Quantity = d.Quantity,
+                UnitCost = d.UnitCost,
+                Subtotal = d.Subtotal,
+            }).ToList(),
+        });
 
         return await GetByIdAsync(purchase.Id);
     }

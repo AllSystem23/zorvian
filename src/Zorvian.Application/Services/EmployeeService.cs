@@ -1,7 +1,9 @@
 using AutoMapper;
+using MassTransit;
 using Zorvian.Application.DTOs.Common;
 using Zorvian.Application.DTOs.Employee;
 using Zorvian.Application.Interfaces;
+using Zorvian.Application.Messages;
 using Zorvian.Core.Entities;
 
 namespace Zorvian.Application.Services;
@@ -12,13 +14,15 @@ public sealed class EmployeeService
     private readonly IProviderRepository _providerRepo;
     private readonly IMapper _mapper;
     private readonly IEncryptionService _encryption;
+    private readonly IPublishEndpoint _publishEndpoint;
 
-    public EmployeeService(IEmployeeRepository repo, IProviderRepository providerRepo, IMapper mapper, IEncryptionService encryption)
+    public EmployeeService(IEmployeeRepository repo, IProviderRepository providerRepo, IMapper mapper, IEncryptionService encryption, IPublishEndpoint publishEndpoint)
     {
         _repo = repo;
         _providerRepo = providerRepo;
         _mapper = mapper;
         _encryption = encryption;
+        _publishEndpoint = publishEndpoint;
     }
 
     public async Task<EmployeeResponse> CreateAsync(CreateEmployeeRequest request)
@@ -55,6 +59,22 @@ public sealed class EmployeeService
         }
 
         DecryptPii(employee);
+
+        // Publish MassTransit event after employee creation
+        await _publishEndpoint.Publish(new EmployeeCreatedEvent
+        {
+            EmployeeId = employee.Id,
+            CompanyId = employee.CompanyId,
+            EmployeeCode = employee.EmployeeCode,
+            FirstName = employee.FirstName,
+            LastName = employee.LastName,
+            Email = employee.Email ?? "",
+            DepartmentId = employee.DepartmentId,
+            Position = employee.Position ?? "",
+            Salary = employee.Salary ?? 0,
+            HireDate = employee.HireDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+        });
+
         return _mapper.Map<EmployeeResponse>(employee);
     }
 

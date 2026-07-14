@@ -1,7 +1,9 @@
 using AutoMapper;
+using MassTransit;
 using Zorvian.Application.DTOs.Commercial;
 using Zorvian.Application.DTOs.Common;
 using Zorvian.Application.Interfaces;
+using Zorvian.Application.Messages;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Enums;
 using Zorvian.Core.Interfaces;
@@ -22,6 +24,7 @@ public sealed class SaleService
     private readonly IMapper _mapper;
     private readonly IGoalIntegrationService _goalIntegration;
     private readonly IAccountingPeriodRepository _periodRepo;
+    private readonly IPublishEndpoint _publishEndpoint;
 
     public SaleService(
         ISaleRepository saleRepo,
@@ -35,7 +38,8 @@ public sealed class SaleService
         ITenantContext tenant,
         IMapper mapper,
         IGoalIntegrationService goalIntegration,
-        IAccountingPeriodRepository periodRepo)
+        IAccountingPeriodRepository periodRepo,
+        IPublishEndpoint publishEndpoint)
     {
         _saleRepo = saleRepo;
         _productRepo = productRepo;
@@ -49,6 +53,7 @@ public sealed class SaleService
         _mapper = mapper;
         _goalIntegration = goalIntegration;
         _periodRepo = periodRepo;
+        _publishEndpoint = publishEndpoint;
     }
 
     public async Task<SaleResponse> CreateCashSaleAsync(CreateCashSaleRequest request)
@@ -184,6 +189,28 @@ public sealed class SaleService
             await _webhook.PublishAsync(sale.TenantId, "sale.created", new { SaleId = sale.Id, InvoiceNumber = sale.InvoiceNumber, Total = sale.Total, PaymentMethod = "cash" });
 
             await _saleRepo.CommitTransactionAsync();
+
+            // Publish MassTransit event after commit
+            await _publishEndpoint.Publish(new SaleCreatedEvent
+            {
+                SaleId = sale.Id,
+                CompanyId = companyId,
+                ClientId = request.ClientId,
+                EmployeeId = request.EmployeeId,
+                Total = sale.Total,
+                Subtotal = sale.Subtotal,
+                Tax = sale.Tax,
+                SaleDate = DateTime.UtcNow,
+                SaleType = "cash",
+                Items = sale.Details.Select(d => new SaleItem
+                {
+                    ProductId = d.ProductId,
+                    ProductName = d.Product?.Name ?? "",
+                    Quantity = d.Quantity,
+                    UnitPrice = d.UnitPrice,
+                    Subtotal = d.Subtotal,
+                }).ToList(),
+            });
 
             return await GetByIdAsync(sale.Id) ?? throw new InvalidOperationException("Failed to create sale");
         }
@@ -385,6 +412,28 @@ public sealed class SaleService
 
             await _saleRepo.CommitTransactionAsync();
 
+            // Publish MassTransit event after commit
+            await _publishEndpoint.Publish(new SaleCreatedEvent
+            {
+                SaleId = sale.Id,
+                CompanyId = companyId,
+                ClientId = request.ClientId,
+                EmployeeId = request.EmployeeId,
+                Total = sale.Total,
+                Subtotal = sale.Subtotal,
+                Tax = sale.Tax,
+                SaleDate = DateTime.UtcNow,
+                SaleType = "credit",
+                Items = sale.Details.Select(d => new SaleItem
+                {
+                    ProductId = d.ProductId,
+                    ProductName = d.Product?.Name ?? "",
+                    Quantity = d.Quantity,
+                    UnitPrice = d.UnitPrice,
+                    Subtotal = d.Subtotal,
+                }).ToList(),
+            });
+
             return await GetByIdAsync(sale.Id) ?? throw new InvalidOperationException("Failed to create credit sale");
         }
         catch
@@ -446,6 +495,23 @@ public sealed class SaleService
                 sale.Id, -(sale.Details.Sum(d => d.Quantity * (d.Product?.CostPrice ?? 0))));
 
             await _saleRepo.CommitTransactionAsync();
+
+            // Publish MassTransit event after commit
+            await _publishEndpoint.Publish(new SaleCancelledEvent
+            {
+                SaleId = sale.Id,
+                CompanyId = companyId,
+                Reason = "Sale cancelled by user",
+                CancelledAt = DateTime.UtcNow,
+                ReturnedItems = sale.Details.Select(d => new SaleItem
+                {
+                    ProductId = d.ProductId,
+                    ProductName = d.Product?.Name ?? "",
+                    Quantity = d.Quantity,
+                    UnitPrice = d.UnitPrice,
+                    Subtotal = d.Subtotal,
+                }).ToList(),
+            });
         }
         catch
         {

@@ -61,18 +61,23 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
     {
         var year = DateTime.UtcNow.Year;
         var month = DateTime.UtcNow.Month;
-        var prefix = $"OC-{year}{month:D2}-";
 
-        var last = await _db.PurchaseOrders
-            .Where(o => o.OrderNumber.StartsWith(prefix))
-            .OrderByDescending(o => o.OrderNumber)
-            .FirstOrDefaultAsync();
+        if (_db.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
+        {
+            var prefix = $"OC-{year}{month:D2}-";
+            var last = await _db.PurchaseOrders
+                .Where(o => o.OrderNumber.StartsWith(prefix))
+                .OrderByDescending(o => o.OrderNumber)
+                .FirstOrDefaultAsync();
+            int next = 1;
+            if (last != null && int.TryParse(last.OrderNumber[^4..], out var lastNum))
+                next = lastNum + 1;
+            return $"{prefix}{next:D4}";
+        }
 
-        int next = 1;
-        if (last != null && int.TryParse(last.OrderNumber[^4..], out var lastNum))
-            next = lastNum + 1;
-
-        return $"{prefix}{next:D4}";
+        // Use PostgreSQL sequence for atomic, thread-safe number generation
+        var raw = await _db.Database.SqlQueryRaw<int>("SELECT nextval('seq_order_number')::int").FirstOrDefaultAsync();
+        return $"OC-{year}{month:D2}-{raw:D4}";
     }
 
     public async Task AddAsync(PurchaseOrder order) =>

@@ -1,4 +1,5 @@
 using AutoMapper;
+using MassTransit;
 using Moq;
 using Xunit;
 using Zorvian.Application.DTOs.Credit;
@@ -21,6 +22,7 @@ public sealed class CreditServiceTests
     private readonly Mock<IAutoAccountingService> _autoAccounting = new();
     private readonly Mock<ITenantContext> _tenant = new();
     private readonly Mock<IMapper> _mapper = new();
+    private readonly Mock<IPublishEndpoint> _publishEndpoint = new();
     private readonly CreditService _sut;
 
     public CreditServiceTests()
@@ -36,7 +38,8 @@ public sealed class CreditServiceTests
             _saleRepo.Object,
             _autoAccounting.Object,
             _tenant.Object,
-            _mapper.Object);
+            _mapper.Object,
+            _publishEndpoint.Object);
     }
 
     [Fact]

@@ -96,6 +96,12 @@ public sealed class CommissionRepository : ICommissionRepository
             .OrderByDescending(r => r.CreatedAt)
             .ToListAsync();
 
+    public async Task<List<CommissionRecord>> GetRecordsBySaleIdAsync(Guid saleId) =>
+        await _db.CommissionRecords
+            .Where(r => r.SaleId == saleId)
+            .OrderByDescending(r => r.CreatedAt)
+            .ToListAsync();
+
     public async Task<CommissionRecord?> GetRecordByIdAsync(Guid id) =>
         await _db.CommissionRecords.FindAsync(id);
 

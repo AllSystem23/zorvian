@@ -1,7 +1,9 @@
 using AutoMapper;
+using MassTransit;
 using Zorvian.Application.DTOs.Common;
 using Zorvian.Application.DTOs.Credit;
 using Zorvian.Application.Interfaces;
+using Zorvian.Application.Messages;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Enums;
 using Zorvian.Core.Interfaces;
@@ -20,6 +22,7 @@ public sealed class CreditService
     private readonly IAutoAccountingService _autoAccounting;
     private readonly ITenantContext _tenant;
     private readonly IMapper _mapper;
+    private readonly IPublishEndpoint _publishEndpoint;
 
     public CreditService(
         ICreditRepository creditRepo,
@@ -31,7 +34,8 @@ public sealed class CreditService
         ISaleRepository saleRepo,
         IAutoAccountingService autoAccounting,
         ITenantContext tenant,
-        IMapper mapper)
+        IMapper mapper,
+        IPublishEndpoint publishEndpoint)
     {
         _creditRepo = creditRepo;
         _paymentRepo = paymentRepo;
@@ -43,6 +47,7 @@ public sealed class CreditService
         _autoAccounting = autoAccounting;
         _tenant = tenant;
         _mapper = mapper;
+        _publishEndpoint = publishEndpoint;
     }
 
     public async Task<CreditResponse?> GetByIdAsync(Guid id)
@@ -157,6 +162,19 @@ public sealed class CreditService
             }
 
             await _saleRepo.CommitTransactionAsync();
+
+            // Publish MassTransit event after commit
+            await _publishEndpoint.Publish(new PaymentReceivedEvent
+            {
+                PaymentId = payment.Id,
+                CompanyId = companyId,
+                CreditId = payment.CreditId,
+                ClientId = credit.ClientId,
+                Amount = payment.Amount,
+                PaymentMethod = payment.PaymentMethod,
+                ReferenceNumber = payment.ReferenceNumber ?? "",
+                PaymentDate = payment.PaymentDate,
+            });
         }
         catch
         {

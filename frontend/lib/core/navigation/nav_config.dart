@@ -125,7 +125,8 @@ final class NavConfig {
         NavItem(id: 'facturas-compra', label: 'Facturas de Compra', icon: Icons.receipt_long_outlined, route: '/purchases'),
         NavItem(id: 'compras-ordenes', label: 'Órdenes de Compra', icon: Icons.receipt_outlined, route: '/purchase-orders'),
         NavItem(id: 'proveedores', label: 'Proveedores', icon: Icons.factory_outlined, route: '/suppliers'),
-        NavItem(id: 'pagos-proveedores', label: 'Pagos a Proveedores', icon: Icons.payments_outlined, route: '/providers/payments'),
+        NavItem(id: 'pagos-proveedores', label: 'Pagos a Proveedores', icon: Icons.payments_outlined, route: '/purchases/payments'),
+        NavItem(id: 'notas-credito-proveedores', label: 'Notas de Crédito a Proveedores', icon: Icons.request_quote_outlined, route: '/purchases/credit-notes'),
       ],
     ),
 

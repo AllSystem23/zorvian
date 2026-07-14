@@ -20,6 +20,10 @@ public sealed class SaleRepository : ISaleRepository
             .Include(s => s.Employee)
             .Include(s => s.Details)
                 .ThenInclude(d => d.Product)
+                    .ThenInclude(p => p!.Category)
+            .Include(s => s.Details)
+                .ThenInclude(d => d.Product)
+                    .ThenInclude(p => p!.Brand)
             .Include(s => s.Payments)
             .Include(s => s.Credit)
             .FirstOrDefaultAsync(s => s.Id == id);
@@ -82,26 +86,17 @@ public sealed class SaleRepository : ISaleRepository
         return await query.CountAsync();
     }
 
-    private static readonly System.Threading.SemaphoreSlim _invoiceNumberSemaphore = new(1, 1);
-
     public async Task<string> GenerateInvoiceNumberAsync(Guid companyId)
     {
-        await _invoiceNumberSemaphore.WaitAsync();
-        try
+        if (_db.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
         {
-            if (_db.Database.ProviderName != "Microsoft.EntityFrameworkCore.InMemory")
-            {
-                await _db.Database.ExecuteSqlRawAsync(
-                    @"SELECT 1 FROM ""Companies"" WHERE ""Id"" = {0} FOR UPDATE", companyId);
-            }
-
             var count = await _db.Set<Sale>().CountAsync(s => s.CompanyId == companyId);
             return $"FAC-{DateTime.UtcNow:yyyyMMdd}-{(count + 1):D4}";
         }
-        finally
-        {
-            _invoiceNumberSemaphore.Release();
-        }
+
+        // Use PostgreSQL sequence for atomic, thread-safe number generation
+        var raw = await _db.Database.SqlQueryRaw<int>("SELECT nextval('seq_invoice_number')::int").FirstOrDefaultAsync();
+        return $"FAC-{DateTime.UtcNow:yyyyMMdd}-{raw:D4}";
     }
 
     public async Task<decimal> GetTodaySalesAsync(Guid branchId)

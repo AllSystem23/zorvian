@@ -104,20 +104,17 @@ public sealed class AccountingEntryRepository : IAccountingEntryRepository
         return await query.CountAsync();
     }
 
-    private static readonly System.Threading.SemaphoreSlim _entryNumberSemaphore = new(1, 1);
-
     public async Task<string> GenerateEntryNumberAsync(Guid companyId)
     {
-        await _entryNumberSemaphore.WaitAsync();
-        try
+        if (_db.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
         {
             var count = await _db.Set<AccountingEntry>().CountAsync(e => e.CompanyId == companyId);
             return $"AS-{DateTime.UtcNow:yyyyMMdd}-{(count + 1):D4}";
         }
-        finally
-        {
-            _entryNumberSemaphore.Release();
-        }
+
+        // Use PostgreSQL sequence for atomic, thread-safe number generation
+        var raw = await _db.Database.SqlQueryRaw<int>("SELECT nextval('seq_entry_number')::int").FirstOrDefaultAsync();
+        return $"AS-{DateTime.UtcNow:yyyyMMdd}-{raw:D4}";
     }
 
     public async Task<bool> HasEntriesForAccountAsync(Guid accountId) =>

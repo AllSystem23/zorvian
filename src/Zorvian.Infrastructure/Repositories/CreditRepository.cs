@@ -70,20 +70,17 @@ public sealed class CreditRepository : ICreditRepository
         return await query.CountAsync();
     }
 
-    private static readonly System.Threading.SemaphoreSlim _creditNumberSemaphore = new(1, 1);
-
     public async Task<string> GenerateCreditNumberAsync(Guid companyId)
     {
-        await _creditNumberSemaphore.WaitAsync();
-        try
+        if (_db.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
         {
             var count = await _db.Set<Credit>().CountAsync(c => c.CompanyId == companyId);
             return $"CRE-{DateTime.UtcNow:yyyyMMdd}-{(count + 1):D4}";
         }
-        finally
-        {
-            _creditNumberSemaphore.Release();
-        }
+
+        // Use PostgreSQL sequence for atomic, thread-safe number generation
+        var raw = await _db.Database.SqlQueryRaw<int>("SELECT nextval('seq_credit_number')::int").FirstOrDefaultAsync();
+        return $"CRE-{DateTime.UtcNow:yyyyMMdd}-{raw:D4}";
     }
 
     public async Task<int> GetActiveCreditsCountAsync(Guid branchId) =>

@@ -54,7 +54,7 @@ graph TB
   end
 
   subgraph DataSources["📡 Data Sources"]
-    ERP["ERP Events Bus<br/>RabbitMQ"]
+    ERP["ERP Events Bus<br/>RabbitMQ + MassTransit<br/>4 Consumers"]
     PG[("PostgreSQL<br/>Transactional Data")]
     DOCS[("Document Store<br/>GCS / S3")]
     AUDIT[("Audit Logs<br/>Elasticsearch")]

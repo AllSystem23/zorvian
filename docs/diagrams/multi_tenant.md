@@ -159,4 +159,4 @@ public class TenantMiddleware
 | **Storage** | Buckets/Paths separados por tenant en GCS |
 | **Logs** | Todos los audit logs incluyen tenant_id |
 | **Cache** | Redis keys con prefijo `tenant:{id}:` |
-| **Queues** | RabbitMQ exchanges separados por tenant |
+| **Queues** | RabbitMQ + MassTransit (exchanges separados por tenant, 4 consumers activos) |

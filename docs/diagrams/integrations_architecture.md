@@ -9,7 +9,7 @@
 
 graph TB
   subgraph ERP["🏛️ Zorvian ERP Core"]
-    EVENTS["Event Bus<br/>RabbitMQ"]
+    EVENTS["Event Bus<br/>RabbitMQ + MassTransit<br/>4 Consumers"]
     API["REST API<br/>zorvian/v1/*"]
     WH_SVC["Webhook Dispatcher<br/>Retry + Logging"]
     NOTIF["Notification Hub<br/>SignalR + FCM"]

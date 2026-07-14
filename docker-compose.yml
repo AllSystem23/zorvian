@@ -82,6 +82,28 @@ services:
         echo 'Migracion completada exitosamente!'
       "
 
+  # ── RabbitMQ (Message Queue — Fase 2) ──
+  # NOTA: RabbitMQ está disponible en infraestructura pero su integración
+  # en código está planificada para Fase 2. Por ahora, Hangfire actúa
+  # como job scheduler y bus de eventos interno.
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: zorvian-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"     # AMQP protocol
+      - "15672:15672"   # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: zorvian
+      RABBITMQ_DEFAULT_PASS: zorvian_dev_2026
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: [ "CMD", "rabbitmqctl", "status" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # ── Frontend (Flutter Web) ──
   frontend:
     image: ghcr.io/cirruslabs/flutter:stable
@@ -99,3 +121,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  rabbitmq_data:

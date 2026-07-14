@@ -78,12 +78,20 @@ graph TB
       INFRA["🔧 Zorvian.Infrastructure<br/>86 Repositorios<br/>31 Servicios de infraestructura"]
       CORE["🎯 Zorvian.Core<br/>154 Entidades de dominio<br/>Enums + Interfaces"]
     end
-    subgraph Background["Background Jobs (Hangfire)"]
-      J1["CheckInReminder 9AM"]
-      J2["Backup DB 2AM"]
-      J3["Training ML Semanal"]
-      J4["VacationAccrual 1° mes"]
-      J5["WebhookDelivery"]
+    subgraph Background["Background Jobs & Event Bus"]
+      subgraph HangfireJobs["⏰ Scheduled (Hangfire)"]
+        J1["CheckInReminder 9AM"]
+        J2["Backup DB 2AM"]
+        J3["Training ML Semanal"]
+        J4["VacationAccrual 1° mes"]
+        J5["WebhookDelivery"]
+      end
+      subgraph MassTransit["⚡ Event-Driven (MassTransit + RabbitMQ)"]
+        M1["SaleCreatedConsumer<br/>Commission + Goals"]
+        M2["SaleCancelledConsumer<br/>Clawback Comisiones"]
+        M3["PaymentReceivedConsumer<br/>Credit Status Update"]
+        M4["EmployeeCreatedConsumer<br/>LeaveBalances Init"]
+      end
     end
     WEB_API --> APP
     APP --> CORE
@@ -93,7 +101,7 @@ graph TB
   subgraph Data["💾 Datos"]
     PG[("PostgreSQL 16<br/>180+ tablas<br/>Read Replicas")]
     REDIS[("Redis 7<br/>Cache + Rate Limit + Session")]
-    RABBIT[("RabbitMQ<br/>Event Bus跨-Service")]
+    RABBIT[("RabbitMQ + MassTransit<br/>Event Bus Cross-Service<br/>4 Consumers")]
     ES[("Elasticsearch<br/>Audit Logs + Búsqueda")]
     GCS[("Google Cloud Storage<br/>Documentos + Archivos")]
   end

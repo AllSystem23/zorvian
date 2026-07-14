@@ -1,3 +1,4 @@
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Zorvian.Application.DTOs.CashRegister;
@@ -83,7 +84,7 @@ public sealed class AccountingIntegrationTests : IDisposable
             saleRepo, productRepo, movementRepo, new Mock<ICompanyRepository>().Object,
             clientRepo, new Mock<ICreditRepository>().Object,
             _autoAccounting, new Mock<IWebhookService>().Object, _tenant.Object, mapper.Object, new Mock<IGoalIntegrationService>().Object,
-            periodRepo.Object);
+            periodRepo.Object, new Mock<IPublishEndpoint>().Object);
 
         var result = await saleService.CreateCashSaleAsync(new CreateCashSaleRequest(
             client.Id, Guid.NewGuid(), 0, null, _branchId,
@@ -182,7 +183,8 @@ public sealed class AccountingIntegrationTests : IDisposable
             new Mock<ICreditRefinancingRepository>().Object,
             new Mock<ICompanyRepository>().Object,
             new Mock<ISaleRepository>().Object,
-            _autoAccounting, _tenant.Object, mapper.Object);
+            _autoAccounting, _tenant.Object, mapper.Object,
+            new Mock<IPublishEndpoint>().Object);
 
         var result = await creditService.RegisterPaymentAsync(new CreateCreditPaymentRequest(
             credit.Id, null, 500, "cash", "PAY001", null));
@@ -211,7 +213,8 @@ public sealed class AccountingIntegrationTests : IDisposable
         var purchaseService = new PurchaseService(
             purchaseRepo, productRepo, movementRepo, companyRepoMock.Object,
             supplierRepo, _autoAccounting, new Mock<IWebhookService>().Object, _tenant.Object,
-            new Mock<AutoMapper.IMapper>().Object, _approvalEngine.Object);
+            new Mock<AutoMapper.IMapper>().Object, _approvalEngine.Object,
+            new Mock<IPublishEndpoint>().Object);
 
         var result = await purchaseService.CreateAsync(new CreatePurchaseRequest(
             supplier.Id, DateTime.UtcNow, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30)),
@@ -242,7 +245,8 @@ public sealed class AccountingIntegrationTests : IDisposable
         var purchaseService = new PurchaseService(
             purchaseRepo, productRepo, movementRepo, companyRepoMock.Object,
             supplierRepo, _autoAccounting, new Mock<IWebhookService>().Object, _tenant.Object,
-            new Mock<AutoMapper.IMapper>().Object, _approvalEngine.Object);
+            new Mock<AutoMapper.IMapper>().Object, _approvalEngine.Object,
+            new Mock<IPublishEndpoint>().Object);
 
         var purchase = await purchaseService.CreateAsync(new CreatePurchaseRequest(
             supplier.Id, DateTime.UtcNow, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30)),

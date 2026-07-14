@@ -19,6 +19,7 @@ public interface ICommissionRepository
     Task UpdateAssignmentAsync(CommissionAssignment assignment);
     Task<List<CommissionRecord>> GetRecordsByPeriodAsync(Guid periodId, Guid companyId);
     Task<List<CommissionRecord>> GetRecordsByEmployeeAsync(Guid employeeId);
+    Task<List<CommissionRecord>> GetRecordsBySaleIdAsync(Guid saleId);
     Task<CommissionRecord?> GetRecordByIdAsync(Guid id);
     Task AddRecordAsync(CommissionRecord record);
     Task AddRecordsAsync(List<CommissionRecord> records);

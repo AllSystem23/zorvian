@@ -37,8 +37,15 @@ public sealed class CreditNoteRepository : ICreditNoteRepository
 
     public async Task<string> GenerateCreditNoteNumberAsync(Guid companyId)
     {
-        var count = await _db.Set<CreditNote>().CountAsync(cn => cn.CompanyId == companyId);
-        return $"NC-{DateTime.UtcNow:yyyyMMdd}-{(count + 1):D4}";
+        if (_db.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
+        {
+            var count = await _db.Set<CreditNote>().CountAsync(cn => cn.CompanyId == companyId);
+            return $"NC-{DateTime.UtcNow:yyyyMMdd}-{(count + 1):D4}";
+        }
+
+        // Use PostgreSQL sequence for atomic, thread-safe number generation
+        var raw = await _db.Database.SqlQueryRaw<int>("SELECT nextval('seq_credit_note_number')::int").FirstOrDefaultAsync();
+        return $"NC-{DateTime.UtcNow:yyyyMMdd}-{raw:D4}";
     }
 
     public async Task AddAsync(CreditNote creditNote) =>

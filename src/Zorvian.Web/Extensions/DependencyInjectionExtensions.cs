@@ -279,6 +279,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<ICommissionService>(sp => sp.GetRequiredService<CommissionService>());
         services.AddScoped<GoalService>();
         services.AddScoped<IGoalIntegrationService, GoalIntegrationService>();
+        services.AddScoped<GoalIntegrationService>(); // Concrete registration for Hangfire jobs
         services.AddScoped<KpiService>();
         services.AddScoped<ProviderService>();
 

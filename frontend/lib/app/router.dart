@@ -105,6 +105,10 @@ import '../features/workshops/pages/workshop_detail_page.dart';
 import '../features/purchases/pages/purchase_list_page.dart';
 import '../features/purchases/pages/purchase_form_page.dart';
 import '../features/purchases/pages/purchase_detail_page.dart';
+import '../features/supplier_payments/pages/supplier_payment_list_page.dart';
+import '../features/supplier_payments/pages/supplier_payment_form_page.dart';
+import '../features/supplier_credit_notes/pages/supplier_credit_note_list_page.dart';
+import '../features/supplier_credit_notes/pages/supplier_credit_note_form_page.dart';
 import '../features/purchases/pages/inventory_adjustment_page.dart';
 import '../features/purchase_orders/pages/purchase_order_list_page.dart';
 import '../features/purchase_orders/pages/purchase_order_form_page.dart';
@@ -185,6 +189,7 @@ import '../features/fleet/pages/fleet_alerts_page.dart';
 import '../features/fleet/pages/fleet_tracking_page.dart';
 import '../features/fleet/pages/fleet_predictive_page.dart';
 import '../features/fleet/pages/fleet_catalog_page.dart';
+import '../features/predictions/pages/sales_predictions_page.dart';
 
 final _routeRoles = <String, List<String>>{
   '/goals/configurator': ['SuperAdmin', 'CompanyAdmin'],
@@ -234,6 +239,7 @@ final _routeRoles = <String, List<String>>{
   '/bi/commercial': ['SuperAdmin', 'CompanyAdmin', 'Supervisor', 'Employee'],
   '/dashboard-v2': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee', 'Accountant'],
   '/bi/operational': ['SuperAdmin', 'CompanyAdmin', 'Rrhh'],
+  '/predictions/sales': ['SuperAdmin', 'CompanyAdmin', 'Supervisor', 'Employee'],
   '/chat': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/exchange-rates': ['SuperAdmin', 'CompanyAdmin'],
   '/custom-reports': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
@@ -263,6 +269,8 @@ final _routeRoles = <String, List<String>>{
   '/pos': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/crm': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/fleet': ['SuperAdmin', 'CompanyAdmin', 'Supervisor', 'Dispatcher', 'Employee'],
+  '/purchases/payments': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
+  '/purchases/credit-notes': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
 };
 
 bool _hasAccess(String role, String location) {
@@ -830,6 +838,28 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(path: 'new', name: 'purchase-new', builder: (_, _) => const PurchaseFormPage()),
               GoRoute(path: ':purchaseId', name: 'purchase-detail', builder: (_, state) => PurchaseDetailPage(purchaseId: state.pathParameters['purchaseId']!)),
+              GoRoute(
+                path: 'payments',
+                name: 'purchase-payments',
+                builder: (_, _) => const SupplierPaymentListPage(),
+                routes: [
+                  GoRoute(path: 'new', name: 'purchase-payment-new', builder: (_, state) {
+                    final extra = state.extra as Map<String, dynamic>?;
+                    return SupplierPaymentFormPage(purchaseId: extra?['purchaseId'] as String?);
+                  }),
+                ],
+              ),
+              GoRoute(
+                path: 'credit-notes',
+                name: 'purchase-credit-notes',
+                builder: (_, _) => const SupplierCreditNoteListPage(),
+                routes: [
+                  GoRoute(path: 'new', name: 'purchase-credit-note-new', builder: (_, state) {
+                    final extra = state.extra as Map<String, dynamic>?;
+                    return SupplierCreditNoteFormPage(purchaseId: extra?['purchaseId'] as String?);
+                  }),
+                ],
+              ),
             ],
           ),
           GoRoute(
@@ -1110,6 +1140,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                 ],
               ),
             ],
+          ),
+          GoRoute(
+            path: '/predictions/sales',
+            name: 'predictions-sales',
+            builder: (_, _) => const SalesPredictionsPage(),
           ),
           // ── Chat now inside ShellRoute for sidebar/header ──
           GoRoute(

@@ -25,7 +25,7 @@
 |----------|---------|
 | **Producto** | ERP modular para PYMEs y empresas en expansión en Centroamérica |
 | **Target** | Empresas de 10–500 empleados, multi-país (NI, CR, GT, HN, SV, PA) |
-| **Stack** | Flutter 3.x (Web + Mobile) · ASP.NET Core 9 · PostgreSQL · RabbitMQ · Firebase |
+| **Stack** | Flutter 3.x (Web + Mobile) · ASP.NET Core 9 · PostgreSQL · RabbitMQ + MassTransit (4 consumers) · Firebase |
 | **Etapa** | Beta privada · MVP funcional con 9 módulos · 130+ rutas |
 | **Diferenciador** | Z-IA (asistente inteligente nativo), multi-tenancy progresivo, cumplimiento fiscal multi-país |
 | **Puntuación Auditoría** | 6.93/10 actual → 8.5/10 proyectado (post-implementación Q4 2026) |
@@ -233,7 +233,7 @@ graph TB
     end
 
     subgraph Async["Mensajería"]
-        RMQ["RabbitMQ<br/>Event Bus"]
+        RMQ["RabbitMQ + MassTransit<br/>Event Bus (4 Consumers)"]
         SIGNALR["SignalR<br/>Real-time"]
     end
 
@@ -271,7 +271,7 @@ graph TB
 | **Frontend** | Flutter · Riverpod · GoRouter · Material 3 | 3.x |
 | **Backend** | ASP.NET Core · Entity Framework Core · FluentValidation | 9.0 |
 | **Base de Datos** | PostgreSQL (Neon) · Redis | 16 / 7.x |
-| **Mensajería** | RabbitMQ · SignalR | 3.13 |
+| **Mensajería** | RabbitMQ + MassTransit · SignalR | 3.13 / MassTransit 9.0 |
 | **Búsqueda/Logs** | Elasticsearch · Serilog | 8.x |
 | **Infraestructura** | Render.com · Firebase · CloudFlare · Docker | — |
 | **CI/CD** | GitHub Actions · Firebase Hosting | — |

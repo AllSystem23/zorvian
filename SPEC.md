@@ -1,9 +1,9 @@
-﻿# NEXORA — Plataforma SaaS de Recursos Humanos
+﻿# ZORVIAN ERP — Plataforma SaaS Empresarial
 
-**Versión:** 1.0.0
-**Estado:** DRAFT — Arquitectura Enterprise
-**Última actualización:** Mayo 2026
-**Clasificación:** Documento Técnico — Confidencial
+**Versión:** 2.0.0
+**Estado:** LEGACY — Documento histórico del concepto original (Nexora). El proyecto evolucionó a Zorvian ERP.
+**Última actualización:** Julio 2026
+**Clasificación:** Documento Técnico — Histórico
 
 ---
 
@@ -37,9 +37,11 @@
 
 ## 1.1 Descripción General
 
-Nexora es una plataforma SaaS moderna de Recursos Humanos (HRM/HRIS) diseñada para digitalizar, automatizar y centralizar la gestión del capital humano en empresas latinoamericanas. Construida con una arquitectura cloud-native multiempresa, Nexora ofrece un conjunto completo de herramientas que abarcan desde el control de asistencia hasta la gestión de vacaciones, permisos, reportes y un portal de autoservicio para empleados.
+> ⚠️ **NOTA HISTÓRICA:** Este documento describe el concepto original "Nexora", que inició como una plataforma SaaS de Recursos Humanos. El proyecto evolucionó significativamente hasta convertirse en **Zorvian ERP**, un sistema ERP completo con más de 40 módulos que incluyen Contabilidad, Ventas, Compras, Inventario, Flota, Garantías, BI, IA, y más. Consulte [README.md](README.md) para la documentación actualizada.
 
-La plataforma está diseñada bajo los principios de **Clean Architecture**, **Domain-Driven Design (DDD)** y **Arquitectura Multi-Tenant**, garantizando escalabilidad, mantenibilidad y aislamiento de datos entre organizaciones.
+Nexora (ahora Zorvian ERP) comenzó como una plataforma SaaS de Recursos Humanos (HRM/HRIS) y evolucionó hasta convertirse en un ERP completo para empresas centroamericanas. Construida con una arquitectura cloud-native multiempresa, Zorvian ERP ofrece módulos que abarcan desde Contabilidad, Ventas, Inventario, hasta Flota, Garantías y BI.
+
+La plataforma está diseñada bajo los principios de **Clean Architecture** y **Arquitectura Multi-Tenant**, garantizando escalabilidad, mantenibilidad y aislamiento de datos entre organizaciones.
 
 ## 1.2 Problema que Resuelve
 
@@ -272,14 +274,15 @@ Nexora.sln
 │   ├── Interfaces
 │   ├── Services
 │   ├── Validators (FluentValidation)
-│   └── Behaviors (MediatR)
+│   └── Behaviors (Cross-cutting — logging, validación, transacciones)
 ├── Nexora.Infrastructure      // Persistence + External
 │   ├── Data (DbContext, Migrations)
 │   ├── Repositories
 │   ├── Identity (Firebase)
-│   ├── Notifications (FCM, Email)
+│   ├── Notifications (FCM, Email, SignalR)
 │   ├── FileStorage
-│   └── SignalR
+│   ├── Hangfire (job scheduler)
+│   └── Services (cache, jobs, AI/ML)
 └── Nexora.Web                 // Presentation / API
     ├── Controllers
     ├── Middleware
@@ -292,7 +295,6 @@ Nexora.sln
 
 | Paquete | Versión | Propósito |
 |---|---|---|
-| MediatR | 12.x | CQRS + Pipeline Behaviors |
 | FluentValidation | 11.x | Validación de DTOs |
 | AutoMapper | 13.x | Mapeo Entity ↔ DTO |
 | EF Core | 9.x | ORM con PostgreSQL |
@@ -302,6 +304,9 @@ Nexora.sln
 | Serilog | 4.x | Logging estructurado |
 | Swashbuckle.AspNetCore | 7.x | OpenAPI / Swagger |
 | Microsoft.AspNetCore.Authentication.JwtBearer | — | Validación JWT |
+| Hangfire | — | Background job scheduler |
+
+> **Decisión arquitectónica:** Se decidió **no implementar MediatR/CQRS**. La comunicación entre capas se maneja mediante servicios directos con Dependency Injection + MassTransit para eventos asíncronos entre módulos. Este enfoque es más simple y adecuado para la complejidad actual del dominio.
 
 ## 3.4 Arquitectura de Seguridad
 
@@ -1052,7 +1057,7 @@ CREATE TABLE company_settings (
 
 ### 11.1.1 Convenciones
 
-- **Base URL:** `https://api.nexora.app/api/v1`
+- **Base URL:** `https://api.zorvian.com/zorvian/v1` (o `/zorvian/v1` como prefijo de ruta)
 - **Formato:** JSON (Content-Type: `application/json`)
 - **AutenticaciÃ³n:** Bearer Token (JWT) en header `Authorization`
 - **PaginaciÃ³n:** Query params `page` (1-based) y `pageSize` (default 20, max 100)
@@ -1518,7 +1523,7 @@ graph TB
         EMAIL_SVC[Email Service]
     end
     subgraph Event Bus
-        EVT[Event Bus / MediatR]
+        EVT[Event Bus / Hangfire Jobs + SignalR]
     end
     subgraph Clients
         WEB[Flutter Web]
@@ -1565,7 +1570,7 @@ graph TB
 ## 12.4 Caso de Uso: NotificaciÃ³n de Vacaciones Aprobadas
 
 1. RRHH aprueba vacaciones de Maria
-2. Backend emite evento VacationApproved via MediatR
+2. Backend emite evento VacationApproved vía MassTransit (event bus) + SignalR (tiempo real)
 3. SignalR envia notificacion en tiempo real al cliente web/mobile
 4. FCM envia push notification al dispositivo movil
 5. Se envia correo electronico con los detalles
@@ -2130,7 +2135,7 @@ Nexora representa una plataforma SaaS de Recursos Humanos disenada desde cero co
 
 2. **Firebase Authentication + JWT propio:** Se aprovecha la infraestructura de Firebase para auth delegando la seguridad critica, mientras se mantiene control total sobre los claims de tenant, rol y permisos en el JWT interno.
 
-3. **Clean Architecture con CQRS (MediatR):** Separacion clara de responsabilidades que permite evolucionar el sistema sin deuda tecnica, facilitando la incorporacion de nuevos modulos (nomina, reclutamiento, IA) en fases posteriores.
+3. **Clean Architecture + Event Bus:** Separacion clara de responsabilidades que permite evolucionar el sistema sin deuda tecnica, facilitando la incorporacion de nuevos modulos (nomina, reclutamiento, IA) en fases posteriores. La arquitectura usa servicios directos con DI para comandos y consultas síncronos, y MassTransit + RabbitMQ para eventos asíncronos entre módulos (comisiones, metas, BI). Se decidió no implementar CQRS/MediatR porque la complejidad actual del dominio no lo justifica y MassTransit provee el desacoplamiento necesario para eventos cross-module.
 
 4. **SignalR + FCM:** Estrategia dual de notificaciones en tiempo real (SignalR para web/mobile conectados) y push (FCM para mobile en background), garantizando que ningun evento critico se pierda.
 

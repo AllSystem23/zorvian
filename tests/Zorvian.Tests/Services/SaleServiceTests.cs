@@ -1,4 +1,5 @@
 using AutoMapper;
+using MassTransit;
 using Moq;
 using Xunit;
 using Zorvian.Application.DTOs.Commercial;
@@ -23,6 +24,7 @@ public sealed class SaleServiceTests
     private readonly Mock<IMapper> _mapper = new();
     private readonly Mock<IGoalIntegrationService> _goalIntegration = new();
     private readonly Mock<IAccountingPeriodRepository> _periodRepo = new();
+    private readonly Mock<IPublishEndpoint> _publishEndpoint = new();
     private readonly SaleService _sut;
 
     public SaleServiceTests()
@@ -60,7 +62,8 @@ public sealed class SaleServiceTests
             _tenant.Object,
             _mapper.Object,
             _goalIntegration.Object,
-            _periodRepo.Object);
+            _periodRepo.Object,
+            _publishEndpoint.Object);
     }
 
     [Fact]

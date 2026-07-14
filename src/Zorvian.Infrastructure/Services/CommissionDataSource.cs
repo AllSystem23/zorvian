@@ -61,10 +61,13 @@ public sealed class CommissionDataSource : ICommissionDataSource
     {
         var sale = await _db.Sales
             .Include(s => s.Details)
+                .ThenInclude(d => d.Product)
             .FirstOrDefaultAsync(s => s.Id == saleId);
 
         if (sale is null) return 0;
-        return sale.Details?.Sum(d => d.Subtotal) ?? sale.Total;
+
+        var totalCost = sale.Details?.Sum(d => d.Quantity * (d.Product?.CostPrice ?? 0)) ?? 0m;
+        return sale.Total - totalCost;
     }
 
     public async Task<List<CommissionAssignment>> GetActiveAssignmentsAsync(Guid companyId)

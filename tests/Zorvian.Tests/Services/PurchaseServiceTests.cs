@@ -1,4 +1,5 @@
 using AutoMapper;
+using MassTransit;
 using Moq;
 using Xunit;
 using Zorvian.Application.Interfaces;
@@ -20,6 +21,7 @@ public sealed class PurchaseServiceTests
     private readonly Mock<ITenantContext> _tenant = new();
     private readonly Mock<IMapper> _mapper = new();
     private readonly Mock<IApprovalEngine> _approvalEngine = new();
+    private readonly Mock<IPublishEndpoint> _publishEndpoint = new();
     private readonly PurchaseService _sut;
 
     public PurchaseServiceTests()
@@ -35,7 +37,8 @@ public sealed class PurchaseServiceTests
             _webhook.Object,
             _tenant.Object,
             _mapper.Object,
-            _approvalEngine.Object);
+            _approvalEngine.Object,
+            _publishEndpoint.Object);
     }
 
     [Fact]

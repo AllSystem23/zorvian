@@ -1,3 +1,4 @@
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using AutoMapper;
@@ -17,6 +18,7 @@ public sealed class EmployeeContractLinkingTests : IDisposable
     private readonly Mock<IEncryptionService> _encryption = new();
     private readonly Mock<IProviderRepository> _providerRepo = new();
     private readonly Mock<IMapper> _mapper = new();
+    private readonly Mock<IPublishEndpoint> _publishEndpoint = new();
     private readonly EmployeeService _sut;
     private readonly string _tenantId;
     private readonly Guid _companyId = Guid.NewGuid();
@@ -66,7 +68,7 @@ public sealed class EmployeeContractLinkingTests : IDisposable
                     : (Guid?)null));
 
         var employeeRepo = new EmployeeRepo(_db);
-        _sut = new EmployeeService(employeeRepo, _providerRepo.Object, _mapper.Object, _encryption.Object);
+        _sut = new EmployeeService(employeeRepo, _providerRepo.Object, _mapper.Object, _encryption.Object, _publishEndpoint.Object);
     }
 
     [Fact]

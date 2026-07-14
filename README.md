@@ -10,24 +10,24 @@ Zorvian ERP es un sistema ERP moderno multiplataforma construido con **Flutter**
 
 ## Stack Tecnológico
 
-| Capa | Tecnología |
-|------|-----------|
-| **Frontend** | Flutter 3.x (SDK ^3.12.0) · Riverpod 2.x · GoRouter · Material 3 |
-| **Backend** | ASP.NET Core 9 · EF Core 9 · Clean Architecture · FluentValidation |
-| **Base de Datos** | PostgreSQL 16 (Neon) · Row-Level Security (RLS) · 13 migraciones |
-| **Cache** | Redis 7 |
-| **Message Queue** | RabbitMQ |
-| **Auth** | Firebase Auth + JWT (1h access / 7d refresh) · MFA · API Keys |
-| **Realtime** | SignalR (Redis Backplane) · WebSocket |
-| **Jobs** | Hangfire (15 recurring jobs) |
-| **AI/ML** | Vertex AI · ML.NET · XGBoost · pgvector · RAG |
-| **Docs/PDF** | QuestPDF · ESC/POS · QR · Thermal Printing |
-| **Offline** | SQLite (Drift) · Sync Engine · Connectivity Monitor |
-| **Observability** | Prometheus · Grafana · Sentry · OpenTelemetry |
-| **CI/CD** | GitHub Actions (1 pipeline consolidado, 5 jobs) |
-| **Container** | Docker Multi-stage + Docker Compose (5 servicios) |
-| **Edge** | CloudFlare WAF + CDN |
-| **Hosting** | Firebase Hosting (frontend) · Render.com (backend) |
+| Capa | Tecnología | Notas |
+|------|-----------|-------|
+| **Frontend** | Flutter 3.x (SDK ^3.12.0) · Riverpod 2.x · GoRouter · Material 3 | ✅ Implementado |
+| **Backend** | ASP.NET Core 9 · EF Core 9 · Clean Architecture · FluentValidation | ✅ Implementado |
+| **Base de Datos** | PostgreSQL 16 (Neon) · Row-Level Security (RLS) · 13 migraciones | ✅ Implementado |
+| **Cache** | InMemoryCacheService (ICacheService) · Redis 7 configurado en docker-compose | ⚠️ Contenedor Redis listo, código usa caché en memoria. Migrar a IDistributedCache pendiente |
+| **Message Queue** | Hangfire (persistencia PostgreSQL) · RabbitMQ 3.13 via MassTransit | ✅ Hangfire activo. RabbitMQ integrado con MassTransit: 4 consumers (SaleCreated, SaleCancelled, PaymentReceived, EmployeeCreated) con retry policy + circuit breaker |
+| **Auth** | Firebase Auth + JWT (1h access / 7d refresh) · API Keys | ⚠️ MFA backend existe, UI pendiente |
+| **Realtime** | SignalR · WebSocket | ✅ Implementado (NotificationHub) |
+| **Jobs** | Hangfire (15 jobs: 11 recurring + 4 ad-hoc/triggered) | ✅ Jobs distribuidos en Web.Jobs y Application.Jobs |
+| **AI/ML** | ML.NET · Vertex AI (ChatService) · RAG (EmbeddingService) · OCR (OcrService) | ⚠️ XGBoost/pgvector documentados pero no implementados en código |
+| **Docs/PDF** | QuestPDF · ESC/POS · QR · Thermal Printing | ✅ Implementado |
+| **Offline** | SQLite (Drift) · SyncEngine · ConnectivityMonitor | ⚠️ Implementado para productos, pendiente扩展到más módulos |
+| **Observability** | System.Diagnostics.Metrics (API nativa .NET) · Sentry (frontend) | ⚠️ Prometheus/Grafana/OpenTelemetry SDK documentados, pendientes de implementar. MetricsService con Meter/Histogram/Counter funcional |
+| **CI/CD** | GitHub Actions (1 pipeline consolidado, 5 jobs) | ✅ Implementado |
+| **Container** | Docker Multi-stage + Docker Compose (6 servicios: postgres, redis, rabbitmq, api, migrate, frontend) | ✅ Implementado |
+| **Edge** | CloudFlare (configuración externa) | ⚠️ Configurado a nivel DNS/WAF, no en código |
+| **Hosting** | Firebase Hosting (frontend) · Render.com (backend) | ✅ Implementado |
 
 ---
 
@@ -73,7 +73,7 @@ Zorvian ERP es un sistema ERP moderno multiplataforma construido con **Flutter**
 | **Activos Fijos** | 2 | 3 | — | ✅ |
 | **Inventario / Productos** | 4 | 4 | 7 | ✅ |
 | **Categorías / Marcas** | 2 | 2 | 4 | ✅ |
-| **Compras / Proveedores** | 4 | 5 | 8 | ✅ |
+| **Compras / Proveedores** | 4 | 5 | 10 | ✅ |
 | **Prestadores de Servicio** | 3 | 3 | 8 | ✅ |
 | **RRHH / Empleados** | 3 | 4 | 3 | ✅ |
 | **Departamentos** | 1 | 1 | 2 | ✅ |
@@ -99,7 +99,7 @@ Zorvian ERP es un sistema ERP moderno multiplataforma construido con **Flutter**
 | **Chat Interno** | 1 | 1 | 1 | ✅ |
 | **POS** | 1 | — | 1 | ✅ |
 | **Offline / Sync** | 1 | 1 | — | ✅ |
-| **Predicciones** | 1 | 1 | 1 | ✅ |
+| **Predicciones** | 1 | 1 | 1 (ruta /predictions/sales integrada en router) | ✅ |
 | **Admin (Usuarios, Planes)** | 4 | 3 | 5 | ✅ |
 | **Config Fiscal** | 2 | 2 | 2 | ✅ |
 | **Ajustes / Settings** | 1 | 1 | 3 | ✅ |
@@ -119,7 +119,7 @@ Zorvian ERP es un sistema ERP moderno multiplataforma construido con **Flutter**
 |--------|-------|
 | **Ventas** | Cotizaciones, Facturación/Ventas, Créditos y Cobros, Dashboard Vencimientos, Cartera de Clientes, Notas de Crédito, Punto de Venta, CRM |
 | **Inventario** | Productos, Categorías, Marcas, Movimientos de Inventario, Ajustes de Inventario, Garantías, Talleres |
-| **Compras** | Facturas de Compra, Órdenes de Compra, Proveedores, Pagos a Proveedores |
+| **Compras** | Facturas de Compra, Órdenes de Compra, Proveedores, Pagos a Proveedores, Notas de Crédito a Proveedores |
 | **Flota y Logística** | Dashboard, Vehículos, Conductores, Rutas, Entregas, Viajes, Combustible, Mantenimientos, Taller, Documentos, Gastos, GPS, Alertas, Tracking Entregas, IA Predictiva, Catálogos, Reportes |
 
 ### Financiero
@@ -251,12 +251,12 @@ Zorvian ERP
 │           └── l10n/                  # Localización (app_en.arb, app_es.arb)
 ├── src/                               # ASP.NET Core Backend
 │   ├── Zorvian.Web/
-│   │   ├── Controllers/               # 68 controllers + 28 Fleet controllers
+│   │   ├── Controllers/               # 85 core controllers + 28 Fleet + 10 Warranty = 123 total
 │   │   ├── Middleware/                # 8 middleware
 │   │   ├── Filters/                   # AuditFilter, IdempotentAttribute, ValidationFilter
 │   │   ├── Hubs/                      # NotificationHub (SignalR)
-│   │   ├── Jobs/                      # 12 Hangfire jobs
-│   │   ├── Validators/                # SaleValidators, FleetValidators, CreditValidators
+│   │   ├── Jobs/                      # 12 Hangfire jobs (Web.Jobs + Application.Jobs)
+│   │   ├── Validators/                # SaleValidators, FleetValidators, CreditValidators, DepartmentValidators, EmployeeValidators
 │   │   ├── Extensions/                # ApiResponse, ApiVersioning, AuditQuery, BatchOp, Cache, Metrics, Polly, DI
 │   │   ├── appsettings*.json          # 4 configs: base, Development, Production, Testing
 │   │   └── .env.example               # Template de variables de entorno
@@ -267,7 +267,7 @@ Zorvian ERP
 │   │   ├── Domain/                    # WarrantyStateMachine, GoalEngine, InvalidWarrantyStateTransitionException
 │   │   └── Attributes/                # EncryptedAttribute
 │   ├── Zorvian.Application/
-│   │   ├── Services/                  # 93 application services
+│   │   ├── Services/                  # 134 application services (incl. Fleet, Warranty, CommissionEngine, GoalEngine)
 │   │   │   ├── Fleet/                 # 29 fleet services
 │   │   │   ├── PayrollStrategies/     # NicaraguaCalculationStrategy, PayrollStrategyBase
 │   │   │   ├── CommissionEngine/      # CommissionCalculator, CommissionEngine, RuleEvaluator
@@ -287,7 +287,7 @@ Zorvian ERP
 │       │   ├── TenantContext.cs        # Tenant resolution
 │       │   ├── Interceptors/           # 7 interceptors (Audit, Immutability, EntityHistory, FileCleanup, TenantAudit, TenantSession, Encryption)
 │       │   └── Seeders/                # 4 seeders (CountryTax, DocumentTemplate, FleetCatalog, SubscriptionPlan)
-│       ├── Repositories/               # 91 repositories + 23 Fleet repositories
+│       ├── Repositories/               # 90 core repositories + 23 Fleet repositories = 113 total
 │       ├── Services/                   # 35 infrastructure services
 │       └── Migrations/                 # 13 migraciones (Jun-Jul 2026)
 ├── tests/
@@ -449,9 +449,9 @@ Accounting · Approval · Attendance · Auth · Bi · Biometrics · Branch · Ca
 
 ---
 
-## Backend — Controllers (96)
+## Backend — Controllers (123)
 
-### Core (68 controllers en `Controllers/`)
+### Core (85 controllers en `Controllers/`)
 
 **Auth/Users:** AuthController, UsersController, RegistrationController, SeedController, SyncController, NotificationsController, BadgesController, DashboardController, KioskController
 
@@ -477,7 +477,7 @@ WarrantiesController, WarrantyCostsController, WarrantyPartRequestsController, W
 
 ---
 
-## Backend — Services (93 Application + 35 Infrastructure)
+## Backend — Services (134 Application + 35 Infrastructure = 169 total)
 
 ### Application Services (`Zorvian.Application/Services/`)
 
@@ -541,9 +541,9 @@ WarrantyService, WarrantyCommunicationService, WarrantyCostService, WarrantyDash
 
 ---
 
-## Backend — Repositories (114 total)
+## Backend — Repositories (113 total)
 
-**Core:** 91 repos en `Repositories/` (AccountRepository, SaleRepository, EmployeeRepository, etc.)
+**Core:** 90 repos en `Repositories/` (AccountRepository, SaleRepository, EmployeeRepository, etc.)
 
 **Fleet:** 23 repos en `Repositories/Fleet/` (VehicleRepository, DriverRepository, TripRepository, GpsPositionRepository, etc.)
 
@@ -578,7 +578,7 @@ WarrantyService, WarrantyCommunicationService, WarrantyCostService, WarrantyDash
 
 ---
 
-## Backend — Hangfire Jobs (15)
+## Backend — Hangfire Jobs (15: 11 recurring + 4 ad-hoc/triggered)
 
 | Job | Tipo |
 |-----|------|
@@ -631,13 +631,59 @@ WarrantyService, WarrantyCommunicationService, WarrantyCostService, WarrantyDash
 
 ---
 
-## Frontend — Providers Riverpod (92 archivos)
+## Frontend — Providers Riverpod (76 archivos)
 
-| Categoría | Providers |
-|-----------|-----------|
-| **Auth** | auth_provider, tenants_provider |
-| **Core** | theme_provider, nav_provider, company_currency_provider, company_branch_provider |
-| **Features (86)** | accounting (3), admin (2), approval (1), attendance (2), bi (1), biometrics (1), branches (1), brands (1), budgets (2), cash_registers (1), categories (1), chat (1), clients (1), cost_centers (1), credit_notes (1), credits (1), crm (3), custom_reports (1), dashboard (2), dashboard_v2 (1), departments (1), documents (1), employees (1), exchange_rates (1), executive_dashboard (1), fleet (17), goals (1), inventory_movements (1), payroll (2), permissions (1), pos (1), predictions (1), products (1), purchase_orders (1), purchases (1), quotes (1), reconciliations (1), reports (1), sales (1), settings (1), sick_leave (1), suppliers (1), treasury (2), vacations (1), warranties (2), webhooks (1), workshops (1) |
+Los providers están distribuidos en los directorios de features. Se listan los módulos con su cantidad de providers:
+
+| Módulo | Providers | Archivos |
+|--------|-----------|----------|
+| **Accounting** | 4 | accounting_entries_notifier, accounting_provider, assistant_provider, enhanced_reports_provider |
+| **Admin** | 2 | user_management_provider, user_provider |
+| **Approval** | 1 | approval_provider |
+| **Attendance** | 2 | attendance_provider, kiosk_provider |
+| **BI** | 1 | bi_provider |
+| **Biometrics** | 1 | biometric_provider |
+| **Branches** | 1 | branch_provider |
+| **Brands** | 1 | brand_provider |
+| **Budgets** | 2 | budget_provider, budget_detail_provider |
+| **Cash Registers** | 1 | cash_register_provider |
+| **Categories** | 1 | category_provider |
+| **Chat** | 1 | chat_provider |
+| **Clients** | 1 | client_provider |
+| **Cost Centers** | 1 | cost_center_provider |
+| **Credit Notes** | 1 | credit_note_provider |
+| **Credits** | 1 | credit_provider |
+| **CRM** | 3 | crm_activity_provider, leads_provider, opportunities_provider |
+| **Custom Reports** | 1 | custom_report_provider |
+| **Dashboard** | 2 | dashboard_provider, calendar_provider |
+| **Dashboard V2** | 1 | role_dashboard_provider |
+| **Departments** | 1 | department_provider |
+| **Documents** | 1 | document_provider |
+| **Employees** | 1 | employee_provider |
+| **Exchange Rates** | 1 | exchange_rate_provider |
+| **Executive Dashboard** | 1 | executive_dashboard_provider |
+| **Fleet** | 17 | dashboard, vehicle, driver, route, delivery, trip, fuel, maintenance, workshop, document, expense, gps, alerts, tracking, predictive, catalog, reports |
+| **Goals** | 1 | goal_provider |
+| **Inventory Movements** | 1 | inventory_movement_provider |
+| **Payroll** | 2 | payroll_provider, settlement_provider |
+| **Permissions** | 1 | permission_provider |
+| **POS** | 1 | pos_provider |
+| **Predictions** | 1 | predictions_provider |
+| **Products** | 1 | product_provider |
+| **Purchase Orders** | 1 | purchase_order_provider |
+| **Purchases** | 1 | purchase_provider |
+| **Quotes** | 1 | quote_provider |
+| **Reconciliations** | 1 | reconciliation_provider |
+| **Reports** | 1 | reports_provider |
+| **Sales** | 1 | sale_provider |
+| **Settings** | 1 | company_settings_provider |
+| **Sick Leave** | 1 | sick_leave_provider |
+| **Suppliers** | 1 | supplier_provider |
+| **Treasury** | 2 | treasury_provider, treasury_dashboard_provider |
+| **Vacations** | 1 | vacation_provider |
+| **Warranties** | 2 | warranty_provider, public_warranty_provider |
+| **Webhooks** | 1 | webhook_provider |
+| **Workshops** | 1 | workshop_provider |
 
 ---
 
@@ -685,6 +731,7 @@ curl http://localhost:8080/health
 |----------|:------:|-------------|
 | `postgres` | 5432 | PostgreSQL 16 Alpine |
 | `redis` | 6379 | Redis 7 Alpine |
+| `rabbitmq` | 5672, 15672 | RabbitMQ 3.13 via MassTransit (4 consumers: SaleCreated, SaleCancelled, PaymentReceived, EmployeeCreated) |
 | `api` | 8080 | Backend .NET 9 |
 | `migrate` | — | EF Core migration runner |
 | `frontend` | 3000 | Flutter Web (dev server) |
@@ -748,17 +795,20 @@ Features__Swagger=false
 
 ## Seguridad
 
-- **Autenticación**: Firebase Auth + JWT (1h access / 7d refresh) · MFA · API Keys
-- **Autorización**: RBAC con permisos granulares (`RequirePermission`)
-- **Multi-tenant**: Query Filters EF Core + Row-Level Security PostgreSQL
-- **Edge**: CloudFlare WAF + Rate Limiting
-- **Auditoría**: Logs inmutables + Elasticsearch + 7 interceptores EF Core
-- **Rate Limiting**: 120 req/min general, 5 req/15min auth
+- **Autenticación**: Firebase Auth + JWT (1h access / 7d refresh) · API Keys
+- **Autorización**: RBAC con permisos granulares (`RequirePermission` en 50+ controllers)
+- **Multi-tenant**: Query Filters EF Core + Row-Level Security PostgreSQL (aplicado en migración automática)
+- **Edge**: CloudFlare WAF (configuración externa)
+- **Auditoría**: Logs inmutables (`AuditImmutabilityInterceptor`) + 7 interceptores EF Core
+- **Rate Limiting**: Configurable via `appsettings.json` (deshabilitado por defecto). 100 req/min general
 - **Security Headers**: CSP, HSTS, X-Frame-Options, Permissions-Policy
 - **Circuit Breaker**: Polly con retry + circuit breaker
-- **Validación**: FluentValidation (5 validators) + XSS protection
-- **Encriptación**: `EncryptionInterceptor` + `EncryptedAttribute`
+- **Validación**: FluentValidation + ValidationFilter global
+- **Encriptación**: `EncryptionInterceptor` (AES-256-GCM) + `EncryptedAttribute`
 - **API Keys**: Middleware dedicado con `ApiKeyService`
+- **MFA**: Backend `MfaService` implementado. UI de frontend pendiente
+- **JWT**: Sin blacklist de tokens revocados actualmente
+- **Elasticsearch**: Pendiente de implementar (logging actualmente con Serilog en consola/archivo)
 
 ---
 

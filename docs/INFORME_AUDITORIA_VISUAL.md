@@ -141,13 +141,13 @@ Zorvian Brand System v2.0:
 | Monitoring Stack (Prometheus/Grafana) | Operación ciega sin esto | 🟡 ALTA |
 | Multi-region / DR | SLA 99.9% inalcanzable | 🟡 ALTA |
 | Data Warehouse para BI | Sin impacto en BD transaccional | 🟡 MEDIA |
-| Event Bus / Message Queue (RabbitMQ) | Para microservicios | 🟢 MEDIA |
+| Event Bus / Message Queue (RabbitMQ + MassTransit) | 4 consumers: SaleCreated, SaleCancelled, PaymentReceived, EmployeeCreated | ✅ COMPLETADO |
 
 ### 3.2 Cuellos de Botella Identificados
 
 1. **Render.com Starter (512MB RAM)**: Insuficiente para producción real multi-tenant.
 2. **Neon PostgreSQL Free Tier**: 0.5GB RAM, ~10 conexiones. Para 100 empresas: insostenible.
-3. **Hangfire como único bus**: Kafka/RabbitMQ superiores para orquestación.
+3. **Event Bus dual**: Hangfire para jobs programados + MassTransit/RabbitMQ para eventos asíncronos cross-module (4 consumers implementados).
 4. **Single API instance**: Sin horizontal scaling, pico de 1000 usuarios bloquea.
 5. **Firebase Auth Free limits**: 50k MAU bajo para plataforma en crecimiento.
 
