@@ -14,7 +14,6 @@ class ProviderDetailPage extends ConsumerWidget {
     final contractsAsync = ref.watch(providerContractsProvider(id));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Detalle del Prestador')),
       body: providerAsync.when(
         data: (provider) => SingleChildScrollView(
           padding: const EdgeInsets.all(ZSpacing.lg),

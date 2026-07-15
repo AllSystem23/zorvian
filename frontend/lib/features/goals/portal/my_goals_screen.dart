@@ -12,7 +12,6 @@ class MyGoalsScreen extends ConsumerWidget {
     final stats = ref.watch(goalStatsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Mis Metas')),
       body: goalsAsync.when(
         data: (goals) => SingleChildScrollView(
           padding: const EdgeInsets.all(ZSpacing.lg),

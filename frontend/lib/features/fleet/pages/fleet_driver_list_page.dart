@@ -75,7 +75,6 @@ final class _FleetDriverListPageState extends ConsumerState<FleetDriverListPage>
     final filtered = _filter(state.items);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Conductores')),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null

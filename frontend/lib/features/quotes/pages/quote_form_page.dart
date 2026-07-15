@@ -155,7 +155,6 @@ class _QuoteFormPageState extends ConsumerState<QuoteFormPage> {
     final productsAsync = ref.watch(productProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(_isEdit ? 'Editar cotización' : 'Nueva cotización')),
       body: ListView(
         padding: EdgeInsets.all(MediaQuery.of(context).size.width < 576 ? 12 : MediaQuery.of(context).size.width < 992 ? 16 : 24),
         children: [

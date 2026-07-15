@@ -104,7 +104,6 @@ final class _FleetRouteFormPageState extends ConsumerState<FleetRouteFormPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_isEditing ? 'Editar ruta' : 'Nueva ruta')),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(MediaQuery.of(context).size.width < 576 ? 12 : MediaQuery.of(context).size.width < 992 ? 16 : 24),
         child: Form(

@@ -50,32 +50,36 @@ class _FleetCatalogPageState extends ConsumerState<FleetCatalogPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Catálogos de Flota'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline),
-            tooltip: 'Agregar al catálogo activo',
-            onPressed: () {
-              final endpoint = _tabEndpoints[_tabCtrl.index];
-              final extra = _tabCtrl.index == 3 ? {'countryCode': _selectedCountry} : null;
-              _CatalogDialog.show(context, ref: ref, endpoint: endpoint, extra: extra);
-            },
-          ),
-        ],
-        bottom: TabBar(
-          controller: _tabCtrl,
-          isScrollable: true,
-          tabs: const [
-            Tab(icon: Icon(Icons.directions_car_outlined), text: 'Marcas'),
-            Tab(icon: Icon(Icons.category_outlined), text: 'Tipos'),
-            Tab(icon: Icon(Icons.local_gas_station_outlined), text: 'Combustible'),
-            Tab(icon: Icon(Icons.badge_outlined), text: 'Licencias'),
-          ],
-        ),
-      ),
       body: Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(ZSpacing.md, ZSpacing.md, ZSpacing.md, 0),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.add_circle_outline),
+                  tooltip: 'Agregar al catálogo activo',
+                  onPressed: () {
+                    final endpoint = _tabEndpoints[_tabCtrl.index];
+                    final extra = _tabCtrl.index == 3 ? {'countryCode': _selectedCountry} : null;
+                    _CatalogDialog.show(context, ref: ref, endpoint: endpoint, extra: extra);
+                  },
+                ),
+                Expanded(
+                  child: TabBar(
+                    controller: _tabCtrl,
+                    isScrollable: true,
+                    tabs: const [
+                      Tab(icon: Icon(Icons.directions_car_outlined), text: 'Marcas'),
+                      Tab(icon: Icon(Icons.category_outlined), text: 'Tipos'),
+                      Tab(icon: Icon(Icons.local_gas_station_outlined), text: 'Combustible'),
+                      Tab(icon: Icon(Icons.badge_outlined), text: 'Licencias'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
           // Country filter bar — only visible on Licencias tab
           ListenableBuilder(
             listenable: _tabCtrl,

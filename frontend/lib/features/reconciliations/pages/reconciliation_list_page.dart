@@ -40,25 +40,20 @@ final class _ReconciliationListPageState extends ConsumerState<ReconciliationLis
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Conciliaciones Bancarias'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: 'Nueva Conciliación',
-            onPressed: () async {
-              final result = await context.push<bool>('/reconciliations/new');
-              if (result == true && mounted) ref.read(reconciliationProvider.notifier).load();
-            },
-          ),
-        ],
-      ),
       body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: Row(
               children: [
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  tooltip: 'Nueva Conciliación',
+                  onPressed: () async {
+                    final result = await context.push<bool>('/reconciliations/new');
+                    if (result == true && mounted) ref.read(reconciliationProvider.notifier).load();
+                  },
+                ),
                 Expanded(
                   child: DropdownButtonFormField<String?>(
                     decoration: const InputDecoration(

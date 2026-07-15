@@ -114,7 +114,6 @@ class _WorkshopFormPageState extends ConsumerState<WorkshopFormPage> {
   Widget build(BuildContext context) {
     if (_loadingDetail) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Taller')),
         body: const Center(child: CircularProgressIndicator(color: ZColors.brandPrimary)),
       );
     }
@@ -122,17 +121,6 @@ class _WorkshopFormPageState extends ConsumerState<WorkshopFormPage> {
     final isWide = MediaQuery.of(context).size.width > 700;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEdit ? 'Editar taller' : 'Nuevo taller'),
-        actions: [
-          ZButton(
-            text: _saving ? 'Guardando...' : 'Guardar',
-            icon: Icons.check,
-            type: ZButtonType.primary,
-            onPressed: _saving ? () {} : _save,
-          ),
-        ],
-      ),
       body: _error != null
           ? Center(child: ZAlertCard(message: _error!, severity: 'high'))
           : SingleChildScrollView(

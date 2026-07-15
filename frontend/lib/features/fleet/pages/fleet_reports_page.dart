@@ -44,26 +44,25 @@ class _FleetReportsPageState extends ConsumerState<FleetReportsPage>
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Reportes de Flota'),
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: ZColors.moduleFleet,
-          labelColor: ZColors.moduleFleet,
-          unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-          tabs: const [
-            Tab(text: 'Operativos', icon: Icon(Icons.speed_outlined, size: 20)),
-            Tab(text: 'Financieros', icon: Icon(Icons.account_balance_outlined, size: 20)),
-            Tab(text: 'Gerenciales', icon: Icon(Icons.analytics_outlined, size: 20)),
-          ],
-        ),
-        actions: [
-          _DateRangeButton(state: state),
-          const SizedBox(width: 8),
-        ],
-      ),
       body: Column(
         children: [
+          TabBar(
+            controller: _tabController,
+            indicatorColor: ZColors.moduleFleet,
+            labelColor: ZColors.moduleFleet,
+            unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            tabs: const [
+              Tab(text: 'Operativos', icon: Icon(Icons.speed_outlined, size: 20)),
+              Tab(text: 'Financieros', icon: Icon(Icons.account_balance_outlined, size: 20)),
+              Tab(text: 'Gerenciales', icon: Icon(Icons.analytics_outlined, size: 20)),
+            ],
+          ),
+          Row(
+            children: [
+              _DateRangeButton(state: state),
+              const SizedBox(width: 8),
+            ],
+          ),
           // ── Report selector chips (ZFilterBar) ──
           _ReportChips(state: state),
 

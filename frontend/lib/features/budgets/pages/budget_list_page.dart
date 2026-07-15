@@ -29,7 +29,6 @@ final class _BudgetListPageState extends ConsumerState<BudgetListPage> {
     final state = ref.watch(budgetProvider);
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Presupuestos')),
       body: Column(
         children: [
           Padding(

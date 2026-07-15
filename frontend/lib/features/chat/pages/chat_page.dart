@@ -37,7 +37,6 @@ class _ChatPageState extends ConsumerState<ChatPage> {
     final palette = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Asistente IA')),
       body: Column(
         children: [
           Expanded(

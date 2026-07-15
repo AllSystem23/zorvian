@@ -159,22 +159,30 @@ class _SuperAdminCompaniesPageState extends ConsumerState<SuperAdminCompaniesPag
     final currentTenant = ref.watch(authProvider).tenantId;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Gestión de Empresas'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Actualizar',
-            onPressed: _loadCompanies,
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  tooltip: 'Actualizar',
+                  onPressed: _loadCompanies,
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
-
-      body: _loading
+          Expanded(
+            child: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
               ? _buildError()
               : _buildTable(currentTenant),
+          ),
+        ],
+      ),
     );
   }
 

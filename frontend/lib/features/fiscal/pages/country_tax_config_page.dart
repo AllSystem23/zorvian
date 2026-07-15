@@ -143,9 +143,6 @@ class _CountryTaxConfigPageState extends ConsumerState<CountryTaxConfigPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Configuración Fiscal por País'),
-      ),
       body: state.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),

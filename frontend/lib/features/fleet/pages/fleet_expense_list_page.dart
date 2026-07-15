@@ -47,215 +47,224 @@ final class _FleetExpenseListPageState extends ConsumerState<FleetExpenseListPag
     final fmt = ref.watch(currencyFormatServiceProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: _multiSelectMode
-            ? Text('${_selectedIds.length} seleccionados')
-            : const Text('Gastos de Flota'),
-        bottom: _multiSelectMode ? null : PreferredSize(
-          preferredSize: const Size.fromHeight(48),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
             child: Row(
-              children: [ ..._ExpenseFilter.values.map((f) {
-                final label = switch (f) {
-                  _ExpenseFilter.all => 'Todos',
-                  _ExpenseFilter.pending => 'Pendientes',
-                  _ExpenseFilter.approved => 'Aprobados',
-                };
-                final count = switch (f) {
-                  _ExpenseFilter.all => state.items.length,
-                  _ExpenseFilter.pending => state.items.where((e) => !e.approved).length,
-                  _ExpenseFilter.approved => state.items.where((e) => e.approved).length,
-                };
-                final selected = _filter == f;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(
-                    label: Text('$label ($count)'),
-                    selected: selected,
-                    onSelected: (_) => setState(() => _filter = f),
-                    selectedColor: ZColors.brandAccent.withValues(alpha: 0.15),
-                    labelStyle: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: selected ? ZColors.brandAccent : ZColors.neutral600,
-                    ),
+              children: [
+                if (_multiSelectMode)
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => setState(() { _multiSelectMode = false; _selectedIds.clear(); }),
                   ),
-                );
-              }),],
+                if (_multiSelectMode)
+                  Text('${_selectedIds.length} seleccionados', style: const TextStyle(fontWeight: FontWeight.w600)),
+                if (!_multiSelectMode)
+                  const Text('Gastos de Flota', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                const Spacer(),
+                if (_multiSelectMode && _selectedIds.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(Icons.check_circle),
+                    color: ZColors.success,
+                    tooltip: 'Aprobar seleccionados',
+                    onPressed: _approveBatch,
+                  ),
+                if (!_multiSelectMode) ...[
+                  IconButton(
+                    icon: const Icon(Icons.download_outlined),
+                    tooltip: 'Exportar PDF',
+                    onPressed: () => _exportExpenses('pdf'),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.table_chart_outlined),
+                    tooltip: 'Exportar Excel',
+                    onPressed: () => _exportExpenses('xlsx'),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.checklist),
+                    tooltip: 'Seleccionar varios',
+                    onPressed: () => setState(() => _multiSelectMode = true),
+                  ),
+                ],
+              ],
             ),
           ),
-        ),
-        leading: _multiSelectMode
-            ? IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => setState(() { _multiSelectMode = false; _selectedIds.clear(); }),
-              )
-            : null,
-        actions: [
-          if (_multiSelectMode && _selectedIds.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.check_circle),
-              color: ZColors.success,
-              tooltip: 'Aprobar seleccionados',
-              onPressed: _approveBatch,
+          if (!_multiSelectMode)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [ ..._ExpenseFilter.values.map((f) {
+                  final label = switch (f) {
+                    _ExpenseFilter.all => 'Todos',
+                    _ExpenseFilter.pending => 'Pendientes',
+                    _ExpenseFilter.approved => 'Aprobados',
+                  };
+                  final count = switch (f) {
+                    _ExpenseFilter.all => state.items.length,
+                    _ExpenseFilter.pending => state.items.where((e) => !e.approved).length,
+                    _ExpenseFilter.approved => state.items.where((e) => e.approved).length,
+                  };
+                  final selected = _filter == f;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text('$label ($count)'),
+                      selected: selected,
+                      onSelected: (_) => setState(() => _filter = f),
+                      selectedColor: ZColors.brandAccent.withValues(alpha: 0.15),
+                      labelStyle: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: selected ? ZColors.brandAccent : ZColors.neutral600,
+                      ),
+                    ),
+                  );
+                }),],
+              ),
             ),
-          if (!_multiSelectMode) ...[
-            IconButton(
-              icon: const Icon(Icons.download_outlined),
-              tooltip: 'Exportar PDF',
-              onPressed: () => _exportExpenses('pdf'),
-            ),
-            IconButton(
-              icon: const Icon(Icons.table_chart_outlined),
-              tooltip: 'Exportar Excel',
-              onPressed: () => _exportExpenses('xlsx'),
-            ),
-            IconButton(
-              icon: const Icon(Icons.checklist),
-              tooltip: 'Seleccionar varios',
-              onPressed: () => setState(() => _multiSelectMode = true),
-            ),
-          ],
-        ],
-      ),
-      body: state.loading
-          ? const Center(child: CircularProgressIndicator())
-          : state.error != null
-              ? Center(child: ZAlertCard(message: state.error!, severity: 'high'))
-              : state.items.isEmpty
-                  ? ZEmptyState.list(
-                      itemType: 'gastos',
-                      actionLabel: 'Nuevo Gasto',
-                      onAction: () async {
-                        final r = await context.push<bool>('/fleet/expenses/new');
-                        if (r == true) ref.read(fleetExpenseProvider.notifier).load();
-                      },
-                    )
-                  : Column(
-                    children: [
-                      _ExpenseKpiBar(items: state.items, activeFilter: _filter, fmt: fmt),
-                      Expanded(
-                        child: RefreshIndicator(
-                          onRefresh: () => ref.read(fleetExpenseProvider.notifier).load(),
-                          child: Builder(
-                            builder: (_) {
-                              final items = _filteredItems(state);
-                              return ListView.separated(
-                                itemCount: items.length,
-                                separatorBuilder: (_, _) => const Divider(height: 1),
-                                itemBuilder: (_, i) {
-                                  final e = items[i];
-                                  return ListTile(
-                                    leading: _multiSelectMode
-                                        ? Checkbox(
-                                            value: _selectedIds.contains(e.id),
-                                            onChanged: (v) => setState(() {
-                                              if (v == true) {
-                                                _selectedIds.add(e.id);
-                                              } else {
-                                                _selectedIds.remove(e.id);
-                                              }
-                                            }),
-                                          )
-                                        : CircleAvatar(
-                                            backgroundColor: ZColors.moduleFinance.withValues(alpha: 0.2),
-                                            child: Icon(
-                                              e.approved ? Icons.check_circle : Icons.schedule,
-                                              color: e.approved ? ZColors.success : ZColors.warning,
-                                              size: 20,
-                                            ),
-                                          ),
-                                    title: Row(
-                                      children: [
-                                        Expanded(child: Text(e.description, style: const TextStyle(fontWeight: FontWeight.w600))),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                          decoration: BoxDecoration(
-                                            color: e.approved
-                                                ? ZColors.success.withValues(alpha: 0.15)
-                                                : ZColors.warning.withValues(alpha: 0.15),
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          child: Text(
-                                            e.approved ? 'Aprobado' : 'Pendiente',
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w600,
-                                              color: e.approved ? ZColors.success : ZColors.warning,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    subtitle: Text(
-                                      '${fmt.currency(e.amount)} · ${e.categoryName}${e.vehiclePlate != null ? ' · ${e.vehiclePlate}' : ''}',
-                                    ),
-                                    trailing: _multiSelectMode
-                                        ? null
-                                        : Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Column(
-                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                crossAxisAlignment: CrossAxisAlignment.end,
-                                                children: [
-                                                  Container(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                                    decoration: BoxDecoration(
-                                                      color: _paymentLabel(e.paymentMethod) == e.paymentMethod
-                                                          ? ZColors.moduleFleet.withValues(alpha: 0.15)
-                                                          : ZColors.success.withValues(alpha: 0.15),
-                                                      borderRadius: BorderRadius.circular(10),
-                                                    ),
-                                                    child: Text(
-                                                      _paymentLabel(e.paymentMethod),
-                                                      style: TextStyle(fontSize: 10, color: ZColors.moduleFleet, fontWeight: FontWeight.w600),
-                                                    ),
+          Expanded(
+            child: state.loading
+                ? const Center(child: CircularProgressIndicator())
+                : state.error != null
+                    ? Center(child: ZAlertCard(message: state.error!, severity: 'high'))
+                    : state.items.isEmpty
+                        ? ZEmptyState.list(
+                            itemType: 'gastos',
+                            actionLabel: 'Nuevo Gasto',
+                            onAction: () async {
+                              final r = await context.push<bool>('/fleet/expenses/new');
+                              if (r == true) ref.read(fleetExpenseProvider.notifier).load();
+                            },
+                          )
+                        : Column(
+                          children: [
+                            _ExpenseKpiBar(items: state.items, activeFilter: _filter, fmt: fmt),
+                            Expanded(
+                              child: RefreshIndicator(
+                                onRefresh: () => ref.read(fleetExpenseProvider.notifier).load(),
+                                child: Builder(
+                                  builder: (_) {
+                                    final items = _filteredItems(state);
+                                    return ListView.separated(
+                                      itemCount: items.length,
+                                      separatorBuilder: (_, _) => const Divider(height: 1),
+                                      itemBuilder: (_, i) {
+                                        final e = items[i];
+                                        return ListTile(
+                                          leading: _multiSelectMode
+                                              ? Checkbox(
+                                                  value: _selectedIds.contains(e.id),
+                                                  onChanged: (v) => setState(() {
+                                                    if (v == true) {
+                                                      _selectedIds.add(e.id);
+                                                    } else {
+                                                      _selectedIds.remove(e.id);
+                                                    }
+                                                  }),
+                                                )
+                                              : CircleAvatar(
+                                                  backgroundColor: ZColors.moduleFinance.withValues(alpha: 0.2),
+                                                  child: Icon(
+                                                    e.approved ? Icons.check_circle : Icons.schedule,
+                                                    color: e.approved ? ZColors.success : ZColors.warning,
+                                                    size: 20,
                                                   ),
-                                                  if (e.approved)
-                                                    Padding(
-                                                      padding: const EdgeInsets.only(top: 2),
-                                                      child: Icon(Icons.check_circle, size: 14, color: ZColors.success),
-                                                    ),
-                                                ],
-                                              ),
-                                              if (!e.approved && !_approving)
-                                                IconButton(
-                                                  icon: const Icon(Icons.check_circle_outline, size: 20),
-                                                  color: ZColors.success,
-                                                  tooltip: 'Aprobar gasto',
-                                                  onPressed: () => _confirmApprove(e.id, e.description),
                                                 ),
-                                              if (_approving)
-                                                const SizedBox(
-                                                  width: 20,
-                                                  height: 20,
-                                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                          title: Row(
+                                            children: [
+                                              Expanded(child: Text(e.description, style: const TextStyle(fontWeight: FontWeight.w600))),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                                decoration: BoxDecoration(
+                                                  color: e.approved
+                                                      ? ZColors.success.withValues(alpha: 0.15)
+                                                      : ZColors.warning.withValues(alpha: 0.15),
+                                                  borderRadius: BorderRadius.circular(8),
                                                 ),
-                                              PopupMenuButton<String>(
-                                                onSelected: (action) async {
-                                                  if (action == 'edit') {
-                                                    final r2 = await context.push<bool>('/fleet/expenses/${e.id}/edit');
-                                                    if (r2 == true) ref.read(fleetExpenseProvider.notifier).load();
-                                                  }
-                                                  if (action == 'delete') _confirmDelete(e.id, e.description);
-                                                },
-                                                itemBuilder: (_) => [
-                                                  const PopupMenuItem(value: 'edit', child: Text('Editar')),
-                                                  const PopupMenuItem(value: 'delete', child: Text('Eliminar', style: TextStyle(color: Colors.red))),
-                                                ],
+                                                child: Text(
+                                                  e.approved ? 'Aprobado' : 'Pendiente',
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: e.approved ? ZColors.success : ZColors.warning,
+                                                  ),
+                                                ),
                                               ),
                                             ],
                                           ),
-                                  );
-                                },
-                              );
-                            },
-                          ),
+                                          subtitle: Text(
+                                            '${fmt.currency(e.amount)} · ${e.categoryName}${e.vehiclePlate != null ? ' · ${e.vehiclePlate}' : ''}',
+                                          ),
+                                          trailing: _multiSelectMode
+                                              ? null
+                                              : Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Column(
+                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                                      children: [
+                                                        Container(
+                                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                          decoration: BoxDecoration(
+                                                            color: _paymentLabel(e.paymentMethod) == e.paymentMethod
+                                                                ? ZColors.moduleFleet.withValues(alpha: 0.15)
+                                                                : ZColors.success.withValues(alpha: 0.15),
+                                                            borderRadius: BorderRadius.circular(10),
+                                                          ),
+                                                          child: Text(
+                                                            _paymentLabel(e.paymentMethod),
+                                                            style: TextStyle(fontSize: 10, color: ZColors.moduleFleet, fontWeight: FontWeight.w600),
+                                                          ),
+                                                        ),
+                                                        if (e.approved)
+                                                          Padding(
+                                                            padding: const EdgeInsets.only(top: 2),
+                                                            child: Icon(Icons.check_circle, size: 14, color: ZColors.success),
+                                                          ),
+                                                      ],
+                                                    ),
+                                                    if (!e.approved && !_approving)
+                                                      IconButton(
+                                                        icon: const Icon(Icons.check_circle_outline, size: 20),
+                                                        color: ZColors.success,
+                                                        tooltip: 'Aprobar gasto',
+                                                        onPressed: () => _confirmApprove(e.id, e.description),
+                                                      ),
+                                                    if (_approving)
+                                                      const SizedBox(
+                                                        width: 20,
+                                                        height: 20,
+                                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                                      ),
+                                                    PopupMenuButton<String>(
+                                                      onSelected: (action) async {
+                                                        if (action == 'edit') {
+                                                          final r2 = await context.push<bool>('/fleet/expenses/${e.id}/edit');
+                                                          if (r2 == true) ref.read(fleetExpenseProvider.notifier).load();
+                                                        }
+                                                        if (action == 'delete') _confirmDelete(e.id, e.description);
+                                                      },
+                                                      itemBuilder: (_) => [
+                                                        const PopupMenuItem(value: 'edit', child: Text('Editar')),
+                                                        const PopupMenuItem(value: 'delete', child: Text('Eliminar', style: TextStyle(color: Colors.red))),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),                    ],
-                  ),
+          ),
+        ],
+      ),
     );
   }
 

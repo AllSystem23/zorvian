@@ -151,7 +151,6 @@ class _PermissionFormPageState extends ConsumerState<PermissionFormPage> {
     final types = state.types;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Solicitar permiso')),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(MediaQuery.of(context).size.width < 576 ? 12 : MediaQuery.of(context).size.width < 992 ? 16 : 24),
         child: Form(

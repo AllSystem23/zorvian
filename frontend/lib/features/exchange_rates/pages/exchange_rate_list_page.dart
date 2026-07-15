@@ -51,7 +51,6 @@ class _ExchangeRateListPageState extends ConsumerState<ExchangeRateListPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Tipos de cambio')),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null

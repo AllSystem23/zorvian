@@ -30,7 +30,6 @@ class _CommercialDashboardPageState extends ConsumerState<CommercialDashboardPag
     final salesTrendAsync = ref.watch(biSalesTrendProvider(12));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Panel Comercial')),
       body: RefreshIndicator(
         onRefresh: () async => ref.invalidate(biSalesTrendProvider(12)),
         child: ListView(

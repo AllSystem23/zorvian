@@ -93,36 +93,47 @@ final class _FiscalYearsPageState extends ConsumerState<FiscalYearsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Años Fiscales'),
-        actions: [IconButton(icon: const Icon(Icons.add), onPressed: _openYear)],
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _years.isEmpty
-              ? const Center(child: Text('No hay años fiscales. Abra el primer año.'))
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: ListView.builder(
-                    itemCount: _years.length,
-                    itemBuilder: (_, i) {
-                      final y = _years[i];
-                      final color = switch (y.status) { 'open' => Colors.green, 'closed' => Colors.orange, 'audited' => Colors.purple, _ => Colors.grey };
-                      return ListTile(
-                        title: Text(y.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: Text(y.status == 'closed' ? 'Cerrado: ${y.closedAt ?? ""}' : y.status),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Chip(label: Text(y.status, style: TextStyle(fontSize: 11, color: color)), backgroundColor: color.withAlpha(20), padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
-                            if (y.status == 'open')
-                              IconButton(icon: const Icon(Icons.lock_outline, size: 18), tooltip: 'Cerrar año fiscal', onPressed: () => _closeYear(y.id)),
-                          ],
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(icon: const Icon(Icons.add), onPressed: _openYear),
+              ],
+            ),
+          ),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _years.isEmpty
+                    ? const Center(child: Text('No hay años fiscales. Abra el primer año.'))
+                    : RefreshIndicator(
+                        onRefresh: _load,
+                        child: ListView.builder(
+                          itemCount: _years.length,
+                          itemBuilder: (_, i) {
+                            final y = _years[i];
+                            final color = switch (y.status) { 'open' => Colors.green, 'closed' => Colors.orange, 'audited' => Colors.purple, _ => Colors.grey };
+                            return ListTile(
+                              title: Text(y.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                              subtitle: Text(y.status == 'closed' ? 'Cerrado: ${y.closedAt ?? ""}' : y.status),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Chip(label: Text(y.status, style: TextStyle(fontSize: 11, color: color)), backgroundColor: color.withAlpha(20), padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
+                                  if (y.status == 'open')
+                                    IconButton(icon: const Icon(Icons.lock_outline, size: 18), tooltip: 'Cerrar año fiscal', onPressed: () => _closeYear(y.id)),
+                                ],
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
-                ),
+                      ),
+          ),
+        ],
+      ),
     );
   }
 }

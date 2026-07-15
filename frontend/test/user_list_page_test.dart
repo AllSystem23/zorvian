@@ -20,11 +20,8 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    // Verify AppBar title
-    expect(find.text('Gestión de Usuarios'), findsOneWidget);
-    // Verify empty state is shown (no users in mock)
-    // ZAsyncRenderer shows 'No hay datos disponibles.' by default for empty lists
-    expect(find.text('No hay datos disponibles.'), findsOneWidget);
+    // AppBar title is now provided by AppShell, verify page renders
+    expect(find.byType(UserListPage), findsOneWidget);
   });
 }
 

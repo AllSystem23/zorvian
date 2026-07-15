@@ -22,7 +22,6 @@ final class _ProviderInvoicesPageState
     final fmt = ref.watch(currencyFormatServiceProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Pagos y Facturas de Prestadores')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(ZSpacing.lg),
         child: Column(

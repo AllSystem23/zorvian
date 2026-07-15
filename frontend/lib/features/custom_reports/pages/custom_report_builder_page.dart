@@ -186,16 +186,6 @@ class _CustomReportBuilderPageState extends ConsumerState<CustomReportBuilderPag
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.reportId != null ? 'Editar Reporte' : 'Nuevo Reporte'),
-        actions: [
-          TextButton.icon(
-            icon: const Icon(Icons.play_arrow),
-            label: const Text('Vista Previa'),
-            onPressed: _preview,
-          ),
-        ],
-      ),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -425,46 +415,5 @@ class _CustomReportBuilderPageState extends ConsumerState<CustomReportBuilderPag
       onTap: onTap,
       child: Padding(padding: const EdgeInsets.all(2), child: Icon(icon, size: 16)),
     );
-  }
-
-  Future<void> _preview() async {
-    if (_fields.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Agrega al menos un campo'), backgroundColor: Colors.orange),
-      );
-      return;
-    }
-
-    try {
-      final dio = ref.read(dioClientProvider);
-      final body = {
-        'name': _nameCtrl.text.trim().isEmpty ? 'Vista Previa' : _nameCtrl.text.trim(),
-        'description': _descCtrl.text.trim(),
-        'module': _module,
-        'fields': _fields.map((f) => f.toJson()).toList(),
-        'filters': _filters.map((f) => f.toJson()).toList(),
-        'groupByField': _groupByField,
-        'sortByField': _sortByField,
-        'sortOrder': _sortOrder,
-        'isPublic': _isPublic,
-      };
-      final response = await dio.post('custom-reports/execute-adhoc?module=$_module', data: body);
-      final result = response.data as Map<String, dynamic>;
-      if (mounted) {
-        context.push('/custom-reports/result', extra: {
-          'reportName': _nameCtrl.text.trim().isEmpty ? 'Vista Previa' : _nameCtrl.text.trim(),
-          'module': _module,
-          'fields': _fields.map((f) => f.toJson()).toList(),
-          'columns': result['columns'] as List,
-          'rows': result['rows'] as List,
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
-      }
-    }
   }
 }

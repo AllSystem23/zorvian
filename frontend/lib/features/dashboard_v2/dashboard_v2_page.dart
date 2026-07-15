@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../auth/auth_provider.dart';
 import '../../core/widgets/bi/bi.dart';
 import '../../shared/ds/ds.dart';
 import 'providers/role_dashboard_provider.dart';
@@ -31,28 +30,21 @@ class _DashboardV2PageState extends ConsumerState<DashboardV2Page> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(roleDashboardProvider);
-    final auth = ref.watch(authProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_roleLabel(auth.role)),
-        actions: [
-          FocusTraversalGroup(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.refresh),
-                  tooltip: 'Actualizar',
-                  onPressed: () => ref.read(roleDashboardProvider.notifier).load(),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
       body: Column(
         children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                tooltip: 'Actualizar',
+                onPressed: () => ref.read(roleDashboardProvider.notifier).load(),
+              ),
+            ],
+          ),
           ZSkipLink(targetFocus: _mainContentFocus),
           Expanded(
             child: ZMainContent(
@@ -156,21 +148,5 @@ class _DashboardV2PageState extends ConsumerState<DashboardV2Page> {
       },
     ),
     );
-  }
-
-  String _roleLabel(String? role) {
-    switch (role) {
-      case 'SuperAdmin':
-      case 'CompanyAdmin':
-        return 'Dashboard Ejecutivo';
-      case 'Rrhh':
-        return 'Dashboard RRHH';
-      case 'Supervisor':
-        return 'Dashboard Supervisor';
-      case 'Accountant':
-        return 'Dashboard Contador';
-      default:
-        return 'Dashboard';
-    }
   }
 }

@@ -52,7 +52,6 @@ class _InviteUserPageState extends ConsumerState<InviteUserPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Invitar usuario')),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Form(

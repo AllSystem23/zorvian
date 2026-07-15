@@ -58,7 +58,6 @@ final class _CashRegisterListPageState
     final activeRegisters = state.items.where((i) => i.isOpen).length;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Control de Cajas')),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null

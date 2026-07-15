@@ -33,11 +33,15 @@ class ZStepper extends StatelessWidget {
   List<Widget> _buildSteps(BuildContext context) {
     final list = <Widget>[];
     for (var i = 0; i < steps.length; i++) {
-      list.add(_StepCircle(index: i, currentStep: currentStep, label: steps[i]));
+      list.add(Expanded(
+        child: _StepCircle(index: i, currentStep: currentStep, label: steps[i]),
+      ));
       if (i < steps.length - 1) {
-        list.add(Expanded(
+        list.add(Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2),
           child: Container(
             height: 2,
+            width: 16,
             color: i < currentStep ? ZColors.brandAccent : ZColors.neutral200,
           ),
         ));
@@ -94,13 +98,17 @@ final class _StepCircle extends StatelessWidget {
                   ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Text(
           label,
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
-            fontSize: 11,
+            fontSize: 10,
             color: isCurrent ? ZColors.brandPrimary : ZColors.neutral400,
             fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
+            height: 1.2,
           ),
         ),
       ],

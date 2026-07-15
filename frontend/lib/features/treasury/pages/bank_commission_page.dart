@@ -29,7 +29,6 @@ class _BankCommissionPageState extends ConsumerState<BankCommissionPage> {
     final bankAccounts = ref.watch(treasuryBankAccountsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Registrar Comisión')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(ZSpacing.md),
         child: ZCard(

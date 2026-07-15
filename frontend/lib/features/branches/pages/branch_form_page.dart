@@ -98,45 +98,9 @@ class _BranchFormPageState extends ConsumerState<BranchFormPage> {
     }
   }
 
-  Future<void> _delete() async {
-    final confirm = await ZModal.confirm(
-      context,
-      title: 'Eliminar sucursal',
-      message: '¿Está seguro? Esta acción no se puede deshacer.',
-      confirmText: 'Eliminar',
-      cancelText: 'Cancelar',
-    );
-    if (!confirm) return;
-
-    setState(() => _saving = true);
-    try {
-      final dio = ref.read(dioClientProvider);
-      await dio.delete('branches/${widget.branchId}');
-      if (mounted) context.pop(true);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al eliminar: $e'), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEdit ? 'Editar sucursal' : 'Nueva sucursal'),
-        actions: [
-          if (_isEdit)
-            IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
-              onPressed: _saving ? null : _delete,
-            ),
-        ],
-      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : Form(

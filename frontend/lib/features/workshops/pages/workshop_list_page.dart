@@ -37,18 +37,18 @@ class _WorkshopListPageState extends ConsumerState<WorkshopListPage> {
             (w.city?.toLowerCase().contains(_search.toLowerCase()) ?? false)).toList();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Talleres de Servicio'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: 'Nuevo taller',
-            onPressed: () => context.push('/workshops/new'),
-          ),
-        ],
-      ),
       body: Column(
         children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.add),
+                tooltip: 'Nuevo taller',
+                onPressed: () => context.push('/workshops/new'),
+              ),
+            ],
+          ),
           Padding(
             padding: const EdgeInsets.all(ZSpacing.md),
             child: TextField(

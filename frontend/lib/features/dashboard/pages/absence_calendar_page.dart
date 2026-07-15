@@ -33,7 +33,6 @@ class _AbsenceCalendarPageState extends ConsumerState<AbsenceCalendarPage> {
     final weeks = _buildWeeks(firstDay, lastDay);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Calendario de Ausencias')),
       body: Column(
         children: [
           Padding(

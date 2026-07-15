@@ -108,7 +108,6 @@ final class _ApprovalFlowFormPageState extends ConsumerState<ApprovalFlowFormPag
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(_isEditing ? 'Editar flujo' : 'Nuevo flujo')),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(MediaQuery.of(context).size.width < 576 ? 12 : MediaQuery.of(context).size.width < 992 ? 16 : 24),
         child: Form(

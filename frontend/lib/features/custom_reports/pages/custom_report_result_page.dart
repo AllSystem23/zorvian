@@ -23,22 +23,25 @@ class CustomReportResultPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(reportName),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.file_download),
-            tooltip: 'Exportar Excel',
-            onPressed: () => _exportExcel(ref, context),
+      body: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.file_download),
+                tooltip: 'Exportar Excel',
+                onPressed: () => _exportExcel(ref, context),
+              ),
+              IconButton(
+                icon: const Icon(Icons.picture_as_pdf),
+                tooltip: 'Exportar PDF',
+                onPressed: () => _exportPdf(ref, context),
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.picture_as_pdf),
-            tooltip: 'Exportar PDF',
-            onPressed: () => _exportPdf(ref, context),
-          ),
-        ],
-      ),
-      body: rows.isEmpty
+          Expanded(child: rows.isEmpty
           ? const Center(child: Text('Sin resultados'))
           : SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -53,6 +56,9 @@ class CustomReportResultPage extends ConsumerWidget {
                 ),
               ),
             ),
+          ),
+        ],
+      ),
     );
   }
 

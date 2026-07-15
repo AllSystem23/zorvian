@@ -40,29 +40,32 @@ class _FleetPredictivePageState extends ConsumerState<FleetPredictivePage>
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Inteligencia Predictiva'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Mantenimiento', icon: Icon(Icons.build_outlined)),
-            Tab(text: 'Combustible', icon: Icon(Icons.local_gas_station_outlined)),
-            Tab(text: 'Tendencias', icon: Icon(Icons.trending_up_outlined)),
-          ],
-        ),
+      body: Column(
+        children: [
+          TabBar(
+            controller: _tabController,
+            tabs: const [
+              Tab(text: 'Mantenimiento', icon: Icon(Icons.build_outlined)),
+              Tab(text: 'Combustible', icon: Icon(Icons.local_gas_station_outlined)),
+              Tab(text: 'Tendencias', icon: Icon(Icons.trending_up_outlined)),
+            ],
+          ),
+          Expanded(
+            child: state.loading && state.forecasts.isEmpty && state.fuelAnomalies.isEmpty
+                ? _buildSkeleton()
+                : state.error != null && state.forecasts.isEmpty && state.fuelAnomalies.isEmpty
+                    ? Center(child: ZAlertCard(message: state.error!, severity: 'high'))
+                    : TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildMaintenanceTab(state, theme),
+                          _buildFuelAnomalyTab(state, theme),
+                          _buildTrendsTab(state, theme),
+                        ],
+                      ),
+          ),
+        ],
       ),
-      body: state.loading && state.forecasts.isEmpty && state.fuelAnomalies.isEmpty
-          ? _buildSkeleton()
-          : state.error != null && state.forecasts.isEmpty && state.fuelAnomalies.isEmpty
-              ? Center(child: ZAlertCard(message: state.error!, severity: 'high'))
-              : TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildMaintenanceTab(state, theme),
-                    _buildFuelAnomalyTab(state, theme),
-                    _buildTrendsTab(state, theme),
-                  ],
-                ),
     );
   }
 

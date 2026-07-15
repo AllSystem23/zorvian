@@ -95,7 +95,6 @@ class _CheckIssuancePageState extends ConsumerState<CheckIssuancePage> {
     final beneficiariesAsync = ref.watch(_beneficiariesProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Emitir Cheque')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(ZSpacing.md),
         child: ZCard(

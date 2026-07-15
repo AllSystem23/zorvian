@@ -12,7 +12,6 @@ class AttendanceHistoryPage extends ConsumerWidget {
     final asyncState = ref.watch(attendanceProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Historial de Asistencia')),
       body: ZAsyncRenderer<AttendanceSummary>(
         value: asyncState,
         builder: (summary) => ListView(

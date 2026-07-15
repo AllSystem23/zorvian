@@ -18,19 +18,24 @@ class LeaveTypesPage extends ConsumerWidget {
     final typesAsync = ref.watch(leaveTypesProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tipos de Permiso'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () async {
-              final created = await context.push<bool>('/leave-types/new');
-              if (created == true) ref.invalidate(leaveTypesProvider);
-            },
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: () async {
+                    final created = await context.push<bool>('/leave-types/new');
+                    if (created == true) ref.invalidate(leaveTypesProvider);
+                  },
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
-      body: typesAsync.when(
+          Expanded(
+            child: typesAsync.when(
         data: (types) => types.isEmpty
             ? const Center(child: Text('No hay tipos de permiso configurados'))
             : ListView.builder(
@@ -53,6 +58,9 @@ class LeaveTypesPage extends ConsumerWidget {
               ),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -41,17 +41,20 @@ class _WarrantyDashboardPageState extends ConsumerState<WarrantyDashboardPage> {
 
     return Scaffold(
       backgroundColor: isDark ? ZColors.darkBackground : ZColors.neutral50,
-      appBar: AppBar(
-        title: const Text('Garantías'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: 'Nueva garantía',
-            onPressed: () => context.push('/warranties/new'),
+      body: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.add),
+                tooltip: 'Nueva garantía',
+                onPressed: () => context.push('/warranties/new'),
+              ),
+            ],
           ),
-        ],
-      ),
-      body: _loading
+          Expanded(
+            child: _loading
           ? _buildDashboardSkeleton()
           : _error != null
               ? ZErrorDisplay(message: _error!, onRetry: _load)
@@ -132,6 +135,9 @@ class _WarrantyDashboardPageState extends ConsumerState<WarrantyDashboardPage> {
                     ],
                   ),
                 ),
+          ),
+        ],
+      ),
     );
   }
 

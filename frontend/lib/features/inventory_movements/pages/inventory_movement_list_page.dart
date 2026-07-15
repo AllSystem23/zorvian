@@ -32,7 +32,6 @@ final class _InventoryMovementListPageState extends ConsumerState<InventoryMovem
   Widget build(BuildContext context) {
     final state = ref.watch(inventoryMovementProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Kardex - Movimientos')),
       body: ZAsyncRenderer<List<InventoryMovementItem>>(
         value: state,
         builder: (items) {

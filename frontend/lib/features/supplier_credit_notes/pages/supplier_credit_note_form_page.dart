@@ -92,7 +92,6 @@ final class _SupplierCreditNoteFormPageState extends ConsumerState<SupplierCredi
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Nueva Nota de Crédito a Proveedor')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(

@@ -96,12 +96,11 @@ final class _PurchaseOrderDetailPageState extends ConsumerState<PurchaseOrderDet
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    if (_loading) return Scaffold(appBar: AppBar(title: const Text('Orden de Compra')), body: const Center(child: CircularProgressIndicator()));
-    if (_error != null) return Scaffold(appBar: AppBar(title: const Text('Orden de Compra')), body: Center(child: Text(_error!, style: TextStyle(color: theme.colorScheme.error))));
+    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_error != null) return Scaffold(body: Center(child: Text(_error!, style: TextStyle(color: theme.colorScheme.error))));
     final d = _data!;
 
     return Scaffold(
-      appBar: AppBar(title: Text(d.orderNumber)),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(

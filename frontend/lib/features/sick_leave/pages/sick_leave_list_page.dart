@@ -25,18 +25,25 @@ class _SickLeaveListPageState extends ConsumerState<SickLeaveListPage> {
     final state = ref.watch(sickLeaveProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Incapacidades Médicas'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => context.push('/sick-leave/new?employeeId=${widget.employeeId}'),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 40, 16, 0),
+            child: Row(
+              children: [
+                const Expanded(child: Text('Incapacidades Médicas', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold))),
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: () => context.push('/sick-leave/new?employeeId=${widget.employeeId}'),
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
-      body: state.loading
-          ? const Center(child: CircularProgressIndicator())
-          : state.records.isEmpty
+          const SizedBox(height: 8),
+          Expanded(
+            child: state.loading
+                ? const Center(child: CircularProgressIndicator())
+                : state.records.isEmpty
               ? EmptyState(
                   icon: Icons.medical_services_outlined,
                   title: 'Sin incapacidades',
@@ -87,6 +94,9 @@ class _SickLeaveListPageState extends ConsumerState<SickLeaveListPage> {
                     );
                   },
                 ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -22,7 +22,6 @@ class _BankTransferPageState extends ConsumerState<BankTransferPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).brightness == Brightness.dark ? ZColors.darkBackground : ZColors.neutral50,
-      appBar: AppBar(title: const Text('Nueva Transferencia Bancaria')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Center(

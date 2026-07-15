@@ -132,30 +132,39 @@ final class _ChartOfAccountsPageState extends ConsumerState<ChartOfAccountsPage>
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Catálogo de Cuentas'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.auto_fix_high),
-            tooltip: 'Sembrar catálogo por defecto',
-            onPressed: () async {
-              await ref.read(accountingProvider.notifier).seedAccounts();
-              if (!context.mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Catálogo sembrado')));
-            },
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.auto_fix_high),
+                  tooltip: 'Sembrar catálogo por defecto',
+                  onPressed: () async {
+                    await ref.read(accountingProvider.notifier).seedAccounts();
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Catálogo sembrado')));
+                  },
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: state.loading
+                ? const Center(child: CircularProgressIndicator())
+                : state.error != null
+                    ? Center(child: Text(state.error!, style: TextStyle(color: theme.colorScheme.error)))
+                    : state.accounts.isEmpty
+                        ? const Center(child: Text('No hay cuentas. Presione el botón de sembrar para crear el catálogo por defecto.'))
+                        : RefreshIndicator(
+                            onRefresh: () => ref.read(accountingProvider.notifier).loadAccounts(),
+                            child: ListView(children: state.accounts.map((a) => _buildAccountNode(a, 0)).toList()),
+                          ),
           ),
         ],
       ),
-      body: state.loading
-          ? const Center(child: CircularProgressIndicator())
-          : state.error != null
-              ? Center(child: Text(state.error!, style: TextStyle(color: theme.colorScheme.error)))
-              : state.accounts.isEmpty
-                  ? const Center(child: Text('No hay cuentas. Presione el botón de sembrar para crear el catálogo por defecto.'))
-                  : RefreshIndicator(
-                      onRefresh: () => ref.read(accountingProvider.notifier).loadAccounts(),
-                      child: ListView(children: state.accounts.map((a) => _buildAccountNode(a, 0)).toList()),
-                    ),
     );
   }
 }

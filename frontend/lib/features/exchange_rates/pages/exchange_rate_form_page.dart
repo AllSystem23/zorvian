@@ -99,9 +99,6 @@ class _ExchangeRateFormPageState extends ConsumerState<ExchangeRateFormPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-          title:
-              Text(_isEditing ? 'Editar tipo de cambio' : 'Nuevo tipo de cambio')),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(MediaQuery.of(context).size.width < 576 ? 12 : MediaQuery.of(context).size.width < 992 ? 16 : 24),
         child: Form(

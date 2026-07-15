@@ -23,17 +23,16 @@ class TreasuryDashboardPage extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Theme.of(context).brightness == Brightness.dark ? ZColors.darkBackground : ZColors.neutral50,
-      appBar: AppBar(
-        title: const Text('Gestión de Tesorería'),
-        actions: [
-          IconButton(icon: const Icon(Icons.search), onPressed: () => ZCommandPalette.show(context)),
-        ],
-      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              children: [
+                IconButton(icon: const Icon(Icons.search), onPressed: () => ZCommandPalette.show(context)),
+              ],
+            ),
             // ── Executive Summary ──
             const Text('Resumen Financiero', style: ZTypography.titleLarge),
             const SizedBox(height: 16),

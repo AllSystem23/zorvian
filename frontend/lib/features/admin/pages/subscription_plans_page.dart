@@ -50,20 +50,26 @@ class _SubscriptionPlansPageState extends ConsumerState<SubscriptionPlansPage> {
 
     return Scaffold(
       backgroundColor: isDark ? ZColors.darkBackground : ZColors.background,
-      appBar: AppBar(
-        title: const Text('Planes de Suscripción'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Actualizar',
-            onPressed: () {
-              _loadCompanies();
-              ref.invalidate(subscriptionPlansProvider);
-            },
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  tooltip: 'Actualizar',
+                  onPressed: () {
+                    _loadCompanies();
+                    ref.invalidate(subscriptionPlansProvider);
+                  },
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
-      body: plansAsync.when(
+          Expanded(
+            child: plansAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => _buildError('Error al cargar planes: $e'),
         data: (plans) => _loadingCompanies
@@ -71,6 +77,9 @@ class _SubscriptionPlansPageState extends ConsumerState<SubscriptionPlansPage> {
             : _companiesError != null
                 ? _buildError(_companiesError!)
                 : _buildContent(plans, isDark),
+            ),
+          ),
+        ],
       ),
     );
   }

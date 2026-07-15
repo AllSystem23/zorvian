@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../auth/auth_provider.dart';
 import '../../shared/ds/ds.dart';
 import 'providers/executive_dashboard_provider.dart';
 
@@ -30,28 +29,20 @@ final class _ExecutiveDashboardPageState extends ConsumerState<ExecutiveDashboar
   Widget build(BuildContext context) {
     final state = ref.watch(executiveDashboardProvider);
     final theme = Theme.of(context);
-    final auth = ref.watch(authProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Panel Ejecutivo · ${auth.displayName ?? "Usuario"}'),
-        actions: [
-          FocusTraversalGroup(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.refresh),
-                  onPressed: () => ref.read(executiveDashboardProvider.notifier).load(),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
       body: Column(
         children: [
           ZSkipLink(targetFocus: _mainContentFocus),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: () => ref.read(executiveDashboardProvider.notifier).load(),
+              ),
+            ],
+          ),
           Expanded(
             child: ZMainContent(
               focusNode: _mainContentFocus,

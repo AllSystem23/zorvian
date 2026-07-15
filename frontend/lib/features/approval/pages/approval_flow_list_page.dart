@@ -11,7 +11,6 @@ final class ApprovalFlowListPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncState = ref.watch(approvalProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Flujos de Aprobación')),
       body: ZAsyncRenderer(
         value: asyncState,
         builder: (state) {

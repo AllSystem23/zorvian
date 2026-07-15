@@ -61,7 +61,6 @@ class _LeaveTypeFormPageState extends ConsumerState<LeaveTypeFormPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Nuevo tipo de permiso')),
       body: Form(
         key: _formKey,
         child: ListView(

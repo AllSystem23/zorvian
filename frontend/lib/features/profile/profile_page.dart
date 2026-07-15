@@ -85,28 +85,35 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final profileAsync = ref.watch(profileProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mi Perfil'),
-        actions: [
-          if (!_editing)
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: () {
-                final p = profileAsync.asData?.value;
-                _displayNameCtrl.text = auth.displayName ?? '';
-                _phoneCtrl.text = p?['phone'] as String? ?? '';
-                _photoUrlCtrl.text = p?['photoUrl'] as String? ?? '';
-                setState(() => _editing = true);
-              },
-            )
-          else
-            IconButton(
-              icon: _saving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.check),
-              onPressed: _saving ? null : _saveProfile,
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Row(
+              children: [
+                const Text('Mi Perfil', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const Spacer(),
+                if (!_editing)
+                  IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: () {
+                      final p = profileAsync.asData?.value;
+                      _displayNameCtrl.text = auth.displayName ?? '';
+                      _phoneCtrl.text = p?['phone'] as String? ?? '';
+                      _photoUrlCtrl.text = p?['photoUrl'] as String? ?? '';
+                      setState(() => _editing = true);
+                    },
+                  )
+                else
+                  IconButton(
+                    icon: _saving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.check),
+                    onPressed: _saving ? null : _saveProfile,
+                  ),
+              ],
             ),
-        ],
-      ),
-      body: profileAsync.when(
+          ),
+          Expanded(
+            child: profileAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, stack) => Center(
           child: Padding(
@@ -200,6 +207,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             ],
           );
         },
+      ),
+          ),
+        ],
       ),
     );
   }

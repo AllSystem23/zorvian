@@ -25,7 +25,6 @@ final class _EquityChangesPageState extends ConsumerState<EquityChangesPage> {
     final state = ref.watch(accountingProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Cambios en el Patrimonio')),
       body: Padding(
         padding: const EdgeInsets.all(ZSpacing.lg),
         child: Column(

@@ -65,7 +65,6 @@ class _GoalsConfigScreenState extends ConsumerState<GoalsConfigScreen> {
     final definitionsAsync = ref.watch(goalDefinitionsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Configurador de Metas')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(ZSpacing.lg),
         child: Column(

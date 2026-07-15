@@ -43,7 +43,6 @@ final class _IncomeStatementPageState extends ConsumerState<IncomeStatementPage>
     final state = ref.watch(accountingProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Estado de Resultados')),
       body: Padding(
         padding: const EdgeInsets.all(ZSpacing.lg),
         child: Column(

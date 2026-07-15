@@ -105,7 +105,6 @@ final class _FleetDocumentFormPageState extends ConsumerState<FleetDocumentFormP
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(_isEditing ? 'Editar documento' : 'Nuevo documento')),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(MediaQuery.of(context).size.width < 576 ? 12 : MediaQuery.of(context).size.width < 992 ? 16 : 24),
         child: Form(

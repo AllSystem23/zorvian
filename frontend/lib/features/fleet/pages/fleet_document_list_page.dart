@@ -86,11 +86,6 @@ final class _FleetDocumentListPageState extends ConsumerState<FleetDocumentListP
     final filtered = _filter(state.items);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.entityType != null
-            ? 'Documentos de ${_entityLabel(widget.entityType!)}'
-            : 'Documentos'),
-      ),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null

@@ -32,9 +32,6 @@ final class _SupplierCreditNoteListPageState extends ConsumerState<SupplierCredi
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.purchaseId != null ? 'Notas de Crédito de la Compra' : 'Notas de Crédito a Proveedores'),
-      ),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null

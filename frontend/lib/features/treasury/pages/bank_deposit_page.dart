@@ -29,7 +29,6 @@ class _BankDepositPageState extends ConsumerState<BankDepositPage> {
     final costCenters = ref.watch(treasuryCostCentersProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Registrar Depósito')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(ZSpacing.md),
         child: ZCard(

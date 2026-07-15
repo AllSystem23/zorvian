@@ -18,15 +18,6 @@ class BranchListPage extends ConsumerWidget {
     final branchesAsync = ref.watch(branchListProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Sucursales'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => ref.invalidate(branchListProvider),
-          ),
-        ],
-      ),
       body: branchesAsync.when(
         data: (branches) => branches.isEmpty
             ? const Center(child: Text('No hay sucursales configuradas'))

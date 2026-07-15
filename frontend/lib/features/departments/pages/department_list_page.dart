@@ -45,7 +45,6 @@ class _DepartmentListPageState extends ConsumerState<DepartmentListPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Departamentos')),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null

@@ -46,34 +46,35 @@ class _EmployeeDetailPageState extends ConsumerState<EmployeeDetailPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    if (_loading) return Scaffold(appBar: AppBar(title: const Text('Trabajador')), body: const Center(child: CircularProgressIndicator()));
-    if (_error != null) return Scaffold(appBar: AppBar(title: const Text('Trabajador')), body: Center(child: Text(_error!)));
+    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_error != null) return Scaffold(body: Center(child: Text(_error!)));
     final e = _employee!;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('${e['firstName']} ${e['lastName']}'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.bolt),
-            tooltip: 'Generar Documento (3 clics)',
-            onPressed: () => context.push('/documents/quick-generate', extra: {
-              'entityType': 'employee',
-              'entityId': widget.employeeId,
-              'entityDisplayName': '${e['firstName']} ${e['lastName']}',
-            }),
-          ),
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () => context.push('/employees/${widget.employeeId}/edit'),
-          ),
-        ],
-      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              children: [
+                Expanded(child: Text('${e['firstName']} ${e['lastName']}', style: theme.textTheme.titleLarge)),
+                IconButton(
+                  icon: const Icon(Icons.bolt),
+                  tooltip: 'Generar Documento (3 clics)',
+                  onPressed: () => context.push('/documents/quick-generate', extra: {
+                    'entityType': 'employee',
+                    'entityId': widget.employeeId,
+                    'entityDisplayName': '${e['firstName']} ${e['lastName']}',
+                  }),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit),
+                  onPressed: () => context.push('/employees/${widget.employeeId}/edit'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
             ZCard(
               padding: const EdgeInsets.all(16),
               child: Column(

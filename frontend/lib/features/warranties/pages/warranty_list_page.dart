@@ -45,19 +45,19 @@ class _WarrantyListPageState extends ConsumerState<WarrantyListPage> {
     final state = ref.watch(warrantyProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Garantías'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: 'Nueva garantía',
-            onPressed: () => context.push('/warranties/new'),
-          ),
-        ],
-      ),
       body: ZErrorBoundary(
         child: Column(
           children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  tooltip: 'Nueva garantía',
+                  onPressed: () => context.push('/warranties/new'),
+                ),
+              ],
+            ),
             // ── Filtros con ZFilterBar ──
             Padding(
               padding: const EdgeInsets.fromLTRB(ZSpacing.lg, ZSpacing.md, ZSpacing.lg, 0),

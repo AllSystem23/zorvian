@@ -37,66 +37,75 @@ class _AttendancePageState extends ConsumerState<AttendancePage> {
     final asyncState = ref.watch(attendanceProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Asistencia'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.qr_code_scanner),
-            onPressed: () => context.push('/attendance/qr'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.history),
-            onPressed: () => context.push('/attendance/history'),
-          ),
-        ],
-      ),
-      body: ZAsyncRenderer<AttendanceSummary>(
-        value: asyncState,
-        builder: (summary) {
-          final todayStr = '${_now.year.toString().padLeft(4, '0')}-${_now.month.toString().padLeft(2, '0')}-${_now.day.toString().padLeft(2, '0')}';
-          final today = summary.records.where((r) => r.date == todayStr).firstOrNull;
-
-          return RefreshIndicator(
-            onRefresh: () => ref.read(attendanceProvider.notifier).load(),
-            child: ListView(
-              padding: const EdgeInsets.all(24),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Center(
-                  child: Text(
-                    '${_now.hour.toString().padLeft(2, '0')}:${_now.minute.toString().padLeft(2, '0')}:${_now.second.toString().padLeft(2, '0')}',
-                    style: theme.textTheme.displayLarge?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
-                  ),
+                IconButton(
+                  icon: const Icon(Icons.qr_code_scanner),
+                  onPressed: () => context.push('/attendance/qr'),
                 ),
-                const SizedBox(height: 4),
-                Center(
-                  child: Text(
-                    ZFormatters.date(_now),
-                    style: theme.textTheme.titleMedium?.copyWith(color: Colors.grey),
-                  ),
+                IconButton(
+                  icon: const Icon(Icons.history),
+                  onPressed: () => context.push('/attendance/history'),
                 ),
-                const SizedBox(height: 48),
-
-                Center(
-                  child: today == null
-                      ? _buildBigButton(theme, 'Marcar Entrada', Icons.login, Colors.green, () => ref.read(attendanceProvider.notifier).checkIn())
-                      : today.checkOutTime == null
-                          ? Column(
-                              children: [
-                                _buildStatusCard(theme, today),
-                                const SizedBox(height: 24),
-                                _buildBigButton(theme, 'Marcar Salida', Icons.logout, Colors.red, () => ref.read(attendanceProvider.notifier).checkOut()),
-                              ],
-                            )
-                          : _buildStatusCard(theme, today),
-                ),
-                const SizedBox(height: 32),
-                Text('Resumen del Mes', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 12),
-                _buildSummaryRow(summary),
               ],
             ),
-          );
-        },
+          ),
+          Expanded(
+            child: ZAsyncRenderer<AttendanceSummary>(
+              value: asyncState,
+              builder: (summary) {
+                final todayStr = '${_now.year.toString().padLeft(4, '0')}-${_now.month.toString().padLeft(2, '0')}-${_now.day.toString().padLeft(2, '0')}';
+                final today = summary.records.where((r) => r.date == todayStr).firstOrNull;
+
+                return RefreshIndicator(
+                  onRefresh: () => ref.read(attendanceProvider.notifier).load(),
+                  child: ListView(
+                    padding: const EdgeInsets.all(24),
+                    children: [
+                      Center(
+                        child: Text(
+                          '${_now.hour.toString().padLeft(2, '0')}:${_now.minute.toString().padLeft(2, '0')}:${_now.second.toString().padLeft(2, '0')}',
+                          style: theme.textTheme.displayLarge?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Center(
+                        child: Text(
+                          ZFormatters.date(_now),
+                          style: theme.textTheme.titleMedium?.copyWith(color: Colors.grey),
+                        ),
+                      ),
+                      const SizedBox(height: 48),
+
+                      Center(
+                        child: today == null
+                            ? _buildBigButton(theme, 'Marcar Entrada', Icons.login, Colors.green, () => ref.read(attendanceProvider.notifier).checkIn())
+                            : today.checkOutTime == null
+                                ? Column(
+                                    children: [
+                                      _buildStatusCard(theme, today),
+                                      const SizedBox(height: 24),
+                                      _buildBigButton(theme, 'Marcar Salida', Icons.logout, Colors.red, () => ref.read(attendanceProvider.notifier).checkOut()),
+                                    ],
+                                  )
+                                : _buildStatusCard(theme, today),
+                      ),
+                      const SizedBox(height: 32),
+                      Text('Resumen del Mes', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 12),
+                      _buildSummaryRow(summary),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

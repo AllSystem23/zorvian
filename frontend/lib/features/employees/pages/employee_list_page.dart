@@ -70,25 +70,28 @@ class _EmployeeListPageState extends ConsumerState<EmployeeListPage> {
     final state = ref.watch(employeeProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Trabajadores'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.upload_file),
-            tooltip: 'Importar Excel',
-            onPressed: _importExcel,
-          ),
-        ],
-      ),
       body: Column(
         children: [
+          // SEARCH + IMPORT ACTION
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: ZTextField(
-              controller: _searchCtrl,
-              label: 'Buscar',
-              hint: 'Buscar trabajador...',
-              prefix: const Icon(Icons.search),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: ZTextField(
+                    controller: _searchCtrl,
+                    label: 'Buscar',
+                    hint: 'Buscar trabajador...',
+                    prefix: const Icon(Icons.search),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.upload_file),
+                  tooltip: 'Importar Excel',
+                  onPressed: _importExcel,
+                ),
+              ],
             ),
           ),
           Expanded(

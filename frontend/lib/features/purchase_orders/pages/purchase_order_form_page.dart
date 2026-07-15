@@ -135,14 +135,24 @@ final class _PurchaseOrderFormPageState extends ConsumerState<PurchaseOrderFormP
     final suppliers = ref.watch(supplierProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Nueva Orden de Compra'), actions: [
-        TextButton(onPressed: _saving ? null : _save, child: _saving ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Guardar')),
-      ]),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(MediaQuery.of(context).size.width < 576 ? 12 : MediaQuery.of(context).size.width < 992 ? 16 : 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Nueva Orden de Compra', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                TextButton(
+                  onPressed: _saving ? null : _save,
+                  child: _saving
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Text('Guardar'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             ZCard(
               padding: const EdgeInsets.all(16),
               child: Column(

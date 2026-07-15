@@ -41,45 +41,6 @@ class _PosPageState extends ConsumerState<PosPage> {
     final productsAsync = ref.watch(posProductsProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Punto de Venta'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            if (posState.items.isNotEmpty) {
-              showDialog(
-                context: context,
-                builder: (_) => AlertDialog(
-                  title: const Text('¿Salir del POS?'),
-                  content: const Text('Se perderán los items del carrito actual.'),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-                    FilledButton(
-                      onPressed: () {
-                        ref.read(posProvider.notifier).clearCart();
-                        Navigator.pop(context);
-                        context.pop();
-                      },
-                      style: FilledButton.styleFrom(backgroundColor: ZColors.danger),
-                      child: const Text('Salir'),
-                    ),
-                  ],
-                ),
-              );
-            } else {
-              context.pop();
-            }
-          },
-        ),
-        actions: [
-          if (posState.items.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.delete_sweep_outlined),
-              tooltip: 'Vaciar carrito',
-              onPressed: () => ref.read(posProvider.notifier).clearCart(),
-            ),
-        ],
-      ),
       body: Column(
         children: [
           // Period status banner

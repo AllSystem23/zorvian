@@ -39,7 +39,6 @@ final class _ComparativeReportsPageState extends ConsumerState<ComparativeReport
         .toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Reportes Comparativos')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(ZSpacing.lg),
         child: Column(

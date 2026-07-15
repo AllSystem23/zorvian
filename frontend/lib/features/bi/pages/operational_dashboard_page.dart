@@ -30,7 +30,6 @@ class _OperationalDashboardPageState extends ConsumerState<OperationalDashboardP
     final payrollAsync = ref.watch(biPayrollSummaryProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Panel Operativo')),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(biInventorySummaryProvider);

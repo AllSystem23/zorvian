@@ -89,7 +89,6 @@ final class _BudgetFormPageState extends ConsumerState<BudgetFormPage> {
     final accounts = ref.watch(accountListProvider);
     final costCenters = ref.watch(costCenterProvider);
     return Scaffold(
-      appBar: AppBar(title: Text(_isEditing ? 'Editar presupuesto' : 'Nuevo presupuesto')),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(MediaQuery.of(context).size.width < 576 ? 12 : MediaQuery.of(context).size.width < 992 ? 16 : 24),
         child: Form(

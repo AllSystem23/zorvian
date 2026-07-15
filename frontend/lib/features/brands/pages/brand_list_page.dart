@@ -57,7 +57,6 @@ final class _BrandListPageState extends ConsumerState<BrandListPage> {
     final theme = Theme.of(context);
     final filtered = _filter(state.items);
     return Scaffold(
-      appBar: AppBar(title: const Text('Marcas')),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null

@@ -109,7 +109,6 @@ final class _ContractFormPageState extends ConsumerState<ContractFormPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_isEditing ? 'Editar Contrato' : 'Nuevo Contrato')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(ZSpacing.lg),
         child: Form(

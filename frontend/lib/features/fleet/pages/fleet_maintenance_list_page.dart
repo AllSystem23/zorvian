@@ -59,7 +59,6 @@ final class _FleetMaintenanceListPageState extends ConsumerState<FleetMaintenanc
     final state = ref.watch(fleetMaintenanceProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Órdenes de Trabajo')),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null

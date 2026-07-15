@@ -34,7 +34,6 @@ final class _FleetFuelListPageState extends ConsumerState<FleetFuelListPage> {
     final state = ref.watch(fleetFuelProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Combustible')),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null

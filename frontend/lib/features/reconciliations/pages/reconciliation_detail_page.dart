@@ -16,7 +16,6 @@ final class _ReconciliationDetailPageState extends ConsumerState<ReconciliationD
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Detalle de Conciliación')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

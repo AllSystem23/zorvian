@@ -37,7 +37,6 @@ class _ExecutiveDashboardPageState extends ConsumerState<ExecutiveDashboardPage>
     final ratiosAsync = ref.watch(biFinancialRatiosProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Panel Ejecutivo')),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(biProvider);

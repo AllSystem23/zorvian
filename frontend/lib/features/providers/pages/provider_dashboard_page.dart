@@ -72,84 +72,89 @@ class ProviderDashboardPage extends ConsumerWidget {
     final fmt = ref.watch(currencyFormatServiceProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard de Prestadores'),
-        actions: [
-          SizedBox(
-            width: 140,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: DropdownButtonFormField<String?>(
-                initialValue: currentCountry,
-                isDense: true,
-                decoration: InputDecoration(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: ZColors.neutral300)),
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-                items: const [
-                  DropdownMenuItem<String?>(value: null, child: Text('Todos los países')),
-                  DropdownMenuItem<String?>(value: 'NI', child: Text('Nicaragua')),
-                  DropdownMenuItem<String?>(value: 'HN', child: Text('Honduras')),
-                  DropdownMenuItem<String?>(value: 'SV', child: Text('El Salvador')),
-                  DropdownMenuItem<String?>(value: 'CR', child: Text('Costa Rica')),
-                  DropdownMenuItem<String?>(value: 'GT', child: Text('Guatemala')),
-                  DropdownMenuItem<String?>(value: 'PA', child: Text('Panamá')),
-                ],
-                onChanged: (val) {
-                  ref.read(selectedCountryProvider.notifier).setCountry(val);
-                },
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Actualizar',
-            onPressed: () {
-              ref.invalidate(providerDashboardProvider);
-              ref.invalidate(providerNotificationsProvider);
-              ref.invalidate(providerRankingsProvider);
-              ref.invalidate(providerRankingHistoryProvider);
-            },
-          ),
-        ],
-      ),
-      body: dashboardAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
-        data: (data) {
-          if (data == null) {
-            return const Center(child: Text('No hay datos disponibles'));
-          }
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+            child: Row(
               children: [
-                _buildKPIRow(data, fmt),
-                const SizedBox(height: 24),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(flex: 2, child: _buildMilestonesChart(data)),
-                    const SizedBox(width: 16),
-                    Expanded(flex: 1, child: _buildTopProviders(data, fmt)),
-                  ],
+                SizedBox(
+                  width: 140,
+                  child: DropdownButtonFormField<String?>(
+                    initialValue: currentCountry,
+                    isDense: true,
+                    decoration: InputDecoration(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: ZColors.neutral300)),
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                    items: const [
+                      DropdownMenuItem<String?>(value: null, child: Text('Todos los países')),
+                      DropdownMenuItem<String?>(value: 'NI', child: Text('Nicaragua')),
+                      DropdownMenuItem<String?>(value: 'HN', child: Text('Honduras')),
+                      DropdownMenuItem<String?>(value: 'SV', child: Text('El Salvador')),
+                      DropdownMenuItem<String?>(value: 'CR', child: Text('Costa Rica')),
+                      DropdownMenuItem<String?>(value: 'GT', child: Text('Guatemala')),
+                      DropdownMenuItem<String?>(value: 'PA', child: Text('Panamá')),
+                    ],
+                    onChanged: (val) {
+                      ref.read(selectedCountryProvider.notifier).setCountry(val);
+                    },
+                  ),
                 ),
-                const SizedBox(height: 24),
-                _buildRecentContracts(data, fmt),
-                const SizedBox(height: 24),
-                _buildRankingsSection(rankingsAsync),
-                const SizedBox(height: 24),
-                _buildRankingHistoryChart(historyAsync),
-                const SizedBox(height: 24),
-                _buildNotifications(notificationsAsync),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  tooltip: 'Actualizar',
+                  onPressed: () {
+                    ref.invalidate(providerDashboardProvider);
+                    ref.invalidate(providerNotificationsProvider);
+                    ref.invalidate(providerRankingsProvider);
+                    ref.invalidate(providerRankingHistoryProvider);
+                  },
+                ),
               ],
             ),
-          );
-        },
+          ),
+          Expanded(
+            child: dashboardAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text('Error: $e')),
+              data: (data) {
+                if (data == null) {
+                  return const Center(child: Text('No hay datos disponibles'));
+                }
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildKPIRow(data, fmt),
+                      const SizedBox(height: 24),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(flex: 2, child: _buildMilestonesChart(data)),
+                          const SizedBox(width: 16),
+                          Expanded(flex: 1, child: _buildTopProviders(data, fmt)),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      _buildRecentContracts(data, fmt),
+                      const SizedBox(height: 24),
+                      _buildRankingsSection(rankingsAsync),
+                      const SizedBox(height: 24),
+                      _buildRankingHistoryChart(historyAsync),
+                      const SizedBox(height: 24),
+                      _buildNotifications(notificationsAsync),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

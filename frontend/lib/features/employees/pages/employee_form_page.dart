@@ -192,30 +192,31 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
 
     return Scaffold(
       backgroundColor: isDark ? ZColors.darkBackground : ZColors.neutral50,
-      appBar: AppBar(
-        title: Text(_isEditing ? 'Editar Trabajador' : 'Registro de Trabajador'),
-        actions: [
-          if (_hasChanges)
-            Center(
-              child: Padding(
-                padding: const EdgeInsets.only(right: 16.0),
-                child: Row(
-                  children: [
-                    const Icon(Icons.cloud_upload_outlined, size: 16, color: ZColors.neutral400),
-                    const SizedBox(width: 8),
-                    Text('Cambios sin guardar', style: ZTypography.labelSmall.copyWith(color: ZColors.neutral400)),
-                  ],
-                ),
-              ),
-            ),
-        ],
-      ),
       body: Column(
         children: [
+          // UNSAVED CHANGES INDICATOR
+          if (_hasChanges)
+            Container(
+              width: double.infinity,
+              color: ZColors.warning.withAlpha(30),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.cloud_upload_outlined, size: 16, color: ZColors.warning),
+                  const SizedBox(width: 8),
+                  Text('Cambios sin guardar', style: ZTypography.labelSmall.copyWith(color: ZColors.warning)),
+                ],
+              ),
+            ),
+          
           // STEPPER HEADER
           Container(
             color: isDark ? ZColors.darkSurface : Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 32),
+            padding: EdgeInsets.symmetric(
+              vertical: 20,
+              horizontal: MediaQuery.of(context).size.width < 576 ? 12 : 32,
+            ),
             child: ZStepper(
               currentStep: _currentStep,
               steps: _stepLabels,

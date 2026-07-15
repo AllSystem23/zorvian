@@ -36,7 +36,6 @@ final class _AccountingEntriesPageState extends ConsumerState<AccountingEntriesP
           ).toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Libro Diario - Asientos')),
       body: Column(
         children: [
           Padding(

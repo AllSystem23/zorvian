@@ -52,7 +52,6 @@ class _QRCheckInPageState extends ConsumerState<QRCheckInPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Escanear QR')),
       body: Stack(
         children: [
           MobileScanner(

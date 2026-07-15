@@ -32,7 +32,6 @@ final class _BudgetVsActualPageState extends ConsumerState<BudgetVsActualPage> {
     var totalVariance = totalActual - totalBudgeted;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Presupuesto vs Real')),
       body: Column(
         children: [
           Padding(

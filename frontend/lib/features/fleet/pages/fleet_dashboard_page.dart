@@ -23,34 +23,39 @@ final class _FleetDashboardPageState extends ConsumerState<FleetDashboardPage> {
     final d = state.data;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard de Flota'),
-        actions: [
-          if (d.alerts.isNotEmpty)
-            Badge(
-              isLabelVisible: true,
-              label: Text('${d.alerts.length}'),
-              child: IconButton(
-                icon: const Icon(Icons.notifications_outlined),
-                onPressed: () => _showAlerts(context, d.alerts),
-              ),
-            ),
-          IconButton(
-            icon: const Icon(Icons.refresh_outlined),
-            onPressed: () => ref.read(fleetDashboardProvider.notifier).load(),
-          ),
-        ],
-      ),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null
               ? Center(child: ZAlertCard(message: state.error!, severity: 'high'))
-              : RefreshIndicator(
-                  onRefresh: () => ref.read(fleetDashboardProvider.notifier).load(),
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
+              : Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      child: Row(
+                        children: [
+                          if (d.alerts.isNotEmpty)
+                            Badge(
+                              isLabelVisible: true,
+                              label: Text('${d.alerts.length}'),
+                              child: IconButton(
+                                icon: const Icon(Icons.notifications_outlined),
+                                onPressed: () => _showAlerts(context, d.alerts),
+                              ),
+                            ),
+                          IconButton(
+                            icon: const Icon(Icons.refresh_outlined),
+                            onPressed: () => ref.read(fleetDashboardProvider.notifier).load(),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: RefreshIndicator(
+                        onRefresh: () => ref.read(fleetDashboardProvider.notifier).load(),
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildKpiRow([
@@ -72,10 +77,13 @@ final class _FleetDashboardPageState extends ConsumerState<FleetDashboardPage> {
                         ],
                         const SizedBox(height: 24),
                         _buildStatusCards(context, d),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
+              ],
+            ),
     );
   }
 

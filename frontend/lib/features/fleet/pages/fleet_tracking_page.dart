@@ -27,9 +27,6 @@ class _FleetTrackingPageState extends ConsumerState<FleetTrackingPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tracking de Entregas'),
-      ),
       body: state.loading && state.recentDeliveries.isEmpty
           ? _buildSkeleton()
           : state.error != null && state.deliveryDetail == null

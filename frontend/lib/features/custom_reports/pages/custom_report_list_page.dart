@@ -21,7 +21,6 @@ class CustomReportListPage extends ConsumerWidget {
     });
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Constructor de Reportes')),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.items.isEmpty

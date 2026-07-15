@@ -43,7 +43,6 @@ final class _FleetRouteListPageState extends ConsumerState<FleetRouteListPage> {
     final state = ref.watch(fleetRouteProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Rutas')),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null

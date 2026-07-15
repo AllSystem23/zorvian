@@ -32,24 +32,29 @@ class _FleetGpsPageState extends ConsumerState<FleetGpsPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Monitoreo GPS'),
-        actions: [
-          ZButton(
-            text: 'Actualizar',
-            icon: Icons.refresh,
-            onPressed: () => ref.read(fleetGpsProvider.notifier).loadFleetPositions(),
-            type: ZButtonType.secondary,
-            fullWidth: false,
-          ),
-          const SizedBox(width: ZSpacing.sm),
-        ],
-      ),
       body: state.loading && state.vehiclePositions.isEmpty
           ? _buildSkeleton()
           : state.error != null
               ? Center(child: ZAlertCard(message: state.error!, severity: 'high'))
-              : _buildContent(state, theme),
+              : Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(ZSpacing.lg, ZSpacing.lg, ZSpacing.lg, 0),
+                      child: Row(
+                        children: [
+                          ZButton(
+                            text: 'Actualizar',
+                            icon: Icons.refresh,
+                            onPressed: () => ref.read(fleetGpsProvider.notifier).loadFleetPositions(),
+                            type: ZButtonType.secondary,
+                            fullWidth: false,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(child: _buildContent(state, theme)),
+                  ],
+                ),
     );
   }
 

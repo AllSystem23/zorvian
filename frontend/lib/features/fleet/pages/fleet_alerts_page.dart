@@ -28,25 +28,30 @@ class _FleetAlertsPageState extends ConsumerState<FleetAlertsPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Alertas de Flota'),
-        actions: [
-          ZButton(
-            text: 'Enviar Notificaciones',
-            icon: Icons.notifications_active_outlined,
-            onPressed: state.dispatching ? () {} : () { ref.read(fleetAlertProvider.notifier).dispatchNotifications(); },
-            type: ZButtonType.secondary,
-            fullWidth: false,
-            isLoading: state.dispatching,
-          ),
-          const SizedBox(width: ZSpacing.sm),
-        ],
-      ),
       body: state.loading && state.summary == null
           ? _buildSkeleton()
           : state.error != null
               ? Center(child: ZAlertCard(message: state.error!, severity: 'high'))
-              : _buildContent(state, theme),
+              : Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(ZSpacing.lg, ZSpacing.lg, ZSpacing.lg, 0),
+                      child: Row(
+                        children: [
+                          ZButton(
+                            text: 'Enviar Notificaciones',
+                            icon: Icons.notifications_active_outlined,
+                            onPressed: state.dispatching ? () {} : () { ref.read(fleetAlertProvider.notifier).dispatchNotifications(); },
+                            type: ZButtonType.secondary,
+                            fullWidth: false,
+                            isLoading: state.dispatching,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(child: _buildContent(state, theme)),
+                  ],
+                ),
     );
   }
 

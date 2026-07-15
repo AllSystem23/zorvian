@@ -35,15 +35,14 @@ final class _ClientStatementPageState extends ConsumerState<ClientStatementPage>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    if (_loading) return Scaffold(appBar: AppBar(title: const Text('Estado de Cuenta')), body: const Center(child: CircularProgressIndicator()));
-    if (_error != null) return Scaffold(appBar: AppBar(title: const Text('Estado de Cuenta')), body: Center(child: Text(_error!)));
+    if (_loading) return Scaffold(body: const Center(child: CircularProgressIndicator()));
+    if (_error != null) return Scaffold(body: Center(child: Text(_error!)));
 
     final d = _data!;
     final sales = d['recentSales'] as List? ?? [];
     final credits = d['activeCreditsList'] as List? ?? [];
 
     return Scaffold(
-      appBar: AppBar(title: Text('${d['clientName'] ?? ''}')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

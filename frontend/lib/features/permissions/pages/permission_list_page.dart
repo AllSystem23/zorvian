@@ -65,26 +65,33 @@ class _PermissionListPageState extends ConsumerState<PermissionListPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Permisos'),
-        actions: [
-          PopupMenuButton<String?>(
-            icon: const Icon(Icons.filter_list),
-            tooltip: 'Filtrar',
-            onSelected: (v) {
-              setState(() => _statusFilter = v);
-              _load();
-            },
-            itemBuilder: (_) => [
-              const PopupMenuItem(value: null, child: Text('Todos')),
-              const PopupMenuItem(value: 'pending', child: Text('Pendientes')),
-              const PopupMenuItem(value: 'approved', child: Text('Aprobados')),
-              const PopupMenuItem(value: 'rejected', child: Text('Rechazados')),
-            ],
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Row(
+              children: [
+                const Text('Permisos', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const Spacer(),
+                PopupMenuButton<String?>(
+                  icon: const Icon(Icons.filter_list),
+                  tooltip: 'Filtrar',
+                  onSelected: (v) {
+                    setState(() => _statusFilter = v);
+                    _load();
+                  },
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(value: null, child: Text('Todos')),
+                    const PopupMenuItem(value: 'pending', child: Text('Pendientes')),
+                    const PopupMenuItem(value: 'approved', child: Text('Aprobados')),
+                    const PopupMenuItem(value: 'rejected', child: Text('Rechazados')),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
-      body: state.loading
+          Expanded(
+            child: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null
               ? Center(child: Text(state.error!, style: TextStyle(color: theme.colorScheme.error)))
@@ -119,7 +126,10 @@ class _PermissionListPageState extends ConsumerState<PermissionListPage> {
                           );
                         },
                       ),
-                    ),
+                      ),
+          ),
+        ],
+      ),
     );
   }
 }

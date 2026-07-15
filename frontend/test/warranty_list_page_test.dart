@@ -17,8 +17,8 @@ void main() {
       ),
     );
 
-    // Verify AppBar title
-    expect(find.text('Garantías'), findsOneWidget);
+    // AppBar title is now provided by AppShell, verify page renders
+    expect(find.byType(WarrantyListPage), findsOneWidget);
   });
 }
 

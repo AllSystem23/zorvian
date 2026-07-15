@@ -155,53 +155,61 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
     final isWide = MediaQuery.sizeOf(context).width > 900;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.templateId != null ? 'Editar Plantilla' : 'Nueva Plantilla'),
-        actions: [
-          IconButton(
-            icon: Icon(_previewMode ? Icons.edit_outlined : Icons.preview_outlined),
-            tooltip: _previewMode ? 'Modo Edición' : 'Vista Previa',
-            onPressed: () => setState(() {
-              _previewMode = !_previewMode;
-              _renderedHtml = null;
-            }),
-          ),
-          if (_previewMode)
-            IconButton(
-              icon: _renderedHtml != null
-                  ? const Icon(Icons.code_outlined, size: 20)
-                  : const Icon(Icons.play_circle_outline, size: 20),
-              tooltip: _renderedHtml != null ? 'Ver HTML crudo' : 'Renderizar con datos',
-              onPressed: () => _toggleRenderedPreview(),
-            ),
-          const SizedBox(width: 8),
-          FilledButton.icon(
-            icon: _loading
-                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.save_outlined, size: 18),
-            label: const Text('Guardar'),
-            onPressed: _loading ? null : _save,
-          ),
-          const SizedBox(width: 16),
-        ],
-      ),
-      body: Form(
-        key: _formKey,
-        child: isWide
-            ? Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Sidebar: properties + variables
-                  SizedBox(
-                    width: 280,
-                    child: _buildSidebar(),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Row(
+              children: [
+                Text(widget.templateId != null ? 'Editar Plantilla' : 'Nueva Plantilla', style: ZTypography.titleLarge),
+                const Spacer(),
+                IconButton(
+                  icon: Icon(_previewMode ? Icons.edit_outlined : Icons.preview_outlined),
+                  tooltip: _previewMode ? 'Modo Edición' : 'Vista Previa',
+                  onPressed: () => setState(() {
+                    _previewMode = !_previewMode;
+                    _renderedHtml = null;
+                  }),
+                ),
+                if (_previewMode)
+                  IconButton(
+                    icon: _renderedHtml != null
+                        ? const Icon(Icons.code_outlined, size: 20)
+                        : const Icon(Icons.play_circle_outline, size: 20),
+                    tooltip: _renderedHtml != null ? 'Ver HTML crudo' : 'Renderizar con datos',
+                    onPressed: () => _toggleRenderedPreview(),
                   ),
-                  const VerticalDivider(width: 1),
-                  // Main: editor or preview
-                  Expanded(child: _buildEditorArea()),
-                ],
-              )
-            : _buildMobileLayout(),
+                const SizedBox(width: 8),
+                FilledButton.icon(
+                  icon: _loading
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.save_outlined, size: 18),
+                  label: const Text('Guardar'),
+                  onPressed: _loading ? null : _save,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: Form(
+              key: _formKey,
+              child: isWide
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: 280,
+                          child: _buildSidebar(),
+                        ),
+                        const VerticalDivider(width: 1),
+                        Expanded(child: _buildEditorArea()),
+                      ],
+                    )
+                  : _buildMobileLayout(),
+            ),
+          ),
+        ],
       ),
     );
   }

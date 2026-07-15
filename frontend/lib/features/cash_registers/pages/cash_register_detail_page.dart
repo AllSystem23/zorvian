@@ -61,34 +61,6 @@ final class _CashRegisterDetailPageState extends ConsumerState<CashRegisterDetai
     }
   }
 
-  Future<void> _closeRegister() async {
-    final balanceCtrl = TextEditingController();
-    final result = await ZModal.show<bool>(context,
-      title: 'Cerrar Caja',
-      confirmText: 'Cerrar',
-      cancelText: 'Cancelar',
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('Saldo esperado: \$${((_data?['expectedBalance'] as num?)?.toDouble() ?? 0).toStringAsFixed(0)}'),
-          const SizedBox(height: 12),
-          ZTextField(controller: balanceCtrl, label: 'Saldo Real', keyboardType: TextInputType.number, prefix: const Text('\$ ')),
-        ],
-      ),
-    );
-    if (result != true || balanceCtrl.text.isEmpty) return;
-    try {
-      final dio = ref.read(dioClientProvider);
-      await dio.post('cash-registers/${widget.registerId}/close', data: {
-        'closingBalance': double.tryParse(balanceCtrl.text) ?? 0,
-      });
-      await _load();
-      if (mounted) ZToast.success(context, 'Caja cerrada');
-    } catch (e) {
-      if (mounted) ZToast.error(context, 'Error: $e');
-    }
-  }
-
   Future<void> _loadArqueo() async {
     try {
       setState(() => _arqueoLoading = true);
@@ -146,27 +118,14 @@ final class _CashRegisterDetailPageState extends ConsumerState<CashRegisterDetai
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    if (_loading) return Scaffold(appBar: AppBar(title: const Text('Caja')), body: const Center(child: CircularProgressIndicator()));
-    if (_error != null) return Scaffold(appBar: AppBar(title: const Text('Caja')), body: Center(child: Text(_error!)));
+    if (_loading) return Scaffold(body: const Center(child: CircularProgressIndicator()));
+    if (_error != null) return Scaffold(body: Center(child: Text(_error!)));
 
     final d = _data!;
     final isOpen = d['status'] == 'open';
 
     return Scaffold(
       backgroundColor: Theme.of(context).brightness == Brightness.dark ? ZColors.darkBackground : ZColors.neutral50,
-      appBar: AppBar(
-        title: Text('Caja: ${d['code'] ?? ''}'),
-        actions: [
-          if (isOpen) ...[
-            IconButton(icon: const Icon(Icons.payments_outlined), onPressed: _addMovement, tooltip: 'Agregar Movimiento'),
-            IconButton(icon: const Icon(Icons.calculate_outlined), onPressed: () async {
-              final r = await context.push('/cash-registers/${widget.registerId}/arqueo');
-              if (r == true) { await _load(); await _loadArqueo(); }
-            }, tooltip: 'Arqueo de Caja'),
-            IconButton(icon: const Icon(Icons.lock_outline), onPressed: _closeRegister, tooltip: 'Cerrar Caja'),
-          ],
-        ],
-      ),
       body: Column(
         children: [
           // ── Header Card ──

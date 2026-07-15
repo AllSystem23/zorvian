@@ -73,14 +73,12 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
   Widget build(BuildContext context) {
     if (_loading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Garantía')),
         body: _buildDetailSkeleton(),
       );
     }
 
     if (_error != null || _warranty == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Garantía')),
         body: ZErrorDisplay(
           message: _error ?? 'Garantía no encontrada',
           onRetry: _load,
@@ -94,51 +92,58 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
     final isExpired = endDate != null && DateTime.parse(endDate).isBefore(DateTime.now());
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(w['warrantyNumber'] ?? 'Garantía'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            tooltip: 'Editar',
-            onPressed: () => context.push('/warranties/${widget.warrantyId}/edit'),
-          ),
-          PopupMenuButton<String>(
-            onSelected: _onMenuAction,
-            itemBuilder: (_) => [
-              if (status == 'Registered' || status == 'PendingReview')
-                const PopupMenuItem(value: 'claim', child: Text('Crear reclamo')),
-              if (status == 'SentToWorkshop' || status == 'InRepair')
-                const PopupMenuItem(value: 'complete', child: Text('Marcar reparada')),
-              if (status == 'Repaired')
-                const PopupMenuItem(value: 'deliver', child: Text('Marcar entregada')),
-              if (status == 'Delivered')
-                const PopupMenuItem(value: 'close', child: Text('Cerrar garantía')),
-              if (status != 'Closed' && status != 'Cancelled')
-                const PopupMenuItem(value: 'cancel', child: Text('Cancelar')),
+      body: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TabBar(
+                  controller: _tabController,
+                  tabs: const [
+                    Tab(text: 'Info'),
+                    Tab(text: 'Reclamos'),
+                    Tab(text: 'Timeline'),
+                    Tab(text: 'Costos'),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.edit),
+                tooltip: 'Editar',
+                onPressed: () => context.push('/warranties/${widget.warrantyId}/edit'),
+              ),
+              PopupMenuButton<String>(
+                onSelected: _onMenuAction,
+                itemBuilder: (_) => [
+                  if (status == 'Registered' || status == 'PendingReview')
+                    const PopupMenuItem(value: 'claim', child: Text('Crear reclamo')),
+                  if (status == 'SentToWorkshop' || status == 'InRepair')
+                    const PopupMenuItem(value: 'complete', child: Text('Marcar reparada')),
+                  if (status == 'Repaired')
+                    const PopupMenuItem(value: 'deliver', child: Text('Marcar entregada')),
+                  if (status == 'Delivered')
+                    const PopupMenuItem(value: 'close', child: Text('Cerrar garantía')),
+                  if (status != 'Closed' && status != 'Cancelled')
+                    const PopupMenuItem(value: 'cancel', child: Text('Cancelar')),
+                ],
+              ),
             ],
           ),
+          Expanded(
+            child: _actionLoading
+                ? const Center(child: CircularProgressIndicator())
+                : TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildInfoTab(w, status, isExpired),
+                      _buildClaimsTab(w),
+                      _buildTimelineTab(),
+                      _buildCostsTab(),
+                    ],
+                  ),
+          ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Info'),
-            Tab(text: 'Reclamos'),
-            Tab(text: 'Timeline'),
-            Tab(text: 'Costos'),
-          ],
-        ),
       ),
-      body: _actionLoading
-          ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildInfoTab(w, status, isExpired),
-                _buildClaimsTab(w),
-                _buildTimelineTab(),
-                _buildCostsTab(),
-              ],
-            ),
     );
   }
 

@@ -25,7 +25,6 @@ class ServiceContractDetailPage extends ConsumerWidget {
     final milestonesAsync = ref.watch(contractMilestonesProvider(id));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Gestión de Contrato')),
       body: contractAsync.when(
         data: (contract) => SingleChildScrollView(
           padding: const EdgeInsets.all(ZSpacing.lg),

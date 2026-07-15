@@ -34,7 +34,6 @@ final class _BudgetVsActualDetailPageState extends ConsumerState<BudgetVsActualD
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text('Presupuesto vs Real ${widget.year}/${widget.month.toString().padLeft(2, '0')}')),
       body: Column(
         children: [
           Padding(

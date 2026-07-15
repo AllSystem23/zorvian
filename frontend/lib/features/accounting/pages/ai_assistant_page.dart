@@ -81,7 +81,6 @@ final class _AiAssistantPageState extends ConsumerState<AiAssistantPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Asistente Financiero')),
       body: Column(
         children: [
           Expanded(

@@ -49,7 +49,6 @@ class _AuditLogsPageState extends ConsumerState<AuditLogsPage> {
     final logsAsync = ref.watch(auditLogsProvider(filter));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Logs de Auditoría')),
       body: Column(
         children: [
           Padding(

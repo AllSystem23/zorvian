@@ -61,7 +61,6 @@ final class _ClientListPageState extends ConsumerState<ClientListPage> {
     final theme = Theme.of(context);
     final filtered = _filter(state.items);
     return Scaffold(
-      appBar: AppBar(title: const Text('Clientes')),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null

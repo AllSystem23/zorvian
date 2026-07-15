@@ -18,7 +18,6 @@ final class QuoteKanbanPage extends ConsumerWidget {
     final statuses = ['pending', 'sent', 'accepted', 'rejected', 'expired', 'converted'];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Kanban de Cotizaciones')),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : ListView.builder(

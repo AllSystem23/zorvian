@@ -476,112 +476,71 @@ final class _TabletLayoutState extends ConsumerState<_TabletLayout> {
 
     return Material(
       color: isDark ? ZColors.darkBackground : ZColors.background,
-      child: Row(
-        children: [
-          // ── Collapsed sidebar (always visible in tablet) ──
-          // Wrap in GestureDetector to allow swipe-left to close the drawer
-          // when user drags on the collapsed sidebar area.
-          GestureDetector(
-            onHorizontalDragEnd: (details) {
-              // primaryVelocity < 0 = swipe left
-              if (details.primaryVelocity != null && details.primaryVelocity! < -300) {
-                final state = _scaffoldKey.currentState;
-                if (state != null && state.isDrawerOpen) {
-                  state.closeDrawer();
-                }
-              }
-            },
-            // translucent: observe events without consuming them from children
-            behavior: HitTestBehavior.translucent,
-            child: ZorvianSidebar(
-              role: widget.role,
-              location: widget.location,
-              shellRef: ref,
-              collapsedOverride: true,
+      child: Scaffold(
+        key: _scaffoldKey,
+        drawer: Drawer(
+          width: 304,
+          elevation: 24,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.only(
+              topRight: Radius.circular(16),
+              bottomRight: Radius.circular(16),
             ),
           ),
-          // ── Divider ──
-          Container(
-            width: 1,
-            color: isDark
-                ? ZColors.darkBorder.withValues(alpha: 0.5)
-                : ZColors.border,
-          ),
-          // ── Content area (Scaffold with drawer for full sidebar) ──
-          Expanded(
-            child: Scaffold(
-              key: _scaffoldKey,
-              drawer: Drawer(
-                width: 304,
-                elevation: 24,
-                shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.only(
-                    topRight: Radius.circular(16),
-                    bottomRight: Radius.circular(16),
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    SafeArea(
-                      child: ZorvianSidebar(
-                        role: widget.role,
-                        location: widget.location,
-                        shellRef: ref,
-                        collapsedOverride: false,
-                      ),
-                    ),
-                    // ── Drag handle hint on right edge ──
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      bottom: 0,
-                      child: _DrawerDragHandle(isDark: isDark),
-                    ),
-                  ],
+          child: Stack(
+            children: [
+              SafeArea(
+                child: ZorvianSidebar(
+                  role: widget.role,
+                  location: widget.location,
+                  shellRef: ref,
+                  collapsedOverride: false,
                 ),
               ),
-              drawerScrimColor: isDark
-                  ? ZColors.brandPrimary.withValues(alpha: 0.35)
-                  : Colors.black.withValues(alpha: 0.25),
-              body: Stack(
-                children: [
-                  Column(
-                    children: [
-                      // ── Global Header with hamburger ──
-                      GlobalHeader(
-                        onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
-                      ),
-                      // ── Breadcrumbs ──
-                      const BreadcrumbBar(),
-                      // ── Page Content ──
-                      Expanded(
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          padding: EdgeInsets.fromLTRB(
-                            ZSpacing.xl,
-                            ZSpacing.lg,
-                            ZSpacing.xl,
-                            bottomPadding,
-                          ),
-                          child: widget.child,
-                        ),
-                      ),
-                    ],
-                  ),
-                  // ── Floating Quick Actions FAB ──
-                  Positioned(
-                    bottom: ZSpacing.xl,
-                    right: ZSpacing.xl,
-                    child: ZQuickActionsFAB(
-                      currentRoute: widget.location,
-                      callbacks: callbacks,
+              Positioned(
+                right: 0,
+                top: 0,
+                bottom: 0,
+                child: _DrawerDragHandle(isDark: isDark),
+              ),
+            ],
+          ),
+        ),
+        drawerScrimColor: isDark
+            ? ZColors.brandPrimary.withValues(alpha: 0.35)
+            : Colors.black.withValues(alpha: 0.25),
+        body: Stack(
+          children: [
+            Column(
+              children: [
+                GlobalHeader(
+                  onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
+                ),
+                const BreadcrumbBar(),
+                Expanded(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    padding: EdgeInsets.fromLTRB(
+                      ZSpacing.xl,
+                      ZSpacing.lg,
+                      ZSpacing.xl,
+                      bottomPadding,
                     ),
+                    child: widget.child,
                   ),
-                ],
+                ),
+              ],
+            ),
+            Positioned(
+              bottom: ZSpacing.xl,
+              right: ZSpacing.xl,
+              child: ZQuickActionsFAB(
+                currentRoute: widget.location,
+                callbacks: callbacks,
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -664,6 +623,7 @@ final class _MobileLayout extends ConsumerWidget {
       '/dashboard-v2': 'Dashboard',
       '/executive-dashboard': 'Panel Ejecutivo',
       '/employees': 'Trabajadores',
+      '/employees/new': 'Nuevo Trabajador',
       '/attendance': 'Asistencia',
       '/payroll': 'Nómina',
       '/payroll/periods': 'Períodos de Nómina',

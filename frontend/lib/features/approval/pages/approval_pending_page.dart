@@ -31,7 +31,6 @@ final class _ApprovalPendingPageState extends ConsumerState<ApprovalPendingPage>
   Widget build(BuildContext context) {
     final state = ref.watch(approvalProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Aprobaciones Pendientes')),
       body: ZAsyncRenderer<ApprovalState>(
         value: state,
         onRetry: () => ref.read(approvalProvider.notifier).loadPending(),

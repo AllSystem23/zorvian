@@ -70,7 +70,6 @@ class _WebhookListPageState extends ConsumerState<WebhookListPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Webhooks')),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null

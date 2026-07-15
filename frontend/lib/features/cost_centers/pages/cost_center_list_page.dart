@@ -60,7 +60,6 @@ final class _CostCenterListPageState extends ConsumerState<CostCenterListPage> {
     final theme = Theme.of(context);
     final filtered = _filter(state.items);
     return Scaffold(
-      appBar: AppBar(title: const Text('Centros de Costo')),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null

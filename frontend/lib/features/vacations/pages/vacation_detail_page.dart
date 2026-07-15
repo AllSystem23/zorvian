@@ -116,12 +116,11 @@ class _VacationDetailPageState extends ConsumerState<VacationDetailPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    if (_loading) return Scaffold(appBar: AppBar(title: const Text('Vacaciones')), body: const Center(child: CircularProgressIndicator()));
-    if (_error != null) return Scaffold(appBar: AppBar(title: const Text('Vacaciones')), body: Center(child: Text(_error!)));
+    if (_loading) return Scaffold(body: const Center(child: CircularProgressIndicator()));
+    if (_error != null) return Scaffold(body: Center(child: Text(_error!)));
     final r = _request!;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Solicitud de vacaciones')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(

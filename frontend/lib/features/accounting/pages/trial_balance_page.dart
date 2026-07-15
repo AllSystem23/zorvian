@@ -43,7 +43,6 @@ final class _TrialBalancePageState extends ConsumerState<TrialBalancePage> {
     final state = ref.watch(accountingProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Balanza de Comprobación')),
       body: Padding(
         padding: const EdgeInsets.all(ZSpacing.lg),
         child: Column(

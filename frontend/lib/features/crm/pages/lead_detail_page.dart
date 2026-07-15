@@ -32,30 +32,35 @@ class _LeadDetailPageState extends ConsumerState<LeadDetailPage> {
 
     if (lead == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Prospecto')),
         body: const Center(child: Text('Prospecto no encontrado')),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(lead.fullName),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_outlined),
-            onPressed: () => context.push('/crm/leads/${widget.leadId}/edit'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline, color: ZColors.danger),
-            onPressed: () => _confirmDelete(context, lead),
-          ),
-        ],
-      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(lead.fullName, style: Theme.of(context).textTheme.titleLarge),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined),
+                      onPressed: () => context.push('/crm/leads/${widget.leadId}/edit'),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, color: ZColors.danger),
+                      onPressed: () => _confirmDelete(context, lead),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             _buildHeader(lead),
             const SizedBox(height: 24),
             _buildInfoSection(lead),

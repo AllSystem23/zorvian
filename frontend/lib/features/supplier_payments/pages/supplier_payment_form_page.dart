@@ -75,7 +75,6 @@ final class _SupplierPaymentFormPageState extends ConsumerState<SupplierPaymentF
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Registrar Pago a Proveedor')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(

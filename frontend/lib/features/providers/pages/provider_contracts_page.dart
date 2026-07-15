@@ -15,7 +15,6 @@ class ProviderContractsPage extends ConsumerWidget {
     final fmt = ref.watch(currencyFormatServiceProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Contratos de Servicios')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(ZSpacing.lg),
         child: Column(

@@ -83,7 +83,6 @@ class _UserListPageState extends ConsumerState<UserListPage> {
     final currentUserId = ref.watch(authProvider).userId;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Gestión de Usuarios')),
       body: Padding(
         padding: const EdgeInsets.all(ZSpacing.md),
         child: Column(

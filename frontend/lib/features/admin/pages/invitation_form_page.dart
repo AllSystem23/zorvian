@@ -34,7 +34,6 @@ class _InvitationFormPageState extends ConsumerState<InvitationFormPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Invitar Usuario')),
       body: Padding(
         padding: const EdgeInsets.all(ZSpacing.md),
         child: Form(

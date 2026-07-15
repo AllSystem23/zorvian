@@ -67,7 +67,6 @@ final class _FleetVehicleListPageState extends ConsumerState<FleetVehicleListPag
     final filtered = _filter(state.items);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Vehículos')),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null

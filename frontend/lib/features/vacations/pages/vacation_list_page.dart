@@ -49,26 +49,31 @@ class _VacationListPageState extends ConsumerState<VacationListPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Vacaciones'),
-        actions: [
-          PopupMenuButton<String?>(
-            icon: const Icon(Icons.filter_list),
-            tooltip: 'Filtrar',
-            onSelected: (v) {
-              setState(() => _statusFilter = v);
-              _load();
-            },
-            itemBuilder: (_) => [
-              const PopupMenuItem(value: null, child: Text('Todas')),
-              const PopupMenuItem(value: 'pending', child: Text('Pendientes')),
-              const PopupMenuItem(value: 'approved', child: Text('Aprobadas')),
-              const PopupMenuItem(value: 'rejected', child: Text('Rechazadas')),
-            ],
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                PopupMenuButton<String?>(
+                  icon: const Icon(Icons.filter_list),
+                  tooltip: 'Filtrar',
+                  onSelected: (v) {
+                    setState(() => _statusFilter = v);
+                    _load();
+                  },
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(value: null, child: Text('Todas')),
+                    const PopupMenuItem(value: 'pending', child: Text('Pendientes')),
+                    const PopupMenuItem(value: 'approved', child: Text('Aprobadas')),
+                    const PopupMenuItem(value: 'rejected', child: Text('Rechazadas')),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
-      body: state.loading
+          Expanded(
+            child: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null
               ? Center(child: Text(state.error!, style: TextStyle(color: theme.colorScheme.error)))
@@ -100,6 +105,9 @@ class _VacationListPageState extends ConsumerState<VacationListPage> {
                         },
                       ),
                     ),
+          ),
+        ],
+      ),
     );
   }
 }

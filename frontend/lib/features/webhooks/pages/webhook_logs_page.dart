@@ -47,7 +47,6 @@ class _WebhookLogsPageState extends ConsumerState<WebhookLogsPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Logs de entrega')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

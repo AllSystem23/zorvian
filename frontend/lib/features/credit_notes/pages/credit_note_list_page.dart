@@ -24,7 +24,6 @@ final class _CreditNoteListPageState extends ConsumerState<CreditNoteListPage> {
     final state = ref.watch(creditNoteProvider);
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Notas de Crédito')),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null

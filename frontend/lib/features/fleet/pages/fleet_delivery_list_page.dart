@@ -45,7 +45,6 @@ final class _FleetDeliveryListPageState extends ConsumerState<FleetDeliveryListP
     final state = ref.watch(fleetDeliveryProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Entregas')),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null

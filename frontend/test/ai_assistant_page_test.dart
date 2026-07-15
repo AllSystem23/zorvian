@@ -26,6 +26,6 @@ void main() {
       ),
     );
     
-    expect(find.text('Asistente Financiero'), findsOneWidget);
+    expect(find.byType(AiAssistantPage), findsOneWidget);
   });
 }

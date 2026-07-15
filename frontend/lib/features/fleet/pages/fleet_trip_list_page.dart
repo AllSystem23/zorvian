@@ -43,7 +43,6 @@ final class _FleetTripListPageState extends ConsumerState<FleetTripListPage> {
     final state = ref.watch(fleetTripProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Viajes')),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null

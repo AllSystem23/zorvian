@@ -36,34 +36,44 @@ class _CRMPageState extends ConsumerState<CRMPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Zorvian CRM'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(
-              text: 'Pipeline (Kanban)',
-              icon: Icon(Icons.view_column_outlined),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Zorvian CRM', style: Theme.of(context).textTheme.titleLarge),
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  onPressed: () {
+                    ref.read(leadsProvider.notifier).loadLeads();
+                    ref.read(opportunitiesProvider.notifier).loadPipeline();
+                  },
+                ),
+              ],
             ),
-            Tab(
-              text: 'Prospectos (Leads)',
-              icon: Icon(Icons.people_alt_outlined),
+          ),
+          TabBar(
+            controller: _tabController,
+            tabs: const [
+              Tab(
+                text: 'Pipeline (Kanban)',
+                icon: Icon(Icons.view_column_outlined),
+              ),
+              Tab(
+                text: 'Prospectos (Leads)',
+                icon: Icon(Icons.people_alt_outlined),
+              ),
+            ],
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: const [KanbanBoard(), LeadsView()],
             ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              ref.read(leadsProvider.notifier).loadLeads();
-              ref.read(opportunitiesProvider.notifier).loadPipeline();
-            },
           ),
         ],
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: const [KanbanBoard(), LeadsView()],
       ),
     );
   }

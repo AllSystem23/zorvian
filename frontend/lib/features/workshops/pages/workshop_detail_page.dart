@@ -65,14 +65,12 @@ class _WorkshopDetailPageState extends ConsumerState<WorkshopDetailPage> {
   Widget build(BuildContext context) {
     if (_loading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Taller')),
         body: const Center(child: CircularProgressIndicator(color: ZColors.brandPrimary)),
       );
     }
 
     if (_error != null || _workshop == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Taller')),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -93,117 +91,123 @@ class _WorkshopDetailPageState extends ConsumerState<WorkshopDetailPage> {
     final isWide = MediaQuery.of(context).size.width > 700;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(w['name'] ?? 'Taller'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            tooltip: 'Editar',
-            onPressed: () => context.push('/workshops/${widget.workshopId}/edit'),
+      body: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(child: Text(w['name'] ?? 'Taller', style: ZTypography.titleLarge, textAlign: TextAlign.center)),
+              IconButton(
+                icon: const Icon(Icons.edit),
+                tooltip: 'Editar',
+                onPressed: () => context.push('/workshops/${widget.workshopId}/edit'),
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete),
+                tooltip: 'Eliminar',
+                onPressed: _delete,
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.delete),
-            tooltip: 'Eliminar',
-            onPressed: _delete,
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(ZSpacing.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header card
-            ZCard(
+          Expanded(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(ZSpacing.lg),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CircleAvatar(
-                    radius: 28,
-                    backgroundColor: isActive ? ZColors.brandPrimary.withAlpha(25) : ZColors.neutral200,
-                    child: Icon(Icons.build, size: 28, color: isActive ? ZColors.brandPrimary : ZColors.neutral400),
-                  ),
-                  const SizedBox(width: ZSpacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  // Header card
+                  ZCard(
+                    padding: const EdgeInsets.all(ZSpacing.lg),
+                    child: Row(
                       children: [
-                        Text(w['name'] ?? '', style: ZTypography.titleLarge),
-                        const SizedBox(height: 2),
-                        Text('${w['code'] ?? ''} · ${w['city'] ?? '—'}', style: ZTypography.bodyMedium),
+                        CircleAvatar(
+                          radius: 28,
+                          backgroundColor: isActive ? ZColors.brandPrimary.withAlpha(25) : ZColors.neutral200,
+                          child: Icon(Icons.build, size: 28, color: isActive ? ZColors.brandPrimary : ZColors.neutral400),
+                        ),
+                        const SizedBox(width: ZSpacing.md),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(w['name'] ?? '', style: ZTypography.titleLarge),
+                              const SizedBox(height: 2),
+                              Text('${w['code'] ?? ''} · ${w['city'] ?? '—'}', style: ZTypography.bodyMedium),
+                            ],
+                          ),
+                        ),
+                        ZBadge(
+                          text: isActive ? 'Activo' : 'Inactivo',
+                          type: isActive ? ZBadgeType.success : ZBadgeType.neutral,
+                        ),
                       ],
                     ),
                   ),
-                  ZBadge(
-                    text: isActive ? 'Activo' : 'Inactivo',
-                    type: isActive ? ZBadgeType.success : ZBadgeType.neutral,
-                  ),
+                  const SizedBox(height: ZSpacing.lg),
+
+                  // SLA Metrics
+                  _SectionTitle(title: 'Métricas de SLA'),
+                  const SizedBox(height: ZSpacing.md),
+                  if (isWide)
+                    Row(children: [
+                      Expanded(child: _MetricCard(label: 'Tiempo respuesta', value: '${w['avgResponseHours'] ?? 48}h', icon: Icons.timer_outlined, color: ZColors.brandAccent)),
+                      const SizedBox(width: ZSpacing.md),
+                      Expanded(child: _MetricCard(label: 'Tiempo reparación', value: '${w['avgRepairHours'] ?? 72}h', icon: Icons.build_outlined, color: ZColors.brandSecondary)),
+                      const SizedBox(width: ZSpacing.md),
+                      Expanded(child: _MetricCard(label: 'Rating', value: (w['rating'] as num?)?.toDouble().toStringAsFixed(1) ?? '0.0', icon: Icons.star_outline, color: ZColors.warning)),
+                      const SizedBox(width: ZSpacing.md),
+                      Expanded(child: _MetricCard(label: 'Técnicos', value: '${w['technicianCount'] ?? 0}', icon: Icons.people_outline, color: ZColors.brandTeal)),
+                    ])
+                  else ...[
+                    Row(children: [
+                      Expanded(child: _MetricCard(label: 'Respuesta', value: '${w['avgResponseHours'] ?? 48}h', icon: Icons.timer_outlined, color: ZColors.brandAccent)),
+                      const SizedBox(width: ZSpacing.md),
+                      Expanded(child: _MetricCard(label: 'Reparación', value: '${w['avgRepairHours'] ?? 72}h', icon: Icons.build_outlined, color: ZColors.brandSecondary)),
+                    ]),
+                    const SizedBox(height: ZSpacing.md),
+                    Row(children: [
+                      Expanded(child: _MetricCard(label: 'Rating', value: (w['rating'] as num?)?.toDouble().toStringAsFixed(1) ?? '0.0', icon: Icons.star_outline, color: ZColors.warning)),
+                      const SizedBox(width: ZSpacing.md),
+                      Expanded(child: _MetricCard(label: 'Técnicos', value: '${w['technicianCount'] ?? 0}', icon: Icons.people_outline, color: ZColors.brandTeal)),
+                    ]),
+                  ],
+
+                  const SizedBox(height: ZSpacing.xl),
+
+                  // Contact
+                  _SectionTitle(title: 'Contacto'),
+                  const SizedBox(height: ZSpacing.md),
+                  _InfoRow(icon: Icons.person_outline, label: 'Contacto', value: w['contactName'] ?? '—'),
+                  _InfoRow(icon: Icons.phone_outlined, label: 'Teléfono', value: w['phone'] ?? '—'),
+                  _InfoRow(icon: Icons.email_outlined, label: 'Email', value: w['email'] ?? '—'),
+
+                  const SizedBox(height: ZSpacing.xl),
+
+                  // Location
+                  _SectionTitle(title: 'Ubicación'),
+                  const SizedBox(height: ZSpacing.md),
+                  _InfoRow(icon: Icons.location_on_outlined, label: 'Dirección', value: w['address'] ?? '—'),
+                  _InfoRow(icon: Icons.location_city, label: 'Ciudad', value: w['city'] ?? '—'),
+                  _InfoRow(icon: Icons.public, label: 'País', value: w['country'] ?? '—'),
+
+                  if (w['legalName'] != null && (w['legalName'] as String).isNotEmpty) ...[
+                    const SizedBox(height: ZSpacing.xl),
+                    _SectionTitle(title: 'Datos legales'),
+                    const SizedBox(height: ZSpacing.md),
+                    _InfoRow(icon: Icons.business, label: 'Razón social', value: w['legalName']),
+                    if (w['taxId'] != null) _InfoRow(icon: Icons.receipt, label: 'NIT/RIF', value: w['taxId']),
+                  ],
+
+                  if (w['notes'] != null && (w['notes'] as String).isNotEmpty) ...[
+                    const SizedBox(height: ZSpacing.xl),
+                    _SectionTitle(title: 'Notas'),
+                    const SizedBox(height: ZSpacing.md),
+                    Text(w['notes'], style: ZTypography.bodyMedium),
+                  ],
                 ],
               ),
             ),
-            const SizedBox(height: ZSpacing.lg),
-
-            // SLA Metrics
-            _SectionTitle(title: 'Métricas de SLA'),
-            const SizedBox(height: ZSpacing.md),
-            if (isWide)
-              Row(children: [
-                Expanded(child: _MetricCard(label: 'Tiempo respuesta', value: '${w['avgResponseHours'] ?? 48}h', icon: Icons.timer_outlined, color: ZColors.brandAccent)),
-                const SizedBox(width: ZSpacing.md),
-                Expanded(child: _MetricCard(label: 'Tiempo reparación', value: '${w['avgRepairHours'] ?? 72}h', icon: Icons.build_outlined, color: ZColors.brandSecondary)),
-                const SizedBox(width: ZSpacing.md),
-                Expanded(child: _MetricCard(label: 'Rating', value: (w['rating'] as num?)?.toDouble().toStringAsFixed(1) ?? '0.0', icon: Icons.star_outline, color: ZColors.warning)),
-                const SizedBox(width: ZSpacing.md),
-                Expanded(child: _MetricCard(label: 'Técnicos', value: '${w['technicianCount'] ?? 0}', icon: Icons.people_outline, color: ZColors.brandTeal)),
-              ])
-            else ...[
-              Row(children: [
-                Expanded(child: _MetricCard(label: 'Respuesta', value: '${w['avgResponseHours'] ?? 48}h', icon: Icons.timer_outlined, color: ZColors.brandAccent)),
-                const SizedBox(width: ZSpacing.md),
-                Expanded(child: _MetricCard(label: 'Reparación', value: '${w['avgRepairHours'] ?? 72}h', icon: Icons.build_outlined, color: ZColors.brandSecondary)),
-              ]),
-              const SizedBox(height: ZSpacing.md),
-              Row(children: [
-                Expanded(child: _MetricCard(label: 'Rating', value: (w['rating'] as num?)?.toDouble().toStringAsFixed(1) ?? '0.0', icon: Icons.star_outline, color: ZColors.warning)),
-                const SizedBox(width: ZSpacing.md),
-                Expanded(child: _MetricCard(label: 'Técnicos', value: '${w['technicianCount'] ?? 0}', icon: Icons.people_outline, color: ZColors.brandTeal)),
-              ]),
-            ],
-
-            const SizedBox(height: ZSpacing.xl),
-
-            // Contact
-            _SectionTitle(title: 'Contacto'),
-            const SizedBox(height: ZSpacing.md),
-            _InfoRow(icon: Icons.person_outline, label: 'Contacto', value: w['contactName'] ?? '—'),
-            _InfoRow(icon: Icons.phone_outlined, label: 'Teléfono', value: w['phone'] ?? '—'),
-            _InfoRow(icon: Icons.email_outlined, label: 'Email', value: w['email'] ?? '—'),
-
-            const SizedBox(height: ZSpacing.xl),
-
-            // Location
-            _SectionTitle(title: 'Ubicación'),
-            const SizedBox(height: ZSpacing.md),
-            _InfoRow(icon: Icons.location_on_outlined, label: 'Dirección', value: w['address'] ?? '—'),
-            _InfoRow(icon: Icons.location_city, label: 'Ciudad', value: w['city'] ?? '—'),
-            _InfoRow(icon: Icons.public, label: 'País', value: w['country'] ?? '—'),
-
-            if (w['legalName'] != null && (w['legalName'] as String).isNotEmpty) ...[
-              const SizedBox(height: ZSpacing.xl),
-              _SectionTitle(title: 'Datos legales'),
-              const SizedBox(height: ZSpacing.md),
-              _InfoRow(icon: Icons.business, label: 'Razón social', value: w['legalName']),
-              if (w['taxId'] != null) _InfoRow(icon: Icons.receipt, label: 'NIT/RIF', value: w['taxId']),
-            ],
-
-            if (w['notes'] != null && (w['notes'] as String).isNotEmpty) ...[
-              const SizedBox(height: ZSpacing.xl),
-              _SectionTitle(title: 'Notas'),
-              const SizedBox(height: ZSpacing.md),
-              Text(w['notes'], style: ZTypography.bodyMedium),
-            ],
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -111,14 +111,13 @@ final class _CashRegisterArqueoPageState extends ConsumerState<CashRegisterArque
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return Scaffold(appBar: AppBar(title: const Text('Arqueo de Caja')), body: const Center(child: CircularProgressIndicator()));
-    if (_error != null) return Scaffold(appBar: AppBar(title: const Text('Arqueo de Caja')), body: Center(child: Text(_error!)));
+    if (_loading) return Scaffold(body: const Center(child: CircularProgressIndicator()));
+    if (_error != null) return Scaffold(body: Center(child: Text(_error!)));
 
     final isOpen = _register?['status'] == 'open';
 
     return Scaffold(
       backgroundColor: Theme.of(context).brightness == Brightness.dark ? ZColors.darkBackground : ZColors.neutral50,
-      appBar: AppBar(title: const Text('Arqueo Físico de Caja')),
       body: _existingArqueo != null && !isOpen
           ? _buildExistingArqueo()
           : _buildForm(),

@@ -28,46 +28,55 @@ final class _AccountLinksPageState extends ConsumerState<AccountLinksPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Vinculación Contable'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.auto_fix_high),
-            tooltip: 'Vínculos por defecto',
-            onPressed: () => ref.read(accountingProvider.notifier).seedLinks(),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.auto_fix_high),
+                  tooltip: 'Vínculos por defecto',
+                  onPressed: () => ref.read(accountingProvider.notifier).seedLinks(),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: state.loading
+                ? const Center(child: CircularProgressIndicator())
+                : state.links.isEmpty
+                    ? const Center(child: Text('Sin vínculos. Cree el catálogo de cuentas y siembre los vínculos.'))
+                    : RefreshIndicator(
+                        onRefresh: () => ref.read(accountingProvider.notifier).loadLinks(),
+                        child: ListView(
+                          padding: const EdgeInsets.all(16),
+                          children: grouped.entries.map((entry) => ZCard(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(_txTypeName(entry.key), style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                                  const Divider(),
+                                  ...entry.value.map((l) => Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 4),
+                                    child: Row(
+                                      children: [
+                                        SizedBox(width: 100, child: Text(_roleName(l.role), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
+                                        Expanded(child: Text('${l.accountCode} - ${l.accountName}', style: const TextStyle(fontSize: 12))),
+                                      ],
+                                    ),
+                                  )),
+                                ],
+                            ),
+                          ),
+                          ).toList(),
+                        ),
+                      ),
           ),
         ],
       ),
-      body: state.loading
-          ? const Center(child: CircularProgressIndicator())
-          : state.links.isEmpty
-              ? const Center(child: Text('Sin vínculos. Cree el catálogo de cuentas y siembre los vínculos.'))
-              : RefreshIndicator(
-                  onRefresh: () => ref.read(accountingProvider.notifier).loadLinks(),
-                  child: ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: grouped.entries.map((entry) => ZCard(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(_txTypeName(entry.key), style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
-                            const Divider(),
-                            ...entry.value.map((l) => Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              child: Row(
-                                children: [
-                                  SizedBox(width: 100, child: Text(_roleName(l.role), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12))),
-                                  Expanded(child: Text('${l.accountCode} - ${l.accountName}', style: const TextStyle(fontSize: 12))),
-                                ],
-                              ),
-                            )),
-                          ],
-                    ),
-                  ),
-                  ).toList(),
-                ),
-              ),
     );
   }
 

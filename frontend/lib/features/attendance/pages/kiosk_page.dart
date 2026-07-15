@@ -73,24 +73,33 @@ class _KioskPageState extends ConsumerState<KioskPage> {
 
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        title: const Text('Kiosko de Asistencia'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.qr_code_scanner),
-            tooltip: 'Escaneo QR',
-            onPressed: () => context.push('/attendance/qr'),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.qr_code_scanner),
+                  tooltip: 'Escaneo QR',
+                  onPressed: () => context.push('/attendance/qr'),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => context.pop(),
+                ),
+              ],
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: () => context.pop(),
+          Expanded(
+            child: SafeArea(
+              child: isLandscape
+                  ? _buildLandscapeLayout(theme, kioskState)
+                  : _buildPortraitLayout(theme, kioskState),
+            ),
           ),
         ],
-      ),
-      body: SafeArea(
-        child: isLandscape
-            ? _buildLandscapeLayout(theme, kioskState)
-            : _buildPortraitLayout(theme, kioskState),
       ),
     );
   }

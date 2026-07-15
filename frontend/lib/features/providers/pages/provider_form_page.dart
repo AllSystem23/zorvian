@@ -100,7 +100,6 @@ final class _ProviderFormPageState extends ConsumerState<ProviderFormPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_isEditing ? 'Editar Prestador' : 'Nuevo Prestador')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(ZSpacing.lg),
         child: Form(

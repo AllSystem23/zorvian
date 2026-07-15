@@ -41,14 +41,12 @@ class _DocumentDetailPageState extends ConsumerState<DocumentDetailPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     if (_loading) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Documento')),
-        body: const Center(child: CircularProgressIndicator()),
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
       );
     }
     if (_error != null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Documento')),
         body: Center(child: Text(_error!)),
       );
     }
@@ -62,22 +60,22 @@ class _DocumentDetailPageState extends ConsumerState<DocumentDetailPage> {
 
     return Scaffold(
       backgroundColor: theme.brightness == Brightness.dark ? ZColors.darkBackground : ZColors.neutral50,
-      appBar: AppBar(
-        title: Text(d.name, style: ZTypography.titleMedium),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.download_outlined),
-            tooltip: 'Descargar PDF',
-            onPressed: () => _downloadPdf(context),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              children: [
+                Expanded(child: Text(d.name, style: ZTypography.titleMedium)),
+                IconButton(
+                  icon: const Icon(Icons.download_outlined),
+                  tooltip: 'Descargar PDF',
+                  onPressed: () => _downloadPdf(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             _buildHeader(context, d, stColor),
             const SizedBox(height: 24),
             if (d.summary != null && d.summary!.isNotEmpty)

@@ -14,7 +14,6 @@ class ProviderListPage extends ConsumerWidget {
     final stats = ref.watch(providerStatsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Prestadores de Servicios')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(ZSpacing.lg),
         child: Column(

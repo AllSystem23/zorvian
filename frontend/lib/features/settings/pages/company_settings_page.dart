@@ -74,7 +74,6 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
     final settingsAsync = ref.watch(companySettingsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Configuración')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

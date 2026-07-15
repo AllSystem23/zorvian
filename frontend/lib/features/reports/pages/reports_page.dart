@@ -51,7 +51,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Reportes')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Padding(

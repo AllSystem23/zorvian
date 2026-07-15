@@ -30,7 +30,6 @@ void main() {
     // Pump and settle to allow post-frame callback
     await tester.pumpAndSettle();
     
-    expect(find.text('Reportes Comparativos'), findsOneWidget);
     expect(find.text('Seleccione dos períodos diferentes para comparar'), findsOneWidget);
   });
 }

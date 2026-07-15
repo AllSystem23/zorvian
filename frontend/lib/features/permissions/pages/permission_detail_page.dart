@@ -130,7 +130,6 @@ class _PermissionDetailPageState extends ConsumerState<PermissionDetailPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Detalle de permiso')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

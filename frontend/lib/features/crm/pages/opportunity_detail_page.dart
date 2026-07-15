@@ -18,7 +18,6 @@ class OpportunityDetailPage extends ConsumerWidget {
 
     if (opp == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Oportunidad')),
         body: const Center(child: Text('Oportunidad no encontrada')),
       );
     }
@@ -26,24 +25,30 @@ class OpportunityDetailPage extends ConsumerWidget {
     final stage = state.stages.where((s) => s.id == opp.stageId).firstOrNull;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(opp.title),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_outlined),
-            onPressed: () => context.push('/crm/opportunities/$opportunityId/edit'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete_outline, color: ZColors.danger),
-            onPressed: () => _confirmDelete(context, ref, opp),
-          ),
-        ],
-      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(opp.title, style: Theme.of(context).textTheme.titleLarge),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined),
+                      onPressed: () => context.push('/crm/opportunities/$opportunityId/edit'),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, color: ZColors.danger),
+                      onPressed: () => _confirmDelete(context, ref, opp),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             _buildHeader(opp, stage),
             const SizedBox(height: 24),
             _buildValueSection(opp),

@@ -48,7 +48,6 @@ final class _PurchaseOrderListPageState extends ConsumerState<PurchaseOrderListP
   Widget build(BuildContext context) {
     final orders = ref.watch(purchaseOrderProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Órdenes de Compra')),
       body: Column(
         children: [
           Padding(

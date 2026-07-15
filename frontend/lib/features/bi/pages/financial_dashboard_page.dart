@@ -40,7 +40,6 @@ class _FinancialDashboardPageState extends ConsumerState<FinancialDashboardPage>
     final executiveAsync = ref.watch(biProvider); 
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Panel Financiero')),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(biFinancialRatiosProvider);

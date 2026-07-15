@@ -83,16 +83,6 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
 
     return Scaffold(
       backgroundColor: theme.brightness == Brightness.dark ? ZColors.darkBackground : ZColors.neutral50,
-      appBar: AppBar(
-        title: const Text('Generación Rápida'),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () {
-            ref.read(wizardProvider.notifier).cancel();
-            context.pop();
-          },
-        ),
-      ),
       body: docState.loading && !_templatesLoaded
           ? const Center(child: CircularProgressIndicator())
           : _buildWizard(context, wizard),

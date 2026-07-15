@@ -125,38 +125,49 @@ final class _AccountingPeriodsPageState extends ConsumerState<AccountingPeriodsP
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Períodos Contables'),
-        actions: [IconButton(icon: const Icon(Icons.add), onPressed: _openPeriod)],
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _periods.isEmpty
-              ? const Center(child: Text('No hay períodos. Abra el período actual.'))
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: ListView.builder(
-                    itemCount: _periods.length,
-                    itemBuilder: (_, i) {
-                      final p = _periods[i];
-                      final color = switch (p.status) { 'open' => Colors.green, 'closed' => Colors.orange, _ => Colors.grey };
-                      return ListTile(
-                        title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: Text('${p.year}-${p.month.toString().padLeft(2, '0')}'),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Chip(label: Text(p.status, style: TextStyle(fontSize: 11, color: color)), backgroundColor: color.withAlpha(20), padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
-                            if (p.status == 'open')
-                              IconButton(icon: const Icon(Icons.lock_outline, size: 18), tooltip: 'Cerrar período', onPressed: () => _closePeriod(p.id)),
-                            if (p.status == 'closed')
-                              IconButton(icon: const Icon(Icons.lock_open, size: 18), tooltip: 'Reabrir período', onPressed: () => _reopenPeriod(p.id)),
-                          ],
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(icon: const Icon(Icons.add), onPressed: _openPeriod),
+              ],
+            ),
+          ),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _periods.isEmpty
+                    ? const Center(child: Text('No hay períodos. Abra el período actual.'))
+                    : RefreshIndicator(
+                        onRefresh: _load,
+                        child: ListView.builder(
+                          itemCount: _periods.length,
+                          itemBuilder: (_, i) {
+                            final p = _periods[i];
+                            final color = switch (p.status) { 'open' => Colors.green, 'closed' => Colors.orange, _ => Colors.grey };
+                            return ListTile(
+                              title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                              subtitle: Text('${p.year}-${p.month.toString().padLeft(2, '0')}'),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Chip(label: Text(p.status, style: TextStyle(fontSize: 11, color: color)), backgroundColor: color.withAlpha(20), padding: EdgeInsets.zero, visualDensity: VisualDensity.compact),
+                                  if (p.status == 'open')
+                                    IconButton(icon: const Icon(Icons.lock_outline, size: 18), tooltip: 'Cerrar período', onPressed: () => _closePeriod(p.id)),
+                                  if (p.status == 'closed')
+                                    IconButton(icon: const Icon(Icons.lock_open, size: 18), tooltip: 'Reabrir período', onPressed: () => _reopenPeriod(p.id)),
+                                ],
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
-                ),
+                      ),
+          ),
+        ],
+      ),
     );
   }
 }

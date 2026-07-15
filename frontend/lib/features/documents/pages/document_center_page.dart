@@ -40,38 +40,47 @@ class _DocumentCenterPageState extends ConsumerState<DocumentCenterPage>
 
     return Scaffold(
       backgroundColor: Theme.of(context).brightness == Brightness.dark ? ZColors.darkBackground : ZColors.neutral50,
-      appBar: AppBar(
-        title: const Text('Centro Documental'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.bolt_outlined, color: ZColors.warning),
-            tooltip: 'Generación Rápida (3 clics)',
-            onPressed: () => context.push('/documents/quick-generate'),
-          ),
-          IconButton(icon: const Icon(Icons.search), onPressed: () => ZCommandPalette.show(context)),
-          const SizedBox(width: 8),
-          FilledButton.icon(
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Nueva Plantilla'),
-            onPressed: () => context.push('/documents/templates/new'),
-          ),
-          const SizedBox(width: 16),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Plantillas'),
-            Tab(text: 'Documentos Generados'),
-          ],
-        ),
-      ),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tabController,
+          : Column(
               children: [
-                _TemplateLibraryTab(templates: state.templates),
-                _GeneratedDocumentsTab(documents: state.documents),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: Row(
+                    children: [
+                      Text('Centro Documental', style: ZTypography.titleLarge),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.bolt_outlined, color: ZColors.warning),
+                        tooltip: 'Generación Rápida (3 clics)',
+                        onPressed: () => context.push('/documents/quick-generate'),
+                      ),
+                      IconButton(icon: const Icon(Icons.search), onPressed: () => ZCommandPalette.show(context)),
+                      const SizedBox(width: 8),
+                      FilledButton.icon(
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('Nueva Plantilla'),
+                        onPressed: () => context.push('/documents/templates/new'),
+                      ),
+                    ],
+                  ),
+                ),
+                TabBar(
+                  controller: _tabController,
+                  tabs: const [
+                    Tab(text: 'Plantillas'),
+                    Tab(text: 'Documentos Generados'),
+                  ],
+                ),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _TemplateLibraryTab(templates: state.templates),
+                      _GeneratedDocumentsTab(documents: state.documents),
+                    ],
+                  ),
+                ),
               ],
             ),
     );

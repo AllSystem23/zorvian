@@ -23,7 +23,6 @@ final class _FleetWorkshopListPageState extends ConsumerState<FleetWorkshopListP
     final state = ref.watch(fleetWorkshopProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Talleres')),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null

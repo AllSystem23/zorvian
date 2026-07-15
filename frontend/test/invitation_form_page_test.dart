@@ -14,7 +14,6 @@ void main() {
       ),
     );
 
-    expect(find.text('Invitar Usuario'), findsOneWidget);
     expect(find.byType(ZTextField), findsOneWidget);
     expect(find.byType(ZButton), findsOneWidget);
   });

@@ -35,7 +35,6 @@ class _BankCollectionPageState extends ConsumerState<BankCollectionPage> {
     final costCenters = ref.watch(treasuryCostCentersProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Registrar Cobranza')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(ZSpacing.md),
         child: ZCard(

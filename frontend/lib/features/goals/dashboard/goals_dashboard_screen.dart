@@ -11,7 +11,6 @@ class GoalsDashboardScreen extends ConsumerWidget {
     final dashboardAsync = ref.watch(goalDashboardProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Dashboard de Cumplimiento')),
       body: dashboardAsync.when(
         data: (data) {
           final globalCompliance = (data['globalCompliance'] as num?)?.toDouble() ?? 0.0;

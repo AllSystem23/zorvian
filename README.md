@@ -22,7 +22,7 @@ Zorvian ERP es un sistema ERP moderno multiplataforma construido con **Flutter**
 | **Jobs** | Hangfire (15 jobs: 11 recurring + 4 ad-hoc/triggered) | ✅ Jobs distribuidos en Web.Jobs y Application.Jobs |
 | **AI/ML** | ML.NET · Vertex AI (ChatService) · RAG (EmbeddingService) · OCR (OcrService) | ⚠️ XGBoost/pgvector documentados pero no implementados en código |
 | **Docs/PDF** | QuestPDF · ESC/POS · QR · Thermal Printing | ✅ Implementado |
-| **Offline** | SQLite (Drift) · SyncEngine · ConnectivityMonitor | ⚠️ Implementado para productos, pendiente扩展到más módulos |
+| **Offline** | SQLite (Drift) · SyncEngine · ConnectivityMonitor | ⚠️ Implementado para productos, pendiente los más módulos |
 | **Observability** | System.Diagnostics.Metrics (API nativa .NET) · Sentry (frontend) | ⚠️ Prometheus/Grafana/OpenTelemetry SDK documentados, pendientes de implementar. MetricsService con Meter/Histogram/Counter funcional |
 | **CI/CD** | GitHub Actions (1 pipeline consolidado, 5 jobs) | ✅ Implementado |
 | **Container** | Docker Multi-stage + Docker Compose (6 servicios: postgres, redis, rabbitmq, api, migrate, frontend) | ✅ Implementado |
@@ -112,7 +112,7 @@ Zorvian ERP es un sistema ERP moderno multiplataforma construido con **Flutter**
 
 ## Navegación (Sidebar)
 
-**10 módulos · 46 items · 5 grupos**
+**10 módulos · 71 items · 5 grupos**
 
 ### Operaciones
 | Módulo | Items |
@@ -251,7 +251,7 @@ Zorvian ERP
 │           └── l10n/                  # Localización (app_en.arb, app_es.arb)
 ├── src/                               # ASP.NET Core Backend
 │   ├── Zorvian.Web/
-│   │   ├── Controllers/               # 85 core controllers + 28 Fleet + 10 Warranty = 123 total
+│   │   ├── Controllers/               # 87 core controllers + 28 Fleet + 8 Warranty = 123 total
 │   │   ├── Middleware/                # 8 middleware
 │   │   ├── Filters/                   # AuditFilter, IdempotentAttribute, ValidationFilter
 │   │   ├── Hubs/                      # NotificationHub (SignalR)
@@ -291,7 +291,7 @@ Zorvian ERP
 │       ├── Services/                   # 35 infrastructure services
 │       └── Migrations/                 # 13 migraciones (Jun-Jul 2026)
 ├── tests/
-│   ├── Zorvian.Tests/                  # 84+ archivos de test (xUnit + Moq)
+│   ├── Zorvian.Tests/                  # 93 archivos de test (xUnit + Moq)
 │   │   ├── Services/                   # 68 unit tests
 │   │   ├── Controllers/                # 4 controller tests
 │   │   ├── Integration/                # 6 integration tests
@@ -387,9 +387,9 @@ Zorvian ERP
 
 ---
 
-## Backend — Entidades (195 total)
+## Backend — Entidades (194 total)
 
-### Core (165 entidades en `src/Zorvian.Core/Entities/`)
+### Core (164 entidades en `src/Zorvian.Core/Entities/`)
 
 **Organización:** BaseEntity, TenantId, User, Role, RolePermission, UserRole, UserTenant, RefreshToken, Company, CompanySettings, CompanyPlanPricing, Branch, Department, Location, Invitation, SubscriptionPlan
 
@@ -451,7 +451,7 @@ Accounting · Approval · Attendance · Auth · Bi · Biometrics · Branch · Ca
 
 ## Backend — Controllers (123)
 
-### Core (85 controllers en `Controllers/`)
+### Core (87 controllers en `Controllers/`)
 
 **Auth/Users:** AuthController, UsersController, RegistrationController, SeedController, SyncController, NotificationsController, BadgesController, DashboardController, KioskController
 
@@ -471,9 +471,9 @@ Accounting · Approval · Attendance · Auth · Bi · Biometrics · Branch · Ca
 
 VehiclesController, DriversController, TripsController, RoutesController, GpsController, GeofencesController, FuelRefillsController, FleetExpensesController, MaintenanceSchedulesController, WorkOrdersController, WorkshopsController, FleetAlertsController, FleetDashboardController, FleetReportsController, DeliveriesController, FleetDocumentsController, VehicleBrandsController, VehicleTypesController, FuelTypesController, FailureTypesController, ExpenseCategoriesController, ExpenseSubcategoriesController, DriverLicenseCategoriesController, DriverInfractionsController, DriverTrainingController, MaintenanceTemplatesController, RouteOptimizationController, PredictiveMaintenanceController
 
-### Warranty (10 controllers en `Controllers/`)
+### Warranty (8 controllers en `Controllers/`)
 
-WarrantiesController, WarrantyCostsController, WarrantyPartRequestsController, WarrantyPartUsagesController, WarrantyCommunicationsController, WarrantyProvidersController, WarrantySlaConfigsController, WarrantyDashboardController, WarrantyClaimsController, WarrantyWorkshopsController
+WarrantyCommunicationsController, WarrantyCostsController, WarrantyDashboardController, WarrantyPartRequestsController, WarrantyPartUsagesController, WarrantyProfitabilityController, WarrantyProvidersController, WarrantySlaConfigsController
 
 ---
 
@@ -800,7 +800,7 @@ Features__Swagger=false
 - **Multi-tenant**: Query Filters EF Core + Row-Level Security PostgreSQL (aplicado en migración automática)
 - **Edge**: CloudFlare WAF (configuración externa)
 - **Auditoría**: Logs inmutables (`AuditImmutabilityInterceptor`) + 7 interceptores EF Core
-- **Rate Limiting**: Configurable via `appsettings.json` (deshabilitado por defecto). 100 req/min general
+- **Rate Limiting**: Configurable via `appsettings.json` (deshabilitado por defecto: `"RateLimiting:Enabled": false`). 120 req/min general, 5 req/15min auth
 - **Security Headers**: CSP, HSTS, X-Frame-Options, Permissions-Policy
 - **Circuit Breaker**: Polly con retry + circuit breaker
 - **Validación**: FluentValidation + ValidationFilter global
@@ -831,7 +831,7 @@ k6 run zorvian-load-test.js
 
 | Tipo | Archivos | Cobertura |
 |------|:--------:|-----------|
-| Unit Tests (Services) | 68 | Auth, Sale, Payroll, Warranty, Fleet*, Goal, Commission |
+| Unit Tests (Services) | 68 | Auth, Sale, Payroll, Warranty, Fleet, Goal, Commission |
 | Controller Tests | 4 | Badges, PublicWarranties, Sync, Webhooks |
 | Integration Tests | 6 | AuditLog, Commissions, Consolidation, RLS, Treasury |
 | Infrastructure Tests | 4 | AuditInterceptor, EntityHistory, SoftDelete, TenantAudit |
@@ -840,7 +840,9 @@ k6 run zorvian-load-test.js
 | Authorization Tests | 2 | Companies, RequirePermission |
 | Accounting Integration | 1 | Accounting |
 | Payroll Integration | 2 | Payroll, Phase7 |
+| **Total Backend** | **93** | |
 | **Frontend Tests** | **22** | Widgets, Providers, Pages, Utils |
+| **Total General** | **115** | |
 
 ---
 

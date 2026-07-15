@@ -87,7 +87,6 @@ final class _FleetWorkshopFormPageState extends ConsumerState<FleetWorkshopFormP
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_isEditing ? 'Editar taller' : 'Nuevo taller')),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(MediaQuery.of(context).size.width < 576 ? 12 : MediaQuery.of(context).size.width < 992 ? 16 : 24),
         child: Form(

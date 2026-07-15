@@ -61,8 +61,8 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    if (_loading) return Scaffold(appBar: AppBar(title: const Text('Cotización')), body: const Center(child: CircularProgressIndicator()));
-    if (_error != null) return Scaffold(appBar: AppBar(title: const Text('Cotización')), body: Center(child: Text(_error!)));
+    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_error != null) return Scaffold(body: Center(child: Text(_error!)));
 
     final d = _data!;
     final stColor = switch (d.status) {
@@ -73,77 +73,78 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
     };
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Cotización ${d.quoteNumber}'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.qr_code, size: 20),
-            tooltip: 'Código QR',
-            onPressed: () => showQrCodeDialog(context, ref,
-              title: 'Cotización ${d.quoteNumber}',
-              number: d.quoteNumber,
-              clientName: d.clientName,
-              total: d.total,
-              date: d.quoteDate,
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.share, size: 20),
-            tooltip: 'Compartir',
-            onPressed: () => showModalBottomSheet(
-              context: context,
-              builder: (_) => PrintShareSheet(
-                title: 'Cotización ${d.quoteNumber}',
-                filename: 'cotizacion_${d.quoteNumber}',
-                buildPdf: (c, s) => generateQuotePdf(quote: d, company: c, settings: s),
-                buildThermal: (c) => quoteThermalHtml(
-                  company: c,
-                  quoteNumber: d.quoteNumber,
-                  date: d.quoteDate,
-                  expirationDate: d.expirationDate,
-                  clientName: d.clientName,
-                  employeeName: d.employeeName,
-                  subtotal: d.subtotal,
-                  discount: d.discount,
-                  tax: d.tax,
-                  total: d.total,
-                  status: d.status,
-                  notes: d.notes,
-                  items: d.details.map((i) => {
-                    'productName': i.productName,
-                    'quantity': i.quantity,
-                    'unitPrice': i.unitPrice,
-                    'discount': i.discount,
-                    'subtotal': i.subtotal,
-                  }).toList(),
-                ),
-                buildText: (c) => quoteTextSummary(
-                  companyName: c['legalName'] as String? ?? c['name'] as String? ?? '',
-                  quoteNumber: d.quoteNumber,
-                  date: d.quoteDate,
-                  clientName: d.clientName,
-                  total: d.total,
-                  status: d.status,
-                ),
-              ),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.edit, size: 20),
-            onPressed: () async {
-              final result = await context.push<bool>('/quotes/${widget.quoteId}/edit');
-              if (result == true) _load();
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete, size: 20, color: Colors.red),
-            onPressed: _delete,
-          ),
-        ],
-      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.qr_code, size: 20),
+                tooltip: 'Código QR',
+                onPressed: () => showQrCodeDialog(context, ref,
+                  title: 'Cotización ${d.quoteNumber}',
+                  number: d.quoteNumber,
+                  clientName: d.clientName,
+                  total: d.total,
+                  date: d.quoteDate,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.share, size: 20),
+                tooltip: 'Compartir',
+                onPressed: () => showModalBottomSheet(
+                  context: context,
+                  builder: (_) => PrintShareSheet(
+                    title: 'Cotización ${d.quoteNumber}',
+                    filename: 'cotizacion_${d.quoteNumber}',
+                    buildPdf: (c, s) => generateQuotePdf(quote: d, company: c, settings: s),
+                    buildThermal: (c) => quoteThermalHtml(
+                      company: c,
+                      quoteNumber: d.quoteNumber,
+                      date: d.quoteDate,
+                      expirationDate: d.expirationDate,
+                      clientName: d.clientName,
+                      employeeName: d.employeeName,
+                      subtotal: d.subtotal,
+                      discount: d.discount,
+                      tax: d.tax,
+                      total: d.total,
+                      status: d.status,
+                      notes: d.notes,
+                      items: d.details.map((i) => {
+                        'productName': i.productName,
+                        'quantity': i.quantity,
+                        'unitPrice': i.unitPrice,
+                        'discount': i.discount,
+                        'subtotal': i.subtotal,
+                      }).toList(),
+                    ),
+                    buildText: (c) => quoteTextSummary(
+                      companyName: c['legalName'] as String? ?? c['name'] as String? ?? '',
+                      quoteNumber: d.quoteNumber,
+                      date: d.quoteDate,
+                      clientName: d.clientName,
+                      total: d.total,
+                      status: d.status,
+                    ),
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.edit, size: 20),
+                onPressed: () async {
+                  final result = await context.push<bool>('/quotes/${widget.quoteId}/edit');
+                  if (result == true) _load();
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete, size: 20, color: Colors.red),
+                onPressed: _delete,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
           ZCard(
             padding: const EdgeInsets.all(16),
             child: Column(

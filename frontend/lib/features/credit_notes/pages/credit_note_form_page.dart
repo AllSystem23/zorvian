@@ -103,7 +103,6 @@ final class _CreditNoteFormPageState extends ConsumerState<CreditNoteFormPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Nueva Nota de Crédito')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null && _items.isEmpty

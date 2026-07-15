@@ -34,9 +34,6 @@ final class _SupplierPaymentListPageState extends ConsumerState<SupplierPaymentL
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.purchaseId != null ? 'Pagos de la Compra' : 'Pagos a Proveedores'),
-      ),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null

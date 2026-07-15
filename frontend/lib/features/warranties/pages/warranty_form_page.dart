@@ -138,13 +138,11 @@ final class _WarrantyFormPageState extends ConsumerState<WarrantyFormPage> {
 
     if (_initialLoading) {
       return Scaffold(
-        appBar: AppBar(title: Text(_isEditing ? 'Editar garantía' : 'Nueva garantía')),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(_isEditing ? 'Editar garantía' : 'Nueva garantía')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(ZSpacing.lg),
         child: Form(

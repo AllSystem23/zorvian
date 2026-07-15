@@ -34,21 +34,21 @@ final class _QuoteListPageState extends ConsumerState<QuoteListPage> {
     final theme = Theme.of(context);
     final items = state.items;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Cotizaciones'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.view_kanban),
-            onPressed: () => context.push('/quotes/kanban'),
-          )
-        ],
-      ),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null
               ? Center(child: Text(state.error!, style: TextStyle(color: theme.colorScheme.error)))
               : Column(
                   children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.view_kanban),
+                          onPressed: () => context.push('/quotes/kanban'),
+                        ),
+                      ],
+                    ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
                       child: TextField(
