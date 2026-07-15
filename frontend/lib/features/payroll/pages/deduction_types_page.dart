@@ -108,12 +108,6 @@ class _DeductionTypesPageState extends ConsumerState<DeductionTypesPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tipos de Deducción'),
-        actions: [
-          IconButton(icon: const Icon(Icons.add), onPressed: _create),
-        ],
-      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _items.isEmpty

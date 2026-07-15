@@ -103,7 +103,6 @@ final class _InventoryAdjustmentPageState extends ConsumerState<InventoryAdjustm
           ).take(10).toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Ajuste de Inventario')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

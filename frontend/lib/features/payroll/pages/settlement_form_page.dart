@@ -127,25 +127,6 @@ class _SettlementFormPageState extends ConsumerState<SettlementFormPage> {
       backgroundColor: isDark ? ZColors.darkBackground : ZColors.background,
       body: CustomScrollView(
         slivers: [
-          SliverAppBar(
-            floating: true,
-            backgroundColor: isDark ? ZColors.darkSurface : ZColors.surface,
-            title: Text('Liquidación de Contrato', style: ZTypography.headlineSmall),
-            actions: [
-              if (result != null)
-                Padding(
-                  padding: const EdgeInsets.only(right: ZSpacing.md),
-                  child: ZButton(
-                    text: 'Descargar PDF',
-                    icon: Icons.picture_as_pdf,
-                    fullWidth: false,
-                    isLoading: _isGeneratingPdf,
-                    onPressed: _downloadPdf,
-                  ),
-                ),
-            ],
-          ),
-
           SliverToBoxAdapter(
             child: employeeAsync.when(
               data: (emp) => emp != null ? _buildEmployeeHeader(emp, isDark) : const SizedBox.shrink(),
@@ -169,6 +150,16 @@ class _SettlementFormPageState extends ConsumerState<SettlementFormPage> {
                     isLoading: settlementAsync is AsyncLoading,
                     onPressed: _calculate,
                   ),
+                  if (result != null) ...[
+                    const SizedBox(height: ZSpacing.md),
+                    ZButton(
+                      text: 'Descargar PDF',
+                      icon: Icons.picture_as_pdf,
+                      fullWidth: false,
+                      isLoading: _isGeneratingPdf,
+                      onPressed: _downloadPdf,
+                    ),
+                  ],
                   const SizedBox(height: ZSpacing.xl),
                   if (result != null) ...[
                     _buildSummaryStats(result, isDark),

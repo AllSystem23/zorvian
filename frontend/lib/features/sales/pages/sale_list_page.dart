@@ -35,7 +35,6 @@ final class _SaleListPageState extends ConsumerState<SaleListPage> {
     final state = ref.watch(saleProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Ventas')),
       body: Column(
         children: [
           Padding(

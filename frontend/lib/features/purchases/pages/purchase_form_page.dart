@@ -180,17 +180,6 @@ final class _PurchaseFormPageState extends ConsumerState<PurchaseFormPage> {
     final total = taxable + tax;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Nueva Compra'),
-        actions: [
-          IconButton(
-            icon: _analyzing ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.auto_awesome),
-            tooltip: 'Analizar factura con IA',
-            onPressed: _analyzing ? null : _analyzeWithAi,
-          ),
-          const SizedBox(width: 16),
-        ],
-      ),
       body: ListView(
         padding: EdgeInsets.all(MediaQuery.of(context).size.width < 576 ? 12 : MediaQuery.of(context).size.width < 992 ? 16 : 24),
         children: [
@@ -199,7 +188,18 @@ final class _PurchaseFormPageState extends ConsumerState<PurchaseFormPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Proveedor', style: TextStyle(fontWeight: FontWeight.w600)),
+                Row(
+                  children: [
+                    const Expanded(child: Text('Proveedor', style: TextStyle(fontWeight: FontWeight.w600))),
+                    IconButton(
+                      icon: _analyzing
+                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Icon(Icons.auto_awesome, size: 20),
+                      tooltip: 'Analizar factura con IA',
+                      onPressed: _analyzing ? null : _analyzeWithAi,
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 8),
                 ZDropdownFormField<String>(
                   value: _selectedSupplier,

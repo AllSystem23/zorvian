@@ -26,7 +26,6 @@ final class _CreditListPageState extends ConsumerState<CreditListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Créditos')),
       body: ZAsyncRenderer<List<CreditItem>>(
         value: ref.watch(creditProvider),
         builder: (items) => Column(

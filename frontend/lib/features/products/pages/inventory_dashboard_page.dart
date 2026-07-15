@@ -25,15 +25,6 @@ class InventoryDashboardPage extends ConsumerWidget {
       backgroundColor: Theme.of(context).brightness == Brightness.dark
           ? ZColors.darkBackground
           : ZColors.neutral50,
-      appBar: AppBar(
-        title: const Text('Inventario y Costeo'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () => ZCommandPalette.show(context),
-          ),
-        ],
-      ),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null

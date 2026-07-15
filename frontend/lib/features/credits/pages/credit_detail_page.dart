@@ -196,8 +196,8 @@ final class _CreditDetailPageState extends ConsumerState<CreditDetailPage> with 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    if (_loading) return Scaffold(appBar: AppBar(title: const Text('Crédito')), body: const Center(child: CircularProgressIndicator()));
-    if (_error != null) return Scaffold(appBar: AppBar(title: const Text('Crédito')), body: Center(child: Text(_error!)));
+    if (_loading) return Scaffold(body: const Center(child: CircularProgressIndicator()));
+    if (_error != null) return Scaffold(body: Center(child: Text(_error!)));
 
     final d = _data!;
     final stColor = switch (d.status) {
@@ -208,17 +208,20 @@ final class _CreditDetailPageState extends ConsumerState<CreditDetailPage> with 
     };
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(d.creditNumber),
-        actions: [
-          IconButton(icon: const Icon(Icons.payments), onPressed: _registerPayment, tooltip: 'Registrar Pago'),
-          IconButton(icon: const Icon(Icons.gavel), onPressed: _addCollectionAction, tooltip: 'Acción de Cobranza'),
-          IconButton(icon: const Icon(Icons.warning_amber), onPressed: _calculateLateFees, tooltip: 'Calcular Mora'),
-          IconButton(icon: const Icon(Icons.swap_horiz), onPressed: _refinance, tooltip: 'Refinanciar'),
-        ],
-      ),
       body: Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(icon: const Icon(Icons.payments, size: 20), onPressed: _registerPayment, tooltip: 'Registrar Pago'),
+                IconButton(icon: const Icon(Icons.gavel, size: 20), onPressed: _addCollectionAction, tooltip: 'Acción de Cobranza'),
+                IconButton(icon: const Icon(Icons.warning_amber, size: 20), onPressed: _calculateLateFees, tooltip: 'Calcular Mora'),
+                IconButton(icon: const Icon(Icons.swap_horiz, size: 20), onPressed: _refinance, tooltip: 'Refinanciar'),
+              ],
+            ),
+          ),
           ZCard(
             margin: const EdgeInsets.all(12),
             padding: const EdgeInsets.all(16),

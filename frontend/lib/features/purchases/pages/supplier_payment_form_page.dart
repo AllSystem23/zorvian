@@ -54,7 +54,6 @@ class _SupplierPaymentFormPageState extends ConsumerState<SupplierPaymentFormPag
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Registrar Pago a Proveedor')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: ZCard(

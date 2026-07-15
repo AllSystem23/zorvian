@@ -13,15 +13,6 @@ class PayrollPeriodsPage extends ConsumerWidget {
     final state = ref.watch(payrollPeriodsProvider);
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Períodos de Nómina'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => _showCreateDialog(context, ref),
-          ),
-        ],
-      ),
       body: ZAsyncRenderer<List<dynamic>>(
         value: state,
         builder: (periods) => RefreshIndicator(

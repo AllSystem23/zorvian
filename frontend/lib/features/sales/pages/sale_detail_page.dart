@@ -74,14 +74,12 @@ final class _SaleDetailPageState extends ConsumerState<SaleDetailPage> {
 
     if (_loading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Venta')),
         body: ZSkeleton.card(height: 200),
       );
     }
 
     if (_error != null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Venta')),
         body: ZErrorDisplay(
           message: _error!,
           onRetry: _load,
@@ -98,168 +96,182 @@ final class _SaleDetailPageState extends ConsumerState<SaleDetailPage> {
     };
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Factura ${d.invoiceNumber}'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.bolt, size: 20),
-            tooltip: 'Generar Documento (3 clics)',
-            onPressed: () => context.push('/documents/quick-generate', extra: {
-              'entityType': 'sale',
-              'entityId': widget.saleId,
-              'entityDisplayName': 'Factura ${d.invoiceNumber}',
-            }),
-          ),
-          if (d.status == 'completed' || d.status == 'pending')
-            IconButton(
-              icon: const Icon(Icons.cancel_outlined, size: 20),
-              tooltip: 'Anular Venta',
-              onPressed: () => _cancelSale(),
-            ),
-          IconButton(
-            icon: const Icon(Icons.assignment_return, size: 20),
-            tooltip: 'Nota de Crédito',
-            onPressed: () async {
-              final result = await context.push<bool>('/credit-notes/new/${widget.saleId}');
-              if (result == true) _load();
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.account_balance, size: 20),
-            tooltip: 'Asientos Contables',
-            onPressed: () => context.push('/accounting-entries?saleId=${widget.saleId}'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.qr_code, size: 20),
-            tooltip: 'Código QR',
-            onPressed: () => showQrCodeDialog(context, ref,
-              title: 'Factura ${d.invoiceNumber}',
-              number: d.invoiceNumber,
-              clientName: d.clientName,
-              total: d.total,
-              date: d.saleDate,
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.share, size: 20),
-            tooltip: 'Compartir',
-            onPressed: () => showModalBottomSheet(
-              context: context,
-              builder: (_) => PrintShareSheet(
-                title: 'Factura ${d.invoiceNumber}',
-                filename: 'factura_${d.invoiceNumber}',
-                buildPdf: (c, s) => generateSalePdf(sale: d, company: c, settings: s),
-                buildThermal: (c) => saleThermalHtml(
-                  company: c,
-                  invoiceNumber: d.invoiceNumber,
-                  date: d.saleDate,
-                  clientName: d.clientName,
-                  saleType: d.saleType,
-                  subtotal: d.subtotal,
-                  discount: d.discount,
-                  tax: d.tax,
-                  total: d.total,
-                  paidAmount: d.paidAmount,
-                  balance: d.balance,
-                  status: d.status,
-                  notes: d.notes,
-                  items: d.details.map((i) => {
-                    'productName': i.productName,
-                    'quantity': i.quantity,
-                    'unitPrice': i.unitPrice,
-                    'discount': i.discount,
-                    'subtotal': i.subtotal,
-                  }).toList(),
-                ),
-                buildText: (c) => saleTextSummary(
-                  companyName: c['legalName'] as String? ?? c['name'] as String? ?? '',
-                  invoiceNumber: d.invoiceNumber,
-                  date: d.saleDate,
-                  clientName: d.clientName,
-                  total: d.total,
-                  status: d.status,
-                ),
-                buildCsv: () async => saleCsvBytes(
-                  companyName: '',
-                  invoiceNumber: d.invoiceNumber,
-                  date: d.saleDate,
-                  clientName: d.clientName,
-                  saleType: d.saleType,
-                  subtotal: d.subtotal,
-                  discount: d.discount,
-                  tax: d.tax,
-                  total: d.total,
-                  paidAmount: d.paidAmount,
-                  balance: d.balance,
-                  status: d.status,
-                  items: d.details.map((i) => {
-                    'productName': i.productName,
-                    'quantity': i.quantity,
-                    'unitPrice': i.unitPrice,
-                    'discount': i.discount,
-                    'subtotal': i.subtotal,
-                  }).toList(),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: Column(
         children: [
-          ZCard(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Row(children: [
-                  Expanded(child: Text(d.clientName, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold))),
-                  ZBadge(text: d.status, type: badgeType),
-                ]),
-                const SizedBox(height: 8),
-                _row('Factura', d.invoiceNumber),
-                _row('Tipo', isCash ? 'Contado' : 'Crédito'),
-                _row('Fecha', d.saleDate.length >= 10 ? d.saleDate.substring(0, 10) : d.saleDate),
-                const Divider(),
-                _row('Subtotal', '\$${d.subtotal.toStringAsFixed(2)}'),
-                _row('Descuento', '\$${d.discount.toStringAsFixed(2)}'),
-                _row('IVA (15%)', '\$${d.tax.toStringAsFixed(2)}'),
-                _row('Total', '\$${d.total.toStringAsFixed(2)}', bold: true),
-                if (!isCash) ...[
-                  const Divider(),
-                  _row('Pagado', '\$${d.paidAmount.toStringAsFixed(2)}'),
-                  _row('Saldo', '\$${d.balance.toStringAsFixed(2)}', bold: true, color: ZColors.danger),
-                  if (d.creditId != null)
-                    _row('Crédito', d.creditId!, color: ZColors.info),
-                ],
-                if (d.notes != null && d.notes!.isNotEmpty) ...[
-                  const Divider(),
-                  _row('Notas', d.notes!),
-                ],
+                IconButton(
+                  icon: const Icon(Icons.bolt, size: 20),
+                  tooltip: 'Generar Documento (3 clics)',
+                  onPressed: () => context.push('/documents/quick-generate', extra: {
+                    'entityType': 'sale',
+                    'entityId': widget.saleId,
+                    'entityDisplayName': 'Factura ${d.invoiceNumber}',
+                  }),
+                ),
+                if (d.status == 'completed' || d.status == 'pending')
+                  IconButton(
+                    icon: const Icon(Icons.cancel_outlined, size: 20),
+                    tooltip: 'Anular Venta',
+                    onPressed: () => _cancelSale(),
+                  ),
+                IconButton(
+                  icon: const Icon(Icons.assignment_return, size: 20),
+                  tooltip: 'Nota de Crédito',
+                  onPressed: () async {
+                    final result = await context.push<bool>('/credit-notes/new/${widget.saleId}');
+                    if (result == true) _load();
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.account_balance, size: 20),
+                  tooltip: 'Asientos Contables',
+                  onPressed: () => context.push('/accounting-entries?saleId=${widget.saleId}'),
+                ),
+                PopupMenuButton<String>(
+                  tooltip: 'Más opciones',
+                  icon: const Icon(Icons.more_vert, size: 20),
+                  onSelected: (value) {
+                    if (value == 'qr') {
+                      showQrCodeDialog(context, ref,
+                        title: 'Factura ${d.invoiceNumber}',
+                        number: d.invoiceNumber,
+                        clientName: d.clientName,
+                        total: d.total,
+                        date: d.saleDate,
+                      );
+                    } else if (value == 'share') {
+                      showModalBottomSheet(
+                        context: context,
+                        builder: (_) => PrintShareSheet(
+                          title: 'Factura ${d.invoiceNumber}',
+                          filename: 'factura_${d.invoiceNumber}',
+                          buildPdf: (c, s) => generateSalePdf(sale: d, company: c, settings: s),
+                          buildThermal: (c) => saleThermalHtml(
+                            company: c,
+                            invoiceNumber: d.invoiceNumber,
+                            date: d.saleDate,
+                            clientName: d.clientName,
+                            saleType: d.saleType,
+                            subtotal: d.subtotal,
+                            discount: d.discount,
+                            tax: d.tax,
+                            total: d.total,
+                            paidAmount: d.paidAmount,
+                            balance: d.balance,
+                            status: d.status,
+                            notes: d.notes,
+                            items: d.details.map((i) => {
+                              'productName': i.productName,
+                              'quantity': i.quantity,
+                              'unitPrice': i.unitPrice,
+                              'discount': i.discount,
+                              'subtotal': i.subtotal,
+                            }).toList(),
+                          ),
+                          buildText: (c) => saleTextSummary(
+                            companyName: c['legalName'] as String? ?? c['name'] as String? ?? '',
+                            invoiceNumber: d.invoiceNumber,
+                            date: d.saleDate,
+                            clientName: d.clientName,
+                            total: d.total,
+                            status: d.status,
+                          ),
+                          buildCsv: () async => saleCsvBytes(
+                            companyName: '',
+                            invoiceNumber: d.invoiceNumber,
+                            date: d.saleDate,
+                            clientName: d.clientName,
+                            saleType: d.saleType,
+                            subtotal: d.subtotal,
+                            discount: d.discount,
+                            tax: d.tax,
+                            total: d.total,
+                            paidAmount: d.paidAmount,
+                            balance: d.balance,
+                            status: d.status,
+                            items: d.details.map((i) => {
+                              'productName': i.productName,
+                              'quantity': i.quantity,
+                              'unitPrice': i.unitPrice,
+                              'discount': i.discount,
+                              'subtotal': i.subtotal,
+                            }).toList(),
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(value: 'qr', child: ListTile(leading: Icon(Icons.qr_code), title: Text('Código QR'))),
+                    const PopupMenuItem(value: 'share', child: ListTile(leading: Icon(Icons.share), title: Text('Compartir'))),
+                  ],
+                ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          Text('Productos', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          ...d.details.map((item) => ZCard(
-            padding: const EdgeInsets.all(12),
-            child: Row(
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
               children: [
-                Expanded(
+                ZCard(
+                  padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(item.productName, style: const TextStyle(fontWeight: FontWeight.w600)),
-                      Text('${item.quantity} x \$${item.unitPrice.toStringAsFixed(2)}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                      Row(children: [
+                        Expanded(child: Text(d.clientName, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold))),
+                        ZBadge(text: d.status, type: badgeType),
+                      ]),
+                      const SizedBox(height: 8),
+                      _row('Factura', d.invoiceNumber),
+                      _row('Tipo', isCash ? 'Contado' : 'Crédito'),
+                      _row('Fecha', d.saleDate.length >= 10 ? d.saleDate.substring(0, 10) : d.saleDate),
+                      const Divider(),
+                      _row('Subtotal', '\$${d.subtotal.toStringAsFixed(2)}'),
+                      _row('Descuento', '\$${d.discount.toStringAsFixed(2)}'),
+                      _row('IVA (15%)', '\$${d.tax.toStringAsFixed(2)}'),
+                      _row('Total', '\$${d.total.toStringAsFixed(2)}', bold: true),
+                      if (!isCash) ...[
+                        const Divider(),
+                        _row('Pagado', '\$${d.paidAmount.toStringAsFixed(2)}'),
+                        _row('Saldo', '\$${d.balance.toStringAsFixed(2)}', bold: true, color: ZColors.danger),
+                        if (d.creditId != null)
+                          _row('Crédito', d.creditId!, color: ZColors.info),
+                      ],
+                      if (d.notes != null && d.notes!.isNotEmpty) ...[
+                        const Divider(),
+                        _row('Notas', d.notes!),
+                      ],
                     ],
                   ),
                 ),
-                Text('\$${item.subtotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                Text('Productos', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                ...d.details.map((item) => ZCard(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(item.productName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                            Text('${item.quantity} x \$${item.unitPrice.toStringAsFixed(2)}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                      Text('\$${item.subtotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                )),
               ],
             ),
-          )),
+          ),
         ],
       ),
     );

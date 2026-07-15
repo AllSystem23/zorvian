@@ -117,12 +117,6 @@ class _SalariesPageState extends ConsumerState<SalariesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Salarios'),
-        actions: [
-          IconButton(icon: const Icon(Icons.add), onPressed: _create),
-        ],
-      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _salaries.isEmpty

@@ -15,7 +15,6 @@ class KardexPage extends ConsumerWidget {
     
     return Scaffold(
       backgroundColor: theme.brightness == Brightness.dark ? ZColors.darkBackground : ZColors.neutral50,
-      appBar: AppBar(title: const Text('Kardex - Trazabilidad de Inventario')),
       body: state.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e', style: TextStyle(color: theme.colorScheme.error))),

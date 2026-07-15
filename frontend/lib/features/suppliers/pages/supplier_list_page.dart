@@ -61,7 +61,6 @@ final class _SupplierListPageState extends ConsumerState<SupplierListPage> {
     final theme = Theme.of(context);
     final filtered = _filter(state.items);
     return Scaffold(
-      appBar: AppBar(title: const Text('Proveedores')),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null

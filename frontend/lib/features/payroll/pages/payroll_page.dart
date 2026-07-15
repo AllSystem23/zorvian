@@ -55,16 +55,6 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Nómina'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            tooltip: 'Nuevo periodo',
-            onPressed: () => context.push('/payroll/periods/new'),
-          ),
-        ],
-      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(

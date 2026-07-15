@@ -91,7 +91,6 @@ class _InventoryValuationPageState
       backgroundColor: theme.brightness == Brightness.dark
           ? ZColors.darkBackground
           : ZColors.neutral50,
-      appBar: AppBar(title: const Text('Valoración de Inventario')),
       body: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null

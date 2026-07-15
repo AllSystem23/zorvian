@@ -36,10 +36,6 @@ final class _OverdueDashboardPageState extends ConsumerState<OverdueDashboardPag
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard de Mora'),
-        actions: [IconButton(icon: const Icon(Icons.refresh), onPressed: _load)],
-      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

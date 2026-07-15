@@ -44,7 +44,6 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
 
     return Scaffold(
       backgroundColor: isDark ? ZColors.darkBackground : ZColors.neutral50,
-      appBar: AppBar(title: Text(_run?['periodName'] ?? 'Corrida de Nómina')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _run == null

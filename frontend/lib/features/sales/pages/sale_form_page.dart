@@ -172,7 +172,6 @@ final class _NewSalePageState extends ConsumerState<NewSalePage> {
     final products = ref.watch(productProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Nueva Venta')),
       body: ListView(
         padding: EdgeInsets.all(MediaQuery.of(context).size.width < 576 ? 12 : MediaQuery.of(context).size.width < 992 ? 16 : 24),
         children: [

@@ -33,7 +33,6 @@ final class _PurchaseListPageState extends ConsumerState<PurchaseListPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(purchaseProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Compras')),
       body: ZAsyncRenderer<List<PurchaseItem>>(
         value: state,
         builder: (items) {

@@ -86,7 +86,6 @@ final class _SupplierFormPageState extends ConsumerState<SupplierFormPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(_isEditing ? 'Editar proveedor' : 'Nuevo proveedor')),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(MediaQuery.of(context).size.width < 576 ? 12 : MediaQuery.of(context).size.width < 992 ? 16 : 24),
         child: Form(

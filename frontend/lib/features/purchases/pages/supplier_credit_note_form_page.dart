@@ -70,7 +70,6 @@ class _SupplierCreditNoteFormPageState extends ConsumerState<SupplierCreditNoteF
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Nota de Crédito a Proveedor')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: ZCard(
