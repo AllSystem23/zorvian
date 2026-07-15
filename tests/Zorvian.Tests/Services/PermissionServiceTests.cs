@@ -285,12 +285,14 @@ public sealed class PermissionServiceTests
         var leaveType = MakeLeaveType(code: "PERSONAL", maxPerMonth: 2);
         _employeeRepo.Setup(r => r.GetByIdAsync(_employeeId)).ReturnsAsync(emp);
         _repo.Setup(r => r.GetLeaveTypeByIdAsync(leaveType.Id)).ReturnsAsync(leaveType);
-        _repo.Setup(r => r.GetMonthlyPermissionDaysAsync(_employeeId, leaveType.Id, 2026, 7)).ReturnsAsync(2m);
+
+        var tomorrow = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1));
+        _repo.Setup(r => r.GetMonthlyPermissionDaysAsync(_employeeId, leaveType.Id, tomorrow.Year, tomorrow.Month)).ReturnsAsync(2m);
 
         var request = new CreatePermissionRequest(
             leaveType.Id,
-            new DateOnly(2026, 7, 15),
-            new DateOnly(2026, 7, 16),
+            tomorrow,
+            tomorrow.AddDays(1),
             "Otro asunto", null, null
         );
 
