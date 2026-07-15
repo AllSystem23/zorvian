@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:zorvian/shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
 import '../providers/user_provider.dart';
@@ -87,6 +88,24 @@ class _UserListPageState extends ConsumerState<UserListPage> {
         padding: const EdgeInsets.all(ZSpacing.md),
         child: Column(
           children: [
+            // Header with invite button
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Usuarios',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                ZButton(
+                  text: 'Invitar Usuario',
+                  icon: Icons.person_add_outlined,
+                  fullWidth: false,
+                  onPressed: () => context.push('/admin/invite'),
+                ),
+              ],
+            ),
+            const SizedBox(height: ZSpacing.md),
             Expanded(
               child: ZAsyncRenderer<List<UserModel>>(
                 value: state,

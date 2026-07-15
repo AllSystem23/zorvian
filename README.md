@@ -15,15 +15,15 @@ Zorvian ERP es un sistema ERP moderno multiplataforma construido con **Flutter**
 | **Frontend** | Flutter 3.x (SDK ^3.12.0) · Riverpod 2.x · GoRouter · Material 3 | ✅ Implementado |
 | **Backend** | ASP.NET Core 9 · EF Core 9 · Clean Architecture · FluentValidation | ✅ Implementado |
 | **Base de Datos** | PostgreSQL 16 (Neon) · Row-Level Security (RLS) · 13 migraciones | ✅ Implementado |
-| **Cache** | InMemoryCacheService (ICacheService) · Redis 7 configurado en docker-compose | ⚠️ Contenedor Redis listo, código usa caché en memoria. Migrar a IDistributedCache pendiente |
+| **Cache** | Redis 7 (IDistributedCache) · InMemoryCacheService (fallback automático) | ✅ RedisCacheService con auto-fallback a InMemoryCache cuando Redis no está configurado |
 | **Message Queue** | Hangfire (persistencia PostgreSQL) · RabbitMQ 3.13 via MassTransit | ✅ Hangfire activo. RabbitMQ integrado con MassTransit: 4 consumers (SaleCreated, SaleCancelled, PaymentReceived, EmployeeCreated) con retry policy + circuit breaker |
-| **Auth** | Firebase Auth + JWT (1h access / 7d refresh) · API Keys | ⚠️ MFA backend existe, UI pendiente |
+| **Auth** | Firebase Auth + JWT (1h access / 7d refresh) · API Keys · MFA | ✅ MFA backend + frontend UI (verificación login + configuración con QR local) |
 | **Realtime** | SignalR · WebSocket | ✅ Implementado (NotificationHub) |
 | **Jobs** | Hangfire (15 jobs: 11 recurring + 4 ad-hoc/triggered) | ✅ Jobs distribuidos en Web.Jobs y Application.Jobs |
 | **AI/ML** | ML.NET · Vertex AI (ChatService) · RAG (EmbeddingService) · OCR (OcrService) | ⚠️ XGBoost/pgvector documentados pero no implementados en código |
 | **Docs/PDF** | QuestPDF · ESC/POS · QR · Thermal Printing | ✅ Implementado |
-| **Offline** | SQLite (Drift) · SyncEngine · ConnectivityMonitor | ⚠️ Implementado para productos, pendiente los más módulos |
-| **Observability** | System.Diagnostics.Metrics (API nativa .NET) · Sentry (frontend) | ⚠️ Prometheus/Grafana/OpenTelemetry SDK documentados, pendientes de implementar. MetricsService con Meter/Histogram/Counter funcional |
+| **Offline** | SQLite (Drift) · SyncEngine · ConnectivityMonitor | ✅ Implementado para productos, cotizaciones y créditos (3 repositorios locales) |
+| **Observability** | OpenTelemetry SDK (tracing + metrics + OTLP) · Serilog (console + Elasticsearch + file) · Sentry (frontend) | ✅ OpenTelemetry con instrumentación ASP.NET Core, HTTP, EF Core. Serilog con 3 sinks |
 | **CI/CD** | GitHub Actions (1 pipeline consolidado, 5 jobs) | ✅ Implementado |
 | **Container** | Docker Multi-stage + Docker Compose (6 servicios: postgres, redis, rabbitmq, api, migrate, frontend) | ✅ Implementado |
 | **Edge** | CloudFlare (configuración externa) | ⚠️ Configurado a nivel DNS/WAF, no en código |
@@ -806,9 +806,10 @@ Features__Swagger=false
 - **Validación**: FluentValidation + ValidationFilter global
 - **Encriptación**: `EncryptionInterceptor` (AES-256-GCM) + `EncryptedAttribute`
 - **API Keys**: Middleware dedicado con `ApiKeyService`
-- **MFA**: Backend `MfaService` implementado. UI de frontend pendiente
+- **MFA**: Backend `MfaService` + frontend UI completa (`MfaLoginPage` + `MfaSettingsPage` con QR local)
 - **JWT**: Sin blacklist de tokens revocados actualmente
-- **Elasticsearch**: Pendiente de implementar (logging actualmente con Serilog en consola/archivo)
+- **Elasticsearch**: Integrado via Serilog (solo si `Elasticsearch:Uri` está configurado)
+- **OpenTelemetry**: SDK configurado con tracing (ASP.NET Core, HTTP, EF Core, MassTransit) y métricas, exportador OTLP condicional
 
 ---
 
@@ -841,7 +842,7 @@ k6 run zorvian-load-test.js
 | Accounting Integration | 1 | Accounting |
 | Payroll Integration | 2 | Payroll, Phase7 |
 | **Total Backend** | **93** | |
-| **Frontend Tests** | **22** | Widgets, Providers, Pages, Utils |
+| **Frontend Tests** | **70** | Widgets, Providers, Pages, Utils |
 | **Total General** | **115** | |
 
 ---
@@ -893,7 +894,8 @@ push to master/dev ──┬── backend-build ──┬── deploy-backend 
 - **Storage:** SQLite local via Drift (`app_database.dart`)
 - **Sync Engine:** `SyncEngine` + `SyncOrchestrator` + `SyncJournal`
 - **Connectivity:** `ConnectivityMonitor` (nativo + web)
-- **Repository:** `BaseLocalRepository` + `ProductRepository` (offline-first)
+- **Repositories:** `ProductLocalRepository` + `QuoteLocalRepository` + `CreditLocalRepository` (offline-first para 3 entidades)
+- **Tablas locales:** `ProductsLocal` + `QuotesLocal` + `CreditsLocal` (schema v3)
 
 ---
 

@@ -17,6 +17,7 @@ import '../features/settings/pages/leave_types_page.dart';
 import '../features/settings/pages/leave_type_form_page.dart';
 import '../features/admin/pages/user_list_page.dart';
 import '../features/admin/pages/invite_user_page.dart';
+import '../features/admin/pages/invitation_history_page.dart';
 import '../features/admin/pages/super_admin_companies_page.dart';
 import '../features/admin/pages/subscription_plans_page.dart';
 import '../features/branches/pages/branch_list_page.dart';
@@ -494,6 +495,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/admin/invite',
             name: 'admin-invite',
             builder: (_, _) => const InviteUserPage(),
+          ),
+          GoRoute(
+            path: '/admin/invitations-history',
+            name: 'admin-invitations-history',
+            builder: (_, _) => const InvitationHistoryPage(),
           ),
           GoRoute(
             path: '/admin/companies',

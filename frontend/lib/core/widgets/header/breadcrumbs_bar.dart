@@ -62,6 +62,7 @@ final class BreadcrumbBar extends StatelessWidget {
     'admin': 'Administración',
     'users': 'Usuarios',
     'invite': 'Invitar Usuario',
+    'invitations-history': 'Historial Invitaciones',
     'settings': 'Configuración',
     'branches': 'Sucursales',
     'budgets': 'Presupuestos',

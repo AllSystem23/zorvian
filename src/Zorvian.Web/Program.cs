@@ -295,6 +295,7 @@ if (!mockExternal)
     recurringJobManager.AddOrUpdate<Zorvian.Web.Jobs.FleetExpenseNotificationJob>("fleet-expense-notification", j => j.RunAsync(), "0 8 * * *");
     recurringJobManager.AddOrUpdate<Zorvian.Web.Jobs.HealthCheckJob>("health-check", j => j.RunAsync(), "0 * * * *");
     recurringJobManager.AddOrUpdate<Zorvian.Application.Jobs.WarrantySlaMonitorJob>("warranty-sla-monitor", j => j.RunAsync(), "0 */4 * * *");
+    recurringJobManager.AddOrUpdate<Zorvian.Web.Jobs.InvitationCleanupJob>("invitation-cleanup", j => j.RunAsync(), "0 4 * * *");
 }
 
 app.Run();

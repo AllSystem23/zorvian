@@ -242,6 +242,8 @@ final class NavConfig {
         NavItem(id: 'empresas', label: 'Gestión de Empresas', icon: Icons.business_outlined, route: '/admin/companies', roles: ['SuperAdmin']),
         NavItem(id: 'planes', label: 'Planes de Suscripción', icon: Icons.workspace_premium_outlined, route: '/admin/subscription-plans', roles: ['SuperAdmin']),
         NavItem(id: 'usuarios', label: 'Usuarios y Seguridad', icon: Icons.manage_accounts_outlined, route: '/admin/users'),
+        NavItem(id: 'invitar', label: 'Invitar Usuario', icon: Icons.person_add_outlined, route: '/admin/invite', roles: ['SuperAdmin']),
+        NavItem(id: 'invitaciones-historial', label: 'Historial Invitaciones', icon: Icons.history_outlined, route: '/admin/invitations-history', roles: ['SuperAdmin']),
         NavItem(id: 'sucursales', label: 'Sucursales', icon: Icons.store_outlined, route: '/branches'),
         NavItem(id: 'documental', label: 'Motor Documental', icon: Icons.auto_stories_outlined, route: '/documents'),
         NavItem(id: 'aprobaciones', label: 'Flujos de Aprobación', icon: Icons.fact_check_outlined, route: '/approval-pending'),

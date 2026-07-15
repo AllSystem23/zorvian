@@ -7,4 +7,8 @@ public sealed class Invitation : BaseEntity
     public string Role { get; set; } = "Employee";
     public bool IsUsed { get; set; } = false;
     public DateTime? UsedAt { get; set; }
+    public DateTime? ExpiresAt { get; set; }
+
+    public bool IsExpired => ExpiresAt.HasValue && ExpiresAt.Value < DateTime.UtcNow;
+    public bool IsActive => !IsUsed && !IsExpired;
 }

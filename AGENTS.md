@@ -4,12 +4,12 @@
 - **Frontend**: Flutter 3.x · Riverpod · GoRouter · Material 3
 - **Backend**: ASP.NET Core 9 · EF Core 9 · Clean Architecture · FluentValidation
 - **Database**: PostgreSQL 16 (Neon) · Row-Level Security
-- **Cache**: InMemoryCacheService (ICacheService). Redis 7 contenedor en docker-compose, pendiente migrar a IDistributedCache
+- **Cache**: Redis 7 (RedisCacheService con IDistributedCache + auto-fallback a InMemoryCacheService)
 - **Messaging**: SignalR (NotificationHub) · Hangfire (job scheduler) · **RabbitMQ 3.13 via MassTransit** (4 consumers activos)
 - **Jobs**: Hangfire con persistencia PostgreSQL (15 jobs: 11 recurring + 4 ad-hoc)
-- **Search/Logs**: Serilog (consola/archivo). Elasticsearch NO implementado
-- **Auth**: Firebase Auth + JWT (1h access / 7d refresh). API Keys
-- **Observability**: System.Diagnostics.Metrics (API nativa .NET). Sentry (frontend). Prometheus/Grafana/OpenTelemetry SDK NO implementados
+- **Search/Logs**: Serilog (console + Elasticsearch condicional + file). Elasticsearch integrado via Serilog.Sinks.Elasticsearch
+- **Auth**: Firebase Auth + JWT (1h access / 7d refresh). API Keys. MFA (backend + frontend UI)
+- **Observability**: OpenTelemetry SDK (tracing + metrics + OTLP). Serilog (console + ES + file). Sentry (frontend). Prometheus/Grafana pendientes
 - **AI/ML**: ML.NET · Vertex AI (ChatService) · RAG (EmbeddingService) · OCR (OcrService)
 - **Infra**: Render.com · Firebase Hosting · CloudFlare · Docker
 - **CI/CD**: GitHub Actions (1 workflow: ci-cd.yml, 5 jobs)
@@ -17,14 +17,14 @@
 
 ## Documentación: Lo que NO está en el código (actualizar al implementar)
 - ❌ **CQRS/MediatR** — Mencionado en SPEC.md pero 0 referencias en código
-- ❌ **Elasticsearch** — 0 referencias en código. Solo Serilog implementado
+- ✅ **Elasticsearch** — Integrado via Serilog.Sinks.Elasticsearch (configurable en appsettings.json)
 - ❌ **Prometheus/Grafana** — 0 referencias en código
-- ❌ **OpenTelemetry SDK** — No implementado. Solo MetricsService con System.Diagnostics.Metrics (API nativa .NET)
+- ✅ **OpenTelemetry SDK** — Implementado en OpenTelemetryExtensions.cs (ASP.NET Core, HTTP, EF Core, OTLP exporter)
 - ❌ **XGBoost** — Mencionado en docs pero no implementado en código
 - ❌ **pgvector** — Mencionado en docs pero no implementado en código
-- ⚠️ **Redis como cache** — Contenedor en docker-compose.yml. Código usa InMemoryCacheService con nota de migrar a IDistributedCache
-- ⚠️ **MFA** — `MfaService` existe en backend. Sin UI de frontend
-- ⚠️ **Offline-First** — SyncEngine + Drift implementados para productos. Pendiente扩展到más módulos
+- ✅ **Redis como cache** — RedisCacheService implementado con IDistributedCache + auto-fallback a InMemoryCache
+- ✅ **MFA** — `MfaService` backend + `MfaLoginPage`/`MfaSettingsPage` frontend (qr_flutter para QR local)
+- ✅ **Offline-First** — SyncEngine + Drift implementados para productos, cotizaciones y créditos (3 repositorios locales, schema v3)
 
 ## RabbitMQ / MassTransit — Consumers implementados
 - `SaleCreatedConsumer` — Enqueuea GoalIntegrationService + CommissionService
@@ -123,7 +123,7 @@
 - **Rate limiting**: Configurable via `appsettings.json` pero deshabilitado POR DEFECTO (`"Enabled": false`)
 - **JWT**: 1h access / 7d refresh. NO hay blacklist de tokens revocados
 - **Build status**: `dotnet build` produce 0 errores, 0 warnings ✅
-- **Controllers**: 123 total (85 core + 28 Fleet + 10 Warranty)
+- **Controllers**: 123 total (87 core + 28 Fleet + 8 Warranty)
 - **Application Services**: 134 archivos (no 93 como dice README antiguo)
 - **Flutter Providers**: 76 archivos (no 92 como dice README antiguo)
 - **Repositories**: 113 total (90 core + 23 Fleet)

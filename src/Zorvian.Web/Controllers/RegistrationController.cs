@@ -26,6 +26,8 @@ public sealed class RegistrationController : ControllerBase
     {
         var invitation = await _db.Invitations.FirstOrDefaultAsync(i => i.Code == request.InviteCode && !i.IsUsed);
         if (invitation == null) return BadRequest(new { error = "Código de invitación inválido" });
+        if (invitation.ExpiresAt.HasValue && invitation.ExpiresAt.Value < DateTime.UtcNow)
+            return BadRequest(new { error = "Código de invitación expirado. Solicita uno nuevo." });
 
         // Atomic transaction to register user + employee + link
         using var transaction = await _db.Database.BeginTransactionAsync();
