@@ -40,6 +40,14 @@ public sealed class SupplierCreditNotesController : ControllerBase
     }
 
     [RequirePermission(Permissions.PurchaseRead)]
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        var notes = await _service.GetAllAsync();
+        return Ok(notes);
+    }
+
+    [RequirePermission(Permissions.PurchaseRead)]
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {

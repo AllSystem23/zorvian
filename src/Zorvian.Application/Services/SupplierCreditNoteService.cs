@@ -116,4 +116,15 @@ public sealed class SupplierCreditNoteService
             cn.Subtotal, cn.Tax, cn.Total, cn.Status
         )).ToList();
     }
+
+    public async Task<List<SupplierCreditNoteResponse>> GetAllAsync()
+    {
+        var companyId = _tenant.RequireCompanyId();
+        var notes = await _creditNoteRepo.GetAllAsync(companyId);
+        return notes.Select(cn => new SupplierCreditNoteResponse(
+            cn.Id, cn.CreditNoteNumber, cn.SupplierId, cn.Supplier?.Name ?? "",
+            cn.PurchaseId, cn.CreditNoteDate, cn.Reason,
+            cn.Subtotal, cn.Tax, cn.Total, cn.Status
+        )).ToList();
+    }
 }

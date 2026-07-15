@@ -32,6 +32,13 @@ public sealed class SupplierCreditNoteRepository : ISupplierCreditNoteRepository
             .Where(cn => cn.PurchaseId == purchaseId)
             .ToListAsync();
 
+    public async Task<List<SupplierCreditNote>> GetAllAsync(Guid companyId) =>
+        await _db.Set<SupplierCreditNote>()
+            .Include(cn => cn.Supplier)
+            .Where(cn => cn.CompanyId == companyId)
+            .OrderByDescending(cn => cn.CreditNoteDate)
+            .ToListAsync();
+
     public async Task<string> GenerateCreditNoteNumberAsync(Guid companyId)
     {
         var count = await _db.Set<SupplierCreditNote>().CountAsync(cn => cn.CompanyId == companyId);
