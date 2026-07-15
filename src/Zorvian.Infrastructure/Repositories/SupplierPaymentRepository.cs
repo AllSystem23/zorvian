@@ -25,6 +25,13 @@ public sealed class SupplierPaymentRepository : ISupplierPaymentRepository
             .OrderByDescending(p => p.PaymentDate)
             .ToListAsync();
 
+    public async Task<List<SupplierPayment>> GetAllAsync(Guid companyId) =>
+        await _db.Set<SupplierPayment>()
+            .Include(p => p.Purchase)
+            .Where(p => p.CompanyId == companyId)
+            .OrderByDescending(p => p.PaymentDate)
+            .ToListAsync();
+
     public async Task AddAsync(SupplierPayment payment) =>
         await _db.Set<SupplierPayment>().AddAsync(payment);
 

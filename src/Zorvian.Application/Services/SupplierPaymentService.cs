@@ -79,4 +79,14 @@ public sealed class SupplierPaymentService
             p.PaymentMethod, p.ReferenceNumber, p.PaymentDate, p.Notes
         )).ToList();
     }
+
+    public async Task<List<SupplierPaymentResponse>> GetAllAsync()
+    {
+        var companyId = _tenant.RequireCompanyId();
+        var payments = await _paymentRepo.GetAllAsync(companyId);
+        return payments.Select(p => new SupplierPaymentResponse(
+            p.Id, p.PurchaseId, p.Purchase?.PurchaseNumber ?? "", p.Amount,
+            p.PaymentMethod, p.ReferenceNumber, p.PaymentDate, p.Notes
+        )).ToList();
+    }
 }

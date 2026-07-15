@@ -36,6 +36,14 @@ public sealed class SupplierPaymentsController : ControllerBase
     }
 
     [RequirePermission(Permissions.PurchaseRead)]
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        var payments = await _service.GetAllAsync();
+        return Ok(payments);
+    }
+
+    [RequirePermission(Permissions.PurchaseRead)]
     [HttpGet("by-purchase/{purchaseId:guid}")]
     public async Task<IActionResult> GetByPurchaseId(Guid purchaseId)
     {
