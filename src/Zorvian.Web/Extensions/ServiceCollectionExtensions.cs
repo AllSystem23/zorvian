@@ -318,7 +318,11 @@ public static class ServiceCollectionExtensions
             busConfig.AddConsumer<PaymentReceivedConsumer>();
             busConfig.AddConsumer<EmployeeCreatedConsumer>();
 
-            if (mockExternal)
+            var rabbitEnabled = configuration.GetValue<bool>("RabbitMQ:Enabled");
+            var host = configuration["RabbitMQ:Host"] ?? "localhost";
+            var useInMemory = mockExternal || !rabbitEnabled || string.IsNullOrWhiteSpace(host);
+
+            if (useInMemory)
             {
                 busConfig.UsingInMemory((context, cfg) =>
                 {
@@ -327,7 +331,6 @@ public static class ServiceCollectionExtensions
             }
             else
             {
-                var host = configuration["RabbitMQ:Host"] ?? "localhost";
                 var portRaw = configuration["RabbitMQ:Port"] ?? "5672";
                 if (!ushort.TryParse(portRaw, out var port))
                     port = 5672;

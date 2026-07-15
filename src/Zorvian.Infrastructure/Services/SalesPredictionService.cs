@@ -17,7 +17,11 @@ public sealed class SalesPredictionService
 
     public void Train(IEnumerable<SalesData> trainingData)
     {
-        var dataView = _mlContext.Data.LoadFromEnumerable(trainingData);
+        var dataList = trainingData.ToList();
+        if (dataList.Count < 20)
+            return;
+
+        var dataView = _mlContext.Data.LoadFromEnumerable(dataList);
         var pipeline = _mlContext.Transforms.Concatenate("Features",
             nameof(SalesData.DayOfWeek),
             nameof(SalesData.Month),
@@ -31,7 +35,7 @@ public sealed class SalesPredictionService
                 labelColumnName: "Label",
                 numberOfLeaves: 20,
                 numberOfTrees: 100,
-                minimumExampleCountPerLeaf: 5));
+                minimumExampleCountPerLeaf: 2));
 
         _model = pipeline.Fit(dataView);
         _mlContext.Model.Save(_model, dataView.Schema, ModelPath);

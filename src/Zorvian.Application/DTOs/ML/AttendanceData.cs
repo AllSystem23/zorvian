@@ -6,7 +6,7 @@ public sealed class AttendanceData
     public float Month { get; set; }
     public float IsHoliday { get; set; }
     public float PreviousAbsenceCount { get; set; }
-    public float Label { get; set; } // 1 for absent, 0 for present
+    public bool Label { get; set; } // true = absent, false = present
 }
 
 public sealed class AttendancePrediction

@@ -38,8 +38,11 @@ public sealed class AbsenteeismTrainingJob
             Month = (float)r.Date.Month,
             IsHoliday = 0,
             PreviousAbsenceCount = (float)(absenceCounts.GetValueOrDefault(r.EmployeeId, 0)),
-            Label = r.Status != "present" ? 1 : 0
+            Label = r.Status != "present"
         }).ToList();
+
+        if (trainingData.Count < 10)
+            return;
 
         _mlService.Train(trainingData);
     }

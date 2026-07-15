@@ -16,7 +16,11 @@ public sealed class AbsenteeismPredictionService
 
     public void Train(IEnumerable<AttendanceData> trainingData)
     {
-        var dataView = _mlContext.Data.LoadFromEnumerable(trainingData);
+        var dataList = trainingData.ToList();
+        if (dataList.Count < 10)
+            return;
+
+        var dataView = _mlContext.Data.LoadFromEnumerable(dataList);
         var pipeline = _mlContext.Transforms.Concatenate("Features", 
             nameof(AttendanceData.DayOfWeek), 
             nameof(AttendanceData.Month), 
