@@ -8,6 +8,7 @@ import 'app_database.dart';
 import 'base_local_repository.dart';
 import '../../features/products/data/product_local_repository.dart';
 import '../../features/quotes/data/quote_local_repository.dart';
+import '../../features/credits/data/credit_local_repository.dart';
 
 class SyncEngine {
   final AppDatabase _db;
@@ -118,6 +119,7 @@ final syncEngineProvider = Provider<SyncEngine>((ref) {
   final engine = SyncEngine(db, dio);
   engine.registerRepository('Product', ProductLocalRepository(db));
   engine.registerRepository('Quote', QuoteLocalRepository(db));
+  engine.registerRepository('Credit', CreditLocalRepository(db));
   return engine;
 });
 

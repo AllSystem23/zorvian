@@ -24,6 +24,20 @@ class ProductsLocal extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+class CreditsLocal extends Table {
+  TextColumn get id => text()();
+  TextColumn get creditNumber => text()();
+  TextColumn get clientName => text()();
+  RealColumn get totalAmount => real()();
+  RealColumn get pendingAmount => real()();
+  TextColumn get status => text()();
+  DateTimeColumn get dueDate => dateTime()();
+  IntColumn get updatedAt => integer()(); // Unix timestamp
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 class PendingMutations extends Table {
   TextColumn get id => text()();
   TextColumn get entity => text()();
@@ -58,19 +72,22 @@ class QuotesLocal extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [ProductsLocal, QuotesLocal, PendingMutations, SyncState])
+@DriftDatabase(tables: [ProductsLocal, QuotesLocal, CreditsLocal, PendingMutations, SyncState])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(openConnection());
   AppDatabase.forTesting(super.connection);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onUpgrade: (m, from, to) async {
       if (from < 2) {
         await m.addColumn(productsLocal, productsLocal.barcode);
+      }
+      if (from < 3) {
+        await m.createTable(creditsLocal);
       }
     },
   );
@@ -152,6 +169,33 @@ class AppDatabase extends _$AppDatabase {
 
   Future<ProductsLocalData?> getProductById(String id) async {
     return await (select(productsLocal)..where((t) => t.id.equals(id))).getSingleOrNull();
+  }
+
+  // ── Credits offline ──
+  Future<void> upsertCredit(Map<String, dynamic> json) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await into(creditsLocal).insertOnConflictUpdate(CreditsLocalCompanion(
+      id: Value(json['id'] as String),
+      creditNumber: Value(json['creditNumber'] as String? ?? ''),
+      clientName: Value(json['clientName'] as String? ?? ''),
+      totalAmount: Value((json['totalAmount'] as num? ?? 0).toDouble()),
+      pendingAmount: Value((json['pendingAmount'] as num? ?? json['totalAmount'] as num? ?? 0).toDouble()),
+      status: Value(json['status'] as String? ?? 'active'),
+      dueDate: Value(json['dueDate'] != null ? DateTime.parse(json['dueDate'] as String) : DateTime.now()),
+      updatedAt: Value(now),
+    ));
+  }
+
+  Future<void> deleteCredit(String id) async {
+    await (delete(creditsLocal)..where((t) => t.id.equals(id))).go();
+  }
+
+  Future<List<CreditsLocalData>> getAllCredits() async {
+    return await select(creditsLocal).get();
+  }
+
+  Future<CreditsLocalData?> getCreditById(String id) async {
+    return await (select(creditsLocal)..where((t) => t.id.equals(id))).getSingleOrNull();
   }
 
   Future<List<String>> getAllTrackedEntities() async {

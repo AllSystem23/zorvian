@@ -1,10 +1,12 @@
 using System.Collections.Concurrent;
+using System.Text.Json;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace Zorvian.Web.Extensions;
 
 /// <summary>
-/// In-memory cache service with TTL support.
-/// For production, replace with Redis (IDistributedCache).
+/// Abstraction for caching with TTL support.
+/// Implementation auto-selects between Redis and InMemory based on configuration.
 /// </summary>
 public interface ICacheService
 {
@@ -17,7 +19,102 @@ public interface ICacheService
 }
 
 /// <summary>
-/// In-memory implementation of ICacheService with automatic cleanup
+/// Redis-backed distributed cache using IDistributedCache (StackExchange.Redis).
+/// Falls back gracefully if Redis is unavailable.
+/// </summary>
+public class RedisCacheService : ICacheService
+{
+    private readonly IDistributedCache _distributed;
+    private readonly ILogger<RedisCacheService> _logger;
+    private readonly TimeSpan _defaultTtl;
+
+    public RedisCacheService(IDistributedCache distributed, ILogger<RedisCacheService> logger, TimeSpan? defaultTtl = null)
+    {
+        _distributed = distributed;
+        _logger = logger;
+        _defaultTtl = defaultTtl ?? TimeSpan.FromMinutes(15);
+    }
+
+    public async Task<T?> GetAsync<T>(string key)
+    {
+        try
+        {
+            var bytes = await _distributed.GetAsync(key);
+            if (bytes is null) return default;
+            var json = System.Text.Encoding.UTF8.GetString(bytes);
+            return JsonSerializer.Deserialize<T>(json);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Redis GET failed for key {Key}, falling back to null", key);
+            return default;
+        }
+    }
+
+    public async Task SetAsync<T>(string key, T value, TimeSpan? ttl = null)
+    {
+        try
+        {
+            var json = JsonSerializer.Serialize(value);
+            var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+            var options = new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = ttl ?? _defaultTtl
+            };
+            await _distributed.SetAsync(key, bytes, options);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Redis SET failed for key {Key}", key);
+        }
+    }
+
+    public async Task RemoveAsync(string key)
+    {
+        try
+        {
+            await _distributed.RemoveAsync(key);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Redis REMOVE failed for key {Key}", key);
+        }
+    }
+
+    public async Task<bool> ExistsAsync(string key)
+    {
+        try
+        {
+            var bytes = await _distributed.GetAsync(key);
+            return bytes is not null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Redis EXISTS check failed for key {Key}", key);
+            return false;
+        }
+    }
+
+    public async Task ClearAsync()
+    {
+        // IDistributedCache doesn't have a global clear — log that it's a no-op
+        _logger.LogInformation("Redis CLEAR called — no-op (use Redis FLUSHDB for full clear)");
+        await Task.CompletedTask;
+    }
+
+    public async Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> factory, TimeSpan? ttl = null)
+    {
+        var cached = await GetAsync<T>(key);
+        if (cached is not null) return cached;
+        var value = await factory();
+        if (value is not null) await SetAsync(key, value, ttl);
+        return value!;
+    }
+}
+
+/// <summary>
+/// In-memory implementation of ICacheService with automatic cleanup.
+/// Used as fallback when Redis is not configured.
 /// </summary>
 public class InMemoryCacheService : ICacheService
 {

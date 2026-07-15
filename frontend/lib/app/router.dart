@@ -29,6 +29,7 @@ import '../features/employees/pages/employee_list_page.dart';
 import '../features/login/register_page.dart';
 import '../features/login/login_page.dart';
 import '../features/login/forgot_password_page.dart';
+import '../features/mfa/mfa_page.dart';
 import '../features/vacations/pages/vacation_detail_page.dart';
 import '../features/vacations/pages/vacation_form_page.dart';
 import '../features/vacations/pages/vacation_list_page.dart';
@@ -302,6 +303,10 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       final isPublicRoute = location == '/warranties/track';
 
+      if (status == AuthStatus.mfaRequired && !location.startsWith('/mfa')) {
+        return '/mfa-login';
+      }
+
       if (status == AuthStatus.unauthenticated && !isLoginRoute && !isPublicRoute) {
         return '/login';
       }
@@ -344,6 +349,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/forgot-password',
         name: 'forgot-password',
         builder: (_, _) => const ForgotPasswordPage(),
+      ),
+      GoRoute(
+        path: '/mfa-login',
+        name: 'mfa-login',
+        builder: (_, state) => MfaLoginPage(mfaToken: (state.extra as String?) ?? ''),
+      ),
+      GoRoute(
+        path: '/mfa-settings',
+        name: 'mfa-settings',
+        builder: (_, _) => const MfaSettingsPage(),
       ),
       GoRoute(
         path: '/onboarding',

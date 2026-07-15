@@ -7,6 +7,9 @@ using Zorvian.Web.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ── Serilog ──
+builder.Host.UseZorvianSerilog(builder.Configuration);
+
 var mockExternal = builder.Configuration.GetValue<bool>("Testing:MockExternalServices");
 
 // ── Firebase ──
@@ -79,6 +82,28 @@ builder.Services.AddZorvianCors(builder.Configuration);
 
 // ── Swagger ──
 builder.Services.AddZorvianSwagger();
+
+// ── Redis Distributed Cache ──
+var redisConnection = builder.Configuration["Redis:Connection"];
+if (!string.IsNullOrEmpty(redisConnection))
+{
+    builder.Services.AddStackExchangeRedisCache(options =>
+    {
+        options.Configuration = redisConnection;
+        options.InstanceName = builder.Configuration["Redis:InstanceName"] ?? "zorvian_";
+    });
+    builder.Services.AddSingleton<ICacheService, RedisCacheService>();
+    builder.Services.AddHealthChecks().AddRedis(redisConnection, name: "redis");
+    Console.WriteLine("[Startup] Redis distributed cache enabled");
+}
+else
+{
+    builder.Services.AddSingleton<ICacheService, InMemoryCacheService>();
+    Console.WriteLine("[Startup] In-memory cache (Redis not configured)");
+}
+
+// ── OpenTelemetry ──
+builder.Services.AddZorvianOpenTelemetry(builder.Configuration);
 
 // ══════════════════════════════════════════════
 // Build

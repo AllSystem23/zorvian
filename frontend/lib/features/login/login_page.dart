@@ -233,11 +233,17 @@ class _LoginFormState extends ConsumerState<LoginForm> {
     });
 
     try {
-      final success = await ref.read(authProvider.notifier).loginWithPassword(
+      await ref.read(authProvider.notifier).loginWithPassword(
             _emailController.text.trim(),
             _passwordController.text,
           );
-      if (success) {
+      if (!mounted) return;
+      final authState = ref.read(authProvider);
+      if (authState.status == AuthStatus.mfaRequired) {
+        context.push('/mfa-login', extra: authState.mfaToken);
+        return;
+      }
+      if (authState.status == AuthStatus.authenticated) {
         final storage = ref.read(secureStorageProvider);
         if (_rememberMe) {
           await storage.saveRememberedCredentials(
@@ -247,8 +253,8 @@ class _LoginFormState extends ConsumerState<LoginForm> {
         } else {
           await storage.clearRememberedCredentials();
         }
-      } else if (mounted) {
-        setState(() => _error = 'Error al conectar con el servidor');
+      } else {
+        setState(() => _error = 'Credenciales incorrectas');
       }
     } catch (e) {
       if (mounted) {

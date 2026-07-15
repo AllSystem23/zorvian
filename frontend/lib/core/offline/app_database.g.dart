@@ -1269,6 +1269,534 @@ class QuotesLocalCompanion extends UpdateCompanion<QuotesLocalData> {
   }
 }
 
+class $CreditsLocalTable extends CreditsLocal
+    with TableInfo<$CreditsLocalTable, CreditsLocalData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CreditsLocalTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _creditNumberMeta = const VerificationMeta(
+    'creditNumber',
+  );
+  @override
+  late final GeneratedColumn<String> creditNumber = GeneratedColumn<String>(
+    'credit_number',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _clientNameMeta = const VerificationMeta(
+    'clientName',
+  );
+  @override
+  late final GeneratedColumn<String> clientName = GeneratedColumn<String>(
+    'client_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _totalAmountMeta = const VerificationMeta(
+    'totalAmount',
+  );
+  @override
+  late final GeneratedColumn<double> totalAmount = GeneratedColumn<double>(
+    'total_amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _pendingAmountMeta = const VerificationMeta(
+    'pendingAmount',
+  );
+  @override
+  late final GeneratedColumn<double> pendingAmount = GeneratedColumn<double>(
+    'pending_amount',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dueDateMeta = const VerificationMeta(
+    'dueDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> dueDate = GeneratedColumn<DateTime>(
+    'due_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    creditNumber,
+    clientName,
+    totalAmount,
+    pendingAmount,
+    status,
+    dueDate,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'credits_local';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CreditsLocalData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('credit_number')) {
+      context.handle(
+        _creditNumberMeta,
+        creditNumber.isAcceptableOrUnknown(
+          data['credit_number']!,
+          _creditNumberMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_creditNumberMeta);
+    }
+    if (data.containsKey('client_name')) {
+      context.handle(
+        _clientNameMeta,
+        clientName.isAcceptableOrUnknown(data['client_name']!, _clientNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_clientNameMeta);
+    }
+    if (data.containsKey('total_amount')) {
+      context.handle(
+        _totalAmountMeta,
+        totalAmount.isAcceptableOrUnknown(
+          data['total_amount']!,
+          _totalAmountMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_totalAmountMeta);
+    }
+    if (data.containsKey('pending_amount')) {
+      context.handle(
+        _pendingAmountMeta,
+        pendingAmount.isAcceptableOrUnknown(
+          data['pending_amount']!,
+          _pendingAmountMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_pendingAmountMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('due_date')) {
+      context.handle(
+        _dueDateMeta,
+        dueDate.isAcceptableOrUnknown(data['due_date']!, _dueDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dueDateMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CreditsLocalData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CreditsLocalData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      creditNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}credit_number'],
+      )!,
+      clientName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}client_name'],
+      )!,
+      totalAmount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}total_amount'],
+      )!,
+      pendingAmount: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}pending_amount'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      dueDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}due_date'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $CreditsLocalTable createAlias(String alias) {
+    return $CreditsLocalTable(attachedDatabase, alias);
+  }
+}
+
+class CreditsLocalData extends DataClass
+    implements Insertable<CreditsLocalData> {
+  final String id;
+  final String creditNumber;
+  final String clientName;
+  final double totalAmount;
+  final double pendingAmount;
+  final String status;
+  final DateTime dueDate;
+  final int updatedAt;
+  const CreditsLocalData({
+    required this.id,
+    required this.creditNumber,
+    required this.clientName,
+    required this.totalAmount,
+    required this.pendingAmount,
+    required this.status,
+    required this.dueDate,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['credit_number'] = Variable<String>(creditNumber);
+    map['client_name'] = Variable<String>(clientName);
+    map['total_amount'] = Variable<double>(totalAmount);
+    map['pending_amount'] = Variable<double>(pendingAmount);
+    map['status'] = Variable<String>(status);
+    map['due_date'] = Variable<DateTime>(dueDate);
+    map['updated_at'] = Variable<int>(updatedAt);
+    return map;
+  }
+
+  CreditsLocalCompanion toCompanion(bool nullToAbsent) {
+    return CreditsLocalCompanion(
+      id: Value(id),
+      creditNumber: Value(creditNumber),
+      clientName: Value(clientName),
+      totalAmount: Value(totalAmount),
+      pendingAmount: Value(pendingAmount),
+      status: Value(status),
+      dueDate: Value(dueDate),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory CreditsLocalData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CreditsLocalData(
+      id: serializer.fromJson<String>(json['id']),
+      creditNumber: serializer.fromJson<String>(json['creditNumber']),
+      clientName: serializer.fromJson<String>(json['clientName']),
+      totalAmount: serializer.fromJson<double>(json['totalAmount']),
+      pendingAmount: serializer.fromJson<double>(json['pendingAmount']),
+      status: serializer.fromJson<String>(json['status']),
+      dueDate: serializer.fromJson<DateTime>(json['dueDate']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'creditNumber': serializer.toJson<String>(creditNumber),
+      'clientName': serializer.toJson<String>(clientName),
+      'totalAmount': serializer.toJson<double>(totalAmount),
+      'pendingAmount': serializer.toJson<double>(pendingAmount),
+      'status': serializer.toJson<String>(status),
+      'dueDate': serializer.toJson<DateTime>(dueDate),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+    };
+  }
+
+  CreditsLocalData copyWith({
+    String? id,
+    String? creditNumber,
+    String? clientName,
+    double? totalAmount,
+    double? pendingAmount,
+    String? status,
+    DateTime? dueDate,
+    int? updatedAt,
+  }) => CreditsLocalData(
+    id: id ?? this.id,
+    creditNumber: creditNumber ?? this.creditNumber,
+    clientName: clientName ?? this.clientName,
+    totalAmount: totalAmount ?? this.totalAmount,
+    pendingAmount: pendingAmount ?? this.pendingAmount,
+    status: status ?? this.status,
+    dueDate: dueDate ?? this.dueDate,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  CreditsLocalData copyWithCompanion(CreditsLocalCompanion data) {
+    return CreditsLocalData(
+      id: data.id.present ? data.id.value : this.id,
+      creditNumber: data.creditNumber.present
+          ? data.creditNumber.value
+          : this.creditNumber,
+      clientName: data.clientName.present
+          ? data.clientName.value
+          : this.clientName,
+      totalAmount: data.totalAmount.present
+          ? data.totalAmount.value
+          : this.totalAmount,
+      pendingAmount: data.pendingAmount.present
+          ? data.pendingAmount.value
+          : this.pendingAmount,
+      status: data.status.present ? data.status.value : this.status,
+      dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CreditsLocalData(')
+          ..write('id: $id, ')
+          ..write('creditNumber: $creditNumber, ')
+          ..write('clientName: $clientName, ')
+          ..write('totalAmount: $totalAmount, ')
+          ..write('pendingAmount: $pendingAmount, ')
+          ..write('status: $status, ')
+          ..write('dueDate: $dueDate, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    creditNumber,
+    clientName,
+    totalAmount,
+    pendingAmount,
+    status,
+    dueDate,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CreditsLocalData &&
+          other.id == this.id &&
+          other.creditNumber == this.creditNumber &&
+          other.clientName == this.clientName &&
+          other.totalAmount == this.totalAmount &&
+          other.pendingAmount == this.pendingAmount &&
+          other.status == this.status &&
+          other.dueDate == this.dueDate &&
+          other.updatedAt == this.updatedAt);
+}
+
+class CreditsLocalCompanion extends UpdateCompanion<CreditsLocalData> {
+  final Value<String> id;
+  final Value<String> creditNumber;
+  final Value<String> clientName;
+  final Value<double> totalAmount;
+  final Value<double> pendingAmount;
+  final Value<String> status;
+  final Value<DateTime> dueDate;
+  final Value<int> updatedAt;
+  final Value<int> rowid;
+  const CreditsLocalCompanion({
+    this.id = const Value.absent(),
+    this.creditNumber = const Value.absent(),
+    this.clientName = const Value.absent(),
+    this.totalAmount = const Value.absent(),
+    this.pendingAmount = const Value.absent(),
+    this.status = const Value.absent(),
+    this.dueDate = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CreditsLocalCompanion.insert({
+    required String id,
+    required String creditNumber,
+    required String clientName,
+    required double totalAmount,
+    required double pendingAmount,
+    required String status,
+    required DateTime dueDate,
+    required int updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       creditNumber = Value(creditNumber),
+       clientName = Value(clientName),
+       totalAmount = Value(totalAmount),
+       pendingAmount = Value(pendingAmount),
+       status = Value(status),
+       dueDate = Value(dueDate),
+       updatedAt = Value(updatedAt);
+  static Insertable<CreditsLocalData> custom({
+    Expression<String>? id,
+    Expression<String>? creditNumber,
+    Expression<String>? clientName,
+    Expression<double>? totalAmount,
+    Expression<double>? pendingAmount,
+    Expression<String>? status,
+    Expression<DateTime>? dueDate,
+    Expression<int>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (creditNumber != null) 'credit_number': creditNumber,
+      if (clientName != null) 'client_name': clientName,
+      if (totalAmount != null) 'total_amount': totalAmount,
+      if (pendingAmount != null) 'pending_amount': pendingAmount,
+      if (status != null) 'status': status,
+      if (dueDate != null) 'due_date': dueDate,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CreditsLocalCompanion copyWith({
+    Value<String>? id,
+    Value<String>? creditNumber,
+    Value<String>? clientName,
+    Value<double>? totalAmount,
+    Value<double>? pendingAmount,
+    Value<String>? status,
+    Value<DateTime>? dueDate,
+    Value<int>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return CreditsLocalCompanion(
+      id: id ?? this.id,
+      creditNumber: creditNumber ?? this.creditNumber,
+      clientName: clientName ?? this.clientName,
+      totalAmount: totalAmount ?? this.totalAmount,
+      pendingAmount: pendingAmount ?? this.pendingAmount,
+      status: status ?? this.status,
+      dueDate: dueDate ?? this.dueDate,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (creditNumber.present) {
+      map['credit_number'] = Variable<String>(creditNumber.value);
+    }
+    if (clientName.present) {
+      map['client_name'] = Variable<String>(clientName.value);
+    }
+    if (totalAmount.present) {
+      map['total_amount'] = Variable<double>(totalAmount.value);
+    }
+    if (pendingAmount.present) {
+      map['pending_amount'] = Variable<double>(pendingAmount.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (dueDate.present) {
+      map['due_date'] = Variable<DateTime>(dueDate.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CreditsLocalCompanion(')
+          ..write('id: $id, ')
+          ..write('creditNumber: $creditNumber, ')
+          ..write('clientName: $clientName, ')
+          ..write('totalAmount: $totalAmount, ')
+          ..write('pendingAmount: $pendingAmount, ')
+          ..write('status: $status, ')
+          ..write('dueDate: $dueDate, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $PendingMutationsTable extends PendingMutations
     with TableInfo<$PendingMutationsTable, PendingMutation> {
   @override
@@ -2016,6 +2544,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $ProductsLocalTable productsLocal = $ProductsLocalTable(this);
   late final $QuotesLocalTable quotesLocal = $QuotesLocalTable(this);
+  late final $CreditsLocalTable creditsLocal = $CreditsLocalTable(this);
   late final $PendingMutationsTable pendingMutations = $PendingMutationsTable(
     this,
   );
@@ -2027,6 +2556,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     productsLocal,
     quotesLocal,
+    creditsLocal,
     pendingMutations,
     syncState,
   ];
@@ -2653,6 +3183,271 @@ typedef $$QuotesLocalTableProcessedTableManager =
       QuotesLocalData,
       PrefetchHooks Function()
     >;
+typedef $$CreditsLocalTableCreateCompanionBuilder =
+    CreditsLocalCompanion Function({
+      required String id,
+      required String creditNumber,
+      required String clientName,
+      required double totalAmount,
+      required double pendingAmount,
+      required String status,
+      required DateTime dueDate,
+      required int updatedAt,
+      Value<int> rowid,
+    });
+typedef $$CreditsLocalTableUpdateCompanionBuilder =
+    CreditsLocalCompanion Function({
+      Value<String> id,
+      Value<String> creditNumber,
+      Value<String> clientName,
+      Value<double> totalAmount,
+      Value<double> pendingAmount,
+      Value<String> status,
+      Value<DateTime> dueDate,
+      Value<int> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$CreditsLocalTableFilterComposer
+    extends Composer<_$AppDatabase, $CreditsLocalTable> {
+  $$CreditsLocalTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get creditNumber => $composableBuilder(
+    column: $table.creditNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get clientName => $composableBuilder(
+    column: $table.clientName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get totalAmount => $composableBuilder(
+    column: $table.totalAmount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get pendingAmount => $composableBuilder(
+    column: $table.pendingAmount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get dueDate => $composableBuilder(
+    column: $table.dueDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CreditsLocalTableOrderingComposer
+    extends Composer<_$AppDatabase, $CreditsLocalTable> {
+  $$CreditsLocalTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get creditNumber => $composableBuilder(
+    column: $table.creditNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get clientName => $composableBuilder(
+    column: $table.clientName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get totalAmount => $composableBuilder(
+    column: $table.totalAmount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get pendingAmount => $composableBuilder(
+    column: $table.pendingAmount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get dueDate => $composableBuilder(
+    column: $table.dueDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CreditsLocalTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CreditsLocalTable> {
+  $$CreditsLocalTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get creditNumber => $composableBuilder(
+    column: $table.creditNumber,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get clientName => $composableBuilder(
+    column: $table.clientName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get totalAmount => $composableBuilder(
+    column: $table.totalAmount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get pendingAmount => $composableBuilder(
+    column: $table.pendingAmount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get dueDate =>
+      $composableBuilder(column: $table.dueDate, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$CreditsLocalTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CreditsLocalTable,
+          CreditsLocalData,
+          $$CreditsLocalTableFilterComposer,
+          $$CreditsLocalTableOrderingComposer,
+          $$CreditsLocalTableAnnotationComposer,
+          $$CreditsLocalTableCreateCompanionBuilder,
+          $$CreditsLocalTableUpdateCompanionBuilder,
+          (
+            CreditsLocalData,
+            BaseReferences<_$AppDatabase, $CreditsLocalTable, CreditsLocalData>,
+          ),
+          CreditsLocalData,
+          PrefetchHooks Function()
+        > {
+  $$CreditsLocalTableTableManager(_$AppDatabase db, $CreditsLocalTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CreditsLocalTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CreditsLocalTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CreditsLocalTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> creditNumber = const Value.absent(),
+                Value<String> clientName = const Value.absent(),
+                Value<double> totalAmount = const Value.absent(),
+                Value<double> pendingAmount = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<DateTime> dueDate = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CreditsLocalCompanion(
+                id: id,
+                creditNumber: creditNumber,
+                clientName: clientName,
+                totalAmount: totalAmount,
+                pendingAmount: pendingAmount,
+                status: status,
+                dueDate: dueDate,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String creditNumber,
+                required String clientName,
+                required double totalAmount,
+                required double pendingAmount,
+                required String status,
+                required DateTime dueDate,
+                required int updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => CreditsLocalCompanion.insert(
+                id: id,
+                creditNumber: creditNumber,
+                clientName: clientName,
+                totalAmount: totalAmount,
+                pendingAmount: pendingAmount,
+                status: status,
+                dueDate: dueDate,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CreditsLocalTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CreditsLocalTable,
+      CreditsLocalData,
+      $$CreditsLocalTableFilterComposer,
+      $$CreditsLocalTableOrderingComposer,
+      $$CreditsLocalTableAnnotationComposer,
+      $$CreditsLocalTableCreateCompanionBuilder,
+      $$CreditsLocalTableUpdateCompanionBuilder,
+      (
+        CreditsLocalData,
+        BaseReferences<_$AppDatabase, $CreditsLocalTable, CreditsLocalData>,
+      ),
+      CreditsLocalData,
+      PrefetchHooks Function()
+    >;
 typedef $$PendingMutationsTableCreateCompanionBuilder =
     PendingMutationsCompanion Function({
       required String id,
@@ -3073,6 +3868,8 @@ class $AppDatabaseManager {
       $$ProductsLocalTableTableManager(_db, _db.productsLocal);
   $$QuotesLocalTableTableManager get quotesLocal =>
       $$QuotesLocalTableTableManager(_db, _db.quotesLocal);
+  $$CreditsLocalTableTableManager get creditsLocal =>
+      $$CreditsLocalTableTableManager(_db, _db.creditsLocal);
   $$PendingMutationsTableTableManager get pendingMutations =>
       $$PendingMutationsTableTableManager(_db, _db.pendingMutations);
   $$SyncStateTableTableManager get syncState =>

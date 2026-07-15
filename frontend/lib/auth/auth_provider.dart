@@ -28,7 +28,7 @@ final dioClientProvider = Provider<DioClient>((ref) {
   );
 });
 
-enum AuthStatus { unknown, authenticated, unauthenticated }
+enum AuthStatus { unknown, authenticated, unauthenticated, mfaRequired }
 
 class AuthState {
   final AuthStatus status;
@@ -39,6 +39,7 @@ class AuthState {
   final String? tenantId;
   final String? employeeId;
   final String currencyCode;
+  final String? mfaToken;
 
   const AuthState({
     this.status = AuthStatus.unknown,
@@ -49,6 +50,7 @@ class AuthState {
     this.tenantId,
     this.employeeId,
     this.currencyCode = 'NIO',
+    this.mfaToken,
   });
 
   AuthState copyWith({
@@ -60,6 +62,7 @@ class AuthState {
     String? tenantId,
     String? employeeId,
     String? currencyCode,
+    String? mfaToken,
   }) => AuthState(
     status: status ?? this.status,
     userId: userId ?? this.userId,
@@ -69,6 +72,7 @@ class AuthState {
     tenantId: tenantId ?? this.tenantId,
     employeeId: employeeId ?? this.employeeId,
     currencyCode: currencyCode ?? this.currencyCode,
+    mfaToken: mfaToken ?? this.mfaToken,
   );
 }
 
@@ -114,8 +118,57 @@ class AuthNotifier extends Notifier<AuthState> {
         data: {'email': email, 'password': password},
       );
 
+      final body = response.data;
+
+      // Check if MFA is required (API returns at top level: { mfa_required: true, mfa_token: "..." })
+      if (body['mfa_required'] == true) {
+        state = state.copyWith(
+          status: AuthStatus.mfaRequired,
+          mfaToken: body['mfa_token'] as String?,
+        );
+        return false; // Login not complete yet
+      }
+
+      // Normal login — tokens and user are under 'data'
+      final data = body['data'] as Map<String, dynamic>?;
+      if (data == null) return false;
+
+      await storage
+          .saveTokens(data['accessToken'] as String, data['refreshToken'] as String)
+          .catchError((_) => null);
+
+      final user = data['user'] as Map<String, dynamic>?;
+      if (user == null) return false;
+
+      final currencyCode = user['currencyCode'] as String? ?? 'NIO';
+      await storage.saveCurrencyCode(currencyCode);
+      state = AuthState(
+        status: AuthStatus.authenticated,
+        userId: user['id'] as String?,
+        email: user['email'] as String?,
+        displayName: user['displayName'] as String?,
+        role: user['role'] as String?,
+        tenantId: user['tenantId'] as String?,
+        employeeId: user['employeeId'] as String?,
+        currencyCode: currencyCode,
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Complete MFA verification after password login.
+  Future<bool> completeMfaLogin(String mfaToken, String code) async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      final storage = ref.read(secureStorageProvider);
+      final response = await dio.post(
+        'auth/mfa/login',
+        data: {'mfaToken': mfaToken, 'code': code},
+      );
+
       final data = response.data['data'];
-      // Guardamos tokens
       await storage
           .saveTokens(data['accessToken'], data['refreshToken'])
           .catchError((_) => null);
@@ -183,10 +236,13 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<void> logout() async {
     final storage = ref.read(secureStorageProvider);
     await storage.clearTokens();
-    // Reset both caches so the next login doesn't briefly show the previous
-    // company's currency before auth/me resolves.
     clearCachedCurrencyCode();
     await storage.saveCurrencyCode('NIO');
+    state = const AuthState(status: AuthStatus.unauthenticated);
+  }
+
+  /// Cancel MFA flow and go back to login.
+  void cancelMfa() {
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 
