@@ -47,7 +47,7 @@ class _SickLeaveListPageState extends ConsumerState<SickLeaveListPage> {
               ? EmptyState(
                   icon: Icons.medical_services_outlined,
                   title: 'Sin incapacidades',
-                  subtitle: 'No hay registros de incapacidad para este empleado',
+                  subtitle: 'No hay registros de incapacidad para este trabajador',
                   actionLabel: 'Nueva incapacidad',
                   onAction: () => context.push('/sick-leave/new?employeeId=${widget.employeeId}'),
                 )

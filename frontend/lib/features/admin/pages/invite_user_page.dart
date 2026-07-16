@@ -16,7 +16,18 @@ class _InviteUserPageState extends ConsumerState<InviteUserPage> {
   final _emailCtrl = TextEditingController();
   String _selectedRole = 'Employee';
   bool _loading = false;
+
+  // Role keys sent to the API
   final List<String> _roles = ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'];
+
+  // Human-readable labels for display
+  static const Map<String, String> _roleLabels = {
+    'SuperAdmin': 'Super Administrador',
+    'CompanyAdmin': 'Administrador de Empresa',
+    'Rrhh': 'Recursos Humanos',
+    'Supervisor': 'Supervisor',
+    'Employee': 'Trabajador',
+  };
 
   @override
   void dispose() {
@@ -119,7 +130,7 @@ class _InviteUserPageState extends ConsumerState<InviteUserPage> {
               ),
               DropdownButtonFormField<String>(
                 initialValue: _selectedRole,
-                items: _roles.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
+                items: _roles.map((r) => DropdownMenuItem(value: r, child: Text(_roleLabels[r] ?? r))).toList(),
                 onChanged: (v) => setState(() => _selectedRole = v!),
                 decoration: const InputDecoration(labelText: 'Rol'),
               ),

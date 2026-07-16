@@ -70,9 +70,9 @@ class SubscriptionPlanConfig {
     'starter': {
       'color': ZColors.neutral400,
       'icon': Icons.rocket_launch_outlined,
-      'shortDescription': 'Hasta 10 empleados, módulos básicos',
+      'shortDescription': 'Hasta 10 trabajadores, módulos básicos',
       'features': [
-        'Hasta 10 empleados',
+        'Hasta 10 trabajadores',
         'Módulos básicos (RRHH, Ventas)',
         'Soporte por email',
         '1GB almacenamiento',
@@ -87,9 +87,9 @@ class SubscriptionPlanConfig {
     'professional': {
       'color': ZColors.brandAccent,
       'icon': Icons.star_outline,
-      'shortDescription': 'Hasta 100 empleados, todos los módulos',
+      'shortDescription': 'Hasta 100 trabajadores, todos los módulos',
       'features': [
-        'Hasta 100 empleados',
+        'Hasta 100 trabajadores',
         'Todos los módulos ERP',
         'Soporte prioritario',
         '10GB almacenamiento',
@@ -105,9 +105,9 @@ class SubscriptionPlanConfig {
     'enterprise': {
       'color': ZColors.brandGold,
       'icon': Icons.diamond_outlined,
-      'shortDescription': 'Empleados ilimitados, IA + API',
+      'shortDescription': 'Trabajadores ilimitados, IA + API',
       'features': [
-        'Empleados ilimitados',
+        'Trabajadores ilimitados',
         'Todos los módulos ERP + IA',
         'Soporte 24/7 dedicado',
         'Almacenamiento ilimitado',
@@ -130,7 +130,7 @@ class SubscriptionPlanConfig {
   ];
 
   static const List<(String, String, String, String)> comparisonRows = [
-    ('Empleados', '10', '100', 'Ilimitados'),
+    ('Trabajadores', '10', '100', 'Ilimitados'),
     ('Módulos ERP', 'Básicos', 'Todos', 'Todos + IA'),
     ('Almacenamiento', '1GB', '10GB', 'Ilimitado'),
     ('Soporte', 'Email', 'Prioritario', '24/7 Dedicado'),

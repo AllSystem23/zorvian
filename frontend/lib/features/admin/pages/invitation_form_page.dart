@@ -17,6 +17,15 @@ class _InvitationFormPageState extends ConsumerState<InvitationFormPage> {
   String _role = 'Employee';
   bool _loading = false;
 
+  // Human-readable labels for display
+  static const Map<String, String> _roleLabels = {
+    'SuperAdmin': 'Super Administrador',
+    'CompanyAdmin': 'Administrador de Empresa',
+    'Rrhh': 'Recursos Humanos',
+    'Supervisor': 'Supervisor',
+    'Employee': 'Trabajador',
+  };
+
   Future<void> _invite() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
@@ -44,7 +53,7 @@ class _InvitationFormPageState extends ConsumerState<InvitationFormPage> {
               const SizedBox(height: ZSpacing.md),
               DropdownButtonFormField<String>(
                 initialValue: _role,
-                items: ['Admin', 'Employee'].map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
+                items: _roleLabels.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value))).toList(),
                 onChanged: (v) => setState(() => _role = v!),
                 decoration: const InputDecoration(labelText: 'Rol', border: OutlineInputBorder()),
               ),

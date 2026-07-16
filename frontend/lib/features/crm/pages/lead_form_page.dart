@@ -121,18 +121,23 @@ class _LeadFormPageState extends ConsumerState<LeadFormPage> {
               DropdownButtonFormField<String>(
                 decoration: const InputDecoration(labelText: 'Nivel de interés'),
                 initialValue: _interestLevel,
-                items: ['high', 'medium', 'low']
-                    .map((s) => DropdownMenuItem(value: s, child: Text(s.toUpperCase())))
-                    .toList(),
+                items: const [
+                  DropdownMenuItem(value: 'high', child: Text('Alto')),
+                  DropdownMenuItem(value: 'medium', child: Text('Medio')),
+                  DropdownMenuItem(value: 'low', child: Text('Bajo')),
+                ],
                 onChanged: (v) => _interestLevel = v!,
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 decoration: const InputDecoration(labelText: 'Estado'),
                 initialValue: _status,
-                items: ['new', 'contacted', 'qualified', 'lost']
-                    .map((s) => DropdownMenuItem(value: s, child: Text(s.toUpperCase())))
-                    .toList(),
+                items: const [
+                  DropdownMenuItem(value: 'new', child: Text('Nuevo')),
+                  DropdownMenuItem(value: 'contacted', child: Text('Contactado')),
+                  DropdownMenuItem(value: 'qualified', child: Text('Calificado')),
+                  DropdownMenuItem(value: 'lost', child: Text('Perdido')),
+                ],
                 onChanged: (v) => _status = v!,
               ),
               const SizedBox(height: 24),

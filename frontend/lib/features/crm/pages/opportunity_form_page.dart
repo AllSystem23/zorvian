@@ -94,18 +94,22 @@ class _OpportunityFormPageState extends ConsumerState<OpportunityFormPage> {
               DropdownButtonFormField<String>(
                 decoration: const InputDecoration(labelText: 'Prioridad'),
                 initialValue: _priority,
-                items: ['high', 'medium', 'low']
-                    .map((s) => DropdownMenuItem(value: s, child: Text(s.toUpperCase())))
-                    .toList(),
+                items: const [
+                  DropdownMenuItem(value: 'high', child: Text('Alta')),
+                  DropdownMenuItem(value: 'medium', child: Text('Media')),
+                  DropdownMenuItem(value: 'low', child: Text('Baja')),
+                ],
                 onChanged: (v) => _priority = v!,
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 decoration: const InputDecoration(labelText: 'Estado'),
                 initialValue: _status,
-                items: ['open', 'won', 'lost']
-                    .map((s) => DropdownMenuItem(value: s, child: Text(s.toUpperCase())))
-                    .toList(),
+                items: const [
+                  DropdownMenuItem(value: 'open', child: Text('Abierta')),
+                  DropdownMenuItem(value: 'won', child: Text('Ganada')),
+                  DropdownMenuItem(value: 'lost', child: Text('Perdida')),
+                ],
                 onChanged: (v) => _status = v!,
               ),
               const SizedBox(height: 12),

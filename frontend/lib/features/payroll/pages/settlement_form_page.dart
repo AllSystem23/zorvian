@@ -217,7 +217,7 @@ class _SettlementFormPageState extends ConsumerState<SettlementFormPage> {
                 Text(emp.name, style: ZTypography.headlineSmall),
                 const SizedBox(height: ZSpacing.xxs),
                 Text(
-                  emp.position ?? 'Empleado',
+                  emp.position ?? 'Trabajador',
                   style: ZTypography.bodyMedium.copyWith(
                     color: isDark ? ZColors.neutral400 : ZColors.neutral500,
                   ),
@@ -652,7 +652,7 @@ class _SettlementFormPageState extends ConsumerState<SettlementFormPage> {
           _buildSectionHeader('DEDUCCIONES', Icons.remove_circle_outline, ZColors.danger),
           const SizedBox(height: ZSpacing.lg),
 
-          _buildSectionSubtitle('Seguro Social Empleado (${_rate(r.inssEmployeeRate)})'),
+          _buildSectionSubtitle('Seguro Social Trabajador (${_rate(r.inssEmployeeRate)})'),
           _buildDataRow(
             label: 'Base: ${_fmt(r, r.pendingSalaryPay + r.vacationPay + r.overtimePay)} (salarios + vacaciones + otros)',
             value: r.inssLaboralAmount, r: r, isDark: isDark, isDeduction: true,

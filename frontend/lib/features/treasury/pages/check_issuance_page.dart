@@ -58,7 +58,7 @@ final _beneficiariesProvider = FutureProvider<List<_BeneficiaryOption>>((ref) as
       final name = '${e['firstName'] ?? ''} ${e['lastName'] ?? ''}';
       beneficiaries.add(_BeneficiaryOption(
         id: e['id']?.toString() ?? '',
-        displayName: '${name.trim()} (Empleado)',
+        displayName: '${name.trim()} (Trabajador)',
         beneficiaryName: name.trim(),
         type: 'employee',
       ));

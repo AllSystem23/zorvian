@@ -511,7 +511,7 @@ class _CompanyCreateDialogState extends ConsumerState<CompanyCreateDialog> {
               const SizedBox(height: ZSpacing.md),
               ZTextField(
                 controller: _maxEmployeesCtrl,
-                label: 'Máximo de Empleados',
+                label: 'Máximo de Trabajadores',
                 prefix: const Icon(Icons.people_outline),
                 keyboardType: TextInputType.number,
               ),
@@ -748,7 +748,7 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
             const SizedBox(height: ZSpacing.md),
             ZTextField(controller: _addressCtrl, label: 'Dirección', prefix: const Icon(Icons.location_on_outlined)),
             const SizedBox(height: ZSpacing.md),
-            ZTextField(controller: _maxEmployeesCtrl, label: 'Máximo de Empleados', prefix: const Icon(Icons.people_outline), keyboardType: TextInputType.number),
+            ZTextField(controller: _maxEmployeesCtrl, label: 'Máximo de Trabajadores', prefix: const Icon(Icons.people_outline), keyboardType: TextInputType.number),
             const SizedBox(height: ZSpacing.md),
             SwitchListTile(
               title: const Text('Empresa activa'),

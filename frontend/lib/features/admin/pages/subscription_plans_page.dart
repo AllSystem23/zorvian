@@ -475,7 +475,7 @@ class _SubscriptionPlansPageState extends ConsumerState<SubscriptionPlansPage> {
               ),
               title: Text(c['name'] as String? ?? '', style: ZTypography.bodyMedium.copyWith(
                 fontWeight: FontWeight.w500)),
-              subtitle: Text('${c['country'] ?? ''} · ${c['maxEmployees'] ?? 0} empleados',
+              subtitle: Text('${c['country'] ?? ''} · ${c['maxEmployees'] ?? 0} trabajadores',
                 style: ZTypography.labelSmall.copyWith(color: ZColors.neutral500)),
               trailing: ZBadge(
                 text: (c['isActive'] == true) ? 'Activa' : 'Inactiva',

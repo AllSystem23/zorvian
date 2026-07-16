@@ -328,13 +328,16 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
               prefixIcon: Icons.group_outlined,
               items: const [
                 DropdownMenuItem(value: 'employee', child: Text('Trabajador Interno')),
+                DropdownMenuItem(value: 'service_provider', child: Text('Prestador de Servicio')),
                 DropdownMenuItem(value: 'contractor', child: Text('Contratista')),
+                DropdownMenuItem(value: 'consultant', child: Text('Consultor')),
+                DropdownMenuItem(value: 'freelancer', child: Text('Freelancer')),
               ],
               onChanged: (v) => setState(() { _collaboratorType = v!; _onFieldChanged(); }),
             ),
           ],
         ),
-        if (_collaboratorType == 'contractor') ...[
+        if (_collaboratorType == 'service_provider') ...[
           const SizedBox(height: 16),
           _ContractSelector(
             selectedContractId: _selectedContractId,
@@ -475,7 +478,7 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
               _buildPayrollCheckbox(
                 value: _deductInss,
                 label: 'Deducir INSS',
-                subtitle: 'Aplica deducción de seguro social al empleado',
+                subtitle: 'Aplica deducción de seguro social al trabajador',
                 onChanged: (v) => setState(() { _deductInss = v ?? false; _onFieldChanged(); }),
               ),
               const Divider(height: 1),
@@ -563,7 +566,7 @@ class _ContractSelectorState extends ConsumerState<_ContractSelector> {
         final contracts = (snapshot.data?.data as List? ?? []);
         if (contracts.isEmpty) {
           return ZAlertCard(
-            message: 'No hay contratos de prestadores disponibles. Cree uno primero en Prestadores > Contratos.',
+            message: 'No hay contratos disponibles. Cree uno primero en Prestadores > Contratos.',
             severity: 'info',
           );
         }

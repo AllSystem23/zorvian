@@ -91,7 +91,7 @@ final class _NewSalePageState extends ConsumerState<NewSalePage> {
     }
     final auth = ref.read(authProvider);
     if (auth.employeeId == null || auth.employeeId == '00000000-0000-0000-0000-000000000000') {
-      return 'Empleado no configurado en su perfil';
+      return 'Trabajador no configurado en su perfil';
     }
     return null;
   }

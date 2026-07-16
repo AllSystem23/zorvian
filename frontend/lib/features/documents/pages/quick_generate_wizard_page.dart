@@ -228,7 +228,7 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
               spacing: 8,
               runSpacing: 8,
               children: [
-                _entityTypeChip('employee', 'Empleado', Icons.person_outline),
+                _entityTypeChip('employee', 'Trabajador', Icons.person_outline),
                 _entityTypeChip('sale', 'Venta', Icons.receipt_outlined),
                 _entityTypeChip('client', 'Cliente', Icons.people_outline),
               ],
@@ -266,7 +266,7 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
           children: [
             Text('ID de la Entidad', style: ZTypography.labelMedium),
             const SizedBox(height: 4),
-            Text('Ingresa el UUID del ${_selectedEntityType == 'employee' ? 'empleado' : _selectedEntityType == 'sale' ? 'la venta' : 'del cliente'}',
+            Text('Ingresa el UUID del ${_selectedEntityType == 'employee' ? 'trabajador' : _selectedEntityType == 'sale' ? 'la venta' : 'del cliente'}',
               style: ZTypography.labelSmall),
             const SizedBox(height: 12),
             Row(
@@ -303,7 +303,7 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
 
   String _entityDisplayName() {
     if (_entityIdCtrl.text.isEmpty) return '';
-    return '${_selectedEntityType == 'employee' ? 'Empleado' : _selectedEntityType == 'sale' ? 'Venta' : 'Cliente'} #${_entityIdCtrl.text.substring(0, _entityIdCtrl.text.length.clamp(0, 8))}';
+    return '${_selectedEntityType == 'employee' ? 'Trabajador' : _selectedEntityType == 'sale' ? 'Venta' : 'Cliente'} #${_entityIdCtrl.text.substring(0, _entityIdCtrl.text.length.clamp(0, 8))}';
   }
 
   Widget _buildTemplateCard(BuildContext context, DocumentTemplate template, WizardState wizard) {
