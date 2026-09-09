@@ -15,9 +15,10 @@ using Zorvian.Web.Controllers.Fleet;
 namespace Zorvian.Tests.Controllers;
 
 /// <summary>
-/// Tests para PalmTrackReadController: verifica la whitelist configurable
-/// de hosts (PalmTrack:AllowedReadHosts), el reenvío de la API key y el
-/// 503 cuando el host no está permitido.
+/// Tests para PalmTrackReadController bajo el modelo de módulo de PLATAFORMA:
+///  - El acceso se controla con CompanySettings.PalmTrackEnabled (activación por empresa).
+///  - El orgId se resuelve: mapping por tenant (si existe) → PalmTrack:DefaultOrgId.
+///  - Super admins pueden pasar ?orgId= explícito; usuarios normales no.
 /// </summary>
 public sealed class PalmTrackReadControllerTests : IDisposable
 {
@@ -39,8 +40,33 @@ public sealed class PalmTrackReadControllerTests : IDisposable
     public void Dispose() => _db.Dispose();
 
     /// <summary>
-    /// Siembra un mapping activo tenant→org: los endpoints exigen orgId,
-    /// resuelto vía ExternalIdentityMapping antes de llamar a PalmTrack.
+    /// Siembra una empresa con el módulo PalmTrack activado (o desactivado).
+    /// Sin empresa, el controller hace fallback a la config PalmTrack:Enabled.
+    /// </summary>
+    private async Task SeedCompanyAsync(bool moduleEnabled = true)
+    {
+        var company = new Company
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenantMock.Object.TenantId.ToString(),
+            Name = "TestCo",
+            LegalName = "TestCo S.A.",
+            Country = "Nicaragua",
+            Currency = "NIO",
+            Timezone = "America/Managua",
+        };
+        _db.Companies.Add(company);
+        _db.CompanySettings.Add(new CompanySettings
+        {
+            CompanyId = company.Id,
+            TenantId = company.TenantId,
+            PalmTrackEnabled = moduleEnabled,
+        });
+        await _db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Siembra un mapping activo tenant→org (empresa con org propia de PalmTrack).
     /// </summary>
     private void SeedOrgMapping(string palmOrgId = "org-test-1", Guid? tenantId = null)
     {
@@ -54,23 +80,6 @@ public sealed class PalmTrackReadControllerTests : IDisposable
             LastSyncedAt = DateTime.UtcNow,
         });
         _db.SaveChanges();
-    }
-
-    private PalmTrackReadController CreateControllerForTenant(
-        Mock<ITenantContext> tenantMock,
-        IConfiguration config,
-        FakeHttpMessageHandler handler)
-    {
-        var factory = new Mock<IHttpClientFactory>();
-        factory.Setup(f => f.CreateClient(It.IsAny<string>()))
-            .Returns(new HttpClient(handler));
-
-        var controller = new PalmTrackReadController(factory.Object, config, _logger.Object, tenantMock.Object, _db);
-        controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new DefaultHttpContext(),
-        };
-        return controller;
     }
 
     private sealed class FakeHttpMessageHandler(
@@ -89,13 +98,15 @@ public sealed class PalmTrackReadControllerTests : IDisposable
 
     private PalmTrackReadController CreateController(
         IConfiguration config,
-        FakeHttpMessageHandler handler)
+        FakeHttpMessageHandler handler,
+        Mock<ITenantContext>? tenantMock = null)
     {
         var factory = new Mock<IHttpClientFactory>();
         factory.Setup(f => f.CreateClient(It.IsAny<string>()))
             .Returns(new HttpClient(handler));
 
-        var controller = new PalmTrackReadController(factory.Object, config, _logger.Object, _tenantMock.Object, _db);
+        var controller = new PalmTrackReadController(
+            factory.Object, config, _logger.Object, tenantMock?.Object ?? _tenantMock.Object, _db);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext(),
@@ -106,12 +117,28 @@ public sealed class PalmTrackReadControllerTests : IDisposable
     private static IConfiguration BuildConfig(Dictionary<string, string?> values) =>
         new ConfigurationBuilder().AddInMemoryCollection(values).Build();
 
-    private static readonly Dictionary<string, string?> BaseConfig = new()
+    private static Dictionary<string, string?> ConfigWith(
+        string? defaultOrgId = "global",
+        string? platformEnabled = "false") =>
+        new()
+        {
+            ["PalmTrack:ReadApiBaseUrl"] = "https://api.palmtrack-corp.com/api/palm/v1",
+            ["PalmTrack:ReadApiKey"] = "key-123",
+            ["PalmTrack:AllowedReadHosts:0"] = "api.palmtrack-corp.com",
+            ["PalmTrack:DefaultOrgId"] = defaultOrgId,
+            ["PalmTrack:Enabled"] = platformEnabled,
+        };
+
+    private static void SetQuery(PalmTrackReadController controller, string key, string value)
     {
-        ["PalmTrack:ReadApiBaseUrl"] = "https://api.palmtrack-corp.com/api/palm/v1",
-        ["PalmTrack:ReadApiKey"] = "key-123",
-        ["PalmTrack:AllowedReadHosts:0"] = "api.palmtrack-corp.com",
-    };
+        controller.HttpContext.Request.Query = new QueryCollection(
+            new Dictionary<string, Microsoft.Extensions.Primitives.StringValues>
+            {
+                [key] = value,
+            });
+    }
+
+    // ── Whitelist de hosts y proxy ──
 
     [Fact]
     public async Task GetFarms_AllowedHostFromConfig_ProxiesRequestWithKeyAndParsesItems()
@@ -122,8 +149,9 @@ public sealed class PalmTrackReadControllerTests : IDisposable
                 Content = new StringContent(
                     """{"success":true,"data":[{"id":"f1","name":"Finca A","organizationId":"org-1"}]}"""),
             });
+        await SeedCompanyAsync();
         SeedOrgMapping("org-test-1");
-        var controller = CreateController(BuildConfig(BaseConfig), handler);
+        var controller = CreateController(BuildConfig(ConfigWith()), handler);
 
         var result = await controller.GetFarms();
 
@@ -148,12 +176,15 @@ public sealed class PalmTrackReadControllerTests : IDisposable
             ["PalmTrack:ReadApiBaseUrl"] = "https://api.palmtrack-corp.com/api/palm/v1",
             ["PalmTrack:ReadApiKey"] = "key-123",
             ["PalmTrack:AllowedReadHosts"] = "api.palmtrack-corp.com,other.example.com",
+            ["PalmTrack:DefaultOrgId"] = "global",
+            ["PalmTrack:Enabled"] = "false",
         });
         var handler = new FakeHttpMessageHandler(_ =>
             new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent("""{"data":[{"id":"x"}]}"""),
             });
+        await SeedCompanyAsync();
         SeedOrgMapping();
         var controller = CreateController(config, handler);
 
@@ -171,8 +202,11 @@ public sealed class PalmTrackReadControllerTests : IDisposable
             ["PalmTrack:ReadApiBaseUrl"] = "https://evil.example.com/api",
             ["PalmTrack:ReadApiKey"] = "key-123",
             ["PalmTrack:AllowedReadHosts:0"] = "api.palmtrack-corp.com",
+            ["PalmTrack:DefaultOrgId"] = "global",
+            ["PalmTrack:Enabled"] = "false",
         });
         var handler = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK));
+        await SeedCompanyAsync();
         var controller = CreateController(config, handler);
 
         var result = await controller.GetFarms();
@@ -192,12 +226,15 @@ public sealed class PalmTrackReadControllerTests : IDisposable
             ["PalmTrack:ReadApiBaseUrl"] = "https://palmtracklatam.com/api/palm/v1",
             ["PalmTrack:ReadApiKey"] = "key-123",
             // Sin AllowedReadHosts → usa los defaults
+            ["PalmTrack:DefaultOrgId"] = "global",
+            ["PalmTrack:Enabled"] = "false",
         });
         var handler = new FakeHttpMessageHandler(_ =>
             new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent("""{"data":[{"id":"x"}]}"""),
             });
+        await SeedCompanyAsync();
         SeedOrgMapping();
         var controller = CreateController(config, handler);
 
@@ -207,53 +244,75 @@ public sealed class PalmTrackReadControllerTests : IDisposable
         handler.LastRequest!.RequestUri!.Host.Should().Be("palmtracklatam.com");
     }
 
+    // ── Gate del módulo (activación por empresa) ──
+
     [Fact]
-    public async Task GetFarms_NoActiveMapping_Returns400WithPalmtrackOrgNotMapped()
+    public async Task GetFarms_ModuleDisabledForCompany_Returns403()
     {
-        var config = BuildConfig(BaseConfig);
+        var handler = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK));
+        await SeedCompanyAsync(moduleEnabled: false);
+        var controller = CreateController(BuildConfig(ConfigWith()), handler);
+
+        var result = await controller.GetFarms();
+
+        var obj = result.Should().BeOfType<ObjectResult>().Subject;
+        obj.StatusCode.Should().Be(403);
+        var json = JsonSerializer.Serialize(obj.Value);
+        json.Should().Contain("palmtrack_module_disabled");
+        handler.LastRequest.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetFarms_NoCompanyRow_PlatformConfigEnabled_Proceeds()
+    {
+        // Sin fila Company (tenant sin empresa registrada): fallback a PalmTrack:Enabled
         var handler = new FakeHttpMessageHandler(_ =>
-            new HttpResponseMessage(HttpStatusCode.OK));
-        // Sin SeedOrgMapping: el tenant no tiene mapping reconciliado
-        var controller = CreateController(config, handler);
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("""{"data":[]}"""),
+            });
+        var controller = CreateController(BuildConfig(ConfigWith(platformEnabled: "true")), handler);
+
+        var result = await controller.GetFarms();
+
+        result.Should().BeOfType<OkObjectResult>();
+        handler.LastRequest!.RequestUri!.Query.Should().Contain("orgId=global");
+    }
+
+    // ── Resolución de orgId ──
+
+    [Fact]
+    public async Task GetFarms_NoMapping_UsesDefaultOrgIdFromConfig()
+    {
+        var handler = new FakeHttpMessageHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("""{"data":[]}"""),
+            });
+        await SeedCompanyAsync();
+        // Sin mapping → el org de plataforma (DefaultOrgId) aplica
+        var controller = CreateController(BuildConfig(ConfigWith(defaultOrgId: "global")), handler);
+
+        var result = await controller.GetFarms();
+
+        result.Should().BeOfType<OkObjectResult>();
+        handler.LastRequest!.RequestUri!.Query.Should().Contain("orgId=global");
+    }
+
+    [Fact]
+    public async Task GetFarms_NoMappingAndNoDefaultOrgId_Returns400NotConfigured()
+    {
+        var handler = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK));
+        await SeedCompanyAsync();
+        var controller = CreateController(BuildConfig(ConfigWith(defaultOrgId: null)), handler);
 
         var result = await controller.GetFarms();
 
         var obj = result.Should().BeOfType<ObjectResult>().Subject;
         obj.StatusCode.Should().Be(400);
         var json = JsonSerializer.Serialize(obj.Value);
-        json.Should().Contain("palmtrack_org_not_mapped");
+        json.Should().Contain("palmtrack_org_not_configured");
         handler.LastRequest.Should().BeNull();
-    }
-
-    [Fact]
-    public async Task GetFarms_SuperAdminWithExplicitOrgId_UsesRequestedOrg()
-    {
-        var tenantMock = new Mock<ITenantContext>();
-        tenantMock.Setup(t => t.TenantId).Returns(new TenantId(Guid.NewGuid()));
-        tenantMock.Setup(t => t.IsSuperAdmin).Returns(true);
-
-        var config = BuildConfig(BaseConfig);
-        var handler = new FakeHttpMessageHandler(_ =>
-            new HttpResponseMessage(HttpStatusCode.OK)
-            {
-                Content = new StringContent("""{"data":[{"id":"x"}]}"""),
-            });
-        // Sin mapping: el super admin depende del orgId explícito
-        var controller = CreateControllerForTenant(tenantMock, config, handler);
-        controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext(),
-        };
-        controller.HttpContext.Request.Query = new QueryCollection(new Dictionary<string, Microsoft.Extensions.Primitives.StringValues>
-        {
-            ["orgId"] = "global",
-        });
-
-        var result = await controller.GetFarms();
-
-        result.Should().BeOfType<OkObjectResult>();
-        handler.LastRequest.Should().NotBeNull();
-        handler.LastRequest!.RequestUri!.Query.Should().Contain("orgId=global");
     }
 
     [Fact]
@@ -264,17 +323,10 @@ public sealed class PalmTrackReadControllerTests : IDisposable
             {
                 Content = new StringContent("""{"data":[{"id":"x"}]}"""),
             });
+        await SeedCompanyAsync();
         SeedOrgMapping("org-mapped");
-        var controller = CreateController(BuildConfig(BaseConfig), handler);
-        controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext(),
-        };
-        // Intento de cross-tenant: se debe ignorar el orgId del query
-        controller.HttpContext.Request.Query = new QueryCollection(new Dictionary<string, Microsoft.Extensions.Primitives.StringValues>
-        {
-            ["orgId"] = "otro-org",
-        });
+        var controller = CreateController(BuildConfig(ConfigWith()), handler);
+        SetQuery(controller, "orgId", "otro-org");
 
         var result = await controller.GetFarms();
 
@@ -283,27 +335,66 @@ public sealed class PalmTrackReadControllerTests : IDisposable
         handler.LastRequest.RequestUri.Query.Should().NotContain("orgId=otro-org");
     }
 
+    // ── Super admins ──
+
     [Fact]
-    public async Task GetFarms_SuperAdminWithoutMappingOrOrgId_Returns400WithHint()
+    public async Task GetFarms_SuperAdminWithExplicitOrgId_UsesRequestedOrg()
     {
         var tenantMock = new Mock<ITenantContext>();
         tenantMock.Setup(t => t.TenantId).Returns(new TenantId(Guid.NewGuid()));
         tenantMock.Setup(t => t.IsSuperAdmin).Returns(true);
 
         var handler = new FakeHttpMessageHandler(_ =>
-            new HttpResponseMessage(HttpStatusCode.OK));
-        var controller = CreateControllerForTenant(tenantMock, BuildConfig(BaseConfig), handler);
-        controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext(),
-        };
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("""{"data":[{"id":"x"}]}"""),
+            });
+        // Sin empresa ni mapping: el super admin opera a nivel de plataforma
+        var controller = CreateController(BuildConfig(ConfigWith()), handler, tenantMock);
+        SetQuery(controller, "orgId", "global");
+
+        var result = await controller.GetFarms();
+
+        result.Should().BeOfType<OkObjectResult>();
+        handler.LastRequest!.RequestUri!.Query.Should().Contain("orgId=global");
+    }
+
+    [Fact]
+    public async Task GetFarms_SuperAdminWithoutExplicitOrgId_FallsBackToDefaultOrg()
+    {
+        var tenantMock = new Mock<ITenantContext>();
+        tenantMock.Setup(t => t.TenantId).Returns(new TenantId(Guid.NewGuid()));
+        tenantMock.Setup(t => t.IsSuperAdmin).Returns(true);
+
+        var handler = new FakeHttpMessageHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("""{"data":[]}"""),
+            });
+        var controller = CreateController(BuildConfig(ConfigWith(defaultOrgId: "global")), handler, tenantMock);
+
+        var result = await controller.GetFarms();
+
+        result.Should().BeOfType<OkObjectResult>();
+        handler.LastRequest!.RequestUri!.Query.Should().Contain("orgId=global");
+    }
+
+    [Fact]
+    public async Task GetFarms_SuperAdminWithoutMappingOrOrgIdOrDefault_Returns400WithHint()
+    {
+        var tenantMock = new Mock<ITenantContext>();
+        tenantMock.Setup(t => t.TenantId).Returns(new TenantId(Guid.NewGuid()));
+        tenantMock.Setup(t => t.IsSuperAdmin).Returns(true);
+
+        var handler = new FakeHttpMessageHandler(_ => new HttpResponseMessage(HttpStatusCode.OK));
+        var controller = CreateController(BuildConfig(ConfigWith(defaultOrgId: null)), handler, tenantMock);
 
         var result = await controller.GetFarms();
 
         var obj = result.Should().BeOfType<ObjectResult>().Subject;
         obj.StatusCode.Should().Be(400);
         var json = JsonSerializer.Serialize(obj.Value);
-        json.Should().Contain("palmtrack_org_not_mapped");
+        json.Should().Contain("palmtrack_org_not_configured");
         json.Should().Contain("?orgId=");
     }
 }

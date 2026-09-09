@@ -49,7 +49,35 @@ public sealed class PalmTrackReadController : ControllerBase
     }
 
     /// <summary>
-    /// Resuelve el orgId de PalmTrack para el tenant actual vía ExternalIdentityMapping.
+    /// Indica si el tenant actual tiene el módulo PalmTrack activado.
+    /// Fuente de verdad: CompanySettings.PalmTrackEnabled (activación por empresa,
+    /// configurable desde la página de configuración); si no hay fila de settings,
+    /// se hace fallback a la config de plataforma (PalmTrack:Enabled).
+    /// Los super admins no se bloquean: operan a nivel de plataforma.
+    /// </summary>
+    private async Task<bool> IsModuleEnabledForCurrentTenantAsync()
+    {
+        if (_tenant.IsSuperAdmin)
+            return true;
+
+        var company = await _db.Companies
+            .FirstOrDefaultAsync(c => c.TenantId == _tenant.TenantId.ToString());
+        if (company is null)
+            return _configuration.GetValue<bool>("PalmTrack:Enabled");
+
+        var settings = await _db.CompanySettings
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(s => !s.IsDeleted && s.CompanyId == company.Id);
+
+        if (settings is not null)
+            return settings.PalmTrackEnabled;
+
+        return _configuration.GetValue<bool>("PalmTrack:Enabled");
+    }
+
+    /// <summary>
+    /// Resuelve el orgId de PalmTrack para el tenant actual vía ExternalIdentityMapping
+    /// (solo si la empresa tiene org propia; el default de plataforma se aplica después).
     /// La API de PalmTrack (/api/palm/v1/*) exige el query param orgId en todas las rutas.
     /// </summary>
     private async Task<string?> ResolvePalmTrackOrgIdAsync()
@@ -303,10 +331,25 @@ public sealed class PalmTrackReadController : ControllerBase
             });
         }
 
-        // PalmTrack exige orgId en todas sus rutas de lectura:
+        // El módulo PalmTrack es de PLATAFORMA, no por empresa:
         //  - SuperAdmin: puede pedir un org explícito (?orgId=...) para auditar cualquier organización.
-        //  - Usuario normal: siempre el org mapeado a su tenant (ExternalIdentityMapping);
-        //    se ignora cualquier orgId que envíe para evitar acceso cross-tenant.
+        //  - Usuario normal: usa el org de plataforma (PalmTrack:DefaultOrgId, típicamente "global"),
+        //    con la posibilidad de un mapping por tenant si algún día una empresa tiene org propia.
+        //    Se ignora cualquier orgId que envíe para evitar acceso cross-tenant.
+        //  - El acceso del tenant se controla con el flag CompanySettings.PalmTrackEnabled
+        //    (activación del módulo por empresa), no con mappings.
+        if (!await IsModuleEnabledForCurrentTenantAsync())
+        {
+            _logger.LogInformation(
+                "PalmTrack module disabled for tenant {TenantId}; rejecting proxy call",
+                _tenant.TenantId);
+            return StatusCode(403, new
+            {
+                error = "palmtrack_module_disabled",
+                message = "The PalmTrack module is not enabled for this company; request activation from an administrator",
+            });
+        }
+
         var requestedOrgId = Request.Query["orgId"].FirstOrDefault();
         string? palmOrgId;
         if (_tenant.IsSuperAdmin && !string.IsNullOrWhiteSpace(requestedOrgId))
@@ -315,19 +358,20 @@ public sealed class PalmTrackReadController : ControllerBase
         }
         else
         {
-            palmOrgId = await ResolvePalmTrackOrgIdAsync();
+            palmOrgId = await ResolvePalmTrackOrgIdAsync()
+                ?? _configuration["PalmTrack:DefaultOrgId"];
             if (string.IsNullOrWhiteSpace(palmOrgId))
             {
                 var hint = _tenant.IsSuperAdmin
                     ? "Super admins without a tenant mapping can pass ?orgId=<palmOrgId> explicitly"
-                    : "Ask an admin to reconcile the PalmTrack organization (ExternalIdentityMappings)";
+                    : "Ask an administrator to configure PalmTrack:DefaultOrgId";
                 _logger.LogWarning(
-                    "No active ExternalIdentityMapping for tenant {TenantId} (IsSuperAdmin={IsSuperAdmin}); cannot resolve PalmTrack orgId",
-                    _tenant.TenantId, _tenant.IsSuperAdmin);
+                    "No tenant mapping and no PalmTrack:DefaultOrgId configured; cannot resolve PalmTrack orgId for tenant {TenantId}",
+                    _tenant.TenantId);
                 return StatusCode(400, new
                 {
-                    error = "palmtrack_org_not_mapped",
-                    message = $"No active ExternalIdentityMapping exists for the current tenant; {hint}",
+                    error = "palmtrack_org_not_configured",
+                    message = $"No PalmTrack organization configured for the platform; {hint}",
                 });
             }
         }
