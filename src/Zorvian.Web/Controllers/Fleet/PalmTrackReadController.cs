@@ -301,7 +301,8 @@ public sealed class PalmTrackReadController : ControllerBase
 
     private async Task<IActionResult> ProxyGetAsync<TResponse>(
         string endpoint,
-        Dictionary<string, object> queryParams)
+        Dictionary<string, object> queryParams,
+        bool allowAggregate = true)
         where TResponse : class
     {
         if (!IsReadApiConfigured || !IsAllowedPalmTrackUrl(ReadApiBaseUrl!))
@@ -350,40 +351,55 @@ public sealed class PalmTrackReadController : ControllerBase
             });
         }
 
-        var requestedOrgId = Request.Query["orgId"].FirstOrDefault();
-        string? palmOrgId;
-        if (_tenant.IsSuperAdmin && !string.IsNullOrWhiteSpace(requestedOrgId))
+        if (allowAggregate)
         {
-            palmOrgId = requestedOrgId;
-        }
-        else
-        {
-            palmOrgId = await ResolvePalmTrackOrgIdAsync()
-                ?? _configuration["PalmTrack:DefaultOrgId"];
-            if (string.IsNullOrWhiteSpace(palmOrgId))
+            var requestedOrgId = Request.Query["orgId"].FirstOrDefault();
+            if (_tenant.IsSuperAdmin && !string.IsNullOrWhiteSpace(requestedOrgId))
             {
-                var hint = _tenant.IsSuperAdmin
-                    ? "Super admins without a tenant mapping can pass ?orgId=<palmOrgId> explicitly"
-                    : "Ask an administrator to configure PalmTrack:DefaultOrgId";
-                _logger.LogWarning(
-                    "No tenant mapping and no PalmTrack:DefaultOrgId configured; cannot resolve PalmTrack orgId for tenant {TenantId}",
-                    _tenant.TenantId);
-                return StatusCode(400, new
+                // Auditoría de una organización específica
+                queryParams["orgId"] = requestedOrgId;
+            }
+            else if (_tenant.IsSuperAdmin)
+            {
+                // Sin org explícita: agrega TODAS las orgs conocidas para que el
+                // admin vea todos los datos, no solo los del alcance default.
+                return await ProxyAggregatedAsync<TResponse>(endpoint, queryParams);
+            }
+            else
+            {
+                // Usuario normal: mapping de su empresa (si tiene org propia) o el
+                // org de plataforma. Nunca puede elegir org libremente.
+                var palmOrgId = await ResolvePalmTrackOrgIdAsync()
+                    ?? _configuration["PalmTrack:DefaultOrgId"];
+                if (string.IsNullOrWhiteSpace(palmOrgId))
                 {
-                    error = "palmtrack_org_not_configured",
-                    message = $"No PalmTrack organization configured for the platform; {hint}",
-                });
+                    _logger.LogWarning(
+                        "No tenant mapping and no PalmTrack:DefaultOrgId configured; cannot resolve PalmTrack orgId for tenant {TenantId}",
+                        _tenant.TenantId);
+                    return StatusCode(400, new
+                    {
+                        error = "palmtrack_org_not_configured",
+                        message = "No PalmTrack organization configured for the platform; ask an administrator to configure PalmTrack:DefaultOrgId",
+                    });
+                }
+                queryParams["orgId"] = palmOrgId;
             }
         }
-        queryParams["orgId"] = palmOrgId;
+        // allowAggregate=false: llamada interna del agregador; el orgId ya viene en
+        // queryParams y NO debe recalcularse ni sobrescribirse.
 
         try
         {
-            using var client = _httpClientFactory.CreateClient();
+            // Sin using y SIN mutar el cliente: los HttpClient de IHttpClientFactory
+            // no deben disponerse (el factory gestiona su ciclo de vida) ni
+            // reconfigurarse tras el primer uso (BaseAddress/Timeout solo se pueden
+            // fijar antes de la primera petición). El BaseAddress se resuelve en el
+            // HttpRequestMessage y el timeout con CTS por llamada.
             // Slash final obligatorio: sin él, una ruta relativa como "farms"
             // reemplaza el último segmento ("v1") en vez de concatenarse.
-            client.BaseAddress = new Uri(ReadApiBaseUrl!.TrimEnd('/') + "/");
-            client.Timeout = TimeSpan.FromSeconds(15);
+            var baseUri = new Uri(ReadApiBaseUrl!.TrimEnd('/') + "/");
+            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            var client = _httpClientFactory.CreateClient();
 
             // Build query string
             var queryParts = queryParams
@@ -400,8 +416,10 @@ public sealed class PalmTrackReadController : ControllerBase
 
             request.Headers.Add("X-PalmTrack-API-Key", ReadApiKey!);
             request.Headers.Add("Accept", "application/json");
+            // La URL absoluta se fija en el mensaje, no en el cliente compartido
+            request.RequestUri = new Uri(baseUri, uri);
 
-            var response = await client.SendAsync(request);
+            var response = await client.SendAsync(request, timeoutCts.Token);
             var body = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
@@ -522,9 +540,97 @@ public sealed class PalmTrackReadController : ControllerBase
             {
                 error = "Internal error",
                 message = "Error communicating with PalmTrack Read API",
-                detail = "Check server logs for details",
+                detail = $"{ex.GetType().Name}: {ex.Message}",
             });
         }
+    }
+
+    /// <summary>
+    /// Modo agregado para super admins: consulta el endpoint por cada organización
+    /// conocida (mappings activos de empresas con org propia + DefaultOrgId de
+    /// plataforma) y combina los items. Errores parciales de una org no rompen el
+    /// resto; las orgs que fallen se reportan en "orgErrors". Para que el admin
+    /// vea TODOS los datos de PalmTrack, no solo los del alcance default.
+    /// </summary>
+    private async Task<IActionResult> ProxyAggregatedAsync<TResponse>(
+        string endpoint,
+        Dictionary<string, object> queryParams)
+        where TResponse : class
+    {
+        var orgIds = new List<string>();
+
+        // Super admin es platform-level: ve los mappings de todas las empresas
+        // (IgnoreQueryFilters, misma convención que SsoController).
+        var mapped = await _db.Set<ExternalIdentityMapping>()
+            .IgnoreQueryFilters()
+            .Where(m => m.IsActive && !m.IsDeleted)
+            .Select(m => m.PalmTrackOrgId)
+            .Distinct()
+            .ToListAsync();
+        orgIds.AddRange(mapped);
+
+        var defaultOrg = _configuration["PalmTrack:DefaultOrgId"];
+        if (!string.IsNullOrWhiteSpace(defaultOrg) && !orgIds.Contains(defaultOrg))
+            orgIds.Add(defaultOrg);
+
+        if (orgIds.Count == 0)
+        {
+            return StatusCode(400, new
+            {
+                error = "palmtrack_org_not_configured",
+                message = "No PalmTrack organizations known to the platform; configure PalmTrack:DefaultOrgId",
+            });
+        }
+
+        var allItems = new List<JsonElement>();
+        var orgErrors = new Dictionary<string, string>();
+        JsonElement? firstPagination = null;
+        JsonElement? firstMeta = null;
+
+        foreach (var orgId in orgIds.Distinct())
+        {
+            queryParams["orgId"] = orgId;
+            var result = await ProxyGetAsync<TResponse>(endpoint, queryParams, allowAggregate: false);
+
+            if (result is OkObjectResult ok)
+            {
+                var json = JsonSerializer.Serialize(ok.Value);
+                try
+                {
+                    using var doc = JsonDocument.Parse(json);
+                    var root = doc.RootElement.Clone();
+                    if (root.TryGetProperty("items", out var itemsEl) && itemsEl.ValueKind == JsonValueKind.Array)
+                        foreach (var item in itemsEl.EnumerateArray()) allItems.Add(item.Clone());
+                    if (firstPagination is null && root.TryGetProperty("pagination", out var pagEl))
+                        firstPagination = pagEl.Clone();
+                    if (firstMeta is null && root.TryGetProperty("meta", out var metaEl))
+                        firstMeta = metaEl.Clone();
+                }
+                catch (JsonException jex)
+                {
+                    orgErrors[orgId] = $"invalid aggregated payload: {jex.Message}";
+                }
+            }
+            else if (result is ObjectResult err)
+            {
+                var errJson = JsonSerializer.Serialize(err.Value ?? new { });
+                orgErrors[orgId] = errJson.Length > 300 ? errJson.Substring(0, 300) : errJson;
+            }
+        }
+
+        _logger.LogInformation(
+            "PalmTrack aggregated read: endpoint={Endpoint}, orgs={OrgCount}, items={ItemCount}, errors={ErrorCount}",
+            endpoint, orgIds.Count, allItems.Count, orgErrors.Count);
+
+        return Ok(new
+        {
+            items = allItems,
+            pagination = firstPagination,
+            meta = firstMeta,
+            aggregated = true,
+            orgs = orgIds,
+            orgErrors,
+        });
     }
 
     private static string TryExtractErrorMessage(string body)

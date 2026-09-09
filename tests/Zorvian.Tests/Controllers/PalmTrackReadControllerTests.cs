@@ -360,27 +360,82 @@ public sealed class PalmTrackReadControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetFarms_SuperAdminWithoutExplicitOrgId_FallsBackToDefaultOrg()
+    public async Task GetFarms_SuperAdminWithoutExplicitOrgId_AggregatesAllKnownOrgs()
     {
         var tenantMock = new Mock<ITenantContext>();
         tenantMock.Setup(t => t.TenantId).Returns(new TenantId(Guid.NewGuid()));
         tenantMock.Setup(t => t.IsSuperAdmin).Returns(true);
 
-        var handler = new FakeHttpMessageHandler(_ =>
-            new HttpResponseMessage(HttpStatusCode.OK)
+        // Dos orgs conocidas: una mapeada a una empresa + la default de plataforma
+        SeedOrgMapping("org-empresa-1");
+
+        var orgsSeen = new List<string>();
+        var handler = new FakeHttpMessageHandler(req =>
+        {
+            var q = req.RequestUri!.Query;
+            var match = System.Text.RegularExpressions.Regex.Match(q, @"orgId=([^&]+)");
+            var orgId = match.Success ? Uri.UnescapeDataString(match.Groups[1].Value) : "?";
+            orgsSeen.Add(orgId);
+            var payload = "{\"data\":[{\"id\":\"f-" + orgId + "\",\"name\":\"Finca " + orgId + "\"}]}";
+            return new HttpResponseMessage(HttpStatusCode.OK)
             {
-                Content = new StringContent("""{"data":[]}"""),
-            });
+                Content = new StringContent(payload),
+            };
+        });
         var controller = CreateController(BuildConfig(ConfigWith(defaultOrgId: "global")), handler, tenantMock);
 
         var result = await controller.GetFarms();
 
-        result.Should().BeOfType<OkObjectResult>();
-        handler.LastRequest!.RequestUri!.Query.Should().Contain("orgId=global");
+        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
+        var json = JsonSerializer.Serialize(ok.Value);
+        using var doc = JsonDocument.Parse(json);
+        // Agregó items de ambas orgs
+        doc.RootElement.GetProperty("items").GetArrayLength().Should().Be(2);
+        doc.RootElement.GetProperty("aggregated").GetBoolean().Should().BeTrue();
+        orgsSeen.Should().Contain("org-empresa-1");
+        orgsSeen.Should().Contain("global");
     }
 
     [Fact]
-    public async Task GetFarms_SuperAdminWithoutMappingOrOrgIdOrDefault_Returns400WithHint()
+    public async Task GetFarms_SuperAdminAggregated_PartialOrgFailure_DoesNotBreakRest()
+    {
+        var tenantMock = new Mock<ITenantContext>();
+        tenantMock.Setup(t => t.TenantId).Returns(new TenantId(Guid.NewGuid()));
+        tenantMock.Setup(t => t.IsSuperAdmin).Returns(true);
+
+        SeedOrgMapping("org-empresa-1");
+
+        var handler = new FakeHttpMessageHandler(req =>
+        {
+            var match = System.Text.RegularExpressions.Regex.Match(req.RequestUri!.Query, @"orgId=([^&]+)");
+            var orgId = match.Success ? match.Groups[1].Value : "?";
+            // La org mapeada falla; la default responde bien
+            if (orgId == "org-empresa-1")
+            {
+                return new HttpResponseMessage(HttpStatusCode.InternalServerError)
+                {
+                    Content = new StringContent("""{"error":"internal_error"}"""),
+                };
+            }
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent("""{"data":[{"id":"f-g"}]}"""),
+            };
+        });
+        var controller = CreateController(BuildConfig(ConfigWith(defaultOrgId: "global")), handler, tenantMock);
+
+        var result = await controller.GetFarms();
+
+        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
+        var json = JsonSerializer.Serialize(ok.Value);
+        using var doc = JsonDocument.Parse(json);
+        doc.RootElement.GetProperty("items").GetArrayLength().Should().Be(1);
+        var orgErrors = doc.RootElement.GetProperty("orgErrors");
+        orgErrors.TryGetProperty("org-empresa-1", out _).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetFarms_SuperAdminWithoutMappingOrOrgIdOrDefault_Returns400NotConfigured()
     {
         var tenantMock = new Mock<ITenantContext>();
         tenantMock.Setup(t => t.TenantId).Returns(new TenantId(Guid.NewGuid()));
@@ -395,6 +450,7 @@ public sealed class PalmTrackReadControllerTests : IDisposable
         obj.StatusCode.Should().Be(400);
         var json = JsonSerializer.Serialize(obj.Value);
         json.Should().Contain("palmtrack_org_not_configured");
-        json.Should().Contain("?orgId=");
+        // El mensaje orienta al admin a configurar el org de plataforma
+        json.Should().Contain("PalmTrack:DefaultOrgId");
     }
 }
