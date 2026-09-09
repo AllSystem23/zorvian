@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Zorvian.Application.Interfaces;
+using Zorvian.Core.Entities;
+using Zorvian.Core.Interfaces;
 using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers.Settings;
@@ -9,71 +12,105 @@ namespace Zorvian.Web.Controllers.Settings;
 [Route("zorvian/v1/settings/palmtrack")]
 public sealed class PalmtrackFeatureFlagsController : ControllerBase
 {
+    private readonly ICompanyRepository _companyRepo;
+    private readonly ITenantContext _tenant;
     private readonly IConfiguration _configuration;
 
-    public PalmtrackFeatureFlagsController(IConfiguration configuration)
+    public PalmtrackFeatureFlagsController(
+        ICompanyRepository companyRepo,
+        ITenantContext tenant,
+        IConfiguration configuration)
     {
+        _companyRepo = companyRepo;
+        _tenant = tenant;
         _configuration = configuration;
     }
 
     /// <summary>
     /// GET /zorvian/v1/settings/palmtrack/feature-flags
-    /// Retorna los feature flags de PalmTrack desde la configuración del backend.
-    /// El frontend usa esto para saber qué funcionalidades están habilitadas
-    /// sin depender de valores por defecto hardcodados.
+    /// Retorna los feature flags de PalmTrack. La fuente de verdad es la fila
+    /// CompanySettings de la empresa actual; si no existe (empresa sin configurar),
+    /// se hace fallback a la configuración appsettings.json (PalmTrack:*).
     /// </summary>
     [HttpGet("feature-flags")]
     [RequirePermission(Permissions.SettingsRead)]
-    public IActionResult GetFeatureFlags()
+    public async Task<IActionResult> GetFeatureFlags()
     {
-        var flags = new
-        {
-            moduleEnabled = GetBool("PalmTrack:Enabled"),
-            ssoEnabled = GetBool("PalmTrack:SsoEnabled"),
-            ssoAutoCreateUsers = GetBool("PalmTrack:SsoAutoCreateUsers"),
-            ssoPropagateRoles = GetBool("PalmTrack:SsoPropagateRoles"),
-            ssoSharedProject = GetBool("PalmTrack:SsoSharedProject"),
-        };
+        var settings = await GetSettingsOrDefaultAsync();
 
-        return Ok(flags);
+        return Ok(new
+        {
+            moduleEnabled = settings?.PalmTrackEnabled ?? GetBool("PalmTrack:Enabled"),
+            ssoEnabled = settings?.PalmTrackSsoEnabled ?? GetBool("PalmTrack:SsoEnabled"),
+            ssoAutoCreateUsers = settings?.PalmTrackSsoAutoCreateUsers ?? GetBool("PalmTrack:SsoAutoCreateUsers"),
+            ssoPropagateRoles = settings?.PalmTrackSsoPropagateRoles ?? GetBool("PalmTrack:SsoPropagateRoles"),
+            ssoSharedProject = settings?.PalmTrackSsoSharedProject ?? GetBool("PalmTrack:SsoSharedProject"),
+        });
     }
 
     /// <summary>
     /// PUT /zorvian/v1/settings/palmtrack/feature-flags
-    /// Actualiza los feature flags de PalmTrack.
-    /// NOTA: Esta operación modifica la configuración en memoria para la sesión actual.
-    /// Para persistencia permanente, se debe modificar appsettings.json o usar
-    /// la tabla de configuración de la aplicación (si existe).
+    /// Persiste los feature flags de PalmTrack en la fila CompanySettings de la
+    /// empresa actual (se crea si aún no existe), de modo que los cambios
+    /// sobrevivan a reinicios y recargas de la página.
     /// </summary>
     [HttpPut("feature-flags")]
     [RequirePermission(Permissions.SettingsWrite)]
-    public IActionResult UpdateFeatureFlags([FromBody] UpdateFeatureFlagsRequest request)
+    public async Task<IActionResult> UpdateFeatureFlags([FromBody] UpdateFeatureFlagsRequest request)
     {
-        // Update in-memory configuration for current session
+        var company = await _companyRepo.GetByTenantIdAsync(_tenant.TenantId);
+        if (company is null)
+            return NotFound(new { error = "company_not_found", message = "No company found for the current tenant" });
+
+        var settings = await _companyRepo.GetSettingsAsync(company.Id);
+        var isNew = settings is null;
+        if (isNew)
+        {
+            settings = new CompanySettings
+            {
+                CompanyId = company.Id,
+                TenantId = company.TenantId,
+            };
+            await _companyRepo.AddSettingsAsync(settings);
+        }
+
         if (request.ModuleEnabled is not null)
-            SetBool("PalmTrack:Enabled", request.ModuleEnabled.Value);
+            settings.PalmTrackEnabled = request.ModuleEnabled.Value;
 
         if (request.SsoEnabled is not null)
-            SetBool("PalmTrack:SsoEnabled", request.SsoEnabled.Value);
+            settings.PalmTrackSsoEnabled = request.SsoEnabled.Value;
 
         if (request.SsoAutoCreateUsers is not null)
-            SetBool("PalmTrack:SsoAutoCreateUsers", request.SsoAutoCreateUsers.Value);
+            settings.PalmTrackSsoAutoCreateUsers = request.SsoAutoCreateUsers.Value;
 
         if (request.SsoPropagateRoles is not null)
-            SetBool("PalmTrack:SsoPropagateRoles", request.SsoPropagateRoles.Value);
+            settings.PalmTrackSsoPropagateRoles = request.SsoPropagateRoles.Value;
 
         if (request.SsoSharedProject is not null)
-            SetBool("PalmTrack:SsoSharedProject", request.SsoSharedProject.Value);
+            settings.PalmTrackSsoSharedProject = request.SsoSharedProject.Value;
+
+        // Solo se marca Update cuando la fila ya existía: para una fila recién
+        // agregada, Update() la movería de Added a Modified y rompería el guardado.
+        if (!isNew)
+            await _companyRepo.UpdateSettingsAsync(settings);
+        await _companyRepo.SaveChangesAsync();
 
         // Return updated flags
         return Ok(new
         {
-            moduleEnabled = GetBool("PalmTrack:Enabled"),
-            ssoEnabled = GetBool("PalmTrack:SsoEnabled"),
-            ssoAutoCreateUsers = GetBool("PalmTrack:SsoAutoCreateUsers"),
-            ssoPropagateRoles = GetBool("PalmTrack:SsoPropagateRoles"),
-            ssoSharedProject = GetBool("PalmTrack:SsoSharedProject"),
+            moduleEnabled = settings.PalmTrackEnabled,
+            ssoEnabled = settings.PalmTrackSsoEnabled,
+            ssoAutoCreateUsers = settings.PalmTrackSsoAutoCreateUsers,
+            ssoPropagateRoles = settings.PalmTrackSsoPropagateRoles,
+            ssoSharedProject = settings.PalmTrackSsoSharedProject,
         });
+    }
+
+    private async Task<CompanySettings?> GetSettingsOrDefaultAsync()
+    {
+        var company = await _companyRepo.GetByTenantIdAsync(_tenant.TenantId);
+        if (company is null) return null;
+        return await _companyRepo.GetSettingsAsync(company.Id);
     }
 
     private bool GetBool(string key)
@@ -82,18 +119,6 @@ public sealed class PalmtrackFeatureFlagsController : ControllerBase
         if (bool.TryParse(value, out var result))
             return result;
         return false;
-    }
-
-    private void SetBool(string key, bool value)
-    {
-        // Actualizar en memoria usando IConfigurationSection si es posible
-        var section = _configuration.GetSection(key);
-        // Nota: IConfiguration no soporta escritura directa.
-        // Para cambios persistentes, se necesitaría un mecanismo adicional
-        // (por ejemplo, tabla de configuración en DB o archivo).
-        // Por ahora, este endpoint sirve principalmente para validación
-        // y para que el frontend obtenga los valores correctos después de
-        // un actualización manual del archivo de configuración.
     }
 }
 

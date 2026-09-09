@@ -1,8 +1,13 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Zorvian.Application.Interfaces;
+using Zorvian.Core.Entities;
+using Zorvian.Core.Interfaces;
+using Zorvian.Infrastructure.Data;
 using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers.Fleet;
@@ -26,15 +31,35 @@ public sealed class PalmTrackReadController : ControllerBase
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _configuration;
     private readonly ILogger<PalmTrackReadController> _logger;
+    private readonly ITenantContext _tenant;
+    private readonly ZorvianDbContext _db;
 
     public PalmTrackReadController(
         IHttpClientFactory httpClientFactory,
         IConfiguration configuration,
-        ILogger<PalmTrackReadController> logger)
+        ILogger<PalmTrackReadController> logger,
+        ITenantContext tenant,
+        ZorvianDbContext db)
     {
         _httpClientFactory = httpClientFactory;
         _configuration = configuration;
         _logger = logger;
+        _tenant = tenant;
+        _db = db;
+    }
+
+    /// <summary>
+    /// Resuelve el orgId de PalmTrack para el tenant actual vía ExternalIdentityMapping.
+    /// La API de PalmTrack (/api/palm/v1/*) exige el query param orgId en todas las rutas.
+    /// </summary>
+    private async Task<string?> ResolvePalmTrackOrgIdAsync()
+    {
+        var mapping = await _db.Set<ExternalIdentityMapping>()
+            .FirstOrDefaultAsync(m =>
+                m.ZorvianTenantId == _tenant.TenantId.ToString() &&
+                m.IsActive);
+
+        return mapping?.PalmTrackOrgId;
     }
 
     private string? ReadApiBaseUrl =>
@@ -43,11 +68,45 @@ public sealed class PalmTrackReadController : ControllerBase
     private string? ReadApiKey =>
         _configuration["PalmTrack:ReadApiKey"];
 
-    private static readonly Uri[] AllowedPalmTrackHosts = new Uri[]
+    /// <summary>
+    /// Hosts permitidos por defecto para la API de lectura de PalmTrack.
+    /// Se pueden sobrescribir desde configuración (PalmTrack:AllowedReadHosts)
+    /// como array o como lista separada por comas, vía appsettings o env vars
+    /// (ej: PalmTrack__AllowedReadHosts__0, PalmTrack__AllowedReadHosts="a.com,b.com").
+    /// </summary>
+    private static readonly string[] DefaultAllowedReadHosts =
+        ["palmtracklatam.com", "www.palmtracklatam.com"];
+
+    private string[] AllowedReadHosts
     {
-        new Uri("https://palmtrack.app"),
-        new Uri("https://api.palmtrack.app"),
-    };
+        get
+        {
+            // Soporta tres formatos:
+            //  - array en appsettings:  "AllowedReadHosts": ["a.com", "b.com"]
+            //  - env vars indexadas:    PalmTrack__AllowedReadHosts__0=a.com
+            //  - string separado por comas: PalmTrack__AllowedReadHosts="a.com,b.com"
+            var section = _configuration.GetSection("PalmTrack:AllowedReadHosts");
+            var hosts = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(section.Value))
+                hosts.AddRange(section.Value.Split(',',
+                    StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+
+            foreach (var child in section.GetChildren())
+            {
+                if (!string.IsNullOrWhiteSpace(child.Value))
+                    hosts.AddRange(child.Value.Split(',',
+                        StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+            }
+
+            if (hosts.Count == 0)
+                hosts.AddRange(DefaultAllowedReadHosts);
+
+            return hosts
+                .Select(h => h.ToLowerInvariant())
+                .ToArray();
+        }
+    }
 
     private bool IsAllowedPalmTrackUrl(string url)
     {
@@ -58,12 +117,8 @@ public sealed class PalmTrackReadController : ControllerBase
             if (uri.Scheme != Uri.UriSchemeHttps)
                 return false;
             // Validar que el host esté en la lista permitida
-            foreach (var allowed in AllowedPalmTrackHosts)
-            {
-                if (uri.Host == allowed.Host)
-                    return true;
-            }
-            return false;
+            var allowed = AllowedReadHosts;
+            return allowed.Any(h => string.Equals(uri.Host, h, StringComparison.OrdinalIgnoreCase));
         }
         catch
         {
@@ -248,10 +303,42 @@ public sealed class PalmTrackReadController : ControllerBase
             });
         }
 
+        // PalmTrack exige orgId en todas sus rutas de lectura:
+        //  - SuperAdmin: puede pedir un org explícito (?orgId=...) para auditar cualquier organización.
+        //  - Usuario normal: siempre el org mapeado a su tenant (ExternalIdentityMapping);
+        //    se ignora cualquier orgId que envíe para evitar acceso cross-tenant.
+        var requestedOrgId = Request.Query["orgId"].FirstOrDefault();
+        string? palmOrgId;
+        if (_tenant.IsSuperAdmin && !string.IsNullOrWhiteSpace(requestedOrgId))
+        {
+            palmOrgId = requestedOrgId;
+        }
+        else
+        {
+            palmOrgId = await ResolvePalmTrackOrgIdAsync();
+            if (string.IsNullOrWhiteSpace(palmOrgId))
+            {
+                var hint = _tenant.IsSuperAdmin
+                    ? "Super admins without a tenant mapping can pass ?orgId=<palmOrgId> explicitly"
+                    : "Ask an admin to reconcile the PalmTrack organization (ExternalIdentityMappings)";
+                _logger.LogWarning(
+                    "No active ExternalIdentityMapping for tenant {TenantId} (IsSuperAdmin={IsSuperAdmin}); cannot resolve PalmTrack orgId",
+                    _tenant.TenantId, _tenant.IsSuperAdmin);
+                return StatusCode(400, new
+                {
+                    error = "palmtrack_org_not_mapped",
+                    message = $"No active ExternalIdentityMapping exists for the current tenant; {hint}",
+                });
+            }
+        }
+        queryParams["orgId"] = palmOrgId;
+
         try
         {
             using var client = _httpClientFactory.CreateClient();
-            client.BaseAddress = new Uri(ReadApiBaseUrl!);
+            // Slash final obligatorio: sin él, una ruta relativa como "farms"
+            // reemplaza el último segmento ("v1") en vez de concatenarse.
+            client.BaseAddress = new Uri(ReadApiBaseUrl!.TrimEnd('/') + "/");
             client.Timeout = TimeSpan.FromSeconds(15);
 
             // Build query string
@@ -295,7 +382,9 @@ public sealed class PalmTrackReadController : ControllerBase
             try
             {
                 using var doc = JsonDocument.Parse(body);
-                var root = doc.RootElement;
+                // Clone antes de salir del using: los JsonElement del documento
+                // original quedan inválidos al disponerlo (ObjectDisposedException).
+                var root = doc.RootElement.Clone();
 
                 // PalmTrack API returns { success, data, pagination, meta }
                 // Mapeamos al formato esperado por el frontend

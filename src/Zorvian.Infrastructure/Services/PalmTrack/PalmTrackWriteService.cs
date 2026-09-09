@@ -24,7 +24,7 @@ public sealed class PalmTrackWriteService : IPalmTrackWriteService
     private readonly ILogger<PalmTrackWriteService> _logger;
 
     private string BaseUrl => _configuration["PalmTrack:WriteApiBaseUrl"]
-        ?? "https://palmtrack.app/api/palm/v1";
+        ?? "https://palmtracklatam.com/api";
 
     private string WriteApiKey => _configuration["PalmTrack:WriteApiKey"]
         ?? throw new InvalidOperationException("PalmTrack:WriteApiKey not configured");

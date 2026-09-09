@@ -26,5 +26,12 @@ public sealed class CompanySettings : BaseEntity
     // Régimen INSS: "integral" o "ivm"
     public string InssRegime { get; set; } = "integral";
 
+    // PalmTrack integration feature flags (Plan §10.1)
+    public bool PalmTrackEnabled { get; set; }
+    public bool PalmTrackSsoEnabled { get; set; }
+    public bool PalmTrackSsoAutoCreateUsers { get; set; }
+    public bool PalmTrackSsoPropagateRoles { get; set; }
+    public bool PalmTrackSsoSharedProject { get; set; }
+
     public Company Company { get; set; } = null!;
 }

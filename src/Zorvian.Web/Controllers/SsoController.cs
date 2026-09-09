@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Zorvian.Application.DTOs.Auth;
 using Zorvian.Application.Interfaces;
+using Zorvian.Application.Interfaces.PalmTrack;
+using Zorvian.Infrastructure.Data;
 using Zorvian.Web.Filters;
 
 // ReSharper disable ConvertIfStatementToNullCoalescingAssignment
@@ -17,16 +20,47 @@ public sealed class SsoController : ControllerBase
 {
     private readonly ISsoService _ssoService;
     private readonly IConfiguration _configuration;
+    private readonly IPalmTrackIdentityService _identityService;
+    private readonly ZorvianDbContext _db;
     private readonly ILogger<SsoController> _logger;
 
-    public SsoController(ISsoService ssoService, IConfiguration configuration, ILogger<SsoController> logger)
+    public SsoController(
+        ISsoService ssoService,
+        IConfiguration configuration,
+        ILogger<SsoController> logger,
+        IPalmTrackIdentityService identityService,
+        ZorvianDbContext db)
     {
         _ssoService = ssoService;
         _configuration = configuration;
         _logger = logger;
+        _identityService = identityService;
+        _db = db;
     }
 
-    private bool IsSsoEnabled => _configuration.GetValue<bool>("PalmTrack:SsoEnabled");
+    /// <summary>
+    /// Determina si el SSO está habilitado para la organización solicitante.
+    /// La fuente de verdad es el flag persistido en CompanySettings.PalmTrackSsoEnabled
+    /// (configurable desde la página de configuración). Si la organización no está
+    /// reconciliada o no tiene fila de settings, se hace fallback a appsettings
+    /// (PalmTrack:SsoEnabled).
+    /// </summary>
+    private async Task<bool> IsSsoEnabledAsync(string palmTrackOrgId)
+    {
+        var tenantId = await _identityService.GetTenantIdAsync(palmTrackOrgId);
+        if (tenantId is not null)
+        {
+            var settings = await _db.CompanySettings
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(s =>
+                    !s.IsDeleted && s.TenantId == tenantId.Value.ToString());
+
+            if (settings is not null)
+                return settings.PalmTrackSsoEnabled;
+        }
+
+        return _configuration.GetValue<bool>("PalmTrack:SsoEnabled");
+    }
 
     /// <summary>
     /// Plan §3.2 — SSO login endpoint.
@@ -44,8 +78,10 @@ public sealed class SsoController : ControllerBase
         [FromQuery] string? palmTrackRole = null,
         [FromQuery] string? palmTrackProducerCode = null)
     {
-        // Plan §10.1 — Feature flag: if SSO disabled, return 404
-        if (!IsSsoEnabled)
+        // Plan §10.1 — Feature flag: if SSO disabled, return 404.
+        // El flag se lee de CompanySettings.PalmTrackSsoEnabled (persistido desde la
+        // página de configuración) con fallback a appsettings (PALMTRACK_SSO_ENABLED).
+        if (!await IsSsoEnabledAsync(orgId))
         {
             _logger.LogWarning("SSO: Endpoint disabled by feature flag (PALMTRACK_SSO_ENABLED)");
             return NotFound(new { error = "sso_disabled", message = "SSO is not enabled" });
