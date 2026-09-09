@@ -189,7 +189,7 @@ public sealed class PalmTrackReadControllerTests : IDisposable
     {
         var config = BuildConfig(new Dictionary<string, string?>
         {
-            ["PalmTrack:ReadApiBaseUrl"] = "https://palmtracklatam.com/api",
+            ["PalmTrack:ReadApiBaseUrl"] = "https://palmtracklatam.com/api/palm/v1",
             ["PalmTrack:ReadApiKey"] = "key-123",
             // Sin AllowedReadHosts → usa los defaults
         });
