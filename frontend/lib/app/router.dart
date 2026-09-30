@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../auth/auth_provider.dart';
@@ -285,17 +286,47 @@ final _routeRoles = <String, List<String>>{
   '/purchases/credit-notes': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
 };
 
+/// Guard de acceso por rol.
+///
+/// Resuelve el patrón más ESPECÍFICO de [_routeRoles] (mayor nº de segmentos
+/// que coinciden con la location), no el primero declarado. Con el anterior
+/// `firstWhere(location.startsWith(key))`, rutas como '/admin/companies'
+/// (SuperAdmin) heredaban los roles de '/admin' (SuperAdmin+CompanyAdmin).
 bool _hasAccess(String role, String location) {
-  final allowed = _routeRoles.entries.firstWhere(
-    (e) => location.startsWith(e.key),
-    orElse: () => MapEntry('', ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee']),
-  ).value;
+  const defaultRoles = ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'];
+  final segments = location.split('/').where((s) => s.isNotEmpty).toList();
+
+  String? bestKey;
+  var bestLen = -1;
+  for (final key in _routeRoles.keys) {
+    final keySegments = key.split('/').where((s) => s.isNotEmpty).toList();
+    if (keySegments.length > segments.length) continue;
+    if (!location.startsWith(key) ||
+        (location.length > key.length &&
+            location.codeUnitAt(key.length) != 0x2F /* '/' */)) {
+      continue; // '/admin2' no debe matchear '/admin'
+    }
+    if (keySegments.length > bestLen) {
+      bestKey = key;
+      bestLen = keySegments.length;
+    }
+  }
+
+  final allowed = bestKey != null ? _routeRoles[bestKey]! : defaultRoles;
   return allowed.contains(role);
 }
 
-final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
+/// Exposed for tests: role guard resolution.
+@visibleForTesting
+bool hasAccessForRole(String role, String location) => _hasAccess(role, location);
 
+final routerProvider = Provider<GoRouter>((ref) {
+  return buildGoRouter(ref.watch(authProvider));
+});
+
+/// Builds the app [GoRouter]. Exposed for tests via [appRoutes].
+@visibleForTesting
+GoRouter buildGoRouter(AuthState authState) {
   return GoRouter(
     initialLocation: '/splash',
     debugLogDiagnostics: true,
@@ -728,6 +759,13 @@ final routerProvider = Provider<GoRouter>((ref) {
             name: 'inventory-movements',
             builder: (_, _) => const InventoryMovementListPage(),
           ),
+          // '/credits/overdue-dashboard' debe ir antes de '/credits': si no, el hijo
+          // ':creditId' captura 'overdue-dashboard' como id de crédito.
+          GoRoute(
+            path: '/credits/overdue-dashboard',
+            name: 'overdue-dashboard',
+            builder: (_, _) => const OverdueDashboardPage(),
+          ),
           GoRoute(
             path: '/credits',
             name: 'credits',
@@ -736,11 +774,6 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(path: ':creditId', name: 'credit-detail', builder: (_, state) => CreditDetailPage(creditId: state.pathParameters['creditId']!)),
               GoRoute(path: ':creditId/refinancing', name: 'credit-refinancing', builder: (_, state) => CreditRefinancingFormPage(creditId: state.pathParameters['creditId']!)),
             ],
-          ),
-          GoRoute(
-            path: '/credits/overdue-dashboard',
-            name: 'overdue-dashboard',
-            builder: (_, _) => const OverdueDashboardPage(),
           ),
           GoRoute(
             path: '/cash-registers',
@@ -873,7 +906,8 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (_, _) => const PurchaseListPage(),
             routes: [
               GoRoute(path: 'new', name: 'purchase-new', builder: (_, _) => const PurchaseFormPage()),
-              GoRoute(path: ':purchaseId', name: 'purchase-detail', builder: (_, state) => PurchaseDetailPage(purchaseId: state.pathParameters['purchaseId']!)),
+              // Rutas estáticas antes de ':purchaseId': go_router resuelve los hijos en orden
+              // de declaración, así que ':purchaseId' capturaba '/purchases/payments' como id.
               GoRoute(
                 path: 'payments',
                 name: 'purchase-payments',
@@ -896,6 +930,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                   }),
                 ],
               ),
+              GoRoute(path: ':purchaseId', name: 'purchase-detail', builder: (_, state) => PurchaseDetailPage(purchaseId: state.pathParameters['purchaseId']!)),
             ],
           ),
           GoRoute(
@@ -1388,4 +1423,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
     ],
   );
-});
+}
+
+/// Fresh route tree for tests: route resolution (static vs dynamic
+/// shadowing) can be asserted via go_router's RouteConfiguration.findMatch.
+@visibleForTesting
+List<RouteBase> get appRoutes => buildGoRouter(const AuthState()).configuration.routes;
