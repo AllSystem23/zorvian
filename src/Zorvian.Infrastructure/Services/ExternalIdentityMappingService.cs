@@ -24,6 +24,7 @@ public sealed class ExternalIdentityMappingService : IExternalIdentityMappingSer
         ILogger<ExternalIdentityMappingService> logger)
     {
         _db = db;
+        _tenantContext = tenantContext;
         _logger = logger;
     }
 

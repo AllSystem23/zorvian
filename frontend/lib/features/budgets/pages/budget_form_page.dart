@@ -27,8 +27,13 @@ final class _BudgetFormPageState extends ConsumerState<BudgetFormPage> {
   @override
   void initState() {
     super.initState();
-    ref.read(accountListProvider.notifier).load();
-    ref.read(costCenterProvider.notifier).load();
+    // DEFERRED: load() mutates provider state synchronously (loading: true)
+    // before its first await — calling it directly from initState throws
+    // "Tried to modify a provider while the widget tree was building".
+    Future.microtask(() {
+      ref.read(accountListProvider.notifier).load();
+      ref.read(costCenterProvider.notifier).load();
+    });
     if (_isEditing) _load();
   }
 

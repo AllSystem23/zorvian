@@ -32,15 +32,38 @@ final class AppShell extends ConsumerStatefulWidget {
 }
 
 final class _AppShellState extends ConsumerState<AppShell> {
+  // Guard so saved favorites are restored only once per session.
+  bool _favoritesRestored = false;
+
   @override
   void initState() {
     super.initState();
     // Listen for auth completion to auto-select company for ALL users
     // (not just SuperAdmin). Runs eagerly, before the header widget mounts.
-    ref.listen(authProvider, (_, next) {
+    // NOTE: must be listenManual — ref.listen is only valid inside build()
+    // and throws "ref.listen can only be used within the build method of a
+    // ConsumerWidget" when called from initState (same pattern as app.dart).
+    ref.listenManual(authProvider, (_, next) {
       if (next.status == AuthStatus.authenticated) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _selectFirstCompany();
+        });
+      }
+    });
+    // Restore saved favorites once the user role is known. Runs OUTSIDE the
+    // build phase: mutating a provider during build throws
+    // "Tried to modify a provider while the widget tree was building".
+    ref.listenManual(authProvider, (_, next) {
+      if (next.role != null && !_favoritesRestored) {
+        _favoritesRestored = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          try {
+            final prefs = ref.read(preferencesServiceProvider);
+            final saved = prefs.favoriteRoutes;
+            if (saved.isNotEmpty) {
+              ref.read(favoritesProvider.notifier).toggle(saved.first);
+            }
+          } catch (_) {}
         });
       }
     });
@@ -84,7 +107,11 @@ final class _AppShellState extends ConsumerState<AppShell> {
   @override
   void didUpdateWidget(AppShell oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _trackNavigation();
+    // DEFERRED: didUpdateWidget runs INSIDE the build phase, and
+    // _trackNavigation mutates recentItemsProvider → throws
+    // "Tried to modify a provider while the widget tree was building"
+    // on every route change (GoRouter rebuilds AppShell with the new child).
+    WidgetsBinding.instance.addPostFrameCallback((_) => _trackNavigation());
   }
 
   void _trackNavigation() {
@@ -99,19 +126,6 @@ final class _AppShellState extends ConsumerState<AppShell> {
     final auth = ref.watch(authProvider);
     final role = auth.role ?? 'Employee';
     final location = GoRouterState.of(context).matchedLocation;
-
-    // Load favorites from preferences
-    ref.listen(authProvider, (_, next) {
-      if (next.role != null) {
-        try {
-          final prefs = ref.read(preferencesServiceProvider);
-          final saved = prefs.favoriteRoutes;
-          if (saved.isNotEmpty) {
-            ref.read(favoritesProvider.notifier).toggle(saved.first);
-          }
-        } catch (_) {}
-      }
-    });
 
     return ResponsiveBuilder(
       builder: (context, size) {

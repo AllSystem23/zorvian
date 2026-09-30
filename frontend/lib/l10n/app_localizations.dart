@@ -131,7 +131,7 @@ abstract class AppLocalizations {
   /// No description provided for @employees.
   ///
   /// In es, this message translates to:
-  /// **'Trabajadores'**
+  /// **'Empleados'**
   String get employees;
 
   /// No description provided for @payroll.

@@ -2,10 +2,18 @@
 # Zorvian ERP — Local Development Docker Compose
 # ══════════════════════════════════════════════════════════════
 # Usage:
-#   docker-compose up -d          → Start all services
-#   docker-compose logs -f api    → Follow API logs
-#   docker-compose down           → Stop all services
-#   docker-compose up -d --build  → Rebuild and start
+#   docker compose up -d              → Start Postgres, Redis, RabbitMQ, API, Frontend
+#   docker compose logs -f api        → Follow API logs
+#   docker compose up -d --build      → Rebuild and start
+#   docker compose down               → Stop all services
+#   docker compose down -v            → Stop and WIPE all data volumes
+#
+#   docker compose --profile tools run --rm migrate   → Run EF Core migrations manually
+#                                                       (the API already auto-migrates on boot)
+#
+# This stack is self-contained: the API connects to the `postgres` container
+# on the compose network, NOT to Neon. No .env file is required — every value
+# below has a development default. Copy .env.example to .env to override.
 # ══════════════════════════════════════════════════════════════
 
 services:
@@ -17,13 +25,19 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: zorvian_erp
-      POSTGRES_USER: zorvian
-      POSTGRES_PASSWORD: zorvian_dev_2026
+      POSTGRES_DB: ${POSTGRES_DB:-zorvian_erp}
+      POSTGRES_USER: ${POSTGRES_USER:-zorvian}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zorvian_dev_2026}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # Bootstraps a FRESH volume: the migration chain is a baseline, so the
+      # schema is generated from the EF model instead of replayed migrations.
+      # See scripts/init_local_migrations.sql for the full explanation.
+      - ./scripts/init_local_schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+      - ./scripts/init_local_migrations.sql:/docker-entrypoint-initdb.d/02_migrations.sql:ro
+      - ./scripts/init_local_schema_patch.sql:/docker-entrypoint-initdb.d/03_schema_patch.sql:ro
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U zorvian -d zorvian_erp" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-zorvian} -d ${POSTGRES_DB:-zorvian_erp}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -43,6 +57,25 @@ services:
       timeout: 5s
       retries: 5
 
+  # ── RabbitMQ (message queue via MassTransit) ──
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: zorvian-rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"     # AMQP protocol
+      - "15672:15672"   # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-zorvian}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-zorvian_dev_2026}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # ── Backend API ──
   api:
     build:
@@ -54,25 +87,56 @@ services:
       - "8080:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__ZorvianDb=Host=${NEON_HOST:-localhost};Database=${NEON_DB:-zorvian};Username=${NEON_USER:-postgres};Password=${NEON_PASSWORD};SSL Mode=Require
-      - Jwt__Secret=dev-secret-key-change-in-production-minimum-32-chars
-      - Firebase__ProjectId=zorvian-erp
+      # ── Database: local `postgres` service (NOT Neon) ──
+      - ConnectionStrings__ZorvianDb=Host=postgres;Port=5432;Database=${POSTGRES_DB:-zorvian_erp};Username=${POSTGRES_USER:-zorvian};Password=${POSTGRES_PASSWORD:-zorvian_dev_2026};Include Error Detail=true
+      # ── Redis cache ──
+      - Redis__Connection=redis:6379
+      # ── RabbitMQ / MassTransit ──
+      - RabbitMQ__Enabled=true
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__Port=5672
+      - RabbitMQ__Username=${RABBITMQ_USER:-zorvian}
+      - RabbitMQ__Password=${RABBITMQ_PASSWORD:-zorvian_dev_2026}
+      - RabbitMQ__VirtualHost=/
+      # ── Required secrets (dev-only placeholders, override in .env) ──
+      - Jwt__Secret=${JWT_SECRET:-zorvian-dev-only-jwt-signing-key-do-not-use-in-production-0123456789}
+      - Encryption__Key=${ENCRYPTION_KEY:-em9ydmlhbi1kZXYtZW5jcnlwdGlvbi1rZXktMzJieSE=}
+      # ── Firebase (optional locally; leave blank to skip) ──
+      - Firebase__ProjectId=${FIREBASE_PROJECT_ID:-zorvian-erp}
       - Firebase__CredentialsFilePath=
-      - Firebase__WebApiKey=
+      - Firebase__CredentialsJson=${FIREBASE_CREDENTIALS_JSON:-}
+      # ── Local bootstrap: unlocks POST /zorvian/v1/seed/super-admin ──
+      - ZORVIAN_BOOTSTRAP_KEY=${ZORVIAN_BOOTSTRAP_KEY:-zorvian-dev-bootstrap-key}
+      # ── External services are real (skip in-memory mocks) ──
       - Testing__MockExternalServices=false
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     volumes:
-      - ./src/Zorvian.Web:/app/logs
+      - api_logs:/app/logs
 
-  # ── EF Core Migration Runner ──
+  # ── EF Core Migration Runner (optional — the API auto-migrates on boot) ──
   migrate:
+    profiles: [ "tools" ]
     image: mcr.microsoft.com/dotnet/sdk:9.0
     container_name: zorvian-migrate
     working_dir: /src
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__ZorvianDb=Host=${NEON_HOST:-localhost};Database=${NEON_DB:-zorvian};Username=${NEON_USER:-postgres};Password=${NEON_PASSWORD};SSL Mode=Require
+      - ConnectionStrings__ZorvianDb=Host=postgres;Port=5432;Database=${POSTGRES_DB:-zorvian_erp};Username=${POSTGRES_USER:-zorvian};Password=${POSTGRES_PASSWORD:-zorvian_dev_2026};Include Error Detail=true
+      - Jwt__Secret=${JWT_SECRET:-zorvian-dev-only-jwt-signing-key-do-not-use-in-production-0123456789}
+      - Encryption__Key=${ENCRYPTION_KEY:-em9ydmlhbi1kZXYtZW5jcnlwdGlvbi1rZXktMzJieSE=}
+      - Firebase__ProjectId=${FIREBASE_PROJECT_ID:-zorvian-erp}
+      - RabbitMQ__Enabled=false
     volumes:
       - .:/src
+    depends_on:
+      postgres:
+        condition: service_healthy
     entrypoint: >
       sh -c "
         dotnet tool install --global dotnet-ef --version 9.0.* &&
@@ -82,43 +146,31 @@ services:
         echo 'Migracion completada exitosamente!'
       "
 
-  # ── RabbitMQ (Message Queue — Fase 2) ──
-  # NOTA: RabbitMQ está disponible en infraestructura pero su integración
-  # en código está planificada para Fase 2. Por ahora, Hangfire actúa
-  # como job scheduler y bus de eventos interno.
-  rabbitmq:
-    image: rabbitmq:3.13-management-alpine
-    container_name: zorvian-rabbitmq
-    restart: unless-stopped
-    ports:
-      - "5672:5672"     # AMQP protocol
-      - "15672:15672"   # Management UI
-    environment:
-      RABBITMQ_DEFAULT_USER: zorvian
-      RABBITMQ_DEFAULT_PASS: zorvian_dev_2026
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    healthcheck:
-      test: [ "CMD", "rabbitmqctl", "status" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   # ── Frontend (Flutter Web) ──
   frontend:
     image: ghcr.io/cirruslabs/flutter:stable
     container_name: zorvian-frontend
     working_dir: /app
     ports:
-      - "3000:3000"
+      # Host 3001 → container 3000 (host port configurable via FRONTEND_PORT).
+      - "${FRONTEND_PORT:-3001}:3000"
     volumes:
       - ./frontend:/app
+      # Isolate the container's Dart resolution from the host checkout.
+      # `flutter pub get` inside the container rewrites
+      # .dart_tool/package_config.json with /root/.pub-cache paths, which
+      # breaks `flutter analyze` and IDE resolution on the host (Windows).
+      - frontend_dart_tool:/app/.dart_tool
+      - frontend_build:/app/build
     command: >
-      sh -c "flutter pub get && flutter run -d web-server --web-port=3000 --web-hostname=0.0.0.0"
-    environment:
-      - FLUTTER_WEB_BASE_URL=http://localhost:8080
+      sh -c "flutter pub get && flutter run -d web-server --web-port=3000 --web-hostname=0.0.0.0 --dart-define=API_URL=${API_URL:-http://localhost:8080/zorvian/v1}"
+    depends_on:
+      - api
 
 volumes:
   postgres_data:
   redis_data:
   rabbitmq_data:
+  api_logs:
+  frontend_dart_tool:
+  frontend_build:

@@ -715,12 +715,12 @@ Los providers están distribuidos en los directorios de features. Se listan los 
 
 ### Docker Compose (Recomendado)
 
+Requiere **Docker Desktop con backend WSL2** (Windows) o Docker Engine (Linux/macOS).
+
 ```bash
 git clone https://github.com/AllSystem23/zorvian-erp.git
 cd zorvian-erp
-cp src/Zorvian.Web/.env.example src/Zorvian.Web/.env
-# Edita .env con tus credenciales
-docker-compose up -d
+docker compose up -d          # no necesita .env: trae valores de desarrollo por defecto
 curl http://localhost:8080/health
 ```
 
@@ -732,8 +732,53 @@ curl http://localhost:8080/health
 | `redis` | 6379 | Redis 7 Alpine |
 | `rabbitmq` | 5672, 15672 | RabbitMQ 3.13 via MassTransit (4 consumers: SaleCreated, SaleCancelled, PaymentReceived, EmployeeCreated) |
 | `api` | 8080 | Backend .NET 9 |
-| `migrate` | — | EF Core migration runner |
-| `frontend` | 3000 | Flutter Web (dev server) |
+| `frontend` | 3001 | Flutter Web (dev server). Cambia el puerto del host con `FRONTEND_PORT` en `.env` |
+| `migrate` | — | EF Core migration runner (perfil `tools`, opcional) |
+
+#### Primer usuario (bootstrap local)
+
+Firebase se omite en local, así que el primer administrador se crea con la llave
+de bootstrap definida en `docker-compose.yml` (`ZORVIAN_BOOTSTRAP_KEY`):
+
+```bash
+curl -X POST http://localhost:8080/zorvian/v1/seed/super-admin \
+  -H "Content-Type: application/json" \
+  -H "X-Requested-With: XMLHttpRequest" \
+  -d '{"email":"admin@zorvian.local","bootstrapKey":"zorvian-dev-bootstrap-key"}'
+```
+
+La respuesta incluye la contraseña generada. Entra en <http://localhost:3001> y
+usa esa contraseña (o el endpoint `POST /zorvian/v1/auth/login-password`).
+
+> ℹ️ Todas las peticiones no-GET requieren un header `X-Requested-With`
+> (el cliente Dio del frontend ya lo envía).
+
+#### Esquema de base de datos
+
+La cadena de migraciones EF de este repo es un **baseline**: `BaselineSync` está
+vacía a propósito y el esquema real se creó fuera de banda sobre Neon. Por eso
+un volumen nuevo se inicializa con los scripts de `scripts/` en lugar de
+reproduciendo migraciones:
+
+| Script | Rol |
+|--------|-----|
+| `init_local_schema.sql` | Esquema completo generado desde el modelo EF (`dotnet ef dbcontext script`) |
+| `init_local_migrations.sql` | Marca la cadena baseline como aplicada |
+| `init_local_schema_patch.sql` | Elimina las FK de `CompanyId` que producción tampoco tiene |
+
+Para regenerar el esquema tras añadir entidades:
+
+```bash
+dotnet ef dbcontext script -p src/Zorvian.Infrastructure -s src/Zorvian.Web \
+  -o scripts/init_local_schema.sql
+```
+
+Para reiniciar la base de datos desde cero: `docker compose down -v && docker compose up -d`.
+
+#### Sobre el API
+
+Por defecto el API conecta al contenedor `postgres` local — **no a Neon**. Copia
+`.env.example` a `.env` solo si quieres sobreescribir algún valor.
 
 ### Desarrollo Local
 

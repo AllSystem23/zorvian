@@ -199,7 +199,7 @@ class _PalmTrackInventoryPageState extends ConsumerState<PalmTrackInventoryPage>
           ],
         ),
         trailing: Text(
-          "\$${item.unitCost.toStringAsFixed(2)}",
+          '\$${item.unitCost.toStringAsFixed(2)}',
           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
         ),
         isThreeLine: true,

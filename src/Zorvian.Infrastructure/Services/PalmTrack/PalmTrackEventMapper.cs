@@ -563,10 +563,36 @@ public sealed class PalmTrackEventMapper : IPalmTrackEventMapper
         return MappingResult.Ok("sale_consolidated");
     }
 
+    /// <summary>
+    /// production.logged: PalmTrack es dueño de la verdad de producción, así que Zorvian
+    /// NO crea entidades locales — solo espeja el registro como referencia externa
+    /// (EntityType = "production_log", Status = "synced") con el payload real. Esa es
+    /// exactamente la fuente que agrega PalmtrackProductionController para el dashboard
+    /// de producción (antes no la escribía nadie y el dashboard siempre daba ceros).
+    /// </summary>
     private async Task<MappingResult> ProcessProductionLoggedAsync(JsonElement payload, Guid tenantId)
     {
-        _logger.LogInformation("Processing production.logged from PalmTrack (PalmTrack is truth owner)");
-        return MappingResult.Ok("production_logged_received");
+        var data = TryGetData(payload);
+        var externalId = GetRequiredString(data, "id");
+        if (string.IsNullOrWhiteSpace(externalId))
+            return MappingResult.Fail("422 production_log_id_required");
+
+        // Anti-duplicados: si ya existe la referencia, el log ya fue consolidado
+        // (PalmTrack reintenta webhooks aunque el evento ya se haya procesado).
+        var existing = await GetExternalReferenceAsync("production_log", externalId);
+        if (existing is not null)
+        {
+            _logger.LogInformation(
+                "production.logged already consolidated: {ExternalId}", externalId);
+            return MappingResult.Ok("production_logged_duplicate");
+        }
+
+        // Sin entidad local: EntityId vacío es intencional (la producción vive en PalmTrack).
+        await UpsertExternalReferenceAsync("production_log", Guid.Empty, externalId, data, tenantId);
+
+        _logger.LogInformation(
+            "Consolidated production.logged from PalmTrack: {ExternalId}", externalId);
+        return MappingResult.Ok("production_logged_consolidated");
     }
 
     private async Task<MappingResult> ProcessInventoryEventAsync(JsonElement payload, Guid tenantId, string eventName)

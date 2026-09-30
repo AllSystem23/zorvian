@@ -23,14 +23,13 @@ final class SidebarSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final expandedModules = ref.watch(expandedModulesProvider);
-    final isExpanded = expandedModules.contains(module.id);
     final searchQuery = ref.watch(searchQueryProvider);
     final isSearching = searchQuery.isNotEmpty;
+    // While searching, force the section open at the UI level. Mutating
+    // expandedModulesProvider here (expand() sets state synchronously) throws
+    // "Tried to modify a provider while the widget tree was building".
+    final isExpanded = expandedModules.contains(module.id) || isSearching;
     final hasActiveChild = module.children.any((item) => location.startsWith(item.route));
-
-    if (isSearching && !isExpanded) {
-      ref.read(expandedModulesProvider.notifier).expand(module.id);
-    }
 
     final modulesWithAccess = role == 'SuperAdmin' || role == 'CompanyAdmin' || role == 'Rrhh';
 

@@ -397,6 +397,72 @@ public sealed class PalmTrackReadControllerTests : IDisposable
     }
 
     [Fact]
+    public async Task GetFarms_SuperAdminAggregated_TagsItemsWithSourceOrgAndDoesNotPaginate()
+    {
+        var tenantMock = new Mock<ITenantContext>();
+        tenantMock.Setup(t => t.TenantId).Returns(new TenantId(Guid.NewGuid()));
+        tenantMock.Setup(t => t.IsSuperAdmin).Returns(true);
+
+        SeedOrgMapping("org-empresa-1");
+
+        // El upstream responde con cursor: en modo agregado ese cursor NO es
+        // reutilizable entre orgs, así que la respuesta agregada debe venir
+        // sin paginación y con cada item atribuido a su org de origen.
+        var handler = new FakeHttpMessageHandler(req =>
+        {
+            var match = System.Text.RegularExpressions.Regex.Match(req.RequestUri!.Query, @"orgId=([^&]+)");
+            var orgId = match.Success ? match.Groups[1].Value : "?";
+            var payload = "{\"data\":[{\"id\":\"f-" + orgId + "\"}]," +
+                          "\"pagination\":{\"limit\":50,\"hasMore\":true,\"nextCursor\":\"cursor-" + orgId + "\"}}";
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(payload),
+            };
+        });
+        var controller = CreateController(BuildConfig(ConfigWith(defaultOrgId: "global")), handler, tenantMock);
+
+        var result = await controller.GetFarms();
+
+        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
+        var json = JsonSerializer.Serialize(ok.Value);
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        var items = root.GetProperty("items").EnumerateArray().ToList();
+        items.Should().HaveCount(2);
+        items.Select(i => i.GetProperty("organizationId").GetString())
+            .Should().BeEquivalentTo(new[] { "org-empresa-1", "global" });
+
+        var pagination = root.GetProperty("pagination");
+        pagination.GetProperty("hasMore").GetBoolean().Should().BeFalse();
+        pagination.GetProperty("nextCursor").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task GetFarms_SuperAdminAggregated_KeepsUpstreamOrganizationIdWhenPresent()
+    {
+        var tenantMock = new Mock<ITenantContext>();
+        tenantMock.Setup(t => t.TenantId).Returns(new TenantId(Guid.NewGuid()));
+        tenantMock.Setup(t => t.IsSuperAdmin).Returns(true);
+
+        var handler = new FakeHttpMessageHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    """{"data":[{"id":"f1","organizationId":"org-real-del-payload"}]}"""),
+            });
+        var controller = CreateController(BuildConfig(ConfigWith(defaultOrgId: "global")), handler, tenantMock);
+
+        var result = await controller.GetFarms();
+
+        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
+        var json = JsonSerializer.Serialize(ok.Value);
+        using var doc = JsonDocument.Parse(json);
+        doc.RootElement.GetProperty("items")[0].GetProperty("organizationId").GetString()
+            .Should().Be("org-real-del-payload");
+    }
+
+    [Fact]
     public async Task GetFarms_SuperAdminAggregated_PartialOrgFailure_DoesNotBreakRest()
     {
         var tenantMock = new Mock<ITenantContext>();

@@ -171,11 +171,13 @@ final class PalmTrackSyncNotifier extends Notifier<PalmTrackSyncState> {
       final results = await Future.wait([
         dio.get('fleet/palmtrack/stats'),
         dio.get('fleet/palmtrack/references'),
-        dio.get('zorvian/v1/palm/webhooks/dlq').catchError(
+        // El DioClient ya tiene baseUrl '.../zorvian/v1', así que la ruta va
+        // relativa (sin el prefijo zorvian/v1, que duplicaría el path).
+        dio.get('palm/webhooks/dlq').catchError(
               (_) => Response(
                 data: [],
                 statusCode: 404,
-                requestOptions: RequestOptions(path: 'zorvian/v1/palm/webhooks/logs'),
+                requestOptions: RequestOptions(path: 'palm/webhooks/dlq'),
               ),
             ),
       ]);

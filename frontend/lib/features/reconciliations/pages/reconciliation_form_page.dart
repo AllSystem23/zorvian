@@ -28,7 +28,8 @@ final class _ReconciliationFormPageState extends ConsumerState<ReconciliationFor
   Future<void> _loadBankAccounts() async {
     try {
       final dio = ref.read(dioClientProvider);
-      final r = await dio.get('/zorvian/v1/bank-accounts');
+      // El DioClient ya tiene baseUrl '.../zorvian/v1': el path debe ir relativo.
+      final r = await dio.get('bank-accounts');
       final data = r.data as List? ?? [];
       setState(() => _bankAccounts = data.map((b) => {
         'id': b['id']?.toString() ?? '',
@@ -45,7 +46,7 @@ final class _ReconciliationFormPageState extends ConsumerState<ReconciliationFor
     setState(() => _loading = true);
     try {
       final dio = ref.read(dioClientProvider);
-      await dio.post('/zorvian/v1/reconciliations', data: {
+      await dio.post('reconciliations', data: {
         'bankAccountId': _bankAccountId,
         'dateFrom': _dateFromCtrl.text.trim(),
         'dateTo': _dateToCtrl.text.trim(),

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -584,8 +585,6 @@ public sealed class PalmTrackReadController : ControllerBase
 
         var allItems = new List<JsonElement>();
         var orgErrors = new Dictionary<string, string>();
-        JsonElement? firstPagination = null;
-        JsonElement? firstMeta = null;
 
         foreach (var orgId in orgIds.Distinct())
         {
@@ -600,11 +599,13 @@ public sealed class PalmTrackReadController : ControllerBase
                     using var doc = JsonDocument.Parse(json);
                     var root = doc.RootElement.Clone();
                     if (root.TryGetProperty("items", out var itemsEl) && itemsEl.ValueKind == JsonValueKind.Array)
-                        foreach (var item in itemsEl.EnumerateArray()) allItems.Add(item.Clone());
-                    if (firstPagination is null && root.TryGetProperty("pagination", out var pagEl))
-                        firstPagination = pagEl.Clone();
-                    if (firstMeta is null && root.TryGetProperty("meta", out var metaEl))
-                        firstMeta = metaEl.Clone();
+                    {
+                        // Cada item se anota con su org de origen: al mezclar orgs en una
+                        // sola lista, el frontend necesita saber de dónde viene cada fila
+                        // (y evitar llaves duplicadas si dos orgs repiten ids locales).
+                        foreach (var item in itemsEl.EnumerateArray())
+                            allItems.Add(AttachOrgId(item, orgId));
+                    }
                 }
                 catch (JsonException jex)
                 {
@@ -622,15 +623,40 @@ public sealed class PalmTrackReadController : ControllerBase
             "PalmTrack aggregated read: endpoint={Endpoint}, orgs={OrgCount}, items={ItemCount}, errors={ErrorCount}",
             endpoint, orgIds.Count, allItems.Count, orgErrors.Count);
 
+        // La respuesta agregada NO es paginable: el cursor de PalmTrack es por-org y
+        // reutilizarlo entre orgs devolvería páginas cruzadas (duplicados y huecos).
+        // Se devuelve el total agregado y hasMore=false para que el frontend no
+        // intente seguir paginando esta lista mezclada.
         return Ok(new
         {
             items = allItems,
-            pagination = firstPagination,
-            meta = firstMeta,
+            pagination = new { limit = allItems.Count, hasMore = false, nextCursor = (string?)null },
             aggregated = true,
             orgs = orgIds,
             orgErrors,
         });
+    }
+
+    /// <summary>
+    /// Anota la organización de origen en un item agregado. No sobrescribe el
+    /// organizationId que ya venga del upstream (ese es el dato real de PalmTrack).
+    /// </summary>
+    private static JsonElement AttachOrgId(JsonElement item, string orgId)
+    {
+        if (item.ValueKind != JsonValueKind.Object)
+            return item.Clone();
+
+        if (item.TryGetProperty("organizationId", out var existing) &&
+            existing.ValueKind == JsonValueKind.String &&
+            !string.IsNullOrWhiteSpace(existing.GetString()))
+            return item.Clone();
+
+        var node = JsonNode.Parse(item.GetRawText())?.AsObject();
+        if (node is null)
+            return item.Clone();
+
+        node["organizationId"] = orgId;
+        return JsonSerializer.SerializeToElement(node);
     }
 
     private static string TryExtractErrorMessage(string body)

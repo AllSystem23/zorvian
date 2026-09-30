@@ -1,7 +1,7 @@
 # PalmTrack — Pendientes de Consolidación
 
-**Fecha:** 2026-09-07
-**Estado:** CONSOLIDACIÓN COMPLETA — 10 de 10 handlers implementados
+**Fecha:** 2026-09-16
+**Estado:** CONSOLIDACIÓN COMPLETA — 10 de 10 handlers implementados + fixes de consumo de datos reales (2026-09-16)
 
 ---
 
@@ -15,7 +15,23 @@ La integración PalmTrack ↔ Zorvian ERP tiene toda la infraestructura funciona
 - ✅ **Venta/Inventario/Gasto consolidados**: 2026-09-07 — sale → Sale+SaleDetail+kardex (cliente auto-creado, producto SOLO existente), inventory.updated → Product + entry/exit → InventoryMovement, expense → asiento DRAFT (cola de reconciliación contable). 12 tests nuevos adicionales
 - ✅ **Mano de obra consolidada**: 2026-09-07 — PalmTrack ahora emite `labor_log.created` (añadido en `createLaborLog`); Zorvian consolida como `AttendanceRecord` por colaborador/día (jornal y actividad en Notes); colaboradores sin Employee → `labor_log_consolidated_partial` (cola de reconciliación de identidad); todos sin resolver → fail-closed. 5 tests nuevos
 
-Los stubs no rompen nada — solo loguean y retornan OK. La consolidación real requiere la decisión A/C por categoría (ver `PalmTrack-Zorvian-Integration-Revision-Ejecutiva-Colecciones.md` §5).
+No quedan stubs. La consolidación real sigue la decisión A/C por categoría (ver `PalmTrack-Zorvian-Integration-Revision-Ejecutiva-Colecciones.md` §5).
+
+---
+
+## Fixes de consumo de datos reales (2026-09-16)
+
+Auditoría de la cadena Zorvian ← PalmTrack (proxy de lectura, webhooks y dashboard de producción):
+
+1. **`production.logged` no se persistía**: el handler era un stub que solo logueaba, mientras `PalmtrackProductionController` (`/palmtrack/production/summary`) lee `FleetExternalReference` con `EntityType="production_log"` y `Status="synced"` → el dashboard siempre mostraba ceros. Ahora el mapper persiste esa referencia con el payload real (anti-duplicados incluidos).
+2. **Idempotencia de webhooks inefectiva**: `PalmTrackWebhookValidator` consulta `PalmTrackWebhookLogs`, pero `MarkProcessedAsync` no se invocaba desde ningún lado → los reintentos/duplicados de PalmTrack se procesaban otra vez y no había auditoría del payload. Ahora `PalmTrackWebhookConsumer` marca procesado (con payload crudo) o fallido (`IsProcessedAsync` ignora `failed`, así que los reintentos siguen permitidos).
+3. **Agregación de super admins (lectura)**: al mezclar orgs en una sola lista se perdía el origen de cada item y se reutilizaba el `nextCursor` de una sola org para todas → filas cruzadas/duplicadas. Ahora cada item lleva `organizationId` de su org de origen y la respuesta agregada no es paginable (`hasMore=false`).
+4. **Frontend**: rutas relativas correctas contra el `DioClient` (baseUrl ya incluye `/zorvian/v1`). Se corrigió `zorvian/v1/palm/webhooks/dlq` en el provider de sync (path duplicado → 404 silencioso) y los paths de la página de conciliaciones.
+
+### Pendiente de verificación en entorno
+- `PalmTrack:ReadApiKey` está vacío en `appsettings.json`: si Render no define `PalmTrack__ReadApiKey`, **todos** los endpoints de lectura devuelven 503.
+- `PalmTrack:DefaultOrgId = "global"` debe corresponder a una organización real de PalmTrack; si no, los tenants sin mapping no ven datos.
+- Los DTOs C# (`PalmTrackFarmResponse`, etc.) no se deserializan (el proxy reenvía el JSON crudo): los nombres que leen los modelos Dart (`bunchCount`, `racimoWeight`, `areaHectares`, etc.) deben confirmarse contra un payload real.
 
 ---
 
@@ -25,7 +41,7 @@ Los stubs no rompen nada — solo loguean y retornan OK. La consolidación real 
 |--------|---------|--------|-------|
 | `vehicle.created` / `vehicle.updated` | `ProcessVehicleEventAsync` | ✅ Completo | Fleet es dueño de verdad en Zorvian. 2026-09-07: fix de update sin SaveChangesAsync (los updates se perdían) + registro de referencia externa + TenantId/CreatedBy en create |
 | `machinery.created` | `ProcessMachineryEventAsync` | ✅ Completo | Delega a Vehicle |
-| `production.logged` | `ProcessProductionLoggedAsync` | ✅ Completo | PalmTrack es dueño de verdad |
+| `production.logged` | `ProcessProductionLoggedAsync` | ✅ Consolidado | 2026-09-16: persiste `FleetExternalReference` EntityType=`production_log` Status=`synced` con el payload real (era un stub: el dashboard leía esas filas y nadie las escribía → siempre ceros). Anti-duplicados por referencia externa |
 | `trip.created` / `trip.updated` | `ProcessTripEventAsync` | ✅ Consolidado | 2026-09-07: resuelve Vehicle (referencia o código PT-*) y Driver (alias); requiere alias; anti-duplicados |
 | `fuel_log.created` | `ProcessFuelLogEventAsync` | ✅ Consolidado | 2026-09-07: crea FuelRefill con ValidForCalculation=true, PricePerLiter calculado, avanza CurrentKm del vehículo; sin driver en payload → DriverId vacío |
 | `maintenance_log.created` | `ProcessMaintenanceLogEventAsync` | ✅ Consolidado | 2026-09-07: correctivo → WorkOrder (Reported); preventivo/revisión → MaintenanceSchedule con NextExecutionDate/LastExecutionDate |

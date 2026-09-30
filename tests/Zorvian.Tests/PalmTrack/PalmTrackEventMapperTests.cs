@@ -197,22 +197,72 @@ public sealed class PalmTrackEventMapperTests : IDisposable
         result.Success.Should().BeFalse();
     }
 
-    [Fact]
-    public async Task ProcessAsync_ProductionLogged_ShouldSucceed()
-    {
-        var message = new PalmTrackWebhookReceived
-        {
-            Event = "production.logged",
-            OrganizationId = "org-123",
-            IdempotencyKey = "key-6",
-            Payload = JsonDocument.Parse("{}").RootElement,
-            ReceivedAt = DateTime.UtcNow,
-        };
+    // =========================================================================
+    // producción: production.logged → FleetExternalReference "production_log"
+    // (fuente del dashboard PalmtrackProductionController)
 
-        var result = await _sut.ProcessAsync(message);
+    private static PalmTrackWebhookReceived ProductionMessage(string payload) => new()
+    {
+        Event = "production.logged",
+        OrganizationId = "org-123",
+        IdempotencyKey = "key-6",
+        Payload = JsonDocument.Parse(payload).RootElement,
+        ReceivedAt = DateTime.UtcNow,
+    };
+
+    private const string ProductionPayload = """
+        {
+          "organizationId": "org-123",
+          "data": {
+            "id": "palm-prod-001",
+            "farmName": "Finca El Rosario",
+            "lotName": "Lote 4",
+            "bunchCount": 120,
+            "racimoWeight": 2340.5,
+            "bagCount": 8,
+            "date": "2026-09-07"
+          }
+        }
+        """;
+
+    [Fact]
+    public async Task ProcessAsync_ProductionLogged_PersistsExternalReferenceForDashboard()
+    {
+        var result = await _sut.ProcessAsync(ProductionMessage(ProductionPayload));
 
         result.Success.Should().BeTrue();
-        result.Message.Should().Contain("production_logged_received");
+        result.Message.Should().Be("production_logged_consolidated");
+
+        var reference = await _db.Set<FleetExternalReference>().SingleAsync();
+        reference.EntityType.Should().Be("production_log");
+        reference.ExternalId.Should().Be("palm-prod-001");
+        reference.Status.Should().Be("synced");
+        reference.TenantId.Should().Be(_tenantId.ToString());
+
+        // El payload real queda guardado: es lo que agrega el dashboard de producción
+        reference.ExternalPayload.Should().Contain("bunchCount");
+        reference.ExternalPayload.Should().Contain("Finca El Rosario");
+    }
+
+    [Fact]
+    public async Task ProcessAsync_ProductionLogged_RepeatedEvent_DoesNotDuplicate()
+    {
+        await _sut.ProcessAsync(ProductionMessage(ProductionPayload));
+        var second = await _sut.ProcessAsync(ProductionMessage(ProductionPayload));
+
+        second.Success.Should().BeTrue();
+        second.Message.Should().Be("production_logged_duplicate");
+        (await _db.Set<FleetExternalReference>().CountAsync()).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_ProductionLogged_MissingId_FailsClosed()
+    {
+        var result = await _sut.ProcessAsync(ProductionMessage("{}"));
+
+        result.Success.Should().BeFalse();
+        result.Message.Should().Contain("production_log_id_required");
+        (await _db.Set<FleetExternalReference>().CountAsync()).Should().Be(0);
     }
 
     // =========================================================================

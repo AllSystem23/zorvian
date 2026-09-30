@@ -21,6 +21,7 @@ public sealed class PalmtrackFeatureFlagsControllerTests : IDisposable
 {
     private readonly TenantId _tenantId;
     private readonly Mock<ITenantContext> _tenantMock = new();
+    private readonly Mock<ITenantContextWriter> _tenantWriterMock = new();
     private readonly ZorvianDbContext _db;
 
     public PalmtrackFeatureFlagsControllerTests()
@@ -51,7 +52,17 @@ public sealed class PalmtrackFeatureFlagsControllerTests : IDisposable
             .Build();
 
     private PalmtrackFeatureFlagsController CreateSut(bool ssoEnabledInConfig = false) =>
-        new(new CompanyRepository(_db), _tenantMock.Object, BuildConfig(ssoEnabledInConfig));
+        new(new CompanyRepository(_db), _tenantMock.Object, _tenantWriterMock.Object, BuildConfig(ssoEnabledInConfig));
+
+    /// <summary>
+    /// Simula una sesión sin empresa seleccionada (TenantId vacío), que es
+    /// el estado típico de un SuperAdmin antes de elegir empresa.
+    /// </summary>
+    private void ConfigureWithoutTenantSelected(bool isSuperAdmin)
+    {
+        _tenantMock.Setup(t => t.TenantId).Returns(new TenantId(Guid.Empty));
+        _tenantMock.Setup(t => t.IsSuperAdmin).Returns(isSuperAdmin);
+    }
 
     private async Task<Company> SeedCompanyAsync()
     {
@@ -159,5 +170,91 @@ public sealed class PalmtrackFeatureFlagsControllerTests : IDisposable
         var result = await sut.UpdateFeatureFlags(AllTrue());
 
         result.Should().BeOfType<NotFoundObjectResult>();
+    }
+
+    [Fact]
+    public async Task Put_WithoutTenantAndNotSuperAdmin_Returns401()
+    {
+        await SeedCompanyAsync();
+        ConfigureWithoutTenantSelected(isSuperAdmin: false);
+        var sut = CreateSut();
+
+        var result = await sut.UpdateFeatureFlags(AllTrue());
+
+        result.Should().BeOfType<UnauthorizedObjectResult>();
+    }
+
+    [Fact]
+    public async Task Put_AsSuperAdminWithoutTenant_SelectsFirstActiveCompanyAndPersists()
+    {
+        var company = await SeedCompanyAsync();
+        ConfigureWithoutTenantSelected(isSuperAdmin: true);
+        var sut = CreateSut();
+
+        var putResult = await sut.UpdateFeatureFlags(AllTrue());
+        ReadOk(putResult).Should().AllSatisfy(kv => kv.Value.Should().BeTrue());
+
+        // Se auto-selecciona el tenant de la empresa resuelta para el resto del request
+        _tenantWriterMock.Verify(w => w.SetTenantId(It.Is<TenantId>(t => t.Value == Guid.Parse(company.TenantId))), Times.Once);
+
+        // Y el flag queda persistido en CompanySettings de esa empresa
+        var row = await _db.CompanySettings.SingleAsync();
+        row.CompanyId.Should().Be(company.Id);
+        row.PalmTrackEnabled.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Put_AsSuperAdminWithoutTenantAndNoCompanies_CreatesDefaultCompanyAndPersists()
+    {
+        ConfigureWithoutTenantSelected(isSuperAdmin: true);
+        var sut = CreateSut();
+
+        var putResult = await sut.UpdateFeatureFlags(AllTrue());
+        ReadOk(putResult).Should().AllSatisfy(kv => kv.Value.Should().BeTrue());
+
+        var created = await _db.Companies.SingleAsync();
+        created.IsActive.Should().BeTrue();
+        _tenantWriterMock.Verify(w => w.SetTenantId(It.Is<TenantId>(t => t.Value == Guid.Parse(created.TenantId))), Times.Once);
+
+        var row = await _db.CompanySettings.SingleAsync();
+        row.CompanyId.Should().Be(created.Id);
+        row.PalmTrackEnabled.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Get_AsSuperAdminWithoutTenant_ReturnsSettingsOfFirstActiveCompany()
+    {
+        var company = await SeedCompanyAsync();
+        await _db.CompanySettings.AddAsync(new CompanySettings
+        {
+            CompanyId = company.Id,
+            TenantId = company.TenantId,
+            PalmTrackEnabled = true,
+            PalmTrackSsoEnabled = true,
+        });
+        await _db.SaveChangesAsync();
+
+        ConfigureWithoutTenantSelected(isSuperAdmin: true);
+        var sut = CreateSut();
+
+        var flags = ReadOk(await sut.GetFeatureFlags());
+
+        // Sin tenant seleccionado, el SuperAdmin ve lo persistido (no el fallback de appsettings)
+        flags["moduleEnabled"].Should().BeTrue();
+        flags["ssoEnabled"].Should().BeTrue();
+        flags["ssoAutoCreateUsers"].Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Get_WithoutTenantAndNotSuperAdmin_FallsBackToAppSettings()
+    {
+        await SeedCompanyAsync();
+        ConfigureWithoutTenantSelected(isSuperAdmin: false);
+        var sut = CreateSut(ssoEnabledInConfig: true);
+
+        var flags = ReadOk(await sut.GetFeatureFlags());
+
+        flags["moduleEnabled"].Should().BeFalse();
+        flags["ssoEnabled"].Should().BeTrue();
     }
 }
