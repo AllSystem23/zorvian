@@ -254,7 +254,8 @@ public static class DependencyInjectionExtensions
             sp.GetRequiredService<IFiscalService>(),
             sp.GetRequiredService<AccountService>(),
             sp.GetRequiredService<AccountLinkService>(),
-            sp.GetRequiredService<IAccountingRuleTemplateRepository>()));
+            sp.GetRequiredService<IAccountingRuleTemplateRepository>(),
+            sp.GetRequiredService<ITenantContextWriter>()));
         services.AddScoped<CompanyService>();
         services.AddScoped<EmployeeService>();
         services.AddScoped<DepartmentService>();

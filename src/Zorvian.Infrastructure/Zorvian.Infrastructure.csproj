@@ -38,4 +38,10 @@
     <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
+  <!-- Seed data (Tienda Brizuela Romero) embebida para funcionar en cualquier entorno (local, Docker, Render) -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\Catalogo_TiendaBrizuela_Maestro.csv" LogicalName="SeedData.Catalogo_TiendaBrizuela_Maestro.csv" />
+    <EmbeddedResource Include="..\..\AutoAccountingConfig.json" LogicalName="SeedData.AutoAccountingConfig.json" />
+  </ItemGroup>
+
 </Project>

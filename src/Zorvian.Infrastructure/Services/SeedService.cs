@@ -1,25 +1,33 @@
-using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Zorvian.Application.Helpers;
 using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Enums;
+using Zorvian.Core.Interfaces;
 using Zorvian.Infrastructure.Data;
 
 namespace Zorvian.Infrastructure.Services;
 
 public sealed class SeedService
 {
+    private const string BrizuelaCompanyName = "Tienda Brizuela Romero";
+    private const string BrizuelaTaxId = "J0310000123456";
+    private const string BrizuelaCatalogRootCode = "1.00.00.000.0000";
+    private const string CatalogCsvResource = "SeedData.Catalogo_TiendaBrizuela_Maestro.csv";
+    private const string AutoAccountingJsonResource = "SeedData.AutoAccountingConfig.json";
+    private const string SaleInvoiceTrigger = "SALE_INVOICE";
+
     private readonly ZorvianDbContext _db;
     private readonly IFirebaseAuthService _firebase;
     private readonly IFiscalService _fiscal;
+    private readonly ITenantContextWriter _tenantWriter;
 
     private readonly AccountService _accountService;
     private readonly AccountLinkService _accountLinkService;
     private readonly IAccountingRuleTemplateRepository _templateRepo;
 
-    public SeedService(ZorvianDbContext db, IFirebaseAuthService firebase, IFiscalService fiscal, AccountService accountService, AccountLinkService accountLinkService, IAccountingRuleTemplateRepository templateRepo)
+    public SeedService(ZorvianDbContext db, IFirebaseAuthService firebase, IFiscalService fiscal, AccountService accountService, AccountLinkService accountLinkService, IAccountingRuleTemplateRepository templateRepo, ITenantContextWriter tenantWriter)
     {
         _db = db;
         _firebase = firebase;
@@ -27,37 +35,159 @@ public sealed class SeedService
         _accountService = accountService;
         _accountLinkService = accountLinkService;
         _templateRepo = templateRepo;
+        _tenantWriter = tenantWriter;
     }
 
-    public async Task SeedBrizuelaRomeroAsync(Guid companyId)
+    /// <summary>
+    /// Siembra de Tienda Brizuela Romero: crea la compañía si no existe, importa el catálogo
+    /// de cuentas (CSV) y las reglas de autocontabilización (JSON) desde recursos embebidos.
+    /// Idempotente: puede ejecutarse varias veces sin duplicar datos.
+    /// </summary>
+    public async Task<BrizuelaSeedResult> SeedBrizuelaRomeroAsync(string tenantId, bool isSuperAdminCaller)
     {
-        // 1. Import Chart of Accounts from CSV
-        if (File.Exists("Catalogo_TiendaBrizuela_Maestro.csv"))
+        // 1. Resolver o crear la compañía objetivo
+        Company company;
+        var companyCreated = false;
+
+        var existingByTenant = await _db.Companies.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(c => c.TenantId == tenantId);
+
+        if (existingByTenant is not null)
         {
-            var csv = await File.ReadAllTextAsync("Catalogo_TiendaBrizuela_Maestro.csv");
-            await _accountService.ImportFromCsvAsync(csv);
+            // ── Guard: SuperAdmin auto-seleccionado a una compañía que NO es Brizuela ──
+            // TenantMiddleware auto-carga la primera empresa del SuperAdmin cuando el JWT no
+            // trae tenant. Importar ahí contaminaría otra compañía con el catálogo de Brizuela.
+            if (isSuperAdminCaller &&
+                existingByTenant.Name != BrizuelaCompanyName &&
+                existingByTenant.LegalName != BrizuelaCompanyName)
+            {
+                company = await CreateBrizuelaCompanyAsync();
+                companyCreated = true;
+            }
+            else
+            {
+                company = existingByTenant;
+            }
+        }
+        else
+        {
+            // SuperAdmin sin empresa seleccionada: reutilizar la compañía de corridas previas
+            var existingByName = await _db.Companies.IgnoreQueryFilters()
+                .FirstOrDefaultAsync(c => c.Name == BrizuelaCompanyName || c.LegalName == BrizuelaCompanyName);
+
+            if (existingByName is not null)
+            {
+                company = existingByName;
+            }
+            else
+            {
+                // Reusar el tenant dado solo si es un GUID válido ("superadmin"/vacío → tenant nuevo)
+                var canReuseTenant = Guid.TryParse(tenantId, out _);
+                company = await CreateBrizuelaCompanyAsync(canReuseTenant, tenantId);
+                companyCreated = true;
+            }
         }
 
-        // 2. Import AutoAccounting Rules from JSON
-        if (File.Exists("AutoAccountingConfig.json"))
+        // 2. Asegurar que el contexto de tenant apunte a la compañía objetivo
+        //    (para que ImportFromCsvAsync resuelva la empresa correcta aunque el
+        //    llamador sea SuperAdmin sin empresa seleccionada)
+        _tenantWriter.SetTenantId(TenantId.FromString(company.TenantId));
+        _tenantWriter.SetIsSuperAdmin(false);
+
+        var accountsImported = false;
+        var rulesImported = false;
+
+        // 3. Importar catálogo de cuentas desde el CSV embebido (idempotente)
+        var csv = await ReadEmbeddedResourceAsync(CatalogCsvResource);
+        if (csv is not null)
         {
-            var json = await File.ReadAllTextAsync("AutoAccountingConfig.json");
-            var config = JsonSerializer.Deserialize<JsonElement>(json);
-            
-            // Here we would iterate and create AccountingRuleTemplate entities
-            // For brevity, let's assume we map a few key ones
-            var template = new AccountingRuleTemplate
+            var alreadyImported = await _db.Accounts.IgnoreQueryFilters()
+                .AnyAsync(a => a.TenantId == company.TenantId && a.Code == BrizuelaCatalogRootCode);
+            if (!alreadyImported)
             {
-                ProcessTrigger = "SALE_INVOICE",
-                CompanyId = companyId,
-                CountryCode = "NIC",
-                EntryStructureJson = json, // Storing the whole config for the service to parse
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow
-            };
-            _db.AccountingRuleTemplates.Add(template);
+                await _accountService.ImportFromCsvAsync(csv);
+                accountsImported = true;
+            }
+        }
+
+        // 4. Upsert de reglas de autocontabilización desde el JSON embebido
+        var json = await ReadEmbeddedResourceAsync(AutoAccountingJsonResource);
+        if (json is not null)
+        {
+            var template = await _db.AccountingRuleTemplates.IgnoreQueryFilters()
+                .FirstOrDefaultAsync(t => t.CompanyId == company.Id && t.ProcessTrigger == SaleInvoiceTrigger);
+            if (template is null)
+            {
+                _db.AccountingRuleTemplates.Add(new AccountingRuleTemplate
+                {
+                    ProcessTrigger = SaleInvoiceTrigger,
+                    CompanyId = company.Id,
+                    CountryCode = "NIC",
+                    EntryStructureJson = json, // El servicio parsea el config completo
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                });
+                rulesImported = true;
+            }
+            else if (template.EntryStructureJson != json)
+            {
+                template.EntryStructureJson = json;
+                rulesImported = true;
+            }
             await _db.SaveChangesAsync();
         }
+
+        return new BrizuelaSeedResult(
+            company.Name, company.TenantId, company.Id, companyCreated,
+            csv is not null, json is not null, accountsImported, rulesImported);
+    }
+
+    /// <summary>
+    /// Crea la compañía Tienda Brizuela Romero y la vincula al SuperAdmin.
+    /// Por defecto genera un tenant nuevo; con <paramref name="reuseGivenTenant"/> usa el tenant dado
+    /// (para tenants GUID sin compañía, que deben respetarse tal cual).
+    /// </summary>
+    private async Task<Company> CreateBrizuelaCompanyAsync(bool reuseGivenTenant = false, string? givenTenantId = null)
+    {
+        var targetTenantId = reuseGivenTenant && !string.IsNullOrWhiteSpace(givenTenantId)
+            ? givenTenantId!
+            : Guid.NewGuid().ToString();
+
+        // Apuntar el contexto de tenant ANTES de crear la compañía para que
+        // AccountService (catálogo por defecto, links) resuelva la empresa correcta
+        _tenantWriter.SetTenantId(TenantId.FromString(targetTenantId));
+        _tenantWriter.SetIsSuperAdmin(false);
+
+        await SeedAsync(targetTenantId, BrizuelaCompanyName, "Nicaragua", BrizuelaTaxId);
+        var company = await _db.Companies.IgnoreQueryFilters()
+            .FirstAsync(c => c.TenantId == targetTenantId);
+
+        await LinkSuperAdminAsync(targetTenantId);
+
+        return company;
+    }
+
+    private async Task LinkSuperAdminAsync(string tenantId)
+    {
+        var superAdmin = await _db.Users.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.TenantId == "superadmin");
+        if (superAdmin is null) return;
+
+        var alreadyLinked = await _db.UserTenants.IgnoreQueryFilters()
+            .AnyAsync(ut => ut.UserId == superAdmin.Id && ut.TenantId == tenantId);
+        if (alreadyLinked) return;
+
+        _db.UserTenants.Add(new UserTenant { UserId = superAdmin.Id, TenantId = tenantId, IsActive = true });
+        await _db.SaveChangesAsync();
+    }
+
+    private static async Task<string?> ReadEmbeddedResourceAsync(string logicalName)
+    {
+        var assembly = typeof(SeedService).Assembly;
+        using var stream = assembly.GetManifestResourceStream(logicalName);
+        if (stream is null) return null;
+        using var reader = new StreamReader(stream);
+        return await reader.ReadToEndAsync();
     }
 
     public async Task<string> SeedAsync(string tenantId, string companyName = "Mi Empresa", string country = "Nicaragua", string taxId = "J123456789", bool isStrictlyPrivate = false)
@@ -495,3 +625,13 @@ public sealed class SeedService
 }
 
 public sealed record SuperAdminResult(string Email, string PasswordOrMessage, bool AlreadyExists);
+
+public sealed record BrizuelaSeedResult(
+    string CompanyName,
+    string TenantId,
+    Guid CompanyId,
+    bool CompanyCreated,
+    bool CatalogFileFound,
+    bool RulesFileFound,
+    bool AccountsImported,
+    bool RulesImported);

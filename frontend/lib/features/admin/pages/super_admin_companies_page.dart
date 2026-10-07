@@ -25,6 +25,20 @@ class _SuperAdminCompaniesPageState extends ConsumerState<SuperAdminCompaniesPag
   String? _error;
   String _searchQuery = '';
 
+  // ── Seed Brizuela Romero state ──
+  bool _seedLoading = false;
+  String? _seedError;
+  String? _seedMessage;
+  String? _seedCompanyName;
+  String? _seedCompanyId;
+  String? _seedTenantId;
+  bool? _seedCreated;
+  bool? _seedCatalogFound;
+  bool? _seedAccountsImported;
+  bool? _seedRulesFound;
+  bool? _seedRulesImported;
+  bool _showSeedDetails = false;
+
   @override
   void initState() {
     super.initState();
@@ -32,7 +46,10 @@ class _SuperAdminCompaniesPageState extends ConsumerState<SuperAdminCompaniesPag
   }
 
   Future<void> _loadCompanies() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final dio = ref.read(dioClientProvider);
       final response = await dio.get('companies/all');
@@ -43,20 +60,39 @@ class _SuperAdminCompaniesPageState extends ConsumerState<SuperAdminCompaniesPag
         _loading = false;
       });
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
+      }
     }
-  }      void _applyFilter() {
+  }
+
+  void _applyFilter() {
     if (_searchQuery.isEmpty) {
       _filtered = List.from(_companies);
     } else {
       final q = _searchQuery.toLowerCase();
       _filtered = _companies.where((c) {
-        return (c['name'] as String? ?? '').toLowerCase().contains(q) ||
-            (c['legalName'] as String? ?? '').toLowerCase().contains(q) ||
-            (c['country'] as String? ?? '').toLowerCase().contains(q) ||
-            (c['taxId'] as String? ?? '').toLowerCase().contains(q) ||
-            (c['email'] as String? ?? '').toLowerCase().contains(q) ||
-            (c['phone'] as String? ?? '').toLowerCase().contains(q);
+        return (c['name'] as String? ?? '')
+                .toLowerCase()
+                .contains(q) ||
+            (c['legalName'] as String? ?? '')
+                .toLowerCase()
+                .contains(q) ||
+            (c['country'] as String? ?? '')
+                .toLowerCase()
+                .contains(q) ||
+            (c['taxId'] as String? ?? '')
+                .toLowerCase()
+                .contains(q) ||
+            (c['email'] as String? ?? '')
+                .toLowerCase()
+                .contains(q) ||
+            (c['phone'] as String? ?? '')
+                .toLowerCase()
+                .contains(q);
       }).toList();
     }
   }
@@ -154,36 +190,70 @@ class _SuperAdminCompaniesPageState extends ConsumerState<SuperAdminCompaniesPag
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final currentTenant = ref.watch(authProvider).tenantId;
+  Future<void> _runSeedBrizuela() async {
+    setState(() {
+      _seedLoading = true;
+      _seedError = null;
+      _seedMessage = null;
+      _seedCompanyName = null;
+      _seedCompanyId = null;
+      _seedTenantId = null;
+      _seedCreated = null;
+      _seedCatalogFound = null;
+      _seedAccountsImported = null;
+      _seedRulesFound = null;
+      _seedRulesImported = null;
+      _showSeedDetails = false;
+    });
 
-    return Scaffold(
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.refresh),
-                  tooltip: 'Actualizar',
-                  onPressed: _loadCompanies,
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? _buildError()
-              : _buildTable(currentTenant),
-          ),
-        ],
-      ),
-    );
+    try {
+      final dio = ref.read(dioClientProvider);
+      final response = await dio.post(
+        'zorvian/v1/seed/brizuela-romero',
+        options: Options(
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+        ),
+      );
+      final data = response.data as Map<String, dynamic>;
+
+      setState(() {
+        _seedMessage = data['message'] as String?;
+        _seedCompanyName = data['companyName'] as String?;
+        _seedCompanyId = data['companyId'] as String?;
+        _seedTenantId = data['tenantId'] as String?;
+        _seedCreated = data['companyCreated'] as bool?;
+        _seedCatalogFound = data['catalog']['found'] as bool?;
+        _seedAccountsImported = data['catalog']['accountsImported'] as bool?;
+        _seedRulesFound = data['autoAccounting']['found'] as bool?;
+        _seedRulesImported = data['autoAccounting']['rulesImported'] as bool?;
+        _showSeedDetails = true;
+        _seedLoading = false;
+      });
+    } on DioException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _seedError = _dioErrorText(e);
+        _seedLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _seedError = e.toString();
+        _seedLoading = false;
+      });
+    }
+  }
+
+  String _dioErrorText(DioException e) {
+    if (e.response?.data is Map<String, dynamic>) {
+      final msg = (e.response?.data as Map<String, dynamic>)['error'];
+      if (msg != null && msg is String && msg.isNotEmpty) return msg;
+      if (msg != null && msg is List && msg.isNotEmpty) return msg.first.toString();
+    }
+    return e.message ?? 'Error de red';
   }
 
   Widget _buildError() {
@@ -195,7 +265,10 @@ class _SuperAdminCompaniesPageState extends ConsumerState<SuperAdminCompaniesPag
           children: [
             const Icon(Icons.cloud_off, size: 48, color: ZColors.danger),
             const SizedBox(height: 16),
-            Text('Error al cargar empresas', style: ZTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+            Text(
+              'Error al cargar empresas',
+              style: ZTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+            ),
             const SizedBox(height: 8),
             Text(_error!, style: ZTypography.labelSmall, textAlign: TextAlign.center),
             const SizedBox(height: 16),
@@ -262,7 +335,10 @@ class _SuperAdminCompaniesPageState extends ConsumerState<SuperAdminCompaniesPag
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(name, style: ZTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+                        Text(
+                          name,
+                          style: ZTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+                        ),
                         if (company['legalName'] != null && company['legalName'] != name)
                           Text(
                             company['legalName'] as String,
@@ -275,27 +351,45 @@ class _SuperAdminCompaniesPageState extends ConsumerState<SuperAdminCompaniesPag
                 ],
               ),
             ),
-            DataCell(Text(company['email'] as String? ?? '—', style: ZTypography.bodyMedium.copyWith(
-              color: (company['email'] as String? ?? '').isNotEmpty ? null : ZColors.neutral400,
-            ))),
-            DataCell(Text(company['phone'] as String? ?? '—', style: ZTypography.bodyMedium.copyWith(
-              color: (company['phone'] as String? ?? '').isNotEmpty ? null : ZColors.neutral400,
-            ))),
-            DataCell(ZBadge(
-              text: company['country'] as String? ?? '',
-              type: ZBadgeType.neutral,
-            )),
-            DataCell(Text(company['currency'] as String? ?? '', style: ZTypography.bodyMedium)),
-            DataCell(ZBadge(
-              text: (company['subscriptionPlan'] as String? ?? 'starter').toUpperCase(),
-              type: _planBadgeType(company['subscriptionPlan'] as String? ?? 'starter'),
-            )),
-            DataCell(ZBadge(
-              text: isCurrent ? 'ACTIVA' : (isActive ? 'ACTIVA' : 'INACTIVA'),
-              type: isCurrent
-                  ? ZBadgeType.accent
-                  : (isActive ? ZBadgeType.success : ZBadgeType.danger),
-            )),
+            DataCell(
+              Text(
+                company['email'] as String? ?? '—',
+                style: ZTypography.bodyMedium.copyWith(
+                  color: (company['email'] as String? ?? '').isNotEmpty ? null : ZColors.neutral400,
+                ),
+              ),
+            ),
+            DataCell(
+              Text(
+                company['phone'] as String? ?? '—',
+                style: ZTypography.bodyMedium.copyWith(
+                  color: (company['phone'] as String? ?? '').isNotEmpty ? null : ZColors.neutral400,
+                ),
+              ),
+            ),
+            DataCell(
+              ZBadge(
+                text: company['country'] as String? ?? '',
+                type: ZBadgeType.neutral,
+              ),
+            ),
+            DataCell(
+              Text(company['currency'] as String? ?? '', style: ZTypography.bodyMedium),
+            ),
+            DataCell(
+              ZBadge(
+                text: (company['subscriptionPlan'] as String? ?? 'starter').toUpperCase(),
+                type: _planBadgeType(company['subscriptionPlan'] as String? ?? 'starter'),
+              ),
+            ),
+            DataCell(
+              ZBadge(
+                text: isCurrent ? 'ACTIVA' : (isActive ? 'ACTIVA' : 'INACTIVA'),
+                type: isCurrent
+                    ? ZBadgeType.accent
+                    : (isActive ? ZBadgeType.success : ZBadgeType.danger),
+              ),
+            ),
             DataCell(
               Row(
                 mainAxisSize: MainAxisSize.min,
@@ -365,6 +459,182 @@ class _SuperAdminCompaniesPageState extends ConsumerState<SuperAdminCompaniesPag
       ),
     );
   }
+
+  Widget _buildSeedPanel() {
+    final auth = ref.read(authProvider);
+    final isSuperAdmin = auth.role == 'SuperAdmin';
+
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: ZCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Siembra de Tienda Brizuela Romero',
+                  style: ZTypography.titleMedium,
+                ),
+                if (!isSuperAdmin)
+                  const Padding(
+                    padding: EdgeInsets.only(left: 8),
+                    child: Text(
+                      'Solo SuperAdmin',
+                      style: TextStyle(color: ZColors.neutral500, fontWeight: FontWeight.w500),
+                    ),
+                  )
+              ],
+            ),
+            const SizedBox(height: ZSpacing.md),
+            if (isSuperAdmin)
+              ZButton(
+                text: _seedLoading ? 'Ejecutando...' : 'Ejecutar seed Brizuela',
+                icon: _seedLoading ? Icons.hourglass_empty : Icons.eco_outlined,
+                type: ZButtonType.primary,
+                isLoading: _seedLoading,
+                onPressed: _seedLoading ? () {} : () => _runSeedBrizuela(),
+              )
+            else
+              ZButton(
+                text: 'Solo SuperAdmin',
+                type: ZButtonType.secondary,
+                onPressed: () {},
+              ),
+          ],
+        ),
+      ),
+    );
+  }  Widget _buildSeedState() {
+    if (_seedLoading) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(strokeWidth: 2),
+            SizedBox(width: 12),
+            Text('Esperando respuesta del backend...'),
+          ],
+        ),
+      );
+    }
+
+    if (_seedError != null) {
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: ZAlertCard(
+          message: 'Error: ${_seedError!}',
+          severity: 'high',
+        ),
+      );
+    }
+
+    if (_seedMessage != null || _showSeedDetails) {
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (_seedMessage != null)
+              ZAlertCard(
+                message: _seedMessage!,
+                severity: 'success',
+              ),
+            if (_showSeedDetails) ...[
+              const SizedBox(height: ZSpacing.md),
+              Text('Detalles de la siembra:', style: ZTypography.titleSmall),
+              const SizedBox(height: ZSpacing.sm),
+              if (_seedCompanyName != null)
+                _buildSeedDetailRow('Empresa', _seedCompanyName!),
+              if (_seedCompanyId != null)
+                _buildSeedDetailRow('Company ID', _seedCompanyId!),
+              if (_seedTenantId != null)
+                _buildSeedDetailRow('Tenant ID', _seedTenantId!),
+              if (_seedCreated != null)
+                _buildSeedDetailRow('Empresa creada', _seedCreated! ? 'Sí' : 'No'),
+              if (_seedCatalogFound != null)
+                _buildSeedDetailRow('Catálogo encontrado', _seedCatalogFound! ? 'Sí' : 'No'),
+              if (_seedAccountsImported != null)
+                _buildSeedDetailRow('Cuentas importadas', _seedAccountsImported! ? 'Sí' : 'No'),
+              if (_seedRulesFound != null)
+                _buildSeedDetailRow('Reglas encontradas', _seedRulesFound! ? 'Sí' : 'No'),
+              if (_seedRulesImported != null)
+                _buildSeedDetailRow('Reglas importadas', _seedRulesImported! ? 'Sí' : 'No'),
+            ],
+          ],
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildSeedDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 140,
+            child: Text(
+              '$label:',
+              style: ZTypography.bodyMedium.copyWith(
+                color: ZColors.neutral600,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: ZTypography.bodyMedium,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final currentTenant = ref.watch(authProvider).tenantId;
+
+    return Scaffold(
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  tooltip: 'Actualizar',
+                  onPressed: _loadCompanies,
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                    ? _buildError()
+                    : Column(
+                        children: [
+                          _buildTable(currentTenant),
+                          _buildSeedPanel(),
+                          _buildSeedState(),
+                        ],
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ─── Create Dialog (public for ZQuickActionsFAB callback) ───
@@ -426,7 +696,10 @@ class _CompanyCreateDialogState extends ConsumerState<CompanyCreateDialog> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
 
     try {
       final dio = ref.read(dioClientProvider);
@@ -443,9 +716,16 @@ class _CompanyCreateDialogState extends ConsumerState<CompanyCreateDialog> {
         'maxEmployees': int.tryParse(_maxEmployeesCtrl.text) ?? 50,
       });
       widget.onCreated();
-      if (mounted) Navigator.of(context).pop();
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -567,7 +847,15 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
 
   static const _countries = ['Nicaragua', 'Costa Rica', 'Guatemala', 'Honduras', 'El Salvador', 'Panamá'];
   static const _currencies = ['NIO', 'CRC', 'GTQ', 'HNL', 'USD'];
-  static const _timezones = ['America/Managua', 'America/Costa_Rica', 'America/Guatemala', 'America/Tegucigalpa', 'America/El_Salvador', 'America/Panama', 'UTC'];
+  static const _timezones = [
+    'America/Managua',
+    'America/Costa_Rica',
+    'America/Guatemala',
+    'America/Tegucigalpa',
+    'America/El_Salvador',
+    'America/Panama',
+    'UTC'
+  ];
 
   @override
   void initState() {
@@ -663,7 +951,10 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
       return;
     }
 
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
 
     try {
       final dio = ref.read(dioClientProvider);
@@ -673,7 +964,7 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
       if (_logoBytes != null) {
         final logoOk = await _uploadLogo(companyId);
         if (!logoOk || !mounted) {
-          if (mounted) setState(() { _loading = false; });
+          if (mounted) setState(() {});
           return;
         }
       }
@@ -694,9 +985,16 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
         'subscriptionPlan': _subscriptionPlan,
       });
       widget.onSaved();
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        Navigator.pop(context);
+      }
     } catch (e) {
-      if (mounted) setState(() { _error = e.toString(); _loading = false; });
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -742,13 +1040,32 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
               onChanged: (v) => setState(() => _selectedTimezone = v!),
             ),
             const SizedBox(height: ZSpacing.md),
-            ZTextField(controller: _emailCtrl, label: 'Correo Electrónico', prefix: const Icon(Icons.email_outlined), keyboardType: TextInputType.emailAddress),
+            ZTextField(
+              controller: _emailCtrl,
+              label: 'Correo Electrónico',
+              prefix: const Icon(Icons.email_outlined),
+              keyboardType: TextInputType.emailAddress,
+            ),
             const SizedBox(height: ZSpacing.md),
-            ZTextField(controller: _phoneCtrl, label: 'Teléfono', prefix: const Icon(Icons.phone_outlined), keyboardType: TextInputType.phone),
+            ZTextField(
+              controller: _phoneCtrl,
+              label: 'Teléfono',
+              prefix: const Icon(Icons.phone_outlined),
+              keyboardType: TextInputType.phone,
+            ),
             const SizedBox(height: ZSpacing.md),
-            ZTextField(controller: _addressCtrl, label: 'Dirección', prefix: const Icon(Icons.location_on_outlined)),
+            ZTextField(
+              controller: _addressCtrl,
+              label: 'Dirección',
+              prefix: const Icon(Icons.location_on_outlined),
+            ),
             const SizedBox(height: ZSpacing.md),
-            ZTextField(controller: _maxEmployeesCtrl, label: 'Máximo de Trabajadores', prefix: const Icon(Icons.people_outline), keyboardType: TextInputType.number),
+            ZTextField(
+              controller: _maxEmployeesCtrl,
+              label: 'Máximo de Trabajadores',
+              prefix: const Icon(Icons.people_outline),
+              keyboardType: TextInputType.number,
+            ),
             const SizedBox(height: ZSpacing.md),
             SwitchListTile(
               title: const Text('Empresa activa'),
@@ -852,8 +1169,13 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('PLAN DE SUSCRIPCIÓN', style: ZTypography.labelSmall.copyWith(
-          color: ZColors.neutral500, letterSpacing: 1.2)),
+        Text(
+          'PLAN DE SUSCRIPCIÓN',
+          style: ZTypography.labelSmall.copyWith(
+            color: ZColors.neutral500,
+            letterSpacing: 1.2,
+          ),
+        ),
         const SizedBox(height: 12),
         ...plans.map((plan) {
           final isSelected = _subscriptionPlan == plan.id;
@@ -874,7 +1196,8 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
               child: Row(
                 children: [
                   Container(
-                    width: 36, height: 36,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
                       color: plan.color.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
@@ -888,15 +1211,28 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
                       children: [
                         Row(
                           children: [
-                            Text(plan.name, style: ZTypography.titleSmall.copyWith(
-                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500)),
+                            Text(
+                              plan.name,
+                              style: ZTypography.titleSmall.copyWith(
+                                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                              ),
+                            ),
                             const SizedBox(width: 8),
-                            Text(priceLabel, style: ZTypography.labelSmall.copyWith(
-                              color: plan.color, fontWeight: FontWeight.w600)),
+                            Text(
+                              priceLabel,
+                              style: ZTypography.labelSmall.copyWith(
+                                color: plan.color,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ],
                         ),
-                        Text(plan.shortDescription, style: ZTypography.bodySmall.copyWith(
-                          color: ZColors.neutral500)),
+                        Text(
+                          plan.shortDescription,
+                          style: ZTypography.bodySmall.copyWith(
+                            color: ZColors.neutral500,
+                          ),
+                        ),
                       ],
                     ),
                   ),

@@ -42,15 +42,28 @@ public sealed class SeedController : ControllerBase
 
     /// <summary>
     /// Ejecuta la siembra específica para Tienda Brizuela Romero.
+    /// Crea la compañía si no existe y carga catálogo + reglas de autocontabilización (idempotente).
     /// </summary>
     [HttpPost("brizuela-romero")]
     public async Task<IActionResult> SeedBrizuela()
     {
-        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
-            return BadRequest(new { error = "Invalid company context" });
+        var result = await _seed.SeedBrizuelaRomeroAsync(_tenant.TenantId, _tenant.IsSuperAdmin);
 
-        await _seed.SeedBrizuelaRomeroAsync(companyId);
-        return Ok(new { message = "Catálogo y reglas de Tienda Brizuela Romero cargados exitosamente" });
+        if (!result.CatalogFileFound || !result.RulesFileFound)
+            return StatusCode(500, new { error = "Recursos de siembra no encontrados en el build", result });
+
+        return Ok(new
+        {
+            message = result.CompanyCreated
+                ? $"Compañía '{result.CompanyName}' creada y datos de Tienda Brizuela Romero cargados exitosamente"
+                : $"Datos de Tienda Brizuela Romero verificados exitosamente para '{result.CompanyName}'",
+            companyId = result.CompanyId,
+            tenantId = result.TenantId,
+            companyCreated = result.CompanyCreated,
+            catalog = new { found = result.CatalogFileFound, accountsImported = result.AccountsImported },
+            autoAccounting = new { found = result.RulesFileFound, rulesImported = result.RulesImported },
+            instructions = "Si eres Super Admin, ahora puedes cambiar a esta empresa usando el endpoint switch-tenant."
+        });
     }
 
     /// <summary>

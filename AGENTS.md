@@ -142,3 +142,4 @@
 - [x] Add `CancelSaleAsync` endpoint (`POST /zorvian/v1/sales/{id}/cancel`)
 - [x] Add cancel sale + accounting entries link to frontend `sale_detail_page.dart`
 - [x] Handle null `Product.TaxCategory` gracefully in `AutoAccountingService.GenerateSaleEntryAsync`
+- [x] Seed de Tienda Brizuela Romero: crea la compañía si no existe, CSV/JSON embebidos en `Zorvian.Infrastructure` (funciona en Render/Docker), idempotente y con upsert de `AccountingRuleTemplate` (`SeedBrizuelaRomeroAsync(string tenantId, bool isSuperAdminCaller)`, `POST /zorvian/v1/seed/brizuela-romero`). Guard anti-contaminación: si el SuperAdmin llega auto-seleccionado a otra compañía, crea la de Brizuela aparte en vez de importar ahí; 7 tests en `SeedServiceBrizuelaTests.cs`
