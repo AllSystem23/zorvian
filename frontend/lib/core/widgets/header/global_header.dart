@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
-import '../../../auth/tenants_provider.dart';
 import '../../navigation/nav_provider.dart';
 import '../../providers/company_branch_provider.dart';
 import '../../services/signalr_service.dart';
@@ -61,12 +60,6 @@ final class GlobalHeader extends ConsumerWidget {
               // ── Logo (compact) ──
               _LogoCompact(),
               SizedBox(width: showAll ? ZSpacing.md : ZSpacing.sm),
-
-              // ── Tenant Switcher (hide on compact) ──
-              if (showAll) ...[
-                _TenantSwitcher(),
-                SizedBox(width: ZSpacing.sm),
-              ],
 
               // ── Company Selector ──
               _CompanySelector(),
@@ -274,48 +267,6 @@ class _BranchSelector extends ConsumerWidget {
               child: _SelectorChip(
                 icon: Icons.storefront_outlined,
                 label: displayName,
-                isDark: isDark,
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-}
-
-/// Tenant switcher — shows available companies/tenants the user can access
-class _TenantSwitcher extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final tenantsAsync = ref.watch(tenantsListProvider);
-
-    return tenantsAsync.when(
-      loading: () => const SizedBox.shrink(),
-      error: (_, _) => const SizedBox.shrink(),
-      data: (tenants) {
-        if (tenants.length <= 1) return const SizedBox.shrink();
-        final current = tenants.firstWhere((t) => t.isCurrent, orElse: () => tenants.first);
-        return MenuAnchor(
-          menuChildren: tenants.where((t) => !t.isCurrent).map((t) {
-            return MenuItemButton(
-              leadingIcon: const Icon(Icons.swap_horiz, size: 16),
-              child: Text(t.companyName),
-              onPressed: () async {
-                final success = await ref.read(authProvider.notifier).switchTenant(t.tenantId);
-                if (success) {
-                  ref.invalidate(tenantsListProvider);
-                }
-              },
-            );
-          }).toList(),
-          builder: (context, controller, child) {
-            return GestureDetector(
-              onTap: controller.open,
-              child: _SelectorChip(
-                icon: Icons.apartment_outlined,
-                label: current.companyName,
                 isDark: isDark,
               ),
             );
