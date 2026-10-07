@@ -209,7 +209,7 @@ class _SuperAdminCompaniesPageState extends ConsumerState<SuperAdminCompaniesPag
     try {
       final dio = ref.read(dioClientProvider);
       final response = await dio.post(
-        'zorvian/v1/seed/brizuela-romero',
+        'seed/brizuela-romero',
         options: Options(
           headers: {
             'Content-Type': 'application/json',
