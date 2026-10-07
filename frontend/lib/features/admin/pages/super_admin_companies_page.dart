@@ -625,7 +625,7 @@ class _SuperAdminCompaniesPageState extends ConsumerState<SuperAdminCompaniesPag
                     ? _buildError()
                     : Column(
                         children: [
-                          _buildTable(currentTenant),
+                          Expanded(child: _buildTable(currentTenant)),
                           _buildSeedPanel(),
                           _buildSeedState(),
                         ],
