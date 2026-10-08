@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using FirebaseAdmin;
@@ -188,6 +189,17 @@ public static class ServiceCollectionExtensions
                         if (!string.IsNullOrEmpty(accessToken))
                         {
                             context.Token = accessToken;
+                        }
+                        return Task.CompletedTask;
+                    },
+                     OnTokenValidated = context =>
+                    {
+                        var sub = context.Principal?.FindFirst("sub")?.Value;
+                        if (!string.IsNullOrEmpty(sub) &&
+                            context.Principal?.FindFirst(ClaimTypes.NameIdentifier) == null)
+                        {
+                            var claimsIdentity = (ClaimsIdentity)context.Principal!.Identity!;
+                            claimsIdentity.AddClaim(new Claim(ClaimTypes.NameIdentifier, sub));
                         }
                         return Task.CompletedTask;
                     }

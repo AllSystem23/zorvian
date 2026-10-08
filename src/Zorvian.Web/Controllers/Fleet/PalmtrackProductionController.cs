@@ -45,17 +45,22 @@ public sealed class PalmtrackProductionController : ControllerBase
         [FromQuery] string? endDate = null)
     {
         var tenantId = _tenant.TenantId.Value;
-        if (tenantId == Guid.Empty) return Unauthorized();
+        var isSuperAdmin = _tenant.IsSuperAdmin;
+
+        if (tenantId == Guid.Empty && !isSuperAdmin)
+            return Unauthorized();
 
         var startFilter = ParseDate(startDate);
         var endFilter = ParseDate(endDate);
 
+        var tenantFilter = isSuperAdmin ? null : tenantId.ToString();
+
         var productionLogs = await _db.Set<FleetExternalReference>()
-            .Where(r => r.TenantId == tenantId.ToString()
-                && r.EntityType == "production_log"
+            .Where(r => r.EntityType == "production_log"
                 && r.Status == "synced"
                 && (!startFilter.HasValue || r.CreatedAt >= startFilter.Value)
-                && (!endFilter.HasValue || r.CreatedAt <= endFilter.Value))
+                && (!endFilter.HasValue || r.CreatedAt <= endFilter.Value)
+                && (tenantFilter == null || r.TenantId == tenantFilter))
             .ToListAsync();
 
         var totalBunches = 0L;
@@ -84,9 +89,13 @@ public sealed class PalmtrackProductionController : ControllerBase
         var avgWeight = totalBunches > 0 ? totalWeight / totalBunches : 0m;
         var avgBunchWeight = totalBunches > 0 ? totalWeight / totalBunches : 0m;
 
-        var producerCount = await _db.Set<Employee>()
-            .Where(e => e.TenantId == tenantId.ToString() && e.Status == "active")
-            .CountAsync();
+        var producerCount = isSuperAdmin
+            ? await _db.Set<Employee>()
+                .Where(e => e.Status == "active")
+                .CountAsync()
+            : await _db.Set<Employee>()
+                .Where(e => e.TenantId == tenantId.ToString() && e.Status == "active")
+                .CountAsync();
 
         // Daily trend
         var dailyTrend = productionLogs
