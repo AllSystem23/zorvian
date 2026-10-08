@@ -29,10 +29,12 @@ public sealed class EmployeeService
 
     public async Task<EmployeeResponse> CreateAsync(CreateEmployeeRequest request)
     {
+        var employeeCode = request.EmployeeCode ?? GenerateEmployeeCode();
+
         // Create Collaborator first (required for Employee FK)
         var collaborator = new Collaborator
         {
-            CollaboratorCode = request.EmployeeCode ?? GenerateEmployeeCode(),
+            CollaboratorCode = employeeCode,
             FirstName = request.FirstName,
             LastName = request.LastName,
             Email = request.Email,
@@ -45,7 +47,7 @@ public sealed class EmployeeService
         await _collaboratorRepo.SaveChangesAsync();
 
         var employee = _mapper.Map<Employee>(request);
-        employee.EmployeeCode = request.EmployeeCode ?? GenerateEmployeeCode();
+        employee.EmployeeCode = employeeCode;
         employee.CollaboratorType = request.CollaboratorType ?? "employee";
         employee.CollaboratorId = collaborator.Id;
         employee.CollaboratorCode = collaborator.CollaboratorCode;

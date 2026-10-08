@@ -197,114 +197,133 @@ public sealed class SeedService : ISeedService
             ? Guid.NewGuid().ToString() 
             : tenantId;
 
-        if (await _db.Companies.AnyAsync(c => c.TenantId == targetTenantId))
-            return targetTenantId;
-
-        var company = new Company
+        var existingCompany = await _db.Companies.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.TenantId == targetTenantId);
+        if (existingCompany == null)
         {
-            Name = companyName,
-            LegalName = companyName,
-            TaxId = taxId,
-            Country = country,
-            Currency = country switch {
-                "Nicaragua" => "NIO",
-                "Costa Rica" => "CRC",
-                "Guatemala" => "GTQ",
-                "Honduras" => "HNL",
-                "El Salvador" => "USD",
-                "Panamá" => "USD",
-                _ => "USD"
-            },
-            Timezone = country switch {
-                "Nicaragua" => "America/Managua",
-                "Costa Rica" => "America/Costa_Rica",
-                "Guatemala" => "America/Guatemala",
-                "Honduras" => "America/Tegucigalpa",
-                "El Salvador" => "America/El_Salvador",
-                "Panamá" => "America/Panama",
-                _ => "UTC"
-            },
-            MaxEmployees = 100,
-            TenantId = targetTenantId
-        };
-        _db.Companies.Add(company);
-        await _db.SaveChangesAsync();
-
-        // Vincular al usuario actual con este nuevo Tenant si es SuperAdmin y no es estrictamente privada
-        if (tenantId == "superadmin" && !isStrictlyPrivate)
-        {
-            var superAdmin = await _db.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.TenantId == "superadmin");
-            if (superAdmin != null)
+            var company = new Company
             {
-                _db.UserTenants.Add(new UserTenant 
-                { 
-                    UserId = superAdmin.Id, 
-                    TenantId = targetTenantId, 
-                    IsActive = true 
-                });
-                await _db.SaveChangesAsync();
+                Name = companyName,
+                LegalName = companyName,
+                TaxId = taxId,
+                Country = country,
+                Currency = country switch {
+                    "Nicaragua" => "NIO",
+                    "Costa Rica" => "CRC",
+                    "Guatemala" => "GTQ",
+                    "Honduras" => "HNL",
+                    "El Salvador" => "USD",
+                    "Panamá" => "USD",
+                    _ => "USD"
+                },
+                Timezone = country switch {
+                    "Nicaragua" => "America/Managua",
+                    "Costa Rica" => "America/Costa_Rica",
+                    "Guatemala" => "America/Guatemala",
+                    "Honduras" => "America/Tegucigalpa",
+                    "El Salvador" => "America/El_Salvador",
+                    "Panamá" => "America/Panama",
+                    _ => "UTC"
+                },
+                MaxEmployees = 100,
+                TenantId = targetTenantId
+            };
+            _db.Companies.Add(company);
+            await _db.SaveChangesAsync();
+
+            // Vincular al usuario actual con este nuevo Tenant si es SuperAdmin y no es estrictamente privada
+            if (tenantId == "superadmin" && !isStrictlyPrivate)
+            {
+                var superAdmin = await _db.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.TenantId == "superadmin");
+                if (superAdmin != null)
+                {
+                    _db.UserTenants.Add(new UserTenant
+                    {
+                        UserId = superAdmin.Id,
+                        TenantId = targetTenantId,
+                        IsActive = true
+                    });
+                    await _db.SaveChangesAsync();
+                }
             }
         }
 
-        await _fiscal.SetupDefaultTaxesAsync(company.Id, GetCountryIso(country));
+        var companyId = (existingCompany ?? await _db.Companies.IgnoreQueryFilters().FirstAsync(c => c.TenantId == targetTenantId)).Id;
+
+        await _fiscal.SetupDefaultTaxesAsync(companyId, GetCountryIso(country));
         
         // Seed Country Specific Localization
         if (country == "Nicaragua")
-            await SeedNicaraguaLocalizationAsync(company.Id);
+            await SeedNicaraguaLocalizationAsync(companyId);
         else if (country == "Costa Rica")
-            await SeedCostaRicaLocalizationAsync(company.Id);
+            await SeedCostaRicaLocalizationAsync(companyId);
         else if (country == "Honduras")
-            await SeedHondurasLocalizationAsync(company.Id);
+            await SeedHondurasLocalizationAsync(companyId);
         else if (country == "Guatemala")
-            await SeedGuatemalaLocalizationAsync(company.Id);
+            await SeedGuatemalaLocalizationAsync(companyId);
         else if (country == "El Salvador")
-            await SeedElSalvadorLocalizationAsync(company.Id);
+            await SeedElSalvadorLocalizationAsync(companyId);
         else if (country == "Panamá")
-            await SeedPanamaLocalizationAsync(company.Id);
+            await SeedPanamaLocalizationAsync(companyId);
 
         var countryCode = FiscalYearHelper.MapCountryToCode(country);
         var countryConfig = await _db.CountryTaxConfigs.FirstOrDefaultAsync(c => c.CountryCode == countryCode && c.IsActive);
-        var settings = new CompanySettings { CompanyId = company.Id, TenantId = targetTenantId, FiscalYearStartMonth = countryConfig?.DefaultFiscalStartMonth ?? 1 };
-        _db.CompanySettings.Add(settings);
+        if (!await _db.CompanySettings.AnyAsync(s => s.CompanyId == companyId))
+        {
+            var settings = new CompanySettings { CompanyId = companyId, TenantId = targetTenantId, FiscalYearStartMonth = countryConfig?.DefaultFiscalStartMonth ?? 1 };
+            _db.CompanySettings.Add(settings);
+        }
+
+        // Set tenant context for AccountService to resolve the correct company
+        _tenantWriter.SetTenantId(TenantId.FromString(targetTenantId));
+        _tenantWriter.SetIsSuperAdmin(false);
 
         // Auto-seed chart of accounts and account links for sales/accounting integration
         await _accountService.SeedDefaultChartOfAccountsAsync();
         await _accountLinkService.SeedDefaultLinksAsync();
-
-        var roles = new List<Role>
-        {
-            new() { Name = RoleType.SuperAdmin, DisplayName = "Super Admin", IsSystem = true, TenantId = targetTenantId },
-            new() { Name = RoleType.CompanyAdmin, DisplayName = "Admin", IsSystem = true, TenantId = targetTenantId },
-            new() { Name = RoleType.Rrhh, DisplayName = "RRHH", IsSystem = true, TenantId = targetTenantId },
-            new() { Name = RoleType.Supervisor, DisplayName = "Supervisor", IsSystem = true, TenantId = targetTenantId },
-            new() { Name = RoleType.Employee, DisplayName = "Empleado", IsSystem = true, TenantId = targetTenantId },
-        };
-        _db.Roles.AddRange(roles);
         await _db.SaveChangesAsync();
 
-        var deptData = new[] {
-            ("DIR", "Dirección General", "Dirección"),
-            ("RH", "Recursos Humanos", "RRHH"),
-            ("TI", "Tecnología e Innovación", "Tecnología"),
-            ("CONT", "Contabilidad", "Contabilidad"),
-            ("VENT", "Ventas y Marketing", "Ventas"),
-            ("OPER", "Operaciones", "Operaciones"),
-        };
-
-        var departments = new List<Department>();
-        foreach (var (code, name, desc) in deptData)
+        // Seed default roles (idempotent)
+        if (!await _db.Roles.AnyAsync(r => r.TenantId == targetTenantId))
         {
-            departments.Add(new Department
+            var roles = new List<Role>
             {
-                Code = code,
-                Name = name,
-                Description = desc,
-                IsActive = true,
-                TenantId = targetTenantId
-            });
+                new() { Name = RoleType.SuperAdmin, DisplayName = "Super Admin", IsSystem = true, TenantId = targetTenantId },
+                new() { Name = RoleType.CompanyAdmin, DisplayName = "Admin", IsSystem = true, TenantId = targetTenantId },
+                new() { Name = RoleType.Rrhh, DisplayName = "RRHH", IsSystem = true, TenantId = targetTenantId },
+                new() { Name = RoleType.Supervisor, DisplayName = "Supervisor", IsSystem = true, TenantId = targetTenantId },
+                new() { Name = RoleType.Employee, DisplayName = "Empleado", IsSystem = true, TenantId = targetTenantId },
+            };
+            _db.Roles.AddRange(roles);
+            await _db.SaveChangesAsync();
         }
-        _db.Departments.AddRange(departments);
-        await _db.SaveChangesAsync();
+
+        // Seed default departments (idempotent)
+        if (!await _db.Departments.AnyAsync(d => d.TenantId == targetTenantId))
+        {
+            var deptData = new[] {
+                ("DIR", "Dirección General", "Dirección"),
+                ("RH", "Recursos Humanos", "RRHH"),
+                ("TI", "Tecnología e Innovación", "Tecnología"),
+                ("CONT", "Contabilidad", "Contabilidad"),
+                ("VENT", "Ventas y Marketing", "Ventas"),
+                ("OPER", "Operaciones", "Operaciones"),
+            };
+
+            var departments = new List<Department>();
+            foreach (var (code, name, desc) in deptData)
+            {
+                departments.Add(new Department
+                {
+                    Code = code,
+                    Name = name,
+                    Description = desc,
+                    IsActive = true,
+                    TenantId = targetTenantId
+                });
+            }
+            _db.Departments.AddRange(departments);
+            await _db.SaveChangesAsync();
+        }
 
         if (!await _db.LeaveTypes.AnyAsync(lt => lt.TenantId == targetTenantId))
         {

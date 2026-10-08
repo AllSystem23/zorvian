@@ -91,7 +91,7 @@ public sealed class CompanyService
         await _fiscalService.SetupDefaultTaxesAsync(company.Id, countryCode);
         await SeedRegionalTaxesAsync(company.Id, countryCode);
 
-        // Seed default data: departments, leave types, roles, chart of accounts, account links
+        // Seed default data: roles, departments, leave types, chart of accounts, account links
         await _seedService.SeedAsync(tenantId, request.Name, request.Country, request.TaxId ?? "J123456789");
 
         return new CompanyResponse(
