@@ -17,6 +17,7 @@ public sealed class EmployeeContractLinkingTests : IDisposable
     private readonly Mock<ITenantContext> _tenant = new();
     private readonly Mock<IEncryptionService> _encryption = new();
     private readonly Mock<IProviderRepository> _providerRepo = new();
+    private readonly Mock<ICollaboratorRepository> _collaboratorRepo = new();
     private readonly Mock<IMapper> _mapper = new();
     private readonly Mock<IPublishEndpoint> _publishEndpoint = new();
     private readonly EmployeeService _sut;
@@ -68,7 +69,7 @@ public sealed class EmployeeContractLinkingTests : IDisposable
                     : (Guid?)null));
 
         var employeeRepo = new EmployeeRepo(_db);
-        _sut = new EmployeeService(employeeRepo, _providerRepo.Object, _mapper.Object, _encryption.Object, _publishEndpoint.Object);
+        _sut = new EmployeeService(employeeRepo, _providerRepo.Object, _collaboratorRepo.Object, _mapper.Object, _encryption.Object, _publishEndpoint.Object);
     }
 
     [Fact]

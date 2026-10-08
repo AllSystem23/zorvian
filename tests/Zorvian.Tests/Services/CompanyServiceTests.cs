@@ -15,13 +15,14 @@ public sealed class CompanyServiceTests
     private readonly Mock<IDocumentStorageService> _storage = new();
     private readonly Mock<IRegionalTaxConfigurationRepository> _regionalTaxRepo = new();
     private readonly Mock<ICountryTaxConfigRepository> _taxConfigRepo = new();
+    private readonly Mock<ISeedService> _seed = new();
     private readonly CompanyService _sut;
     private readonly string _tenantId = Guid.NewGuid().ToString();
 
     public CompanyServiceTests()
     {
         _tenant.Setup(t => t.TenantId).Returns(_tenantId);
-        _sut = new CompanyService(_repo.Object, _tenant.Object, _fiscal.Object, _storage.Object, _regionalTaxRepo.Object, _taxConfigRepo.Object);
+        _sut = new CompanyService(_repo.Object, _tenant.Object, _fiscal.Object, _storage.Object, _regionalTaxRepo.Object, _taxConfigRepo.Object, _seed.Object);
     }
 
     [Fact]
