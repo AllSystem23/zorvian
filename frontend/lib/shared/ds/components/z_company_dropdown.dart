@@ -34,7 +34,13 @@ class ZCompanyDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (tenants.length <= 1) return const SizedBox.shrink();
+    // Null-safe: descarta tenants sin tenantId válido (p.ej. registros
+    // incompletos del backend) para no lanzar un cast exception en build.
+    final validTenants = tenants
+        .where((t) => t['tenantId'] is String && (t['tenantId'] as String).isNotEmpty)
+        .toList();
+
+    if (validTenants.length <= 1) return const SizedBox.shrink();
 
     return Container(
       padding: padding ?? const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -44,7 +50,9 @@ class ZCompanyDropdown extends StatelessWidget {
         border: Border.all(color: ZColors.brandPrimary.withValues(alpha: 0.2)),
       ),
       child: DropdownButton<String>(
-        value: currentTenantId,
+        value: validTenants.any((t) => t['tenantId'] == currentTenantId)
+            ? currentTenantId
+            : validTenants.first['tenantId'] as String,
         underline: const SizedBox(),
         isDense: true,
         icon: Icon(icon, size: 16, color: ZColors.brandPrimary),
@@ -53,10 +61,12 @@ class ZCompanyDropdown extends StatelessWidget {
           color: ZColors.brandPrimary,
           fontWeight: FontWeight.bold,
         ),
-        items: tenants
+        items: validTenants
             .map((t) => DropdownMenuItem(
                   value: t['tenantId'] as String,
-                  child: Text(t['name'] as String),
+                  child: Text(
+                    (t['name'] ?? t['legalName'] ?? 'Sin nombre') as String,
+                  ),
                 ))
             .toList(),
         onChanged: onChanged,

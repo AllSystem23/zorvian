@@ -10,7 +10,9 @@ class BiPieChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (items.isEmpty) return const SizedBox.shrink();
+    // fl_chart lanza excepción cuando todas las secciones valen 0 (total = 0).
+    final hasValue = items.any((e) => e.value > 0);
+    if (items.isEmpty || !hasValue) return const SizedBox.shrink();
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: Padding(

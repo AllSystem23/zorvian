@@ -27,11 +27,18 @@ class ZCompanySwitcher extends ConsumerWidget {
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: ref.read(authProvider.notifier).getMyTenants(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data!.length <= 1) {
+        if (!snapshot.hasData) {
           return const SizedBox.shrink();
         }
 
-        final tenants = snapshot.data!;
+        // Null-safe: filtra tenants sin tenantId válido antes de renderizar.
+        final tenants = snapshot.data!
+            .where((t) => t['tenantId'] is String && (t['tenantId'] as String).isNotEmpty)
+            .toList();
+
+        if (tenants.length <= 1) {
+          return const SizedBox.shrink();
+        }
         final currentTenant = ref.watch(authProvider).tenantId;
 
         return ZCompanyDropdown(
@@ -44,7 +51,7 @@ class ZCompanySwitcher extends ConsumerWidget {
               final tenantName = tenants.firstWhere(
                 (t) => t['tenantId'] == newId,
                 orElse: () => <String, dynamic>{'name': 'empresa'},
-              )['name'];
+              )['name'] ?? 'empresa';
               final messenger = ScaffoldMessenger.of(context);
               final success = await ref
                   .read(authProvider.notifier)

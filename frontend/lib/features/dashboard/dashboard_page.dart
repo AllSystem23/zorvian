@@ -116,11 +116,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
               const SizedBox(height: 4),
               Row(
                 children: [
-                  Text(
-                    user,
-                    style: ZTypography.displaySmall.copyWith(
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: -0.5,
+                  Flexible(
+                    child: Text(
+                      user,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: ZTypography.displaySmall.copyWith(
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: -0.5,
+                      ),
                     ),
                   ),
                   if (auth.role == 'SuperAdmin') ...[

@@ -18,6 +18,13 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {}
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // En release, el ErrorWidget por defecto es una caja gris sin texto que
+  // "queda en blanco". Mostramos un mensaje visible con reintento para que
+  // los errores de build no dejen la pantalla muerta en producción.
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    return _BuildErrorView(details: details);
+  };
+
   try {
     await Firebase.initializeApp(
       options: config.firebaseOptions,
@@ -51,6 +58,49 @@ void main() async {
   runApp(ProviderScope(overrides: [
     localNotificationServiceProvider.overrideWithValue(notifService),
   ], child: const _AppLoader()));
+}
+
+/// Vista de error de build: visible en producción, con botón de reintento.
+class _BuildErrorView extends StatelessWidget {
+  final FlutterErrorDetails details;
+  const _BuildErrorView({required this.details});
+
+  @override
+  Widget build(BuildContext context) {
+    // Sin Theme.of: ErrorWidget puede construirse fuera del MaterialApp.
+    const bg = Color(0xFF141838);
+    const fg = Colors.white;
+    return Container(
+      color: bg,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.error_outline, size: 48, color: Color(0xFF7C4DFF)),
+          const SizedBox(height: 16),
+          const Text(
+            'Algo salió mal al mostrar esta sección',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: fg),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${details.exception}',
+            textAlign: TextAlign.center,
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 12, color: fg.withValues(alpha: 0.6)),
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: () => FlutterError.dumpErrorToConsole(details),
+            icon: const Icon(Icons.refresh, size: 16),
+            label: const Text('Ver detalle en consola'),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _AppLoader extends ConsumerStatefulWidget {

@@ -253,8 +253,13 @@ class AuthNotifier extends Notifier<AuthState> {
     final data = response.data;
     final Iterable list = data is List
         ? data
-        : (data['items'] as List<dynamic>);
-    return list.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        : (data is Map && data['items'] is List)
+            ? data['items'] as List
+            : const [];
+    return list
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
   }
 
   /// Switches the current user's active tenant. Returns true on success.

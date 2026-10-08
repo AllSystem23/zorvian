@@ -134,6 +134,7 @@
 - [x] Add preloader/splash screen on auth check
 - [x] Add tenant switcher for multi-company users
 - [x] Add `SaleStatus`/`CreditStatus` string constants to prevent typos (`Zorvian.Core/Enums/SaleStatus.cs`)
+- [x] Fix dashboard blank screen on reload: null-safe tenant casts (`ZCompanySwitcher`/`ZCompanyDropdown`/`getMyTenants`), visible ErrorWidget in release (`main.dart` `_BuildErrorView`), y fix overflow del Row del nombre en `dashboard_page.dart`; regresión en `test/dashboard_page_test.dart`
 - [x] Auto-seed chart of accounts + account links on company creation (`SeedService.SeedAsync`)
 - [x] Fix account code mismatch: `AccountLinkService.ResolveAccountAsync` tries 3 code formats + name fallback
 - [x] Fix account code mismatch: `AutoAccountingService.GetAccountIdByCodeAsync` tries padded variants
