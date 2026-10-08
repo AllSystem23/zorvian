@@ -8,4 +8,5 @@ public interface ICollaboratorRepository
     Task AddAsync(Collaborator collaborator);
     Task UpdateAsync(Collaborator collaborator);
     Task<List<Collaborator>> ListByTypeAsync(string type);
+    Task SaveChangesAsync();
 }

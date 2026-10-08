@@ -15,8 +15,9 @@ public sealed class CompanyService
     private readonly IDocumentStorageService _storage;
     private readonly IRegionalTaxConfigurationRepository _regionalTaxRepo;
     private readonly ICountryTaxConfigRepository _taxConfigRepo;
+    private readonly ISeedService _seedService;
 
-    public CompanyService(ICompanyRepository repo, ITenantContext tenant, IFiscalService fiscalService, IDocumentStorageService storage, IRegionalTaxConfigurationRepository regionalTaxRepo, ICountryTaxConfigRepository taxConfigRepo)
+    public CompanyService(ICompanyRepository repo, ITenantContext tenant, IFiscalService fiscalService, IDocumentStorageService storage, IRegionalTaxConfigurationRepository regionalTaxRepo, ICountryTaxConfigRepository taxConfigRepo, ISeedService seedService)
     {
         _repo = repo;
         _tenant = tenant;
@@ -24,6 +25,7 @@ public sealed class CompanyService
         _storage = storage;
         _regionalTaxRepo = regionalTaxRepo;
         _taxConfigRepo = taxConfigRepo;
+        _seedService = seedService;
     }
 
     public async Task<List<CompanyListItemResponse>> GetAllAsync()
@@ -88,6 +90,9 @@ public sealed class CompanyService
         await _repo.SaveChangesAsync();
         await _fiscalService.SetupDefaultTaxesAsync(company.Id, countryCode);
         await SeedRegionalTaxesAsync(company.Id, countryCode);
+
+        // Seed default data: departments, leave types, roles, chart of accounts, account links
+        await _seedService.SeedAsync(tenantId, request.Name, request.Country, request.TaxId ?? "J123456789");
 
         return new CompanyResponse(
             company.Id,

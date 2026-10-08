@@ -12,14 +12,16 @@ public sealed class EmployeeService
 {
     private readonly IEmployeeRepository _repo;
     private readonly IProviderRepository _providerRepo;
+    private readonly ICollaboratorRepository _collaboratorRepo;
     private readonly IMapper _mapper;
     private readonly IEncryptionService _encryption;
     private readonly IPublishEndpoint _publishEndpoint;
 
-    public EmployeeService(IEmployeeRepository repo, IProviderRepository providerRepo, IMapper mapper, IEncryptionService encryption, IPublishEndpoint publishEndpoint)
+    public EmployeeService(IEmployeeRepository repo, IProviderRepository providerRepo, ICollaboratorRepository collaboratorRepo, IMapper mapper, IEncryptionService encryption, IPublishEndpoint publishEndpoint)
     {
         _repo = repo;
         _providerRepo = providerRepo;
+        _collaboratorRepo = collaboratorRepo;
         _mapper = mapper;
         _encryption = encryption;
         _publishEndpoint = publishEndpoint;
@@ -27,9 +29,26 @@ public sealed class EmployeeService
 
     public async Task<EmployeeResponse> CreateAsync(CreateEmployeeRequest request)
     {
+        // Create Collaborator first (required for Employee FK)
+        var collaborator = new Collaborator
+        {
+            CollaboratorCode = request.EmployeeCode ?? GenerateEmployeeCode(),
+            FirstName = request.FirstName,
+            LastName = request.LastName,
+            Email = request.Email,
+            Phone = request.Phone,
+            CollaboratorType = request.CollaboratorType ?? "employee",
+            Status = "active",
+        };
+
+        await _collaboratorRepo.AddAsync(collaborator);
+        await _collaboratorRepo.SaveChangesAsync();
+
         var employee = _mapper.Map<Employee>(request);
         employee.EmployeeCode = request.EmployeeCode ?? GenerateEmployeeCode();
         employee.CollaboratorType = request.CollaboratorType ?? "employee";
+        employee.CollaboratorId = collaborator.Id;
+        employee.CollaboratorCode = collaborator.CollaboratorCode;
         EncryptPii(employee);
 
         await _repo.AddAsync(employee);

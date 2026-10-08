@@ -211,6 +211,7 @@ final class NavConfig {
       group: 'talent',
       children: [
         NavItem(id: 'empleados', label: 'Capital Humano', icon: Icons.people_outline, route: '/employees'),
+        NavItem(id: 'departamentos', label: 'Departamentos', icon: Icons.business_outlined, route: '/departments', roles: ['SuperAdmin', 'CompanyAdmin', 'Rrhh']),
         NavItem(id: 'asistencia', label: 'Reloj y Asistencia', icon: Icons.schedule_outlined, route: '/attendance'),
         NavItem(id: 'nomina', label: 'Gestión de Nómina', icon: Icons.receipt_long_outlined, route: '/payroll', roles: ['SuperAdmin', 'CompanyAdmin', 'Rrhh']),
         NavItem(id: 'prestadores', label: 'Prestadores Externos', icon: Icons.business_center_outlined, route: '/providers'),

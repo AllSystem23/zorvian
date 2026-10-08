@@ -9,7 +9,7 @@ using Zorvian.Infrastructure.Data;
 
 namespace Zorvian.Infrastructure.Services;
 
-public sealed class SeedService
+public sealed class SeedService : ISeedService
 {
     private const string BrizuelaCompanyName = "Tienda Brizuela Romero";
     private const string BrizuelaTaxId = "J0310000123456";

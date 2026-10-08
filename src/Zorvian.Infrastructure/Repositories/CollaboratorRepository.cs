@@ -25,4 +25,6 @@ public sealed class CollaboratorRepository : ICollaboratorRepository
 
     public async Task<List<Collaborator>> ListByTypeAsync(string type) =>
         await _db.Collaborators.Where(c => c.CollaboratorType == type).ToListAsync();
+
+    public async Task SaveChangesAsync() => await _db.SaveChangesAsync();
 }
