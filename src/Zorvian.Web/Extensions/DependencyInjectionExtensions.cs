@@ -256,6 +256,7 @@ public static class DependencyInjectionExtensions
             sp.GetRequiredService<AccountLinkService>(),
             sp.GetRequiredService<IAccountingRuleTemplateRepository>(),
             sp.GetRequiredService<ITenantContextWriter>()));
+        services.AddScoped<ISeedService>(sp => sp.GetRequiredService<SeedService>());
         services.AddScoped<CompanyService>();
         services.AddScoped<EmployeeService>();
         services.AddScoped<DepartmentService>();

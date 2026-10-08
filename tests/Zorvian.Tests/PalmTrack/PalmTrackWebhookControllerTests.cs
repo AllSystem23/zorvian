@@ -173,10 +173,11 @@ public sealed class PalmTrackWebhookControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task Health_ShouldReturn200()
+    public Task Health_ShouldReturn200()
     {
         var result = _sut.Health();
         result.Should().BeOfType<OkObjectResult>();
+        return Task.CompletedTask;
     }
 
     private static DefaultHttpContext CreateHttpContext(string body, string eventName, string idempotencyKey, string signature)
