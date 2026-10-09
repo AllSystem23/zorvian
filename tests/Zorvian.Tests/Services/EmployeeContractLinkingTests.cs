@@ -220,6 +220,153 @@ public sealed class EmployeeContractLinkingTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateAsync_WithServiceProviderAndContractId_LinksContract()
+    {
+        // Arrange: empleado service_provider existente sin contrato
+        var employee = new Employee
+        {
+            FirstName = "Maria", LastName = "Castillo", Email = "maria.c@test.com",
+            CollaboratorType = "service_provider", Position = "Supervisora",
+            HireDate = DateOnly.FromDateTime(DateTime.UtcNow), Status = "active",
+            SalaryType = "monthly", TenantId = _tenantId,
+        };
+        _db.Set<Employee>().Add(employee);
+        await _db.SaveChangesAsync();
+
+        var contractId = Guid.NewGuid();
+        var providerId = Guid.NewGuid();
+        var provider = new ServiceProvider
+        {
+            Id = providerId, BusinessName = "Proveedor Update", ServiceCategory = "Limpieza",
+            Status = "active", TenantId = _tenantId, EmployeeId = Guid.Empty,
+        };
+        _db.Set<ServiceProvider>().Add(provider);
+        _db.Set<ServiceContract>().Add(new ServiceContract
+        {
+            Id = contractId, ServiceProviderId = providerId, ContractNumber = "CONT-U1",
+            ContractName = "Servicios generales", TotalContractAmount = 30000m,
+            Currency = "NIO", Status = "active",
+            StartDate = DateOnly.FromDateTime(DateTime.UtcNow), TenantId = _tenantId,
+        });
+        await _db.SaveChangesAsync();
+
+        _providerRepo.Setup(r => r.GetContractByIdAsync(contractId))
+            .ReturnsAsync(() => _db.Set<ServiceContract>()
+                .Include(c => c.ServiceProvider)
+                .FirstOrDefault(c => c.Id == contractId));
+        _providerRepo.Setup(r => r.UpdateProviderAsync(It.IsAny<ServiceProvider>()))
+            .Callback<ServiceProvider>(p => _db.Set<ServiceProvider>().Update(p))
+            .Returns(Task.CompletedTask);
+
+        var request = new UpdateEmployeeRequest(
+            FirstName: null, LastName: null, Email: null, Phone: null,
+            EmployeeCode: null, CollaboratorType: "service_provider",
+            DateOfBirth: null, Gender: null, IdentificationType: null,
+            IdentificationNumber: null, DepartmentId: null, Position: "Supervisora",
+            HireDate: null, Salary: null, SalaryType: null, Status: null,
+            BankName: null, BankAccountNumber: null, BankAccountType: null,
+            ContractId: contractId);
+
+        // Act
+        var result = await _sut.UpdateAsync(employee.Id, request);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(contractId, result.ContractId);
+        _providerRepo.Verify(r => r.UpdateProviderAsync(
+            It.Is<ServiceProvider>(p => p.EmployeeId == employee.Id)), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_AlreadyLinkedSameProvider_DoesNotRelink()
+    {
+        // Arrange: empleado ya vinculado al proveedor del contrato
+        var employeeId = Guid.NewGuid();
+        var providerId = Guid.NewGuid();
+        var contractId = Guid.NewGuid();
+
+        var provider = new ServiceProvider
+        {
+            Id = providerId, BusinessName = "Proveedor Ya", ServiceCategory = "IT",
+            Status = "active", TenantId = _tenantId, EmployeeId = employeeId,
+        };
+        _db.Set<ServiceProvider>().Add(provider);
+        _db.Set<ServiceContract>().Add(new ServiceContract
+        {
+            Id = contractId, ServiceProviderId = providerId, ContractNumber = "CONT-Y1",
+            ContractName = "Servicios IT", TotalContractAmount = 10000m,
+            Currency = "NIO", Status = "active",
+            StartDate = DateOnly.FromDateTime(DateTime.UtcNow), TenantId = _tenantId,
+        });
+        _db.Set<Employee>().Add(new Employee
+        {
+            Id = employeeId, FirstName = "Pedro", LastName = "Ruiz", Email = "pedro.r@test.com",
+            CollaboratorType = "service_provider", Position = "DevOps",
+            HireDate = DateOnly.FromDateTime(DateTime.UtcNow), Status = "active",
+            SalaryType = "monthly", TenantId = _tenantId,
+        });
+        await _db.SaveChangesAsync();
+
+        _providerRepo.Setup(r => r.GetContractByIdAsync(contractId))
+            .ReturnsAsync(() => _db.Set<ServiceContract>()
+                .Include(c => c.ServiceProvider)
+                .FirstOrDefault(c => c.Id == contractId));
+        _providerRepo.Setup(r => r.UpdateProviderAsync(It.IsAny<ServiceProvider>()))
+            .Returns(Task.CompletedTask);
+
+        var request = new UpdateEmployeeRequest(
+            FirstName: null, LastName: null, Email: null, Phone: null,
+            EmployeeCode: null, CollaboratorType: "service_provider",
+            DateOfBirth: null, Gender: null, IdentificationType: null,
+            IdentificationNumber: null, DepartmentId: null, Position: "DevOps Sr",
+            HireDate: null, Salary: null, SalaryType: null, Status: null,
+            BankName: null, BankAccountNumber: null, BankAccountType: null,
+            ContractId: contractId);
+
+        // Act
+        var result = await _sut.UpdateAsync(employeeId, request);
+
+        // Assert: idempotente — ya estaba vinculado, no vuelve a hacer Update
+        Assert.NotNull(result);
+        _providerRepo.Verify(r => r.UpdateProviderAsync(It.IsAny<ServiceProvider>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WithEmployeeTypeAndContractId_DoesNotLink()
+    {
+        // Arrange: empleado interno (no service_provider) con ContractId enviado
+        var employee = new Employee
+        {
+            FirstName = "Ana", LastName = "Lopez", Email = "ana.l@test.com",
+            CollaboratorType = "employee", Position = "Contadora",
+            HireDate = DateOnly.FromDateTime(DateTime.UtcNow), Status = "active",
+            SalaryType = "monthly", TenantId = _tenantId,
+        };
+        _db.Set<Employee>().Add(employee);
+        await _db.SaveChangesAsync();
+
+        _providerRepo.Setup(r => r.GetContractByIdAsync(It.IsAny<Guid>()))
+            .ReturnsAsync((ServiceContract?)null);
+
+        var request = new UpdateEmployeeRequest(
+            FirstName: null, LastName: null, Email: null, Phone: null,
+            EmployeeCode: null, CollaboratorType: "employee",
+            DateOfBirth: null, Gender: null, IdentificationType: null,
+            IdentificationNumber: null, DepartmentId: null, Position: "Contadora Sr",
+            HireDate: null, Salary: null, SalaryType: null, Status: null,
+            BankName: null, BankAccountNumber: null, BankAccountType: null,
+            ContractId: Guid.NewGuid());
+
+        // Act
+        var result = await _sut.UpdateAsync(employee.Id, request);
+
+        // Assert
+        Assert.NotNull(result);
+        _providerRepo.Verify(r => r.GetContractByIdAsync(It.IsAny<Guid>()), Times.Never);
+        _providerRepo.Verify(r => r.UpdateProviderAsync(It.IsAny<ServiceProvider>()), Times.Never);
+    }
+
+    [Fact]
     public async Task CreateAsync_GeneratesEmployeeCodeAutomatically()
     {
         var request = new CreateEmployeeRequest(

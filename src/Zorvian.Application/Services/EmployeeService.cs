@@ -109,6 +109,23 @@ public sealed class EmployeeService
 
         await _repo.SaveChangesAsync();
 
+        // Vincula contrato de prestación de servicios (solo "service_provider").
+        // Misma lógica que CreateAsync: el selector de contrato en la UI solo
+        // aparece para Prestador de Servicio. Si ya estaba vinculado al mismo
+        // proveedor, no hace nada (idempotente).
+        if (employee.CollaboratorType == "service_provider" && request.ContractId.HasValue)
+        {
+            var contract = await _providerRepo.GetContractByIdAsync(request.ContractId.Value);
+            var provider = contract?.ServiceProvider;
+            if (provider is not null && provider.EmployeeId != employee.Id)
+            {
+                provider.EmployeeId = employee.Id;
+                await _providerRepo.UpdateProviderAsync(provider);
+                employee.ServiceProviderDetails = provider;
+                await _repo.SaveChangesAsync();
+            }
+        }
+
         return _mapper.Map<EmployeeResponse>(employee);
     }
 
