@@ -5,6 +5,7 @@ import '../../../auth/auth_provider.dart';
 import '../../departments/providers/department_provider.dart';
 import '../../../shared/ds/ds.dart';
 import '../../../core/widgets/responsive_layout.dart';
+import '../identification_documents.dart';
 
 class EmployeeFormPage extends ConsumerStatefulWidget {
   final String? employeeId;
@@ -26,6 +27,7 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
   final _salaryCtrl = TextEditingController();
   final _bankNameCtrl = TextEditingController();
   final _bankAccountCtrl = TextEditingController();
+  final _identificationNumberCtrl = TextEditingController();
   
   // State
   int _currentStep = 0;
@@ -33,6 +35,7 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
   String _salaryType = 'monthly';
   String _bankAccountType = 'ahorro';
   String _collaboratorType = 'employee';
+  String _identificationType = 'cedula_ni';
   String? _selectedContractId;
   String _status = 'active';
   DateTime? _hireDate;
@@ -71,6 +74,7 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
     _salaryCtrl.addListener(_onFieldChanged);
     _bankNameCtrl.addListener(_onFieldChanged);
     _bankAccountCtrl.addListener(_onFieldChanged);
+    _identificationNumberCtrl.addListener(_onFieldChanged);
   }
 
   void _onFieldChanged() {
@@ -95,6 +99,8 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
         _bankNameCtrl.text = data['bankName'] ?? '';
         _bankAccountCtrl.text = data['bankAccountNumber'] ?? '';
         _bankAccountType = data['bankAccountType'] as String? ?? 'ahorro';
+        _identificationType = data['identificationType'] as String? ?? 'cedula_ni';
+        _identificationNumberCtrl.text = data['identificationNumber'] ?? '';
         _collaboratorType = data['collaboratorType'] as String? ?? 'employee';
         _selectedContractId = data['contractId'] as String?;
         _status = data['status'] as String? ?? 'active';
@@ -132,6 +138,8 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
         'bankName': _bankNameCtrl.text.trim(),
         'bankAccountNumber': _bankAccountCtrl.text.trim(),
         'bankAccountType': _bankAccountType,
+        'identificationType': _identificationType,
+        'identificationNumber': _identificationNumberCtrl.text.trim(),
         if (_salaryCtrl.text.isNotEmpty) 'salary': double.tryParse(_salaryCtrl.text),
         if (_isEditing) 'status': _status,
         if (_hireDate != null) 'hireDate': _hireDate!.toIso8601String().substring(0, 10),
@@ -182,6 +190,7 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
     _salaryCtrl.dispose();
     _bankNameCtrl.dispose();
     _bankAccountCtrl.dispose();
+    _identificationNumberCtrl.dispose();
     super.dispose();
   }
 
@@ -321,6 +330,25 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
               controller: _phoneCtrl,
               decoration: const InputDecoration(labelText: 'Teléfono de Contacto', prefixIcon: Icon(Icons.phone_outlined)),
               keyboardType: TextInputType.phone,
+            ),
+            ZDropdownFormField<String>(
+              value: _identificationType,
+              label: 'Documento de Identidad',
+              prefixIcon: Icons.badge_outlined,
+              items: kIdentificationDocumentTypes
+                  .map((t) => DropdownMenuItem(value: t.code, child: Text(t.label)))
+                  .toList(),
+              onChanged: (v) => setState(() { _identificationType = v!; _onFieldChanged(); }),
+            ),
+            TextFormField(
+              controller: _identificationNumberCtrl,
+              decoration: InputDecoration(
+                labelText: 'Número de Documento',
+                hintText: identificationDocumentByCode(_identificationType)?.hint,
+                prefixIcon: const Icon(Icons.pin_outlined),
+              ),
+              textCapitalization: TextCapitalization.characters,
+              validator: (v) => validateIdentificationNumber(_identificationType, v),
             ),
             ZDropdownFormField<String>(
               value: _collaboratorType,
