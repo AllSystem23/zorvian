@@ -69,7 +69,7 @@ public sealed class EmployeeContractLinkingTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateAsync_WithContractorAndContractId_LinksContractToWorker()
+    public async Task CreateAsync_WithServiceProviderAndContractId_LinksContractToWorker()
     {
         // Arrange
         var contractId = Guid.NewGuid();
@@ -112,7 +112,7 @@ public sealed class EmployeeContractLinkingTests : IDisposable
 
         var request = new CreateEmployeeRequest(
             FirstName: "Carlos", LastName: "Mendoza", Email: "carlos@test.com",
-            Phone: "555-0100", EmployeeCode: null, CollaboratorType: "contractor",
+            Phone: "555-0100", EmployeeCode: null, CollaboratorType: "service_provider",
             DateOfBirth: null, Gender: null, IdentificationType: null,
             IdentificationNumber: null, DepartmentId: null, Position: "Desarrollador",
             HireDate: DateOnly.FromDateTime(DateTime.UtcNow), Salary: 5000m,
@@ -126,10 +126,34 @@ public sealed class EmployeeContractLinkingTests : IDisposable
         Assert.NotNull(result);
         Assert.Equal("Carlos", result.FirstName);
         Assert.Equal("Mendoza", result.LastName);
-        Assert.Equal("contractor", result.CollaboratorType);
+        Assert.Equal("service_provider", result.CollaboratorType);
         Assert.Equal(contractId, result.ContractId);
         _providerRepo.Verify(r => r.UpdateProviderAsync(
             It.Is<ServiceProvider>(p => p.EmployeeId == result.Id)), Times.Once);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WithContractorAndContractId_DoesNotLinkContract()
+    {
+        // Regresión: "contractor" (Contratista) es figura distinta del Prestador de
+        // Servicio; el contrato solo se vincula para "service_provider".
+        var contractId = Guid.NewGuid();
+        var request = new CreateEmployeeRequest(
+            FirstName: "Jorge", LastName: "Ruiz", Email: "jorge@test.com",
+            Phone: null, EmployeeCode: null, CollaboratorType: "contractor",
+            DateOfBirth: null, Gender: null, IdentificationType: null,
+            IdentificationNumber: null, DepartmentId: null, Position: "Consultor",
+            HireDate: null, Salary: 5000m, SalaryType: "monthly",
+            BankName: null, BankAccountNumber: null, BankAccountType: null,
+            ContractId: contractId);
+
+        var result = await _sut.CreateAsync(request);
+
+        Assert.NotNull(result);
+        Assert.Equal("contractor", result.CollaboratorType);
+        Assert.Null(result.ContractId);
+        _providerRepo.Verify(r => r.GetContractByIdAsync(It.IsAny<Guid>()), Times.Never);
+        _providerRepo.Verify(r => r.UpdateProviderAsync(It.IsAny<ServiceProvider>()), Times.Never);
     }
 
     [Fact]
@@ -154,11 +178,11 @@ public sealed class EmployeeContractLinkingTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateAsync_WithContractorButNoContractId_DoesNotLink()
+    public async Task CreateAsync_WithServiceProviderButNoContractId_DoesNotLink()
     {
         var request = new CreateEmployeeRequest(
             FirstName: "Pedro", LastName: "Garcia", Email: "pedro@test.com",
-            Phone: null, EmployeeCode: null, CollaboratorType: "contractor",
+            Phone: null, EmployeeCode: null, CollaboratorType: "service_provider",
             DateOfBirth: null, Gender: null, IdentificationType: null,
             IdentificationNumber: null, DepartmentId: null, Position: "Consultor",
             HireDate: null, Salary: 3000m, SalaryType: "hourly",
@@ -168,13 +192,13 @@ public sealed class EmployeeContractLinkingTests : IDisposable
         var result = await _sut.CreateAsync(request);
 
         Assert.NotNull(result);
-        Assert.Equal("contractor", result.CollaboratorType);
+        Assert.Equal("service_provider", result.CollaboratorType);
         Assert.Null(result.ContractId);
         _providerRepo.Verify(r => r.GetContractByIdAsync(It.IsAny<Guid>()), Times.Never);
     }
 
     [Fact]
-    public async Task CreateAsync_WithContractorAndNonexistentContract_DoesNotThrow()
+    public async Task CreateAsync_WithServiceProviderAndNonexistentContract_DoesNotThrow()
     {
         var fakeContractId = Guid.NewGuid();
         _providerRepo.Setup(r => r.GetContractByIdAsync(fakeContractId))
@@ -182,7 +206,7 @@ public sealed class EmployeeContractLinkingTests : IDisposable
 
         var request = new CreateEmployeeRequest(
             FirstName: "Ana", LastName: "Torres", Email: "ana@test.com",
-            Phone: null, EmployeeCode: null, CollaboratorType: "contractor",
+            Phone: null, EmployeeCode: null, CollaboratorType: "service_provider",
             DateOfBirth: null, Gender: null, IdentificationType: null,
             IdentificationNumber: null, DepartmentId: null, Position: "Diseñadora",
             HireDate: null, Salary: 4000m, SalaryType: "monthly",
@@ -192,7 +216,7 @@ public sealed class EmployeeContractLinkingTests : IDisposable
         var result = await _sut.CreateAsync(request);
 
         Assert.NotNull(result);
-        Assert.Equal("contractor", result.CollaboratorType);
+        Assert.Equal("service_provider", result.CollaboratorType);
     }
 
     [Fact]

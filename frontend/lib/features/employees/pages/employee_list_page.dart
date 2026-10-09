@@ -102,7 +102,12 @@ class _EmployeeListPageState extends ConsumerState<EmployeeListPage> {
                     ? ZEmptyState.list(
                         itemType: 'trabajadores',
                         actionLabel: 'Nuevo Trabajador',
-                        onAction: () => context.push('/employees/new'),
+                        onAction: () async {
+                          final result = await context.push<bool>('/employees/new');
+                          if (result == true && mounted) {
+                            ref.read(employeeProvider.notifier).load();
+                          }
+                        },
                       )
                     : RefreshIndicator(
                         onRefresh: () => ref.read(employeeProvider.notifier).load(),

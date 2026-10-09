@@ -42,7 +42,7 @@ class ProviderListPage extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Lista de Colaboradores Externos', style: ZTypography.titleLarge),
+                Text('Lista de Prestadores Externos', style: ZTypography.titleLarge),
                 ZButton(
                   text: 'Nuevo Prestador',
                   onPressed: () => context.push('/providers/new'),

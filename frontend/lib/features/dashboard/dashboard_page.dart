@@ -158,7 +158,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         desktopColumns: 4,
         children: [
           ZStatCard(
-            title: 'Colaboradores Activos',
+            title: 'Trabajadores Activos',
             value: '${kpis.activeEmployees}',
             label: 'de ${kpis.totalEmployees} totales',
             icon: Icons.people_outline,

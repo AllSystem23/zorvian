@@ -199,7 +199,7 @@ class _PalmTrackCompleteProfilePageState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Datos del Empleado',
+                      'Datos del Trabajador',
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
@@ -208,10 +208,10 @@ class _PalmTrackCompleteProfilePageState
 
                     ZTextField(
                       controller: _employeeCodeController,
-                      label: 'Código de Empleado',
+                      label: 'Código de Trabajador',
                       hint: 'Ej: P001',
                       validator: (v) => (v == null || v.trim().isEmpty)
-                          ? 'El código de empleado es requerido'
+                          ? 'El código de trabajador es requerido'
                           : null,
                     ),
                     const SizedBox(height: 16),

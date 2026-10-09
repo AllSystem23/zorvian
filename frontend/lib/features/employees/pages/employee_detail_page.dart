@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../shared/ds/ds.dart';
+import '../providers/employee_provider.dart';
 
 class EmployeeDetailPage extends ConsumerStatefulWidget {
   final String employeeId;
@@ -70,7 +71,13 @@ class _EmployeeDetailPageState extends ConsumerState<EmployeeDetailPage> {
                 ),
                 IconButton(
                   icon: const Icon(Icons.edit),
-                  onPressed: () => context.push('/employees/${widget.employeeId}/edit'),
+                  onPressed: () async {
+                    final result = await context.push<bool>('/employees/${widget.employeeId}/edit');
+                    if (result == true) {
+                      _load();
+                      if (mounted) ref.read(employeeProvider.notifier).load();
+                    }
+                  },
                 ),
               ],
             ),

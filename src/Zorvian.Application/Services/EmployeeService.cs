@@ -62,8 +62,10 @@ public sealed class EmployeeService
 
         await _repo.SaveChangesAsync();
 
-        // Link to service contract if CollaboratorType is contractor and ContractId provided
-        if (employee.CollaboratorType == "contractor" && request.ContractId.HasValue)
+        // Vincula contrato de prestación de servicios solo para "service_provider"
+        // (Prestador de Servicio), que es el único tipo con selector de contrato en la UI.
+        // "contractor" (Contratista) es una figura laboral distinta y no se vincula aquí.
+        if (employee.CollaboratorType == "service_provider" && request.ContractId.HasValue)
         {
             var contract = await _providerRepo.GetContractByIdAsync(request.ContractId.Value);
             var provider = contract?.ServiceProvider;

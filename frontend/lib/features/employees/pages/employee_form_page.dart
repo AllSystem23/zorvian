@@ -39,6 +39,8 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
   String? _selectedContractId;
   String _status = 'active';
   DateTime? _hireDate;
+  DateTime? _dateOfBirth;
+  String _gender = 'M';
   bool _loading = false;
   String? _error;
   bool _isEditing = false;
@@ -104,6 +106,10 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
         _collaboratorType = data['collaboratorType'] as String? ?? 'employee';
         _selectedContractId = data['contractId'] as String?;
         _status = data['status'] as String? ?? 'active';
+        _gender = data['gender'] as String? ?? 'M';
+        if (data['dateOfBirth'] != null) {
+          try { _dateOfBirth = DateTime.parse(data['dateOfBirth'] as String); } catch (_) {}
+        }
         if (data['hireDate'] != null) {
           try { _hireDate = DateTime.parse(data['hireDate'] as String); } catch (_) {}
         }
@@ -140,6 +146,8 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
         'bankAccountType': _bankAccountType,
         'identificationType': _identificationType,
         'identificationNumber': _identificationNumberCtrl.text.trim(),
+        'gender': _gender,
+        if (_dateOfBirth != null) 'dateOfBirth': _dateOfBirth!.toIso8601String().substring(0, 10),
         if (_salaryCtrl.text.isNotEmpty) 'salary': double.tryParse(_salaryCtrl.text),
         if (_isEditing) 'status': _status,
         if (_hireDate != null) 'hireDate': _hireDate!.toIso8601String().substring(0, 10),
@@ -349,6 +357,21 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
               ),
               textCapitalization: TextCapitalization.characters,
               validator: (v) => validateIdentificationNumber(_identificationType, v),
+            ),
+            ZDropdownFormField<String>(
+              value: _gender,
+              label: 'Género',
+              prefixIcon: Icons.wc_outlined,
+              items: const [
+                DropdownMenuItem(value: 'M', child: Text('Masculino')),
+                DropdownMenuItem(value: 'F', child: Text('Femenino')),
+                DropdownMenuItem(value: 'other', child: Text('Otro')),
+              ],
+              onChanged: (v) => setState(() { _gender = v!; _onFieldChanged(); }),
+            ),
+            _DateOfBirthField(
+              dateOfBirth: _dateOfBirth,
+              onChanged: (d) => setState(() { _dateOfBirth = d; _onFieldChanged(); }),
             ),
             ZDropdownFormField<String>(
               value: _collaboratorType,
@@ -639,6 +662,43 @@ class _HireDateField extends StatelessWidget {
           hireDate != null ? '${hireDate!.day}/${hireDate!.month}/${hireDate!.year}' : 'Seleccionar fecha',
           style: TextStyle(
             color: hireDate != null ? null : Theme.of(context).hintColor,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DateOfBirthField extends StatelessWidget {
+  final DateTime? dateOfBirth;
+  final ValueChanged<DateTime?> onChanged;
+  const _DateOfBirthField({required this.dateOfBirth, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    return InkWell(
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: dateOfBirth ?? DateTime(now.year - 25, now.month, now.day),
+          firstDate: DateTime(1940),
+          lastDate: now,
+          locale: const Locale('es'),
+        );
+        onChanged(picked);
+      },
+      child: InputDecorator(
+        decoration: const InputDecoration(
+          labelText: 'Fecha de Nacimiento',
+          prefixIcon: Icon(Icons.cake_outlined),
+        ),
+        child: Text(
+          dateOfBirth != null
+              ? '${dateOfBirth!.day}/${dateOfBirth!.month}/${dateOfBirth!.year}'
+              : 'Seleccionar fecha',
+          style: TextStyle(
+            color: dateOfBirth != null ? null : Theme.of(context).hintColor,
           ),
         ),
       ),
