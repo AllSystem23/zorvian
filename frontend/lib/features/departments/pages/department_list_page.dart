@@ -39,18 +39,85 @@ class _DepartmentListPageState extends ConsumerState<DepartmentListPage> {
     }
   }
 
+  bool _seeding = false;
+
+  Future<void> _seedDefaults() async {
+    if (_seeding) return;
+    setState(() => _seeding = true);
+    try {
+      final dio = ref.read(dioClientProvider);
+      await dio.post('departments/seed');
+      ref.read(departmentProvider.notifier).load();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Departamentos por defecto creados')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al sembrar departamentos')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _seeding = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(departmentProvider);
     final theme = Theme.of(context);
 
     return Scaffold(
-      body: state.loading
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'add-department',
+        onPressed: () => context.push('/departments/new'),
+        icon: const Icon(Icons.add),
+        label: const Text('Nuevo departamento'),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  icon: _seeding
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.auto_fix_high),
+                  tooltip: 'Sembrar departamentos por defecto',
+                  onPressed: _seeding ? null : _seedDefaults,
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: state.loading
           ? const Center(child: CircularProgressIndicator())
           : state.error != null
               ? Center(child: Text(state.error!, style: TextStyle(color: theme.colorScheme.error)))
               : state.items.isEmpty
-                  ? const Center(child: Text('No hay departamentos'))
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('No hay departamentos'),
+                          const SizedBox(height: 16),
+                          ZButton(
+                            text: _seeding ? 'Sembrando...' : 'Sembrar departamentos por defecto',
+                            icon: Icons.auto_fix_high,
+                            onPressed: _seedDefaults,
+                            isLoading: _seeding,
+                          ),
+                        ],
+                      ),
+                    )
                   : RefreshIndicator(
                       onRefresh: () => ref.read(departmentProvider.notifier).load(),
                       child: ListView.separated(
@@ -94,6 +161,9 @@ class _DepartmentListPageState extends ConsumerState<DepartmentListPage> {
                         },
                       ),
                     ),
+          ),
+        ],
+      ),
     );
   }
 }

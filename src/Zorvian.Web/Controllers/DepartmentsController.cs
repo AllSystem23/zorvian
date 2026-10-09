@@ -22,6 +22,17 @@ public sealed class DepartmentsController : ControllerBase
     }
 
     /// <summary>
+    /// Siembra los departamentos por defecto para la compañía actual. Idempotente: omite los que ya existen.
+    /// </summary>
+    [RequirePermission(Permissions.EmployeeWrite)]
+    [HttpPost("seed")]
+    public async Task<IActionResult> SeedDefaults()
+    {
+        var departments = await _service.SeedDefaultAsync();
+        return Ok(departments);
+    }
+
+    /// <summary>
     /// Crea un nuevo departamento.
     /// </summary>
     [RequirePermission(Permissions.EmployeeWrite)]

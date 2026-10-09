@@ -1,6 +1,7 @@
 using AutoMapper;
 using Zorvian.Application.DTOs.Department;
 using Zorvian.Application.Interfaces;
+using Zorvian.Core.Interfaces;
 
 namespace Zorvian.Application.Services;
 
@@ -8,11 +9,56 @@ public sealed class DepartmentService
 {
     private readonly IDepartmentRepository _repo;
     private readonly IMapper _mapper;
+    private readonly ITenantContext _tenantContext;
 
-    public DepartmentService(IDepartmentRepository repo, IMapper mapper)
+    public DepartmentService(IDepartmentRepository repo, IMapper mapper, ITenantContext tenantContext)
     {
         _repo = repo;
         _mapper = mapper;
+        _tenantContext = tenantContext;
+    }
+
+    /// <summary>
+    /// Siembra los departamentos por defecto para el tenant actual. Idempotente: no crea duplicados si el código/nombre ya existe.
+    /// </summary>
+    public async Task<List<DepartmentResponse>> SeedDefaultAsync()
+    {
+        var tenantId = _tenantContext.TenantId.ToString();
+        var existing = await _repo.GetAllAsync();
+
+        var defaults = new[]
+        {
+            ("DIR", "Dirección General", "Dirección"),
+            ("RH", "Recursos Humanos", "RRHH"),
+            ("TI", "Tecnología e Innovación", "Tecnología"),
+            ("CONT", "Contabilidad", "Contabilidad"),
+            ("VENT", "Ventas y Marketing", "Ventas"),
+            ("OPER", "Operaciones", "Operaciones"),
+        };
+
+        var created = 0;
+        foreach (var (code, name, desc) in defaults)
+        {
+            if (existing.Any(d =>
+                    string.Equals(d.Code, code, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(d.Name, name, StringComparison.OrdinalIgnoreCase)))
+                continue;
+
+            await _repo.AddAsync(new Core.Entities.Department
+            {
+                Code = code,
+                Name = name,
+                Description = desc,
+                IsActive = true,
+                TenantId = tenantId,
+            });
+            created++;
+        }
+
+        if (created > 0)
+            await _repo.SaveChangesAsync();
+
+        return await GetAllAsync();
     }
 
     public async Task<DepartmentResponse> CreateAsync(CreateDepartmentRequest request)
