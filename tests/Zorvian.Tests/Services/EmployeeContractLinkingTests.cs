@@ -15,7 +15,6 @@ public sealed class EmployeeContractLinkingTests : IDisposable
 {
     private readonly ZorvianDbContext _db;
     private readonly Mock<ITenantContext> _tenant = new();
-    private readonly Mock<IEncryptionService> _encryption = new();
     private readonly Mock<IProviderRepository> _providerRepo = new();
     private readonly Mock<ICollaboratorRepository> _collaboratorRepo = new();
     private readonly Mock<IMapper> _mapper = new();
@@ -33,9 +32,6 @@ public sealed class EmployeeContractLinkingTests : IDisposable
 
         _tenant.Setup(t => t.TenantId).Returns(_tenantId);
         _db = new ZorvianDbContext(options, _tenant.Object);
-
-        _encryption.Setup(e => e.Encrypt(It.IsAny<string>())).Returns<string>(s => s);
-        _encryption.Setup(e => e.Decrypt(It.IsAny<string>())).Returns<string>(s => s);
 
         _mapper.Setup(m => m.Map<Employee>(It.IsAny<CreateEmployeeRequest>()))
             .Returns<CreateEmployeeRequest>(r => new Employee
@@ -69,7 +65,7 @@ public sealed class EmployeeContractLinkingTests : IDisposable
                     : (Guid?)null));
 
         var employeeRepo = new EmployeeRepo(_db);
-        _sut = new EmployeeService(employeeRepo, _providerRepo.Object, _collaboratorRepo.Object, _mapper.Object, _encryption.Object, _publishEndpoint.Object);
+        _sut = new EmployeeService(employeeRepo, _providerRepo.Object, _collaboratorRepo.Object, _mapper.Object, _publishEndpoint.Object);
     }
 
     [Fact]

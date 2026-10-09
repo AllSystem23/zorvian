@@ -14,16 +14,14 @@ public sealed class EmployeeService
     private readonly IProviderRepository _providerRepo;
     private readonly ICollaboratorRepository _collaboratorRepo;
     private readonly IMapper _mapper;
-    private readonly IEncryptionService _encryption;
     private readonly IPublishEndpoint _publishEndpoint;
 
-    public EmployeeService(IEmployeeRepository repo, IProviderRepository providerRepo, ICollaboratorRepository collaboratorRepo, IMapper mapper, IEncryptionService encryption, IPublishEndpoint publishEndpoint)
+    public EmployeeService(IEmployeeRepository repo, IProviderRepository providerRepo, ICollaboratorRepository collaboratorRepo, IMapper mapper, IPublishEndpoint publishEndpoint)
     {
         _repo = repo;
         _providerRepo = providerRepo;
         _collaboratorRepo = collaboratorRepo;
         _mapper = mapper;
-        _encryption = encryption;
         _publishEndpoint = publishEndpoint;
     }
 
@@ -51,7 +49,6 @@ public sealed class EmployeeService
         employee.CollaboratorType = request.CollaboratorType ?? "employee";
         employee.CollaboratorId = collaborator.Id;
         employee.CollaboratorCode = collaborator.CollaboratorCode;
-        EncryptPii(employee);
 
         await _repo.AddAsync(employee);
 
@@ -79,8 +76,6 @@ public sealed class EmployeeService
             }
         }
 
-        DecryptPii(employee);
-
         // Publish MassTransit event after employee creation
         await _publishEndpoint.Publish(new EmployeeCreatedEvent
         {
@@ -104,17 +99,14 @@ public sealed class EmployeeService
         var employee = await _repo.GetByIdAsync(id);
         if (employee is null) return null;
 
-        DecryptPii(employee);
         var before = CaptureState(employee);
 
         _mapper.Map(request, employee);
-        EncryptPii(employee);
 
         AddHistoryEntries(employee, before, employee, "Update");
 
         await _repo.SaveChangesAsync();
 
-        DecryptPii(employee);
         return _mapper.Map<EmployeeResponse>(employee);
     }
 
@@ -140,7 +132,6 @@ public sealed class EmployeeService
         var employee = await _repo.GetByIdAsync(id);
         if (employee is null) return null;
 
-        DecryptPii(employee);
         return _mapper.Map<EmployeeResponse>(employee);
     }
 
@@ -149,17 +140,14 @@ public sealed class EmployeeService
         var employee = await _repo.GetByIdAsync(id);
         if (employee is null) return null;
 
-        DecryptPii(employee);
         var before = CaptureState(employee);
 
         _mapper.Map(request, employee);
-        EncryptPii(employee);
 
         AddHistoryEntries(employee, before, employee, "Update");
 
         await _repo.SaveChangesAsync();
 
-        DecryptPii(employee);
         return _mapper.Map<EmployeeResponse>(employee);
     }
 
@@ -181,26 +169,6 @@ public sealed class EmployeeService
         await _repo.SaveChangesAsync();
         return true;
     }
-
-    private void EncryptPii(Employee employee)
-    {
-        employee.Phone = _encryption.Encrypt(employee.Phone ?? string.Empty);
-        employee.IdentificationNumber = _encryption.Encrypt(employee.IdentificationNumber ?? string.Empty);
-        employee.BankName = _encryption.Encrypt(employee.BankName ?? string.Empty);
-        employee.BankAccountNumber = _encryption.Encrypt(employee.BankAccountNumber ?? string.Empty);
-        employee.BankAccountType = _encryption.Encrypt(employee.BankAccountType ?? string.Empty);
-    }
-
-    private void DecryptPii(Employee employee)
-    {
-        employee.Phone = NullIfEmpty(_encryption.Decrypt(employee.Phone ?? string.Empty));
-        employee.IdentificationNumber = NullIfEmpty(_encryption.Decrypt(employee.IdentificationNumber ?? string.Empty));
-        employee.BankName = NullIfEmpty(_encryption.Decrypt(employee.BankName ?? string.Empty));
-        employee.BankAccountNumber = NullIfEmpty(_encryption.Decrypt(employee.BankAccountNumber ?? string.Empty));
-        employee.BankAccountType = NullIfEmpty(_encryption.Decrypt(employee.BankAccountType ?? string.Empty));
-    }
-
-    private static string? NullIfEmpty(string value) => string.IsNullOrEmpty(value) ? null : value;
 
     private static Dictionary<string, object?> CaptureState(Employee employee)
     {

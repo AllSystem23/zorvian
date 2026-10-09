@@ -47,22 +47,22 @@ public sealed record UpdateEmployeeRequest(
 
 public sealed record EmployeeResponse(
     Guid Id,
-    string EmployeeCode,
+    string? EmployeeCode,
     string FirstName,
     string LastName,
     string Email,
-    string Phone,
+    string? Phone,
     DateOnly? DateOfBirth,
-    string Gender,
-    string IdentificationType,
-    string IdentificationNumber,
+    string? Gender,
+    string? IdentificationType,
+    string? IdentificationNumber,
     Guid? DepartmentId,
     string DepartmentName,
-    string Position,
+    string? Position,
     DateOnly HireDate,
     string Status,
     decimal? Salary,
-    string SalaryType,
+    string? SalaryType,
     string? BankName,
     string? BankAccountNumber,
     string? BankAccountType,
@@ -72,11 +72,11 @@ public sealed record EmployeeResponse(
 
 public sealed record EmployeeListResponse(
     Guid Id,
-    string EmployeeCode,
+    string? EmployeeCode,
     string FullName,
     string Email,
     string DepartmentName,
-    string Position,
+    string? Position,
     string Status,
     DateOnly HireDate
 );

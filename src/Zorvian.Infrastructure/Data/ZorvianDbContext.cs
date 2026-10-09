@@ -518,10 +518,12 @@ public sealed class ZorvianDbContext : DbContext
             e.Property(em => em.FirstName).HasMaxLength(100).IsRequired();
             e.Property(em => em.LastName).HasMaxLength(100).IsRequired();
             e.Property(em => em.Email).HasMaxLength(255).IsRequired();
-            e.Property(em => em.Phone).HasMaxLength(20);
+            // [Encrypted]: el valor guardado es Base64 de AES-GCM (nonce+tag+ciphertext),
+            // mínimo ~40 chars; con el cifrado doble de EmployeeService supera 100.
+            e.Property(em => em.Phone).HasMaxLength(255);
             e.Property(em => em.Gender).HasMaxLength(20);
             e.Property(em => em.IdentificationType).HasMaxLength(50);
-            e.Property(em => em.IdentificationNumber).HasMaxLength(50);
+            e.Property(em => em.IdentificationNumber).HasMaxLength(255);
             e.Property(em => em.Position).HasMaxLength(255);
             e.Property(em => em.TerminationReason).HasMaxLength(500);
             e.Property(em => em.SalaryType).HasMaxLength(20);
@@ -835,7 +837,8 @@ public sealed class ZorvianDbContext : DbContext
             e.HasKey(w => w.Id);
             e.Property(w => w.EventType).HasMaxLength(100).IsRequired();
             e.Property(w => w.TargetUrl).HasMaxLength(500).IsRequired();
-            e.Property(w => w.Secret).HasMaxLength(100).IsRequired();
+            // [Encrypted]: el valor guardado es Base64 de AES-GCM, no el plaintext.
+            e.Property(w => w.Secret).HasMaxLength(255).IsRequired();
             e.Property(w => w.Description).HasMaxLength(500);
             e.HasQueryFilter(w => (w.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !w.IsDeleted);
         });
@@ -903,9 +906,10 @@ public sealed class ZorvianDbContext : DbContext
             e.Property(c => c.Code).HasMaxLength(50).IsRequired();
             e.Property(c => c.FirstName).HasMaxLength(100).IsRequired();
             e.Property(c => c.LastName).HasMaxLength(100).IsRequired();
-            e.Property(c => c.IdentificationNumber).HasMaxLength(50);
-            e.Property(c => c.Phone).HasMaxLength(20);
-            e.Property(c => c.Address).HasMaxLength(500);
+            // [Encrypted]: el valor guardado es Base64 de AES-GCM, no el plaintext.
+            e.Property(c => c.IdentificationNumber).HasMaxLength(255);
+            e.Property(c => c.Phone).HasMaxLength(255);
+            e.Property(c => c.Address).HasMaxLength(1000);
             e.Property(c => c.City).HasMaxLength(100);
             e.Property(c => c.State).HasMaxLength(100);
             e.Property(c => c.References).HasMaxLength(500);
@@ -1074,10 +1078,11 @@ public sealed class ZorvianDbContext : DbContext
             e.Property(s => s.Code).HasMaxLength(50).IsRequired();
             e.Property(s => s.Name).HasMaxLength(255).IsRequired();
             e.Property(s => s.ContactName).HasMaxLength(255);
-            e.Property(s => s.Phone).HasMaxLength(20);
+            // [Encrypted]: el valor guardado es Base64 de AES-GCM, no el plaintext.
+            e.Property(s => s.Phone).HasMaxLength(255);
             e.Property(s => s.Email).HasMaxLength(255);
-            e.Property(s => s.Address).HasMaxLength(500);
-            e.Property(s => s.TaxId).HasMaxLength(50);
+            e.Property(s => s.Address).HasMaxLength(1000);
+            e.Property(s => s.TaxId).HasMaxLength(255);
             e.HasIndex(s => new { s.TaxId, s.CompanyId }).IsUnique();
             e.HasQueryFilter(s => (s.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.IsSuperAdmin) && !s.IsDeleted);
         });

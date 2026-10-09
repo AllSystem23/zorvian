@@ -44,8 +44,11 @@ public sealed class Employee : BaseEntity
     // Tratamiento fiscal especial: exenta de ciertas cargas sociales
     public bool IsDomesticWorkerWithBoard { get; set; }
     public string? PhotoUrl { get; set; }
+    [Encrypted]
     public string? BankName { get; set; }
+    [Encrypted]
     public string? BankAccountNumber { get; set; }
+    [Encrypted]
     public string? BankAccountType { get; set; }
     public string CountryCode { get; set; } = "NIC"; // Por defecto NIC
     public Guid? UserId { get; set; }
