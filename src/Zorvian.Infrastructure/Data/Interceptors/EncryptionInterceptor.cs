@@ -16,10 +16,14 @@ public sealed class EncryptionInterceptor : ISaveChangesInterceptor, IMaterializ
     }
 
     // ── Decryption on Load ──
+    // IMPORTANT: decryption MUST run in InitializedInstance, which EF invokes
+    // AFTER setting the property values from the database. CreatedInstance runs
+    // BEFORE properties are set, so decrypting there is immediately overwritten
+    // with the raw ciphertext (this caused encrypted PII to leak to the API).
 
-    public object CreatedInstance(MaterializationInterceptionData data, object entity)
+    public object InitializedInstance(MaterializationInterceptionData data, object entity)
     {
-        ApplyToEncryptedProperties(entity, _encryptionService.Decrypt);
+        ApplyToEncryptedProperties(entity, DecryptSafe);
         return entity;
     }
 
@@ -40,6 +44,20 @@ public sealed class EncryptionInterceptor : ISaveChangesInterceptor, IMaterializ
         }
 
         return new ValueTask<InterceptionResult<int>>(result);
+    }
+
+    private string DecryptSafe(string value)
+    {
+        try
+        {
+            return _encryptionService.Decrypt(value);
+        }
+        catch
+        {
+            // Value is not valid ciphertext (legacy plaintext or corrupt data).
+            // Return as-is instead of failing every read of the entity.
+            return value;
+        }
     }
 
     private static void ApplyToEncryptedProperties(object entity, Func<string, string> transform)
