@@ -103,8 +103,18 @@ public sealed class MappingProfile : Profile
             .ForMember(d => d.ChildDepartments, o => o.Ignore())
             .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
         CreateMap<Department, DepartmentResponse>()
-            .ForMember(d => d.ManagerName, o => o.MapFrom(s => s.Manager != null ? $"{s.Manager.FirstName} {s.Manager.LastName}" : ""))
-            .ForMember(d => d.EmployeeCount, o => o.MapFrom(s => s.Employees != null ? s.Employees.Count : 0));
+            // ConstructUsing explícito: AutoMapper 16 no puede armar el ctor del record
+            // porque ManagerName/EmployeeCount no existen como miembros fuente
+            // (causaba 500 en GET /departments con listas no vacías).
+            .ConstructUsing(s => new DepartmentResponse(
+                s.Id,
+                s.Name,
+                s.Code ?? string.Empty,
+                s.Description ?? string.Empty,
+                s.Manager != null ? $"{s.Manager.FirstName} {s.Manager.LastName}" : string.Empty,
+                s.ParentDepartmentId,
+                s.IsActive,
+                s.Employees != null ? s.Employees.Count : 0));
 
         // Branch
         CreateMap<CreateBranchRequest, Branch>()
