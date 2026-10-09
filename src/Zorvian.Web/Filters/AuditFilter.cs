@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.EntityFrameworkCore;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
 using Zorvian.Infrastructure.Data;
@@ -46,16 +47,39 @@ public sealed class AuditAttribute : ActionFilterAttribute
 
         var result = await next();
 
-        // After execution, update EntityId for create actions where id is set in the response
-        var newEntityId = context.RouteData.Values["id"]?.ToString() ?? "";
-        if (!string.IsNullOrEmpty(newEntityId) && string.IsNullOrEmpty(entityId))
+        // AUD-004: los AuditLog son inmutables una vez persistidos. Si la acción
+        // ya hizo SaveChanges (log insertado, estado Unchanged), mutar el log
+        // haría que el interceptor de inmutabilidad lanzara AUD-004 y ENMASCARARA
+        // el error original. En ese caso registramos la falla en un log nuevo.
+        if (db.Entry(log).State == EntityState.Added)
         {
-            log.EntityId = newEntityId;
-        }
+            // Aún no persistido: completar campos es seguro (sigue siendo Added).
+            var newEntityId = context.RouteData.Values["id"]?.ToString() ?? "";
+            if (!string.IsNullOrEmpty(newEntityId) && string.IsNullOrEmpty(entityId))
+            {
+                log.EntityId = newEntityId;
+            }
 
-        if (result.Exception is not null && !result.ExceptionHandled)
+            if (result.Exception is not null && !result.ExceptionHandled)
+            {
+                log.OldValues = $"Failed: {result.Exception.Message}";
+            }
+        }
+        else if (result.Exception is not null && !result.ExceptionHandled)
         {
-            log.OldValues = $"Failed: {result.Exception.Message}";
+            // Ya persistido: registrar el fallo como un registro nuevo (inserción permitida).
+            db.AuditLogs.Add(new AuditLog
+            {
+                TenantId = log.TenantId,
+                EntityName = log.EntityName,
+                EntityId = log.EntityId,
+                Action = log.Action,
+                OldValues = $"Failed: {result.Exception.Message}",
+                PerformedBy = log.PerformedBy,
+                IpAddress = log.IpAddress,
+                UserAgent = log.UserAgent,
+                RequestPath = log.RequestPath,
+            });
         }
 
         await db.SaveChangesAsync();

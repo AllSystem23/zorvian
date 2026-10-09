@@ -80,12 +80,50 @@ public sealed class MappingProfile : Profile
             .ForMember(d => d.PerformedInventoryMovements, o => o.Ignore())
             .ForAllMembers(o => o.Condition((_, _, srcVal) => srcVal != null));
         CreateMap<Employee, EmployeeResponse>()
-            .ForMember(d => d.DepartmentName, o => o.MapFrom(s => s.Department != null ? s.Department.Name : ""))
-            .ForMember(d => d.CollaboratorType, o => o.MapFrom(s => s.CollaboratorType))
-            .ForMember(d => d.ContractId, o => o.MapFrom(s => s.ServiceProviderDetails != null && s.ServiceProviderDetails.Contracts != null && s.ServiceProviderDetails.Contracts.Any() ? s.ServiceProviderDetails.Contracts.First().Id : (Guid?)null));
+            // ConstructUsing explícito: AutoMapper 16 no puede armar el ctor del record
+            // porque DepartmentName/ContractId no existen como miembros fuente
+            // (causaba que POST /employees fallara al mapear la respuesta y el
+            // error quedara enmascarado como AUD-004 por el AuditAttribute).
+            .ConstructUsing(s => new EmployeeResponse(
+                s.Id,
+                s.EmployeeCode,
+                s.FirstName,
+                s.LastName,
+                s.Email,
+                s.Phone,
+                s.DateOfBirth,
+                s.Gender,
+                s.IdentificationType,
+                s.IdentificationNumber,
+                s.DepartmentId,
+                s.Department != null ? s.Department.Name : "",
+                s.Position,
+                s.HireDate,
+                s.Status,
+                s.Salary,
+                s.SalaryType,
+                s.BankName,
+                s.BankAccountNumber,
+                s.BankAccountType,
+                s.CollaboratorType,
+                s.ServiceProviderDetails != null && s.ServiceProviderDetails.Contracts != null && s.ServiceProviderDetails.Contracts.Any() ? s.ServiceProviderDetails.Contracts.First().Id : (Guid?)null))
+            // El ConstructUsing es la única fuente de valores: sin esto, AutoMapper
+            // pisa miembros flattenables (ej. DepartmentName ← Department.Name)
+            // con null cuando la navegación no está cargada.
+            .ForAllMembers(o => o.Ignore());
         CreateMap<Employee, EmployeeListResponse>()
-            .ForMember(d => d.FullName, o => o.MapFrom(s => $"{s.FirstName} {s.LastName}"))
-            .ForMember(d => d.DepartmentName, o => o.MapFrom(s => s.Department != null ? s.Department.Name : ""));
+            // Mismo motivo que EmployeeResponse: FullName no existe en la fuente.
+            .ConstructUsing(s => new EmployeeListResponse(
+                s.Id,
+                s.EmployeeCode,
+                $"{s.FirstName} {s.LastName}",
+                s.Email,
+                s.Department != null ? s.Department.Name : "",
+                s.Position,
+                s.Status,
+                s.HireDate))
+            // Igual que EmployeeResponse: FullName/DepartmentName no deben ser pisados.
+            .ForAllMembers(o => o.Ignore());
 
         // Department
         CreateMap<CreateDepartmentRequest, Department>()
@@ -114,7 +152,9 @@ public sealed class MappingProfile : Profile
                 s.Manager != null ? $"{s.Manager.FirstName} {s.Manager.LastName}" : string.Empty,
                 s.ParentDepartmentId,
                 s.IsActive,
-                s.Employees != null ? s.Employees.Count : 0));
+                s.Employees != null ? s.Employees.Count : 0))
+            // El ConstructUsing es la única fuente de valores (ver EmployeeResponse).
+            .ForAllMembers(o => o.Ignore());
 
         // Branch
         CreateMap<CreateBranchRequest, Branch>()
