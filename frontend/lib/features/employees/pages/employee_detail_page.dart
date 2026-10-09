@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../shared/ds/ds.dart';
 import '../providers/employee_provider.dart';
 
@@ -115,7 +116,7 @@ class _EmployeeDetailPageState extends ConsumerState<EmployeeDetailPage> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          e['status'] as String? ?? '',
+                          ZFormatters.statusLabel(e['status'] as String? ?? ''),
                           style: TextStyle(color: _statusColor(e['status'] as String? ?? '')),
                         ),
                       ),
@@ -124,11 +125,11 @@ class _EmployeeDetailPageState extends ConsumerState<EmployeeDetailPage> {
                   const Divider(height: 32),
                   _infoRow(Icons.badge, 'Código', e['employeeCode']),
                   _infoRow(Icons.email, 'Correo', e['email']),
-                  _infoRow(Icons.phone, 'Teléfono', e['phone']),
+                  _infoRow(Icons.phone, 'Teléfono', _fmtPhone(e['phone'])),
                   _infoRow(Icons.business, 'Departamento', e['departmentName']),
                   _infoRow(Icons.work, 'Cargo', e['position']),
-                  _infoRow(Icons.calendar_today, 'Fecha contratación', e['hireDate']),
-                  _infoRow(Icons.attach_money, 'Salario', e['salary']?.toString()),
+                  _infoRow(Icons.calendar_today, 'Fecha contratación', _fmtDate(e['hireDate'])),
+                  _infoRow(Icons.attach_money, 'Salario', _fmtSalary(e['salary'])),
                 ],
               ),
             ),
@@ -141,7 +142,7 @@ class _EmployeeDetailPageState extends ConsumerState<EmployeeDetailPage> {
                   Text('Información adicional', style: theme.textTheme.titleMedium),
                   const Divider(),
                   _infoRow(Icons.badge, 'Cédula', e['identificationNumber']),
-                  _infoRow(Icons.cake, 'Fecha de nacimiento', e['dateOfBirth']),
+                  _infoRow(Icons.cake, 'Fecha de nacimiento', _fmtDate(e['dateOfBirth'])),
                   _infoRow(Icons.wc, 'Género', e['gender'] == 'M' ? 'Masculino' : e['gender'] == 'F' ? 'Femenino' : e['gender']),
                 ],
               ),
@@ -164,14 +165,36 @@ class _EmployeeDetailPageState extends ConsumerState<EmployeeDetailPage> {
     );
   }
 
+  String? _fmtDate(dynamic raw) {
+    if (raw == null || (raw as String).isEmpty) return null;
+    final dt = DateTime.tryParse(raw);
+    return dt != null ? ZFormatters.date(dt) : raw;
+  }
+
+  String? _fmtSalary(dynamic raw) {
+    if (raw == null) return null;
+    final v = double.tryParse(raw.toString());
+    return v != null ? ZFormatters.currency(v) : raw.toString();
+  }
+
+  String? _fmtPhone(dynamic raw) {
+    if (raw == null || (raw as String).isEmpty) return null;
+    return ZFormatters.phone(raw);
+  }
+
   Widget _infoRow(IconData icon, String label, String? value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 18, color: Colors.grey),
           const SizedBox(width: 12),
-          Flexible(flex: 2, child: Text(label, style: const TextStyle(color: Colors.grey))),
+          SizedBox(
+            width: 150,
+            child: Text(label, style: const TextStyle(color: Colors.grey)),
+          ),
+          const SizedBox(width: 8),
           Expanded(child: Text(value ?? '—')),
         ],
       ),
