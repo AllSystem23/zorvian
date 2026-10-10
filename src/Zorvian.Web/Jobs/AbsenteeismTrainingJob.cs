@@ -20,7 +20,11 @@ public sealed class AbsenteeismTrainingJob
     {
         var sixMonthsAgo = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(-6));
 
+        // Bypass documentado: modelo global de ML.NET con agregados por empleado
+        // (día de la semana, conteos) sin PII exportada; con query filter el job
+        // sería no-op permanente (tenant = GUID-cero en Hangfire).
         var records = await _db.AttendanceRecords
+            .IgnoreQueryFilters()
             .Include(r => r.Employee)
             .Where(r => r.Date >= sixMonthsAgo)
             .OrderBy(r => r.EmployeeId)

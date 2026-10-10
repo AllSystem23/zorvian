@@ -10,11 +10,21 @@ public sealed class TenantContext : ITenantContext, ITenantContextWriter
     private static readonly AsyncLocal<bool> IsSuperAdminValue = new();
     private static readonly AsyncLocal<Guid?> CurrentUserIdValue = new();
     private static readonly AsyncLocal<Guid?> CurrentEmployeeIdValue = new();
+    private static readonly AsyncLocal<Guid?> CurrentBranchIdValue = new();
 
     public TenantId TenantId => TenantIdValue.Value ?? new(Guid.Empty);
     public bool IsSuperAdmin => IsSuperAdminValue.Value;
     public Guid? CurrentUserId => CurrentUserIdValue.Value;
     public Guid? CurrentEmployeeId => CurrentEmployeeIdValue.Value;
+    public Guid? CurrentBranchId => CurrentBranchIdValue.Value;
+
+    public Guid? SelectedCompanyId =>
+        TenantId.TryGetCompanyId(out var id) && id != Guid.Empty ? id : null;
+
+    public bool HasCompanySelection => SelectedCompanyId.HasValue;
+
+    // Sólo SuperAdmin sin compañía seleccionada bypassa el filtro de tenant.
+    public bool BypassTenantFilter => IsSuperAdmin && !HasCompanySelection;
 
     public void SetTenantId(TenantId tenantId)
     {
@@ -30,5 +40,10 @@ public sealed class TenantContext : ITenantContext, ITenantContextWriter
     public void SetIsSuperAdmin(bool isSuperAdmin)
     {
         IsSuperAdminValue.Value = isSuperAdmin;
+    }
+
+    public void SetBranchId(Guid? branchId)
+    {
+        CurrentBranchIdValue.Value = branchId;
     }
 }

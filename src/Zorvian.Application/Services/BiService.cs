@@ -61,15 +61,15 @@ public sealed class BiService
     {
         var cc = await GetCompanyCurrencyAsync();
         var tenantId = _tenant.TenantId.Value.ToString();
-        var isSuperAdmin = _tenant.IsSuperAdmin;
+        var isSuperAdmin = _tenant.BypassTenantFilter;
 
         // Phase 1: High-performance scalar KPIs (2 round-trips for everything)
-        var scalars = await _dashRepo.GetExecutiveKpiScalarsRawAsync(_tenant.EffectiveCompanyId, _tenant.IsSuperAdmin);
+        var scalars = await _dashRepo.GetExecutiveKpiScalarsRawAsync(_tenant.EffectiveCompanyId, _tenant.BypassTenantFilter);
         
         var thirtyDaysAgo = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
         var now = DateTime.UtcNow;
         var lastMonth = now.Month == 1 ? 12 : now.Month - 1;
-        var hrScalars = await _dashRepo.GetAllKpiScalarsRawAsync(_tenant.EffectiveCompanyId, _tenant.IsSuperAdmin, thirtyDaysAgo, now.Month, lastMonth);
+        var hrScalars = await _dashRepo.GetAllKpiScalarsRawAsync(_tenant.EffectiveCompanyId, _tenant.BypassTenantFilter, thirtyDaysAgo, now.Month, lastMonth);
 
         // Phase 2: Sequential EF queries for lists/complex logic
         var topSelling = await _productRepo.GetTopSellingAsync(Guid.Empty, 5);
@@ -156,7 +156,7 @@ public sealed class BiService
     {
         var cc = await GetCompanyCurrencyAsync();
         var companyId = _tenant.EffectiveCompanyId;
-        var isSuperAdmin = _tenant.IsSuperAdmin;
+        var isSuperAdmin = _tenant.BypassTenantFilter;
 
         var byClient = await _creditRepo.GetArAgingClientsRawAsync(companyId, isSuperAdmin, cc);
         var totalPortfolio = await _creditRepo.GetArAgingTotalPortfolioRawAsync(companyId, isSuperAdmin, cc);

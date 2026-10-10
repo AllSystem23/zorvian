@@ -25,8 +25,8 @@ public interface IAccountingEntryRepository
     Task<List<AccountingEntry>> GetListByIdsAsync(IEnumerable<Guid> ids);
     Task<AccountingEntry?> GetByIdAsync(Guid id);
     Task<List<AccountingEntry>> GetPostedWithDetailsAsync(Guid? periodId, Guid companyId, DateTime? toDate = null);
-    Task<List<AccountingEntry>> GetFilteredAsync(Guid? periodId, string? referenceType, string? status, DateTime? fromDate, DateTime? toDate, Guid companyId, int page, int pageSize);
-    Task<int> GetFilteredCountAsync(Guid? periodId, string? referenceType, string? status, DateTime? fromDate, DateTime? toDate, Guid companyId);
+    Task<List<AccountingEntry>> GetFilteredAsync(Guid? periodId, string? referenceType, string? status, DateTime? fromDate, DateTime? toDate, Guid companyId, int page, int pageSize, Guid? branchId = null);
+    Task<int> GetFilteredCountAsync(Guid? periodId, string? referenceType, string? status, DateTime? fromDate, DateTime? toDate, Guid companyId, Guid? branchId = null);
     Task<string> GenerateEntryNumberAsync(Guid companyId);
     Task<bool> HasEntriesForAccountAsync(Guid accountId);
     Task AddAsync(AccountingEntry entry);

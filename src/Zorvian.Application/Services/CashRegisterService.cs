@@ -44,7 +44,8 @@ public sealed class CashRegisterService
         await _movementRepo.UpdateAsync(movement);
         await _movementRepo.SaveChangesAsync();
 
-        await _accountingService.GenerateCashMovementEntryAsync(movementId);
+        await _accountingService.GenerateCashMovementEntryAsync(movementId,
+            branchId: movement.BranchId == Guid.Empty ? null : movement.BranchId);
 
         return true;
     }
@@ -115,7 +116,8 @@ public sealed class CashRegisterService
         // Audit recommendation: Generate accounting entry for cash movements
         if (movement.ApprovalStatus == "approved")
         {
-            await _accountingService.GenerateCashMovementEntryAsync(movement.Id);
+            await _accountingService.GenerateCashMovementEntryAsync(movement.Id,
+                branchId: movement.BranchId == Guid.Empty ? null : movement.BranchId);
         }
 
         return _mapper.Map<CashMovementResponse>(movement);

@@ -22,11 +22,14 @@ public sealed class PurchaseServiceTests
     private readonly Mock<IMapper> _mapper = new();
     private readonly Mock<IApprovalEngine> _approvalEngine = new();
     private readonly Mock<IPublishEndpoint> _publishEndpoint = new();
+    private readonly Mock<IBranchValidator> _branchValidator = new();
     private readonly PurchaseService _sut;
 
     public PurchaseServiceTests()
     {
         _tenant.Setup(t => t.TenantId).Returns(Guid.NewGuid().ToString());
+        // Pass-through: la lógica de pertenencia de sucursal se prueba en BranchValidatorTests.
+        _branchValidator.Setup(v => v.ResolveForWriteAsync(It.IsAny<Guid?>())).ReturnsAsync((Guid? b) => b);
         _sut = new PurchaseService(
             _purchaseRepo.Object,
             _productRepo.Object,
@@ -38,7 +41,8 @@ public sealed class PurchaseServiceTests
             _tenant.Object,
             _mapper.Object,
             _approvalEngine.Object,
-            _publishEndpoint.Object);
+            _publishEndpoint.Object,
+            _branchValidator.Object);
     }
 
     [Fact]

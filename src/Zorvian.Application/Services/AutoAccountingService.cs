@@ -216,7 +216,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
         return 0;
     }
 
-    public async Task<Guid> GenerateSaleEntryAsync(Guid saleId, List<SaleDetail> details, decimal discount, decimal paidAmount, string saleType, Guid? costCenterId = null)
+    public async Task<Guid> GenerateSaleEntryAsync(Guid saleId, List<SaleDetail> details, decimal discount, decimal paidAmount, string saleType, Guid? costCenterId = null, Guid? branchId = null)
     {
         var periodId = await GetPeriodIdAsync();
         var companyId = CompanyId;
@@ -308,6 +308,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
             Status = "posted",
             AccountingPeriodId = periodId,
             CostCenterId = costCenterId,
+            BranchId = branchId,
             TotalDebit = entryDetails.Sum(d => d.DebitAmount),
             TotalCredit = entryDetails.Sum(d => d.CreditAmount),
             PostedAt = DateTime.UtcNow,
@@ -319,7 +320,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
         return entry.Id;
     }
 
-    public async Task ReverseSaleEntryAsync(Guid saleId, List<SaleDetail> details, decimal discount, string saleType, Guid? costCenterId = null)
+    public async Task ReverseSaleEntryAsync(Guid saleId, List<SaleDetail> details, decimal discount, string saleType, Guid? costCenterId = null, Guid? branchId = null)
     {
         var periodId = await GetPeriodIdAsync();
         var companyId = CompanyId;
@@ -394,6 +395,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
             Status = "posted",
             AccountingPeriodId = periodId,
             CostCenterId = costCenterId,
+            BranchId = branchId,
             TotalDebit = entryDetails.Sum(d => d.DebitAmount),
             TotalCredit = entryDetails.Sum(d => d.CreditAmount),
             PostedAt = DateTime.UtcNow,
@@ -404,7 +406,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
         await _entryRepo.SaveChangesAsync();
     }
 
-    public async Task<Guid> GenerateCostOfSaleEntryAsync(Guid saleId, decimal totalCost, Guid? costCenterId = null)
+    public async Task<Guid> GenerateCostOfSaleEntryAsync(Guid saleId, decimal totalCost, Guid? costCenterId = null, Guid? branchId = null)
     {
         var periodId = await GetPeriodIdAsync();
         var companyId = CompanyId;
@@ -451,6 +453,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
             Status = "posted",
             AccountingPeriodId = periodId,
             CostCenterId = costCenterId,
+            BranchId = branchId,
             TotalDebit = entryDetails.Sum(d => d.DebitAmount),
             TotalCredit = entryDetails.Sum(d => d.CreditAmount),
             PostedAt = DateTime.UtcNow,
@@ -462,7 +465,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
         return entry.Id;
     }
 
-    public async Task<Guid> GeneratePurchaseEntryAsync(Guid purchaseId, List<PurchaseDetail> details, decimal discount, decimal total, string countryCode)
+    public async Task<Guid> GeneratePurchaseEntryAsync(Guid purchaseId, List<PurchaseDetail> details, decimal discount, decimal total, string countryCode, Guid? branchId = null)
     {
         var periodId = await GetPeriodIdAsync();
         var companyId = CompanyId;
@@ -543,6 +546,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
             ReferenceId = purchaseId,
             Status = "posted",
             AccountingPeriodId = periodId,
+            BranchId = branchId,
             TotalDebit = entryDetails.Sum(d => d.DebitAmount),
             TotalCredit = entryDetails.Sum(d => d.CreditAmount),
             PostedAt = DateTime.UtcNow,
@@ -554,7 +558,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
         return entry.Id;
     }
 
-    public async Task ReversePurchaseEntryAsync(Guid purchaseId, List<PurchaseDetail> details, decimal total)
+    public async Task ReversePurchaseEntryAsync(Guid purchaseId, List<PurchaseDetail> details, decimal total, Guid? branchId = null)
     {
         var periodId = await GetPeriodIdAsync();
         var companyId = CompanyId;
@@ -632,6 +636,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
             ReferenceId = purchaseId,
             Status = "posted",
             AccountingPeriodId = periodId,
+            BranchId = branchId,
             TotalDebit = entryDetails.Sum(d => d.DebitAmount),
             TotalCredit = entryDetails.Sum(d => d.CreditAmount),
             PostedAt = DateTime.UtcNow,
@@ -642,7 +647,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
         await _entryRepo.SaveChangesAsync();
     }
 
-    public async Task<Guid> GenerateInventoryEntryAsync(Guid movementId, Guid productId, string movementType, decimal quantity, decimal unitCost)
+    public async Task<Guid> GenerateInventoryEntryAsync(Guid movementId, Guid productId, string movementType, decimal quantity, decimal unitCost, Guid? branchId = null)
     {
         var periodId = await GetPeriodIdAsync();
         var companyId = CompanyId;
@@ -698,6 +703,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
             ReferenceId = movementId,
             Status = "posted",
             AccountingPeriodId = periodId,
+            BranchId = branchId,
             TotalDebit = amount,
             TotalCredit = amount,
             PostedAt = DateTime.UtcNow,
@@ -771,7 +777,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
         return entry.Id;
     }
 
-    public async Task<Guid> GeneratePayrollEntryAsync(Guid payrollRunId)
+    public async Task<Guid> GeneratePayrollEntryAsync(Guid payrollRunId, Guid? branchId = null)
     {
         var payrollRun = await _payrollRepo!.GetRunByIdAsync(payrollRunId) ?? throw new KeyNotFoundException("Run not found");
         var periodId = await GetPeriodIdAsync();
@@ -830,6 +836,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
             ReferenceId = payrollRunId,
             Status = "posted",
             AccountingPeriodId = periodId,
+            BranchId = branchId,
             TotalDebit = entryDetails.Sum(d => d.DebitAmount),
             TotalCredit = entryDetails.Sum(d => d.CreditAmount),
             PostedAt = DateTime.UtcNow,
@@ -841,7 +848,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
         return entry.Id;
     }
 
-    public async Task<Guid> GenerateCashMovementEntryAsync(Guid movementId)
+    public async Task<Guid> GenerateCashMovementEntryAsync(Guid movementId, Guid? branchId = null)
     {
         var movement = await _cashRepo!.GetByIdAsync(movementId)
             ?? throw new KeyNotFoundException("Movement not found");
@@ -905,6 +912,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
             ReferenceId = movementId,
             Status = "posted",
             AccountingPeriodId = periodId,
+            BranchId = branchId,
             TotalDebit = movement.Amount,
             TotalCredit = movement.Amount,
             PostedAt = DateTime.UtcNow,
@@ -1189,7 +1197,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
         return entry.Id;
     }
 
-    public async Task<Guid> GenerateCreditNoteEntryAsync(Guid creditNoteId, Guid saleId, string saleType, List<CreditNoteDetail> details, decimal subtotal, decimal tax)
+    public async Task<Guid> GenerateCreditNoteEntryAsync(Guid creditNoteId, Guid saleId, string saleType, List<CreditNoteDetail> details, decimal subtotal, decimal tax, Guid? branchId = null)
     {
         var periodId = await GetPeriodIdAsync();
         var companyId = CompanyId;
@@ -1249,6 +1257,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
             ReferenceId = creditNoteId,
             Status = "posted",
             AccountingPeriodId = periodId,
+            BranchId = branchId,
             TotalDebit = entryDetails.Sum(d => d.DebitAmount),
             TotalCredit = entryDetails.Sum(d => d.CreditAmount),
             PostedAt = DateTime.UtcNow,
@@ -1260,7 +1269,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
         return entry.Id;
     }
 
-    public async Task<Guid> GenerateCheckEntryAsync(Guid checkId, decimal amount, string checkType, Guid? bankAccountId, Guid? payeeId, Guid? costCenterId)
+    public async Task<Guid> GenerateCheckEntryAsync(Guid checkId, decimal amount, string checkType, Guid? bankAccountId, Guid? payeeId, Guid? costCenterId, Guid? branchId = null)
     {
         var periodId = await GetPeriodIdAsync();
         var companyId = CompanyId;
@@ -1308,6 +1317,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
             Status = "posted",
             AccountingPeriodId = periodId,
             CostCenterId = costCenterId,
+            BranchId = branchId,
             TotalDebit = entryDetails.Sum(d => d.DebitAmount),
             TotalCredit = entryDetails.Sum(d => d.CreditAmount),
             PostedAt = DateTime.UtcNow,
@@ -1319,7 +1329,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
         return entry.Id;
     }
 
-    public async Task<Guid> GenerateBankDepositEntryAsync(Guid depositId, decimal amount, Guid bankAccountId, Guid? costCenterId)
+    public async Task<Guid> GenerateBankDepositEntryAsync(Guid depositId, decimal amount, Guid bankAccountId, Guid? costCenterId, Guid? branchId = null)
     {
         var periodId = await GetPeriodIdAsync();
         var companyId = CompanyId;
@@ -1348,6 +1358,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
             Status = "posted",
             AccountingPeriodId = periodId,
             CostCenterId = costCenterId,
+            BranchId = branchId,
             TotalDebit = entryDetails.Sum(d => d.DebitAmount),
             TotalCredit = entryDetails.Sum(d => d.CreditAmount),
             PostedAt = DateTime.UtcNow,
@@ -1359,7 +1370,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
         return entry.Id;
     }
 
-    public async Task<Guid> GenerateBankTransferEntryAsync(Guid transferId, decimal amount, Guid fromAccountId, Guid toAccountId, Guid? costCenterId)
+    public async Task<Guid> GenerateBankTransferEntryAsync(Guid transferId, decimal amount, Guid fromAccountId, Guid toAccountId, Guid? costCenterId, Guid? branchId = null)
     {
         var periodId = await GetPeriodIdAsync();
         var companyId = CompanyId;
@@ -1385,6 +1396,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
             Status = "posted",
             AccountingPeriodId = periodId,
             CostCenterId = costCenterId,
+            BranchId = branchId,
             TotalDebit = entryDetails.Sum(d => d.DebitAmount),
             TotalCredit = entryDetails.Sum(d => d.CreditAmount),
             PostedAt = DateTime.UtcNow,
@@ -1396,7 +1408,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
         return entry.Id;
     }
 
-    public async Task<Guid> GenerateBankCommissionEntryAsync(Guid commissionId, decimal commission, Guid bankAccountId, Guid? costCenterId)
+    public async Task<Guid> GenerateBankCommissionEntryAsync(Guid commissionId, decimal commission, Guid bankAccountId, Guid? costCenterId, Guid? branchId = null)
     {
         var periodId = await GetPeriodIdAsync();
         var companyId = CompanyId;
@@ -1425,6 +1437,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
             Status = "posted",
             AccountingPeriodId = periodId,
             CostCenterId = costCenterId,
+            BranchId = branchId,
             TotalDebit = entryDetails.Sum(d => d.DebitAmount),
             TotalCredit = entryDetails.Sum(d => d.CreditAmount),
             PostedAt = DateTime.UtcNow,
@@ -1436,7 +1449,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
         return entry.Id;
     }
 
-    public async Task<Guid> GenerateCollectionEntryAsync(Guid collectionId, decimal amount, decimal interest, decimal lateFee, Guid invoiceId, Guid? costCenterId)
+    public async Task<Guid> GenerateCollectionEntryAsync(Guid collectionId, decimal amount, decimal interest, decimal lateFee, Guid invoiceId, Guid? costCenterId, Guid? branchId = null)
     {
         var periodId = await GetPeriodIdAsync();
         var companyId = CompanyId;
@@ -1478,6 +1491,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
             Status = "posted",
             AccountingPeriodId = periodId,
             CostCenterId = costCenterId,
+            BranchId = branchId,
             TotalDebit = entryDetails.Sum(d => d.DebitAmount),
             TotalCredit = entryDetails.Sum(d => d.CreditAmount),
             PostedAt = DateTime.UtcNow,
@@ -1489,7 +1503,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
         return entry.Id;
     }
 
-    public async Task<Guid> GenerateAdvanceToSupplierEntryAsync(Guid advanceId, decimal amount, Guid supplierId, Guid? costCenterId)
+    public async Task<Guid> GenerateAdvanceToSupplierEntryAsync(Guid advanceId, decimal amount, Guid supplierId, Guid? costCenterId, Guid? branchId = null)
     {
         var periodId = await GetPeriodIdAsync();
         var companyId = CompanyId;
@@ -1519,6 +1533,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
             Status = "posted",
             AccountingPeriodId = periodId,
             CostCenterId = costCenterId,
+            BranchId = branchId,
             TotalDebit = entryDetails.Sum(d => d.DebitAmount),
             TotalCredit = entryDetails.Sum(d => d.CreditAmount),
             PostedAt = DateTime.UtcNow,
@@ -1530,7 +1545,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
         return entry.Id;
     }
 
-    public async Task<Guid> GenerateSupplierAdvanceApplicationEntryAsync(Guid applicationId, decimal amount, Guid advanceId, Guid purchaseId, Guid? costCenterId)
+    public async Task<Guid> GenerateSupplierAdvanceApplicationEntryAsync(Guid applicationId, decimal amount, Guid advanceId, Guid purchaseId, Guid? costCenterId, Guid? branchId = null)
     {
         var periodId = await GetPeriodIdAsync();
         var companyId = CompanyId;
@@ -1560,6 +1575,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
             Status = "posted",
             AccountingPeriodId = periodId,
             CostCenterId = costCenterId,
+            BranchId = branchId,
             TotalDebit = entryDetails.Sum(d => d.DebitAmount),
             TotalCredit = entryDetails.Sum(d => d.CreditAmount),
             PostedAt = DateTime.UtcNow,

@@ -29,6 +29,9 @@ public sealed class PalmtrackFeatureFlagsControllerTests : IDisposable
         _tenantId = new TenantId(Guid.NewGuid());
         _tenantMock.Setup(t => t.TenantId).Returns(_tenantId);
         _tenantMock.Setup(t => t.IsSuperAdmin).Returns(false);
+        _tenantMock.Setup(t => t.SelectedCompanyId).Returns(_tenantId.Value);
+        _tenantMock.Setup(t => t.HasCompanySelection).Returns(true);
+        _tenantMock.Setup(t => t.BypassTenantFilter).Returns(false);
 
         _db = new ZorvianDbContext(
             new DbContextOptionsBuilder<ZorvianDbContext>()
@@ -52,7 +55,7 @@ public sealed class PalmtrackFeatureFlagsControllerTests : IDisposable
             .Build();
 
     private PalmtrackFeatureFlagsController CreateSut(bool ssoEnabledInConfig = false) =>
-        new(new CompanyRepository(_db), _tenantMock.Object, _tenantWriterMock.Object, BuildConfig(ssoEnabledInConfig));
+        new(new CompanyRepository(_db, _tenantMock.Object), _tenantMock.Object, _tenantWriterMock.Object, BuildConfig(ssoEnabledInConfig));
 
     /// <summary>
     /// Simula una sesión sin empresa seleccionada (TenantId vacío), que es
@@ -62,6 +65,10 @@ public sealed class PalmtrackFeatureFlagsControllerTests : IDisposable
     {
         _tenantMock.Setup(t => t.TenantId).Returns(new TenantId(Guid.Empty));
         _tenantMock.Setup(t => t.IsSuperAdmin).Returns(isSuperAdmin);
+        _tenantMock.Setup(t => t.SelectedCompanyId).Returns((Guid?)null);
+        _tenantMock.Setup(t => t.HasCompanySelection).Returns(false);
+        // Sólo el SuperAdmin sin compañía seleccionada bypasea el filtro de tenant (semántica de ITenantContext.BypassTenantFilter).
+        _tenantMock.Setup(t => t.BypassTenantFilter).Returns(isSuperAdmin);
     }
 
     private async Task<Company> SeedCompanyAsync()

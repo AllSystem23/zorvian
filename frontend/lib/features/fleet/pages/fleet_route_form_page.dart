@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart' show dioClientProvider;
+import '../../../core/providers/company_branch_provider.dart';
 import '../../../shared/ds/ds.dart';
 
 final class FleetRouteFormPage extends ConsumerStatefulWidget {
@@ -72,7 +73,7 @@ final class _FleetRouteFormPageState extends ConsumerState<FleetRouteFormPage> {
         'distanceEstKm': double.tryParse(_distCtrl.text.trim()) ?? 0,
         'durationEstMinutes': int.tryParse(_durCtrl.text.trim()) ?? 0,
         'costEst': double.tryParse(_costCtrl.text.trim()) ?? 0,
-        'branchId': '00000000-0000-0000-0000-000000000001',
+        'branchId': ref.read(companyBranchProvider).branchId,
         'notes': _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
       };
       if (_isEditing) {

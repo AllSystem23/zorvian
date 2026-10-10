@@ -45,7 +45,7 @@ public sealed class PalmtrackProductionController : ControllerBase
         [FromQuery] string? endDate = null)
     {
         var tenantId = _tenant.TenantId.Value;
-        var isSuperAdmin = _tenant.IsSuperAdmin;
+        var isSuperAdmin = _tenant.BypassTenantFilter;
 
         if (tenantId == Guid.Empty && !isSuperAdmin)
             return Unauthorized();

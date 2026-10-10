@@ -40,9 +40,12 @@ public sealed class AccountingEntriesController : ControllerBase
     public async Task<IActionResult> GetFiltered(
         [FromQuery] Guid? periodId, [FromQuery] string? referenceType,
         [FromQuery] string? status, [FromQuery] DateTime? fromDate,
-        [FromQuery] DateTime? toDate, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        [FromQuery] DateTime? toDate, [FromQuery] int page = 1, [FromQuery] int pageSize = 20,
+        [FromQuery] Guid? branchId = null)
     {
-        var result = await _service.GetFilteredAsync(periodId, referenceType, status, fromDate, toDate, page, pageSize);
+        // branchId opcional: si no viene, se usa la sucursal seleccionada en el contexto;
+        // enviar Guid.Empty fuerza "todas las sucursales".
+        var result = await _service.GetFilteredAsync(periodId, referenceType, status, fromDate, toDate, page, pageSize, branchId);
         return Ok(result);
     }
 

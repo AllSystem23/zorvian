@@ -304,7 +304,7 @@ public sealed class FleetReportService
 
     public async Task<FleetKpiReport> GetFleetKpisAsync()
     {
-        var scalars = await _vehicleRepo.GetFleetKpiReportRawAsync(_tenant.TenantId.Value.ToString(), _tenant.IsSuperAdmin);
+        var scalars = await _vehicleRepo.GetFleetKpiReportRawAsync(_tenant.TenantId.Value.ToString(), _tenant.BypassTenantFilter);
 
         return new FleetKpiReport(
             scalars.TotalVehicles, scalars.ActiveVehicles, scalars.AvailableVehicles, scalars.InMaintenanceVehicles, scalars.OutOfServiceVehicles,

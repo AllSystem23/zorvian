@@ -1,4 +1,6 @@
+using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services.Fleet;
+using Zorvian.Core.Interfaces;
 
 namespace Zorvian.Web.Jobs;
 
@@ -10,15 +12,26 @@ namespace Zorvian.Web.Jobs;
 public sealed class FleetAlertJob
 {
     private readonly FleetAlertService _alertService;
+    private readonly IAuthRepository _authRepo;
+    private readonly ITenantContextWriter _tenantWriter;
 
-    public FleetAlertJob(FleetAlertService alertService)
+    public FleetAlertJob(FleetAlertService alertService, IAuthRepository authRepo, ITenantContextWriter tenantWriter)
     {
         _alertService = alertService;
+        _authRepo = authRepo;
+        _tenantWriter = tenantWriter;
     }
 
     public async Task RunAsync()
     {
-        var dispatched = await _alertService.DispatchPendingNotificationsAsync();
-        // Log would go here: $"FleetAlertJob: dispatched {dispatched} notifications"
+        // Sin request HTTP los query filters no ven ninguna compañía → iterar por
+        // empresa y fijar el tenant antes de generar/disparar las alertas.
+        var companies = await _authRepo.GetAllCompaniesAsync();
+
+        foreach (var company in companies)
+        {
+            _tenantWriter.SetTenantId(company.TenantId);
+            await _alertService.DispatchPendingNotificationsAsync();
+        }
     }
 }

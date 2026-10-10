@@ -80,6 +80,9 @@ final class _AppShellState extends ConsumerState<AppShell> {
   Future<void> _selectFirstCompany() async {
     final auth = ref.read(authProvider);
     if (auth.status != AuthStatus.authenticated) return;
+    // Restaurar la selección persistida antes de decidir: si el usuario ya
+    // tenía una compañía/sucursal, respetarla en lugar de la primera de la lista.
+    await ref.read(companyBranchProvider.notifier).whenHydrated;
     if (ref.read(companyBranchProvider).companyId != null) return;
 
     for (var attempt = 0; attempt < 3; attempt++) {
@@ -309,7 +312,7 @@ Future<void> _openCashRegister(BuildContext context, WidgetRef ref) async {
       data: {
         'code': codeCtrl.text,
         'openingBalance': double.tryParse(balanceCtrl.text) ?? 0,
-        'branchId': '00000000-0000-0000-0000-000000000000',
+        'branchId': ref.read(companyBranchProvider).branchId,
       },
     );
     await ref.read(cashRegisterProvider.notifier).load();

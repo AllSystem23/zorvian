@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
+using Zorvian.Core.Interfaces;
 using Zorvian.Infrastructure.Data;
 
 namespace Zorvian.Infrastructure.Repositories;
@@ -8,14 +9,23 @@ namespace Zorvian.Infrastructure.Repositories;
 public sealed class CompanyRepository : ICompanyRepository
 {
     private readonly ZorvianDbContext _db;
+    private readonly ITenantContext _tenant;
 
-    public CompanyRepository(ZorvianDbContext db)
+    public CompanyRepository(ZorvianDbContext db, ITenantContext tenant)
     {
         _db = db;
+        _tenant = tenant;
     }
 
+    // Contexto de fondo (jobs/consumers, tenant en GUID-cero) o SuperAdmin sin
+    // selección → se omite el query filter (mismo patrón que AuthRepository).
+    private bool NeedsBypass =>
+        _tenant.TenantId is null || _tenant.TenantId.Value == Guid.Empty || _tenant.BypassTenantFilter;
+
     public async Task<Company?> GetByIdAsync(Guid id) =>
-        await _db.Companies.FindAsync(id);
+        NeedsBypass
+            ? await _db.Companies.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == id)
+            : await _db.Companies.FindAsync(id);
 
     public async Task<Company?> GetByTenantIdAsync(string tenantId) =>
         await _db.Companies.FirstOrDefaultAsync(c => c.TenantId == tenantId);

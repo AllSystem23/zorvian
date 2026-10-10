@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../auth/auth_provider.dart';
 
 final _silentOptions = Options(extra: {'suppressGlobalError': true});
@@ -35,15 +36,107 @@ class CompanyBranchState {
 }
 
 class CompanyBranchNotifier extends Notifier<CompanyBranchState> {
-  @override
-  CompanyBranchState build() => const CompanyBranchState();
+  static const _kCompanyId = 'selected_company_id';
+  static const _kCompanyName = 'selected_company_name';
+  static const _kBranchId = 'selected_branch_id';
+  static const _kBranchName = 'selected_branch_name';
 
+  late final Future<void> _hydrated;
+
+  @override
+  CompanyBranchState build() {
+    _hydrated = _restore();
+    return const CompanyBranchState();
+  }
+
+  /// Completes once the persisted selection (if any) has been restored.
+  /// Callers that auto-select a company must await this to avoid racing
+  /// the restore and clobbering the user's saved selection.
+  Future<void> get whenHydrated => _hydrated;
+
+  Future<void> _restore() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final companyId = prefs.getString(_kCompanyId);
+      if (companyId == null || companyId.isEmpty) return;
+      // Never overwrite a selection the user already made while restoring.
+      if (state.companyId != null) return;
+      state = CompanyBranchState(
+        companyId: companyId,
+        companyName: prefs.getString(_kCompanyName),
+        branchId: prefs.getString(_kBranchId),
+        branchName: prefs.getString(_kBranchName),
+      );
+    } catch (_) {
+      // Sin persistencia disponible: el header rehace la selección.
+    }
+  }
+
+  Future<void> _persist() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final s = state;
+      if (s.companyId == null || s.companyId!.isEmpty) {
+        await prefs.remove(_kCompanyId);
+        await prefs.remove(_kCompanyName);
+        await prefs.remove(_kBranchId);
+        await prefs.remove(_kBranchName);
+        return;
+      }
+      await prefs.setString(_kCompanyId, s.companyId!);
+      if (s.companyName != null) {
+        await prefs.setString(_kCompanyName, s.companyName!);
+      } else {
+        await prefs.remove(_kCompanyName);
+      }
+      if (s.branchId != null) {
+        await prefs.setString(_kBranchId, s.branchId!);
+      } else {
+        await prefs.remove(_kBranchId);
+      }
+      if (s.branchName != null) {
+        await prefs.setString(_kBranchName, s.branchName!);
+      } else {
+        await prefs.remove(_kBranchName);
+      }
+    } catch (_) {
+      // La persistencia es best-effort; el contexto en memoria sigue siendo válido.
+    }
+  }
+
+  /// Selects a company. When the company actually changes, the selected
+  /// branch is reset: the previous branch belongs to the previous company.
   void selectCompany(String id, String name) {
-    state = state.copyWith(companyId: id, companyName: name);
+    final companyChanged = state.companyId != id;
+    state = CompanyBranchState(
+      companyId: id,
+      companyName: name,
+      branchId: companyChanged ? null : state.branchId,
+      branchName: companyChanged ? null : state.branchName,
+    );
+    _persist();
   }
 
   void selectBranch(String id, String name) {
     state = state.copyWith(branchId: id, branchName: name);
+    _persist();
+  }
+
+  /// Clears the branch selection (e.g. the branch no longer exists in the
+  /// current company). The header re-auto-selects the first branch.
+  void clearBranch() {
+    if (state.branchId == null && state.branchName == null) return;
+    state = CompanyBranchState(
+      companyId: state.companyId,
+      companyName: state.companyName,
+    );
+    _persist();
+  }
+
+  /// Clears the whole company/branch scope (logout or tenant switch).
+  void clearSelection() {
+    state = const CompanyBranchState();
+    _persist();
   }
 }
 

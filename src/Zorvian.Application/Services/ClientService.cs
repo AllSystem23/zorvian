@@ -53,9 +53,10 @@ public sealed class ClientService
     {
         var page = filter.Page ?? 1;
         var pageSize = filter.PageSize ?? 20;
+        var branchId = _tenant.ResolveBranchId() ?? Guid.Empty;
 
-        var items = await _repo.GetFilteredAsync(filter.Search, filter.Status, Guid.Empty, page, pageSize);
-        var total = await _repo.GetFilteredCountAsync(filter.Search, filter.Status, Guid.Empty);
+        var items = await _repo.GetFilteredAsync(filter.Search, filter.Status, branchId, page, pageSize);
+        var total = await _repo.GetFilteredCountAsync(filter.Search, filter.Status, branchId);
 
         return new PagedResult<ClientListResponse>(
             _mapper.Map<List<ClientListResponse>>(items),

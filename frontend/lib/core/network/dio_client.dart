@@ -5,13 +5,23 @@ import 'api_config.dart';
 typedef OnErrorCallback = void Function(int? statusCode, String message);
 typedef OnUnauthorizedCallback = void Function();
 
+/// Extra headers attached to every request (company/branch scope, etc.).
+/// Values that are null or empty are skipped.
+typedef DynamicHeadersProvider = Map<String, String?> Function();
+
 class DioClient {
   late final Dio _dio;
   final SecureStorage _storage;
   final OnErrorCallback? onError;
   final OnUnauthorizedCallback? onUnauthorized;
+  final DynamicHeadersProvider? dynamicHeaders;
 
-  DioClient(this._storage, {this.onError, this.onUnauthorized}) {
+  DioClient(
+    this._storage, {
+    this.onError,
+    this.onUnauthorized,
+    this.dynamicHeaders,
+  }) {
     _dio = Dio(BaseOptions(
       baseUrl: '${ApiConfig.baseUrl}/',
       connectTimeout: const Duration(seconds: 30),
@@ -34,6 +44,15 @@ class DioClient {
         } catch (_) {
           // Si falla el almacenamiento, continuamos sin token
         }
+
+        // Alcance seleccionado (compañía + sucursal) para filtros server-side.
+        final extraHeaders = dynamicHeaders?.call() ?? const <String, String?>{};
+        extraHeaders.forEach((key, value) {
+          if (value != null && value.isNotEmpty) {
+            options.headers[key] = value;
+          }
+        });
+
         handler.next(options);
       },
       onError: (error, handler) async {

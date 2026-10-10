@@ -1,9 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:dio/dio.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../auth/auth_provider.dart';
-import '../../core/network/api_config.dart';
 import '../../shared/ds/ds.dart';
 import '../biometrics/providers/biometric_provider.dart';
 
@@ -188,11 +190,37 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   icon: const Icon(Icons.download, size: 18),
                   label: const Text('Descargar Constancia'),
                   onPressed: () async {
-                    final storage = ref.read(secureStorageProvider);
-                    final token = await storage.getAccessToken();
-                    final uri = Uri.parse(ApiConfig.resolve('employees/me/certificate')).replace(queryParameters: {'access_token': token ?? ''});
-                    if (await canLaunchUrl(uri)) {
-                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    try {
+                      // Descarga autenticada (header Authorization) en vez de
+                      // un launchUrl con el JWT en el query string.
+                      final dio = ref.read(dioClientProvider);
+                      final r = await dio.get<dynamic>(
+                        'employees/me/certificate',
+                        options: Options(responseType: ResponseType.bytes),
+                      );
+                      final bytes = r.data;
+                      if (bytes is! List<int> || bytes.isEmpty) {
+                        throw Exception('respuesta vacía');
+                      }
+                      final dir = await getTemporaryDirectory();
+                      final file = File('${dir.path}/constancia_laboral.html');
+                      await file.writeAsBytes(bytes, flush: true);
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Comparte o abre la constancia en tu navegador.'),
+                        ),
+                      );
+                      await SharePlus.instance.share(
+                        ShareParams(files: [
+                          XFile(file.path, mimeType: 'text/html'),
+                        ]),
+                      );
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('No se pudo descargar la constancia: $e')),
+                      );
                     }
                   },
                 ),

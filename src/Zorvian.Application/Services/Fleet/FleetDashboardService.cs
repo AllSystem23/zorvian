@@ -24,7 +24,7 @@ public sealed class FleetDashboardService
         try
         {
             var tenantId = _tenant.TenantId?.ToString() ?? Guid.Empty.ToString();
-            var isSuperAdmin = _tenant.IsSuperAdmin;
+            var isSuperAdmin = _tenant.BypassTenantFilter;
 
             var scalars = await _vehicleRepo.GetDashboardScalarsRawAsync(tenantId, isSuperAdmin);
 

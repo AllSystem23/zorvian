@@ -18,7 +18,11 @@ public sealed class ExpenseClassificationTrainingJob
 
     public async Task RunAsync()
     {
+        // Bypass documentado: clasificador global de ML.NET entrenado con descripciones
+        // y montos de gastos (sin PII); con query filter el job sería no-op permanente
+        // (tenant = GUID-cero en Hangfire).
         var details = await _db.AccountingEntryDetails
+            .IgnoreQueryFilters()
             .Where(ad => ad.Account.Type == AccountTypes.Expense
                 && ad.AccountingEntry.Status == "posted"
                 && !ad.IsDeleted)

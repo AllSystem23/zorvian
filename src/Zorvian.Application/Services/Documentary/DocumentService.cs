@@ -33,7 +33,7 @@ public sealed class DocumentService : IDocumentService
         return templates.Where(t => t.Module == module && t.IsActive).ToList();
     }
 
-    public async Task<GeneratedDocument> GenerateProfessionalDocumentAsync(Guid templateId, Guid entityId, object variableData)
+    public async Task<GeneratedDocument> GenerateProfessionalDocumentAsync(Guid templateId, Guid entityId, object variableData, string? entityType = null)
     {
         var template = await _templateRepo.GetByIdAsync(templateId);
         if (template == null) throw new KeyNotFoundException("Template not found");
@@ -55,7 +55,7 @@ public sealed class DocumentService : IDocumentService
         {
             TemplateId = templateId,
             EntityId = entityId,
-            EntityType = template.Module ?? "General",
+            EntityType = !string.IsNullOrWhiteSpace(entityType) ? entityType : template.Module ?? "General",
             Name = $"{template.Name} - {DateTime.UtcNow:yyyyMMdd_HHmm}",
             Status = "draft",
             CreatedAt = DateTime.UtcNow

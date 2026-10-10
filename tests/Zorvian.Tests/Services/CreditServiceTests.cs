@@ -38,6 +38,7 @@ public sealed class CreditServiceTests
             _saleRepo.Object,
             _autoAccounting.Object,
             _tenant.Object,
+            new Mock<Zorvian.Core.Interfaces.ITenantContextWriter>().Object,
             _mapper.Object,
             _publishEndpoint.Object);
     }

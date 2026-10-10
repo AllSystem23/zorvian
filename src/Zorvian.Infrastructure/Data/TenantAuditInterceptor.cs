@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Zorvian.Core.Entities;
@@ -45,7 +46,13 @@ public sealed class TenantAuditInterceptor : SaveChangesInterceptor
 
     private void ApplyAudit(DbContext context)
     {
+        // GUID-cero (o null) = contexto no configurado (jobs/Hangfire sin request HTTP).
+        // Tratarlo como vacío para que dispare el warning en vez de stamp silencioso
+        // "00000000-..." que todas las jobs compartirían (mezcla cross-tenant).
         var tenantId = _tenant.TenantId?.ToString() ?? string.Empty;
+        if (tenantId == Guid.Empty.ToString())
+            tenantId = string.Empty;
+
         var userId = _tenant.CurrentUserId?.ToString() ?? string.Empty;
         var now = DateTime.UtcNow;
 
@@ -79,6 +86,8 @@ public sealed class TenantAuditInterceptor : SaveChangesInterceptor
                         }
                     }
 
+                    StampBranchFromContext(entry);
+
                     if (string.IsNullOrEmpty(entry.Entity.CreatedBy))
                         entry.Entity.CreatedBy = userId;
 
@@ -90,6 +99,25 @@ public sealed class TenantAuditInterceptor : SaveChangesInterceptor
                     entry.Entity.UpdatedBy = userId;
                     break;
             }
+        }
+    }
+
+    /// <summary>
+    /// Sella la sucursal seleccionada en el contexto sobre entidades con campo BranchId
+    /// cuando el servicio no proporcionó una explícitamente. No toca entidades sin BranchId.
+    /// </summary>
+    private void StampBranchFromContext(EntityEntry<BaseEntity> entry)
+    {
+        var branchProperty = entry.Metadata.FindProperty("BranchId");
+        if (branchProperty is null) return;
+
+        var current = entry.Property("BranchId").CurrentValue;
+        if (current is not null && current is Guid existing && existing != Guid.Empty) return;
+
+        var contextBranch = _tenant.CurrentBranchId;
+        if (contextBranch is { } branch && branch != Guid.Empty)
+        {
+            entry.Property("BranchId").CurrentValue = branch;
         }
     }
 }

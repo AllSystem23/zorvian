@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 import '../../../shared/ds/ds.dart';
 import '../../../shared/printing/qr_code_dialog.dart';
 import '../../clients/providers/client_provider.dart';
@@ -108,7 +109,7 @@ class _QuoteFormPageState extends ConsumerState<QuoteFormPage> {
       final dio = ref.read(dioClientProvider);
       final body = {
         'clientId': _selectedClient!.id,
-        'branchId': '00000000-0000-0000-0000-000000000000',
+        'branchId': ref.read(companyBranchProvider).branchId,
         'discount': _discount,
         'notes': _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
         'details': _cart.map((c) => {

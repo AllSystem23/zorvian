@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 
 class WorkshopFormPage extends ConsumerStatefulWidget {
   final String? workshopId;
@@ -99,7 +100,7 @@ class _WorkshopFormPageState extends ConsumerState<WorkshopFormPage> {
       if (_isEdit) {
         await dio.put('service-workshops/${widget.workshopId}', data: data);
       } else {
-        data['branchId'] = '00000000-0000-0000-0000-000000000001';
+        data['branchId'] = ref.read(companyBranchProvider).branchId;
         await dio.post('service-workshops', data: data);
       }
       if (mounted) context.pop(true);

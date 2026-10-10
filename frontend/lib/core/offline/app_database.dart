@@ -92,6 +92,21 @@ class AppDatabase extends _$AppDatabase {
     },
   );
 
+  /// Elimina TODO el caché local (productos, cotizaciones, créditos, cola de
+  /// mutaciones pendientes y estado de sync).
+  ///
+  /// Se invoca en logout y al cambiar de compañía: las filas en memoria
+  /// pertenecen a la empresa anterior, y re-sincronizarlas (o reintentar sus
+  /// mutaciones) bajo la nueva compañía contaminaría el caché con datos
+  /// cross-tenant.
+  Future<void> clearAllData() async {
+    await delete(pendingMutations).go();
+    await delete(syncState).go();
+    await delete(quotesLocal).go();
+    await delete(creditsLocal).go();
+    await delete(productsLocal).go();
+  }
+
   Future<void> upsertQuote(Map<String, dynamic> json) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     await into(quotesLocal).insertOnConflictUpdate(QuotesLocalCompanion(

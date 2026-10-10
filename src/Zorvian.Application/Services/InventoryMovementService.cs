@@ -15,6 +15,7 @@ public class InventoryMovementService : IInventoryMovementService
     private readonly ITenantContext _tenant;
     private readonly IMapper _mapper;
     private readonly IGoalIntegrationService _goalIntegration;
+    private readonly IBranchValidator _branchValidator;
 
     public InventoryMovementService(
         IInventoryMovementRepository movementRepo,
@@ -22,7 +23,8 @@ public class InventoryMovementService : IInventoryMovementService
         IAutoAccountingService autoAccounting,
         ITenantContext tenant,
         IMapper mapper,
-        IGoalIntegrationService goalIntegration)
+        IGoalIntegrationService goalIntegration,
+        IBranchValidator branchValidator)
     {
         _movementRepo = movementRepo;
         _productRepo = productRepo;
@@ -30,6 +32,7 @@ public class InventoryMovementService : IInventoryMovementService
         _tenant = tenant;
         _mapper = mapper;
         _goalIntegration = goalIntegration;
+        _branchValidator = branchValidator;
     }
 
     private Guid RequireCompanyId()
@@ -40,18 +43,10 @@ public class InventoryMovementService : IInventoryMovementService
         return _tenant.TenantId.Value;
     }
 
-    private Guid? ResolveBranchId(Guid requestBranchId)
-    {
-        if (requestBranchId != Guid.Empty)
-            return requestBranchId;
-
-        return _tenant.IsSuperAdmin ? null : _tenant.EffectiveCompanyId;
-    }
-
     public async Task<InventoryMovementResponse> CreateAsync(CreateInventoryMovementRequest request)
     {
         var companyId = RequireCompanyId();
-        var branchId = ResolveBranchId(request.BranchId);
+        var branchId = await _branchValidator.ResolveForWriteAsync(request.BranchId);
 
         var product = await _productRepo.GetByIdAsync(request.ProductId)
             ?? throw new InvalidOperationException("Product not found");
@@ -77,7 +72,8 @@ public class InventoryMovementService : IInventoryMovementService
         await _movementRepo.SaveChangesAsync();
 
         await _autoAccounting.GenerateInventoryEntryAsync(
-            movement.Id, movement.ProductId, movement.MovementType, movement.Quantity, request.UnitCost);
+            movement.Id, movement.ProductId, movement.MovementType, movement.Quantity, request.UnitCost,
+            branchId: movement.BranchId == Guid.Empty ? null : movement.BranchId);
 
         // Disparar evento para meta de entrega si es tipo salida
         if (request.MovementType == "exit")
@@ -99,7 +95,7 @@ public class InventoryMovementService : IInventoryMovementService
         var page = filter.Page ?? 1;
         var pageSize = filter.PageSize ?? 20;
 
-        var branchId = _tenant.IsSuperAdmin ? null : _tenant.EffectiveCompanyId;
+        var branchId = _tenant.ResolveBranchId();
 
         var items = await _movementRepo.GetFilteredAsync(filter.ProductId, filter.MovementType, filter.FromDate, filter.ToDate, filter.Search, branchId, page, pageSize);
         var total = await _movementRepo.GetFilteredCountAsync(filter.ProductId, filter.MovementType, filter.FromDate, filter.ToDate, filter.Search, branchId);

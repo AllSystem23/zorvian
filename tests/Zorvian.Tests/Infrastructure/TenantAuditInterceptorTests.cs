@@ -212,6 +212,43 @@ public sealed class TenantAuditInterceptorTests
     }
 
     [Fact]
+    public async Task AddedEntity_ZeroGuidTenant_LogsWarning_DoesNotStampZero()
+    {
+        _tenant.Setup(t => t.TenantId).Returns(Guid.Empty.ToString());
+        var interceptor = new TenantAuditInterceptor(_tenant.Object, _logger.Object);
+
+        var options = new DbContextOptionsBuilder<ZorvianDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .AddInterceptors(interceptor)
+            .Options;
+
+        using var db = new ZorvianDbContext(options, _tenant.Object);
+
+        var dept = new Department
+        {
+            Id = Guid.NewGuid(),
+            Name = "Zero Tenant",
+            Code = "ZT",
+        };
+
+        db.Departments.Add(dept);
+        await db.SaveChangesAsync();
+
+        Assert.NotEqual(Guid.Empty.ToString(), dept.TenantId);
+        Assert.True(string.IsNullOrEmpty(dept.TenantId));
+        Assert.Equal(Guid.Empty, dept.CompanyId);
+
+        _logger.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("TenantId is empty")),
+                null,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
     public async Task MultipleEntities_AllGetAuditFields()
     {
         using var db = CreateDb(Guid.NewGuid().ToString());

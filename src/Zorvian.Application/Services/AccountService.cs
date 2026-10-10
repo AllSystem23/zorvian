@@ -376,10 +376,14 @@ public sealed class AccountingEntryService
     }
 
     public async Task<PagedResult<AccountingEntryListResponse>> GetFilteredAsync(
-        Guid? periodId, string? referenceType, string? status, DateTime? fromDate, DateTime? toDate, int page, int pageSize)
+        Guid? periodId, string? referenceType, string? status, DateTime? fromDate, DateTime? toDate, int page, int pageSize, Guid? branchId = null)
     {
-        var items = await _entryRepo.GetFilteredAsync(periodId, referenceType, status, fromDate, toDate, CompanyId, page, pageSize);
-        var total = await _entryRepo.GetFilteredCountAsync(periodId, referenceType, status, fromDate, toDate, CompanyId);
+        // Filtro de sucursal: el explícito del request tiene prioridad; si no viene,
+        // se usa la sucursal seleccionada en el contexto (cabecera X-Branch-Id).
+        // Guid.Empty explícito = todas las sucursales.
+        var effectiveBranchId = branchId ?? _tenant.ResolveBranchId();
+        var items = await _entryRepo.GetFilteredAsync(periodId, referenceType, status, fromDate, toDate, CompanyId, page, pageSize, effectiveBranchId);
+        var total = await _entryRepo.GetFilteredCountAsync(periodId, referenceType, status, fromDate, toDate, CompanyId, effectiveBranchId);
         return new PagedResult<AccountingEntryListResponse>(
             items.Select(e => new AccountingEntryListResponse(
                 e.Id, e.EntryNumber, e.EntryDate, e.Description, e.ReferenceType,

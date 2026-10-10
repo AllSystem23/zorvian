@@ -15,14 +15,16 @@ public sealed class ProductService
     private readonly ITenantContext _tenant;
     private readonly IMapper _mapper;
     private readonly ISyncService _sync;
+    private readonly IBranchValidator _branchValidator;
 
-    public ProductService(IProductRepository repo, IInventoryMovementRepository movementRepo, ITenantContext tenant, IMapper mapper, ISyncService sync)
+    public ProductService(IProductRepository repo, IInventoryMovementRepository movementRepo, ITenantContext tenant, IMapper mapper, ISyncService sync, IBranchValidator branchValidator)
     {
         _repo = repo;
         _movementRepo = movementRepo;
         _tenant = tenant;
         _mapper = mapper;
         _sync = sync;
+        _branchValidator = branchValidator;
     }
 
     private Guid RequireCompanyId()
@@ -33,18 +35,10 @@ public sealed class ProductService
         return _tenant.TenantId.Value;
     }
 
-    private Guid? ResolveBranchId(Guid? requestBranchId)
-    {
-        if (requestBranchId.HasValue && requestBranchId.Value != Guid.Empty)
-            return requestBranchId.Value;
-
-        return _tenant.IsSuperAdmin ? null : _tenant.EffectiveCompanyId;
-    }
-
     public async Task<ProductResponse> CreateAsync(CreateProductRequest request)
     {
         var companyId = RequireCompanyId();
-        var branchId = ResolveBranchId(request.BranchId);
+        var branchId = await _branchValidator.ResolveForWriteAsync(request.BranchId);
         var product = _mapper.Map<Product>(request);
         product.BranchId = branchId ?? Guid.Empty;
         product.TenantId = _tenant.TenantId.ToString();
@@ -100,7 +94,7 @@ public sealed class ProductService
         var page = filter.Page ?? 1;
         var pageSize = filter.PageSize ?? 20;
 
-        var branchId = _tenant.IsSuperAdmin ? null : _tenant.EffectiveCompanyId;
+        var branchId = _tenant.ResolveBranchId();
 
         var items = await _repo.GetFilteredAsync(filter.Search, filter.CategoryId, filter.BrandId, filter.LowStock, filter.IsActive, branchId, page, pageSize);
         var total = await _repo.GetFilteredCountAsync(filter.Search, filter.CategoryId, filter.BrandId, filter.LowStock, filter.IsActive, branchId);
@@ -113,7 +107,7 @@ public sealed class ProductService
 
     public async Task<List<ProductListResponse>> GetLowStockAsync()
     {
-        var branchId = _tenant.IsSuperAdmin ? null : _tenant.EffectiveCompanyId;
+        var branchId = _tenant.ResolveBranchId();
         var items = await _repo.GetLowStockAsync(branchId);
         return _mapper.Map<List<ProductListResponse>>(items);
     }
@@ -123,7 +117,7 @@ public sealed class ProductService
         var page = filter.Page ?? 1;
         var pageSize = filter.PageSize ?? 20;
 
-        var branchId = _tenant.IsSuperAdmin ? null : _tenant.EffectiveCompanyId;
+        var branchId = _tenant.ResolveBranchId();
 
         var items = await _movementRepo.GetFilteredAsync(filter.ProductId, filter.MovementType, filter.FromDate, filter.ToDate, null, branchId, page, pageSize);
         var total = await _movementRepo.GetFilteredCountAsync(filter.ProductId, filter.MovementType, filter.FromDate, filter.ToDate, null, branchId);

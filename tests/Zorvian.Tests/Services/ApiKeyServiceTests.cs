@@ -1,78 +1,103 @@
 using Microsoft.EntityFrameworkCore;
-using Zorvian.Infrastructure.Services;
-using Zorvian.Core.Entities;
-using Zorvian.Infrastructure.Data;
 using Moq;
+using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
-using Xunit;
+using Zorvian.Infrastructure.Data;
+using Zorvian.Infrastructure.Services;
 
 namespace Zorvian.Tests.Services;
 
+/// <summary>
+/// Regresión del bug de API Keys: la validación corre en ApiKeyMiddleware
+/// ANTES de que TenantMiddleware resuelva el tenant (contexto aún GUID-cero).
+/// Con el query filter de ApiKey aplicado, la key nunca se encontraba → 401
+/// siempre. La validación debe hallar la key aunque el contexto esté vacío.
+/// </summary>
 public sealed class ApiKeyServiceTests
 {
+    private readonly Mock<ITenantContext> _tenant = new();
     private readonly ZorvianDbContext _db;
     private readonly ApiKeyService _sut;
-    private readonly TenantId _testTenantId;
+    private readonly string _tenantId;
 
     public ApiKeyServiceTests()
     {
-        _testTenantId = new TenantId(Guid.NewGuid());
+        _tenantId = Guid.NewGuid().ToString();
         var options = new DbContextOptionsBuilder<ZorvianDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
-        
-        var tenantMock = new Mock<ITenantContext>();
-        tenantMock.Setup(t => t.TenantId).Returns(_testTenantId);
-        _db = new ZorvianDbContext(options, tenantMock.Object);
+
+        // Contexto "sin resolver": GUID-cero y sin bypass — como ocurre en
+        // ApiKeyMiddleware (corre antes de TenantMiddleware).
+        _tenant.Setup(t => t.TenantId).Returns(new TenantId(Guid.Empty));
+        _tenant.Setup(t => t.BypassTenantFilter).Returns(false);
+
+        _db = new ZorvianDbContext(options, _tenant.Object);
         _sut = new ApiKeyService(_db);
     }
 
     [Fact]
-    public async Task CreateApiKeyAsync_Should_Generate_Key_And_Hash_It()
+    public async Task ValidateKey_FindsKey_WhenTenantContextNotResolvedYet()
     {
-        var name = "External System";
-        var tenantId = _testTenantId.ToString();
+        var (rawKey, _) = await _sut.CreateApiKeyAsync("test-key", _tenantId);
 
-        var (rawKey, id) = await _sut.CreateApiKeyAsync(name, tenantId);
+        var info = await _sut.ValidateKeyAndGetInfoAsync(rawKey);
 
-        Assert.NotNull(rawKey);
-        Assert.True(rawKey.Length >= 32);
-        
-        var apiKey = await _db.Set<ApiKey>().FindAsync(id);
-        Assert.NotNull(apiKey);
-        Assert.Equal(name, apiKey.Name);
-        Assert.Equal(rawKey[..8], apiKey.Prefix);
-        Assert.NotEqual(rawKey, apiKey.KeyHash); // Should be hashed
+        Assert.NotNull(info);
+        Assert.Equal(_tenantId, info!.Value.TenantId);
     }
 
     [Fact]
-    public async Task ValidateKeyAndGetInfoAsync_Should_Return_TenantId_For_Valid_Key()
+    public async Task ValidateKey_ReturnsUserId_WhenKeyHasOwner()
     {
-        var tenantId = _testTenantId.ToString();
-        var (rawKey, _) = await _sut.CreateApiKeyAsync("Test", tenantId);
+        var userId = Guid.NewGuid();
+        var rawKey = "zorvian-test-key-with-owner-00000001";
+        _db.Set<ApiKey>().Add(new ApiKey
+        {
+            Name = "owned",
+            KeyHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+                System.Text.Encoding.UTF8.GetBytes(rawKey))).ToLower(),
+            Prefix = rawKey[..8],
+            TenantId = _tenantId,
+            UserId = userId,
+            IsActive = true,
+        });
+        await _db.SaveChangesAsync();
 
-        var result = await _sut.ValidateKeyAndGetInfoAsync(rawKey);
+        var info = await _sut.ValidateKeyAndGetInfoAsync(rawKey);
 
-        Assert.NotNull(result);
-        Assert.Equal(tenantId, result.Value.TenantId);
+        Assert.NotNull(info);
+        Assert.Equal(userId, info!.Value.UserId);
     }
 
     [Fact]
-    public async Task ValidateKeyAndGetInfoAsync_Should_Return_Null_For_Invalid_Key()
+    public async Task ValidateKey_ReturnsNull_ForUnknownKey()
     {
-        var result = await _sut.ValidateKeyAndGetInfoAsync("invalid-key-that-is-long-enough-to-pass-length-check");
-
-        Assert.Null(result);
+        var info = await _sut.ValidateKeyAndGetInfoAsync(new string('a', 64));
+        Assert.Null(info);
     }
 
     [Fact]
-    public async Task ValidateKeyAndGetInfoAsync_Should_Return_Null_For_Expired_Key()
+    public async Task ValidateKey_ReturnsNull_ForExpiredKey()
     {
-        var tenantId = _testTenantId.ToString();
-        var (rawKey, id) = await _sut.CreateApiKeyAsync("Test", tenantId, DateTime.UtcNow.AddDays(-1));
+        var (rawKey, id) = await _sut.CreateApiKeyAsync("expired", _tenantId);
+        var key = await _db.Set<ApiKey>().IgnoreQueryFilters().FirstAsync(k => k.Id == id);
+        key.ExpiresAt = DateTime.UtcNow.AddDays(-1);
+        await _db.SaveChangesAsync();
 
-        var result = await _sut.ValidateKeyAndGetInfoAsync(rawKey);
+        var info = await _sut.ValidateKeyAndGetInfoAsync(rawKey);
+        Assert.Null(info);
+    }
 
-        Assert.Null(result);
+    [Fact]
+    public async Task ValidateKey_ReturnsNull_ForInactiveKey()
+    {
+        var (rawKey, id) = await _sut.CreateApiKeyAsync("inactive", _tenantId);
+        var key = await _db.Set<ApiKey>().IgnoreQueryFilters().FirstAsync(k => k.Id == id);
+        key.IsActive = false;
+        await _db.SaveChangesAsync();
+
+        var info = await _sut.ValidateKeyAndGetInfoAsync(rawKey);
+        Assert.Null(info);
     }
 }

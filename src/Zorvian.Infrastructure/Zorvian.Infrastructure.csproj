@@ -44,4 +44,9 @@
     <EmbeddedResource Include="..\..\AutoAccountingConfig.json" LogicalName="SeedData.AutoAccountingConfig.json" />
   </ItemGroup>
 
+  <!-- RLS script embebido: la migración EnableRLS lo aplica sin depender del CWD (Render/Docker) -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\docs\SECURITY_RLS.sql" LogicalName="SecurityScripts.SECURITY_RLS.sql" />
+  </ItemGroup>
+
 </Project>

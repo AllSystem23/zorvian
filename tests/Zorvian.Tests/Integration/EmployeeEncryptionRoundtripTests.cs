@@ -154,5 +154,10 @@ public sealed class EmployeeEncryptionRoundtripTests : IDisposable
         public bool IsSuperAdmin => false;
         public Guid? CurrentUserId => null;
         public Guid? CurrentEmployeeId => null;
+        public Guid? CurrentBranchId => null;
+        public Guid? SelectedCompanyId =>
+            TenantId.TryGetCompanyId(out var id) && id != Guid.Empty ? id : null;
+        public bool HasCompanySelection => SelectedCompanyId.HasValue;
+        public bool BypassTenantFilter => IsSuperAdmin && !HasCompanySelection;
     }
 }

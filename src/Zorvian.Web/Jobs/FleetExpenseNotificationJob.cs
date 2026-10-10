@@ -38,44 +38,53 @@ public sealed class FleetExpenseNotificationJob
 
     public async Task RunAsync()
     {
-        // Bypass RLS to get all active company tenant IDs
-        _tenantWriter.SetIsSuperAdmin(true);
-        var companies = await _db.Companies
-            .IgnoreQueryFilters()
-            .Where(c => !c.IsDeleted)
-            .Select(c => new { c.Id, c.TenantId, c.Name })
-            .ToListAsync();
-        _tenantWriter.SetIsSuperAdmin(false);
-
         var totalNotified = 0;
 
-        foreach (var company in companies)
+        try
         {
-            try
+            // Bypass RLS to get all active company tenant IDs.
+            // try/finally: si la query lanza, el flag no queda pegado en true en
+            // este contexto async (afectaría a operaciones posteriores de la ejecución).
+            _tenantWriter.SetIsSuperAdmin(true);
+            var companies = await _db.Companies
+                .IgnoreQueryFilters()
+                .Where(c => !c.IsDeleted)
+                .Select(c => new { c.Id, c.TenantId, c.Name })
+                .ToListAsync();
+            _tenantWriter.SetIsSuperAdmin(false);
+
+            foreach (var company in companies)
             {
-                // Set tenant context to this company
-                _tenantWriter.SetTenantId(company.TenantId);
+                try
+                {
+                    // Set tenant context to this company
+                    _tenantWriter.SetTenantId(company.TenantId);
 
-                var pendingCount = await _expenseService.GetPendingCountAsync();
-                if (pendingCount == 0) continue;
+                    var pendingCount = await _expenseService.GetPendingCountAsync();
+                    if (pendingCount == 0) continue;
 
-                var pendingAmount = await _expenseService.GetPendingAmountAsync();
+                    var pendingAmount = await _expenseService.GetPendingAmountAsync();
 
-                await _notification.NotifyTenantAsync(
-                    company.TenantId,
-                    $"Hay {pendingCount} gasto(s) de flota pendiente(s) de aprobación",
-                    $"Total pendiente: C$ {pendingAmount:N2}. Revisá y aprobá los gastos para mantener la contabilidad al día.",
-                    "fleet_expense_pending_reminder",
-                    null);
+                    await _notification.NotifyTenantAsync(
+                        company.TenantId,
+                        $"Hay {pendingCount} gasto(s) de flota pendiente(s) de aprobación",
+                        $"Total pendiente: C$ {pendingAmount:N2}. Revisá y aprobá los gastos para mantener la contabilidad al día.",
+                        "fleet_expense_pending_reminder",
+                        null);
 
-                totalNotified++;
+                    totalNotified++;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to check fleet expenses for company {CompanyId} ({TenantId})", company.Id, company.TenantId);
+                }
             }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to check fleet expenses for company {CompanyId} ({TenantId})", company.Id, company.TenantId);
-            }
+
+            _logger.LogInformation("FleetExpenseNotificationJob: notified {Count}/{Total} companies", totalNotified, companies.Count);
         }
-
-        _logger.LogInformation("FleetExpenseNotificationJob: notified {Count}/{Total} companies", totalNotified, companies.Count);
+        finally
+        {
+            _tenantWriter.SetIsSuperAdmin(false);
+        }
     }
 }

@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
 import '../models/document_models.dart';
@@ -205,6 +206,48 @@ class WizardNotifier extends Notifier<WizardState> {
     state = state.copyWith(selectedTemplate: template, step: 2);
   }
 
+  void preselectTemplate(DocumentTemplate template) {
+    final hasEntity = state.entityId != null && state.entityId!.isNotEmpty;
+    state = state.copyWith(
+      selectedTemplate: template,
+      step: hasEntity && state.entityContext != null ? 2 : 1,
+    );
+  }
+
+  Future<void> selectEntity({
+    required String entityType,
+    required String entityId,
+    String? entityDisplayName,
+  }) async {
+    state = state.copyWith(
+      active: true,
+      entityType: entityType,
+      entityId: entityId,
+      entityDisplayName: entityDisplayName,
+      entityContext: null,
+      loading: true,
+      error: null,
+      step: state.selectedTemplate != null ? 2 : 1,
+    );
+    await loadEntityContext();
+  }
+
+  void clearEntity() {
+    state = state.copyWith(
+      entityType: null,
+      entityId: null,
+      entityDisplayName: null,
+      entityContext: null,
+      step: 1,
+      loading: false,
+      error: null,
+    );
+  }
+
+  void backToSelection() {
+    state = state.copyWith(step: 1, loading: false, error: null, result: null);
+  }
+
   Future<void> loadEntityContext() async {
     if (state.entityType == null || state.entityId == null) return;
     state = state.copyWith(loading: true, error: null);
@@ -215,9 +258,13 @@ class WizardNotifier extends Notifier<WizardState> {
         'entityId': state.entityId,
       });
       final ctx = EntityContext.fromJson(response.data as Map<String, dynamic>);
-      state = state.copyWith(entityContext: ctx, loading: false);
+      state = state.copyWith(
+        entityContext: ctx,
+        entityDisplayName: ctx.displayName,
+        loading: false,
+      );
     } catch (e) {
-      state = state.copyWith(loading: false, error: 'Error al cargar contexto: $e');
+      state = state.copyWith(loading: false, error: _friendlyError(e, 'No se pudo cargar la entidad. Verifica el ID e intenta de nuevo.'));
     }
   }
 
@@ -234,11 +281,30 @@ class WizardNotifier extends Notifier<WizardState> {
       final result = QuickGenerateResult.fromJson(response.data as Map<String, dynamic>);
       state = state.copyWith(result: result, step: 3, loading: false);
     } catch (e) {
-      state = state.copyWith(loading: false, error: 'Error al generar: $e');
+      state = state.copyWith(loading: false, error: _friendlyError(e, 'No se pudo generar el documento. Intenta de nuevo.'));
     }
   }
 
   void reset() => state = const WizardState();
+
+  static String _friendlyError(Object e, String fallback) {
+    if (e is DioException) {
+      final data = e.response?.data;
+      if (data is Map) {
+        final detail = data['detail'] ?? data['title'] ?? data['message'];
+        if (detail != null && detail.toString().trim().isNotEmpty) {
+          return detail.toString();
+        }
+      }
+      if (data is String && data.trim().isNotEmpty) return data;
+      if (e.type == DioExceptionType.connectionError ||
+          e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        return 'Sin conexión con el servidor. Revisa tu red.';
+      }
+    }
+    return fallback;
+  }
 }
 
 final wizardProvider = NotifierProvider<WizardNotifier, WizardState>(

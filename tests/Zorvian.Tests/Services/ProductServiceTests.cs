@@ -16,12 +16,15 @@ public sealed class ProductServiceTests
     private readonly Mock<ITenantContext> _tenant = new();
     private readonly Mock<IMapper> _mapper = new();
     private readonly Mock<ISyncService> _sync = new();
+    private readonly Mock<IBranchValidator> _branchValidator = new();
     private readonly ProductService _sut;
 
     public ProductServiceTests()
     {
         _tenant.Setup(t => t.TenantId).Returns(new TenantId(Guid.NewGuid()));
-        _sut = new ProductService(_productRepo.Object, _movementRepo.Object, _tenant.Object, _mapper.Object, _sync.Object);
+        // Pass-through: la lógica de pertenencia de sucursal se prueba en BranchValidatorTests.
+        _branchValidator.Setup(v => v.ResolveForWriteAsync(It.IsAny<Guid?>())).ReturnsAsync((Guid? b) => b);
+        _sut = new ProductService(_productRepo.Object, _movementRepo.Object, _tenant.Object, _mapper.Object, _sync.Object, _branchValidator.Object);
     }
 
     [Fact]

@@ -45,6 +45,6 @@ public class CashRegisterServiceTests
         Assert.True(result);
         Assert.Equal("approved", movement.ApprovalStatus);
         _mockMovementRepo.Verify(r => r.UpdateAsync(movement), Times.Once);
-        _mockAccountingService.Verify(a => a.GenerateCashMovementEntryAsync(movementId), Times.Once);
+        _mockAccountingService.Verify(a => a.GenerateCashMovementEntryAsync(movementId, It.IsAny<Guid?>()), Times.Once);
     }
 }

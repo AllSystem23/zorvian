@@ -144,7 +144,11 @@ class _CompanySelector extends ConsumerWidget {
           final firstName = first['name'] ?? first['legalName'] ?? 'Empresa';
           final firstId = first['id'] as String? ?? '';
           final tenantId = first['tenantId'] as String? ?? '';
-          WidgetsBinding.instance.addPostFrameCallback((_) {
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            // Esperar a restaurar la selección persistida: si el usuario ya
+            // tenía una compañía, no pisarla con la primera de la lista.
+            await ref.read(companyBranchProvider.notifier).whenHydrated;
+            if (ref.read(companyBranchProvider).companyId != null) return;
             ref.read(companyBranchProvider.notifier).selectCompany(firstId, firstName);
             // For SuperAdmin, switch to this tenant on first load
             if (isSuperAdmin && tenantId.isNotEmpty) {
@@ -173,7 +177,10 @@ class _CompanySelector extends ConsumerWidget {
                 color: !isActive ? ZColors.neutral400 : null,
               )),
               onPressed: () {
+                // selectCompany resets the branch when the company changes;
+                // the branch list must be re-fetched for the new company.
                 ref.read(companyBranchProvider.notifier).selectCompany(id, name);
+                ref.invalidate(headerBranchListProvider);
                 // For SuperAdmin, switch tenant to set backend context
                 if (isSuperAdmin && tenantId.isNotEmpty) {
                   _switchToTenant(ref, tenantId);
@@ -226,21 +233,33 @@ class _BranchSelector extends ConsumerWidget {
         isDark: isDark,
       ),
       data: (branches) {
-        if (branches.isEmpty) {
-          return _SelectorChip(
-            icon: Icons.storefront_outlined,
-            label: companyBranch.branchName ?? 'Sin sucursales',
-            isDark: isDark,
-          );
-        }
-        // Auto-select first branch if none selected yet
-        if (companyBranch.branchId == null && branches.isNotEmpty) {
+        final selectedId = companyBranch.branchId;
+        final selectionExists = selectedId != null &&
+            branches.any((b) => b['id'] == selectedId);
+
+        // La sucursal seleccionada ya no existe en esta compañía (cambio de
+        // compañía o sucursal eliminada): limpiarla para que el selector
+        // re-auto-seleccione la primera de la nueva lista.
+        if (selectedId != null && !selectionExists) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ref.read(companyBranchProvider.notifier).clearBranch();
+          });
+        } else if (selectedId == null && branches.isNotEmpty) {
+          // Auto-select first branch if none selected yet
           final first = branches.first;
           final firstName = first['name'] as String? ?? 'Sucursal';
           final firstId = first['id'] as String? ?? '';
           WidgetsBinding.instance.addPostFrameCallback((_) {
             ref.read(companyBranchProvider.notifier).selectBranch(firstId, firstName);
           });
+        }
+
+        if (branches.isEmpty) {
+          return _SelectorChip(
+            icon: Icons.storefront_outlined,
+            label: companyBranch.branchName ?? 'Sin sucursales',
+            isDark: isDark,
+          );
         }
         final displayName = companyBranch.branchName ??
             (branches.isNotEmpty ? (branches.first['name'] as String? ?? 'Sucursal') : 'Sucursal');

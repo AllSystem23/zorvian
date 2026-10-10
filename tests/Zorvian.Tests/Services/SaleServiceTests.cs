@@ -25,11 +25,15 @@ public sealed class SaleServiceTests
     private readonly Mock<IGoalIntegrationService> _goalIntegration = new();
     private readonly Mock<IAccountingPeriodRepository> _periodRepo = new();
     private readonly Mock<IPublishEndpoint> _publishEndpoint = new();
+    private readonly Mock<IBranchValidator> _branchValidator = new();
     private readonly SaleService _sut;
 
     public SaleServiceTests()
     {
         _tenant.Setup(t => t.TenantId).Returns(Guid.NewGuid().ToString());
+        // Pass-through: el validador de sucursal devuelve el BranchId pedido (la lógica de
+        // pertenencia se prueba en BranchValidatorTests, no en estos tests de orquestación).
+        _branchValidator.Setup(v => v.ResolveForWriteAsync(It.IsAny<Guid?>())).ReturnsAsync((Guid? b) => b);
         var companyGuid = Guid.NewGuid();
         _periodRepo.Setup(r => r.GetCurrentOpenAsync(companyGuid)).ReturnsAsync(new AccountingPeriod { Id = companyGuid, Status = "open" });
         _periodRepo.Setup(r => r.GetCurrentOpenAsync(It.IsAny<Guid>())).ReturnsAsync(new AccountingPeriod { Id = Guid.NewGuid(), Status = "open" });
@@ -63,7 +67,8 @@ public sealed class SaleServiceTests
             _mapper.Object,
             _goalIntegration.Object,
             _periodRepo.Object,
-            _publishEndpoint.Object);
+            _publishEndpoint.Object,
+            _branchValidator.Object);
     }
 
     [Fact]

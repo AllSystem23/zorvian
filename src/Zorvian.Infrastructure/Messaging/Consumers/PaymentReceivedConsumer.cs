@@ -39,8 +39,10 @@ public sealed class PaymentReceivedConsumer : IConsumer<PaymentReceivedEvent>
                 ReferenceNumber: payment.ReferenceNumber,
                 CashRegisterId: null);
 
+            // Fija la compañía en el propio job: corre en Hangfire sin request HTTP,
+            // y RegisterPaymentAsync resuelve el tenant desde el contexto.
             _jobClient.Enqueue<CreditService>(
-                c => c.RegisterPaymentAsync(request));
+                c => c.RegisterPaymentForCompanyAsync(payment.CompanyId, request));
         }
 
         await Task.CompletedTask;

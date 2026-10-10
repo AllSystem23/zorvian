@@ -22,6 +22,7 @@ public sealed class PurchaseService
     private readonly IMapper _mapper;
     private readonly IApprovalEngine _approvalEngine;
     private readonly IPublishEndpoint _publishEndpoint;
+    private readonly IBranchValidator _branchValidator;
 
     public PurchaseService(
         IPurchaseRepository purchaseRepo,
@@ -34,7 +35,8 @@ public sealed class PurchaseService
         ITenantContext tenant,
         IMapper mapper,
         IApprovalEngine approvalEngine,
-        IPublishEndpoint publishEndpoint)
+        IPublishEndpoint publishEndpoint,
+        IBranchValidator branchValidator)
     {
         _purchaseRepo = purchaseRepo;
         _productRepo = productRepo;
@@ -47,12 +49,15 @@ public sealed class PurchaseService
         _mapper = mapper;
         _approvalEngine = approvalEngine;
         _publishEndpoint = publishEndpoint;
+        _branchValidator = branchValidator;
     }
 
     public async Task<PurchaseResponse> CreateAsync(CreatePurchaseRequest request)
     {
         if (!Guid.TryParse(_tenant.TenantId, out var companyId))
             throw new InvalidOperationException("Invalid tenant");
+
+        var branchId = await _branchValidator.ResolveForWriteAsync(request.BranchId) ?? Guid.Empty;
 
         var company = await _companyRepo.GetByIdAsync(companyId)
             ?? throw new InvalidOperationException("Company not found");
@@ -102,7 +107,7 @@ public sealed class PurchaseService
             PaidAmount = 0,
             Balance = total,
             Notes = request.Notes,
-            BranchId = request.BranchId,
+            BranchId = branchId,
             CountryCode = countryCode,
             Details = request.Details.Select(d => new PurchaseDetail
             {
@@ -111,7 +116,7 @@ public sealed class PurchaseService
                 UnitCost = d.UnitCost,
                 Discount = d.Discount,
                 Subtotal = d.Quantity * d.UnitCost - d.Discount,
-                BranchId = request.BranchId,
+                BranchId = branchId,
             }).ToList(),
         };
 
@@ -174,7 +179,7 @@ public sealed class PurchaseService
                 StockAfter = product.Stock,
                 UnitCost = detail.UnitCost,
                 ReferenceNumber = purchase.PurchaseNumber,
-                BranchId = request.BranchId,
+                BranchId = purchase.BranchId,
             };
             await _movementRepo.AddAsync(movement);
         }
@@ -182,7 +187,7 @@ public sealed class PurchaseService
         await _purchaseRepo.SaveChangesAsync();
 
         await _autoAccounting.GeneratePurchaseEntryAsync(
-            purchase.Id, purchase.Details.ToList(), purchase.Discount, purchase.Total, purchase.CountryCode);
+            purchase.Id, purchase.Details.ToList(), purchase.Discount, purchase.Total, purchase.CountryCode, branchId: purchase.BranchId);
     }
 
     public async Task<PurchaseResponse?> CompleteApprovedPurchaseAsync(Guid purchaseId)
@@ -195,7 +200,7 @@ public sealed class PurchaseService
         await _purchaseRepo.SaveChangesAsync();
 
         await _autoAccounting.GeneratePurchaseEntryAsync(
-            purchase.Id, purchase.Details.ToList(), purchase.Discount, purchase.Total, purchase.CountryCode);
+            purchase.Id, purchase.Details.ToList(), purchase.Discount, purchase.Total, purchase.CountryCode, branchId: purchase.BranchId);
 
         // Publish MassTransit event after approval completes
         if (!Guid.TryParse(_tenant.TenantId, out var companyId))
@@ -357,7 +362,7 @@ public sealed class PurchaseService
         await _purchaseRepo.SaveChangesAsync();
 
         await _autoAccounting.ReversePurchaseEntryAsync(
-            purchase.Id, purchase.Details.ToList(), purchase.Total);
+            purchase.Id, purchase.Details.ToList(), purchase.Total, branchId: purchase.BranchId);
 
         return await GetByIdAsync(purchase.Id) ?? throw new InvalidOperationException("Failed to cancel purchase");
     }
@@ -415,8 +420,9 @@ public sealed class PurchaseService
         var page = filter.Page ?? 1;
         var pageSize = filter.PageSize ?? 20;
 
-        var items = await _purchaseRepo.GetFilteredAsync(filter.SupplierId, filter.Status, filter.FromDate, filter.ToDate, filter.Search, filter.BranchId ?? Guid.Empty, page, pageSize);
-        var total = await _purchaseRepo.GetFilteredCountAsync(filter.SupplierId, filter.Status, filter.FromDate, filter.ToDate, filter.Search, filter.BranchId ?? Guid.Empty);
+        var branchId = filter.BranchId ?? _tenant.ResolveBranchId() ?? Guid.Empty;
+        var items = await _purchaseRepo.GetFilteredAsync(filter.SupplierId, filter.Status, filter.FromDate, filter.ToDate, filter.Search, branchId, page, pageSize);
+        var total = await _purchaseRepo.GetFilteredCountAsync(filter.SupplierId, filter.Status, filter.FromDate, filter.ToDate, filter.Search, branchId);
 
         return new PagedResult<PurchaseListResponse>(
             items.Select(p => new PurchaseListResponse(

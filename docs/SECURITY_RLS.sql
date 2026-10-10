@@ -2,40 +2,54 @@
 -- Zorvian ERP — Row Level Security (RLS) Migration
 -- ====================================================================
 -- TABLE NAMES VERIFIED against EF Core model snapshot
--- (ZorvianDbContextModelSnapshot.cs) — NO invented names.
+-- (ZorvianDbContextModelSnapshot.cs) + scripts/create_fleet_tables.sql
+-- (tablas Fleet reales: Vehicles, Drivers, Routes, RoutePoints,
+-- Deliveries, DeliveryItems, Trips — SIN prefijo "Fleet").
+-- Idempotente: seguro de re-ejecutar.
+-- Embedded in Zorvian.Infrastructure (LogicalName SecurityScripts.SECURITY_RLS.sql)
+-- and applied by EnableRLS migration.
 -- Reference: PLAN_ACCION_INTEGRACION I-10 / M-8
+--
+-- NOTE ON FORCE: FORCE ROW LEVEL SECURITY is intentionally NOT applied.
+-- The app connects as the table owner (Neon neondb_owner) and without
+-- FORCE the owner bypasses RLS — that is what keeps auth flows working
+-- today (login runs before any tenant GUC is meaningful). Enabling FORCE
+-- requires: (1) a dedicated non-owner DB role for the app, (2) excluding
+-- auth tables (Users, UserSessions, UserInvitations) from policies,
+-- (3) re-running docs/test_rls_staging.sql before promote. Until then,
+-- tenant isolation is enforced by the 163+ EF Core HasQueryFilters.
 -- ====================================================================
 
 -- ====================================================================
 -- Phase 1: Core business (14 tables)
 -- ====================================================================
 
-ALTER TABLE "Companies" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "Employees" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "Sales" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "SaleDetails" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "Clients" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "Products" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "InventoryMovements" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "Purchases" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "Suppliers" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "Credits" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "CashMovements" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "AccountingEntries" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "AccountingEntryDetails" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "Warranties" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "Companies" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "Employees" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "Sales" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "SaleDetails" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "Clients" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "Products" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "InventoryMovements" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "Purchases" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "Suppliers" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "Credits" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "CashMovements" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "AccountingEntries" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "AccountingEntryDetails" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "Warranties" ENABLE ROW LEVEL SECURITY;
 
 -- ====================================================================
 -- Phase 2: Fleet & Logistics (30 tables)
 -- ====================================================================
 
-ALTER TABLE IF EXISTS "FleetVehicles" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS "FleetDrivers" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS "FleetRoutes" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS "FleetRoutePoints" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS "FleetDeliveries" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS "FleetDeliveryItems" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS "FleetTrips" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "Vehicles" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "Drivers" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "Routes" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "RoutePoints" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "Deliveries" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "DeliveryItems" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "Trips" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS "FuelRefills" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS "WorkOrders" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS "WorkOrderParts" ENABLE ROW LEVEL SECURITY;
@@ -84,7 +98,7 @@ ALTER TABLE IF EXISTS "OvertimeRecords" ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE IF EXISTS "GoalDefinitions" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS "GoalAssignments" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS "GoalAssignmentProgressEntries" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "GoalProgressEntries" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS "Incentives" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS "IncentivePayments" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS "KpiDefinitions" ENABLE ROW LEVEL SECURITY;
@@ -142,8 +156,8 @@ BEGIN
         'InventoryMovements','Purchases','Suppliers','Credits','CashMovements',
         'AccountingEntries','Warranties',
         -- Phase 2: Fleet (30)
-        'FleetVehicles','FleetDrivers','FleetRoutes','FleetRoutePoints',
-        'FleetDeliveries','FleetDeliveryItems','FleetTrips',
+        'Vehicles','Drivers','Routes','RoutePoints',
+        'Deliveries','DeliveryItems','Trips',
         'FuelRefills','WorkOrders','WorkOrderParts','Workshops',
         'FleetExpenses','ExpenseCategories','ExpenseSubcategories',
         'GpsPositions','Geofences','VehicleGeofenceStates',
@@ -158,7 +172,7 @@ BEGIN
         'EmployeeSalaries','BenefitProvisions','BonusRecords',
         'CommissionRecords','OvertimeRecords',
         -- Phase 4: Goals (8)
-        'GoalDefinitions','GoalAssignments','GoalAssignmentProgressEntries',
+        'GoalDefinitions','GoalAssignments','GoalProgressEntries',
         'Incentives','IncentivePayments',
         'KpiDefinitions','KpiRecords','Budgets',
         -- Phase 5: Treasury (9)
@@ -213,8 +227,8 @@ BEGIN
         'Companies','Employees','Sales','SaleDetails','Clients','Products',
         'InventoryMovements','Purchases','Suppliers','Credits','CashMovements',
         'AccountingEntries','AccountingEntryDetails','Warranties',
-        'FleetVehicles','FleetDrivers','FleetRoutes','FleetRoutePoints',
-        'FleetDeliveries','FleetDeliveryItems','FleetTrips',
+        'Vehicles','Drivers','Routes','RoutePoints',
+        'Deliveries','DeliveryItems','Trips',
         'FuelRefills','WorkOrders','WorkOrderParts','Workshops',
         'FleetExpenses','ExpenseCategories','ExpenseSubcategories',
         'GpsPositions','Geofences','VehicleGeofenceStates',
@@ -227,7 +241,7 @@ BEGIN
         'TerminationRecords','PermissionRequests',
         'EmployeeSalaries','BenefitProvisions','BonusRecords',
         'CommissionRecords','OvertimeRecords',
-        'GoalDefinitions','GoalAssignments','GoalAssignmentProgressEntries',
+        'GoalDefinitions','GoalAssignments','GoalProgressEntries',
         'Incentives','IncentivePayments',
         'KpiDefinitions','KpiRecords','Budgets',
         'Banks','BankAccounts','Checkbooks','Checks',
@@ -260,9 +274,9 @@ CREATE INDEX IF NOT EXISTS idx_clients_tenant_id ON "Clients" ("TenantId");
 CREATE INDEX IF NOT EXISTS idx_products_tenant_id ON "Products" ("TenantId");
 CREATE INDEX IF NOT EXISTS idx_credits_tenant_id ON "Credits" ("TenantId");
 CREATE INDEX IF NOT EXISTS idx_purchases_tenant_id ON "Purchases" ("TenantId");
-CREATE INDEX IF NOT EXISTS idx_fleet_vehicles_tenant_id ON "FleetVehicles" ("TenantId");
-CREATE INDEX IF NOT EXISTS idx_fleet_trips_tenant_id ON "FleetTrips" ("TenantId");
-CREATE INDEX IF NOT EXISTS idx_fleet_deliveries_tenant_id ON "FleetDeliveries" ("TenantId");
+CREATE INDEX IF NOT EXISTS idx_fleet_vehicles_tenant_id ON "Vehicles" ("TenantId");
+CREATE INDEX IF NOT EXISTS idx_fleet_trips_tenant_id ON "Trips" ("TenantId");
+CREATE INDEX IF NOT EXISTS idx_fleet_deliveries_tenant_id ON "Deliveries" ("TenantId");
 CREATE INDEX IF NOT EXISTS idx_payroll_runs_tenant_id ON "PayrollRuns" ("TenantId");
 CREATE INDEX IF NOT EXISTS idx_goal_defs_tenant_id ON "GoalDefinitions" ("TenantId");
 CREATE INDEX IF NOT EXISTS idx_budgets_tenant_id ON "Budgets" ("TenantId");

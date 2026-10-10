@@ -22,7 +22,11 @@ public sealed class ClientRepository : IClientRepository
 
     public async Task<List<Client>> GetFilteredAsync(string? search, string? status, Guid branchId, int page, int pageSize)
     {
-        var query = _db.Set<Client>().Where(c => c.BranchId == branchId).AsQueryable();
+        var query = _db.Set<Client>().AsQueryable();
+
+        // branchId == Guid.Empty → todas las sucursales de la compañía.
+        if (branchId != Guid.Empty)
+            query = query.Where(c => c.BranchId == branchId);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -47,7 +51,11 @@ public sealed class ClientRepository : IClientRepository
 
     public async Task<int> GetFilteredCountAsync(string? search, string? status, Guid branchId)
     {
-        var query = _db.Set<Client>().Where(c => c.BranchId == branchId).AsQueryable();
+        var query = _db.Set<Client>().AsQueryable();
+
+        // branchId == Guid.Empty → todas las sucursales de la compañía.
+        if (branchId != Guid.Empty)
+            query = query.Where(c => c.BranchId == branchId);
 
         if (!string.IsNullOrWhiteSpace(search))
         {

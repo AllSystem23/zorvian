@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:http_parser/http_parser.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 import '../../../shared/ds/ds.dart';
 import '../config/subscription_plans_config.dart';
 
@@ -97,7 +98,7 @@ class _SuperAdminCompaniesPageState extends ConsumerState<SuperAdminCompaniesPag
     }
   }
 
-  Future<void> _switchToCompany(String tenantId, String name) async {
+  Future<void> _switchToCompany(String companyId, String tenantId, String name) async {
     final confirmed = await _confirmAction(
       'Cambiar de empresa',
       '¿Deseas entrar a "$name"? Se cambiará el contexto activo.',
@@ -107,6 +108,10 @@ class _SuperAdminCompaniesPageState extends ConsumerState<SuperAdminCompaniesPag
     final router = GoRouter.of(context);
     final success = await ref.read(authProvider.notifier).switchTenant(tenantId);
     if (success && mounted) {
+      // Sincronizar el alcance visual: la sucursal de la empresa anterior no aplica.
+      ref.read(companyBranchProvider.notifier).selectCompany(companyId, name);
+      ref.invalidate(companyListProvider);
+      ref.invalidate(headerBranchListProvider);
       messenger.showSnackBar(SnackBar(content: Text('Entrando a: $name')));
       router.go('/dashboard');
     } else if (mounted) {
@@ -398,7 +403,7 @@ class _SuperAdminCompaniesPageState extends ConsumerState<SuperAdminCompaniesPag
                     IconButton(
                       icon: const Icon(Icons.login, size: 18),
                       tooltip: 'Entrar a esta empresa',
-                      onPressed: () => _switchToCompany(tenantId, name),
+                      onPressed: () => _switchToCompany(companyId, tenantId, name),
                     ),
                   IconButton(
                     icon: const Icon(Icons.edit_outlined, size: 18),

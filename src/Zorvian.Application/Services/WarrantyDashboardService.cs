@@ -21,7 +21,7 @@ public sealed class WarrantyDashboardService
     public async Task<WarrantyDashboardResponse> GetDashboardMetricsAsync()
     {
         var tenantId = _tenant.TenantId.Value.ToString();
-        var isSuperAdmin = _tenant.IsSuperAdmin;
+        var isSuperAdmin = _tenant.BypassTenantFilter;
 
         var scalars = await _repo.GetDashboardScalarsRawAsync(tenantId, isSuperAdmin);
 

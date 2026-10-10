@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
+using Zorvian.Core.Interfaces;
 using Zorvian.Infrastructure.Data;
 
 namespace Zorvian.Infrastructure.Repositories;
@@ -8,11 +9,19 @@ namespace Zorvian.Infrastructure.Repositories;
 public sealed class GoalRepository : IGoalRepository
 {
     private readonly ZorvianDbContext _db;
+    private readonly ITenantContext _tenant;
 
-    public GoalRepository(ZorvianDbContext db)
+    public GoalRepository(ZorvianDbContext db, ITenantContext tenant)
     {
         _db = db;
+        _tenant = tenant;
     }
+
+    // Jobs de fondo (GoalIntegrationService/GoalEngine vía Hangfire, tenant en
+    // GUID-cero) → se omite el query filter para resolver por Id/empleado conocido;
+    // en HTTP (tenant real) el filtro sigue aplicando. Patrón AuthRepository.
+    private bool NeedsBypass =>
+        _tenant.TenantId is null || _tenant.TenantId.Value == Guid.Empty || _tenant.BypassTenantFilter;
 
     public async Task<List<GoalDefinition>> GetGoalDefinitionsAsync() =>
         await _db.GoalDefinitions
@@ -20,7 +29,9 @@ public sealed class GoalRepository : IGoalRepository
             .ToListAsync();
 
     public async Task<GoalDefinition?> GetGoalDefinitionByIdAsync(Guid id) =>
-        await _db.GoalDefinitions
+        await (NeedsBypass
+            ? _db.GoalDefinitions.IgnoreQueryFilters()
+            : _db.GoalDefinitions.AsQueryable())
             .Include(g => g.Assignments)
             .FirstOrDefaultAsync(g => g.Id == id);
 
@@ -47,14 +58,18 @@ public sealed class GoalRepository : IGoalRepository
             .ToListAsync();
 
     public async Task<GoalAssignment?> GetGoalAssignmentByIdAsync(Guid id) =>
-        await _db.GoalAssignments
+        await (NeedsBypass
+            ? _db.GoalAssignments.IgnoreQueryFilters()
+            : _db.GoalAssignments.AsQueryable())
             .Include(a => a.GoalDefinition)
             .Include(a => a.Employee)
             .Include(a => a.ProgressEntries)
             .FirstOrDefaultAsync(a => a.Id == id);
 
     public async Task<List<GoalAssignment>> GetGoalAssignmentsByEmployeeIdAsync(Guid employeeId) =>
-        await _db.GoalAssignments
+        await (NeedsBypass
+            ? _db.GoalAssignments.IgnoreQueryFilters()
+            : _db.GoalAssignments.AsQueryable())
             .Include(a => a.GoalDefinition)
             .Where(a => a.EmployeeId == employeeId)
             .ToListAsync();

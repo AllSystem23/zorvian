@@ -7,6 +7,7 @@ using Zorvian.Application.Messages;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Entities.Fleet;
 using Zorvian.Core.Enums;
+using Zorvian.Core.Interfaces;
 using Zorvian.Infrastructure.Data;
 
 namespace Zorvian.Infrastructure.Services.PalmTrack;
@@ -22,15 +23,18 @@ public sealed class PalmTrackEventMapper : IPalmTrackEventMapper
 
     private readonly ZorvianDbContext _db;
     private readonly IPalmTrackIdentityService _identityService;
+    private readonly ITenantContextWriter _tenantWriter;
     private readonly ILogger<PalmTrackEventMapper> _logger;
 
     public PalmTrackEventMapper(
         ZorvianDbContext db,
         IPalmTrackIdentityService identityService,
+        ITenantContextWriter tenantWriter,
         ILogger<PalmTrackEventMapper> logger)
     {
         _db = db;
         _identityService = identityService;
+        _tenantWriter = tenantWriter;
         _logger = logger;
     }
 
@@ -39,6 +43,12 @@ public sealed class PalmTrackEventMapper : IPalmTrackEventMapper
         var tenantId = await _identityService.GetTenantIdAsync(message.OrganizationId);
         if (!tenantId.HasValue)
             return MappingResult.Fail($"Organization {message.OrganizationId} not reconciled");
+
+        // Fija el tenant en el contexto EF: los query filters (163) leen
+        // ITenantContext, no la variable SQL de RLS. Sin esto todas las lecturas
+        // del mapper (vehículos, productos, cuentas…) caen en GUID-cero y el
+        // evento fracasa en silencio aunque la RLS SQL se setee.
+        _tenantWriter.SetTenantId(TenantId.FromGuid(tenantId.Value));
 
         // Set tenant context for RLS (skip on InMemory for testing)
         try

@@ -37,6 +37,7 @@ public sealed class PalmTrackEventMapperTests : IDisposable
         _sut = new PalmTrackEventMapper(
             _db,
             _identityService.Object,
+            Mock.Of<ITenantContextWriter>(),
             Mock.Of<ILogger<PalmTrackEventMapper>>());
 
         _identityService.Setup(i => i.GetTenantIdAsync(It.IsAny<string>()))

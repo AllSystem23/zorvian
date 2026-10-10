@@ -108,7 +108,7 @@ public sealed class DocumentGenerationService : IDocumentGenerationService
             throw new KeyNotFoundException($"Entidad {entityType} con ID {entityId} no encontrada");
 
         var flatVars = context.Data;
-        var doc = await _documentService.GenerateProfessionalDocumentAsync(templateId, entityId, flatVars);
+        var doc = await _documentService.GenerateProfessionalDocumentAsync(templateId, entityId, flatVars, entityType);
 
         var signerRole = entityType.ToLowerInvariant() switch
         {
@@ -120,11 +120,12 @@ public sealed class DocumentGenerationService : IDocumentGenerationService
 
         await _documentService.FinalizeAndRequestSignatureAsync(doc.Id, signerRole, entityId);
 
-        var signature = doc.Signatures.FirstOrDefault();
+        var fresh = await _documentService.GetDocumentDetailsAsync(doc.Id);
+        var signature = fresh?.Signatures.FirstOrDefault();
         return new QuickGenerateResult(
             doc.Id,
             doc.Name,
-            doc.Status,
+            fresh?.Status ?? doc.Status,
             doc.CreatedAt,
             PdfUrl: null,
             SignatureToken: signature?.SignatureToken

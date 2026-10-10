@@ -80,7 +80,7 @@ public sealed class AccountingEntryRepository : IAccountingEntryRepository
         return await query.ToListAsync();
     }
 
-    public async Task<List<AccountingEntry>> GetFilteredAsync(Guid? periodId, string? referenceType, string? status, DateTime? fromDate, DateTime? toDate, Guid companyId, int page, int pageSize)
+    public async Task<List<AccountingEntry>> GetFilteredAsync(Guid? periodId, string? referenceType, string? status, DateTime? fromDate, DateTime? toDate, Guid companyId, int page, int pageSize, Guid? branchId = null)
     {
         var query = _db.Set<AccountingEntry>()
             .Include(e => e.AccountingPeriod)
@@ -90,10 +90,11 @@ public sealed class AccountingEntryRepository : IAccountingEntryRepository
         if (!string.IsNullOrWhiteSpace(status)) query = query.Where(e => e.Status == status);
         if (fromDate.HasValue) query = query.Where(e => e.EntryDate >= fromDate.Value);
         if (toDate.HasValue) query = query.Where(e => e.EntryDate <= toDate.Value);
+        if (branchId is { } b && b != Guid.Empty) query = query.Where(e => e.BranchId == b);
         return await query.OrderByDescending(e => e.EntryDate).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
     }
 
-    public async Task<int> GetFilteredCountAsync(Guid? periodId, string? referenceType, string? status, DateTime? fromDate, DateTime? toDate, Guid companyId)
+    public async Task<int> GetFilteredCountAsync(Guid? periodId, string? referenceType, string? status, DateTime? fromDate, DateTime? toDate, Guid companyId, Guid? branchId = null)
     {
         var query = _db.Set<AccountingEntry>().Where(e => e.CompanyId == companyId).AsQueryable();
         if (periodId.HasValue) query = query.Where(e => e.AccountingPeriodId == periodId.Value);
@@ -101,6 +102,7 @@ public sealed class AccountingEntryRepository : IAccountingEntryRepository
         if (!string.IsNullOrWhiteSpace(status)) query = query.Where(e => e.Status == status);
         if (fromDate.HasValue) query = query.Where(e => e.EntryDate >= fromDate.Value);
         if (toDate.HasValue) query = query.Where(e => e.EntryDate <= toDate.Value);
+        if (branchId is { } b && b != Guid.Empty) query = query.Where(e => e.BranchId == b);
         return await query.CountAsync();
     }
 

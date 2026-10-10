@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
+using Zorvian.Core.Interfaces;
 using Zorvian.Infrastructure.Data;
 
 namespace Zorvian.Infrastructure.Repositories;
@@ -8,19 +9,31 @@ namespace Zorvian.Infrastructure.Repositories;
 public sealed class PermissionRepository : IPermissionRepository
 {
     private readonly ZorvianDbContext _db;
+    private readonly ITenantContext _tenant;
 
-    public PermissionRepository(ZorvianDbContext db)
+    public PermissionRepository(ZorvianDbContext db, ITenantContext tenant)
     {
         _db = db;
+        _tenant = tenant;
     }
+
+    // Contexto de fondo (OcrProcessingJob corre fuera de HTTP, tenant en GUID-cero)
+    // → se omite el query filter para poder cargar la solicitud por Id (patrón AuthRepository).
+    private bool NeedsBypass =>
+        _tenant.TenantId is null || _tenant.TenantId.Value == Guid.Empty || _tenant.BypassTenantFilter;
 
     public async Task<PermissionRequest?> GetByIdAsync(Guid id)
     {
-        return await _db.PermissionRequests
+        var query = _db.PermissionRequests
             .Include(p => p.Employee)
             .Include(p => p.LeaveType)
             .Include(p => p.Approver)
-            .FirstOrDefaultAsync(p => p.Id == id);
+            .AsQueryable();
+
+        if (NeedsBypass)
+            query = query.IgnoreQueryFilters();
+
+        return await query.FirstOrDefaultAsync(p => p.Id == id);
     }
 
     public async Task<List<PermissionRequest>> GetFilteredAsync(

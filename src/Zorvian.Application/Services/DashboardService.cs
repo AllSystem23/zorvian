@@ -62,7 +62,7 @@ public sealed class DashboardService
         // Phase 1: Single raw SQL for all 11 scalar KPIs (1 round-trip)
         var scalars = await _repo.GetAllKpiScalarsRawAsync(
             _tenant.EffectiveCompanyId,
-            _tenant.IsSuperAdmin,
+            _tenant.BypassTenantFilter,
             thirtyDaysAgo, now.Month, lastMonth);
 
         if (scalars.TotalEmployees == 0
@@ -163,7 +163,7 @@ public sealed class DashboardService
         // Phase 1: Single raw SQL for all 11 scalar KPIs (1 round-trip)
         var scalars = await _repo.GetAllKpiScalarsRawAsync(
             _tenant.EffectiveCompanyId,
-            _tenant.IsSuperAdmin,
+            _tenant.BypassTenantFilter,
             thirtyDaysAgo, now.Month, lastMonth);
 
         if (scalars.TotalEmployees == 0
@@ -213,7 +213,7 @@ public sealed class DashboardService
     public async Task<ExecutiveDashboardResponse> GetExecutiveDashboardAsync()
     {
         // Phase 1: 18 scalars in 1 trip
-        var scalars = await _repo.GetExecutiveKpiScalarsRawAsync(_tenant.EffectiveCompanyId, _tenant.IsSuperAdmin);
+        var scalars = await _repo.GetExecutiveKpiScalarsRawAsync(_tenant.EffectiveCompanyId, _tenant.BypassTenantFilter);
 
         // Phase 2: Top selling products (requires complex join/logic best left to EF or separate SQL)
         var topSelling = await _productRepo.GetTopSellingAsync(Guid.Empty, 5);

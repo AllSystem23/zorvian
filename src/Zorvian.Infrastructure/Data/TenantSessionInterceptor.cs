@@ -28,7 +28,7 @@ public sealed class TenantSessionInterceptor : DbConnectionInterceptor
                 SELECT set_config('app.is_super_admin', @isSuperAdmin, false);";
             
             cmd.Parameters.AddWithValue("@tenantId", _tenantContext.TenantId.ToString() ?? "");
-            cmd.Parameters.AddWithValue("@isSuperAdmin", _tenantContext.IsSuperAdmin.ToString().ToLower());
+            cmd.Parameters.AddWithValue("@isSuperAdmin", _tenantContext.BypassTenantFilter.ToString().ToLower());
             
             await cmd.ExecuteNonQueryAsync(cancellationToken);
         }
@@ -46,7 +46,7 @@ public sealed class TenantSessionInterceptor : DbConnectionInterceptor
                 SELECT set_config('app.is_super_admin', @isSuperAdmin, false);";
             
             cmd.Parameters.AddWithValue("@tenantId", _tenantContext.TenantId.ToString() ?? "");
-            cmd.Parameters.AddWithValue("@isSuperAdmin", _tenantContext.IsSuperAdmin.ToString().ToLower());
+            cmd.Parameters.AddWithValue("@isSuperAdmin", _tenantContext.BypassTenantFilter.ToString().ToLower());
             
             cmd.ExecuteNonQuery();
         }

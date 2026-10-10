@@ -460,7 +460,7 @@ public sealed class PayrollService
                     }
 
                     // Generate accounting entry
-                    await _autoAccounting.GeneratePayrollEntryAsync(run.Id);
+                    await _autoAccounting.GeneratePayrollEntryAsync(run.Id, branchId: _tenant.ResolveBranchId());
 
                     // Notify via Webhook
                     await _webhookService.PublishAsync(run.TenantId, "payroll.approved", new { RunId = run.Id, TotalNetPay = run.TotalNetPay });

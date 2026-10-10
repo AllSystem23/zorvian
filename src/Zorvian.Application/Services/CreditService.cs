@@ -21,6 +21,7 @@ public sealed class CreditService
     private readonly ISaleRepository _saleRepo;
     private readonly IAutoAccountingService _autoAccounting;
     private readonly ITenantContext _tenant;
+    private readonly ITenantContextWriter _tenantWriter;
     private readonly IMapper _mapper;
     private readonly IPublishEndpoint _publishEndpoint;
 
@@ -34,6 +35,7 @@ public sealed class CreditService
         ISaleRepository saleRepo,
         IAutoAccountingService autoAccounting,
         ITenantContext tenant,
+        ITenantContextWriter tenantWriter,
         IMapper mapper,
         IPublishEndpoint publishEndpoint)
     {
@@ -46,6 +48,7 @@ public sealed class CreditService
         _saleRepo = saleRepo;
         _autoAccounting = autoAccounting;
         _tenant = tenant;
+        _tenantWriter = tenantWriter;
         _mapper = mapper;
         _publishEndpoint = publishEndpoint;
     }
@@ -70,9 +73,19 @@ public sealed class CreditService
         );
     }
 
-    public async Task<CreditPaymentResponse> RegisterPaymentAsync(CreateCreditPaymentRequest request)
+    /// <summary>
+    /// Punto de entrada para fondo (Hangfire/MassTransit): fija el tenant de la
+    /// compañía dueña del crédito antes de delegar, porque el job corre sin request
+    /// HTTP y sin esto el load del crédito caería en el query filter (GUID-cero).
+    /// </summary>
+    public async Task<CreditPaymentResponse> RegisterPaymentForCompanyAsync(Guid companyId, CreateCreditPaymentRequest request)
     {
-        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
+        _tenantWriter.SetTenantId(TenantId.FromGuid(companyId));
+        return await RegisterPaymentAsync(request);
+    }
+
+    public async Task<CreditPaymentResponse> RegisterPaymentAsync(CreateCreditPaymentRequest request)
+    {        if (!Guid.TryParse(_tenant.TenantId, out var companyId))
             throw new InvalidOperationException("Tenant not configured");
 
         var credit = await _creditRepo.GetByIdAsync(request.CreditId)

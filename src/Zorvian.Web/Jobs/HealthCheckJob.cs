@@ -33,8 +33,12 @@ public class HealthCheckJob
             }
 
             // Get metrics
-            var totalEmployees = await _context.Set<Core.Entities.Employee>().CountAsync(e => !e.IsDeleted);
-            var activeUsers = await _context.Set<Core.Entities.User>().CountAsync();
+            // Métricas globales del sistema (todas las compañías): bypass documentado,
+            // el job corre sin tenant (GUID-cero) y con query filter siempre daría 0.
+            var totalEmployees = await _context.Set<Core.Entities.Employee>()
+                .IgnoreQueryFilters().CountAsync(e => !e.IsDeleted);
+            var activeUsers = await _context.Set<Core.Entities.User>()
+                .IgnoreQueryFilters().CountAsync();
 
             stopwatch.Stop();
             _logger.LogInformation(

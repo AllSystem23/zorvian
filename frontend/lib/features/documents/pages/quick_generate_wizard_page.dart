@@ -1,11 +1,15 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../shared/ds/ds.dart';
 import '../models/document_models.dart';
 import '../providers/document_provider.dart';
+import '../widgets/entity_picker_dialog.dart';
 
 class QuickGenerateWizardPage extends ConsumerStatefulWidget {
   final String? entityType;
@@ -31,26 +35,61 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
   List<DocumentTemplate> _filteredTemplates = [];
   bool _templatesLoaded = false;
 
+  static final _uuidRegex = RegExp(
+    r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+  );
+
   @override
   void initState() {
     super.initState();
-    if (widget.entityType != null && widget.entityId != null) {
-      _selectedEntityType = widget.entityType!;
-      _entityIdCtrl.text = widget.entityId!;
-      Future.microtask(() => _initWizard());
-    }
+    if (widget.entityType != null) _selectedEntityType = widget.entityType!;
+    if (widget.entityId != null) _entityIdCtrl.text = widget.entityId!;
+    Future.microtask(_initWizard);
   }
 
   Future<void> _initWizard() async {
     final notifier = ref.read(documentProvider.notifier);
-    await notifier.loadTemplates();
+    await notifier.loadTemplates(pageSize: 50);
+    if (!mounted) return;
     final wizard = ref.read(wizardProvider.notifier);
-    wizard.start(
-      entityType: widget.entityType,
-      entityId: widget.entityId,
-      entityDisplayName: widget.entityDisplayName,
-    );
+
+    wizard.start();
+    _applyPreselectedTemplate();
     _filterByEntityType();
+
+    if (widget.entityType != null && widget.entityId != null) {
+      await wizard.selectEntity(
+        entityType: widget.entityType!,
+        entityId: widget.entityId!,
+        entityDisplayName: widget.entityDisplayName,
+      );
+      if (!mounted) return;
+      final err = ref.read(wizardProvider).error;
+      if (err != null) ZToast.error(context, err);
+    }
+  }
+
+  void _applyPreselectedTemplate() {
+    final id = widget.preselectedTemplateId;
+    if (id == null || id.isEmpty) return;
+    final all = ref.read(documentProvider).templates;
+    for (final t in all) {
+      if (t.id == id) {
+        // Alinear el tipo de entidad con el módulo de la plantilla para que
+        // aparezca en la lista filtrada del paso 1.
+        if (widget.entityType == null) {
+          setState(() {
+            _selectedEntityType = switch (t.module) {
+              'HR' => 'employee',
+              'Sales' => _selectedEntityType == 'employee' ? 'sale' : _selectedEntityType,
+              _ => _selectedEntityType,
+            };
+          });
+        }
+        ref.read(wizardProvider.notifier).preselectTemplate(t);
+        break;
+      }
+    }
   }
 
   void _filterByEntityType() {
@@ -68,6 +107,62 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
       _templatesLoaded = true;
     });
   }
+
+  Future<void> _openEntityPicker() async {
+    final result = await showEntityPickerDialog(
+      context,
+      entityType: _selectedEntityType,
+    );
+    if (result == null || !mounted) return;
+    await _selectEntity(result.id, result.displayName);
+  }
+
+  Future<void> _selectEntity(String entityId, String? displayName) async {
+    final wiz = ref.read(wizardProvider.notifier);
+    await wiz.selectEntity(
+      entityType: _selectedEntityType,
+      entityId: entityId,
+      entityDisplayName: displayName,
+    );
+    if (!mounted) return;
+    final err = ref.read(wizardProvider).error;
+    if (err != null) ZToast.error(context, err);
+  }
+
+  void _clearEntitySelection() {
+    _entityIdCtrl.clear();
+    ref.read(wizardProvider.notifier).clearEntity();
+  }
+
+  Future<void> _selectTemplate(DocumentTemplate template) async {
+    final wizard = ref.read(wizardProvider);
+    final wiz = ref.read(wizardProvider.notifier);
+    if (wizard.entityContext == null) {
+      await wiz.loadEntityContext();
+      if (!mounted) return;
+      if (ref.read(wizardProvider).error != null) return;
+    }
+    wiz.selectTemplate(template);
+  }
+
+  String _entityTypeLabel([String? type]) {
+    switch (type ?? _selectedEntityType) {
+      case 'employee':
+        return 'trabajador';
+      case 'sale':
+        return 'venta';
+      case 'client':
+        return 'cliente';
+      default:
+        return 'entidad';
+    }
+  }
+
+  IconData get _entityTypeIcon => switch (_selectedEntityType) {
+        'employee' => Icons.person_outline,
+        'sale' => Icons.receipt_outlined,
+        _ => Icons.people_outline,
+      };
 
   @override
   void dispose() {
@@ -195,12 +290,25 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
             style: ZTypography.bodySmall),
           const SizedBox(height: 24),
 
-          if (widget.entityType == null) ...[
-            _buildEntityTypeSelector(),
-            const SizedBox(height: 8),
-            _buildEntityIdField(wizard),
-            const SizedBox(height: 20),
+          _buildEntityTypeSelector(),
+          const SizedBox(height: 8),
+          _buildEntitySelector(wizard),
+
+          if (wizard.error != null) ...[
+            const SizedBox(height: 12),
+            _buildErrorBanner(context, wizard.error!),
           ],
+
+          const SizedBox(height: 20),
+
+          if (wizard.entityId == null || wizard.entityId!.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                'Selecciona primero una entidad para poder elegir una plantilla.',
+                style: ZTypography.labelSmall.copyWith(color: ZColors.neutral400),
+              ),
+            ),
 
           if (_filteredTemplates.isEmpty && _templatesLoaded)
             ZEmptyState(
@@ -246,10 +354,8 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
       label: Text(label),
       avatar: Icon(icon, size: 18),
       onSelected: (_) {
-        setState(() {
-          _selectedEntityType = type;
-          _entityIdCtrl.clear();
-        });
+        setState(() => _selectedEntityType = type);
+        _clearEntitySelection();
         _filterByEntityType();
       },
       selectedColor: ZColors.brandAccent.withValues(alpha: 0.15),
@@ -257,53 +363,136 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
     );
   }
 
-  Widget _buildEntityIdField(WizardState wizard) {
+  Widget _buildEntitySelector(WizardState wizard) {
+    final hasEntity = wizard.entityId != null && wizard.entityId!.isNotEmpty;
     return ZCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('ID de la Entidad', style: ZTypography.labelMedium),
+            Text('Entidad', style: ZTypography.labelMedium),
             const SizedBox(height: 4),
-            Text('Ingresa el UUID del ${_selectedEntityType == 'employee' ? 'trabajador' : _selectedEntityType == 'sale' ? 'la venta' : 'del cliente'}',
+            Text('Busca el ${_entityTypeLabel()} por nombre, factura o cédula.',
               style: ZTypography.labelSmall),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: ZTextField(
-                    controller: _entityIdCtrl,
-                    label: 'ID',
-                    hint: 'UUID de la entidad',
-                    onChanged: (_) => setState(() {}),
+            if (!hasEntity) ...[
+              FilledButton.tonalIcon(
+                onPressed: _openEntityPicker,
+                icon: const Icon(Icons.search, size: 18),
+                label: Text('Buscar ${_entityTypeLabel()}'),
+              ),
+              const SizedBox(height: 4),
+              Theme(
+                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  childrenPadding: const EdgeInsets.only(bottom: 8),
+                  title: Text(
+                    'O ingresa el UUID manualmente',
+                    style: ZTypography.labelSmall.copyWith(color: ZColors.neutral400),
                   ),
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ZTextField(
+                            controller: _entityIdCtrl,
+                            label: 'UUID',
+                            hint: '00000000-0000-0000-0000-000000000000',
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        FilledButton.tonalIcon(
+                          onPressed: _entityIdCtrl.text.trim().isEmpty
+                              ? null
+                              : () {
+                                  final id = _entityIdCtrl.text.trim();
+                                  if (!_uuidRegex.hasMatch(id)) {
+                                    ZToast.error(context, 'Ingresa un UUID válido (con guiones).');
+                                    return;
+                                  }
+                                  _selectEntity(id, null);
+                                },
+                          icon: const Icon(Icons.arrow_forward, size: 18),
+                          label: const Text('Cargar'),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                FilledButton.tonalIcon(
-                  onPressed: _entityIdCtrl.text.isNotEmpty ? () {
-                    final wizardNotifier = ref.read(wizardProvider.notifier);
-                    wizardNotifier.start(
-                      entityType: _selectedEntityType,
-                      entityId: _entityIdCtrl.text.trim(),
-                      entityDisplayName: _entityDisplayName(),
-                    );
-                    wizardNotifier.loadEntityContext();
-                  } : null,
-                  icon: const Icon(Icons.search, size: 18),
-                  label: const Text('Cargar'),
-                ),
-              ],
-            ),
+              ),
+            ] else
+              _buildSelectedEntityCard(wizard),
           ],
         ),
       ),
     );
   }
 
-  String _entityDisplayName() {
-    if (_entityIdCtrl.text.isEmpty) return '';
-    return '${_selectedEntityType == 'employee' ? 'Trabajador' : _selectedEntityType == 'sale' ? 'Venta' : 'Cliente'} #${_entityIdCtrl.text.substring(0, _entityIdCtrl.text.length.clamp(0, 8))}';
+  Widget _buildSelectedEntityCard(WizardState wizard) {
+    final loadingContext = wizard.loading && wizard.entityContext == null;
+    return Row(
+      children: [
+        CircleAvatar(
+          backgroundColor: ZColors.brandAccent.withValues(alpha: 0.1),
+          child: Icon(_entityTypeIcon, color: ZColors.brandAccent, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                wizard.entityDisplayName ?? '${_entityTypeLabel().toUpperCase()} seleccionado',
+                style: ZTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                loadingContext ? 'Cargando datos...' : 'ID: ${wizard.entityId}',
+                style: ZTypography.labelSmall.copyWith(
+                  color: loadingContext ? ZColors.brandAccent : ZColors.neutral400,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+        if (loadingContext)
+          const SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        else
+          TextButton.icon(
+            onPressed: _clearEntitySelection,
+            icon: const Icon(Icons.swap_horiz, size: 18),
+            label: const Text('Cambiar'),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildErrorBanner(BuildContext context, String message) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: ZColors.danger.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: ZColors.danger.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: ZColors.danger, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(message, style: ZTypography.bodySmall.copyWith(color: ZColors.danger)),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildTemplateCard(BuildContext context, DocumentTemplate template, WizardState wizard) {
@@ -311,13 +500,7 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
     final canSelect = wizard.entityId != null && wizard.entityId!.isNotEmpty;
 
     return InkWell(
-      onTap: canSelect
-          ? () {
-              final wiz = ref.read(wizardProvider.notifier);
-              if (wizard.entityContext == null) wiz.loadEntityContext();
-              wiz.selectTemplate(template);
-            }
-          : null,
+      onTap: canSelect ? () => _selectTemplate(template) : null,
       borderRadius: BorderRadius.circular(16),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
@@ -392,6 +575,10 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
             const SizedBox(height: 16),
             if (wizard.selectedTemplate != null)
               _buildTemplateSummaryCard(context, wizard.selectedTemplate!),
+            if (wizard.error != null) ...[
+              const SizedBox(height: 16),
+              _buildErrorBanner(context, wizard.error!),
+            ],
             const SizedBox(height: 32),
             Row(
               children: [
@@ -399,14 +586,7 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
                   child: ZButton(
                     text: ' ← Atrás',
                     type: ZButtonType.secondary,
-                    onPressed: () {
-                      ref.read(wizardProvider.notifier).cancel();
-                      ref.read(wizardProvider.notifier).start(
-                        entityType: wizard.entityType,
-                        entityId: wizard.entityId,
-                        entityDisplayName: wizard.entityDisplayName,
-                      );
-                    },
+                    onPressed: () => ref.read(wizardProvider.notifier).backToSelection(),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -414,7 +594,7 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
                   flex: 2,
                   child: wizard.entityContext != null
                       ? ZButton(
-                          text: ' Generar Documento →',
+                          text: wizard.error != null ? ' Reintentar →' : ' Generar Documento →',
                           isLoading: wizard.loading,
                           onPressed: () => ref.read(wizardProvider.notifier).executeQuickGenerate(),
                         )
@@ -656,10 +836,19 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
         options: Options(responseType: ResponseType.bytes),
       );
       final bytes = response.data as List<int>;
+      await SharePlus.instance.share(
+        ShareParams(files: [
+          XFile.fromData(
+            Uint8List.fromList(bytes),
+            mimeType: 'application/pdf',
+            name: 'documento_$documentId.pdf',
+          ),
+        ]),
+      );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('PDF descargado (${bytes.length ~/ 1024} KB)'),
+            content: Text('PDF listo para compartir (${bytes.length ~/ 1024} KB)'),
             backgroundColor: ZColors.success,
           ),
         );

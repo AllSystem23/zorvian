@@ -7,6 +7,7 @@ import '../../settings/providers/company_settings_provider.dart';
 import '../../../core/utils/country_config.dart';
 import '../../../shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 import '../providers/purchase_order_provider.dart';
 
 final class _CartLine {
@@ -107,7 +108,7 @@ final class _PurchaseOrderFormPageState extends ConsumerState<PurchaseOrderFormP
         'supplierId': _selectedSupplier,
         'orderDate': DateTime.now().toUtc().toIso8601String(),
         'expectedDate': null,
-        'branchId': '00000000-0000-0000-0000-000000000000',
+        'branchId': ref.read(companyBranchProvider).branchId,
         'discount': 0,
         'currencyCode': _currencyCode,
         'countryCode': _countryCode,

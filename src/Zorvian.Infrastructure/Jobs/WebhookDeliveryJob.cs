@@ -25,12 +25,17 @@ public sealed class WebhookDeliveryJob
         var httpClientFactory = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
         var backgroundJobs = scope.ServiceProvider.GetRequiredService<IBackgroundJobClient>();
 
+        // Carga con bypass: este job corre en Hangfire sin request HTTP (tenant en
+        // GUID-cero), los query filters no devolverían nada y la entrega quedaría en
+        // no-op permanente. Los Ids vienen de la cola interna (WebhookService), ya validados.
         var sub = await db.Set<WebhookSubscription>()
+            .IgnoreQueryFilters()
             .FirstOrDefaultAsync(s => s.Id == subscriptionId && s.IsActive);
 
         if (sub is null) return;
 
         var log = await db.Set<WebhookDeliveryLog>()
+            .IgnoreQueryFilters()
             .FirstOrDefaultAsync(l => l.Id == deliveryLogId);
 
         if (log is null) return;

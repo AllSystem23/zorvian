@@ -8,6 +8,7 @@ import '../../products/providers/product_provider.dart';
 import '../../../shared/printing/qr_code_dialog.dart';
 import '../../../shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 import '../../../core/utils/country_config.dart';
 import '../../settings/providers/company_settings_provider.dart';
 import '../providers/purchase_provider.dart';
@@ -131,7 +132,7 @@ final class _PurchaseFormPageState extends ConsumerState<PurchaseFormPage> {
         'invoiceReference': _invoiceRefCtrl.text.isNotEmpty ? _invoiceRefCtrl.text : null,
         'discount': double.tryParse(_discountCtrl.text) ?? 0,
         'notes': _notesCtrl.text.isNotEmpty ? _notesCtrl.text : null,
-        'branchId': '00000000-0000-0000-0000-000000000000',
+        'branchId': ref.read(companyBranchProvider).branchId,
         'currencyCode': _currencyCode,
         'exchangeRateToReporting': _currencyCode == 'NIO' ? null : CountryConfig.exchangeRateToNIO(_currencyCode),
         'details': _cart.map((c) => {

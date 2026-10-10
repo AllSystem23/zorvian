@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Zorvian.Application.Interfaces;
+using Zorvian.Core.Interfaces;
 using Zorvian.Infrastructure.Data;
 
 namespace Zorvian.Web.Jobs;
@@ -11,11 +12,19 @@ public sealed class AttendancePhotoCleanupJob
 {
     private readonly ZorvianDbContext _db;
     private readonly IDocumentStorageService _storage;
+    private readonly IAuthRepository _authRepo;
+    private readonly ITenantContextWriter _tenantWriter;
 
-    public AttendancePhotoCleanupJob(ZorvianDbContext db, IDocumentStorageService storage)
+    public AttendancePhotoCleanupJob(
+        ZorvianDbContext db,
+        IDocumentStorageService storage,
+        IAuthRepository authRepo,
+        ITenantContextWriter tenantWriter)
     {
         _db = db;
         _storage = storage;
+        _authRepo = authRepo;
+        _tenantWriter = tenantWriter;
     }
 
     public async Task RunAsync()
@@ -23,28 +32,37 @@ public sealed class AttendancePhotoCleanupJob
         // Retención de 90 días
         var cutoffDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-90));
 
-        var oldRecords = await _db.AttendanceRecords
-            .Where(r => r.Date < cutoffDate && (r.CheckInPhotoUrl != null || r.CheckOutPhotoUrl != null))
-            .ToListAsync();
+        // Fondo sin request HTTP → tenant en GUID-cero; iterar por compañía para
+        // que los query filters devuelvan los registros reales (patrón VacationAutomatedJob).
+        var companies = await _authRepo.GetAllCompaniesAsync();
 
-        foreach (var record in oldRecords)
+        foreach (var company in companies)
         {
-            if (!string.IsNullOrEmpty(record.CheckInPhotoUrl))
+            _tenantWriter.SetTenantId(company.TenantId);
+
+            var oldRecords = await _db.AttendanceRecords
+                .Where(r => r.Date < cutoffDate && (r.CheckInPhotoUrl != null || r.CheckOutPhotoUrl != null))
+                .ToListAsync();
+
+            foreach (var record in oldRecords)
             {
-                await DeletePhotoAsync(record.CheckInPhotoUrl);
-                record.CheckInPhotoUrl = null;
+                if (!string.IsNullOrEmpty(record.CheckInPhotoUrl))
+                {
+                    await DeletePhotoAsync(record.CheckInPhotoUrl);
+                    record.CheckInPhotoUrl = null;
+                }
+
+                if (!string.IsNullOrEmpty(record.CheckOutPhotoUrl))
+                {
+                    await DeletePhotoAsync(record.CheckOutPhotoUrl);
+                    record.CheckOutPhotoUrl = null;
+                }
             }
 
-            if (!string.IsNullOrEmpty(record.CheckOutPhotoUrl))
+            if (oldRecords.Count > 0)
             {
-                await DeletePhotoAsync(record.CheckOutPhotoUrl);
-                record.CheckOutPhotoUrl = null;
+                await _db.SaveChangesAsync();
             }
-        }
-
-        if (oldRecords.Count > 0)
-        {
-            await _db.SaveChangesAsync();
         }
     }
 

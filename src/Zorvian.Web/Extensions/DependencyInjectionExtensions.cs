@@ -125,6 +125,7 @@ public static class DependencyInjectionExtensions
 
         // Branches
         services.AddScoped<IBranchRepository, BranchRepository>();
+        services.AddScoped<IBranchValidator, BranchValidator>();
 
         // Commercial
         services.AddScoped<IClientRepository, ClientRepository>();

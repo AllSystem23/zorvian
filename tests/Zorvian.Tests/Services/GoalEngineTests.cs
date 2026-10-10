@@ -2,6 +2,7 @@ using Moq;
 using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services.GoalEngine;
 using Zorvian.Core.Entities;
+using Zorvian.Core.Interfaces;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace Zorvian.Tests.Services;
@@ -15,7 +16,8 @@ public sealed class GoalEngineTests
 
     public GoalEngineTests()
     {
-        _sut = new GoalEngine(_repo.Object, _evaluator.Object, _cache);
+        _sut = new GoalEngine(
+            _repo.Object, _evaluator.Object, _cache, Mock.Of<ITenantContextWriter>());
     }
 
     [Fact]

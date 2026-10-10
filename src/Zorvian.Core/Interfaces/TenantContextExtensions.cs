@@ -1,20 +1,37 @@
+using Zorvian.Core.Entities;
+
 namespace Zorvian.Core.Interfaces;
 
 /// <summary>
-/// Extensiones para resolver el CompanyId desde el TenantContext.
-/// Maneja correctamente al SuperAdmin cuyo TenantId no es un GUID válido (ej: "superadmin").
+/// Extensiones para resolver el alcance (compañía + sucursal) desde el TenantContext.
+/// Maneja correctamente al SuperAdmin cuyo TenantId puede no ser un GUID válido (ej: "superadmin").
 /// </summary>
 public static class TenantContextExtensions
 {
     /// <summary>
+    /// Compañía seleccionada, con fallback al propio TenantId cuando el contexto no expone
+    /// SelectedCompanyId (ej: mocks en tests que sólo stubbean TenantId).
+    /// En el contexto real SelectedCompanyId se deriva de TenantId, así que el resultado es idéntico.
+    /// </summary>
+    private static Guid? ResolveSelectionOrTenant(ITenantContext tenant)
+    {
+        if (tenant.SelectedCompanyId is { } id && id != Guid.Empty) return id;
+
+        var tenantId = tenant.TenantId;
+        if (tenantId is not null && tenantId.TryGetCompanyId(out var parsed) && parsed != Guid.Empty)
+            return parsed;
+
+        return null;
+    }
+
+    /// <summary>
     /// Resuelve el CompanyId para operaciones de LECTURA.
-    /// Para SuperAdmin sin empresa seleccionada, devuelve Guid.Empty (EF Core query filters manejan el bypass).
-    /// Para usuarios normales o SuperAdmin con empresa seleccionada, devuelve el GUID válido.
+    /// Devuelve la compañía seleccionada (también para SuperAdmin).
+    /// Si no hay selección y es SuperAdmin, devuelve Guid.Empty (los query filters manejan el bypass).
     /// </summary>
     public static Guid ResolveCompanyId(this ITenantContext tenant)
     {
-        if (tenant.TenantId.TryGetCompanyId(out var id) && id != Guid.Empty)
-            return id;
+        if (ResolveSelectionOrTenant(tenant) is { } id) return id;
 
         if (tenant.IsSuperAdmin)
             return Guid.Empty;
@@ -24,14 +41,12 @@ public static class TenantContextExtensions
 
     /// <summary>
     /// Resuelve el CompanyId para operaciones de ESCRITURA.
-    /// Para SuperAdmin, devuelve Guid.Empty para que los servicios manejen
-    /// el contexto según corresponda (ej: usar el CompanyId de la entidad padre).
-    /// Para usuarios normales sin empresa, lanza excepción.
+    /// Devuelve la compañía seleccionada; para SuperAdmin sin selección, Guid.Empty
+    /// para que los servicios usen el CompanyId de la entidad padre.
     /// </summary>
     public static Guid RequireCompanyId(this ITenantContext tenant)
     {
-        if (tenant.TenantId.TryGetCompanyId(out var id) && id != Guid.Empty)
-            return id;
+        if (ResolveSelectionOrTenant(tenant) is { } id) return id;
 
         if (tenant.IsSuperAdmin)
             return Guid.Empty;
@@ -40,13 +55,11 @@ public static class TenantContextExtensions
     }
 
     /// <summary>
-    /// Resuelve el CompanyId y lo convierte a string para consultas de tenant.
-    /// Para SuperAdmin, devuelve null (seleccionar empresa primero).
+    /// Resuelve el CompanyId como string para comparar contra el campo TenantId (string) de las entidades.
     /// </summary>
     public static string? ResolveTenantIdString(this ITenantContext tenant)
     {
-        if (tenant.TenantId.TryGetCompanyId(out var id) && id != Guid.Empty)
-            return id.ToString();
+        if (tenant.SelectedCompanyId is { } id) return id.ToString();
 
         if (tenant.IsSuperAdmin)
             return null;
@@ -55,10 +68,26 @@ public static class TenantContextExtensions
     }
 
     /// <summary>
+    /// CompanyId que debe usarse para filtrar lecturas (EF query filters y SQL crudo).
+    /// </summary>
+    public static Guid ResolveFilterCompanyId(this ITenantContext tenant)
+        => tenant.SelectedCompanyId ?? Guid.Empty;
+
+    /// <summary>
+    /// Sucursal seleccionada para lecturas/escrituras. null = todas las sucursales / no aplica.
+    /// </summary>
+    public static Guid? ResolveBranchId(this ITenantContext tenant)
+        => tenant.CurrentBranchId is { } b && b != Guid.Empty ? b : null;
+
+    /// <summary>
     /// Verifica si el usuario tiene un tenant/empresa válido configurado.
     /// </summary>
     public static bool HasValidCompany(this ITenantContext tenant)
-    {
-        return tenant.TenantId.TryGetCompanyId(out var id) && id != Guid.Empty;
-    }
+        => tenant.HasCompanySelection;
+
+    // NOTA: ValidateBranchOwnership (no-op, 0 referencias) fue eliminada en la
+    // remediación multi-tenant 2026-10: daba falsa sensación de validación.
+    // La validación real de sucursal contra BD vive en
+    // IBranchValidator.ResolveForWriteAsync (BranchValidator) y en
+    // TenantMiddleware.ResolveBranchAsync (header X-Branch-Id).
 }

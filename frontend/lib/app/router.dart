@@ -1151,6 +1151,9 @@ GoRouter buildGoRouter(AuthState authState) {
                 builder: (_, state) {
                   final extra = state.extra as Map<String, dynamic>?;
                   return QuickGenerateWizardPage(
+                    entityType: extra?['entityType'] as String?,
+                    entityId: extra?['entityId'] as String?,
+                    entityDisplayName: extra?['entityDisplayName'] as String?,
                     preselectedTemplateId: extra?['preselectedTemplateId'] as String?,
                   );
                 },

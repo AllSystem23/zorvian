@@ -253,7 +253,7 @@ public sealed class PurchaseOrderService
 
         // Generate accounting entry
         await _autoAccounting.GeneratePurchaseEntryAsync(
-            purchase.Id, purchase.Details.ToList(), purchase.Discount, purchase.Total, order.CountryCode);
+            purchase.Id, purchase.Details.ToList(), purchase.Discount, purchase.Total, order.CountryCode, branchId: purchase.BranchId);
 
         await _webhook.PublishAsync(order.TenantId, "purchase_order.received",
             new { PurchaseOrderId = order.Id, PurchaseId = purchase.Id, PurchaseNumber = purchase.PurchaseNumber });

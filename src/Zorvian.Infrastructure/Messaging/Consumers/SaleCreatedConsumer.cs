@@ -27,13 +27,15 @@ public sealed class SaleCreatedConsumer : IConsumer<SaleCreatedEvent>
             "SaleCreated event received: SaleId={SaleId}, Total={Total}, Items={ItemCount}",
             sale.SaleId, sale.Total, sale.Items.Count);
 
-        // ── Goal progress tracking ──
-        _jobClient.Enqueue<GoalIntegrationService>(
-            g => g.HandleNewSaleAsync(sale.SaleId, sale.Total));
-
-        // ── Commission processing ──
         if (sale.EmployeeId.HasValue)
         {
+            // ── Goal progress tracking ──
+            // El destinatario es el VENDEDOR (salespersonId), no la venta: antes se
+            // pasaba sale.Id y el progreso de metas se registraba contra un GUID inexistente.
+            _jobClient.Enqueue<GoalIntegrationService>(
+                g => g.HandleNewSaleAsync(sale.EmployeeId.Value, sale.Total));
+
+            // ── Commission processing ──
             _jobClient.Enqueue<CommissionService>(
                 c => c.ProcessCommissionForSaleAsync(
                     sale.SaleId,
@@ -45,7 +47,7 @@ public sealed class SaleCreatedConsumer : IConsumer<SaleCreatedEvent>
         else
         {
             _logger.LogDebug(
-                "SaleId={SaleId} has no EmployeeId — skipping commission processing",
+                "SaleId={SaleId} has no EmployeeId — skipping goal/commission processing",
                 sale.SaleId);
         }
 

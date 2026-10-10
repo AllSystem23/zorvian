@@ -23,6 +23,14 @@ public sealed class AccountingIntegrationTests : IDisposable
     private readonly AutoAccountingService _autoAccounting;
     private readonly Mock<IApprovalEngine> _approvalEngine = new();
 
+    // Pass-through: devuelve el BranchId pedido; la lógica de pertenencia se prueba en BranchValidatorTests.
+    private static Mock<IBranchValidator> CreateBranchValidator()
+    {
+        var mock = new Mock<IBranchValidator>();
+        mock.Setup(v => v.ResolveForWriteAsync(It.IsAny<Guid?>())).ReturnsAsync((Guid? b) => b);
+        return mock;
+    }
+
     public AccountingIntegrationTests()
     {
         var tenantId = _companyId.ToString();
@@ -50,7 +58,7 @@ public sealed class AccountingIntegrationTests : IDisposable
 
         _autoAccounting = new AutoAccountingService(
             new EntryRepo(_db, _companyId), periodRepo.Object, new LinkRepo(_db), ruleRepo.Object,
-            new AccRepo(_db), _tenant.Object, payrollRepo.Object, new CashMovementRepo(_db), new AccountingRuleTemplateRepository(_db), new CompanyRepository(_db), new Mock<IFiscalYearRepository>().Object, new Mock<ICountryTaxConfigRepository>().Object);
+            new AccRepo(_db), _tenant.Object, payrollRepo.Object, new CashMovementRepo(_db), new AccountingRuleTemplateRepository(_db), new CompanyRepository(_db, _tenant.Object), new Mock<IFiscalYearRepository>().Object, new Mock<ICountryTaxConfigRepository>().Object);
 
         _approvalEngine.Setup(e => e.EvaluateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<string>()))
             .ReturnsAsync(new Zorvian.Application.DTOs.Approval.ApprovalEvaluationResult(false, null, null));
@@ -84,7 +92,7 @@ public sealed class AccountingIntegrationTests : IDisposable
             saleRepo, productRepo, movementRepo, new Mock<ICompanyRepository>().Object,
             clientRepo, new Mock<ICreditRepository>().Object,
             _autoAccounting, new Mock<IWebhookService>().Object, _tenant.Object, mapper.Object, new Mock<IGoalIntegrationService>().Object,
-            periodRepo.Object, new Mock<IPublishEndpoint>().Object);
+            periodRepo.Object, new Mock<IPublishEndpoint>().Object, CreateBranchValidator().Object);
 
         var result = await saleService.CreateCashSaleAsync(new CreateCashSaleRequest(
             client.Id, Guid.NewGuid(), 0, null, _branchId,
@@ -101,6 +109,7 @@ public sealed class AccountingIntegrationTests : IDisposable
         {
             Assert.Equal("Sale", entry.ReferenceType);
             Assert.Equal(entry.TotalDebit, entry.TotalCredit);
+            Assert.Equal(_branchId, entry.BranchId);
         }
     }
 
@@ -150,6 +159,112 @@ public sealed class AccountingIntegrationTests : IDisposable
     }
 
     [Fact]
+    public async Task GenerateSaleEntryAsync_WithExplicitBranch_ShouldStampEntryBranchId()
+    {
+        var product = SeedProduct(SeedTaxCategory(0.15m));
+        var saleId = Guid.NewGuid();
+        var detail = new SaleDetail
+        {
+            Id = Guid.NewGuid(),
+            SaleId = saleId,
+            ProductId = product.Id,
+            Product = product,
+            Quantity = 1,
+            UnitPrice = 100,
+            Discount = 0,
+            Subtotal = 100,
+            TenantId = _companyId.ToString(),
+            CompanyId = _companyId,
+        };
+
+        await _autoAccounting.GenerateSaleEntryAsync(saleId, [detail], 0, 115, "cash", branchId: _branchId);
+
+        var entry = _db.Set<AccountingEntry>().First(e => e.ReferenceId == saleId);
+        Assert.Equal(_branchId, entry.BranchId);
+    }
+
+    [Fact]
+    public async Task GenerateSaleEntryAsync_WithoutBranch_ShouldLeaveBranchIdNull()
+    {
+        var product = SeedProduct(SeedTaxCategory(0.15m));
+        var saleId = Guid.NewGuid();
+        var detail = new SaleDetail
+        {
+            Id = Guid.NewGuid(),
+            SaleId = saleId,
+            ProductId = product.Id,
+            Product = product,
+            Quantity = 1,
+            UnitPrice = 100,
+            Discount = 0,
+            Subtotal = 100,
+            TenantId = _companyId.ToString(),
+            CompanyId = _companyId,
+        };
+
+        await _autoAccounting.GenerateSaleEntryAsync(saleId, [detail], 0, 115, "cash");
+
+        var entry = _db.Set<AccountingEntry>().First(e => e.ReferenceId == saleId);
+        Assert.Null(entry.BranchId);
+    }
+
+    [Fact]
+    public async Task AccountingEntryRepository_GetFiltered_ShouldFilterByBranch()
+    {
+        var branchA = Guid.NewGuid();
+        var branchB = Guid.NewGuid();
+        var periodId = Guid.NewGuid();
+
+        AccountingEntry MakeEntry(string number, Guid? branch) => new()
+        {
+            Id = Guid.NewGuid(),
+            EntryNumber = number,
+            EntryDate = DateTime.UtcNow,
+            Description = "Test entry",
+            ReferenceType = "Sale",
+            Status = "posted",
+            AccountingPeriodId = periodId,
+            BranchId = branch,
+            TotalDebit = 100,
+            TotalCredit = 100,
+            TenantId = _companyId.ToString(),
+            CompanyId = _companyId,
+        };
+
+        var entryA = MakeEntry("AS-A", branchA);
+        var entryB = MakeEntry("AS-B", branchB);
+        var entryC = MakeEntry("AS-C", null);
+        // El repo hace Include(AccountingPeriod) con nav requerida: el período debe existir.
+        _db.Set<AccountingPeriod>().Add(new AccountingPeriod
+        {
+            Id = periodId,
+            Year = DateTime.UtcNow.Year,
+            Month = DateTime.UtcNow.Month,
+            Name = "Test",
+            Status = "open",
+            TenantId = _companyId.ToString(),
+            CompanyId = _companyId,
+        });
+        _db.Set<AccountingEntry>().AddRange(entryA, entryB, entryC);
+        await _db.SaveChangesAsync();
+
+        var repo = new AccountingEntryRepository(_db);
+
+        var filtered = await repo.GetFilteredAsync(null, null, "posted", null, null, _companyId, 1, 10, branchA);
+        Assert.Single(filtered);
+        Assert.Equal(entryA.Id, filtered[0].Id);
+
+        var countA = await repo.GetFilteredCountAsync(null, null, "posted", null, null, _companyId, branchA);
+        Assert.Equal(1, countA);
+
+        var allByNull = await repo.GetFilteredAsync(null, null, "posted", null, null, _companyId, 1, 10, null);
+        Assert.Equal(3, allByNull.Count);
+
+        var allByEmpty = await repo.GetFilteredAsync(null, null, "posted", null, null, _companyId, 1, 10, Guid.Empty);
+        Assert.Equal(3, allByEmpty.Count);
+    }
+
+    [Fact]
     public async Task CreditPayment_FullCycle_ShouldGeneratePaymentEntry()
     {
         var client = SeedClient();
@@ -183,7 +298,8 @@ public sealed class AccountingIntegrationTests : IDisposable
             new Mock<ICreditRefinancingRepository>().Object,
             new Mock<ICompanyRepository>().Object,
             new Mock<ISaleRepository>().Object,
-            _autoAccounting, _tenant.Object, mapper.Object,
+            _autoAccounting, _tenant.Object,
+            new Mock<Zorvian.Core.Interfaces.ITenantContextWriter>().Object, mapper.Object,
             new Mock<IPublishEndpoint>().Object);
 
         var result = await creditService.RegisterPaymentAsync(new CreateCreditPaymentRequest(
@@ -214,7 +330,7 @@ public sealed class AccountingIntegrationTests : IDisposable
             purchaseRepo, productRepo, movementRepo, companyRepoMock.Object,
             supplierRepo, _autoAccounting, new Mock<IWebhookService>().Object, _tenant.Object,
             new Mock<AutoMapper.IMapper>().Object, _approvalEngine.Object,
-            new Mock<IPublishEndpoint>().Object);
+            new Mock<IPublishEndpoint>().Object, CreateBranchValidator().Object);
 
         var result = await purchaseService.CreateAsync(new CreatePurchaseRequest(
             supplier.Id, DateTime.UtcNow, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30)),
@@ -246,7 +362,7 @@ public sealed class AccountingIntegrationTests : IDisposable
             purchaseRepo, productRepo, movementRepo, companyRepoMock.Object,
             supplierRepo, _autoAccounting, new Mock<IWebhookService>().Object, _tenant.Object,
             new Mock<AutoMapper.IMapper>().Object, _approvalEngine.Object,
-            new Mock<IPublishEndpoint>().Object);
+            new Mock<IPublishEndpoint>().Object, CreateBranchValidator().Object);
 
         var purchase = await purchaseService.CreateAsync(new CreatePurchaseRequest(
             supplier.Id, DateTime.UtcNow, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(30)),
@@ -451,8 +567,8 @@ public sealed class AccountingIntegrationTests : IDisposable
             if (toDate.HasValue) query = query.Where(e => e.EntryDate < toDate.Value);
             return query.ToListAsync();
         }
-        public Task<List<AccountingEntry>> GetFilteredAsync(Guid? companyId, string? status, string? referenceType, DateTime? fromDate, DateTime? toDate, Guid branchId, int page, int pageSize) => throw new NotImplementedException();
-        public Task<int> GetFilteredCountAsync(Guid? companyId, string? status, string? referenceType, DateTime? fromDate, DateTime? toDate, Guid branchId)
+        public Task<List<AccountingEntry>> GetFilteredAsync(Guid? companyId, string? status, string? referenceType, DateTime? fromDate, DateTime? toDate, Guid branchId, int page, int pageSize, Guid? entryBranchId = null) => throw new NotImplementedException();
+        public Task<int> GetFilteredCountAsync(Guid? companyId, string? status, string? referenceType, DateTime? fromDate, DateTime? toDate, Guid branchId, Guid? entryBranchId = null)
         {
             var query = db.Set<AccountingEntry>().AsQueryable();
             if (companyId.HasValue) query = query.Where(e => e.CompanyId == companyId.Value);

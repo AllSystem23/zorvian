@@ -15,8 +15,9 @@ public interface IDocumentService
     /// <param name="templateId">ID de la plantilla base.</param>
     /// <param name="entityId">ID del registro relacionado (Empleado, Venta, etc).</param>
     /// <param name="variableData">Objeto con los datos para inyectar en la plantilla (Model).</param>
+    /// <param name="entityType">Tipo real de la entidad (employee, sale, client). Si se omite se usa el módulo de la plantilla.</param>
     /// <returns>El documento generado con su primera versión.</returns>
-    Task<GeneratedDocument> GenerateProfessionalDocumentAsync(Guid templateId, Guid entityId, object variableData);
+    Task<GeneratedDocument> GenerateProfessionalDocumentAsync(Guid templateId, Guid entityId, object variableData, string? entityType = null);
 
     /// <summary>
     /// Procesa el ciclo de vida del documento en un solo paso (Aprobar y Preparar Firma).

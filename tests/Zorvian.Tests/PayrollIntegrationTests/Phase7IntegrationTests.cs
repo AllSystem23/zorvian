@@ -116,7 +116,7 @@ public class Phase7IntegrationTests
         // ASSERT
         Assert.Equal("approved", run.Status);
         Assert.All(run.ApprovalSteps, s => Assert.Equal("approved", s.Status));
-        _mockAutoAccounting.Verify(a => a.GeneratePayrollEntryAsync(runId), Times.Once);
+        _mockAutoAccounting.Verify(a => a.GeneratePayrollEntryAsync(runId, It.IsAny<Guid?>()), Times.Once);
     }
 
     [Fact]

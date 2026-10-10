@@ -17,7 +17,7 @@ public sealed class DashboardRepository : IDashboardRepository
         _tenant = tenant;
     }
 
-    private bool NeedsBypass => _tenant.TenantId.Value == Guid.Empty || _tenant.IsSuperAdmin;
+    private bool NeedsBypass => _tenant.TenantId.Value == Guid.Empty || _tenant.BypassTenantFilter;
 
     private IQueryable<T> Query<T>() where T : class
     {

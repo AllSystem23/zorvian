@@ -1,12 +1,18 @@
 using System.Collections.Concurrent;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.DependencyInjection;
+using Zorvian.Core.Interfaces;
 
 namespace Zorvian.Web.Filters;
 
 /// <summary>
 /// Attribute that ensures idempotency for write operations (POST/PUT/PATCH).
 /// Uses an in-memory cache with TTL. Clients must send X-Idempotency-Key header.
+/// La cache key incluye el tenant activo: sin él, la misma X-Idempotency-Key
+/// de dos compañías distintas se solaparía y devolvería la respuesta del
+/// otro tenant (leak cross-tenant).
 /// </summary>
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, AllowMultiple = false)]
 public class IdempotentAttribute : Attribute, IAsyncActionFilter
@@ -45,7 +51,9 @@ public class IdempotentAttribute : Attribute, IAsyncActionFilter
             return;
         }
 
-        if (_cache.TryGetValue(idempotencyKey, out var cached))
+        var cacheKey = BuildCacheKey(context.HttpContext, idempotencyKey);
+
+        if (_cache.TryGetValue(cacheKey, out var cached))
         {
             // Return cached response
             context.Result = new ObjectResult(cached.Body)
@@ -62,13 +70,23 @@ public class IdempotentAttribute : Attribute, IAsyncActionFilter
         // Cache the response
         if (resultContext.Result is ObjectResult objectResult)
         {
-            _cache[idempotencyKey] = new CachedResponse
+            _cache[cacheKey] = new CachedResponse
             {
                 StatusCode = objectResult.StatusCode ?? 200,
                 Body = objectResult.Value,
                 Timestamp = DateTime.UtcNow,
             };
         }
+    }
+
+    private static string BuildCacheKey(HttpContext httpContext, string idempotencyKey)
+    {
+        var tenant = httpContext.RequestServices.GetService<ITenantContext>();
+        var tenantId = tenant?.TenantId?.ToString() ?? string.Empty;
+        var request = httpContext.Request;
+
+        // Tenant + método + path: una misma key no debe cruzar compañías ni endpoints.
+        return $"{tenantId}|{request.Method}|{request.Path}|{idempotencyKey}";
     }
 
     private sealed class CachedResponse

@@ -33,10 +33,10 @@ public sealed class PipelineStagesController : ControllerBase
     public async Task<IActionResult> GetStages()
     {
         var companyId = _tenantContext.TenantId.Value;
-        var stages = await _db.PipelineStages
-            .Where(s => s.CompanyId == companyId || _tenantContext.IsSuperAdmin)
-            .OrderBy(s => s.Order)
-            .ToListAsync();
+            var stages = await _db.PipelineStages
+                .Where(s => s.CompanyId == companyId || _tenantContext.BypassTenantFilter)
+                .OrderBy(s => s.Order)
+                .ToListAsync();
         
         if (!stages.Any())
         {

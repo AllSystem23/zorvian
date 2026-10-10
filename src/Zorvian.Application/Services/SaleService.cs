@@ -25,6 +25,7 @@ public sealed class SaleService
     private readonly IGoalIntegrationService _goalIntegration;
     private readonly IAccountingPeriodRepository _periodRepo;
     private readonly IPublishEndpoint _publishEndpoint;
+    private readonly IBranchValidator _branchValidator;
 
     public SaleService(
         ISaleRepository saleRepo,
@@ -39,7 +40,8 @@ public sealed class SaleService
         IMapper mapper,
         IGoalIntegrationService goalIntegration,
         IAccountingPeriodRepository periodRepo,
-        IPublishEndpoint publishEndpoint)
+        IPublishEndpoint publishEndpoint,
+        IBranchValidator branchValidator)
     {
         _saleRepo = saleRepo;
         _productRepo = productRepo;
@@ -54,12 +56,15 @@ public sealed class SaleService
         _goalIntegration = goalIntegration;
         _periodRepo = periodRepo;
         _publishEndpoint = publishEndpoint;
+        _branchValidator = branchValidator;
     }
 
     public async Task<SaleResponse> CreateCashSaleAsync(CreateCashSaleRequest request)
     {
         if (!Guid.TryParse(_tenant.TenantId, out var companyId))
             throw new InvalidOperationException("Tenant not configured");
+
+        var branchId = await _branchValidator.ResolveForWriteAsync(request.BranchId) ?? Guid.Empty;
 
         var openPeriod = await _periodRepo.GetCurrentOpenAsync(companyId);
         if (openPeriod is null)
@@ -109,6 +114,7 @@ public sealed class SaleService
             sale.Total = total;
             sale.PaidAmount = total;
             sale.Balance = 0;
+            sale.BranchId = branchId;
 
             var totalCost = 0m;
             foreach (var detail in request.Details)
@@ -136,7 +142,7 @@ public sealed class SaleService
                     UnitPrice = d.UnitPrice,
                     Discount = d.Discount,
                     Subtotal = d.Quantity * d.UnitPrice - d.Discount,
-                    BranchId = request.BranchId,
+                    BranchId = branchId,
                 });
             }
             sale.Details = saleDetails;
@@ -151,7 +157,7 @@ public sealed class SaleService
                     ReferenceNumber = request.Payment.ReferenceNumber,
                     PaymentDate = DateTime.UtcNow,
                     CashRegisterId = request.Payment.CashRegisterId,
-                    BranchId = request.BranchId,
+                    BranchId = branchId,
                 }
             };
 
@@ -172,7 +178,7 @@ public sealed class SaleService
                     UnitCost = product.CostPrice,
                     ReferenceNumber = sale.InvoiceNumber,
                     PerformedByEmployeeId = request.EmployeeId,
-                    BranchId = request.BranchId,
+                    BranchId = branchId,
                 };
                 await _movementRepo.AddAsync(movement);
             }
@@ -180,8 +186,8 @@ public sealed class SaleService
             await _saleRepo.SaveChangesAsync();
 
             await _autoAccounting.GenerateSaleEntryAsync(
-                sale.Id, sale.Details.ToList(), request.Discount, request.Payment.Amount, "cash");
-            await _autoAccounting.GenerateCostOfSaleEntryAsync(sale.Id, totalCost);
+                sale.Id, sale.Details.ToList(), request.Discount, request.Payment.Amount, "cash", branchId: branchId);
+            await _autoAccounting.GenerateCostOfSaleEntryAsync(sale.Id, totalCost, branchId: branchId);
 
             // Registro de meta
             await _goalIntegration.HandleNewSaleAsync(request.EmployeeId, total);
@@ -225,6 +231,8 @@ public sealed class SaleService
     {
         if (!Guid.TryParse(_tenant.TenantId, out var companyId))
             throw new InvalidOperationException("Tenant not configured");
+
+        var branchId = await _branchValidator.ResolveForWriteAsync(request.BranchId) ?? Guid.Empty;
 
         var openPeriod = await _periodRepo.GetCurrentOpenAsync(companyId);
         if (openPeriod is null)
@@ -271,8 +279,8 @@ public sealed class SaleService
 
             if (client.CreditLimit.HasValue)
             {
-                var activeCredits = await _creditRepo.GetFilteredAsync(request.ClientId, "active", null, request.BranchId, 1, int.MaxValue);
-                activeCredits.AddRange(await _creditRepo.GetFilteredAsync(request.ClientId, "overdue", null, request.BranchId, 1, int.MaxValue));
+                var activeCredits = await _creditRepo.GetFilteredAsync(request.ClientId, "active", null, branchId, 1, int.MaxValue);
+                activeCredits.AddRange(await _creditRepo.GetFilteredAsync(request.ClientId, "overdue", null, branchId, 1, int.MaxValue));
                 var currentExposure = activeCredits.Sum(c => c.Balance);
                 if (currentExposure + financedAmount > client.CreditLimit.Value)
                     throw new InvalidOperationException(
@@ -290,6 +298,7 @@ public sealed class SaleService
             sale.PaidAmount = request.DownPayment;
             sale.Balance = financedAmount;
             sale.Status = SaleStatus.Pending;
+            sale.BranchId = branchId;
 
             var totalCost = 0m;
             foreach (var detail in request.Details)
@@ -317,7 +326,7 @@ public sealed class SaleService
                     UnitPrice = d.UnitPrice,
                     Discount = d.Discount,
                     Subtotal = d.Quantity * d.UnitPrice - d.Discount,
-                    BranchId = request.BranchId,
+                    BranchId = branchId,
                 });
             }
             sale.Details = saleDetails;
@@ -332,7 +341,7 @@ public sealed class SaleService
                         Amount = request.DownPayment,
                         PaymentMethod = "cash",
                         PaymentDate = DateTime.UtcNow,
-                        BranchId = request.BranchId,
+                        BranchId = branchId,
                     }
                 };
             }
@@ -355,7 +364,7 @@ public sealed class SaleService
                 EndDate = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(request.InstallmentCount)),
                 NextDueDate = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(1)),
                 Status = "active",
-                BranchId = request.BranchId,
+                BranchId = branchId,
             };
 
             for (int i = 1; i <= request.InstallmentCount; i++)
@@ -371,7 +380,7 @@ public sealed class SaleService
                     PaidAmount = 0,
                     Balance = installmentAmount,
                     Status = "pending",
-                    BranchId = request.BranchId,
+                    BranchId = branchId,
                 });
             }
 
@@ -394,7 +403,7 @@ public sealed class SaleService
                     UnitCost = product.CostPrice,
                     ReferenceNumber = sale.InvoiceNumber,
                     PerformedByEmployeeId = request.EmployeeId,
-                    BranchId = request.BranchId,
+                    BranchId = branchId,
                 };
                 await _movementRepo.AddAsync(movement);
             }
@@ -402,8 +411,8 @@ public sealed class SaleService
             await _saleRepo.SaveChangesAsync();
 
             await _autoAccounting.GenerateSaleEntryAsync(
-                sale.Id, sale.Details.ToList(), request.Discount, request.DownPayment, "credit");
-            await _autoAccounting.GenerateCostOfSaleEntryAsync(sale.Id, totalCost);
+                sale.Id, sale.Details.ToList(), request.Discount, request.DownPayment, "credit", branchId: branchId);
+            await _autoAccounting.GenerateCostOfSaleEntryAsync(sale.Id, totalCost, branchId: branchId);
 
             // Registro de meta
             await _goalIntegration.HandleNewSaleAsync(request.EmployeeId, total);
@@ -454,8 +463,9 @@ public sealed class SaleService
         var page = filter.Page ?? 1;
         var pageSize = filter.PageSize ?? 20;
 
-        var items = await _saleRepo.GetFilteredAsync(filter.ClientId, filter.SaleType, filter.Status, filter.FromDate, filter.ToDate, filter.Search, Guid.Empty, page, pageSize);
-        var total = await _saleRepo.GetFilteredCountAsync(filter.ClientId, filter.SaleType, filter.Status, filter.FromDate, filter.ToDate, filter.Search, Guid.Empty);
+        var branchId = _tenant.ResolveBranchId() ?? Guid.Empty;
+        var items = await _saleRepo.GetFilteredAsync(filter.ClientId, filter.SaleType, filter.Status, filter.FromDate, filter.ToDate, filter.Search, branchId, page, pageSize);
+        var total = await _saleRepo.GetFilteredCountAsync(filter.ClientId, filter.SaleType, filter.Status, filter.FromDate, filter.ToDate, filter.Search, branchId);
 
         return new PagedResult<SaleListResponse>(
             _mapper.Map<List<SaleListResponse>>(items),
@@ -490,9 +500,9 @@ public sealed class SaleService
 
             // Reverse sale accounting entries
             await _autoAccounting.ReverseSaleEntryAsync(
-                sale.Id, sale.Details.ToList(), sale.Discount, sale.SaleType);
+                sale.Id, sale.Details.ToList(), sale.Discount, sale.SaleType, branchId: sale.BranchId);
             await _autoAccounting.GenerateCostOfSaleEntryAsync(
-                sale.Id, -(sale.Details.Sum(d => d.Quantity * (d.Product?.CostPrice ?? 0))));
+                sale.Id, -(sale.Details.Sum(d => d.Quantity * (d.Product?.CostPrice ?? 0))), branchId: sale.BranchId);
 
             await _saleRepo.CommitTransactionAsync();
 

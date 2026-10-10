@@ -42,7 +42,14 @@ public sealed class ApiKeyService
         var prefix = rawKey[..8];
         var hash = HashKey(rawKey);
 
+        // IgnoreQueryFilters: esta validación corre en ApiKeyMiddleware ANTES
+        // de que TenantMiddleware resuelva el tenant (contexto aún en GUID-cero),
+        // por lo que el query filter de ApiKey no matchearía ninguna key y el
+        // endpoint devolvería 401 siempre. La búsqueda por hash criptográfico
+        // (SHA-256 + prefix) es unívoca y la key ES la credencial; el
+        // aislamiento posterior lo da el tenant seteado desde la key validada.
         var apiKey = await _db.Set<Core.Entities.ApiKey>()
+            .IgnoreQueryFilters()
             .FirstOrDefaultAsync(k => k.Prefix == prefix && k.KeyHash == hash && k.IsActive);
 
         if (apiKey == null) return null;

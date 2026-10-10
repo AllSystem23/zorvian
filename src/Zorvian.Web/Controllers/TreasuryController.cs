@@ -4,6 +4,7 @@ using Zorvian.Application.DTOs.Treasury;
 using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
 using Zorvian.Core.Entities;
+using Zorvian.Core.Interfaces;
 using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers;
@@ -16,12 +17,14 @@ public sealed class TreasuryController : ControllerBase
     private readonly ITreasuryService _treasury;
     private readonly IAutoAccountingService _accounting;
     private readonly ITreasuryDashboardService _dashboard;
+    private readonly ITenantContext _tenant;
 
-    public TreasuryController(ITreasuryService treasury, IAutoAccountingService accounting, ITreasuryDashboardService dashboard)
+    public TreasuryController(ITreasuryService treasury, IAutoAccountingService accounting, ITreasuryDashboardService dashboard, ITenantContext tenant)
     {
         _treasury = treasury;
         _accounting = accounting;
         _dashboard = dashboard;
+        _tenant = tenant;
     }
 
     [HttpGet("dashboard-summary")]
@@ -62,7 +65,7 @@ public sealed class TreasuryController : ControllerBase
     {
         var entryId = await _accounting.GenerateCheckEntryAsync(
             request.CheckId, request.Amount, request.CheckType,
-            request.BankAccountId, request.PayeeId, request.CostCenterId);
+            request.BankAccountId, request.PayeeId, request.CostCenterId, branchId: _tenant.ResolveBranchId());
         return Ok(new TreasuryEntryResponse(entryId, "Asiento contable de cheque generado"));
     }
 
@@ -70,7 +73,7 @@ public sealed class TreasuryController : ControllerBase
     public async Task<IActionResult> GenerateBankDepositEntry([FromBody] GenerateBankDepositRequest request)
     {
         var entryId = await _accounting.GenerateBankDepositEntryAsync(
-            request.BankMovementId, request.Amount, request.BankAccountId, request.CostCenterId);
+            request.BankMovementId, request.Amount, request.BankAccountId, request.CostCenterId, branchId: _tenant.ResolveBranchId());
         return Ok(new TreasuryEntryResponse(entryId, "Asiento contable de depósito generado"));
     }
 
@@ -78,7 +81,7 @@ public sealed class TreasuryController : ControllerBase
     public async Task<IActionResult> GenerateBankTransferEntry([FromBody] GenerateBankTransferRequest request)
     {
         var entryId = await _accounting.GenerateBankTransferEntryAsync(
-            request.BankMovementId, request.Amount, request.FromAccountId, request.ToAccountId, request.CostCenterId);
+            request.BankMovementId, request.Amount, request.FromAccountId, request.ToAccountId, request.CostCenterId, branchId: _tenant.ResolveBranchId());
         return Ok(new TreasuryEntryResponse(entryId, "Asiento contable de transferencia generado"));
     }
 
@@ -86,7 +89,7 @@ public sealed class TreasuryController : ControllerBase
     public async Task<IActionResult> GenerateBankCommissionEntry([FromBody] GenerateBankCommissionRequest request)
     {
         var entryId = await _accounting.GenerateBankCommissionEntryAsync(
-            request.BankMovementId, request.Commission, request.BankAccountId, request.CostCenterId);
+            request.BankMovementId, request.Commission, request.BankAccountId, request.CostCenterId, branchId: _tenant.ResolveBranchId());
         return Ok(new TreasuryEntryResponse(entryId, "Asiento contable de comisión generado"));
     }
 
@@ -94,7 +97,7 @@ public sealed class TreasuryController : ControllerBase
     public async Task<IActionResult> GenerateCollectionEntry([FromBody] GenerateCollectionRequest request)
     {
         var entryId = await _accounting.GenerateCollectionEntryAsync(
-            request.PaymentId, request.Amount, request.Interest, request.LateFee, request.InvoiceId, request.CostCenterId);
+            request.PaymentId, request.Amount, request.Interest, request.LateFee, request.InvoiceId, request.CostCenterId, branchId: _tenant.ResolveBranchId());
         return Ok(new TreasuryEntryResponse(entryId, "Asiento contable de cobranza generado"));
     }
 
@@ -102,7 +105,7 @@ public sealed class TreasuryController : ControllerBase
     public async Task<IActionResult> GenerateAdvanceEntry([FromBody] GenerateAdvanceToSupplierRequest request)
     {
         var entryId = await _accounting.GenerateAdvanceToSupplierEntryAsync(
-            request.AdvanceId, request.Amount, request.SupplierId, request.CostCenterId);
+            request.AdvanceId, request.Amount, request.SupplierId, request.CostCenterId, branchId: _tenant.ResolveBranchId());
         return Ok(new TreasuryEntryResponse(entryId, "Asiento contable de anticipo generado"));
     }
 
@@ -110,7 +113,7 @@ public sealed class TreasuryController : ControllerBase
     public async Task<IActionResult> GenerateAdvanceApplicationEntry([FromBody] GenerateSupplierAdvanceApplicationRequest request)
     {
         var entryId = await _accounting.GenerateSupplierAdvanceApplicationEntryAsync(
-            request.ApplicationId, request.Amount, request.AdvanceId, request.PurchaseId, request.CostCenterId);
+            request.ApplicationId, request.Amount, request.AdvanceId, request.PurchaseId, request.CostCenterId, branchId: _tenant.ResolveBranchId());
         return Ok(new TreasuryEntryResponse(entryId, "Asiento contable de aplicación de anticipo generado"));
     }
 }

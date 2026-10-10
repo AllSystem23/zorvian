@@ -20,7 +20,12 @@ public sealed class SalesPredictionTrainingJob
     {
         var twoYearsAgo = DateTime.UtcNow.AddYears(-2).Date;
 
+        // Bypass documentado: el modelo de forecasting es GLOBAL (una sola
+        // instancia ML.NET por proceso) y sólo consume agregados diarios de totales
+        // (día de la semana, montos) sin PII. Entrenarlo con filtro dejaría el job
+        // en no-op permanente (contexto de tenant = GUID-cero en Hangfire).
         var sales = await _db.Sales
+            .IgnoreQueryFilters()
             .Where(s => s.SaleDate >= twoYearsAgo && !s.IsDeleted)
             .OrderBy(s => s.SaleDate)
             .ToListAsync();

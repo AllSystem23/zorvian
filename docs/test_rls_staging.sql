@@ -27,9 +27,9 @@ INSERT INTO expected_rls_tables VALUES
     ('Clients'), ('Products'), ('InventoryMovements'), ('Purchases'),
     ('Suppliers'), ('Credits'), ('CashMovements'),
     ('AccountingEntries'), ('AccountingEntryDetails'), ('Warranties'),
-    -- Phase 2: Fleet (30)
-    ('FleetVehicles'), ('FleetDrivers'), ('FleetRoutes'), ('FleetRoutePoints'),
-    ('FleetDeliveries'), ('FleetDeliveryItems'), ('FleetTrips'),
+    -- Phase 2: Fleet & Logistics (30) — real table names (no "Fleet" prefix)
+    ('Vehicles'), ('Drivers'), ('Routes'), ('RoutePoints'),
+    ('Deliveries'), ('DeliveryItems'), ('Trips'),
     ('FuelRefills'), ('WorkOrders'), ('WorkOrderParts'), ('Workshops'),
     ('FleetExpenses'), ('ExpenseCategories'), ('ExpenseSubcategories'),
     ('GpsPositions'), ('Geofences'), ('VehicleGeofenceStates'),
@@ -37,22 +37,27 @@ INSERT INTO expected_rls_tables VALUES
     ('DriverLicenseCategories'), ('DriverInfractions'), ('DriverTrainings'),
     ('FailureTypes'), ('MaintenanceTemplates'), ('MaintenanceSchedules'),
     ('FleetDocuments'), ('DocumentTypes'), ('FleetAlerts'), ('FleetAlertRules'),
-    -- Phase 3: Payroll (12)
+    -- Phase 3: Payroll & HR (13)
     ('AttendanceRecords'), ('VacationRequests'), ('SickLeaveRecords'),
     ('PayrollRuns'), ('PayrollDetails'), ('PayrollConcepts'),
     ('TerminationRecords'), ('PermissionRequests'),
-    ('EmployeeSalaries'), ('BenefitProvisions'), ('BonusRecords'), ('CommissionRecords'),
+    ('EmployeeSalaries'), ('BenefitProvisions'), ('BonusRecords'),
+    ('CommissionRecords'), ('OvertimeRecords'),
     -- Phase 4: Goals (8)
-    ('GoalDefinitions'), ('GoalAssignments'), ('GoalAssignmentProgressEntries'),
+    ('GoalDefinitions'), ('GoalAssignments'), ('GoalProgressEntries'),
     ('Incentives'), ('IncentivePayments'),
     ('KpiDefinitions'), ('KpiRecords'), ('Budgets'),
-    -- Phase 5: Treasury (8)
+    -- Phase 5: Treasury (9)
     ('Banks'), ('BankAccounts'), ('Checkbooks'), ('Checks'),
     ('CheckAuditTrails'), ('CheckPrintTemplates'),
-    ('CashRegisters'), ('CashRegisterArqueos'),
-    -- Phase 6: Purchases (5)
+    ('CashRegisters'), ('CashRegisterArqueos'), ('CashArqueoDenominations'),
+    -- Phase 7: Budgeting & Reconciliation (4)
+    ('Reconciliations'), ('ReconciliationDetails'),
+    ('BudgetDetails'), ('BudgetTrackings'),
+    -- Phase 6: Purchases & Suppliers (7)
     ('SupplierPayments'), ('SupplierCreditNotes'),
-    ('CreditNotes'), ('CreditNoteDetails'), ('PurchaseOrders');
+    ('CreditNotes'), ('CreditNoteDetails'), ('PurchaseOrders'),
+    ('PurchaseOrderDetails'), ('PurchaseDetails');
 
 SELECT
     e.tablename,

@@ -115,7 +115,8 @@ public sealed class CreditNoteService
             await _repo.AddAsync(creditNote);
             await _repo.SaveChangesAsync();
 
-            await _autoAccounting.GenerateCreditNoteEntryAsync(creditNote.Id, request.SaleId, sale.SaleType, details, totalSubtotal, totalTax);
+            await _autoAccounting.GenerateCreditNoteEntryAsync(creditNote.Id, request.SaleId, sale.SaleType, details, totalSubtotal, totalTax,
+                branchId: creditNote.BranchId == Guid.Empty ? null : creditNote.BranchId);
 
             await _saleRepo.CommitTransactionAsync();
 

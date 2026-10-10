@@ -1,9 +1,17 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/error/error_notifier.dart';
+import '../core/network/api_config.dart';
 import '../core/network/dio_client.dart';
+import '../core/offline/app_database.dart';
+import '../core/providers/company_branch_provider.dart';
 import '../core/providers/company_currency_provider.dart';
+import '../core/services/signalr_service.dart';
 import '../core/storage/secure_storage.dart';
+import '../features/credits/providers/credit_provider.dart';
+import '../features/dashboard/providers/dashboard_provider.dart';
 
 final secureStorageProvider = Provider<SecureStorage>((_) => SecureStorage());
 
@@ -24,6 +32,16 @@ final dioClientProvider = Provider<DioClient>((ref) {
     },
     onUnauthorized: () {
       ref.read(authProvider.notifier).logout();
+    },
+    // Alcance activo (compañía + sucursal) para que el backend filtre cada request.
+    // X-Tenant-Id es fallback del claim JWT; X-Branch-Id define el alcance de sucursal.
+    dynamicHeaders: () {
+      final tenantId = ref.read(authProvider).tenantId;
+      final branchId = ref.read(companyBranchProvider).branchId;
+      return {
+        'X-Tenant-Id': tenantId,
+        'X-Branch-Id': branchId,
+      };
     },
   );
 });
@@ -233,11 +251,42 @@ class AuthNotifier extends Notifier<AuthState> {
     }
   }
 
+  /// Limpia el caché offline (Drift): producto, cotizaciones, créditos y la
+  /// cola de mutaciones pendientes pertenecen a la empresa que se despide.
+  Future<void> _wipeLocalCache() async {
+    try {
+      final db = AppDatabase();
+      await db.clearAllData();
+      await db.close();
+    } catch (_) {
+      // Best-effort: si el wipe falla, el próximo sync lo rellena.
+    }
+  }
+
+  /// Invalida los providers keep-alive con estado de la empresa anterior.
+  void _invalidateScopeProviders() {
+    ref.invalidate(dashboardProvider);
+    ref.invalidate(creditProvider);
+    ref.invalidate(companyListProvider);
+    ref.invalidate(headerBranchListProvider);
+  }
+
   Future<void> logout() async {
     final storage = ref.read(secureStorageProvider);
     await storage.clearTokens();
     clearCachedCurrencyCode();
     await storage.saveCurrencyCode('NIO');
+    // El contexto de compañía/sucursal no debe heredarse al próximo login.
+    ref.read(companyBranchProvider.notifier).clearSelection();
+    // SignalR conserva el token viejo: cerrar la conexión evita
+    // notificaciones cross-tenant después del logout.
+    await ref.read(signalRProvider.notifier).disconnect();
+    // Caché local de la empresa que se despide. Corre sin await (best-effort)
+    // para no bloquear el logout si la BD aún no puede abrirse (p. ej.
+    // entornos de prueba); un wipe tardío solo borra filas, el sync posterior
+    // las rellena.
+    unawaited(_wipeLocalCache());
+    _invalidateScopeProviders();
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 
@@ -293,6 +342,26 @@ class AuthNotifier extends Notifier<AuthState> {
         employeeId: user['employeeId'],
         currencyCode: currencyCode,
       );
+      // El caché local y los providers keep-alive contienen datos de la
+      // empresa anterior: se descartan para no mostrar datos cross-tenant.
+      await _wipeLocalCache();
+      _invalidateScopeProviders();
+      // La sucursal seleccionada no aplica a la nueva compañía.
+      final scope = ref.read(companyBranchProvider);
+      if (scope.branchId != null && scope.companyId != tenantId) {
+        ref.read(companyBranchProvider.notifier).clearBranch();
+      }
+      // Reconectar SignalR: el hub conserva el token del tenant anterior.
+      try {
+        final token = await storage.getAccessToken();
+        if (token != null) {
+          await ref
+              .read(signalRProvider.notifier)
+              .connect(ApiConfig.originUrl, token);
+        }
+      } catch (_) {
+        // Best-effort: el dashboard relanza la conexión en su próximo build.
+      }
       return true;
     } catch (_) {
       return false;
