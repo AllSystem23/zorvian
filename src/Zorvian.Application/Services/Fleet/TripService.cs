@@ -2,22 +2,25 @@ using AutoMapper;
 using Zorvian.Application.DTOs.Fleet;
 using Zorvian.Application.Interfaces.Fleet;
 using Zorvian.Core.Entities.Fleet;
+using Zorvian.Core.Interfaces;
 namespace Zorvian.Application.Services.Fleet;
 
 public sealed class TripService
 {
     private readonly ITripRepository _repo;
+    private readonly ITenantContext _tenant;
     private readonly IMapper _mapper;
 
-    public TripService(ITripRepository repo, IMapper mapper)
+    public TripService(ITripRepository repo, ITenantContext tenant, IMapper mapper)
     {
         _repo = repo;
+        _tenant = tenant;
         _mapper = mapper;
     }
 
-    public async Task<List<TripResponse>> GetAllAsync()
+    public async Task<List<TripResponse>> GetAllAsync(Guid? branchId = null)
     {
-        var trips = await _repo.GetAllAsync();
+        var trips = await _repo.GetAllAsync(branchId ?? _tenant.ResolveBranchId());
         return _mapper.Map<List<TripResponse>>(trips);
     }
 

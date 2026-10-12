@@ -11,11 +11,12 @@ public sealed class TripRepository : ITripRepository
 
     public TripRepository(ZorvianDbContext db) => _db = db;
 
-    public async Task<List<Trip>> GetAllAsync() =>
+    public async Task<List<Trip>> GetAllAsync(Guid? branchId = null) =>
         await _db.Set<Trip>()
             .Include(t => t.Vehicle)
             .Include(t => t.Driver)
             .Include(t => t.CoDriver)
+            .ApplyBranchScopeTransitive(branchId, null, t => t.Vehicle.BranchId)
             .OrderByDescending(t => t.StartDateTime)
             .ToListAsync();
 

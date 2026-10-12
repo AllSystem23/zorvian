@@ -270,11 +270,12 @@ public sealed class PurchaseOrderService
 
     public async Task<(List<PurchaseOrderResponse> Items, int Total)> GetFilteredAsync(
         string? search, Guid? supplierId, string? status,
-        DateTime? fromDate, DateTime? toDate, Guid branchId,
+        DateTime? fromDate, DateTime? toDate, Guid? branchId,
         int page, int pageSize)
     {
+        var effectiveBranchId = branchId ?? _tenant.ResolveBranchId() ?? Guid.Empty;
         var (items, total) = await _poRepo.GetFilteredAsync(
-            search, supplierId, status, fromDate, toDate, branchId, page, pageSize);
+            search, supplierId, status, fromDate, toDate, effectiveBranchId, page, pageSize);
         var responses = items.Select(MapToResponse).ToList();
         return (responses, total);
     }

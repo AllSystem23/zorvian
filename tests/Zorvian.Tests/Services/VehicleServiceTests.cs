@@ -32,7 +32,7 @@ public sealed class VehicleServiceTests
             new() { Id = Guid.NewGuid(), Plate = "DEF-456", Status = "Maintenance" },
         };
 
-        _repo.Setup(r => r.GetAllAsync(_companyId)).ReturnsAsync(vehicles);
+        _repo.Setup(r => r.GetAllAsync(_companyId, It.IsAny<Guid?>())).ReturnsAsync(vehicles);
         _mapper.Setup(m => m.Map<List<VehicleResponse>>(vehicles)).Returns(
             vehicles.Select(v => new VehicleResponse(
                 v.Id, "V-001", v.Plate, Guid.NewGuid(), "Toyota", "Hilux", 2024,
@@ -44,7 +44,7 @@ public sealed class VehicleServiceTests
         var result = await _sut.GetAllAsync();
 
         result.Should().HaveCount(2);
-        _repo.Verify(r => r.GetAllAsync(_companyId), Times.Once);
+        _repo.Verify(r => r.GetAllAsync(_companyId, It.IsAny<Guid?>()), Times.Once);
     }
 
     [Fact]
@@ -55,7 +55,7 @@ public sealed class VehicleServiceTests
         var result = await _sut.GetAllAsync();
 
         result.Should().BeEmpty();
-        _repo.Verify(r => r.GetAllAsync(It.IsAny<Guid>()), Times.Never);
+        _repo.Verify(r => r.GetAllAsync(It.IsAny<Guid>(), It.IsAny<Guid?>()), Times.Never);
     }
 
     [Fact]
@@ -170,5 +170,40 @@ public sealed class VehicleServiceTests
         result.Should().BeTrue();
         _repo.Verify(r => r.DeleteAsync(vehicle), Times.Once);
         _repo.Verify(r => r.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_SinBranchNiContexto_PasaNullTodasLasSucursales()
+    {
+        _repo.Setup(r => r.GetAllAsync(_companyId, null)).ReturnsAsync(new List<Vehicle>());
+
+        await _sut.GetAllAsync();
+
+        _repo.Verify(r => r.GetAllAsync(_companyId, null), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_SinBranchEnFiltro_UsaSucursalDelContexto()
+    {
+        var contextBranch = Guid.NewGuid();
+        _tenant.Setup(t => t.CurrentBranchId).Returns(contextBranch);
+        _repo.Setup(r => r.GetAllAsync(_companyId, contextBranch)).ReturnsAsync(new List<Vehicle>());
+
+        await _sut.GetAllAsync();
+
+        _repo.Verify(r => r.GetAllAsync(_companyId, contextBranch), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_ConBranchEnFiltro_MandaSobreElContexto()
+    {
+        var contextBranch = Guid.NewGuid();
+        var filterBranch = Guid.NewGuid();
+        _tenant.Setup(t => t.CurrentBranchId).Returns(contextBranch);
+        _repo.Setup(r => r.GetAllAsync(_companyId, filterBranch)).ReturnsAsync(new List<Vehicle>());
+
+        await _sut.GetAllAsync(filterBranch);
+
+        _repo.Verify(r => r.GetAllAsync(_companyId, filterBranch), Times.Once);
     }
 }

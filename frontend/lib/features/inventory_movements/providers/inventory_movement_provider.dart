@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 
 final class InventoryMovementItem {
   final String id;
@@ -39,6 +40,7 @@ final class InventoryMovementItem {
 final class InventoryMovementNotifier extends AsyncNotifier<List<InventoryMovementItem>> {
   @override
   Future<List<InventoryMovementItem>> build() async {
+    ref.watch(branchScopeProvider);
     return _fetch();
   }
 

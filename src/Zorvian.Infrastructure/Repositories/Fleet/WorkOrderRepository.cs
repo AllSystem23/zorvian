@@ -11,13 +11,13 @@ public sealed class WorkOrderRepository : IWorkOrderRepository
 
     public WorkOrderRepository(ZorvianDbContext db) => _db = db;
 
-    public async Task<List<WorkOrder>> GetAllAsync(Guid companyId) =>
+    public async Task<List<WorkOrder>> GetAllAsync(Guid companyId, Guid? branchId = null) =>
         await _db.Set<WorkOrder>()
             .Include(w => w.Vehicle)
             .Include(w => w.Driver)
             .Include(w => w.FailureType)
             .Include(w => w.Workshop)
-            .Where(w => w.TenantId == companyId.ToString())
+            .ApplyBranchScopeTransitive(branchId, null, w => w.Vehicle.BranchId)
             .OrderByDescending(w => w.ReportDateTime)
             .ToListAsync();
 

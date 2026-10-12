@@ -77,6 +77,7 @@ public sealed record CreditFilterRequest(
     Guid? ClientId,
     string? Status,
     string? Search,
+    Guid? BranchId,
     int? Page = 1,
     int? PageSize = 20
 );

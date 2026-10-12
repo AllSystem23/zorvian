@@ -29,8 +29,7 @@ public sealed class PurchaseRepository : IPurchaseRepository
             .Include(p => p.Supplier)
             .AsQueryable();
 
-        if (branchId != Guid.Empty)
-            query = query.Where(p => p.BranchId == branchId);
+        query = query.ApplyBranchScope(branchId, p => p.BranchId);
 
         if (supplierId.HasValue)
             query = query.Where(p => p.SupplierId == supplierId.Value);
@@ -59,8 +58,7 @@ public sealed class PurchaseRepository : IPurchaseRepository
         var query = _db.Set<Purchase>()
             .Include(p => p.Supplier)
             .AsQueryable();
-        if (branchId != Guid.Empty)
-            query = query.Where(p => p.BranchId == branchId);
+        query = query.ApplyBranchScope(branchId, p => p.BranchId);
         if (supplierId.HasValue) query = query.Where(p => p.SupplierId == supplierId.Value);
         if (!string.IsNullOrWhiteSpace(status)) query = query.Where(p => p.Status == status);
         if (fromDate.HasValue) query = query.Where(p => p.CreatedAt >= fromDate.Value);
@@ -81,8 +79,7 @@ public sealed class PurchaseRepository : IPurchaseRepository
             .Include(p => p.Supplier)
             .Where(p => p.Balance > 0);
 
-        if (branchId != Guid.Empty)
-            query = query.Where(p => p.BranchId == branchId);
+        query = query.ApplyBranchScope(branchId, p => p.BranchId);
 
         return await query
             .OrderByDescending(p => p.DueDate)
@@ -93,8 +90,7 @@ public sealed class PurchaseRepository : IPurchaseRepository
     public async Task<decimal> GetTotalPayableAsync(Guid branchId)
     {
         var query = _db.Set<Purchase>().AsQueryable();
-        if (branchId != Guid.Empty)
-            query = query.Where(p => p.BranchId == branchId);
+        query = query.ApplyBranchScope(branchId, p => p.BranchId);
         return await query.SumAsync(p => p.Balance);
     }
 

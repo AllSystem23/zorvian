@@ -5,18 +5,20 @@ using Zorvian.Application.DTOs.Fleet;
 using Zorvian.Application.Interfaces.Fleet;
 using Zorvian.Application.Services.Fleet;
 using Zorvian.Core.Entities.Fleet;
+using Zorvian.Core.Interfaces;
 
 namespace Zorvian.Tests.Services;
 
 public sealed class RouteServiceTests
 {
     private readonly Mock<IRouteRepository> _repo = new();
+    private readonly Mock<ITenantContext> _tenant = new();
     private readonly Mock<IMapper> _mapper = new();
     private readonly RouteService _sut;
 
     public RouteServiceTests()
     {
-        _sut = new RouteService(_repo.Object, _mapper.Object);
+        _sut = new RouteService(_repo.Object, _tenant.Object, _mapper.Object);
     }
 
     [Fact]
@@ -28,7 +30,7 @@ public sealed class RouteServiceTests
             new() { Id = Guid.NewGuid(), Name = "Ruta Masaya-Granada", Status = "InProgress" },
         };
 
-        _repo.Setup(r => r.GetAllAsync()).ReturnsAsync(routes);
+        _repo.Setup(r => r.GetAllAsync(It.IsAny<Guid?>())).ReturnsAsync(routes);
         _mapper.Setup(m => m.Map<List<RouteResponse>>(routes)).Returns(
             routes.Select(r => new RouteResponse(
                 r.Id, "RT-001", r.Name, "Urban",
@@ -46,7 +48,7 @@ public sealed class RouteServiceTests
         var result = await _sut.GetAllAsync();
 
         result.Should().HaveCount(2);
-        _repo.Verify(r => r.GetAllAsync(), Times.Once);
+        _repo.Verify(r => r.GetAllAsync(It.IsAny<Guid?>()), Times.Once);
     }
 
     [Fact]
@@ -177,5 +179,40 @@ public sealed class RouteServiceTests
         result.Should().BeTrue();
         _repo.Verify(r => r.DeleteAsync(route), Times.Once);
         _repo.Verify(r => r.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_SinBranchNiContexto_PasaNullTodasLasSucursales()
+    {
+        _repo.Setup(r => r.GetAllAsync(null)).ReturnsAsync(new List<Route>());
+
+        await _sut.GetAllAsync();
+
+        _repo.Verify(r => r.GetAllAsync(null), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_SinBranchEnFiltro_UsaSucursalDelContexto()
+    {
+        var contextBranch = Guid.NewGuid();
+        _tenant.Setup(t => t.CurrentBranchId).Returns(contextBranch);
+        _repo.Setup(r => r.GetAllAsync(contextBranch)).ReturnsAsync(new List<Route>());
+
+        await _sut.GetAllAsync();
+
+        _repo.Verify(r => r.GetAllAsync(contextBranch), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_ConBranchEnFiltro_MandaSobreElContexto()
+    {
+        var contextBranch = Guid.NewGuid();
+        var filterBranch = Guid.NewGuid();
+        _tenant.Setup(t => t.CurrentBranchId).Returns(contextBranch);
+        _repo.Setup(r => r.GetAllAsync(filterBranch)).ReturnsAsync(new List<Route>());
+
+        await _sut.GetAllAsync(filterBranch);
+
+        _repo.Verify(r => r.GetAllAsync(filterBranch), Times.Once);
     }
 }

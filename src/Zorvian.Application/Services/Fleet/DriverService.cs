@@ -19,11 +19,11 @@ public sealed class DriverService
         _mapper = mapper;
     }
 
-    public async Task<List<DriverResponse>> GetAllAsync()
+    public async Task<List<DriverResponse>> GetAllAsync(Guid? branchId = null)
     {
         if (!Guid.TryParse(_tenant.TenantId, out var companyId))
             return [];
-        var drivers = await _repo.GetAllAsync(companyId);
+        var drivers = await _repo.GetAllAsync(companyId, branchId ?? _tenant.ResolveBranchId());
         return _mapper.Map<List<DriverResponse>>(drivers);
     }
 

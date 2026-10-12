@@ -34,7 +34,7 @@ public sealed class CashRegisterRepository : ICashRegisterRepository
             .Where(c => c.CompanyId == companyId)
             .AsQueryable();
 
-        if (branchId.HasValue) query = query.Where(c => c.BranchId == branchId.Value);
+        query = query.ApplyBranchScope(branchId, c => c.BranchId);
         if (!string.IsNullOrWhiteSpace(status)) query = query.Where(c => c.Status == status);
         if (fromDate.HasValue) query = query.Where(c => c.OpenedAt >= fromDate.Value);
         if (toDate.HasValue) query = query.Where(c => c.OpenedAt <= toDate.Value);
@@ -49,7 +49,7 @@ public sealed class CashRegisterRepository : ICashRegisterRepository
     public async Task<int> GetFilteredCountAsync(Guid? branchId, string? status, DateTime? fromDate, DateTime? toDate, Guid companyId)
     {
         var query = _db.Set<CashRegister>().Where(c => c.CompanyId == companyId).AsQueryable();
-        if (branchId.HasValue) query = query.Where(c => c.BranchId == branchId.Value);
+        query = query.ApplyBranchScope(branchId, c => c.BranchId);
         if (!string.IsNullOrWhiteSpace(status)) query = query.Where(c => c.Status == status);
         if (fromDate.HasValue) query = query.Where(c => c.OpenedAt >= fromDate.Value);
         if (toDate.HasValue) query = query.Where(c => c.OpenedAt <= toDate.Value);

@@ -960,6 +960,22 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(qd => (qd.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.BypassTenantFilter) && !qd.IsDeleted);
         });
 
+        // Filtro de sucursal (opt-in por read-path, ver BranchScopeExtensions): los listados
+        // operativos ejecutan "TenantId = @tenant AND BranchId = @branch". Índice compuesto con
+        // TenantId como prefijo porque el HasQueryFilter de compañía siempre va primero.
+        // TenantId como prefijo porque el HasQueryFilter de compañía siempre va primero.
+        builder.Entity<Sale>().HasIndex(s => new { s.TenantId, s.BranchId });
+        builder.Entity<Credit>().HasIndex(c => new { c.TenantId, c.BranchId });
+        builder.Entity<Quote>().HasIndex(q => new { q.TenantId, q.BranchId });
+        builder.Entity<Purchase>().HasIndex(p => new { p.TenantId, p.BranchId });
+        builder.Entity<PurchaseOrder>().HasIndex(po => new { po.TenantId, po.BranchId });
+        builder.Entity<Warranty>().HasIndex(w => new { w.TenantId, w.BranchId });
+        builder.Entity<CashRegister>().HasIndex(cr => new { cr.TenantId, cr.BranchId });
+        builder.Entity<InventoryMovement>().HasIndex(im => new { im.TenantId, im.BranchId });
+        builder.Entity<Client>().HasIndex(cl => new { cl.TenantId, cl.BranchId });
+        builder.Entity<Product>().HasIndex(p => new { p.TenantId, p.BranchId });
+        builder.Entity<AccountingEntry>().HasIndex(ae => new { ae.TenantId, ae.BranchId });
+
         builder.Entity<Sale>(e =>
         {
             e.HasKey(s => s.Id);

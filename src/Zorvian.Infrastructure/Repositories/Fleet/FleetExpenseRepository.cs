@@ -3,6 +3,9 @@ using Zorvian.Application.Interfaces.Fleet;
 using Zorvian.Core.Entities.Fleet;
 using Zorvian.Infrastructure.Data;
 
+#nullable enable
+#pragma warning disable CS8602 // Los selectores de sucursal transitiva los guarda el helper (nav null-check)
+
 namespace Zorvian.Infrastructure.Repositories.Fleet;
 
 public sealed class FleetExpenseRepository : IFleetExpenseRepository
@@ -11,14 +14,21 @@ public sealed class FleetExpenseRepository : IFleetExpenseRepository
 
     public FleetExpenseRepository(ZorvianDbContext db) => _db = db;
 
-    public async Task<List<FleetExpense>> GetAllAsync(Guid companyId) =>
+    public async Task<List<FleetExpense>> GetAllAsync(Guid companyId, Guid? branchId = null) =>
         await _db.Set<FleetExpense>()
             .Include(e => e.Category)
             .Include(e => e.Subcategory)
             .Include(e => e.Vehicle)
             .Include(e => e.Driver)
+            .Include(e => e.Trip).ThenInclude(t => t.Vehicle)
+            .Include(e => e.Route)
             .Include(e => e.Supplier)
-            .Where(e => e.TenantId == companyId.ToString())
+            .ApplyBranchScopeTransitive(
+                branchId,
+                e => e.VehicleId == null && e.TripId == null && e.RouteId == null,
+                e => e.Vehicle.BranchId,
+                e => e.Trip.Vehicle.BranchId,
+                e => e.Route.BranchId)
             .OrderByDescending(e => e.ExpenseDate)
             .ToListAsync();
 

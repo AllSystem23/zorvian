@@ -24,7 +24,7 @@ public sealed class PurchaseOrdersController : ControllerBase
         [FromQuery] string? status,
         [FromQuery] DateTime? fromDate,
         [FromQuery] DateTime? toDate,
-        [FromQuery] Guid branchId,
+        [FromQuery] Guid? branchId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {

@@ -2,22 +2,25 @@ using AutoMapper;
 using Zorvian.Application.DTOs.Fleet;
 using Zorvian.Application.Interfaces.Fleet;
 using Zorvian.Core.Entities.Fleet;
+using Zorvian.Core.Interfaces;
 namespace Zorvian.Application.Services.Fleet;
 
 public sealed class RouteService
 {
     private readonly IRouteRepository _repo;
+    private readonly ITenantContext _tenant;
     private readonly IMapper _mapper;
 
-    public RouteService(IRouteRepository repo, IMapper mapper)
+    public RouteService(IRouteRepository repo, ITenantContext tenant, IMapper mapper)
     {
         _repo = repo;
+        _tenant = tenant;
         _mapper = mapper;
     }
 
-    public async Task<List<RouteResponse>> GetAllAsync()
+    public async Task<List<RouteResponse>> GetAllAsync(Guid? branchId = null)
     {
-        var routes = await _repo.GetAllAsync();
+        var routes = await _repo.GetAllAsync(branchId ?? _tenant.ResolveBranchId());
         return _mapper.Map<List<RouteResponse>>(routes);
     }
 

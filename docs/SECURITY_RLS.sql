@@ -264,6 +264,35 @@ END;
 $$;
 
 -- ====================================================================
+-- Branch-scope policies (defensa en profundidad)
+-- ====================================================================
+-- Semántica PARIDAD con el invariante del proyecto: la sucursal es filtro EXPLÍCITO opt-in.
+--   app.branch_id = '' (sin sucursal seleccionada) → política NO acota (company-wide).
+--   cualquier otro valor        → solo filas de esa sucursal (BranchId::text = app.branch_id).
+-- RLS sigue inerte sin FORCE (la app conecta como owner); estas políticas quedan listas
+-- para cuando se adopte el runbook no-owner. Se aplican solo a tablas con columna BranchId.
+DO $$
+DECLARE
+    tbl TEXT;
+BEGIN
+    FOR tbl IN
+        SELECT table_name
+        FROM information_schema.columns
+        WHERE column_name = 'BranchId' AND table_schema = 'public'
+    LOOP
+        EXECUTE format('DROP POLICY IF EXISTS branch_scope_%I ON %I', tbl, tbl);
+        EXECUTE format(
+            $$CREATE POLICY branch_scope_%I ON %I FOR ALL USING (
+                current_setting('app.branch_id', true) = ''
+                OR "BranchId"::text = current_setting('app.branch_id', true)
+            )$$,
+            tbl, tbl
+        );
+    END LOOP;
+END;
+$$;
+
+-- ====================================================================
 -- Performance indexes
 -- ====================================================================
 

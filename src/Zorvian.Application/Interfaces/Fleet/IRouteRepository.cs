@@ -4,7 +4,7 @@ namespace Zorvian.Application.Interfaces.Fleet;
 
 public interface IRouteRepository
 {
-    Task<List<Route>> GetAllAsync();
+    Task<List<Route>> GetAllAsync(Guid? branchId = null);
     Task<Route?> GetByIdAsync(Guid id);
     Task AddAsync(Route route);
     Task UpdateAsync(Route route);

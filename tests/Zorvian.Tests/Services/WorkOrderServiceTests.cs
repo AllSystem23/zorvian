@@ -31,7 +31,7 @@ public sealed class WorkOrderServiceTests
             new() { Id = Guid.NewGuid(), Number = "OT-001", Status = "Reported" },
         };
 
-        _repo.Setup(r => r.GetAllAsync(_companyId)).ReturnsAsync(workOrders);
+        _repo.Setup(r => r.GetAllAsync(_companyId, It.IsAny<Guid?>())).ReturnsAsync(workOrders);
         _mapper.Setup(m => m.Map<List<WorkOrderResponse>>(workOrders)).Returns(
             workOrders.Select(w => new WorkOrderResponse(
                 w.Id, w.Number, Guid.NewGuid(), "ABC-123", "Toyota Hilux",

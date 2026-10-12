@@ -105,7 +105,7 @@ public sealed class WarrantyService
     {
         var page = filter.Page ?? 1;
         var pageSize = filter.PageSize ?? 20;
-        var branchId = filter.BranchId ?? Guid.Empty;
+        var branchId = filter.BranchId ?? _tenant.ResolveBranchId() ?? Guid.Empty;
 
         var items = await _repo.GetFilteredAsync(filter.ClientId, filter.Status, filter.ExpiringSoon, branchId, page, pageSize);
         var total = await _repo.GetFilteredCountAsync(filter.ClientId, filter.Status, filter.ExpiringSoon, branchId);

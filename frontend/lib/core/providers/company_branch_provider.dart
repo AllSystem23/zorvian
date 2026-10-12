@@ -192,3 +192,12 @@ final headerBranchListProvider =
     return [];
   }
 });
+
+/// Scope key that changes when a different company or branch is selected.
+/// Data providers that respect multi-tenant scoping should depend on this
+/// (via ref.watch(branchScopeProvider)) so that changing the scope forces a
+/// cache invalidation and a fresh fetch with the new X-Tenant-Id/X-Branch-Id headers.
+final branchScopeProvider = Provider<String>((ref) {
+  final cb = ref.watch(companyBranchProvider);
+  return '${cb.companyId ?? ''}_${cb.branchId ?? ''}';
+});

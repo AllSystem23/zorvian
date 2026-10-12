@@ -19,11 +19,11 @@ public sealed class VehicleService
         _mapper = mapper;
     }
 
-    public async Task<List<VehicleResponse>> GetAllAsync()
+    public async Task<List<VehicleResponse>> GetAllAsync(Guid? branchId = null)
     {
         if (!Guid.TryParse(_tenant.TenantId, out var companyId))
             return [];
-        var vehicles = await _repo.GetAllAsync(companyId);
+        var vehicles = await _repo.GetAllAsync(companyId, branchId ?? _tenant.ResolveBranchId());
         return _mapper.Map<List<VehicleResponse>>(vehicles);
     }
 

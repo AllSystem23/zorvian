@@ -90,7 +90,7 @@ public sealed class AccountingEntryRepository : IAccountingEntryRepository
         if (!string.IsNullOrWhiteSpace(status)) query = query.Where(e => e.Status == status);
         if (fromDate.HasValue) query = query.Where(e => e.EntryDate >= fromDate.Value);
         if (toDate.HasValue) query = query.Where(e => e.EntryDate <= toDate.Value);
-        if (branchId is { } b && b != Guid.Empty) query = query.Where(e => e.BranchId == b);
+        query = query.ApplyBranchScope(branchId, e => e.BranchId);
         return await query.OrderByDescending(e => e.EntryDate).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
     }
 
@@ -102,7 +102,7 @@ public sealed class AccountingEntryRepository : IAccountingEntryRepository
         if (!string.IsNullOrWhiteSpace(status)) query = query.Where(e => e.Status == status);
         if (fromDate.HasValue) query = query.Where(e => e.EntryDate >= fromDate.Value);
         if (toDate.HasValue) query = query.Where(e => e.EntryDate <= toDate.Value);
-        if (branchId is { } b && b != Guid.Empty) query = query.Where(e => e.BranchId == b);
+        query = query.ApplyBranchScope(branchId, e => e.BranchId);
         return await query.CountAsync();
     }
 

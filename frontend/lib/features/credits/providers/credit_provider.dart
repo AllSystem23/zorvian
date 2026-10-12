@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 
 final class CreditItem {
   final String id;
@@ -297,7 +298,10 @@ final class OverdueDashboard {
 
 final class CreditNotifier extends AsyncNotifier<List<CreditItem>> {
   @override
-  FutureOr<List<CreditItem>> build() => _load();
+  FutureOr<List<CreditItem>> build() {
+    ref.watch(branchScopeProvider);
+    return _load();
+  }
 
   Future<List<CreditItem>> _load({String? search}) async {
     final dio = ref.read(dioClientProvider);

@@ -60,6 +60,11 @@ jobs:
       - name: Build
         run: dotnet build --no-restore --configuration Release
 
+      # Guarda anti-drift: falla si alguien cambia el modelo sin generar migración
+      # (exactamente lo que pasó con WarrantySlaConfig durante meses).
+      - name: Check EF model vs migrations drift
+        run: dotnet ef migrations has-pending-model-changes --project src/Zorvian.Infrastructure --startup-project src/Zorvian.Web --no-build
+
       - name: Test
         run: dotnet test --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=results.trx"
         env:

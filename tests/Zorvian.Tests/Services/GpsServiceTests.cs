@@ -59,7 +59,7 @@ public sealed class GpsServiceTests
             new() { Id = vehicleId, GpsDeviceId = "DEV-001" }
         };
 
-        _vehicleRepo.Setup(r => r.GetAllAsync(_companyId)).ReturnsAsync(vehicles);
+        _vehicleRepo.Setup(r => r.GetAllAsync(_companyId, It.IsAny<Guid?>())).ReturnsAsync(vehicles);
         _mapper.Setup(m => m.Map<GpsPositionResponse>(It.IsAny<GpsPosition>()))
             .Returns(new GpsPositionResponse(
                 Guid.NewGuid(), vehicleId, "ABC-123", 12.11, -86.23, null, null, null,
@@ -78,7 +78,7 @@ public sealed class GpsServiceTests
     [Fact]
     public async Task ReceivePositionAsync_WithUnknownDevice_ReturnsNull()
     {
-        _vehicleRepo.Setup(r => r.GetAllAsync(_companyId)).ReturnsAsync(new List<Vehicle>());
+        _vehicleRepo.Setup(r => r.GetAllAsync(_companyId, It.IsAny<Guid?>())).ReturnsAsync(new List<Vehicle>());
 
         var request = new ReceiveGpsPositionRequest(
             "UNKNOWN-DEVICE", null, 12.11, -86.23, null, null, null,
@@ -100,7 +100,7 @@ public sealed class GpsServiceTests
             new() { Id = v2Id, GpsDeviceId = "DEV-002" },
         };
 
-        _vehicleRepo.Setup(r => r.GetAllAsync(_companyId)).ReturnsAsync(vehicles);
+        _vehicleRepo.Setup(r => r.GetAllAsync(_companyId, It.IsAny<Guid?>())).ReturnsAsync(vehicles);
 
         var request = new BulkReceiveGpsRequest(new List<ReceiveGpsPositionRequest>
         {
@@ -117,7 +117,7 @@ public sealed class GpsServiceTests
     [Fact]
     public async Task ReceiveBulkAsync_SkipsUnknownDevices()
     {
-        _vehicleRepo.Setup(r => r.GetAllAsync(_companyId)).ReturnsAsync(new List<Vehicle>());
+        _vehicleRepo.Setup(r => r.GetAllAsync(_companyId, It.IsAny<Guid?>())).ReturnsAsync(new List<Vehicle>());
 
         var request = new BulkReceiveGpsRequest(new List<ReceiveGpsPositionRequest>
         {
@@ -727,7 +727,7 @@ public sealed class GpsServiceTests
     [Fact]
     public async Task ReceiveBulkAsync_WithEmptyPositions_ReturnsZero()
     {
-        _vehicleRepo.Setup(r => r.GetAllAsync(_companyId)).ReturnsAsync(new List<Vehicle>());
+        _vehicleRepo.Setup(r => r.GetAllAsync(_companyId, It.IsAny<Guid?>())).ReturnsAsync(new List<Vehicle>());
 
         var request = new BulkReceiveGpsRequest(new List<ReceiveGpsPositionRequest>());
 
@@ -784,7 +784,7 @@ public sealed class GpsServiceTests
             new() { Id = vehicleId, GpsDeviceId = "DEV-001" }
         };
 
-        _vehicleRepo.Setup(r => r.GetAllAsync(_companyId)).ReturnsAsync(vehicles);
+        _vehicleRepo.Setup(r => r.GetAllAsync(_companyId, It.IsAny<Guid?>())).ReturnsAsync(vehicles);
         _geofenceStateRepo.Setup(r => r.GetActiveByVehicleAsync(vehicleId))
             .ThrowsAsync(new Exception("State repo down"));
 

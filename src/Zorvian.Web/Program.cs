@@ -181,31 +181,75 @@ if (!mockExternal)
     var logger = app.Services.GetRequiredService<ILogger<Program>>();
 
     // 1. Apply pending EF Core migrations so tables exist before seeding
+    //    Lock asesor de Postgres: si Render corre >1 instancia, evita que dos
+    //    procesos apliquen la misma migración a la vez.
     try
     {
-        var pending = await db.Database.GetPendingMigrationsAsync();
-        var pendingList = pending.ToList();
-        if (pendingList.Count > 0)
+        var applyMigrations = builder.Configuration.GetValue("Database:ApplyMigrationsOnStartup", true);
+        if (!applyMigrations)
         {
-            logger.LogInformation("Applying {Count} pending migration(s): {Migrations}",
-                pendingList.Count, string.Join(", ", pendingList));
-            await db.Database.MigrateAsync();
+            logger.LogInformation("Database:ApplyMigrationsOnStartup=false — skipping startup migration");
+        }
+        else
+        {
+            var pending = await db.Database.GetPendingMigrationsAsync();
+            var pendingList = pending.ToList();
+            if (pendingList.Count > 0)
+            {
+                var isPostgres = db.Database.ProviderName?.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) == true;
 
-            // Activate Row Level Security (RLS) in Neon/Postgres
-            await db.Database.ExecuteSqlRawAsync(@"
-                DO $$ 
-                DECLARE 
-                    r RECORD;
-                BEGIN
-                    FOR r IN (SELECT table_name FROM information_schema.columns WHERE column_name = 'TenantId' AND table_schema = 'public') 
-                    LOOP
-                        EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', r.table_name);
-                        EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_policy ON %I', r.table_name);
-                        EXECUTE format('CREATE POLICY tenant_isolation_policy ON %I USING (""TenantId"" = current_setting(''app.tenant_id'') OR current_setting(''app.is_super_admin'') = ''true'')', r.table_name);
-                    END LOOP;
-                END $$;
-            ");
-            logger.LogInformation("Migration(s) and RLS policies applied successfully");
+                Npgsql.NpgsqlConnection? lockConnection = null;
+                if (isPostgres)
+                {
+                    // Lock a nivel de sesión sobre una conexión dedicada: se mantiene
+                    // mientras migramos y se libera al disposing (fin del scope).
+                    lockConnection = new Npgsql.NpgsqlConnection(db.Database.GetConnectionString());
+                    await lockConnection.OpenAsync();
+                    await using var lockCmd = lockConnection.CreateCommand();
+                    lockCmd.CommandText = "SELECT pg_advisory_lock(742139851);";
+                    await lockCmd.ExecuteNonQueryAsync();
+                }
+
+            try
+            {
+                logger.LogInformation("Applying {Count} pending migration(s): {Migrations}",
+                    pendingList.Count, string.Join(", ", pendingList));
+                await db.Database.MigrateAsync();
+
+                // Activate Row Level Security (RLS) in Neon/Postgres
+                await db.Database.ExecuteSqlRawAsync(@"
+                    DO $$ 
+                    DECLARE 
+                        r RECORD;
+                    BEGIN
+                        FOR r IN (SELECT table_name FROM information_schema.columns WHERE column_name = 'TenantId' AND table_schema = 'public') 
+                        LOOP
+                            EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', r.table_name);
+                            EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_policy ON %I', r.table_name);
+                            EXECUTE format('CREATE POLICY tenant_isolation_policy ON %I USING (""TenantId"" = current_setting(''app.tenant_id'') OR current_setting(''app.is_super_admin'') = ''true'')', r.table_name);
+                        END LOOP;
+                    END $$;
+                ");
+                logger.LogInformation("Migration(s) and RLS policies applied successfully");
+            }
+            finally
+            {
+                if (lockConnection is not null)
+                {
+                    try
+                    {
+                        await using var unlockCmd = lockConnection.CreateCommand();
+                        unlockCmd.CommandText = "SELECT pg_advisory_unlock(742139851);";
+                        await unlockCmd.ExecuteNonQueryAsync();
+                    }
+                    catch (Exception unlockEx)
+                    {
+                        logger.LogWarning(unlockEx, "Could not release advisory lock explicitly (connection close releases it)");
+                    }
+                    await lockConnection.DisposeAsync();
+                }
+            }
+            }
         }
     }
     catch (Exception ex)

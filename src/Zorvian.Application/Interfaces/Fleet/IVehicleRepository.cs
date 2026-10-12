@@ -9,7 +9,7 @@ public interface IVehicleRepository
     Task<FleetDashboardScalars> GetDashboardScalarsRawAsync(string tenantId, bool isSuperAdmin);
     Task<FleetKpiScalars> GetFleetKpiReportRawAsync(string tenantId, bool isSuperAdmin);
 
-    Task<List<Vehicle>> GetAllAsync(Guid companyId);
+    Task<List<Vehicle>> GetAllAsync(Guid companyId, Guid? branchId = null);
     Task<Vehicle?> GetByIdAsync(Guid id);
     Task AddAsync(Vehicle vehicle);
     Task UpdateAsync(Vehicle vehicle);

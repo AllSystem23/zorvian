@@ -31,7 +31,7 @@ public sealed class DriverServiceTests
             new() { Id = Guid.NewGuid(), FirstName = "Carlos", LastName = "López" },
         };
 
-        _repo.Setup(r => r.GetAllAsync(_companyId)).ReturnsAsync(drivers);
+        _repo.Setup(r => r.GetAllAsync(_companyId, It.IsAny<Guid?>())).ReturnsAsync(drivers);
         _mapper.Setup(m => m.Map<List<DriverResponse>>(drivers)).Returns(
             drivers.Select(d => new DriverResponse(
                 d.Id, null, d.FirstName, d.LastName, $"{d.FirstName} {d.LastName}",
@@ -182,5 +182,40 @@ public sealed class DriverServiceTests
         result.Should().BeTrue();
         _repo.Verify(r => r.DeleteAsync(driver), Times.Once);
         _repo.Verify(r => r.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_SinBranchNiContexto_PasaNullTodasLasSucursales()
+    {
+        _repo.Setup(r => r.GetAllAsync(_companyId, null)).ReturnsAsync(new List<Driver>());
+
+        await _sut.GetAllAsync();
+
+        _repo.Verify(r => r.GetAllAsync(_companyId, null), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_SinBranchEnFiltro_UsaSucursalDelContexto()
+    {
+        var contextBranch = Guid.NewGuid();
+        _tenant.Setup(t => t.CurrentBranchId).Returns(contextBranch);
+        _repo.Setup(r => r.GetAllAsync(_companyId, contextBranch)).ReturnsAsync(new List<Driver>());
+
+        await _sut.GetAllAsync();
+
+        _repo.Verify(r => r.GetAllAsync(_companyId, contextBranch), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_ConBranchEnFiltro_MandaSobreElContexto()
+    {
+        var contextBranch = Guid.NewGuid();
+        var filterBranch = Guid.NewGuid();
+        _tenant.Setup(t => t.CurrentBranchId).Returns(contextBranch);
+        _repo.Setup(r => r.GetAllAsync(_companyId, filterBranch)).ReturnsAsync(new List<Driver>());
+
+        await _sut.GetAllAsync(filterBranch);
+
+        _repo.Verify(r => r.GetAllAsync(_companyId, filterBranch), Times.Once);
     }
 }

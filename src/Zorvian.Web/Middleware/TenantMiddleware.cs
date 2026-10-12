@@ -78,29 +78,30 @@ public sealed class TenantMiddleware
         // 5. Resolver y validar la sucursal seleccionada (header X-Branch-Id).
         //    Se valida que la sucursal pertenezca a la compañía operativa para evitar
         //    inyección cross-company de BranchId. Si es inválida o no aplica → null.
-        await ResolveBranchAsync(context, tenantContext, tenantWriter, logger);
+        //    La escritura al contexto debe hacerse AQUÍ (en InvokeAsync, no dentro de
+        //    ResolveBranchAsync): AsyncLocal escribido en un método async separado queda
+        //    confinado a su propio contexto de ejecución y NO fluye al caller ni a `_next`.
+        var validatedBranchId = await ResolveBranchAsync(context, tenantContext, logger);
+        tenantWriter.SetBranchId(validatedBranchId);
 
         await _next(context);
     }
 
-    private static async Task ResolveBranchAsync(
+    private static async Task<Guid?> ResolveBranchAsync(
         HttpContext context,
         ITenantContext tenantContext,
-        ITenantContextWriter tenantWriter,
         ILogger<TenantMiddleware> logger)
     {
         // Sin header de sucursal → sin alcance de sucursal (todas).
         var branchHeader = context.Request.Headers["X-Branch-Id"].FirstOrDefault();
         if (string.IsNullOrWhiteSpace(branchHeader))
         {
-            tenantWriter.SetBranchId(null);
-            return;
+            return null;
         }
 
         if (!Guid.TryParse(branchHeader, out var branchId) || branchId == Guid.Empty)
         {
-            tenantWriter.SetBranchId(null);
-            return;
+            return null;
         }
 
         // Sin compañía concreta seleccionada no hay referencia válida para validar.
@@ -109,8 +110,7 @@ public sealed class TenantMiddleware
             logger.LogWarning(
                 "X-Branch-Id={BranchId} ignorado: no hay compañía seleccionada (tenant={Tenant}).",
                 branchId, tenantContext.TenantId);
-            tenantWriter.SetBranchId(null);
-            return;
+            return null;
         }
 
         using var scope = context.RequestServices.CreateScope();
@@ -119,15 +119,13 @@ public sealed class TenantMiddleware
 
         if (branches.Any(b => b.Id == branchId))
         {
-            tenantWriter.SetBranchId(branchId);
+            return branchId;
         }
-        else
-        {
-            logger.LogWarning(
-                "X-Branch-Id={BranchId} rechazado: no pertenece a la compañía {CompanyId}.",
-                branchId, companyId);
-            tenantWriter.SetBranchId(null);
-        }
+
+        logger.LogWarning(
+            "X-Branch-Id={BranchId} rechazado: no pertenece a la compañía {CompanyId}.",
+            branchId, companyId);
+        return null;
     }
 }
 

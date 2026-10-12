@@ -24,9 +24,7 @@ public sealed class ClientRepository : IClientRepository
     {
         var query = _db.Set<Client>().AsQueryable();
 
-        // branchId == Guid.Empty → todas las sucursales de la compañía.
-        if (branchId != Guid.Empty)
-            query = query.Where(c => c.BranchId == branchId);
+        query = query.ApplyBranchScope(branchId, c => c.BranchId);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -53,9 +51,7 @@ public sealed class ClientRepository : IClientRepository
     {
         var query = _db.Set<Client>().AsQueryable();
 
-        // branchId == Guid.Empty → todas las sucursales de la compañía.
-        if (branchId != Guid.Empty)
-            query = query.Where(c => c.BranchId == branchId);
+        query = query.ApplyBranchScope(branchId, c => c.BranchId);
 
         if (!string.IsNullOrWhiteSpace(search))
         {

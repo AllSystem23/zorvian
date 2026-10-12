@@ -1,4 +1,5 @@
 using Moq;
+using Zorvian.Application.DTOs.CashRegister;
 using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
 using Zorvian.Core.Entities;
@@ -46,5 +47,55 @@ public class CashRegisterServiceTests
         Assert.Equal("approved", movement.ApprovalStatus);
         _mockMovementRepo.Verify(r => r.UpdateAsync(movement), Times.Once);
         _mockAccountingService.Verify(a => a.GenerateCashMovementEntryAsync(movementId, It.IsAny<Guid?>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetFilteredAsync_SinBranchEnFiltroNiContexto_PasaTodasLasSucursales()
+    {
+        var companyId = Guid.NewGuid();
+        _mockTenant.Setup(t => t.TenantId).Returns(companyId.ToString());
+        _mockRegisterRepo.Setup(r => r.GetFilteredAsync(null, null, null, null, companyId, 1, 20))
+            .ReturnsAsync(new List<CashRegister>());
+        _mockRegisterRepo.Setup(r => r.GetFilteredCountAsync(null, null, null, null, companyId))
+            .ReturnsAsync(0);
+
+        await _sut.GetFilteredAsync(new CashRegisterFilterRequest(null, null, null, null, 1, 20));
+
+        _mockRegisterRepo.Verify(r => r.GetFilteredAsync(null, null, null, null, companyId, 1, 20), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetFilteredAsync_SinBranchEnFiltro_UsaSucursalDelContexto()
+    {
+        var companyId = Guid.NewGuid();
+        var contextBranch = Guid.NewGuid();
+        _mockTenant.Setup(t => t.TenantId).Returns(companyId.ToString());
+        _mockTenant.Setup(t => t.CurrentBranchId).Returns(contextBranch);
+        _mockRegisterRepo.Setup(r => r.GetFilteredAsync(contextBranch, null, null, null, companyId, 1, 20))
+            .ReturnsAsync(new List<CashRegister>());
+        _mockRegisterRepo.Setup(r => r.GetFilteredCountAsync(contextBranch, null, null, null, companyId))
+            .ReturnsAsync(0);
+
+        await _sut.GetFilteredAsync(new CashRegisterFilterRequest(null, null, null, null, 1, 20));
+
+        _mockRegisterRepo.Verify(r => r.GetFilteredAsync(contextBranch, null, null, null, companyId, 1, 20), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetFilteredAsync_ConBranchEnFiltro_MandaSobreElContexto()
+    {
+        var companyId = Guid.NewGuid();
+        var contextBranch = Guid.NewGuid();
+        var filterBranch = Guid.NewGuid();
+        _mockTenant.Setup(t => t.TenantId).Returns(companyId.ToString());
+        _mockTenant.Setup(t => t.CurrentBranchId).Returns(contextBranch);
+        _mockRegisterRepo.Setup(r => r.GetFilteredAsync(filterBranch, null, null, null, companyId, 1, 20))
+            .ReturnsAsync(new List<CashRegister>());
+        _mockRegisterRepo.Setup(r => r.GetFilteredCountAsync(filterBranch, null, null, null, companyId))
+            .ReturnsAsync(0);
+
+        await _sut.GetFilteredAsync(new CashRegisterFilterRequest(filterBranch, null, null, null, 1, 20));
+
+        _mockRegisterRepo.Verify(r => r.GetFilteredAsync(filterBranch, null, null, null, companyId, 1, 20), Times.Once);
     }
 }

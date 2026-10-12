@@ -34,8 +34,7 @@ public sealed class SaleRepository : ISaleRepository
             .Include(s => s.Client)
             .AsQueryable();
 
-        if (branchId != Guid.Empty)
-            query = query.Where(s => s.BranchId == branchId);
+        query = query.ApplyBranchScope(branchId, s => s.BranchId);
 
         if (clientId.HasValue)
             query = query.Where(s => s.ClientId == clientId.Value);
@@ -67,8 +66,7 @@ public sealed class SaleRepository : ISaleRepository
         var query = _db.Set<Sale>()
             .Include(s => s.Client)
             .AsQueryable();
-        if (branchId != Guid.Empty)
-            query = query.Where(s => s.BranchId == branchId);
+        query = query.ApplyBranchScope(branchId, s => s.BranchId);
 
         if (clientId.HasValue) query = query.Where(s => s.ClientId == clientId.Value);
         if (!string.IsNullOrWhiteSpace(saleType)) query = query.Where(s => s.SaleType == saleType);
@@ -137,8 +135,7 @@ public sealed class SaleRepository : ISaleRepository
             .Where(s => !s.IsDeleted && s.SaleDate >= from && s.SaleDate <= to)
             .AsQueryable();
 
-        if (branchId != Guid.Empty)
-            query = query.Where(s => s.BranchId == branchId);
+        query = query.ApplyBranchScope(branchId, s => s.BranchId);
 
         return await query
             .Select(s => new
@@ -177,8 +174,7 @@ public sealed class SaleRepository : ISaleRepository
             .Where(s => !s.IsDeleted && s.SaleDate >= lastMonthStart && s.SaleDate < weekEndExclusive)
             .AsQueryable();
 
-        if (branchId != Guid.Empty)
-            query = query.Where(s => s.BranchId == branchId);
+        query = query.ApplyBranchScope(branchId, s => s.BranchId);
 
         var periods = await query
             .Select(s => new
@@ -209,8 +205,7 @@ public sealed class SaleRepository : ISaleRepository
         var weekQuery = _db.Set<Sale>()
             .Where(s => !s.IsDeleted && s.SaleDate >= weekStart && s.SaleDate < weekEndExclusive);
 
-        if (branchId != Guid.Empty)
-            weekQuery = weekQuery.Where(s => s.BranchId == branchId);
+        weekQuery = weekQuery.ApplyBranchScope(branchId, s => s.BranchId);
 
         var weekly = await weekQuery
             .Select(s => new

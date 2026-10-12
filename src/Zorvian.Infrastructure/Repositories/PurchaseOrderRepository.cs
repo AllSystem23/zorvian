@@ -26,8 +26,8 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
         var query = _db.PurchaseOrders
             .Include(o => o.Supplier)
             .Include(o => o.Details)
-            .Where(o => o.BranchId == branchId)
-            .AsQueryable();
+            .AsQueryable()
+            .ApplyBranchScope(branchId, o => o.BranchId);
 
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(o =>

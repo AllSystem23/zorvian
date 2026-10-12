@@ -4,7 +4,7 @@ namespace Zorvian.Application.Interfaces.Fleet;
 
 public interface IWorkOrderRepository
 {
-    Task<List<WorkOrder>> GetAllAsync(Guid companyId);
+    Task<List<WorkOrder>> GetAllAsync(Guid companyId, Guid? branchId = null);
     Task<WorkOrder?> GetByIdAsync(Guid id);
     Task AddAsync(WorkOrder workOrder);
     Task UpdateAsync(WorkOrder workOrder);

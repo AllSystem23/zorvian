@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 
 final class ClientItem {
   final String id;
@@ -54,7 +55,10 @@ final class ClientState {
 
 final class ClientNotifier extends Notifier<ClientState> {
   @override
-  ClientState build() => const ClientState();
+  ClientState build() {
+    ref.watch(branchScopeProvider);
+    return const ClientState();
+  }
 
   Future<void> load() async {
     state = state.copyWith(loading: true, error: null);

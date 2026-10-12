@@ -30,8 +30,8 @@ public sealed class QuoteRepository : IQuoteRepository
             .Include(q => q.Employee)
             .Include(q => q.Details)
                 .ThenInclude(d => d.Product)
-            .Where(q => q.BranchId == branchId)
-            .AsQueryable();
+            .AsQueryable()
+            .ApplyBranchScope(branchId, q => q.BranchId);
 
         if (clientId.HasValue)
             query = query.Where(q => q.ClientId == clientId.Value);
@@ -60,8 +60,8 @@ public sealed class QuoteRepository : IQuoteRepository
     {
         var query = _db.Set<Quote>()
             .Include(q => q.Client)
-            .Where(q => q.BranchId == branchId)
-            .AsQueryable();
+            .AsQueryable()
+            .ApplyBranchScope(branchId, q => q.BranchId);
 
         if (clientId.HasValue)
             query = query.Where(q => q.ClientId == clientId.Value);

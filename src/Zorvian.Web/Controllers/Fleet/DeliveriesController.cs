@@ -18,9 +18,9 @@ public sealed class DeliveriesController : ControllerBase
 
     [RequirePermission(Permissions.FleetRead)]
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] Guid? branchId)
     {
-        var deliveries = await _service.GetAllAsync();
+        var deliveries = await _service.GetAllAsync(branchId);
         return Ok(new { items = deliveries });
     }
 

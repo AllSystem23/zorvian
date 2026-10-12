@@ -28,6 +28,15 @@ public sealed class CreditServiceTests
     public CreditServiceTests()
     {
         _tenant.Setup(t => t.TenantId).Returns(Guid.NewGuid().ToString());
+        _creditRepo.Setup(r => r.GetFilteredAsync(
+                It.IsAny<Guid?>(), It.IsAny<string?>(), It.IsAny<string?>(),
+                It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<int>()))
+            .ReturnsAsync(new List<Credit>());
+        _creditRepo.Setup(r => r.GetFilteredCountAsync(
+                It.IsAny<Guid?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<Guid>()))
+            .ReturnsAsync(0);
+        _mapper.Setup(m => m.Map<List<CreditListResponse>>(It.IsAny<List<Credit>>()))
+            .Returns(new List<CreditListResponse>());
         _sut = new CreditService(
             _creditRepo.Object,
             _paymentRepo.Object,
@@ -78,5 +87,46 @@ public sealed class CreditServiceTests
 
         Assert.NotNull(result);
         Assert.Equal("active", result!.Status);
+    }
+
+    [Fact]
+    public async Task GetFilteredAsync_SinBranchEnFiltroNiContexto_PasaTodasLasSucursales()
+    {
+        var filter = new CreditFilterRequest(null, null, null, null, 1, 10);
+
+        await _sut.GetFilteredAsync(filter);
+
+        _creditRepo.Verify(r => r.GetFilteredAsync(
+            It.IsAny<Guid?>(), It.IsAny<string?>(), It.IsAny<string?>(),
+            Guid.Empty, It.IsAny<int>(), It.IsAny<int>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetFilteredAsync_SinBranchEnFiltro_UsaSucursalDelContexto()
+    {
+        var contextBranch = Guid.NewGuid();
+        _tenant.Setup(t => t.CurrentBranchId).Returns(contextBranch);
+        var filter = new CreditFilterRequest(null, null, null, null, 1, 10);
+
+        await _sut.GetFilteredAsync(filter);
+
+        _creditRepo.Verify(r => r.GetFilteredAsync(
+            It.IsAny<Guid?>(), It.IsAny<string?>(), It.IsAny<string?>(),
+            contextBranch, It.IsAny<int>(), It.IsAny<int>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetFilteredAsync_ConBranchEnFiltro_MandaSobreElContexto()
+    {
+        var contextBranch = Guid.NewGuid();
+        var filterBranch = Guid.NewGuid();
+        _tenant.Setup(t => t.CurrentBranchId).Returns(contextBranch);
+        var filter = new CreditFilterRequest(null, null, null, filterBranch, 1, 10);
+
+        await _sut.GetFilteredAsync(filter);
+
+        _creditRepo.Verify(r => r.GetFilteredAsync(
+            It.IsAny<Guid?>(), It.IsAny<string?>(), It.IsAny<string?>(),
+            filterBranch, It.IsAny<int>(), It.IsAny<int>()), Times.Once);
     }
 }

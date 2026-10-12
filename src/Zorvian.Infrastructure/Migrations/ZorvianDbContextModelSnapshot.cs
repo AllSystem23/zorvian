@@ -261,6 +261,8 @@ namespace Zorvian.Infrastructure.Migrations
                     b.HasIndex("EntryNumber")
                         .IsUnique();
 
+                    b.HasIndex("TenantId", "BranchId");
+
                     b.ToTable("AccountingEntries");
                 });
 
@@ -2106,6 +2108,8 @@ namespace Zorvian.Infrastructure.Migrations
 
                     b.HasIndex("BranchId", "Status");
 
+                    b.HasIndex("TenantId", "BranchId");
+
                     b.ToTable("CashRegisters");
                 });
 
@@ -2545,6 +2549,8 @@ namespace Zorvian.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Code");
+
+                    b.HasIndex("TenantId", "BranchId");
 
                     b.ToTable("Clients");
                 });
@@ -3715,6 +3721,8 @@ namespace Zorvian.Infrastructure.Migrations
 
                     b.HasIndex("SaleId")
                         .IsUnique();
+
+                    b.HasIndex("TenantId", "BranchId");
 
                     b.ToTable("Credits");
                 });
@@ -8865,6 +8873,8 @@ namespace Zorvian.Infrastructure.Migrations
 
                     b.HasIndex("ProductId", "CreatedAt");
 
+                    b.HasIndex("TenantId", "BranchId");
+
                     b.ToTable("InventoryMovements");
                 });
 
@@ -10985,6 +10995,8 @@ namespace Zorvian.Infrastructure.Migrations
                     b.HasIndex("Code", "BranchId")
                         .IsUnique();
 
+                    b.HasIndex("TenantId", "BranchId");
+
                     b.ToTable("Products");
                 });
 
@@ -11272,6 +11284,8 @@ namespace Zorvian.Infrastructure.Migrations
 
                     b.HasIndex("SupplierId");
 
+                    b.HasIndex("TenantId", "BranchId");
+
                     b.ToTable("Purchases");
                 });
 
@@ -11429,6 +11443,8 @@ namespace Zorvian.Infrastructure.Migrations
                         .IsUnique();
 
                     b.HasIndex("SupplierId");
+
+                    b.HasIndex("TenantId", "BranchId");
 
                     b.ToTable("PurchaseOrders");
                 });
@@ -11591,6 +11607,8 @@ namespace Zorvian.Infrastructure.Migrations
 
                     b.HasIndex("QuoteNumber")
                         .IsUnique();
+
+                    b.HasIndex("TenantId", "BranchId");
 
                     b.ToTable("Quotes");
                 });
@@ -12249,6 +12267,8 @@ namespace Zorvian.Infrastructure.Migrations
                         .IsUnique();
 
                     b.HasIndex("SaleDate");
+
+                    b.HasIndex("TenantId", "BranchId");
 
                     b.ToTable("Sales");
                 });
@@ -13675,6 +13695,8 @@ namespace Zorvian.Infrastructure.Migrations
                     b.HasIndex("WarrantyNumber")
                         .IsUnique();
 
+                    b.HasIndex("TenantId", "BranchId");
+
                     b.ToTable("Warranties");
                 });
 
@@ -14534,6 +14556,71 @@ namespace Zorvian.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("WarrantyProviders");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.WarrantySlaConfig", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AlertThresholdPct")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CoverageType")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("DeliveryHours")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Priority")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("ProviderHours")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("TotalHours")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("WorkshopHours")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("WarrantySlaConfig");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.WarrantyStateHistory", b =>

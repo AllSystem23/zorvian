@@ -5,18 +5,20 @@ using Zorvian.Application.DTOs.Fleet;
 using Zorvian.Application.Interfaces.Fleet;
 using Zorvian.Application.Services.Fleet;
 using Zorvian.Core.Entities.Fleet;
+using Zorvian.Core.Interfaces;
 
 namespace Zorvian.Tests.Services;
 
 public sealed class TripServiceTests
 {
     private readonly Mock<ITripRepository> _repo = new();
+    private readonly Mock<ITenantContext> _tenant = new();
     private readonly Mock<IMapper> _mapper = new();
     private readonly TripService _sut;
 
     public TripServiceTests()
     {
-        _sut = new TripService(_repo.Object, _mapper.Object);
+        _sut = new TripService(_repo.Object, _tenant.Object, _mapper.Object);
     }
 
     [Fact]
@@ -28,7 +30,7 @@ public sealed class TripServiceTests
             new() { Id = Guid.NewGuid(), Code = "TRIP-002", Status = "InProgress" },
         };
 
-        _repo.Setup(r => r.GetAllAsync()).ReturnsAsync(trips);
+        _repo.Setup(r => r.GetAllAsync(It.IsAny<Guid?>())).ReturnsAsync(trips);
         _mapper.Setup(m => m.Map<List<TripResponse>>(trips)).Returns(
             trips.Select(t => new TripResponse(
                 t.Id, t.Code, Guid.NewGuid(), "ABC-123", "Toyota Hilux",

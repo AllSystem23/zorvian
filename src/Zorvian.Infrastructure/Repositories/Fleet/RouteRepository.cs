@@ -11,13 +11,14 @@ public sealed class RouteRepository : IRouteRepository
 
     public RouteRepository(ZorvianDbContext db) => _db = db;
 
-    public async Task<List<Route>> GetAllAsync() =>
+    public async Task<List<Route>> GetAllAsync(Guid? branchId = null) =>
         await _db.Set<Route>()
             .Include(r => r.Vehicle)
             .Include(r => r.Driver)
             .Include(r => r.CoDriver)
             .Include(r => r.Branch)
             .Include(r => r.Points)
+            .ApplyBranchScope(branchId, r => r.BranchId)
             .OrderByDescending(r => r.ScheduledDate)
             .ToListAsync();
 

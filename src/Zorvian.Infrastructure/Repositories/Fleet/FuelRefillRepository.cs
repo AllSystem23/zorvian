@@ -11,13 +11,13 @@ public sealed class FuelRefillRepository : IFuelRefillRepository
 
     public FuelRefillRepository(ZorvianDbContext db) => _db = db;
 
-    public async Task<List<FuelRefill>> GetAllAsync(Guid companyId) =>
+    public async Task<List<FuelRefill>> GetAllAsync(Guid companyId, Guid? branchId = null) =>
         await _db.Set<FuelRefill>()
             .Include(f => f.Vehicle)
             .Include(f => f.Driver)
             .Include(f => f.FuelType)
             .Include(f => f.Supplier)
-            .Where(f => f.TenantId == companyId.ToString())
+            .ApplyBranchScopeTransitive(branchId, null, f => f.Vehicle.BranchId)
             .OrderByDescending(f => f.RefillDateTime)
             .ToListAsync();
 

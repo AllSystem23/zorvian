@@ -18,9 +18,9 @@ public sealed class TripsController : ControllerBase
 
     [RequirePermission(Permissions.FleetRead)]
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] Guid? branchId)
     {
-        var trips = await _service.GetAllAsync();
+        var trips = await _service.GetAllAsync(branchId);
         return Ok(new { items = trips });
     }
 

@@ -27,7 +27,7 @@ public sealed class InventoryMovementRepository : IInventoryMovementRepository
             .Include(m => m.PerformedBy)
             .AsQueryable();
 
-        if (branchId.HasValue) query = query.Where(m => m.BranchId == branchId.Value);
+        query = query.ApplyBranchScope(branchId, m => m.BranchId);
 
         if (productId.HasValue) query = query.Where(m => m.ProductId == productId.Value);
         if (!string.IsNullOrWhiteSpace(movementType)) query = query.Where(m => m.MovementType == movementType);
@@ -54,7 +54,7 @@ public sealed class InventoryMovementRepository : IInventoryMovementRepository
             .Include(m => m.Product)
             .AsQueryable();
 
-        if (branchId.HasValue) query = query.Where(m => m.BranchId == branchId.Value);
+        query = query.ApplyBranchScope(branchId, m => m.BranchId);
 
         if (productId.HasValue) query = query.Where(m => m.ProductId == productId.Value);
         if (!string.IsNullOrWhiteSpace(movementType)) query = query.Where(m => m.MovementType == movementType);

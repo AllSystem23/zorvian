@@ -18,9 +18,9 @@ public sealed class RoutesController : ControllerBase
 
     [RequirePermission(Permissions.FleetRead)]
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] Guid? branchId)
     {
-        var routes = await _service.GetAllAsync();
+        var routes = await _service.GetAllAsync(branchId);
         return Ok(new { items = routes });
     }
 

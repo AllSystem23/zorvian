@@ -27,11 +27,11 @@ public sealed class FleetExpenseService
         _autoAccounting = autoAccounting;
     }
 
-    public async Task<List<FleetExpenseResponse>> GetAllAsync()
+    public async Task<List<FleetExpenseResponse>> GetAllAsync(Guid? branchId = null)
     {
         if (!Guid.TryParse(_tenant.TenantId, out var companyId))
             return [];
-        var items = await _repo.GetAllAsync(companyId);
+        var items = await _repo.GetAllAsync(companyId, branchId ?? _tenant.ResolveBranchId());
         return _mapper.Map<List<FleetExpenseResponse>>(items);
     }
 
@@ -135,7 +135,7 @@ public sealed class FleetExpenseService
 
     public async Task<ReportResult> GetExportResultAsync(string? status = null, DateTime? startDate = null, DateTime? endDate = null, Guid? vehicleId = null)
     {
-        var items = await GetAllAsync();
+        var items = await GetAllAsync(Guid.Empty);
 
         // Apply filters
         if (!string.IsNullOrEmpty(status))
@@ -177,13 +177,13 @@ public sealed class FleetExpenseService
 
     public async Task<int> GetPendingCountAsync()
     {
-        var items = await GetAllAsync();
+        var items = await GetAllAsync(Guid.Empty);
         return items.Count(i => !i.Approved);
     }
 
     public async Task<decimal> GetPendingAmountAsync()
     {
-        var items = await GetAllAsync();
+        var items = await GetAllAsync(Guid.Empty);
         return items.Where(i => !i.Approved).Sum(i => i.Amount);
     }
 }

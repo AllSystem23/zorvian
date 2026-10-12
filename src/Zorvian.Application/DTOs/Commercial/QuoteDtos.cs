@@ -59,6 +59,7 @@ public sealed record QuoteFilterRequest(
     DateTime? FromDate,
     DateTime? ToDate,
     string? Search,
+    Guid? BranchId,
     int? Page = 1,
     int? PageSize = 20
 );

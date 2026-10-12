@@ -11,10 +11,11 @@ public sealed class DriverRepository : IDriverRepository
 
     public DriverRepository(ZorvianDbContext db) => _db = db;
 
-    public async Task<List<Driver>> GetAllAsync(Guid companyId) =>
+    public async Task<List<Driver>> GetAllAsync(Guid companyId, Guid? branchId = null) =>
         await _db.Set<Driver>()
             .Include(d => d.LicenseCategory)
             .Include(d => d.Branch)
+            .ApplyBranchScope(branchId, d => d.BranchId)
             .OrderBy(d => d.FirstName)
             .ToListAsync();
 

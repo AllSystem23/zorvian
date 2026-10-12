@@ -4,7 +4,7 @@ namespace Zorvian.Application.Interfaces.Fleet;
 
 public interface IFleetExpenseRepository
 {
-    Task<List<FleetExpense>> GetAllAsync(Guid companyId);
+    Task<List<FleetExpense>> GetAllAsync(Guid companyId, Guid? branchId = null);
     Task<FleetExpense?> GetByIdAsync(Guid id);
     Task AddAsync(FleetExpense expense);
     Task UpdateAsync(FleetExpense expense);

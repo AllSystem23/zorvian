@@ -160,6 +160,31 @@ public sealed class WarrantyServiceTests
     }
 
     [Fact]
+    public async Task GetFilteredAsync_SinBranchEnFiltro_UsaSucursalDelContexto()
+    {
+        var contextBranch = Guid.NewGuid();
+        _tenant.Setup(t => t.CurrentBranchId).Returns(contextBranch);
+        var filter = new WarrantyFilterRequest(
+            ClientId: null,
+            Status: null,
+            ExpiringSoon: null,
+            BranchId: null,
+            Page: 1,
+            PageSize: 20
+        );
+
+        _repo.Setup(r => r.GetFilteredAsync(null, null, null, contextBranch, 1, 20))
+            .ReturnsAsync(new List<Warranty>());
+        _repo.Setup(r => r.GetFilteredCountAsync(null, null, null, contextBranch))
+            .ReturnsAsync(0);
+
+        await _sut.GetFilteredAsync(filter);
+
+        _repo.Verify(r => r.GetFilteredAsync(null, null, null, contextBranch, 1, 20), Times.Once);
+        _repo.Verify(r => r.GetFilteredCountAsync(null, null, null, contextBranch), Times.Once);
+    }
+
+    [Fact]
     public async Task AddClaimAsync_TransitionsWarrantyStatusToPendingReview()
     {
         var warrantyId = Guid.NewGuid();

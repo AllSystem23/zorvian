@@ -4,7 +4,7 @@ namespace Zorvian.Application.Interfaces.Fleet;
 
 public interface ITripRepository
 {
-    Task<List<Trip>> GetAllAsync();
+    Task<List<Trip>> GetAllAsync(Guid? branchId = null);
     Task<Trip?> GetByIdAsync(Guid id);
     Task AddAsync(Trip trip);
     Task UpdateAsync(Trip trip);

@@ -31,7 +31,7 @@ public sealed class FuelRefillServiceTests
             new() { Id = Guid.NewGuid(), Liters = 45.5m, TotalCost = 2500m },
         };
 
-        _repo.Setup(r => r.GetAllAsync(_companyId)).ReturnsAsync(refills);
+        _repo.Setup(r => r.GetAllAsync(_companyId, It.IsAny<Guid?>())).ReturnsAsync(refills);
         _mapper.Setup(m => m.Map<List<FuelRefillResponse>>(refills)).Returns(
             refills.Select(f => new FuelRefillResponse(
                 f.Id, DateTime.UtcNow, Guid.NewGuid(), "ABC-123", "Toyota Hilux",
@@ -44,7 +44,7 @@ public sealed class FuelRefillServiceTests
 
         result.Should().HaveCount(1);
         result[0].Liters.Should().Be(45.5m);
-        _repo.Verify(r => r.GetAllAsync(_companyId), Times.Once);
+        _repo.Verify(r => r.GetAllAsync(_companyId, It.IsAny<Guid?>()), Times.Once);
     }
 
     [Fact]
@@ -55,7 +55,7 @@ public sealed class FuelRefillServiceTests
         var result = await _sut.GetAllAsync();
 
         result.Should().BeEmpty();
-        _repo.Verify(r => r.GetAllAsync(It.IsAny<Guid>()), Times.Never);
+        _repo.Verify(r => r.GetAllAsync(It.IsAny<Guid>(), It.IsAny<Guid?>()), Times.Never);
     }
 
     [Fact]

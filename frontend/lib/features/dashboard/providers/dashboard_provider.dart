@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 
 class DashboardKpis {
   final int totalEmployees;
@@ -213,7 +214,11 @@ class DashboardState {
 
 class DashboardNotifier extends Notifier<DashboardState> {
   @override
-  DashboardState build() => const DashboardState();
+  DashboardState build() {
+    // Depend on branch scope so changing company/branch forces a rebuild.
+    ref.watch(branchScopeProvider);
+    return const DashboardState();
+  }
 
   Future<void> loadAll() async {
     state = state.copyWith(loading: true, error: null);

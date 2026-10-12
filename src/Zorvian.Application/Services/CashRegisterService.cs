@@ -136,8 +136,9 @@ public sealed class CashRegisterService
         if (!Guid.TryParse(_tenant.TenantId, out var companyId))
             return new PagedResult<CashRegisterResponse>([], 0, page, pageSize);
 
-        var items = await _registerRepo.GetFilteredAsync(filter.BranchId, filter.Status, filter.FromDate, filter.ToDate, companyId, page, pageSize);
-        var total = await _registerRepo.GetFilteredCountAsync(filter.BranchId, filter.Status, filter.FromDate, filter.ToDate, companyId);
+        var branchId = filter.BranchId ?? _tenant.ResolveBranchId();
+        var items = await _registerRepo.GetFilteredAsync(branchId, filter.Status, filter.FromDate, filter.ToDate, companyId, page, pageSize);
+        var total = await _registerRepo.GetFilteredCountAsync(branchId, filter.Status, filter.FromDate, filter.ToDate, companyId);
 
         return new PagedResult<CashRegisterResponse>(
             _mapper.Map<List<CashRegisterResponse>>(items),

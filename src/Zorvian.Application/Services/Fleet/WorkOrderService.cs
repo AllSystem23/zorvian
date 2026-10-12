@@ -19,11 +19,11 @@ public sealed class WorkOrderService
         _mapper = mapper;
     }
 
-    public async Task<List<WorkOrderResponse>> GetAllAsync()
+    public async Task<List<WorkOrderResponse>> GetAllAsync(Guid? branchId = null)
     {
         if (!Guid.TryParse(_tenant.TenantId, out var companyId))
             return [];
-        var items = await _repo.GetAllAsync(companyId);
+        var items = await _repo.GetAllAsync(companyId, branchId ?? _tenant.ResolveBranchId());
         return _mapper.Map<List<WorkOrderResponse>>(items);
     }
 

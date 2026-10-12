@@ -2,22 +2,25 @@ using AutoMapper;
 using Zorvian.Application.DTOs.Fleet;
 using Zorvian.Application.Interfaces.Fleet;
 using Zorvian.Core.Entities.Fleet;
+using Zorvian.Core.Interfaces;
 namespace Zorvian.Application.Services.Fleet;
 
 public sealed class DeliveryService
 {
     private readonly IDeliveryRepository _repo;
+    private readonly ITenantContext _tenant;
     private readonly IMapper _mapper;
 
-    public DeliveryService(IDeliveryRepository repo, IMapper mapper)
+    public DeliveryService(IDeliveryRepository repo, ITenantContext tenant, IMapper mapper)
     {
         _repo = repo;
+        _tenant = tenant;
         _mapper = mapper;
     }
 
-    public async Task<List<DeliveryResponse>> GetAllAsync()
+    public async Task<List<DeliveryResponse>> GetAllAsync(Guid? branchId = null)
     {
-        var deliveries = await _repo.GetAllAsync();
+        var deliveries = await _repo.GetAllAsync(branchId ?? _tenant.ResolveBranchId());
         return _mapper.Map<List<DeliveryResponse>>(deliveries);
     }
 

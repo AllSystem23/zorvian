@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 
 final class SaleItem {
   final String id;
@@ -145,7 +146,10 @@ final class SaleState {
 
 final class SaleNotifier extends Notifier<SaleState> {
   @override
-  SaleState build() => const SaleState();
+  SaleState build() {
+    ref.watch(branchScopeProvider);
+    return const SaleState();
+  }
 
   Future<void> load({String? search, int? page}) async {
     state = state.copyWith(loading: true, error: null);

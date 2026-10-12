@@ -49,7 +49,7 @@ public sealed class ProductRepository : IProductRepository
             .Include(p => p.TaxCategory)
             .AsQueryable();
 
-        if (branchId.HasValue) query = query.Where(p => p.BranchId == branchId.Value);
+        query = query.ApplyBranchScope(branchId, p => p.BranchId);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -76,7 +76,7 @@ public sealed class ProductRepository : IProductRepository
     {
         var query = _db.Set<Product>().AsQueryable();
 
-        if (branchId.HasValue) query = query.Where(p => p.BranchId == branchId.Value);
+        query = query.ApplyBranchScope(branchId, p => p.BranchId);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -102,7 +102,7 @@ public sealed class ProductRepository : IProductRepository
             .Where(p => p.Stock <= p.MinStock && p.IsActive)
             .AsQueryable();
 
-        if (branchId.HasValue) query = query.Where(p => p.BranchId == branchId.Value);
+        query = query.ApplyBranchScope(branchId, p => p.BranchId);
 
         return await query
             .OrderBy(p => p.Stock)
@@ -116,7 +116,7 @@ public sealed class ProductRepository : IProductRepository
             .Where(p => p.Stock <= 0 && p.IsActive)
             .AsQueryable();
 
-        if (branchId.HasValue) query = query.Where(p => p.BranchId == branchId.Value);
+        query = query.ApplyBranchScope(branchId, p => p.BranchId);
 
         return await query
             .OrderBy(p => p.Name)
@@ -128,7 +128,7 @@ public sealed class ProductRepository : IProductRepository
         var query = _db.Set<SaleDetail>()
             .AsQueryable();
 
-        if (branchId.HasValue) query = query.Where(d => d.BranchId == branchId.Value);
+        query = query.ApplyBranchScope(branchId, d => d.BranchId);
 
         var topProducts = await query
             .GroupBy(d => new { d.ProductId, d.Product!.Name })
@@ -153,8 +153,7 @@ public sealed class ProductRepository : IProductRepository
             .Where(p => !p.IsDeleted)
             .AsQueryable();
 
-        if (branchId.HasValue)
-            query = query.Where(p => p.BranchId == branchId.Value);
+        query = query.ApplyBranchScope(branchId, p => p.BranchId);
 
         var totals = await query
             .Select(p => new
@@ -226,7 +225,7 @@ public sealed class ProductRepository : IProductRepository
     public async Task<int> GetTotalCountAsync(Guid? branchId)
     {
         var query = _db.Set<Product>().Where(p => p.IsActive).AsQueryable();
-        if (branchId.HasValue) query = query.Where(p => p.BranchId == branchId.Value);
+        query = query.ApplyBranchScope(branchId, p => p.BranchId);
         return await query.CountAsync();
     }
 

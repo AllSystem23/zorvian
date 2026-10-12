@@ -31,8 +31,7 @@ public sealed class CreditRepository : ICreditRepository
             .Include(c => c.Installments)
             .AsQueryable();
 
-        if (branchId != Guid.Empty)
-            query = query.Where(c => c.BranchId == branchId);
+        query = query.ApplyBranchScope(branchId, c => c.BranchId);
 
         if (clientId.HasValue) query = query.Where(c => c.ClientId == clientId.Value);
         if (!string.IsNullOrWhiteSpace(status)) query = query.Where(c => c.Status == status);
@@ -56,8 +55,7 @@ public sealed class CreditRepository : ICreditRepository
         var query = _db.Set<Credit>()
             .Include(c => c.Client)
             .AsQueryable();
-        if (branchId != Guid.Empty)
-            query = query.Where(c => c.BranchId == branchId);
+        query = query.ApplyBranchScope(branchId, c => c.BranchId);
         if (clientId.HasValue) query = query.Where(c => c.ClientId == clientId.Value);
         if (!string.IsNullOrWhiteSpace(status)) query = query.Where(c => c.Status == status);
         if (!string.IsNullOrWhiteSpace(search))

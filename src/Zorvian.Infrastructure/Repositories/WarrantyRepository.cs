@@ -74,7 +74,7 @@ public sealed class WarrantyRepository : IWarrantyRepository
             if (Enum.TryParse<WarrantyStatus>(status, ignoreCase: true, out var statusEnum))
                 query = query.Where(w => w.Status == statusEnum);
         }
-        if (branchId != Guid.Empty) query = query.Where(w => w.BranchId == branchId);
+        query = query.ApplyBranchScope(branchId, w => w.BranchId);
         if (expiringSoon == true) query = query.Where(w => w.SlaDueAt != null && w.SlaDueAt <= DateTime.UtcNow.AddDays(7) && w.SlaBreachedAt == null);
         
         return await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
@@ -89,7 +89,7 @@ public sealed class WarrantyRepository : IWarrantyRepository
             if (Enum.TryParse<WarrantyStatus>(status, ignoreCase: true, out var statusEnum))
                 query = query.Where(w => w.Status == statusEnum);
         }
-        if (branchId != Guid.Empty) query = query.Where(w => w.BranchId == branchId);
+        query = query.ApplyBranchScope(branchId, w => w.BranchId);
         if (expiringSoon == true) query = query.Where(w => w.SlaDueAt != null && w.SlaDueAt <= DateTime.UtcNow.AddDays(7) && w.SlaBreachedAt == null);
         
         return await query.CountAsync();

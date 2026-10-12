@@ -159,13 +159,14 @@ public sealed class VehicleRepository : IVehicleRepository
         return result ?? new FleetKpiScalars();
     }
 
-    public async Task<List<Vehicle>> GetAllAsync(Guid companyId) =>
+    public async Task<List<Vehicle>> GetAllAsync(Guid companyId, Guid? branchId = null) =>
         await _db.Set<Vehicle>()
             .Include(v => v.Brand)
             .Include(v => v.VehicleType)
             .Include(v => v.FuelType)
             .Include(v => v.Branch)
             .Include(v => v.Driver)
+            .ApplyBranchScope(branchId, v => v.BranchId)
             .OrderBy(v => v.Code)
             .ToListAsync();
 

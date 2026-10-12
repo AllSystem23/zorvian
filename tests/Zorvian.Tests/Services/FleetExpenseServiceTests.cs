@@ -33,7 +33,7 @@ public sealed class FleetExpenseServiceTests
             new() { Id = Guid.NewGuid(), Description = "Llanta nueva", Amount = 150m },
         };
 
-        _repo.Setup(r => r.GetAllAsync(_companyId)).ReturnsAsync(expenses);
+        _repo.Setup(r => r.GetAllAsync(_companyId, It.IsAny<Guid?>())).ReturnsAsync(expenses);
         _mapper.Setup(m => m.Map<List<FleetExpenseResponse>>(expenses)).Returns(
             expenses.Select(e => new FleetExpenseResponse(
                 e.Id, DateTime.UtcNow, Guid.NewGuid(), "Mantenimiento", null, null,

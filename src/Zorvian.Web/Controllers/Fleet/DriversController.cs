@@ -18,9 +18,9 @@ public sealed class DriversController : ControllerBase
 
     [RequirePermission(Permissions.FleetRead)]
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] Guid? branchId)
     {
-        var drivers = await _service.GetAllAsync();
+        var drivers = await _service.GetAllAsync(branchId);
         return Ok(new { items = drivers });
     }
 

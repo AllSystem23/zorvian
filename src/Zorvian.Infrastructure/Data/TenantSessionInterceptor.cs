@@ -22,14 +22,17 @@ public sealed class TenantSessionInterceptor : DbConnectionInterceptor
         if (connection is NpgsqlConnection npgsqlConn)
         {
             await using var cmd = npgsqlConn.CreateCommand();
-            // Set both tenant_id and is_super_admin to support RLS bypass policies
+            // Set tenant_id, is_super_admin y branch_id para soportar políticas RLS.
+            // branch_id vacío = sin sucursal seleccionada → políticas de sucursal no acotan.
             cmd.CommandText = @"
                 SELECT set_config('app.tenant_id', @tenantId, false);
-                SELECT set_config('app.is_super_admin', @isSuperAdmin, false);";
-            
+                SELECT set_config('app.is_super_admin', @isSuperAdmin, false);
+                SELECT set_config('app.branch_id', @branchId, false);";
+
             cmd.Parameters.AddWithValue("@tenantId", _tenantContext.TenantId.ToString() ?? "");
             cmd.Parameters.AddWithValue("@isSuperAdmin", _tenantContext.BypassTenantFilter.ToString().ToLower());
-            
+            cmd.Parameters.AddWithValue("@branchId", _tenantContext.ResolveBranchId()?.ToString() ?? "");
+
             await cmd.ExecuteNonQueryAsync(cancellationToken);
         }
     }
@@ -43,11 +46,13 @@ public sealed class TenantSessionInterceptor : DbConnectionInterceptor
             using var cmd = npgsqlConn.CreateCommand();
             cmd.CommandText = @"
                 SELECT set_config('app.tenant_id', @tenantId, false);
-                SELECT set_config('app.is_super_admin', @isSuperAdmin, false);";
-            
+                SELECT set_config('app.is_super_admin', @isSuperAdmin, false);
+                SELECT set_config('app.branch_id', @branchId, false);";
+
             cmd.Parameters.AddWithValue("@tenantId", _tenantContext.TenantId.ToString() ?? "");
             cmd.Parameters.AddWithValue("@isSuperAdmin", _tenantContext.BypassTenantFilter.ToString().ToLower());
-            
+            cmd.Parameters.AddWithValue("@branchId", _tenantContext.ResolveBranchId()?.ToString() ?? "");
+
             cmd.ExecuteNonQuery();
         }
     }

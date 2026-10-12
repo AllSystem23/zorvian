@@ -35,10 +35,10 @@ public sealed class FleetAlertServiceTests
 
         // Default: all repos return empty
         _documentRepo.Setup(r => r.GetExpiringAsync(It.IsAny<int>(), It.IsAny<Guid>())).ReturnsAsync(new List<FleetDocument>());
-        _driverRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(new List<Driver>());
-        _vehicleRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(new List<Vehicle>());
-        _fuelRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(new List<FuelRefill>());
-        _workOrderRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>())).ReturnsAsync(new List<WorkOrder>());
+        _driverRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>(), It.IsAny<Guid?>())).ReturnsAsync(new List<Driver>());
+        _vehicleRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>(), It.IsAny<Guid?>())).ReturnsAsync(new List<Vehicle>());
+        _fuelRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>(), It.IsAny<Guid?>())).ReturnsAsync(new List<FuelRefill>());
+        _workOrderRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>(), It.IsAny<Guid?>())).ReturnsAsync(new List<WorkOrder>());
     }
 
     [Fact]
@@ -119,7 +119,7 @@ public sealed class FleetAlertServiceTests
             }
         };
 
-        _driverRepo.Setup(r => r.GetAllAsync(_companyId)).ReturnsAsync(drivers);
+        _driverRepo.Setup(r => r.GetAllAsync(_companyId, It.IsAny<Guid?>())).ReturnsAsync(drivers);
 
         var result = await _sut.GetActiveAlertsAsync();
 
@@ -140,7 +140,7 @@ public sealed class FleetAlertServiceTests
             }
         };
 
-        _vehicleRepo.Setup(r => r.GetAllAsync(_companyId)).ReturnsAsync(vehicles);
+        _vehicleRepo.Setup(r => r.GetAllAsync(_companyId, It.IsAny<Guid?>())).ReturnsAsync(vehicles);
 
         var result = await _sut.GetActiveAlertsAsync();
 
@@ -162,7 +162,7 @@ public sealed class FleetAlertServiceTests
             }
         };
 
-        _fuelRepo.Setup(r => r.GetAllAsync(_companyId)).ReturnsAsync(fuelRefills);
+        _fuelRepo.Setup(r => r.GetAllAsync(_companyId, It.IsAny<Guid?>())).ReturnsAsync(fuelRefills);
 
         var result = await _sut.GetActiveAlertsAsync();
 
@@ -307,7 +307,7 @@ public sealed class FleetAlertServiceTests
             }
         };
 
-        _vehicleRepo.Setup(r => r.GetAllAsync(_companyId)).ReturnsAsync(vehicles);
+        _vehicleRepo.Setup(r => r.GetAllAsync(_companyId, It.IsAny<Guid?>())).ReturnsAsync(vehicles);
 
         var result = await _sut.GetActiveAlertsAsync();
 
@@ -329,7 +329,7 @@ public sealed class FleetAlertServiceTests
             }
         };
 
-        _vehicleRepo.Setup(r => r.GetAllAsync(_companyId)).ReturnsAsync(vehicles);
+        _vehicleRepo.Setup(r => r.GetAllAsync(_companyId, It.IsAny<Guid?>())).ReturnsAsync(vehicles);
 
         var result = await _sut.GetActiveAlertsAsync();
 
@@ -352,7 +352,7 @@ public sealed class FleetAlertServiceTests
             }
         };
 
-        _fuelRepo.Setup(r => r.GetAllAsync(_companyId)).ReturnsAsync(fuelRefills);
+        _fuelRepo.Setup(r => r.GetAllAsync(_companyId, It.IsAny<Guid?>())).ReturnsAsync(fuelRefills);
 
         var result = await _sut.GetActiveAlertsAsync();
 
@@ -373,7 +373,7 @@ public sealed class FleetAlertServiceTests
             }
         };
 
-        _workOrderRepo.Setup(r => r.GetAllAsync(_companyId)).ReturnsAsync(workOrders);
+        _workOrderRepo.Setup(r => r.GetAllAsync(_companyId, It.IsAny<Guid?>())).ReturnsAsync(workOrders);
 
         var result = await _sut.GetActiveAlertsAsync();
 
@@ -427,7 +427,7 @@ public sealed class FleetAlertServiceTests
                 CreatedAt = DateTime.UtcNow
             }
         };
-        _driverRepo.Setup(r => r.GetAllAsync(_companyId)).ReturnsAsync(drivers);
+        _driverRepo.Setup(r => r.GetAllAsync(_companyId, It.IsAny<Guid?>())).ReturnsAsync(drivers);
 
         var result = await _sut.GetActiveAlertsAsync();
 
@@ -443,7 +443,7 @@ public sealed class FleetAlertServiceTests
     public async Task GetActiveAlertsAsync_VehicleCheckThrows_OtherChecksStillRun()
     {
         // Vehicle repo throws
-        _vehicleRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>()))
+        _vehicleRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>(), It.IsAny<Guid?>()))
             .ThrowsAsync(new InvalidOperationException("Table missing column"));
 
         // But fuel repo works
@@ -458,7 +458,7 @@ public sealed class FleetAlertServiceTests
                 CreatedAt = DateTime.UtcNow
             }
         };
-        _fuelRepo.Setup(r => r.GetAllAsync(_companyId)).ReturnsAsync(fuelRefills);
+        _fuelRepo.Setup(r => r.GetAllAsync(_companyId, It.IsAny<Guid?>())).ReturnsAsync(fuelRefills);
 
         var result = await _sut.GetActiveAlertsAsync();
 
@@ -475,13 +475,13 @@ public sealed class FleetAlertServiceTests
     {
         _documentRepo.Setup(r => r.GetExpiringAsync(It.IsAny<int>(), It.IsAny<Guid>()))
             .ThrowsAsync(new Exception("doc error"));
-        _driverRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>()))
+        _driverRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>(), It.IsAny<Guid?>()))
             .ThrowsAsync(new Exception("driver error"));
-        _vehicleRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>()))
+        _vehicleRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>(), It.IsAny<Guid?>()))
             .ThrowsAsync(new Exception("vehicle error"));
-        _fuelRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>()))
+        _fuelRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>(), It.IsAny<Guid?>()))
             .ThrowsAsync(new Exception("fuel error"));
-        _workOrderRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>()))
+        _workOrderRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>(), It.IsAny<Guid?>()))
             .ThrowsAsync(new Exception("wo error"));
 
         var result = await _sut.GetActiveAlertsAsync();
@@ -510,7 +510,7 @@ public sealed class FleetAlertServiceTests
         _documentRepo.Setup(r => r.GetExpiringAsync(30, It.IsAny<Guid>())).ReturnsAsync(new List<FleetDocument> { expiringDoc });
 
         // Driver check fails
-        _driverRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>()))
+        _driverRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>(), It.IsAny<Guid?>()))
             .ThrowsAsync(new Exception("driver error"));
 
         // Vehicle check succeeds
@@ -524,10 +524,10 @@ public sealed class FleetAlertServiceTests
                 CreatedAt = DateTime.UtcNow
             }
         };
-        _vehicleRepo.Setup(r => r.GetAllAsync(_companyId)).ReturnsAsync(vehicles);
+        _vehicleRepo.Setup(r => r.GetAllAsync(_companyId, It.IsAny<Guid?>())).ReturnsAsync(vehicles);
 
         // Fuel check fails
-        _fuelRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>()))
+        _fuelRepo.Setup(r => r.GetAllAsync(It.IsAny<Guid>(), It.IsAny<Guid?>()))
             .ThrowsAsync(new Exception("fuel error"));
 
         // Work order check succeeds
@@ -540,7 +540,7 @@ public sealed class FleetAlertServiceTests
                 CreatedAt = DateTime.UtcNow
             }
         };
-        _workOrderRepo.Setup(r => r.GetAllAsync(_companyId)).ReturnsAsync(workOrders);
+        _workOrderRepo.Setup(r => r.GetAllAsync(_companyId, It.IsAny<Guid?>())).ReturnsAsync(workOrders);
 
         var result = await _sut.GetActiveAlertsAsync();
 
@@ -568,7 +568,7 @@ public sealed class FleetAlertServiceTests
                 CreatedAt = DateTime.UtcNow
             }
         };
-        _vehicleRepo.Setup(r => r.GetAllAsync(_companyId)).ReturnsAsync(vehicles);
+        _vehicleRepo.Setup(r => r.GetAllAsync(_companyId, It.IsAny<Guid?>())).ReturnsAsync(vehicles);
 
         var result = await _sut.GetAlertSummaryAsync();
 

@@ -63,9 +63,10 @@ public sealed class CreditService
     {
         var page = filter.Page ?? 1;
         var pageSize = filter.PageSize ?? 20;
+        var branchId = filter.BranchId ?? _tenant.ResolveBranchId() ?? Guid.Empty;
 
-        var items = await _creditRepo.GetFilteredAsync(filter.ClientId, filter.Status, filter.Search, Guid.Empty, page, pageSize);
-        var total = await _creditRepo.GetFilteredCountAsync(filter.ClientId, filter.Status, filter.Search, Guid.Empty);
+        var items = await _creditRepo.GetFilteredAsync(filter.ClientId, filter.Status, filter.Search, branchId, page, pageSize);
+        var total = await _creditRepo.GetFilteredCountAsync(filter.ClientId, filter.Status, filter.Search, branchId);
 
         return new PagedResult<CreditListResponse>(
             _mapper.Map<List<CreditListResponse>>(items),
