@@ -66,7 +66,7 @@ jobs:
         run: dotnet tool restore
 
       - name: Check EF model vs migrations drift
-        run: dotnet ef migrations has-pending-model-changes --project src/Zorvian.Infrastructure --startup-project src/Zorvian.Web --no-build
+        run: dotnet ef migrations has-pending-model-changes --project src/Zorvian.Infrastructure --startup-project src/Zorvian.Web --configuration Release --no-build
 
       - name: Test
         run: dotnet test --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=results.trx"
