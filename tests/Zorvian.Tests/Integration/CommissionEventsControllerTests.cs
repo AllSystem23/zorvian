@@ -27,6 +27,7 @@ public class CommissionEventsControllerTests : IClassFixture<WebApplicationFacto
         _factory = factory.WithWebHostBuilder(builder =>
         {
             builder.UseSetting("Testing:MockExternalServices", "true");
+            builder.UseSetting("Encryption:Key", "dGVzdC1lbmMta2V5LTMyLWJ5dGVzLTEyMzQ1Njc4OTA=");
             builder.ConfigureTestServices(services =>
             {
                 // Eliminar el servicio real si existe
