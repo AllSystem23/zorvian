@@ -143,9 +143,11 @@ public sealed class EmployeeService
         var pageSize = filter.PageSize ?? 20;
 
         var items = await _repo.GetFilteredAsync(
-            filter.Search, filter.Status, filter.DepartmentId, page, pageSize);
+            filter.Search, filter.Status, filter.DepartmentId, page, pageSize,
+            filter.BranchId ?? _tenant.ResolveBranchId());
         var total = await _repo.GetFilteredCountAsync(
-            filter.Search, filter.Status, filter.DepartmentId);
+            filter.Search, filter.Status, filter.DepartmentId,
+            filter.BranchId ?? _tenant.ResolveBranchId());
 
         return new PagedResult<EmployeeListResponse>(
             _mapper.Map<List<EmployeeListResponse>>(items),

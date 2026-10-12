@@ -547,12 +547,17 @@ public sealed class ZorvianDbContext : DbContext
                 .WithMany(d => d.Employees)
                 .HasForeignKey(em => em.DepartmentId)
                 .OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(em => em.Branch)
+                .WithMany()
+                .HasForeignKey(em => em.BranchId)
+                .OnDelete(DeleteBehavior.Restrict);
             e.HasOne(em => em.ServiceProviderDetails)
                 .WithOne(sp => sp.Employee)
                 .HasForeignKey<ServiceProvider>(sp => sp.EmployeeId)
                 .OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(em => new { em.CollaboratorType, em.Status });
             e.HasIndex(em => new { em.Status, em.DepartmentId });
+            e.HasIndex(em => new { em.TenantId, em.BranchId });
             e.HasQueryFilter(em => (em.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.BypassTenantFilter) && !em.IsDeleted);
         });
 

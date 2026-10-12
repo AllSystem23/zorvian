@@ -23,6 +23,8 @@ public sealed class Employee : BaseEntity
     
     [Encrypted]
     public string? IdentificationNumber { get; set; }
+    public Guid? BranchId { get; set; }
+    public Branch? Branch { get; set; }
     public Guid? DepartmentId { get; set; }
     public Department? Department { get; set; }
     public string? Position { get; set; }

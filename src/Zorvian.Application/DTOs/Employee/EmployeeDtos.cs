@@ -19,7 +19,22 @@ public sealed record CreateEmployeeRequest(
     string? BankName,
     string? BankAccountNumber,
     string? BankAccountType,
-    Guid? ContractId
+    Guid? ContractId,
+    Guid? BranchId = null,
+    string? Nationality = null,
+    string? MaritalStatus = null,
+    string? Address = null,
+    string? City = null,
+    string? EmergencyContact = null,
+    string? EmergencyPhone = null,
+    string? CountryCode = null,
+    DateOnly? RegistrationDate = null,
+    string? PhotoUrl = null,
+    bool? DeductInss = null,
+    bool? DeductIr = null,
+    bool? DeductAguinaldo = null,
+    bool? IsTrustPosition = null,
+    bool? IsDomesticWorkerWithBoard = null
 );
 
 public sealed record UpdateEmployeeRequest(
@@ -42,7 +57,24 @@ public sealed record UpdateEmployeeRequest(
     string? BankName,
     string? BankAccountNumber,
     string? BankAccountType,
-    Guid? ContractId
+    Guid? ContractId,
+    Guid? BranchId = null,
+    string? Nationality = null,
+    string? MaritalStatus = null,
+    string? Address = null,
+    string? City = null,
+    string? EmergencyContact = null,
+    string? EmergencyPhone = null,
+    string? CountryCode = null,
+    DateOnly? RegistrationDate = null,
+    string? PhotoUrl = null,
+    DateOnly? TerminationDate = null,
+    string? TerminationReason = null,
+    bool? DeductInss = null,
+    bool? DeductIr = null,
+    bool? DeductAguinaldo = null,
+    bool? IsTrustPosition = null,
+    bool? IsDomesticWorkerWithBoard = null
 );
 
 public sealed record EmployeeResponse(
@@ -67,7 +99,24 @@ public sealed record EmployeeResponse(
     string? BankAccountNumber,
     string? BankAccountType,
     string CollaboratorType,
-    Guid? ContractId
+    Guid? ContractId,
+    Guid? BranchId = null,
+    string? Nationality = null,
+    string? MaritalStatus = null,
+    string? Address = null,
+    string? City = null,
+    string? EmergencyContact = null,
+    string? EmergencyPhone = null,
+    string? CountryCode = null,
+    DateOnly? RegistrationDate = null,
+    string? PhotoUrl = null,
+    DateOnly? TerminationDate = null,
+    string? TerminationReason = null,
+    bool DeductInss = true,
+    bool DeductIr = true,
+    bool DeductAguinaldo = true,
+    bool IsTrustPosition = false,
+    bool IsDomesticWorkerWithBoard = false
 );
 
 public sealed record EmployeeListResponse(
@@ -78,13 +127,15 @@ public sealed record EmployeeListResponse(
     string DepartmentName,
     string? Position,
     string Status,
-    DateOnly HireDate
+    DateOnly HireDate,
+    Guid? BranchId = null
 );
 
 public sealed record EmployeeFilterRequest(
     string? Search,
     string? Status,
     Guid? DepartmentId,
+    Guid? BranchId = null,
     int? Page = 1,
     int? PageSize = 20
 );

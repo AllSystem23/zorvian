@@ -28,6 +28,13 @@ public sealed class MappingProfile : Profile
             .ForMember(d => d.HireDate, o => o.MapFrom((src, _) => src.HireDate ?? DateOnly.FromDateTime(DateTime.UtcNow)))
             .ForMember(d => d.Status, o => o.MapFrom(_ => "active"))
             .ForMember(d => d.SalaryType, o => o.MapFrom((src, _) => src.SalaryType ?? "monthly"))
+            .ForMember(d => d.CountryCode, o => o.MapFrom((src, dest) => src.CountryCode ?? dest.CountryCode))
+            .ForMember(d => d.DeductInss, o => o.MapFrom((src, dest) => src.DeductInss ?? dest.DeductInss))
+            .ForMember(d => d.DeductIr, o => o.MapFrom((src, dest) => src.DeductIr ?? dest.DeductIr))
+            .ForMember(d => d.DeductAguinaldo, o => o.MapFrom((src, dest) => src.DeductAguinaldo ?? dest.DeductAguinaldo))
+            .ForMember(d => d.IsTrustPosition, o => o.MapFrom((src, dest) => src.IsTrustPosition ?? dest.IsTrustPosition))
+            .ForMember(d => d.IsDomesticWorkerWithBoard, o => o.MapFrom((src, dest) => src.IsDomesticWorkerWithBoard ?? dest.IsDomesticWorkerWithBoard))
+            .ForMember(d => d.Branch, o => o.Ignore())
             .ForMember(d => d.Department, o => o.Ignore())
             .ForMember(d => d.SupervisedBy, o => o.Ignore())
             .ForMember(d => d.Supervisors, o => o.Ignore())
@@ -106,7 +113,24 @@ public sealed class MappingProfile : Profile
                 s.BankAccountNumber,
                 s.BankAccountType,
                 s.CollaboratorType,
-                s.ServiceProviderDetails != null && s.ServiceProviderDetails.Contracts != null && s.ServiceProviderDetails.Contracts.Any() ? s.ServiceProviderDetails.Contracts.First().Id : (Guid?)null))
+                s.ServiceProviderDetails != null && s.ServiceProviderDetails.Contracts != null && s.ServiceProviderDetails.Contracts.Any() ? s.ServiceProviderDetails.Contracts.First().Id : (Guid?)null,
+                s.BranchId,
+                s.Nationality,
+                s.MaritalStatus,
+                s.Address,
+                s.City,
+                s.EmergencyContact,
+                s.EmergencyPhone,
+                s.CountryCode,
+                s.RegistrationDate,
+                s.PhotoUrl,
+                s.TerminationDate,
+                s.TerminationReason,
+                s.DeductInss,
+                s.DeductIr,
+                s.DeductAguinaldo,
+                s.IsTrustPosition,
+                s.IsDomesticWorkerWithBoard))
             // El ConstructUsing es la única fuente de valores: sin esto, AutoMapper
             // pisa miembros flattenables (ej. DepartmentName ← Department.Name)
             // con null cuando la navegación no está cargada.
@@ -121,7 +145,8 @@ public sealed class MappingProfile : Profile
                 s.Department != null ? s.Department.Name : "",
                 s.Position,
                 s.Status,
-                s.HireDate))
+                s.HireDate,
+                s.BranchId))
             // Igual que EmployeeResponse: FullName/DepartmentName no deben ser pisados.
             .ForAllMembers(o => o.Ignore());
 

@@ -165,7 +165,7 @@ public class Phase7IntegrationTests
         _mockTenant.Setup(t => t.TenantId).Returns(Guid.NewGuid().ToString());
         _mockCompanyRepo.Setup(c => c.GetByTenantIdAsync(It.IsAny<string>())).ReturnsAsync(new Company { Country = "NIC" });
         _mockTaxConfigRepo.Setup(t => t.GetByCountryCodeAsync("NIC")).ReturnsAsync(new CountryTaxConfig { InssEmployeeRate = 0.07m });
-        _mockEmployeeRepo.Setup(e => e.GetFilteredAsync(null, "active", null, 1, 10000)).ReturnsAsync(new List<Employee> { emp });
+        _mockEmployeeRepo.Setup(e => e.GetFilteredAsync(null, "active", null, 1, 10000, It.IsAny<Guid?>())).ReturnsAsync(new List<Employee> { emp });
         _mockEmployeeRepo.Setup(e => e.GetAttendanceInRangeAsync(empId, period.StartDate, period.EndDate)).ReturnsAsync(attendance);
         _mockRepo.Setup(r => r.GetActiveSalaryAsync(empId)).ReturnsAsync(new EmployeeSalary { BaseSalary = 10m }); // 10 per hour
         _mockOvertimeRepo.Setup(o => o.GetByPeriodAsync(periodId, It.IsAny<Guid>())).ReturnsAsync(new List<OvertimeRecord>());
@@ -206,7 +206,7 @@ public class Phase7IntegrationTests
         _mockTenant.Setup(t => t.TenantId).Returns(Guid.NewGuid().ToString());
         _mockCompanyRepo.Setup(c => c.GetByTenantIdAsync(It.IsAny<string>())).ReturnsAsync(new Company { Country = "NIC" });
         _mockTaxConfigRepo.Setup(t => t.GetByCountryCodeAsync("NIC")).ReturnsAsync(new CountryTaxConfig { InssEmployeeRate = 0.07m });
-        _mockEmployeeRepo.Setup(e => e.GetFilteredAsync(null, "active", null, 1, 10000)).ReturnsAsync(new List<Employee> { emp });
+        _mockEmployeeRepo.Setup(e => e.GetFilteredAsync(null, "active", null, 1, 10000, It.IsAny<Guid?>())).ReturnsAsync(new List<Employee> { emp });
         _mockEmployeeRepo.Setup(e => e.GetAttendanceInRangeAsync(empId, period.StartDate, period.EndDate)).ReturnsAsync(attendance);
         _mockRepo.Setup(r => r.GetActiveSalaryAsync(empId)).ReturnsAsync(new EmployeeSalary { BaseSalary = 1000m });
         _mockOvertimeRepo.Setup(o => o.GetByPeriodAsync(periodId, It.IsAny<Guid>())).ReturnsAsync(new List<OvertimeRecord>());

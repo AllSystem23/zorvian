@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 import '../../departments/providers/department_provider.dart';
 import '../../../shared/ds/ds.dart';
 import '../../../core/widgets/responsive_layout.dart';
@@ -28,18 +29,31 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
   final _bankNameCtrl = TextEditingController();
   final _bankAccountCtrl = TextEditingController();
   final _identificationNumberCtrl = TextEditingController();
+  final _employeeCodeCtrl = TextEditingController();
+  final _nationalityCtrl = TextEditingController();
+  final _addressCtrl = TextEditingController();
+  final _cityCtrl = TextEditingController();
+  final _emergencyContactCtrl = TextEditingController();
+  final _emergencyPhoneCtrl = TextEditingController();
+  final _photoUrlCtrl = TextEditingController();
+  final _terminationReasonCtrl = TextEditingController();
   
   // State
   int _currentStep = 0;
   String? _selectedDeptId;
+  String? _branchId;
   String _salaryType = 'monthly';
   String _bankAccountType = 'ahorro';
   String _collaboratorType = 'employee';
   String _identificationType = 'cedula_ni';
+  String _maritalStatus = 'soltero';
+  String _countryCode = 'NIC';
   String? _selectedContractId;
   String _status = 'active';
   DateTime? _hireDate;
   DateTime? _dateOfBirth;
+  DateTime? _registrationDate;
+  DateTime? _terminationDate;
   String _gender = 'M';
   bool _loading = false;
   String? _error;
@@ -55,9 +69,18 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
 
   final List<String> _stepLabels = [
     'Datos Personales',
+    'Contacto y Dirección',
     'Posición y Salario',
     'Información Bancaria',
     'Configuración de Nómina'
+  ];
+
+  static const List<String> _maritalStatusOptions = [
+    'soltero', 'casado', 'union_libre', 'divorciado', 'viudo'
+  ];
+
+  static const List<String> _countryOptions = [
+    'NIC', 'HND', 'GTM', 'SLV', 'CRI', 'PAN', 'BLZ', 'DOM', 'MEX', 'USA', 'ESP'
   ];
 
   @override
@@ -65,7 +88,11 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
     super.initState();
     _isEditing = widget.employeeId != null;
     Future.microtask(() => ref.read(departmentProvider.notifier).load());
-    if (_isEditing) _loadEmployee();
+    if (_isEditing) {
+      _loadEmployee();
+    } else {
+      _branchId = ref.read(companyBranchProvider).branchId;
+    }
     
     // Track changes for "auto-save" simulation
     _firstNameCtrl.addListener(_onFieldChanged);
@@ -77,6 +104,14 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
     _bankNameCtrl.addListener(_onFieldChanged);
     _bankAccountCtrl.addListener(_onFieldChanged);
     _identificationNumberCtrl.addListener(_onFieldChanged);
+    _employeeCodeCtrl.addListener(_onFieldChanged);
+    _nationalityCtrl.addListener(_onFieldChanged);
+    _addressCtrl.addListener(_onFieldChanged);
+    _cityCtrl.addListener(_onFieldChanged);
+    _emergencyContactCtrl.addListener(_onFieldChanged);
+    _emergencyPhoneCtrl.addListener(_onFieldChanged);
+    _photoUrlCtrl.addListener(_onFieldChanged);
+    _terminationReasonCtrl.addListener(_onFieldChanged);
   }
 
   void _onFieldChanged() {
@@ -118,6 +153,23 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
         _deductAguinaldo = data['deductAguinaldo'] ?? true;
         _isTrustPosition = data['isTrustPosition'] ?? false;
         _isDomesticWorkerWithBoard = data['isDomesticWorkerWithBoard'] ?? false;
+        _employeeCodeCtrl.text = data['employeeCode'] ?? '';
+        _nationalityCtrl.text = data['nationality'] ?? '';
+        _addressCtrl.text = data['address'] ?? '';
+        _cityCtrl.text = data['city'] ?? '';
+        _emergencyContactCtrl.text = data['emergencyContact'] ?? '';
+        _emergencyPhoneCtrl.text = data['emergencyPhone'] ?? '';
+        _photoUrlCtrl.text = data['photoUrl'] ?? '';
+        _terminationReasonCtrl.text = data['terminationReason'] ?? '';
+        _maritalStatus = data['maritalStatus'] as String? ?? 'soltero';
+        _countryCode = data['countryCode'] as String? ?? 'NIC';
+        _branchId = data['branchId'] as String?;
+        if (data['registrationDate'] != null) {
+          try { _registrationDate = DateTime.parse(data['registrationDate'] as String); } catch (_) {}
+        }
+        if (data['terminationDate'] != null) {
+          try { _terminationDate = DateTime.parse(data['terminationDate'] as String); } catch (_) {}
+        }
         _hasChanges = false;
       });
     } catch (_) {
@@ -136,8 +188,10 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
         'lastName': _lastNameCtrl.text.trim(),
         'email': _emailCtrl.text.trim(),
         'phone': _phoneCtrl.text.trim(),
+        if (_employeeCodeCtrl.text.trim().isNotEmpty) 'employeeCode': _employeeCodeCtrl.text.trim(),
         'position': _positionCtrl.text.trim(),
         'departmentId': _selectedDeptId,
+        if (_branchId != null) 'branchId': _branchId,
         'collaboratorType': _collaboratorType,
         'salaryType': _salaryType,
         if (_selectedContractId != null) 'contractId': _selectedContractId,
@@ -147,9 +201,22 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
         'identificationType': _identificationType,
         'identificationNumber': _identificationNumberCtrl.text.trim(),
         'gender': _gender,
+        'nationality': _nationalityCtrl.text.trim(),
+        'maritalStatus': _maritalStatus,
+        'address': _addressCtrl.text.trim(),
+        'city': _cityCtrl.text.trim(),
+        'emergencyContact': _emergencyContactCtrl.text.trim(),
+        'emergencyPhone': _emergencyPhoneCtrl.text.trim(),
+        'photoUrl': _photoUrlCtrl.text.trim(),
+        'countryCode': _countryCode,
         if (_dateOfBirth != null) 'dateOfBirth': _dateOfBirth!.toIso8601String().substring(0, 10),
+        if (_registrationDate != null) 'registrationDate': _registrationDate!.toIso8601String().substring(0, 10),
         if (_salaryCtrl.text.isNotEmpty) 'salary': double.tryParse(_salaryCtrl.text),
         if (_isEditing) 'status': _status,
+        if (_isEditing && _terminationDate != null)
+          'terminationDate': _terminationDate!.toIso8601String().substring(0, 10),
+        if (_isEditing && _terminationReasonCtrl.text.trim().isNotEmpty)
+          'terminationReason': _terminationReasonCtrl.text.trim(),
         if (_hireDate != null) 'hireDate': _hireDate!.toIso8601String().substring(0, 10),
         'deductInss': _deductInss,
         'deductIr': _deductIr,
@@ -199,6 +266,14 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
     _bankNameCtrl.dispose();
     _bankAccountCtrl.dispose();
     _identificationNumberCtrl.dispose();
+    _employeeCodeCtrl.dispose();
+    _nationalityCtrl.dispose();
+    _addressCtrl.dispose();
+    _cityCtrl.dispose();
+    _emergencyContactCtrl.dispose();
+    _emergencyPhoneCtrl.dispose();
+    _photoUrlCtrl.dispose();
+    _terminationReasonCtrl.dispose();
     super.dispose();
   }
 
@@ -299,10 +374,94 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
   Widget _buildCurrentStepContent() {
     switch (_currentStep) {
       case 0: return _buildStepOne();
-      case 1: return _buildStepTwo();
-      case 2: return _buildStepThree();
-      case 3: return _buildStepFour();
+      case 1: return _buildContactStep();
+      case 2: return _buildStepTwo();
+      case 3: return _buildStepThree();
+      case 4: return _buildStepFour();
       default: return const SizedBox.shrink();
+    }
+  }
+
+  Widget _buildContactStep() {
+    return Column(
+      key: const ValueKey(1),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader('Contacto y Dirección', 'Datos de contacto, ubicación y emergencia.'),
+        const SizedBox(height: 24),
+        ZCard(
+          padding: const EdgeInsets.all(24),
+          child: ResponsiveGrid(
+            mobileColumns: 1,
+            tabletColumns: 2,
+            desktopColumns: 2,
+            children: [
+              TextFormField(
+                controller: _nationalityCtrl,
+                decoration: const InputDecoration(labelText: 'Nacionalidad', prefixIcon: Icon(Icons.flag_outlined)),
+              ),
+              ZDropdownFormField<String>(
+                value: _maritalStatus,
+                label: 'Estado Civil',
+                prefixIcon: Icons.favorite_border,
+                items: _maritalStatusOptions
+                    .map((s) => DropdownMenuItem(value: s, child: Text(_maritalStatusLabel(s))))
+                    .toList(),
+                onChanged: (v) => setState(() { _maritalStatus = v!; _onFieldChanged(); }),
+              ),
+              TextFormField(
+                controller: _addressCtrl,
+                decoration: const InputDecoration(labelText: 'Dirección', prefixIcon: Icon(Icons.home_outlined)),
+              ),
+              TextFormField(
+                controller: _cityCtrl,
+                decoration: const InputDecoration(labelText: 'Ciudad', prefixIcon: Icon(Icons.location_city_outlined)),
+              ),
+              ZDropdownFormField<String>(
+                value: _countryCode,
+                label: 'País',
+                prefixIcon: Icons.public_outlined,
+                items: _countryOptions
+                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                    .toList(),
+                onChanged: (v) => setState(() { _countryCode = v!; _onFieldChanged(); }),
+              ),
+              _DatePickerField(
+                label: 'Fecha de Registro',
+                icon: Icons.event_available_outlined,
+                value: _registrationDate,
+                firstDate: DateTime(1940),
+                lastDate: DateTime.now(),
+                onChanged: (d) => setState(() { _registrationDate = d; _onFieldChanged(); }),
+              ),
+              TextFormField(
+                controller: _emergencyContactCtrl,
+                decoration: const InputDecoration(labelText: 'Contacto de Emergencia', prefixIcon: Icon(Icons.contact_emergency_outlined)),
+              ),
+              TextFormField(
+                controller: _emergencyPhoneCtrl,
+                decoration: const InputDecoration(labelText: 'Teléfono de Emergencia', prefixIcon: Icon(Icons.phone_callback_outlined)),
+                keyboardType: TextInputType.phone,
+              ),
+              TextFormField(
+                controller: _photoUrlCtrl,
+                decoration: const InputDecoration(labelText: 'URL de Foto (opcional)', prefixIcon: Icon(Icons.image_outlined)),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _maritalStatusLabel(String code) {
+    switch (code) {
+      case 'soltero': return 'Soltero(a)';
+      case 'casado': return 'Casado(a)';
+      case 'union_libre': return 'Unión Libre';
+      case 'divorciado': return 'Divorciado(a)';
+      case 'viudo': return 'Viudo(a)';
+      default: return code;
     }
   }
 
@@ -402,7 +561,7 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
   Widget _buildStepTwo() {
     final deptState = ref.watch(departmentProvider);
     return Column(
-      key: const ValueKey(1),
+      key: const ValueKey(2),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionHeader('Cargo y Compensación', 'Defina el rol y la estructura salarial del colaborador.'),
@@ -427,6 +586,21 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
                   .toList(),
               onChanged: (v) => setState(() { _selectedDeptId = v; _onFieldChanged(); }),
               validator: (v) => v == null ? 'Requerido' : null,
+            ),
+            ZAsyncRenderer(
+              value: ref.watch(headerBranchListProvider),
+              builder: (items) => ZDropdownFormField<String>(
+                value: _branchId,
+                label: 'Sucursal',
+                prefixIcon: Icons.store_outlined,
+                items: items
+                    .map((b) => DropdownMenuItem(
+                          value: b['id'] as String,
+                          child: Text(b['name'] as String? ?? ''),
+                        ))
+                    .toList(),
+                onChanged: (v) => setState(() { _branchId = v; _onFieldChanged(); }),
+              ),
             ),
             ZDropdownFormField<String>(
               value: _salaryType,
@@ -460,6 +634,20 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
               hireDate: _hireDate,
               onChanged: (d) => setState(() { _hireDate = d; _onFieldChanged(); }),
             ),
+            if (_isEditing && _status == 'terminated')
+              _DatePickerField(
+                label: 'Fecha de Terminación',
+                icon: Icons.event_busy_outlined,
+                value: _terminationDate,
+                firstDate: DateTime(2000),
+                lastDate: DateTime.now(),
+                onChanged: (d) => setState(() { _terminationDate = d; _onFieldChanged(); }),
+              ),
+            if (_isEditing && _status == 'terminated')
+              TextFormField(
+                controller: _terminationReasonCtrl,
+                decoration: const InputDecoration(labelText: 'Motivo de Terminación', prefixIcon: Icon(Icons.notes_outlined)),
+              ),
           ],
         ),
       ],
@@ -468,7 +656,7 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
 
   Widget _buildStepThree() {
     return Column(
-      key: const ValueKey(2),
+      key: const ValueKey(3),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionHeader('Información Bancaria', 'Datos necesarios para la dispersión de nómina.'),
@@ -669,6 +857,52 @@ class _HireDateField extends StatelessWidget {
   }
 }
 
+class _DatePickerField extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final DateTime? value;
+  final DateTime firstDate;
+  final DateTime lastDate;
+  final ValueChanged<DateTime?> onChanged;
+
+  const _DatePickerField({
+    required this.label,
+    required this.icon,
+    required this.value,
+    required this.firstDate,
+    required this.lastDate,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: value ?? DateTime.now(),
+          firstDate: firstDate,
+          lastDate: lastDate,
+          locale: const Locale('es'),
+        );
+        onChanged(picked);
+      },
+      child: InputDecorator(
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon),
+        ),
+        child: Text(
+          value != null ? '${value!.day}/${value!.month}/${value!.year}' : 'Seleccionar fecha',
+          style: TextStyle(
+            color: value != null ? null : Theme.of(context).hintColor,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _DateOfBirthField extends StatelessWidget {
   final DateTime? dateOfBirth;
   final ValueChanged<DateTime?> onChanged;
@@ -705,3 +939,4 @@ class _DateOfBirthField extends StatelessWidget {
     );
   }
 }
+

@@ -22,7 +22,7 @@ public sealed class EmployeeRepository : IEmployeeRepository
             .FirstOrDefaultAsync(e => e.Id == id);
 
     public async Task<List<Employee>> GetFilteredAsync(
-        string? search, string? status, Guid? departmentId, int page, int pageSize)
+        string? search, string? status, Guid? departmentId, int page, int pageSize, Guid? branchId = null)
     {
         var query = _db.Employees
             .Include(e => e.Department)
@@ -44,6 +44,8 @@ public sealed class EmployeeRepository : IEmployeeRepository
         if (departmentId.HasValue)
             query = query.Where(e => e.DepartmentId == departmentId);
 
+        query = query.ApplyBranchScope(branchId, e => e.BranchId);
+
         return await query
             .OrderBy(e => e.LastName)
             .ThenBy(e => e.FirstName)
@@ -53,7 +55,7 @@ public sealed class EmployeeRepository : IEmployeeRepository
     }
 
     public async Task<int> GetFilteredCountAsync(
-        string? search, string? status, Guid? departmentId)
+        string? search, string? status, Guid? departmentId, Guid? branchId = null)
     {
         var query = _db.Employees.AsQueryable();
 
@@ -72,6 +74,8 @@ public sealed class EmployeeRepository : IEmployeeRepository
 
         if (departmentId.HasValue)
             query = query.Where(e => e.DepartmentId == departmentId);
+
+        query = query.ApplyBranchScope(branchId, e => e.BranchId);
 
         return await query.CountAsync();
     }

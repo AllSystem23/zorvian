@@ -4827,6 +4827,9 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Property<string>("BankName")
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("BranchId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("City")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
@@ -4985,6 +4988,8 @@ namespace Zorvian.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BranchId");
+
                     b.HasIndex("CollaboratorId");
 
                     b.HasIndex("DepartmentId");
@@ -4992,6 +4997,8 @@ namespace Zorvian.Infrastructure.Migrations
                     b.HasIndex("CollaboratorType", "Status");
 
                     b.HasIndex("Status", "DepartmentId");
+
+                    b.HasIndex("TenantId", "BranchId");
 
                     b.ToTable("Employees");
                 });
@@ -15800,6 +15807,11 @@ namespace Zorvian.Infrastructure.Migrations
 
             modelBuilder.Entity("Zorvian.Core.Entities.Employee", b =>
                 {
+                    b.HasOne("Zorvian.Core.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Zorvian.Core.Entities.Collaborator", "Collaborator")
                         .WithMany()
                         .HasForeignKey("CollaboratorId")
@@ -15810,6 +15822,8 @@ namespace Zorvian.Infrastructure.Migrations
                         .WithMany("Employees")
                         .HasForeignKey("DepartmentId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Branch");
 
                     b.Navigation("Collaborator");
 

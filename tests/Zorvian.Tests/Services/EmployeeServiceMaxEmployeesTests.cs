@@ -43,7 +43,7 @@ public sealed class EmployeeServiceMaxEmployeesTests
     {
         _authRepo.Setup(a => a.GetCompanyByTenantIdAsync(_tenantId))
             .ReturnsAsync(new Company { MaxEmployees = 5 });
-        _repo.Setup(r => r.GetFilteredCountAsync(null, null, null)).ReturnsAsync(5);
+        _repo.Setup(r => r.GetFilteredCountAsync(null, null, null, It.IsAny<Guid?>())).ReturnsAsync(5);
 
         var sut = BuildSut();
 
@@ -57,7 +57,7 @@ public sealed class EmployeeServiceMaxEmployeesTests
     {
         _authRepo.Setup(a => a.GetCompanyByTenantIdAsync(_tenantId))
             .ReturnsAsync(new Company { MaxEmployees = 5 });
-        _repo.Setup(r => r.GetFilteredCountAsync(null, null, null)).ReturnsAsync(4);
+        _repo.Setup(r => r.GetFilteredCountAsync(null, null, null, It.IsAny<Guid?>())).ReturnsAsync(4);
 
         _mapper.Setup(m => m.Map<Employee>(It.IsAny<CreateEmployeeRequest>()))
             .Returns(new Employee { FirstName = "Ana", LastName = "López", Status = "active" });
@@ -96,6 +96,6 @@ public sealed class EmployeeServiceMaxEmployeesTests
         var result = await sut.CreateAsync(Request());
 
         Assert.NotNull(result);
-        _repo.Verify(r => r.GetFilteredCountAsync(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<Guid?>()), Times.Never);
+        _repo.Verify(r => r.GetFilteredCountAsync(It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<Guid?>(), It.IsAny<Guid?>()), Times.Never);
     }
 }

@@ -425,10 +425,10 @@ public sealed class EmployeeContractLinkingTests : IDisposable
         public Task<List<Employee>> SearchByCodeAsync(string partialCode, int maxResults) =>
             Task.FromResult(new List<Employee>());
 
-        public Task<List<Employee>> GetFilteredAsync(string? search, string? status, Guid? departmentId, int page, int pageSize) =>
+        public Task<List<Employee>> GetFilteredAsync(string? search, string? status, Guid? departmentId, int page, int pageSize, Guid? branchId = null) =>
             Task.FromResult(new List<Employee>());
 
-        public Task<int> GetFilteredCountAsync(string? search, string? status, Guid? departmentId) =>
+        public Task<int> GetFilteredCountAsync(string? search, string? status, Guid? departmentId, Guid? branchId = null) =>
             Task.FromResult(0);
 
         public Task<List<EmployeeSupervisor>> GetSupervisorsAsync(Guid employeeId) =>

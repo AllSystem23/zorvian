@@ -7,8 +7,8 @@ public interface IEmployeeRepository
     Task<Employee?> GetByIdAsync(Guid id);
     Task<Employee?> GetByEmployeeCodeAsync(string code);
     Task<List<Employee>> SearchByCodeAsync(string partialCode, int maxResults);
-    Task<List<Employee>> GetFilteredAsync(string? search, string? status, Guid? departmentId, int page, int pageSize);
-    Task<int> GetFilteredCountAsync(string? search, string? status, Guid? departmentId);
+    Task<List<Employee>> GetFilteredAsync(string? search, string? status, Guid? departmentId, int page, int pageSize, Guid? branchId = null);
+    Task<int> GetFilteredCountAsync(string? search, string? status, Guid? departmentId, Guid? branchId = null);
     Task<List<EmployeeSupervisor>> GetSupervisorsAsync(Guid employeeId);
     Task AddAsync(Employee employee);
     Task UpdateAsync(Employee employee);

@@ -66,7 +66,7 @@ public sealed class VacationServiceTests
         {
             new() { SupervisorId = Guid.NewGuid(), Supervisor = new Employee { Id = Guid.NewGuid(), FirstName = "Jefe", LastName = "Uno" } },
         });
-        _employeeRepo.Setup(r => r.GetFilteredCountAsync(null, null, emp.DepartmentId)).ReturnsAsync(10);
+        _employeeRepo.Setup(r => r.GetFilteredCountAsync(null, null, emp.DepartmentId, It.IsAny<Guid?>())).ReturnsAsync(10);
         _repo.Setup(r => r.GetOverlappingCountAsync(emp.DepartmentId!.Value, It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), _employeeId)).ReturnsAsync(1);
         _repo.Setup(r => r.GetVacationDaysSumAsync(_employeeId, "taken")).ReturnsAsync(0);
         _repo.Setup(r => r.GetVacationDaysSumAsync(_employeeId, "pending")).ReturnsAsync(0);
@@ -136,7 +136,7 @@ public sealed class VacationServiceTests
         var emp = MakeEmployee(deptId: deptId);
         _employeeRepo.Setup(r => r.GetByIdAsync(_employeeId)).ReturnsAsync(emp);
         _employeeRepo.Setup(r => r.GetSupervisorsAsync(_employeeId)).ReturnsAsync(new List<EmployeeSupervisor>());
-        _employeeRepo.Setup(r => r.GetFilteredCountAsync(null, null, deptId)).ReturnsAsync(3);
+        _employeeRepo.Setup(r => r.GetFilteredCountAsync(null, null, deptId, It.IsAny<Guid?>())).ReturnsAsync(3);
         _repo.Setup(r => r.GetOverlappingCountAsync(deptId, It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), _employeeId)).ReturnsAsync(1);
 
         var request = new CreateVacationRequest(

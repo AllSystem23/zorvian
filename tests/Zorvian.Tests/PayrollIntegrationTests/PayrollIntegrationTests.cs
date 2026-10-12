@@ -37,7 +37,7 @@ public class PayrollIntegrationTests
         mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC")).ReturnsAsync(new CountryTaxConfig { InssEmployeeRate = 0.07m, InssEmployeeMax = 1500m, InssEmployerRate = 0.215m });
 
         var emp = new Employee { Id = empId, Salary = 1000m, SalaryType = "monthly" };
-        mockEmployeeRepo.Setup(r => r.GetFilteredAsync(null, "active", null, 1, 10000)).ReturnsAsync(new List<Employee> { emp });
+        mockEmployeeRepo.Setup(r => r.GetFilteredAsync(null, "active", null, 1, 10000, It.IsAny<Guid?>())).ReturnsAsync(new List<Employee> { emp });
         
         // Mock full attendance for the month to get full base salary
         var fullAttendance = Enumerable.Range(1, 30).Select(i => new AttendanceRecord { Date = new DateOnly(2026, 6, i), Status = "present" }).ToList();
