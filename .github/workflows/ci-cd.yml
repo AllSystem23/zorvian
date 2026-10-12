@@ -62,6 +62,9 @@ jobs:
 
       # Guarda anti-drift: falla si alguien cambia el modelo sin generar migración
       # (exactamente lo que pasó con WarrantySlaConfig durante meses).
+      - name: Install EF tools
+        run: dotnet tool restore
+
       - name: Check EF model vs migrations drift
         run: dotnet ef migrations has-pending-model-changes --project src/Zorvian.Infrastructure --startup-project src/Zorvian.Web --no-build
 
