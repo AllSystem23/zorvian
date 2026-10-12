@@ -30,6 +30,7 @@ final class NavModule {
   final String group; // Operations, Financial, Talent, Intelligence, Admin
   final List<NavItem> children;
   final List<String> roles;
+  final String module; // module entitlement key (ModuleType name del backend)
 
   const NavModule({
     required this.id,
@@ -40,6 +41,7 @@ final class NavModule {
     required this.group,
     required this.children,
     this.roles = const [],
+    this.module = '',
   });
 }
 
@@ -79,6 +81,7 @@ final class NavConfig {
     // ── OPERACIONES ──
     const NavModule(
       id: 'ventas',
+      module: 'Sales',
       label: 'Ventas',
       icon: Icons.point_of_sale_outlined,
       color: ZColors.moduleSales,
@@ -98,6 +101,7 @@ final class NavConfig {
 
     const NavModule(
       id: 'inventario',
+      module: 'Inventory',
       label: 'Inventario',
       icon: Icons.inventory_2_outlined,
       color: ZColors.moduleInventory,
@@ -116,6 +120,7 @@ final class NavConfig {
 
     const NavModule(
       id: 'compras',
+      module: 'Purchases',
       label: 'Compras',
       icon: Icons.shopping_cart_outlined,
       color: ZColors.modulePurchases,
@@ -132,6 +137,7 @@ final class NavConfig {
 
     const NavModule(
       id: 'flota',
+      module: 'Fleet',
       label: 'Flota y Logística',
       icon: Icons.local_shipping_outlined,
       color: ZColors.moduleFleet,
@@ -161,6 +167,7 @@ final class NavConfig {
     // ── PalmTrack: módulo independiente de integración externa ──
     const NavModule(
       id: 'palmtrack',
+      module: 'PalmTrack',
       label: 'PalmTrack',
       icon: Icons.agriculture_outlined,
       color: ZColors.moduleFleet,
@@ -183,6 +190,7 @@ final class NavConfig {
     // ── FINANCIERO ──
     const NavModule(
       id: 'finanzas',
+      module: 'Finance',
       label: 'Finanzas',
       icon: Icons.account_balance_outlined,
       color: ZColors.moduleFinance,
@@ -204,6 +212,7 @@ final class NavConfig {
     // ── TALENTO ──
     const NavModule(
       id: 'talento',
+      module: 'Hr',
       label: 'Talento Humano',
       icon: Icons.diversity_3_outlined,
       color: ZColors.moduleHr,
@@ -225,6 +234,7 @@ final class NavConfig {
     // ── INTELIGENCIA ──
     const NavModule(
       id: 'bi',
+      module: 'Bi',
       label: 'BI e Inteligencia',
       icon: Icons.insights_outlined,
       color: ZColors.moduleIa,
@@ -242,6 +252,7 @@ final class NavConfig {
 
     const NavModule(
       id: 'comunicacion',
+      module: 'Communication',
       label: 'Comunicación',
       icon: Icons.forum_outlined,
       color: ZColors.moduleCrm,
@@ -255,6 +266,7 @@ final class NavConfig {
     // ── CONFIGURACIÓN ──
     const NavModule(
       id: 'administracion',
+      module: 'Administration',
       label: 'Administración',
       icon: Icons.admin_panel_settings_outlined,
       color: ZColors.moduleAdmin,
@@ -278,6 +290,7 @@ final class NavConfig {
 
     const NavModule(
       id: 'fiscal',
+      module: 'Tax',
       label: 'Configuración Fiscal',
       icon: Icons.receipt_long_outlined,
       color: ZColors.moduleFinance,
@@ -291,10 +304,42 @@ final class NavConfig {
     ),
   ];
 
-  static List<NavModule> getModulesForRole(String role, {String? searchQuery}) {
+  /// Módulos habilitados por plan (espejo del catálogo `PlanModule` del backend).
+  /// `enterprise` habilita todos los módulos del catálogo.
+  static const Map<String, List<String>> modulesByPlan = {
+    'starter': ['Sales', 'Inventory', 'Hr', 'Administration'],
+    'professional': [
+      'Sales', 'Inventory', 'Hr', 'Administration',
+      'Purchases', 'Fleet', 'Finance', 'Bi', 'Communication',
+    ],
+    'enterprise': [
+      'Sales', 'Inventory', 'Hr', 'Administration',
+      'Purchases', 'Fleet', 'Finance', 'Bi', 'Communication',
+      'PalmTrack', 'Tax',
+    ],
+  };
+
+  /// Conjunto de módulos habilitados para un plan. Un plan desconocido cae a
+  /// `starter` (least-privilege). SuperAdmin verá todos los módulos.
+  static Set<String> enabledModulesForPlan(String? plan) {
+    return (modulesByPlan[plan] ?? modulesByPlan['starter']!).toSet();
+  }
+
+  static List<NavModule> getModulesForRole(
+    String role, {
+    String? searchQuery,
+    Set<String>? enabledModules,
+  }) {
     final bypass = role == 'SuperAdmin';
 
+    bool moduleEnabled(NavModule m) {
+      if (bypass || enabledModules == null) return true;
+      if (m.module.isEmpty) return true;
+      return enabledModules.contains(m.module);
+    }
+
     final filtered = allModules.where((module) {
+      if (!moduleEnabled(module)) return false;
       if (!bypass && module.roles.isNotEmpty && !module.roles.contains(role)) return false;
       if (searchQuery != null && searchQuery.isNotEmpty) {
         final q = searchQuery.toLowerCase();
@@ -312,7 +357,7 @@ final class NavConfig {
           final searchOk = item.label.toLowerCase().contains(searchQuery.toLowerCase());
           return roleOk && searchOk;
         }).toList();
-        return NavModule(id: module.id, label: module.label, icon: module.icon, color: module.color, textColor: module.textColor, group: module.group, children: filteredItems, roles: module.roles);
+        return NavModule(id: module.id, label: module.label, icon: module.icon, color: module.color, textColor: module.textColor, group: module.group, children: filteredItems, roles: module.roles, module: module.module);
       }
       return module;
     }).where((m) => m.children.isNotEmpty).toList();

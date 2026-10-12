@@ -19,16 +19,16 @@ public sealed class JwtService : IJwtService
     }
 
     public (string accessToken, string refreshToken, int expiresIn) GenerateTokens(
-        User user, Role role, string tenantId)
+        User user, Role role, string tenantId, string planId = "starter")
     {
-        var accessToken = GenerateAccessToken(user, role, tenantId);
+        var accessToken = GenerateAccessToken(user, role, tenantId, planId);
         var refreshToken = GenerateRefreshToken();
         var expiresIn = int.Parse(_config["Jwt:ExpirationMinutes"] ?? "60");
 
         return (accessToken, refreshToken, expiresIn * 60);
     }
 
-    private string GenerateAccessToken(User user, Role role, string tenantId)
+    private string GenerateAccessToken(User user, Role role, string tenantId, string planId = "starter")
     {
         var key = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(_config["Jwt:Secret"] ?? throw new InvalidOperationException("JWT Secret not configured")));
@@ -42,6 +42,7 @@ public sealed class JwtService : IJwtService
             new("tenant_id", tenantId),
             new("employee_id", user.EmployeeId?.ToString() ?? ""),
             new(ClaimTypes.Role, role.Name.ToString()),
+            new("plan_id", planId),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         };
 

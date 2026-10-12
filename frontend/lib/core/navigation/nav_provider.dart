@@ -30,7 +30,12 @@ final recentItemsProvider = NotifierProvider<RecentItemsNotifier, List<String>>(
 
 final filteredModulesProvider = Provider.autoDispose.family<List<NavModule>, String>((ref, role) {
   final query = ref.watch(searchQueryProvider);
-  return NavConfig.getModulesForRole(role, searchQuery: query.isNotEmpty ? query : null);
+  final plan = ref.watch(authProvider.select((s) => s.plan));
+  return NavConfig.getModulesForRole(
+    role,
+    searchQuery: query.isNotEmpty ? query : null,
+    enabledModules: NavConfig.enabledModulesForPlan(plan),
+  );
 });
 
 final sidebarBadgesProvider = NotifierProvider<BadgesNotifier, Map<String, int>>(

@@ -292,8 +292,124 @@ public sealed class SeedService : ISeedService
                 new() { Name = RoleType.Rrhh, DisplayName = "RRHH", IsSystem = true, TenantId = targetTenantId },
                 new() { Name = RoleType.Supervisor, DisplayName = "Supervisor", IsSystem = true, TenantId = targetTenantId },
                 new() { Name = RoleType.Employee, DisplayName = "Empleado", IsSystem = true, TenantId = targetTenantId },
+                new() { Name = RoleType.Accountant, DisplayName = "Contador", IsSystem = true, TenantId = targetTenantId },
+                new() { Name = RoleType.Dispatcher, DisplayName = "Despachador", IsSystem = true, TenantId = targetTenantId },
             };
             _db.Roles.AddRange(roles);
+            await _db.SaveChangesAsync();
+
+            // Seed role-permission mappings (idempotent)
+            var allPermissions = new[]
+            {
+                "user.read", "user.write", "user.manage",
+                "employee.read", "employee.write", "employee.delete", "employee.import",
+                "payroll.read", "payroll.write", "payroll.process",
+                "credit.read", "credit.write",
+                "sale.read", "sale.write",
+                "accounting.read", "accounting.write",
+                "audit.read",
+                "report.read",
+                "apikey.manage",
+                "company.manage",
+                "role.manage",
+                "inventory.read", "inventory.write",
+                "cash.read", "cash.write",
+                "fixedasset.read", "fixedasset.write",
+                "warranty.read", "warranty.write", "warranty.view_profitability",
+                "purchase.read", "purchase.write",
+                "commission.read", "commission.write", "commission.process",
+                "goal.read", "goal.write", "goal.evaluate",
+                "kpi.read", "kpi.write",
+                "provider.read", "provider.write",
+                "client.read", "client.write",
+                "document.read", "document.write",
+                "settings.read", "settings.write",
+                "fleet.read", "fleet.write", "fleet.delete", "fleet.config",
+            };
+
+            var rolePermissions = new List<RolePermission>();
+
+            // SuperAdmin: all permissions (belt-and-suspenders; also bypasses via IsInRole)
+            foreach (var perm in allPermissions)
+                rolePermissions.Add(new RolePermission { RoleId = roles[0].Id, PermissionCode = perm });
+
+            // CompanyAdmin: everything except SuperAdmin-only (company.manage, role.manage, apikey.manage)
+            foreach (var perm in allPermissions.Where(p => p is not ("company.manage" or "role.manage" or "apikey.manage")))
+                rolePermissions.Add(new RolePermission { RoleId = roles[1].Id, PermissionCode = perm });
+
+            // Rrhh: HR + read access to operational modules
+            foreach (var perm in new[]
+            {
+                "user.read", "employee.read", "employee.write", "employee.delete", "employee.import",
+                "payroll.read", "payroll.write", "payroll.process",
+                "goal.read", "goal.write", "kpi.read",
+                "report.read", "audit.read",
+                "sale.read", "client.read", "credit.read",
+                "inventory.read", "cash.read", "document.read",
+            })
+                rolePermissions.Add(new RolePermission { RoleId = roles[2].Id, PermissionCode = perm });
+
+            // Supervisor: operational write access
+            foreach (var perm in new[]
+            {
+                "employee.read", "sale.read", "sale.write", "client.read", "client.write",
+                "credit.read", "credit.write", "inventory.read", "inventory.write",
+                "cash.read", "cash.write", "purchase.read", "provider.read",
+                "warranty.read", "warranty.write", "goal.read", "kpi.read",
+                "fleet.read", "fleet.write", "document.read", "document.write", "report.read",
+            })
+                rolePermissions.Add(new RolePermission { RoleId = roles[3].Id, PermissionCode = perm });
+
+            // Employee: read-only access to daily operations
+            foreach (var perm in new[]
+            {
+                "employee.read", "sale.read", "client.read", "credit.read",
+                "inventory.read", "cash.read", "goal.read", "fleet.read", "document.read",
+            })
+                rolePermissions.Add(new RolePermission { RoleId = roles[4].Id, PermissionCode = perm });
+
+            // Accountant: accounting, treasury, financial reports
+            foreach (var perm in new[]
+            {
+                "accounting.read", "accounting.write", "report.read", "audit.read",
+                "cash.read", "cash.write", "credit.read", "document.read", "document.write",
+                "settings.read", "provider.read", "provider.write",
+            })
+                rolePermissions.Add(new RolePermission { RoleId = roles[5].Id, PermissionCode = perm });
+
+            // Dispatcher: fleet operations
+            foreach (var perm in new[] { "fleet.read", "fleet.write" })
+                rolePermissions.Add(new RolePermission { RoleId = roles[6].Id, PermissionCode = perm });
+
+            _db.RolePermissions.AddRange(rolePermissions);
+            await _db.SaveChangesAsync();
+        }
+
+        // Seed plan-module mappings (idempotent, global catalog)
+        if (!await _db.PlanModules.AnyAsync())
+        {
+            var planModules = new List<PlanModule>();
+
+            // Starter: basic operations only
+            foreach (var module in new[]
+            {
+                ModuleType.Sales, ModuleType.Inventory, ModuleType.Hr, ModuleType.Administration,
+            })
+                planModules.Add(new PlanModule { PlanId = "starter", Module = module, IsEnabled = true });
+
+            // Professional: + purchases, fleet, finance, BI, communication
+            foreach (var module in new[]
+            {
+                ModuleType.Sales, ModuleType.Inventory, ModuleType.Hr, ModuleType.Administration,
+                ModuleType.Purchases, ModuleType.Fleet, ModuleType.Finance, ModuleType.Bi, ModuleType.Communication,
+            })
+                planModules.Add(new PlanModule { PlanId = "professional", Module = module, IsEnabled = true });
+
+            // Enterprise: everything including PalmTrack and Tax
+            foreach (var module in Enum.GetValues<ModuleType>())
+                planModules.Add(new PlanModule { PlanId = "enterprise", Module = module, IsEnabled = true });
+
+            _db.PlanModules.AddRange(planModules);
             await _db.SaveChangesAsync();
         }
 

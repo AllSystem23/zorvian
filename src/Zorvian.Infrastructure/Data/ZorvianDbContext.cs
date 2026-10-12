@@ -217,6 +217,7 @@ public sealed class ZorvianDbContext : DbContext
     // New Module: Partners (Canal)
     public DbSet<SubscriptionPlan> SubscriptionPlans => Set<SubscriptionPlan>();
     public DbSet<CompanyPlanPricing> CompanyPlanPricings => Set<CompanyPlanPricing>();
+    public DbSet<PlanModule> PlanModules => Set<PlanModule>();
 
     public DbSet<Partner> Partners => Set<Partner>();
 
@@ -423,6 +424,13 @@ public sealed class ZorvianDbContext : DbContext
                 .HasPrincipalKey(sp => sp.PlanId)
                 .OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(cp => new { cp.CompanyId, cp.PlanId, cp.IsActive });
+        });
+
+        builder.Entity<PlanModule>(e =>
+        {
+            e.HasKey(pm => pm.Id);
+            e.Property(pm => pm.PlanId).HasMaxLength(50).IsRequired();
+            e.HasIndex(pm => new { pm.PlanId, pm.Module }).IsUnique();
         });
 
         builder.Entity<CustomReport>(e =>
@@ -819,6 +827,39 @@ public sealed class ZorvianDbContext : DbContext
             e.HasOne(x => x.Employee)
                 .WithMany()
                 .HasForeignKey(x => x.EmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.BypassTenantFilter) && !x.IsDeleted);
+        });
+
+        builder.Entity<OvertimeRecord>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.OvertimeType).HasMaxLength(50).IsRequired();
+            e.Property(x => x.Status).HasMaxLength(20).IsRequired();
+            e.HasOne(x => x.Employee)
+                .WithMany()
+                .HasForeignKey(x => x.EmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.PayrollPeriod)
+                .WithMany()
+                .HasForeignKey(x => x.PayrollPeriodId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.BypassTenantFilter) && !x.IsDeleted);
+        });
+
+        builder.Entity<BonusRecord>(e =>
+        {
+            e.HasKey(x => x.Id);
+            e.Property(x => x.BonusType).HasMaxLength(50).IsRequired();
+            e.Property(x => x.Status).HasMaxLength(20).IsRequired();
+            e.Property(x => x.Description).HasMaxLength(500);
+            e.HasOne(x => x.Employee)
+                .WithMany()
+                .HasForeignKey(x => x.EmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.PayrollPeriod)
+                .WithMany()
+                .HasForeignKey(x => x.PayrollPeriodId)
                 .OnDelete(DeleteBehavior.Restrict);
             e.HasQueryFilter(x => (x.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.BypassTenantFilter) && !x.IsDeleted);
         });

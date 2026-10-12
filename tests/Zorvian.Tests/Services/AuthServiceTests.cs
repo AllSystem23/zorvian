@@ -44,7 +44,7 @@ public sealed class AuthServiceTests
             UserRoles = { new UserRole { Role = new Role { Name = RoleType.Employee, DisplayName = "Empleado" } } },
         };
         _authRepo.Setup(r => r.GetUserByFirebaseUidAsync("fb-uid-123")).ReturnsAsync(user);
-        _jwt.Setup(j => j.GenerateTokens(user, It.IsAny<Role>(), It.IsAny<string>()))
+        _jwt.Setup(j => j.GenerateTokens(user, It.IsAny<Role>(), It.IsAny<string>(), It.IsAny<string>()))
             .Returns(("access-token", "refresh-token", 3600));
 
         var result = await _sut.LoginAsync(new LoginRequest("valid-token"));
@@ -84,7 +84,7 @@ public sealed class AuthServiceTests
         _authRepo.Setup(r => r.GetUserByFirebaseUidAsync("new-fb-uid"))
             .ReturnsAsync(() => callCount++ == 0 ? null : newUser);
 
-        _jwt.Setup(j => j.GenerateTokens(It.IsAny<User>(), It.IsAny<Role>(), It.IsAny<string>()))
+        _jwt.Setup(j => j.GenerateTokens(It.IsAny<User>(), It.IsAny<Role>(), It.IsAny<string>(), It.IsAny<string>()))
             .Returns(("access-token", "refresh-token", 3600));
 
         var result = await _sut.LoginAsync(new LoginRequest("new-token"));
@@ -142,7 +142,7 @@ public sealed class AuthServiceTests
         _authRepo.Setup(r => r.GetCompaniesByTenantIdsAsync(It.Is<List<string>>(ids => ids.Contains(tenantId))))
             .ReturnsAsync([company]);
         _authRepo.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
-        _jwt.Setup(j => j.GenerateTokens(user, superAdminRole, tenantId))
+        _jwt.Setup(j => j.GenerateTokens(user, superAdminRole, tenantId, It.IsAny<string>()))
             .Returns(("access-token", "refresh-token", 3600));
 
         var result = await _sut.SwitchTenantAsync(userId, tenantId);

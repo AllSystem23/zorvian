@@ -1,3 +1,4 @@
+using Zorvian.Application.Helpers;
 using Zorvian.Application.Interfaces;
 
 namespace Zorvian.Infrastructure.Services;
@@ -23,20 +24,27 @@ public sealed class LocalFileStorageService : IDocumentStorageService
         await using var fileStream = new FileStream(fullPath, FileMode.Create);
         await stream.CopyToAsync(fileStream);
 
-        return GetFileUrl(path);
+        return path;
     }
 
     public Task DeleteFileAsync(string path)
     {
         var fullPath = Path.Combine(_basePath, path);
         if (File.Exists(fullPath))
+        {
             File.Delete(fullPath);
-        
+        }
+
         return Task.CompletedTask;
     }
 
-    public string GetFileUrl(string path)
+    public Task<string?> GetSignedUrlAsync(string? storedPathOrUrl, TimeSpan? ttl = null)
     {
-        return $"/{path.Replace("\\", "/")}";
+        var path = StoragePathHelper.ExtractStoragePath(storedPathOrUrl);
+        if (string.IsNullOrEmpty(path))
+            return Task.FromResult(storedPathOrUrl);
+
+        // Local storage has no signing: serve as a rooted relative URL.
+        return Task.FromResult<string?>($"/{path}");
     }
 }

@@ -26,6 +26,7 @@ builder.Services.AddScoped<Zorvian.Web.Filters.ValidationFilter>();
 builder.Services.AddControllers(options =>
 {
     options.Filters.AddService<Zorvian.Web.Filters.ValidationFilter>();
+    options.Filters.Add<Zorvian.Web.Filters.ModuleEnforcementFilter>();
 }).AddJsonOptions(options =>
 {
     // Global converter: auto-convert incoming DateTime with Kind=Unspecified to Utc

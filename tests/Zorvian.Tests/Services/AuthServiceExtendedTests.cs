@@ -40,7 +40,7 @@ public sealed class AuthServiceExtendedTests
 
     private void SetupJwt(User user)
     {
-        _jwt.Setup(j => j.GenerateTokens(user, It.IsAny<Role>(), It.IsAny<string>()))
+        _jwt.Setup(j => j.GenerateTokens(user, It.IsAny<Role>(), It.IsAny<string>(), It.IsAny<string>()))
             .Returns(("access-token", "refresh-token", 3600));
     }
 

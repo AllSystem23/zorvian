@@ -89,7 +89,7 @@ public sealed class SsoServiceTests : IDisposable
         _identityService.Setup(s => s.GetTenantIdAsync("org-123"))
             .ReturnsAsync(tenantGuid);
 
-        _jwt.Setup(j => j.GenerateTokens(It.IsAny<User>(), It.IsAny<Role>(), It.IsAny<string>()))
+        _jwt.Setup(j => j.GenerateTokens(It.IsAny<User>(), It.IsAny<Role>(), It.IsAny<string>(), It.IsAny<string>()))
             .Returns(("access-token", "refresh-token", 3600));
 
         _authRepo.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
@@ -199,7 +199,7 @@ public sealed class SsoServiceTests : IDisposable
 
         _authRepo.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
-        _jwt.Setup(j => j.GenerateTokens(It.IsAny<User>(), It.IsAny<Role>(), It.IsAny<string>()))
+        _jwt.Setup(j => j.GenerateTokens(It.IsAny<User>(), It.IsAny<Role>(), It.IsAny<string>(), It.IsAny<string>()))
             .Returns(("sso-token", "sso-refresh", 3600));
 
         // Seed a role in the DB for GetRoleAsync
@@ -232,7 +232,7 @@ public sealed class SsoServiceTests : IDisposable
 
         _authRepo.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
-        _jwt.Setup(j => j.GenerateTokens(It.IsAny<User>(), It.IsAny<Role>(), It.IsAny<string>()))
+        _jwt.Setup(j => j.GenerateTokens(It.IsAny<User>(), It.IsAny<Role>(), It.IsAny<string>(), It.IsAny<string>()))
             .Returns(("token", "refresh", 3600));
 
         // Seed Supervisor role
@@ -264,7 +264,7 @@ public sealed class SsoServiceTests : IDisposable
 
         _authRepo.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
 
-        _jwt.Setup(j => j.GenerateTokens(It.IsAny<User>(), It.IsAny<Role>(), It.IsAny<string>()))
+        _jwt.Setup(j => j.GenerateTokens(It.IsAny<User>(), It.IsAny<Role>(), It.IsAny<string>(), It.IsAny<string>()))
             .Returns(("token", "refresh", 3600));
 
         // Seed Employee role

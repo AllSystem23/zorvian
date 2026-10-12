@@ -42,9 +42,10 @@ public sealed class OrphanFileCleanupService : IOrphanFileCleanupService
             var value = prop.GetValue(entity) as string;
             if (string.IsNullOrWhiteSpace(value)) continue;
 
-            if (value.StartsWith("http", StringComparison.OrdinalIgnoreCase) ||
-                value.StartsWith("/", StringComparison.OrdinalIgnoreCase) ||
-                value.Contains("storage.googleapis.com", StringComparison.OrdinalIgnoreCase))
+            // Accept GCS URLs, local rooted paths and already-normalized bare
+            // object paths (e.g. "companies/{id}/logo.png"). External http(s)
+            // URLs pointing elsewhere are ignored.
+            if (StoragePathHelper.ExtractStoragePath(value) is not null)
             {
                 urls.Add(value);
             }

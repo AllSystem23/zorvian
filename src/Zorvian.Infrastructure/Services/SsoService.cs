@@ -130,7 +130,9 @@ public sealed class SsoService : ISsoService
 
             // 6. Generate JWT with requiresProfileCompletion flag
             var role = await GetRoleAsync(mappedRole);
-            var (accessToken, refreshToken, expiresIn) = _jwt.GenerateTokens(user, role, tenantId.Value.ToString());
+            var ssoCompany = await _authRepo.GetCompanyByTenantIdAsync(tenantId.Value.ToString());
+            var ssoPlan = ssoCompany?.SubscriptionPlan ?? "starter";
+            var (accessToken, refreshToken, expiresIn) = _jwt.GenerateTokens(user, role, tenantId.Value.ToString(), ssoPlan);
 
             var refreshTokenEntity = new RefreshToken
             {
@@ -153,7 +155,8 @@ public sealed class SsoService : ISsoService
                     role.Name.ToString(),
                     tenantId.Value.ToString(),
                     "NIO", // Default currency, will be updated on profile completion
-                    null
+                    null,
+                    ssoPlan
                 )
             );
 
@@ -202,7 +205,9 @@ public sealed class SsoService : ISsoService
         var primaryRole = user.UserRoles.FirstOrDefault()?.Role
             ?? new Role { Name = RoleType.Employee, DisplayName = "Empleado" };
 
-        var (token, refresh, expires) = _jwt.GenerateTokens(user, primaryRole, user.TenantId);
+        var userCompany = await _authRepo.GetCompanyByTenantIdAsync(user.TenantId);
+        var userPlan = userCompany?.SubscriptionPlan ?? "starter";
+        var (token, refresh, expires) = _jwt.GenerateTokens(user, primaryRole, user.TenantId, userPlan);
 
         var refreshEntity = new RefreshToken
         {
@@ -229,7 +234,8 @@ public sealed class SsoService : ISsoService
                 primaryRole.Name.ToString(),
                 user.TenantId,
                 "NIO",
-                user.EmployeeId?.ToString()
+                user.EmployeeId?.ToString(),
+                userPlan
             )
         );
 

@@ -68,22 +68,16 @@ public sealed class AttendancePhotoCleanupJob
 
     private async Task DeletePhotoAsync(string url)
     {
-        // Extraer el path relativo de la URL de Firebase
-        // Formato: https://storage.googleapis.com/{bucket}/{path}
+        // Accepts legacy Firebase URLs and normalized bare object paths.
         try
         {
-            var uri = new Uri(url);
-            var segments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-            // El primer segmento es el bucket, los demás son el path
-            if (segments.Length > 1)
-            {
-                var path = string.Join("/", segments.Skip(1));
+            var path = Zorvian.Application.Helpers.StoragePathHelper.ExtractStoragePath(url);
+            if (!string.IsNullOrEmpty(path))
                 await _storage.DeleteFileAsync(path);
-            }
         }
         catch
         {
-            // Ignorar errores al parsear URL para no detener el job
+            // Ignorar errores para no detener el job
         }
     }
 }

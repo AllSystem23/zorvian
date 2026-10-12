@@ -63,7 +63,7 @@ public sealed class AttendanceService
         await _repo.AddAsync(record);
         await _repo.SaveChangesAsync();
 
-        return MapToResponse(record);
+        return await MapToResponseAsync(record);
     }
 
     public async Task<AttendanceResponse> CheckOutAsync(Guid employeeId, CheckOutRequest request)
@@ -103,7 +103,7 @@ public sealed class AttendanceService
         await _repo.UpdateAsync(record);
         await _repo.SaveChangesAsync();
 
-        return MapToResponse(record);
+        return await MapToResponseAsync(record);
     }
 
     public async Task<AttendanceSummaryResponse> GetMyMonthlyAsync(Guid employeeId, int? year, int? month)
@@ -128,7 +128,7 @@ public sealed class AttendanceService
             Math.Max(0, absentDays),
             totalHours,
             avgHours,
-            records.Select(MapToResponse).ToList()
+            (await Task.WhenAll(records.Select(MapToResponseAsync))).ToList()
         );
     }
 
@@ -191,7 +191,7 @@ public sealed class AttendanceService
         )).ToList();
     }
 
-    private static AttendanceResponse MapToResponse(AttendanceRecord r) => new(
+    private async Task<AttendanceResponse> MapToResponseAsync(AttendanceRecord r) => new(
         r.Id,
         r.Date.ToString("yyyy-MM-dd"),
         r.CheckInTime?.ToString("HH:mm:ss"),
@@ -203,8 +203,8 @@ public sealed class AttendanceService
         r.Status,
         r.Notes,
         r.TotalHours,
-        r.CheckInPhotoUrl,
-        r.CheckOutPhotoUrl,
+        await _storage.GetSignedUrlAsync(r.CheckInPhotoUrl),
+        await _storage.GetSignedUrlAsync(r.CheckOutPhotoUrl),
         r.WellbeingResponse,
         r.SafetyConfirmed
     );

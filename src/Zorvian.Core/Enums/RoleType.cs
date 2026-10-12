@@ -6,5 +6,7 @@ public enum RoleType
     CompanyAdmin,
     Rrhh,
     Supervisor,
-    Employee
+    Employee,
+    Accountant,
+    Dispatcher
 }

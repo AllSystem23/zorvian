@@ -31,23 +31,28 @@ public sealed class CompanyService
     public async Task<List<CompanyListItemResponse>> GetAllAsync()
     {
         var companies = await _repo.GetAllAsync();
-        return companies.Select(c => new CompanyListItemResponse(
-            c.Id,
-            c.TenantId,
-            c.Name,
-            c.LegalName,
-            c.TaxId,
-            c.LogoUrl,
-            c.Email,
-            c.Phone,
-            c.Country,
-            c.Currency,
-            c.Timezone,
-            c.IsActive,
-            c.SubscriptionPlan,
-            c.MaxEmployees,
-            c.CreatedAt
-        )).ToList();
+        var result = new List<CompanyListItemResponse>(companies.Count);
+        foreach (var c in companies)
+        {
+            result.Add(new CompanyListItemResponse(
+                c.Id,
+                c.TenantId,
+                c.Name,
+                c.LegalName,
+                c.TaxId,
+                await _storage.GetSignedUrlAsync(c.LogoUrl),
+                c.Email,
+                c.Phone,
+                c.Country,
+                c.Currency,
+                c.Timezone,
+                c.IsActive,
+                c.SubscriptionPlan,
+                c.MaxEmployees,
+                c.CreatedAt
+            ));
+        }
+        return result;
     }
 
     public async Task<CompanyResponse> CreateAsync(CreateCompanyRequest request)
@@ -102,7 +107,7 @@ public sealed class CompanyService
             company.Address,
             company.Phone,
             company.Email,
-            company.LogoUrl,
+            await _storage.GetSignedUrlAsync(company.LogoUrl),
             company.Country,
             company.Currency,
             company.Timezone,
@@ -192,7 +197,7 @@ public sealed class CompanyService
             company.Address,
             company.Phone,
             company.Email,
-            company.LogoUrl,
+            await _storage.GetSignedUrlAsync(company.LogoUrl),
             company.Country,
             company.Currency,
             company.Timezone,
@@ -214,7 +219,8 @@ public sealed class CompanyService
         if (request.Country is not null) company.Country = request.Country;
         if (request.Currency is not null) company.Currency = request.Currency;
         if (request.Timezone is not null) company.Timezone = request.Timezone;
-        if (request.LogoUrl is not null) company.LogoUrl = request.LogoUrl;
+        if (request.LogoUrl is not null)
+            company.LogoUrl = Helpers.StoragePathHelper.ExtractStoragePath(request.LogoUrl) ?? request.LogoUrl;
         if (request.MaxEmployees.HasValue) company.MaxEmployees = request.MaxEmployees.Value;
 
         await _repo.UpdateAsync(company);
@@ -228,7 +234,7 @@ public sealed class CompanyService
             company.Address,
             company.Phone,
             company.Email,
-            company.LogoUrl,
+            await _storage.GetSignedUrlAsync(company.LogoUrl),
             company.Country,
             company.Currency,
             company.Timezone,
@@ -250,7 +256,8 @@ public sealed class CompanyService
         if (request.Country is not null) company.Country = request.Country;
         if (request.Currency is not null) company.Currency = request.Currency;
         if (request.Timezone is not null) company.Timezone = request.Timezone;
-        if (request.LogoUrl is not null) company.LogoUrl = request.LogoUrl;
+        if (request.LogoUrl is not null)
+            company.LogoUrl = Helpers.StoragePathHelper.ExtractStoragePath(request.LogoUrl) ?? request.LogoUrl;
         if (request.MaxEmployees.HasValue) company.MaxEmployees = request.MaxEmployees.Value;
         if (request.IsActive.HasValue) company.IsActive = request.IsActive.Value;
         if (request.SubscriptionPlan is not null)
@@ -274,7 +281,7 @@ public sealed class CompanyService
             company.Address,
             company.Phone,
             company.Email,
-            company.LogoUrl,
+            await _storage.GetSignedUrlAsync(company.LogoUrl),
             company.Country,
             company.Currency,
             company.Timezone,
@@ -300,7 +307,7 @@ public sealed class CompanyService
 
         var path = $"companies/{company.Id}/logo{ext}";
 
-        var newUrl = await _storage.UploadFileAsync(fileStream, path, contentType);
+        await _storage.UploadFileAsync(fileStream, path, contentType);
 
         // Delete old logo if exists
         if (!string.IsNullOrEmpty(company.LogoUrl))
@@ -317,11 +324,12 @@ public sealed class CompanyService
             }
         }
 
-        company.LogoUrl = newUrl;
+        company.LogoUrl = path;
         await _repo.UpdateAsync(company);
         await _repo.SaveChangesAsync();
 
-        return newUrl;
+        // Response returns a signed URL; the entity keeps the bare path.
+        return await _storage.GetSignedUrlAsync(path);
     }
 
     public async Task<bool> DeactivateAsync(Guid id)

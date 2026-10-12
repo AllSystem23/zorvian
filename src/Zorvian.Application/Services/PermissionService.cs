@@ -1,6 +1,7 @@
 using Zorvian.Application.DTOs.Common;
 using Zorvian.Application.DTOs.Employee;
 using Zorvian.Application.DTOs.Permission;
+using Zorvian.Application.Helpers;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
@@ -14,19 +15,22 @@ public sealed class PermissionService
     private readonly ITenantContext _tenant;
     private readonly INotificationService _notification;
     private readonly IJobScheduler _jobScheduler;
+    private readonly IDocumentStorageService _storage;
 
     public PermissionService(
         IPermissionRepository repo,
         IEmployeeRepository employeeRepo,
         ITenantContext tenant,
         INotificationService notification,
-        IJobScheduler jobScheduler)
+        IJobScheduler jobScheduler,
+        IDocumentStorageService storage)
     {
         _repo = repo;
         _employeeRepo = employeeRepo;
         _tenant = tenant;
         _notification = notification;
         _jobScheduler = jobScheduler;
+        _storage = storage;
     }
 
     public async Task<List<PermissionTypeResponse>> GetTypesAsync()
@@ -111,7 +115,8 @@ public sealed class PermissionService
             BusinessDays = businessDays,
             Reason = request.Reason,
             Status = status,
-            SupportingDocumentUrl = request.SupportingDocumentUrl,
+            SupportingDocumentUrl = StoragePathHelper.ExtractStoragePath(request.SupportingDocumentUrl)
+                ?? request.SupportingDocumentUrl,
             SupportingDocumentFileName = request.SupportingDocumentFileName,
             ApprovedBy = status == "approved" ? employeeId : null,
             ApprovedAt = status == "approved" ? DateTime.UtcNow : null,
@@ -133,7 +138,7 @@ public sealed class PermissionService
             "permission",
             permission.Id.ToString());
 
-        return MapToResponse(permission);
+        return await MapToResponseAsync(permission);
     }
 
     public async Task<PagedResult<PermissionResponse>> GetFilteredAsync(PermissionFilterRequest filter)
@@ -147,7 +152,7 @@ public sealed class PermissionService
             filter.Status, filter.EmployeeId, filter.LeaveTypeId);
 
         return new PagedResult<PermissionResponse>(
-            items.Select(MapToResponse).ToList(), total, page, pageSize);
+            (await Task.WhenAll(items.Select(MapToResponseAsync))).ToList(), total, page, pageSize);
     }
 
     public async Task<List<PermissionResponse>> GetMyAsync()
@@ -156,13 +161,13 @@ public sealed class PermissionService
         if (employeeId is null) return [];
 
         var items = await _repo.GetMyAsync(employeeId.Value);
-        return items.Select(MapToResponse).ToList();
+        return (await Task.WhenAll(items.Select(MapToResponseAsync))).ToList();
     }
 
     public async Task<PermissionResponse?> GetByIdAsync(Guid id)
     {
         var p = await _repo.GetByIdAsync(id);
-        return p is null ? null : MapToResponse(p);
+        return p is null ? null : await MapToResponseAsync(p);
     }
 
     public async Task<PermissionResponse?> ApproveAsync(Guid requestId, string? comments)
@@ -194,7 +199,7 @@ public sealed class PermissionService
             "permission",
             permission.Id.ToString());
 
-        return MapToResponse(permission);
+        return await MapToResponseAsync(permission);
     }
 
     public async Task<PermissionResponse?> RejectAsync(Guid requestId, string reason)
@@ -223,7 +228,7 @@ public sealed class PermissionService
             "permission",
             permission.Id.ToString());
 
-        return MapToResponse(permission);
+        return await MapToResponseAsync(permission);
     }
 
     private static int CountBusinessDays(DateOnly start, DateOnly end)
@@ -235,7 +240,7 @@ public sealed class PermissionService
         return count;
     }
 
-    private static PermissionResponse MapToResponse(PermissionRequest p) => new(
+    private async Task<PermissionResponse> MapToResponseAsync(PermissionRequest p) => new(
         p.Id,
         p.EmployeeId,
         p.Employee?.FirstName is not null ? $"{p.Employee.FirstName} {p.Employee.LastName}" : "",
@@ -249,7 +254,7 @@ public sealed class PermissionService
         p.BusinessDays,
         p.Reason,
         p.Status,
-        p.SupportingDocumentUrl,
+        await _storage.GetSignedUrlAsync(p.SupportingDocumentUrl),
         p.SupportingDocumentFileName,
         p.RejectionReason,
         p.LeaveType?.IsPaid ?? false,

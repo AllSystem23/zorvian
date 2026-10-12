@@ -22,6 +22,8 @@ public sealed class CompanyServiceTests
     public CompanyServiceTests()
     {
         _tenant.Setup(t => t.TenantId).Returns(_tenantId);
+        _storage.Setup(s => s.GetSignedUrlAsync(It.IsAny<string?>(), It.IsAny<TimeSpan?>()))
+            .ReturnsAsync((string? v, TimeSpan? _) => v);
         _sut = new CompanyService(_repo.Object, _tenant.Object, _fiscal.Object, _storage.Object, _regionalTaxRepo.Object, _taxConfigRepo.Object, _seed.Object);
     }
 

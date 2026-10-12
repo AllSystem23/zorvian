@@ -62,6 +62,13 @@ public sealed class ApiKeyMiddleware
         var identity = new ClaimsIdentity(authenticationType: "ApiKey");
         identity.AddClaim(new Claim("tenant_id", tenantId));
 
+        using var scope = context.RequestServices.CreateScope();
+        var authRepo = scope.ServiceProvider.GetRequiredService<IAuthRepository>();
+
+        // El plan de la compañía gobierna el licenciamiento modular.
+        var company = await authRepo.GetCompanyByTenantIdAsync(tenantId);
+        identity.AddClaim(new Claim("plan_id", company?.SubscriptionPlan ?? "starter"));
+
         // Key sin usuario dueño: solo tenant. Pasará [Authorize] pero
         // RequirePermission denegará por defecto (sin claims permission).
         if (userId is not { } uid)
@@ -69,8 +76,6 @@ public sealed class ApiKeyMiddleware
 
         identity.AddClaim(new Claim(JwtRegisteredClaimNames.Sub, uid.ToString()));
 
-        using var scope = context.RequestServices.CreateScope();
-        var authRepo = scope.ServiceProvider.GetRequiredService<IAuthRepository>();
         var user = await authRepo.GetUserWithRolesAsync(uid);
 
         if (user is null)

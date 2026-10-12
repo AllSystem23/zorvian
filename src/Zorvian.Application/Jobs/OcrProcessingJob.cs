@@ -8,12 +8,18 @@ public sealed class OcrProcessingJob
     private readonly IPermissionRepository _repo;
     private readonly IOcrService _ocrService;
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IDocumentStorageService _storage;
 
-    public OcrProcessingJob(IPermissionRepository repo, IOcrService ocrService, IHttpClientFactory httpClientFactory)
+    public OcrProcessingJob(
+        IPermissionRepository repo,
+        IOcrService ocrService,
+        IHttpClientFactory httpClientFactory,
+        IDocumentStorageService storage)
     {
         _repo = repo;
         _ocrService = ocrService;
         _httpClientFactory = httpClientFactory;
+        _storage = storage;
     }
 
     public async Task RunAsync(Guid permissionRequestId)
@@ -24,8 +30,12 @@ public sealed class OcrProcessingJob
 
         try
         {
+            var url = await _storage.GetSignedUrlAsync(permission.SupportingDocumentUrl);
+            if (string.IsNullOrEmpty(url))
+                return;
+
             var httpClient = _httpClientFactory.CreateClient();
-            var imageStream = await httpClient.GetStreamAsync(permission.SupportingDocumentUrl);
+            var imageStream = await httpClient.GetStreamAsync(url);
 
             var extractedText = await _ocrService.ExtractTextAsync(imageStream);
 

@@ -5,6 +5,7 @@ using Zorvian.Application.DTOs.Employee;
 using Zorvian.Application.Interfaces;
 using Zorvian.Application.Messages;
 using Zorvian.Core.Entities;
+using Zorvian.Core.Interfaces;
 
 namespace Zorvian.Application.Services;
 
@@ -15,18 +16,24 @@ public sealed class EmployeeService
     private readonly ICollaboratorRepository _collaboratorRepo;
     private readonly IMapper _mapper;
     private readonly IPublishEndpoint _publishEndpoint;
+    private readonly IAuthRepository _authRepo;
+    private readonly ITenantContext _tenant;
 
-    public EmployeeService(IEmployeeRepository repo, IProviderRepository providerRepo, ICollaboratorRepository collaboratorRepo, IMapper mapper, IPublishEndpoint publishEndpoint)
+    public EmployeeService(IEmployeeRepository repo, IProviderRepository providerRepo, ICollaboratorRepository collaboratorRepo, IMapper mapper, IPublishEndpoint publishEndpoint, IAuthRepository authRepo, ITenantContext tenant)
     {
         _repo = repo;
         _providerRepo = providerRepo;
         _collaboratorRepo = collaboratorRepo;
         _mapper = mapper;
         _publishEndpoint = publishEndpoint;
+        _authRepo = authRepo;
+        _tenant = tenant;
     }
 
     public async Task<EmployeeResponse> CreateAsync(CreateEmployeeRequest request)
     {
+        await EnforceEmployeeLimitAsync();
+
         var employeeCode = request.EmployeeCode ?? GenerateEmployeeCode();
 
         // Create Collaborator first (required for Employee FK)
@@ -241,5 +248,21 @@ public sealed class EmployeeService
     {
         var random = Random.Shared.Next(1000, 9999);
         return $"EMP-{DateTime.UtcNow:yyyyMMdd}-{random}";
+    }
+
+    private async Task EnforceEmployeeLimitAsync()
+    {
+        var tenantId = _tenant.TenantId.ToString();
+        if (string.IsNullOrWhiteSpace(tenantId))
+            return;
+
+        var company = await _authRepo.GetCompanyByTenantIdAsync(tenantId);
+        if (company is null || company.MaxEmployees <= 0)
+            return;
+
+        var currentCount = await _repo.GetFilteredCountAsync(null, null, null);
+        if (currentCount >= company.MaxEmployees)
+            throw new InvalidOperationException(
+                $"Límite de empleados del plan alcanzado ({company.MaxEmployees}). Actualice su plan para agregar más empleados.");
     }
 }

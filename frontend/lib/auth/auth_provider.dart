@@ -58,6 +58,7 @@ class AuthState {
   final String? employeeId;
   final String currencyCode;
   final String? mfaToken;
+  final String plan;
 
   const AuthState({
     this.status = AuthStatus.unknown,
@@ -69,6 +70,7 @@ class AuthState {
     this.employeeId,
     this.currencyCode = 'NIO',
     this.mfaToken,
+    this.plan = 'starter',
   });
 
   AuthState copyWith({
@@ -81,6 +83,7 @@ class AuthState {
     String? employeeId,
     String? currencyCode,
     String? mfaToken,
+    String? plan,
   }) => AuthState(
     status: status ?? this.status,
     userId: userId ?? this.userId,
@@ -91,6 +94,7 @@ class AuthState {
     employeeId: employeeId ?? this.employeeId,
     currencyCode: currencyCode ?? this.currencyCode,
     mfaToken: mfaToken ?? this.mfaToken,
+    plan: plan ?? this.plan,
   );
 }
 
@@ -117,6 +121,7 @@ class AuthNotifier extends Notifier<AuthState> {
           tenantId: user['tenantId'],
           employeeId: user['employeeId'],
           currencyCode: currencyCode,
+          plan: user['plan'] as String? ?? 'starter',
         );
       } catch (_) {
         await storage.clearTokens();
@@ -169,6 +174,7 @@ class AuthNotifier extends Notifier<AuthState> {
         tenantId: user['tenantId'] as String?,
         employeeId: user['employeeId'] as String?,
         currencyCode: currencyCode,
+        plan: user['plan'] as String? ?? 'starter',
       );
       return true;
     } catch (_) {
@@ -203,6 +209,7 @@ class AuthNotifier extends Notifier<AuthState> {
         tenantId: user['tenantId'],
         employeeId: user['employeeId'],
         currencyCode: currencyCode,
+        plan: user['plan'] as String? ?? 'starter',
       );
       return true;
     } catch (_) {
@@ -244,6 +251,7 @@ class AuthNotifier extends Notifier<AuthState> {
         tenantId: user['tenantId'],
         employeeId: user['employeeId'],
         currencyCode: currencyCode,
+        plan: user['plan'] as String? ?? 'starter',
       );
       return true;
     } catch (_) {
@@ -341,6 +349,7 @@ class AuthNotifier extends Notifier<AuthState> {
         tenantId: user['tenantId'],
         employeeId: user['employeeId'],
         currencyCode: currencyCode,
+        plan: user['plan'] as String? ?? 'starter',
       );
       // El caché local y los providers keep-alive contienen datos de la
       // empresa anterior: se descartan para no mostrar datos cross-tenant.

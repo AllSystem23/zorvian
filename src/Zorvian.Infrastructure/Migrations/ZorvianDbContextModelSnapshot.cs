@@ -1534,7 +1534,8 @@ namespace Zorvian.Infrastructure.Migrations
 
                     b.Property<string>("BonusType")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("uuid");
@@ -1551,7 +1552,8 @@ namespace Zorvian.Infrastructure.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<Guid>("EmployeeId")
                         .HasColumnType("uuid");
@@ -1564,7 +1566,8 @@ namespace Zorvian.Infrastructure.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("TenantId")
                         .IsRequired()
@@ -9756,7 +9759,8 @@ namespace Zorvian.Infrastructure.Migrations
 
                     b.Property<string>("OvertimeType")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<Guid>("PayrollPeriodId")
                         .HasColumnType("uuid");
@@ -9766,7 +9770,8 @@ namespace Zorvian.Infrastructure.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("TenantId")
                         .IsRequired()
@@ -10788,6 +10793,31 @@ namespace Zorvian.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("PipelineStages");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.PlanModule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Module")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PlanId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlanId", "Module")
+                        .IsUnique();
+
+                    b.ToTable("PlanModules");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.PolicyChunk", b =>
@@ -15245,13 +15275,13 @@ namespace Zorvian.Infrastructure.Migrations
                     b.HasOne("Zorvian.Core.Entities.Employee", "Employee")
                         .WithMany()
                         .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Zorvian.Core.Entities.PayrollPeriod", "PayrollPeriod")
                         .WithMany()
                         .HasForeignKey("PayrollPeriodId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Employee");
@@ -16640,13 +16670,13 @@ namespace Zorvian.Infrastructure.Migrations
                     b.HasOne("Zorvian.Core.Entities.Employee", "Employee")
                         .WithMany()
                         .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Zorvian.Core.Entities.PayrollPeriod", "PayrollPeriod")
                         .WithMany()
                         .HasForeignKey("PayrollPeriodId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Employee");

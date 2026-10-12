@@ -16,6 +16,8 @@ public sealed class AttendanceServiceTests
 
     public AttendanceServiceTests()
     {
+        _storage.Setup(s => s.GetSignedUrlAsync(It.IsAny<string?>(), It.IsAny<TimeSpan?>()))
+            .ReturnsAsync((string? v, TimeSpan? _) => v);
         _sut = new AttendanceService(_repo.Object, _employeeRepo.Object, _storage.Object);
     }
 

@@ -16,6 +16,7 @@ public sealed class PermissionServiceTests
     private readonly Mock<ITenantContext> _tenant = new();
     private readonly Mock<INotificationService> _notification = new();
     private readonly Mock<IJobScheduler> _jobScheduler = new();
+    private readonly Mock<IDocumentStorageService> _storage = new();
     private readonly PermissionService _sut;
     private readonly Guid _employeeId = Guid.NewGuid();
     private readonly string _tenantId = Guid.NewGuid().ToString();
@@ -24,7 +25,9 @@ public sealed class PermissionServiceTests
     {
         _tenant.Setup(t => t.TenantId).Returns(_tenantId);
         _tenant.Setup(t => t.CurrentEmployeeId).Returns(_employeeId);
-        _sut = new PermissionService(_repo.Object, _employeeRepo.Object, _tenant.Object, _notification.Object, _jobScheduler.Object);
+        _storage.Setup(s => s.GetSignedUrlAsync(It.IsAny<string?>(), It.IsAny<TimeSpan?>()))
+            .ReturnsAsync((string? v, TimeSpan? _) => v);
+        _sut = new PermissionService(_repo.Object, _employeeRepo.Object, _tenant.Object, _notification.Object, _jobScheduler.Object, _storage.Object);
     }
 
     private Employee MakeEmployee() => new()

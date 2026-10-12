@@ -1,29 +1,38 @@
 namespace Zorvian.Application.Helpers;
 
 /// <summary>
-/// Shared utility for extracting storage paths from file URLs.
-/// Supports Firebase URLs (https://storage.googleapis.com/{bucket}/{path})
-/// and local paths (/{path}).
+/// Shared utility for extracting storage object paths from stored values.
+/// A stored value can be a GCS URL (public or signed, optionally with query
+/// string), a local rooted path (/path) or an already-normalized bare object
+/// path (companies/{id}/logo.png). External URLs are not treated as storage.
 /// </summary>
 public static class StoragePathHelper
 {
-    public static string? ExtractStoragePath(string url)
-    {
-        if (string.IsNullOrWhiteSpace(url)) return null;
+    private const string GcsHost = "storage.googleapis.com";
 
-        // Firebase URL: https://storage.googleapis.com/{bucket}/{path}
-        if (url.Contains("storage.googleapis.com", StringComparison.OrdinalIgnoreCase))
+    public static string? ExtractStoragePath(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+
+        // Has a URI scheme (absolute URL): only GCS objects are ours.
+        if (value.Contains("://", StringComparison.Ordinal))
         {
-            var uri = new Uri(url);
+            if (!Uri.TryCreate(value, UriKind.Absolute, out var uri))
+                return null;
+
+            // Exact host match: avoids firebasestorage.googleapis.com (a
+            // different host) being caught by a naive substring check.
+            if (!uri.Host.Equals(GcsHost, StringComparison.OrdinalIgnoreCase))
+                return null;
+
             var segments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-            if (segments.Length > 1)
-                return string.Join("/", segments.Skip(1)); // skip bucket name
+            return segments.Length > 1
+                ? string.Join("/", segments.Skip(1)) // skip bucket name
+                : null;
         }
 
-        // Local path: /uploads/... or similar
-        if (url.StartsWith('/') && url.Length > 1)
-            return url.TrimStart('/');
-
-        return null;
+        // No scheme: already-stored bare or rooted object path.
+        var trimmed = value.TrimStart('/');
+        return trimmed.Length > 0 ? trimmed : null;
     }
 }

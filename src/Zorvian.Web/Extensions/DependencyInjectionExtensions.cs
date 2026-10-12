@@ -45,6 +45,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IJobScheduler, HangfireJobScheduler>();
         services.AddScoped<IOcrService, OcrService>();
         services.AddScoped<IMfaService, Zorvian.Infrastructure.Services.MfaService>();
+        services.AddScoped<IModuleEntitlementService, Zorvian.Infrastructure.Services.ModuleEntitlementService>();
         services.AddScoped<IChatService>(sp => new ChatService(
             sp.GetRequiredService<Zorvian.Infrastructure.Data.ZorvianDbContext>(),
             sp.GetRequiredService<IEmbeddingService>(),
@@ -60,7 +61,8 @@ public static class DependencyInjectionExtensions
         {
             var bucket = sp.GetRequiredService<IConfiguration>()["Firebase:StorageBucket"]
                 ?? "zorvian-erp.firebasestorage.app";
-            return new FirebaseStorageService(bucket);
+            var logger = sp.GetService<ILogger<FirebaseStorageService>>();
+            return new FirebaseStorageService(bucket, logger);
         });
 
         services.AddScoped<QuestPdfService>();

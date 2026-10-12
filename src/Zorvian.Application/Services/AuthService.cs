@@ -188,6 +188,7 @@ public sealed class AuthService
             ?? new Role { Name = Core.Enums.RoleType.Employee, DisplayName = "Empleado" };
 
         var currencyCode = await GetCompanyCurrencyAsync(user.TenantId);
+        var company = await _authRepo.GetCompanyByTenantIdAsync(user.TenantId);
 
         return new UserInfo(
             user.Id.ToString(),
@@ -196,7 +197,8 @@ public sealed class AuthService
             primaryRole.Name.ToString(),
             user.TenantId,
             currencyCode,
-            user.EmployeeId?.ToString()
+            user.EmployeeId?.ToString(),
+            company?.SubscriptionPlan ?? "starter"
         );
     }
 
@@ -338,7 +340,9 @@ public sealed class AuthService
             ?? new Role { Name = Core.Enums.RoleType.Employee, DisplayName = "Empleado" };
 
         var tenantId = user.TenantId;
-        var (accessToken, refreshToken, expiresIn) = _jwt.GenerateTokens(user, primaryRole, tenantId);
+        var company = await _authRepo.GetCompanyByTenantIdAsync(tenantId);
+        var planId = company?.SubscriptionPlan ?? "starter";
+        var (accessToken, refreshToken, expiresIn) = _jwt.GenerateTokens(user, primaryRole, tenantId, planId);
 
         var refreshTokenEntity = new RefreshToken
         {
@@ -362,7 +366,8 @@ public sealed class AuthService
                 primaryRole.Name.ToString(),
                 tenantId,
                 await GetCompanyCurrencyAsync(tenantId),
-                user.EmployeeId?.ToString()
+                user.EmployeeId?.ToString(),
+                company?.SubscriptionPlan ?? "starter"
             )
         );
     }
@@ -394,7 +399,9 @@ public sealed class AuthService
         var tenantId = !string.IsNullOrEmpty(storedToken.TenantId)
             ? storedToken.TenantId
             : user.TenantId;
-        var (accessToken, newRefreshToken, expiresIn) = _jwt.GenerateTokens(user, primaryRole, tenantId);
+        var company = await _authRepo.GetCompanyByTenantIdAsync(tenantId);
+        var planId = company?.SubscriptionPlan ?? "starter";
+        var (accessToken, newRefreshToken, expiresIn) = _jwt.GenerateTokens(user, primaryRole, tenantId, planId);
 
         storedToken.ReplacedByToken = newRefreshToken;
 
@@ -420,7 +427,8 @@ public sealed class AuthService
                 primaryRole.Name.ToString(),
                 tenantId,
                 await GetCompanyCurrencyAsync(tenantId),
-                user.EmployeeId?.ToString()
+                user.EmployeeId?.ToString(),
+                company?.SubscriptionPlan ?? "starter"
             )
         );
     }
@@ -564,7 +572,9 @@ public sealed class AuthService
         var primaryRole = user.UserRoles.FirstOrDefault()?.Role
             ?? new Role { Name = RoleType.Employee, DisplayName = "Empleado" };
 
-        var (accessToken, refreshToken, expiresIn) = _jwt.GenerateTokens(user, primaryRole, newTenantId);
+        var company = await _authRepo.GetCompanyByTenantIdAsync(newTenantId);
+        var planId = company?.SubscriptionPlan ?? "starter";
+        var (accessToken, refreshToken, expiresIn) = _jwt.GenerateTokens(user, primaryRole, newTenantId, planId);
 
         var refreshTokenEntity = new RefreshToken
         {
@@ -582,7 +592,8 @@ public sealed class AuthService
                 user.Id.ToString(), user.Email, user.DisplayName,
                 primaryRole.Name.ToString(), newTenantId,
                 await GetCompanyCurrencyAsync(newTenantId),
-                user.EmployeeId?.ToString()
+                user.EmployeeId?.ToString(),
+                company?.SubscriptionPlan ?? "starter"
             )
         );
     }

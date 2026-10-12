@@ -16,6 +16,7 @@ public sealed class OcrProcessingJobTests
     private readonly ZorvianDbContext _db;
     private readonly Mock<IOcrService> _ocrService = new();
     private readonly Mock<IHttpClientFactory> _httpClientFactory = new();
+    private readonly Mock<IDocumentStorageService> _storage = new();
 
     public OcrProcessingJobTests()
     {
@@ -59,8 +60,11 @@ public sealed class OcrProcessingJobTests
 
         var repoMock = new Mock<Zorvian.Application.Interfaces.IPermissionRepository>();
         repoMock.Setup(r => r.GetByIdAsync(permissionId)).ReturnsAsync(permission);
-        
-        var sut = new OcrProcessingJob(repoMock.Object, _ocrService.Object, _httpClientFactory.Object);
+
+        _storage.Setup(s => s.GetSignedUrlAsync(It.IsAny<string?>(), It.IsAny<TimeSpan?>()))
+            .ReturnsAsync((string? v, TimeSpan? _) => v);
+
+        var sut = new OcrProcessingJob(repoMock.Object, _ocrService.Object, _httpClientFactory.Object, _storage.Object);
 
         // Act
         await sut.RunAsync(permissionId);
