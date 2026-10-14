@@ -157,7 +157,7 @@ ALTER TABLE IF EXISTS "PurchaseDetails" ENABLE ROW LEVEL SECURITY;
 
 -- TenantId-based tables (includes ALL except FK-based child tables)
 -- Escape de contexto ausente: sin tenant resuelto (vacío o GUID-cero) NO se acota.
-DO $$
+DO $do$
 DECLARE
     tbl TEXT;
 BEGIN
@@ -215,7 +215,7 @@ BEGIN
         EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', tbl);
     END LOOP;
 END;
-$$;
+$do$;
 
 -- FK-based policies (child tables where TenantId is inherited via parent FK)
 DROP POLICY IF EXISTS tenant_isolation_SaleDetails ON "SaleDetails";
@@ -245,7 +245,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STABLE;
 
-DO $$
+DO $do$
 DECLARE
     tbl TEXT;
 BEGIN
@@ -291,7 +291,7 @@ BEGIN
         );
     END LOOP;
 END;
-$$;
+$do$;
 
 -- ====================================================================
 -- Branch-scope policies (defensa en profundidad) — COMBINADAS con tenant
@@ -302,7 +302,7 @@ $$;
 -- Las tablas con columna BranchId usan UNA política combinada tenant AND sucursal: con FORCE
 -- activo, mantener tenant_isolation y branch_scope por separado (OR) habría dejado visibles
 -- filas de OTROS tenants cuando no hay sucursal seleccionada.
-DO $$
+DO $do$
 DECLARE
     tbl TEXT;
 BEGIN
@@ -334,7 +334,7 @@ BEGIN
         EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', tbl);
     END LOOP;
 END;
-$$;
+$do$;
 
 -- ====================================================================
 -- Performance indexes

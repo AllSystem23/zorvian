@@ -121,7 +121,7 @@ namespace Zorvian.Infrastructure.Migrations
                 "coalesce(current_setting('app.tenant_id', true), '') IN ('', '00000000-0000-0000-0000-000000000000')";
 
             migrationBuilder.Sql($"""
-                DO $$
+                DO $do$
                 DECLARE
                     tbl TEXT;
                 BEGIN
@@ -174,7 +174,7 @@ namespace Zorvian.Infrastructure.Migrations
                         EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', tbl);
                     END LOOP;
                 END;
-                $$;
+                $do$;
                 """);
 
             // Tablas hijas con TenantId heredado por FK del padre.
@@ -198,7 +198,7 @@ namespace Zorvian.Infrastructure.Migrations
 
             // Tablas con columna BranchId: una sola política combinada (tenant AND sucursal).
             migrationBuilder.Sql("""
-                DO $$
+                DO $do$
                 DECLARE
                     tbl TEXT;
                 BEGIN
@@ -230,7 +230,7 @@ namespace Zorvian.Infrastructure.Migrations
                         EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', tbl);
                     END LOOP;
                 END;
-                $$;
+                $do$;
                 """);
         }
 
@@ -239,7 +239,7 @@ namespace Zorvian.Infrastructure.Migrations
         {
             // Revierte al estado previo: políticas estrictas SIN escape y sin forzado (owner bypass).
             migrationBuilder.Sql("""
-                DO $$
+                DO $do$
                 DECLARE
                     tbl TEXT;
                 BEGIN
@@ -268,11 +268,11 @@ namespace Zorvian.Infrastructure.Migrations
                         );
                     END LOOP;
                 END;
-                $$;
+                $do$;
                 """);
 
             migrationBuilder.Sql($"""
-                DO $$
+                DO $do$
                 DECLARE
                     tbl TEXT;
                 BEGIN
@@ -313,7 +313,7 @@ namespace Zorvian.Infrastructure.Migrations
                         EXECUTE format('ALTER TABLE %I NO FORCE ROW LEVEL SECURITY', tbl);
                     END LOOP;
                 END;
-                $$;
+                $do$;
                 """);
 
             migrationBuilder.DropTable(
