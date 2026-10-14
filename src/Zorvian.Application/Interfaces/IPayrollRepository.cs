@@ -37,6 +37,7 @@ public interface IPayrollRepository
     Task<PayrollDetail?> GetDetailByIdAsync(Guid id);
     Task<PayrollDetail?> GetDetailByReferenceAsync(string reference);
     Task UpdateDetailAsync(PayrollDetail detail);
+    Task<List<PayrollDetail>> GetDetailsByEmployeeInRangeAsync(Guid employeeId, DateOnly fromDate, DateOnly toDate);
 
     Task SaveChangesAsync();
 }

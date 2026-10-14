@@ -6,7 +6,8 @@ public enum TerminationReason
     JustifiedDismissal,
     UnjustifiedDismissal,
     MutualAgreement,
-    EndOfContract
+    EndOfContract,
+    ImmediateResignation
 }
 
 public sealed class TerminationRecord : BaseEntity
@@ -26,6 +27,12 @@ public sealed class TerminationRecord : BaseEntity
     // Salary info at termination
     public decimal MonthlySalary { get; set; }
     public decimal DailySalary { get; set; }
+
+    // ── Salario variable (Art. 36 CT) ──
+    // When SalaryType = "variable", the monthly salary is the 6-month average
+    public bool IsVariableSalary { get; set; }
+    public decimal? AvgSalary6Months { get; set; }
+    public decimal? MaxSalary6Months { get; set; }
 
     // ── Aguinaldo (Art. 93 CT) ──
     // Proporcional: (daysWorked / 365) * monthlySalary

@@ -9,32 +9,14 @@ class SettlementService {
   SettlementService(this._ref);
 
   Future<Uint8List> generateSettlementPdf({
-    required String employeeId,
-    required String companyId,
-    required String terminationType,
-    required DateTime lastDay,
-    required double baseSalary,
-    required double accruedVacations,
-    required double accruedAguinaldo,
-    required double indemnization,
+    required String terminationRecordId,
   }) async {
     final dio = _ref.read(dioClientProvider);
 
     final response = await dio.post<dynamic>(
       'payroll/settlement/generate-pdf',
-      data: {
-        'employeeId': employeeId,
-        'companyId': companyId,
-        'terminationType': terminationType,
-        'lastDay': lastDay.toIso8601String(),
-        'baseSalary': baseSalary,
-        'accruedVacations': accruedVacations,
-        'accruedAguinaldo': accruedAguinaldo,
-        'indemnization': indemnization,
-      },
-      options: Options(
-        responseType: ResponseType.bytes,
-      ),
+      data: {'terminationRecordId': terminationRecordId},
+      options: Options(responseType: ResponseType.bytes),
     );
 
     if (response.statusCode == 200) {

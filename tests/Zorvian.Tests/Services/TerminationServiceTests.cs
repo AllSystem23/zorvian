@@ -13,6 +13,7 @@ public class TerminationServiceTests
     private readonly Mock<IBenefitProvisionRepository> _mockBenefitRepo = new();
     private readonly Mock<ICountryTaxConfigRepository> _mockTaxConfigRepo = new();
     private readonly Mock<IVacationRepository> _mockVacationRepo = new();
+    private readonly Mock<IPayrollRepository> _mockPayrollRepo = new();
     private readonly TerminationService _sut;
 
     // NIC tiered formula: [{upToYears:3, daysPerYear:30}, {upToYears:6, daysPerYear:20}], MaxDays=150
@@ -39,7 +40,7 @@ public class TerminationServiceTests
     {
         _sut = new TerminationService(
             _mockRepo.Object, _mockEmployeeRepo.Object, _mockBenefitRepo.Object,
-            _mockTaxConfigRepo.Object, _mockVacationRepo.Object);
+            _mockTaxConfigRepo.Object, _mockVacationRepo.Object, _mockPayrollRepo.Object);
     }
 
     [Fact]
@@ -56,7 +57,7 @@ public class TerminationServiceTests
             .ReturnsAsync(new Employee { Id = empId, Salary = monthlySalary, HireDate = hireDate, CountryCode = "NIC" });
         _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC"))
             .ReturnsAsync(CreateNicConfig());
-        _mockVacationRepo.Setup(r => r.GetVacationDaysSumAsync(empId, "approved"))
+        _mockVacationRepo.Setup(r => r.GetVacationDaysTakenBeforeAsync(empId, It.IsAny<DateOnly>()))
             .ReturnsAsync(vacationDaysTaken);
         _mockBenefitRepo.Setup(r => r.GetByEmployeeAsync(empId))
             .ReturnsAsync(new List<BenefitProvision>());
@@ -134,7 +135,7 @@ public class TerminationServiceTests
             .ReturnsAsync(new Employee { Id = empId, Salary = salary, HireDate = hireDate, CountryCode = "NIC" });
         _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC"))
             .ReturnsAsync(CreateNicConfig());
-        _mockVacationRepo.Setup(r => r.GetVacationDaysSumAsync(empId, "approved"))
+        _mockVacationRepo.Setup(r => r.GetVacationDaysTakenBeforeAsync(empId, It.IsAny<DateOnly>()))
             .ReturnsAsync(0m);
         _mockBenefitRepo.Setup(r => r.GetByEmployeeAsync(empId))
             .ReturnsAsync(new List<BenefitProvision>());
@@ -164,7 +165,7 @@ public class TerminationServiceTests
             .ReturnsAsync(new Employee { Id = empId, Salary = salary, HireDate = hireDate, CountryCode = "NIC" });
         _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC"))
             .ReturnsAsync(CreateNicConfig());
-        _mockVacationRepo.Setup(r => r.GetVacationDaysSumAsync(empId, "approved"))
+        _mockVacationRepo.Setup(r => r.GetVacationDaysTakenBeforeAsync(empId, It.IsAny<DateOnly>()))
             .ReturnsAsync(0m);
         _mockBenefitRepo.Setup(r => r.GetByEmployeeAsync(empId))
             .ReturnsAsync(new List<BenefitProvision>());
@@ -191,7 +192,7 @@ public class TerminationServiceTests
             .ReturnsAsync(new Employee { Id = empId, Salary = salary, HireDate = hireDate, CountryCode = "NIC" });
         _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC"))
             .ReturnsAsync(CreateNicConfig());
-        _mockVacationRepo.Setup(r => r.GetVacationDaysSumAsync(empId, "approved"))
+        _mockVacationRepo.Setup(r => r.GetVacationDaysTakenBeforeAsync(empId, It.IsAny<DateOnly>()))
             .ReturnsAsync(0m);
         _mockBenefitRepo.Setup(r => r.GetByEmployeeAsync(empId))
             .ReturnsAsync(new List<BenefitProvision>());
@@ -218,7 +219,7 @@ public class TerminationServiceTests
             .ReturnsAsync(new Employee { Id = empId, Salary = salary, HireDate = hireDate, CountryCode = "NIC" });
         _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC"))
             .ReturnsAsync(CreateNicConfig());
-        _mockVacationRepo.Setup(r => r.GetVacationDaysSumAsync(empId, "approved"))
+        _mockVacationRepo.Setup(r => r.GetVacationDaysTakenBeforeAsync(empId, It.IsAny<DateOnly>()))
             .ReturnsAsync(0m);
         _mockBenefitRepo.Setup(r => r.GetByEmployeeAsync(empId))
             .ReturnsAsync(new List<BenefitProvision>());
@@ -245,7 +246,7 @@ public class TerminationServiceTests
             .ReturnsAsync(new Employee { Id = empId, Salary = salary, HireDate = hireDate, CountryCode = "NIC" });
         _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC"))
             .ReturnsAsync(CreateNicConfig());
-        _mockVacationRepo.Setup(r => r.GetVacationDaysSumAsync(empId, "approved"))
+        _mockVacationRepo.Setup(r => r.GetVacationDaysTakenBeforeAsync(empId, It.IsAny<DateOnly>()))
             .ReturnsAsync(0m);
         _mockBenefitRepo.Setup(r => r.GetByEmployeeAsync(empId))
             .ReturnsAsync(new List<BenefitProvision>());
@@ -273,7 +274,7 @@ public class TerminationServiceTests
             .ReturnsAsync(new Employee { Id = empId, Salary = monthlySalary, HireDate = hireDate, CountryCode = "NIC" });
         _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC"))
             .ReturnsAsync(CreateNicConfig());
-        _mockVacationRepo.Setup(r => r.GetVacationDaysSumAsync(empId, "approved"))
+        _mockVacationRepo.Setup(r => r.GetVacationDaysTakenBeforeAsync(empId, It.IsAny<DateOnly>()))
             .ReturnsAsync(vacationDaysTaken);
         _mockBenefitRepo.Setup(r => r.GetByEmployeeAsync(empId))
             .ReturnsAsync(new List<BenefitProvision>());
@@ -315,7 +316,7 @@ public class TerminationServiceTests
             .ReturnsAsync(new Employee { Id = empId, Salary = monthlySalary, HireDate = hireDate, CountryCode = "NIC" });
         _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC"))
             .ReturnsAsync(CreateNicConfig());
-        _mockVacationRepo.Setup(r => r.GetVacationDaysSumAsync(empId, "approved"))
+        _mockVacationRepo.Setup(r => r.GetVacationDaysTakenBeforeAsync(empId, It.IsAny<DateOnly>()))
             .ReturnsAsync(0m);
         _mockBenefitRepo.Setup(r => r.GetByEmployeeAsync(empId))
             .ReturnsAsync(new List<BenefitProvision>());
@@ -343,7 +344,7 @@ public class TerminationServiceTests
             .ReturnsAsync(new Employee { Id = empId, Salary = monthlySalary, HireDate = hireDate, CountryCode = "NIC" });
         _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC"))
             .ReturnsAsync(CreateNicConfig());
-        _mockVacationRepo.Setup(r => r.GetVacationDaysSumAsync(empId, "approved"))
+        _mockVacationRepo.Setup(r => r.GetVacationDaysTakenBeforeAsync(empId, It.IsAny<DateOnly>()))
             .ReturnsAsync(0m);
         _mockBenefitRepo.Setup(r => r.GetByEmployeeAsync(empId))
             .ReturnsAsync(new List<BenefitProvision>());
@@ -370,7 +371,7 @@ public class TerminationServiceTests
             .ReturnsAsync(new Employee { Id = empId, Salary = salary, HireDate = hireDate, CountryCode = "NIC", IsTrustPosition = true });
         _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC"))
             .ReturnsAsync(CreateNicConfig());
-        _mockVacationRepo.Setup(r => r.GetVacationDaysSumAsync(empId, "approved"))
+        _mockVacationRepo.Setup(r => r.GetVacationDaysTakenBeforeAsync(empId, It.IsAny<DateOnly>()))
             .ReturnsAsync(0m);
         _mockBenefitRepo.Setup(r => r.GetByEmployeeAsync(empId))
             .ReturnsAsync(new List<BenefitProvision>());
@@ -400,7 +401,7 @@ public class TerminationServiceTests
             .ReturnsAsync(new Employee { Id = empId, Salary = salary, HireDate = hireDate, CountryCode = "NIC", IsTrustPosition = true });
         _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC"))
             .ReturnsAsync(CreateNicConfig());
-        _mockVacationRepo.Setup(r => r.GetVacationDaysSumAsync(empId, "approved"))
+        _mockVacationRepo.Setup(r => r.GetVacationDaysTakenBeforeAsync(empId, It.IsAny<DateOnly>()))
             .ReturnsAsync(0m);
         _mockBenefitRepo.Setup(r => r.GetByEmployeeAsync(empId))
             .ReturnsAsync(new List<BenefitProvision>());
@@ -426,7 +427,7 @@ public class TerminationServiceTests
             .ReturnsAsync(new Employee { Id = empId, Salary = salary, HireDate = hireDate, CountryCode = "NIC" });
         _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC"))
             .ReturnsAsync(CreateNicConfig());
-        _mockVacationRepo.Setup(r => r.GetVacationDaysSumAsync(empId, "approved"))
+        _mockVacationRepo.Setup(r => r.GetVacationDaysTakenBeforeAsync(empId, It.IsAny<DateOnly>()))
             .ReturnsAsync(0m);
         _mockBenefitRepo.Setup(r => r.GetByEmployeeAsync(empId))
             .ReturnsAsync(new List<BenefitProvision>());
@@ -503,7 +504,7 @@ public class TerminationServiceTests
             .ReturnsAsync(new Employee { Id = empId, Salary = salary, HireDate = hireDate, CountryCode = "HND" });
         _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("HND"))
             .ReturnsAsync(new CountryTaxConfig { IndemnityDaysPerYear = 10, MaxIndemnityYears = 10, VacationDaysPerYear = 12 });
-        _mockVacationRepo.Setup(r => r.GetVacationDaysSumAsync(empId, "approved"))
+        _mockVacationRepo.Setup(r => r.GetVacationDaysTakenBeforeAsync(empId, It.IsAny<DateOnly>()))
             .ReturnsAsync(0m);
         _mockBenefitRepo.Setup(r => r.GetByEmployeeAsync(empId))
             .ReturnsAsync(new List<BenefitProvision>());
@@ -532,7 +533,7 @@ public class TerminationServiceTests
             .ReturnsAsync(new Employee { Id = empId, Salary = salary, HireDate = hireDate, CountryCode = "NIC", DeductInss = false });
         _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC"))
             .ReturnsAsync(CreateNicConfig());
-        _mockVacationRepo.Setup(r => r.GetVacationDaysSumAsync(empId, "approved"))
+        _mockVacationRepo.Setup(r => r.GetVacationDaysTakenBeforeAsync(empId, It.IsAny<DateOnly>()))
             .ReturnsAsync(0m);
         _mockBenefitRepo.Setup(r => r.GetByEmployeeAsync(empId))
             .ReturnsAsync(new List<BenefitProvision>());
@@ -560,7 +561,7 @@ public class TerminationServiceTests
             .ReturnsAsync(new Employee { Id = empId, Salary = salary, HireDate = hireDate, CountryCode = "NIC", DeductIr = false });
         _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC"))
             .ReturnsAsync(CreateNicConfig());
-        _mockVacationRepo.Setup(r => r.GetVacationDaysSumAsync(empId, "approved"))
+        _mockVacationRepo.Setup(r => r.GetVacationDaysTakenBeforeAsync(empId, It.IsAny<DateOnly>()))
             .ReturnsAsync(0m);
         _mockBenefitRepo.Setup(r => r.GetByEmployeeAsync(empId))
             .ReturnsAsync(new List<BenefitProvision>());
@@ -589,7 +590,7 @@ public class TerminationServiceTests
             .ReturnsAsync(new Employee { Id = empId, Salary = salary, HireDate = hireDate, CountryCode = "NIC", DeductAguinaldo = false });
         _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC"))
             .ReturnsAsync(CreateNicConfig());
-        _mockVacationRepo.Setup(r => r.GetVacationDaysSumAsync(empId, "approved"))
+        _mockVacationRepo.Setup(r => r.GetVacationDaysTakenBeforeAsync(empId, It.IsAny<DateOnly>()))
             .ReturnsAsync(0m);
         _mockBenefitRepo.Setup(r => r.GetByEmployeeAsync(empId))
             .ReturnsAsync(new List<BenefitProvision>());
@@ -628,7 +629,7 @@ public class TerminationServiceTests
             });
         _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC"))
             .ReturnsAsync(CreateNicConfig());
-        _mockVacationRepo.Setup(r => r.GetVacationDaysSumAsync(empId, "approved"))
+        _mockVacationRepo.Setup(r => r.GetVacationDaysTakenBeforeAsync(empId, It.IsAny<DateOnly>()))
             .ReturnsAsync(vacationDaysTaken);
         _mockBenefitRepo.Setup(r => r.GetByEmployeeAsync(empId))
             .ReturnsAsync(new List<BenefitProvision>());
@@ -670,6 +671,135 @@ public class TerminationServiceTests
     }
 
     [Fact]
+    public async Task CalculateAsync_ImmediateResignation_ShouldLoseSeverance()
+    {
+        // ARRANGE — Renuncia Inmediata: pierde indemnización por antigüedad (Art. 45 CT)
+        var empId = Guid.NewGuid();
+        var hireDate = new DateOnly(2020, 1, 1); // 6 years
+        var terminationDate = new DateOnly(2026, 6, 1);
+        var salary = 15000m;
+
+        _mockEmployeeRepo.Setup(r => r.GetByIdAsync(empId))
+            .ReturnsAsync(new Employee { Id = empId, Salary = salary, HireDate = hireDate, CountryCode = "NIC" });
+        _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC"))
+            .ReturnsAsync(CreateNicConfig());
+        _mockVacationRepo.Setup(r => r.GetVacationDaysTakenBeforeAsync(empId, It.IsAny<DateOnly>()))
+            .ReturnsAsync(0m);
+        _mockBenefitRepo.Setup(r => r.GetByEmployeeAsync(empId))
+            .ReturnsAsync(new List<BenefitProvision>());
+
+        // ACT
+        var result = await _sut.CalculateAsync(empId, TerminationReason.ImmediateResignation, terminationDate);
+
+        // ASSERT — No severance for immediate resignation
+        Assert.NotNull(result);
+        Assert.Equal(0m, result.SeveranceDays);
+        Assert.Equal(0m, result.SeverancePay);
+        // Aguinaldo and vacation still apply
+        Assert.True(result.AguinaldoPay > 0, "Aguinaldo should still be calculated");
+        Assert.True(result.VacationPay >= 0, "Vacation pay should still be calculated");
+    }
+
+    [Fact]
+    public async Task CalculateAsync_VoluntaryResignation_WithNotice_ShouldKeepSeverance()
+    {
+        // ARRANGE — Renuncia con 15 días: mantiene indemnización
+        var empId = Guid.NewGuid();
+        var hireDate = new DateOnly(2023, 6, 1); // 3 years
+        var terminationDate = new DateOnly(2026, 6, 1);
+        var salary = 3000m;
+
+        _mockEmployeeRepo.Setup(r => r.GetByIdAsync(empId))
+            .ReturnsAsync(new Employee { Id = empId, Salary = salary, HireDate = hireDate, CountryCode = "NIC" });
+        _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC"))
+            .ReturnsAsync(CreateNicConfig());
+        _mockVacationRepo.Setup(r => r.GetVacationDaysTakenBeforeAsync(empId, It.IsAny<DateOnly>()))
+            .ReturnsAsync(0m);
+        _mockBenefitRepo.Setup(r => r.GetByEmployeeAsync(empId))
+            .ReturnsAsync(new List<BenefitProvision>());
+
+        // ACT
+        var result = await _sut.CalculateAsync(empId, TerminationReason.VoluntaryResignation, terminationDate);
+
+        // ASSERT — Severance preserved for resignation with notice
+        Assert.NotNull(result);
+        Assert.Equal(90m, result.SeveranceDays); // 3 years * 30 days
+        Assert.Equal(9000m, result.SeverancePay); // 90 * 100/day
+    }
+
+    [Fact]
+    public async Task CalculateAsync_VariableSalary_ShouldUseSixMonthAverage()
+    {
+        // ARRANGE — Salario variable: usar promedio de 6 meses (Art. 36 CT)
+        var empId = Guid.NewGuid();
+        var hireDate = new DateOnly(2025, 1, 1);
+        var terminationDate = new DateOnly(2026, 6, 1);
+        // Employee base salary is low, but actual earnings are higher
+        _mockEmployeeRepo.Setup(r => r.GetByIdAsync(empId))
+            .ReturnsAsync(new Employee { Id = empId, Salary = 1000m, HireDate = hireDate, CountryCode = "NIC", SalaryType = "variable" });
+        _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC"))
+            .ReturnsAsync(CreateNicConfig());
+        _mockVacationRepo.Setup(r => r.GetVacationDaysTakenBeforeAsync(empId, It.IsAny<DateOnly>()))
+            .ReturnsAsync(0m);
+        _mockBenefitRepo.Setup(r => r.GetByEmployeeAsync(empId))
+            .ReturnsAsync(new List<BenefitProvision>());
+
+        // 6 months of payroll history: avg = (8000+9000+7000+10000+8500+9500)/6 = 8666.67
+        var payrollDetails = new List<PayrollDetail>
+        {
+            new() { EmployeeId = empId, GrossPay = 8000m },
+            new() { EmployeeId = empId, GrossPay = 9000m },
+            new() { EmployeeId = empId, GrossPay = 7000m },
+            new() { EmployeeId = empId, GrossPay = 10000m },
+            new() { EmployeeId = empId, GrossPay = 8500m },
+            new() { EmployeeId = empId, GrossPay = 9500m },
+        };
+        _mockPayrollRepo.Setup(r => r.GetDetailsByEmployeeInRangeAsync(empId, It.IsAny<DateOnly>(), terminationDate))
+            .ReturnsAsync(payrollDetails);
+
+        // ACT
+        var result = await _sut.CalculateAsync(empId, TerminationReason.VoluntaryResignation, terminationDate);
+
+        // ASSERT — Should use 6-month average, not base salary
+        Assert.NotNull(result);
+        Assert.True(result.IsVariableSalary);
+        Assert.Equal(8666.67m, result.AvgSalary6Months); // (8000+9000+7000+10000+8500+9500)/6
+        Assert.Equal(10000m, result.MaxSalary6Months);
+        Assert.Equal(8666.67m, result.MonthlySalary); // Average used as monthly salary
+        // Aguinaldo should be based on average, not base salary of 1000
+        Assert.True(result.AguinaldoPay > 100m, "Aguinaldo should use average salary");
+    }
+
+    [Fact]
+    public async Task CalculateAsync_FixedSalary_ShouldNotQueryPayrollHistory()
+    {
+        // ARRANGE — Salario fijo: no necesita historial de nómina
+        var empId = Guid.NewGuid();
+        var hireDate = new DateOnly(2025, 1, 1);
+        var terminationDate = new DateOnly(2026, 6, 1);
+
+        _mockEmployeeRepo.Setup(r => r.GetByIdAsync(empId))
+            .ReturnsAsync(new Employee { Id = empId, Salary = 5000m, HireDate = hireDate, CountryCode = "NIC", SalaryType = "monthly" });
+        _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC"))
+            .ReturnsAsync(CreateNicConfig());
+        _mockVacationRepo.Setup(r => r.GetVacationDaysTakenBeforeAsync(empId, It.IsAny<DateOnly>()))
+            .ReturnsAsync(0m);
+        _mockBenefitRepo.Setup(r => r.GetByEmployeeAsync(empId))
+            .ReturnsAsync(new List<BenefitProvision>());
+
+        // ACT
+        var result = await _sut.CalculateAsync(empId, TerminationReason.VoluntaryResignation, terminationDate);
+
+        // ASSERT — Fixed salary uses base salary directly
+        Assert.NotNull(result);
+        Assert.False(result.IsVariableSalary);
+        Assert.Null(result.AvgSalary6Months);
+        Assert.Equal(5000m, result.MonthlySalary);
+        // Payroll repo should never be called
+        _mockPayrollRepo.Verify(r => r.GetDetailsByEmployeeInRangeAsync(It.IsAny<Guid>(), It.IsAny<DateOnly>(), It.IsAny<DateOnly>()), Times.Never);
+    }
+
+    [Fact]
     public async Task CalculateAsync_AllDeductionsOff_ShouldHaveNoDeductions()
     {
         // ARRANGE — All deduction flags = false
@@ -686,7 +816,7 @@ public class TerminationServiceTests
             });
         _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC"))
             .ReturnsAsync(CreateNicConfig());
-        _mockVacationRepo.Setup(r => r.GetVacationDaysSumAsync(empId, "approved"))
+        _mockVacationRepo.Setup(r => r.GetVacationDaysTakenBeforeAsync(empId, It.IsAny<DateOnly>()))
             .ReturnsAsync(0m);
         _mockBenefitRepo.Setup(r => r.GetByEmployeeAsync(empId))
             .ReturnsAsync(new List<BenefitProvision>());

@@ -58,17 +58,10 @@ class _SettlementFormPageState extends ConsumerState<SettlementFormPage> {
       if (result == null) return;
 
       final pdfBytes = await ref.read(settlementServiceProvider).generateSettlementPdf(
-            employeeId: widget.employeeId,
-            companyId: widget.companyId,
-            terminationType: _terminationReason,
-            lastDay: _terminationDate,
-            baseSalary: result.monthlySalary,
-            accruedVacations: result.vacationPay,
-            accruedAguinaldo: result.aguinaldoPay,
-            indemnization: result.severancePay,
+            terminationRecordId: result.id,
           );
 
-      downloadBytes(pdfBytes, 'Liquidacion_${widget.employeeId}.pdf');
+      downloadBytes(pdfBytes, 'Liquidacion_${result.id}.pdf');
 
       if (mounted) ZToast.success(context, 'PDF descargado exitosamente');
     } catch (e) {
@@ -364,9 +357,10 @@ class _SettlementFormPageState extends ConsumerState<SettlementFormPage> {
       label: 'Motivo de Terminación',
       prefixIcon: Icons.gavel,
       items: const [
-        DropdownMenuItem(value: 'VoluntaryResignation', child: Text('Renuncia Voluntaria')),
-        DropdownMenuItem(value: 'JustifiedDismissal', child: Text('Despido con Causa Justificada')),
-        DropdownMenuItem(value: 'UnjustifiedDismissal', child: Text('Despido Injustificado')),
+        DropdownMenuItem(value: 'VoluntaryResignation', child: Text('Renuncia con 15 días')),
+        DropdownMenuItem(value: 'ImmediateResignation', child: Text('Renuncia Inmediata')),
+        DropdownMenuItem(value: 'JustifiedDismissal', child: Text('Despido')),
+        DropdownMenuItem(value: 'UnjustifiedDismissal', child: Text('Art. 48 CT - Causa Justa (MITRAB)')),
         DropdownMenuItem(value: 'MutualAgreement', child: Text('Mutuo Acuerdo')),
       ],
       onChanged: (val) => setState(() => _terminationReason = val!),

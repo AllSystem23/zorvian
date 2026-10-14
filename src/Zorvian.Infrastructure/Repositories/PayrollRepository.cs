@@ -127,5 +127,14 @@ public sealed class PayrollRepository : IPayrollRepository
     public Task UpdateDetailAsync(PayrollDetail detail) =>
         Task.FromResult(_db.PayrollDetails.Update(detail));
 
+    public async Task<List<PayrollDetail>> GetDetailsByEmployeeInRangeAsync(Guid employeeId, DateOnly fromDate, DateOnly toDate) =>
+        await _db.PayrollDetails
+            .Include(d => d.PayrollRun).ThenInclude(r => r!.PayrollPeriod)
+            .Where(d => d.EmployeeId == employeeId
+                && d.PayrollRun!.PayrollPeriod!.StartDate >= fromDate
+                && d.PayrollRun!.PayrollPeriod!.EndDate <= toDate)
+            .OrderBy(d => d.PayrollRun!.PayrollPeriod!.StartDate)
+            .ToListAsync();
+
     public async Task SaveChangesAsync() => await _db.SaveChangesAsync();
 }

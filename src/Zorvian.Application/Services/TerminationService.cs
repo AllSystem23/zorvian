@@ -12,19 +12,22 @@ public sealed class TerminationService
     private readonly IBenefitProvisionRepository _benefitRepo;
     private readonly ICountryTaxConfigRepository _taxConfigRepo;
     private readonly IVacationRepository _vacationRepo;
+    private readonly IPayrollRepository _payrollRepo;
 
     public TerminationService(
         ITerminationRepository repo,
         IEmployeeRepository employeeRepo,
         IBenefitProvisionRepository benefitRepo,
         ICountryTaxConfigRepository taxConfigRepo,
-        IVacationRepository vacationRepo)
+        IVacationRepository vacationRepo,
+        IPayrollRepository payrollRepo)
     {
         _repo = repo;
         _employeeRepo = employeeRepo;
         _benefitRepo = benefitRepo;
         _taxConfigRepo = taxConfigRepo;
         _vacationRepo = vacationRepo;
+        _payrollRepo = payrollRepo;
     }
 
     /// <summary>
@@ -44,6 +47,27 @@ public sealed class TerminationService
         var taxConfig = await _taxConfigRepo.GetByCountryCodeAsync(employee.CountryCode);
         var monthlySalary = employee.Salary ?? 0;
         var dailySalary = monthlySalary / 30m;
+
+        // ── Salario variable: promedio de los últimos 6 meses (Art. 36 CT) ──
+        // Si el tipo de salario es "variable", el salario base puede no reflejar
+        // la remuneración real. Se calcula el promedio del GrossPay de los últimos
+        // 6 meses de nómina procesada.
+        var isVariableSalary = string.Equals(employee.SalaryType, "variable", StringComparison.OrdinalIgnoreCase);
+        decimal? avgSalary6Months = null;
+        decimal? maxSalary6Months = null;
+        if (isVariableSalary)
+        {
+            var sixMonthsAgo = terminationDate.AddMonths(-6);
+            var payrollDetails = await _payrollRepo.GetDetailsByEmployeeInRangeAsync(employeeId, sixMonthsAgo, terminationDate);
+            if (payrollDetails.Count > 0)
+            {
+                avgSalary6Months = Math.Round(payrollDetails.Average(d => d.GrossPay), 2);
+                maxSalary6Months = payrollDetails.Max(d => d.GrossPay);
+                // Usar el promedio como salario para el cálculo de prestaciones
+                monthlySalary = avgSalary6Months.Value;
+                dailySalary = monthlySalary / 30m;
+            }
+        }
 
         // ── Service period calculation ─────────────────────────────
         // Inclusive counting: both hire date and termination date are work days
@@ -104,7 +128,8 @@ public sealed class TerminationService
         var severanceDays = 0m;
         var severancePay = 0m;
 
-        if (daysWorked >= 30)
+        // Renuncia Inmediata: pierde la indemnización por antigüedad (Art. 45 CT)
+        if (daysWorked >= 30 && reason != TerminationReason.ImmediateResignation)
         {
             severanceDays = CalculateSeveranceDays(yearsOfService, taxConfig);
 
@@ -208,6 +233,9 @@ public sealed class TerminationService
             DaysAccrued25PerMonth = daysAccrued25,
             MonthlySalary = monthlySalary,
             DailySalary = dailySalary,
+            IsVariableSalary = isVariableSalary,
+            AvgSalary6Months = avgSalary6Months,
+            MaxSalary6Months = maxSalary6Months,
             AguinaldoPay = aguinaldoPay,
             VacationDaysAccrued = daysAccrued25,
             VacationDaysTaken = vacationDaysTaken,
@@ -327,8 +355,10 @@ public sealed class TerminationService
     {
         try
         {
-            // Use IVacationRepository.GetVacationDaysSumAsync for approved vacations
-            return await _vacationRepo.GetVacationDaysSumAsync(employeeId, "approved");
+            // Sum only vacations where the employee ACTUALLY took the days off.
+            // An approved vacation for FUTURE dates hasn't been taken yet —
+            // those days must be PAID in the settlement, not deducted.
+            return await _vacationRepo.GetVacationDaysTakenBeforeAsync(employeeId, terminationDate);
         }
         catch
         {
