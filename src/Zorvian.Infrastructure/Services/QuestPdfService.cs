@@ -1,5 +1,3 @@
-﻿using DinkToPdf;
-using DinkToPdf.Contracts;
 using Microsoft.Extensions.Logging;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
@@ -11,7 +9,6 @@ namespace Zorvian.Infrastructure.Services;
 
 public sealed class QuestPdfService
 {
-    private readonly IConverter _converter;
     private readonly ILogger<QuestPdfService> _logger;
 
     static QuestPdfService()
@@ -21,50 +18,18 @@ public sealed class QuestPdfService
 
     public QuestPdfService(ILogger<QuestPdfService> logger)
     {
-        _converter = new SynchronizedConverter(new PdfTools());
         _logger = logger;
     }
 
+    /// <summary>
+    /// Renderiza HTML a PDF. Antes se intentaba DinkToPdf (wkhtmltopdf) con fallback a
+    /// QuestPDF, pero DinkToPdf necesita libwkhtmltox.so, que el contenedor de Render no
+    /// instala: el camino siempre lanzaba y caía al fallback. Además arrastra
+    /// NETStandard.Library 1.6.0 y rompe el restore con --runtime linux-x64 (NU1605).
+    /// </summary>
     public byte[] RenderHtmlToPdf(string htmlContent)
     {
-        try
-        {
-            var doc = new HtmlToPdfDocument()
-            {
-                GlobalSettings = {
-                    ColorMode = ColorMode.Color,
-                    Orientation = Orientation.Portrait,
-                    PaperSize = PaperKind.A4,
-                    Margins = new MarginSettings { Top = 15, Bottom = 15, Left = 15, Right = 15 }
-                },
-                Objects = {
-                    new ObjectSettings {
-                        PagesCount = true,
-                        HtmlContent = htmlContent,
-                        WebSettings = { DefaultEncoding = "utf-8" },
-                        HeaderSettings = {
-                            FontName = "Verdana",
-                            FontSize = 8,
-                            Right = "PÃ¡gina [page] de [toPage]",
-                            Line = true
-                        },
-                        FooterSettings = {
-                            FontName = "Verdana",
-                            FontSize = 8,
-                            Center = "Generado por Zorvian Documentary Engine",
-                            Line = true
-                        }
-                    }
-                }
-            };
-
-            return _converter.Convert(doc);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error generando PDF con DinkToPdf, fallback a QuestPDF");
-            return RenderWithQuestPdf(htmlContent);
-        }
+        return RenderWithQuestPdf(htmlContent);
     }
 
     private byte[] RenderWithQuestPdf(string htmlContent)
@@ -121,7 +86,7 @@ public sealed class QuestPdfService
 
                         row.RelativeItem().AlignRight().Text(x =>
                         {
-                            x.Span("PÃ¡gina ").FontSize(8);
+                            x.Span("Página ").FontSize(8);
                             x.CurrentPageNumber().FontSize(8);
                             x.Span(" de ").FontSize(8);
                             x.TotalPages().FontSize(8);
