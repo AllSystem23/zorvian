@@ -33,6 +33,7 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<EntityHistory> EntityHistories => Set<EntityHistory>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<VacationRequest> VacationRequests => Set<VacationRequest>();
+    public DbSet<VacationPaymentReceipt> VacationPaymentReceipts => Set<VacationPaymentReceipt>();
     public DbSet<ApprovalFlow> ApprovalFlows => Set<ApprovalFlow>();
     public DbSet<LeaveType> LeaveTypes => Set<LeaveType>();
     public DbSet<PermissionRequest> PermissionRequests => Set<PermissionRequest>();
@@ -638,6 +639,28 @@ public sealed class ZorvianDbContext : DbContext
             e.HasIndex(v => new { v.EmployeeId, v.Status });
             e.HasIndex(v => new { v.StartDate, v.EndDate });
             e.HasQueryFilter(v => (v.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.BypassTenantFilter) && !v.IsDeleted);
+        });
+
+        builder.Entity<VacationPaymentReceipt>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.Property(r => r.ReceiptNumber).HasMaxLength(30).IsRequired();
+            e.Property(r => r.CountryCode).HasMaxLength(5).IsRequired();
+            e.Property(r => r.Currency).HasMaxLength(5).IsRequired();
+            e.Property(r => r.Observations).HasMaxLength(500);
+            e.Property(r => r.PaidBy).HasMaxLength(100);
+            e.Property(r => r.Status).HasMaxLength(20).IsRequired();
+            e.HasOne(r => r.VacationRequest)
+                .WithMany()
+                .HasForeignKey(r => r.VacationRequestId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(r => r.Employee)
+                .WithMany()
+                .HasForeignKey(r => r.EmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(r => r.ReceiptNumber).IsUnique();
+            e.HasIndex(r => new { r.EmployeeId, r.Status });
+            e.HasQueryFilter(r => (r.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.BypassTenantFilter) && !r.IsDeleted);
         });
 
         builder.Entity<ApprovalFlow>(e =>
@@ -2572,7 +2595,13 @@ public sealed class ZorvianDbContext : DbContext
             e.Property(t => t.Category).HasMaxLength(50).IsRequired();
             e.Property(t => t.CountryCode).HasMaxLength(10).IsRequired();
             e.Property(t => t.Module).HasMaxLength(50);
-            e.HasQueryFilter(t => (t.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.BypassTenantFilter) && !t.IsDeleted);
+            // Híbrido: plantillas propias de la compañía + plantillas sembradas por el
+            // sistema (visibles para todos) + bypass SuperAdmin. Sin esto, una empresa
+            // normal no ve las 6 plantillas del seed en producción (sólo "SYSTEM" o SuperAdmin).
+            e.HasQueryFilter(t => (t.TenantId == _tenantContext.TenantId.ToString()
+                    || t.TenantId == DocumentTemplate.SystemTenantId
+                    || _tenantContext.BypassTenantFilter)
+                && !t.IsDeleted);
         });
 
         builder.Entity<GeneratedDocument>(e =>

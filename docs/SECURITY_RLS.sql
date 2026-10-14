@@ -10,14 +10,24 @@
 -- and applied by EnableRLS migration.
 -- Reference: PLAN_ACCION_INTEGRACION I-10 / M-8
 --
--- NOTE ON FORCE: FORCE ROW LEVEL SECURITY is intentionally NOT applied.
--- The app connects as the table owner (Neon neondb_owner) and without
--- FORCE the owner bypasses RLS — that is what keeps auth flows working
--- today (login runs before any tenant GUC is meaningful). Enabling FORCE
--- requires: (1) a dedicated non-owner DB role for the app, (2) excluding
--- auth tables (Users, UserSessions, UserInvitations) from policies,
--- (3) re-running docs/test_rls_staging.sql before promote. Until then,
--- tenant isolation is enforced by the 163+ EF Core HasQueryFilters.
+-- NOTE ON FORCE (actualizado 2026-10-14): SÍ se aplica
+-- FORCE ROW LEVEL SECURITY sobre las tablas con política tenant
+-- (ver más abajo). El escape de contexto ausente es lo que hace seguro el forzado:
+-- las políticas tenant NO acotan cuando app.tenant_id está vacío o en GUID-cero
+-- (login, migraciones de arranque y jobs globales con tenant-cero siguen
+-- funcionando; SalesPredictionTrainingJob consulta con IgnoreQueryFilters()).
+--
+-- ORDEN DE OR POLICIES (IMPORTANTE): las políticas permisivas de PostgreSQL se
+-- combinan con OR. Por eso las tablas con columna BranchId usan UNA política
+-- combinada (tenant AND sucursal) y NO tenant_isolation + branch_scope por
+-- separado: branch_scope pasaba siempre que no hubiera sucursal seleccionada y
+-- habría dejado visibles filas de OTROS tenants al forzar RLS.
+--
+-- Runbook del rol no-owner (paso posterior de reducción de privilegios, NO
+-- requerido para el forzado por el escape de arriba): crear rol no-owner de la
+-- app + GRANT DML + cambiar connection string, y excluir del forzado las tablas
+-- de auth (Users, UserSessions, UserInvitations) si en el futuro se les añade
+-- política. Ver docs/test_rls_staging.sql antes de promover.
 -- ====================================================================
 
 -- ====================================================================
@@ -146,6 +156,7 @@ ALTER TABLE IF EXISTS "PurchaseDetails" ENABLE ROW LEVEL SECURITY;
 -- ====================================================================
 
 -- TenantId-based tables (includes ALL except FK-based child tables)
+-- Escape de contexto ausente: sin tenant resuelto (vacío o GUID-cero) NO se acota.
 DO $$
 DECLARE
     tbl TEXT;
@@ -155,6 +166,12 @@ BEGIN
         'Companies','Employees','Sales','Clients','Products',
         'InventoryMovements','Purchases','Suppliers','Credits','CashMovements',
         'AccountingEntries','Warranties',
+        -- Phase 3: Payroll (13) — VacationRequests + recibos de pago
+        'AttendanceRecords','VacationRequests','VacationPaymentReceipts','SickLeaveRecords',
+        'PayrollRuns','PayrollDetails','PayrollConcepts',
+        'TerminationRecords','PermissionRequests',
+        'EmployeeSalaries','BenefitProvisions','BonusRecords',
+        'CommissionRecords','OvertimeRecords',
         -- Phase 2: Fleet (30)
         'Vehicles','Drivers','Routes','RoutePoints',
         'Deliveries','DeliveryItems','Trips',
@@ -165,12 +182,6 @@ BEGIN
         'DriverLicenseCategories','DriverInfractions','DriverTrainings',
         'FailureTypes','MaintenanceTemplates','MaintenanceSchedules',
         'FleetDocuments','DocumentTypes','FleetAlerts','FleetAlertRules',
-        -- Phase 3: Payroll (13)
-        'AttendanceRecords','VacationRequests','SickLeaveRecords',
-        'PayrollRuns','PayrollDetails','PayrollConcepts',
-        'TerminationRecords','PermissionRequests',
-        'EmployeeSalaries','BenefitProvisions','BonusRecords',
-        'CommissionRecords','OvertimeRecords',
         -- Phase 4: Goals (8)
         'GoalDefinitions','GoalAssignments','GoalProgressEntries',
         'Incentives','IncentivePayments',
@@ -188,11 +199,20 @@ BEGIN
         'PurchaseOrders','PurchaseOrderDetails','PurchaseDetails'
     ])
     LOOP
+        IF to_regclass(format('public.%I', tbl)) IS NULL THEN
+            CONTINUE;
+        END IF;
+
         EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_%I ON %I', tbl, tbl);
         EXECUTE format(
-            $$CREATE POLICY tenant_isolation_%I ON %I FOR ALL USING ("TenantId" = current_setting('app.tenant_id', true))$$,
+            $$CREATE POLICY tenant_isolation_%I ON %I FOR ALL USING (
+                coalesce(current_setting('app.tenant_id', true), '') IN ('', '00000000-0000-0000-0000-000000000000')
+                OR "TenantId" = current_setting('app.tenant_id', true)
+            )$$,
             tbl, tbl
         );
+        EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', tbl);
+        EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', tbl);
     END LOOP;
 END;
 $$;
@@ -200,13 +220,19 @@ $$;
 -- FK-based policies (child tables where TenantId is inherited via parent FK)
 DROP POLICY IF EXISTS tenant_isolation_SaleDetails ON "SaleDetails";
 CREATE POLICY tenant_isolation_SaleDetails ON "SaleDetails" FOR ALL USING (
-    "SaleId" IN (SELECT "Id" FROM "Sales" WHERE "TenantId" = current_setting('app.tenant_id', true))
+    coalesce(current_setting('app.tenant_id', true), '') IN ('', '00000000-0000-0000-0000-000000000000')
+    OR "SaleId" IN (SELECT "Id" FROM "Sales" WHERE "TenantId" = current_setting('app.tenant_id', true))
 );
+ALTER TABLE "SaleDetails" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "SaleDetails" FORCE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS tenant_isolation_AccountingEntryDetails ON "AccountingEntryDetails";
 CREATE POLICY tenant_isolation_AccountingEntryDetails ON "AccountingEntryDetails" FOR ALL USING (
-    "AccountingEntryId" IN (SELECT "Id" FROM "AccountingEntries" WHERE "TenantId" = current_setting('app.tenant_id', true))
+    coalesce(current_setting('app.tenant_id', true), '') IN ('', '00000000-0000-0000-0000-000000000000')
+    OR "AccountingEntryId" IN (SELECT "Id" FROM "AccountingEntries" WHERE "TenantId" = current_setting('app.tenant_id', true))
 );
+ALTER TABLE "AccountingEntryDetails" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "AccountingEntryDetails" FORCE ROW LEVEL SECURITY;
 
 -- ====================================================================
 -- SuperAdmin bypass policy
@@ -254,6 +280,10 @@ BEGIN
         'PurchaseOrders','PurchaseOrderDetails','PurchaseDetails'
     ])
     LOOP
+        IF to_regclass(format('public.%I', tbl)) IS NULL THEN
+            CONTINUE;
+        END IF;
+
         EXECUTE format('DROP POLICY IF EXISTS super_admin_bypass_%I ON %I', tbl, tbl);
         EXECUTE format(
             $$CREATE POLICY super_admin_bypass_%I ON %I FOR ALL USING (is_super_admin())$$,
@@ -264,13 +294,14 @@ END;
 $$;
 
 -- ====================================================================
--- Branch-scope policies (defensa en profundidad)
+-- Branch-scope policies (defensa en profundidad) — COMBINADAS con tenant
 -- ====================================================================
 -- Semántica PARIDAD con el invariante del proyecto: la sucursal es filtro EXPLÍCITO opt-in.
---   app.branch_id = '' (sin sucursal seleccionada) → política NO acota (company-wide).
+--   app.branch_id = '' (sin sucursal seleccionada) → la política NO acota (company-wide).
 --   cualquier otro valor        → solo filas de esa sucursal (BranchId::text = app.branch_id).
--- RLS sigue inerte sin FORCE (la app conecta como owner); estas políticas quedan listas
--- para cuando se adopte el runbook no-owner. Se aplican solo a tablas con columna BranchId.
+-- Las tablas con columna BranchId usan UNA política combinada tenant AND sucursal: con FORCE
+-- activo, mantener tenant_isolation y branch_scope por separado (OR) habría dejado visibles
+-- filas de OTROS tenants cuando no hay sucursal seleccionada.
 DO $$
 DECLARE
     tbl TEXT;
@@ -280,14 +311,27 @@ BEGIN
         FROM information_schema.columns
         WHERE column_name = 'BranchId' AND table_schema = 'public'
     LOOP
+        IF to_regclass(format('public.%I', tbl)) IS NULL THEN
+            CONTINUE;
+        END IF;
+
+        EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_%I ON %I', tbl, tbl);
         EXECUTE format('DROP POLICY IF EXISTS branch_scope_%I ON %I', tbl, tbl);
         EXECUTE format(
-            $$CREATE POLICY branch_scope_%I ON %I FOR ALL USING (
-                current_setting('app.branch_id', true) = ''
-                OR "BranchId"::text = current_setting('app.branch_id', true)
+            $$CREATE POLICY tenant_branch_scope_%I ON %I FOR ALL USING (
+                (
+                    coalesce(current_setting('app.tenant_id', true), '') IN ('', '00000000-0000-0000-0000-000000000000')
+                    OR "TenantId" = current_setting('app.tenant_id', true)
+                )
+                AND (
+                    current_setting('app.branch_id', true) = ''
+                    OR "BranchId"::text = current_setting('app.branch_id', true)
+                )
             )$$,
             tbl, tbl
         );
+        EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', tbl);
+        EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', tbl);
     END LOOP;
 END;
 $$;

@@ -268,6 +268,8 @@ public static class DependencyInjectionExtensions
 
         // HR
         services.AddScoped<VacationService>();
+        services.AddScoped<IVacationPaymentService, VacationPaymentService>();
+        services.AddScoped<IVacationReceiptPdfService, VacationReceiptPdfService>();
         services.AddScoped<PermissionService>();
         services.AddScoped<IPolicyService, PolicyService>();
         services.AddScoped<PerformanceService>();

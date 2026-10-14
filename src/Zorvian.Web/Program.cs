@@ -158,7 +158,17 @@ if (rateLimitingEnabled)
 {
     var permitLimit = builder.Configuration.GetValue<int>("RateLimiting:PermitLimit");
     var windowMinutes = builder.Configuration.GetValue<int>("RateLimiting:WindowMinutes");
-    app.UseRateLimitingMiddleware(maxRequests: permitLimit, windowSeconds: windowMinutes * 60);
+    var authLimit = builder.Configuration.GetValue<int?>("RateLimiting:AuthLimit") ?? 10;
+    var authWindowMinutes = builder.Configuration.GetValue<int?>("RateLimiting:AuthWindowMinutes") ?? 5;
+    var authOtherLimit = builder.Configuration.GetValue<int?>("RateLimiting:AuthOtherLimit") ?? 30;
+    var authOtherWindowMinutes = builder.Configuration.GetValue<int?>("RateLimiting:AuthOtherWindowMinutes") ?? 5;
+    app.UseRateLimitingMiddleware(
+        maxRequests: permitLimit,
+        windowSeconds: windowMinutes * 60,
+        authLimit: authLimit,
+        authWindowSeconds: authWindowMinutes * 60,
+        authOtherLimit: authOtherLimit,
+        authOtherWindowSeconds: authOtherWindowMinutes * 60);
 }
 
 if (!app.Environment.IsEnvironment("Testing"))

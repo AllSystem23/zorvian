@@ -6,9 +6,17 @@ namespace Zorvian.Web.Middleware;
 
 public static class RateLimitingExtensions
 {
-    public static IApplicationBuilder UseRateLimitingMiddleware(this IApplicationBuilder builder, int maxRequests = 120, int windowSeconds = 60)
+    public static IApplicationBuilder UseRateLimitingMiddleware(
+        this IApplicationBuilder builder,
+        int maxRequests = 120,
+        int windowSeconds = 60,
+        int authLimit = 5,
+        int authWindowSeconds = 900,
+        int authOtherLimit = 30,
+        int authOtherWindowSeconds = 300)
     {
-        return builder.UseMiddleware<RateLimitingMiddleware>(maxRequests, windowSeconds);
+        return builder.UseMiddleware<RateLimitingMiddleware>(
+            maxRequests, windowSeconds, authLimit, authWindowSeconds, authOtherLimit, authOtherWindowSeconds);
     }
 }
 
@@ -19,17 +27,49 @@ public sealed class RateLimitingMiddleware
     private readonly Timer _cleanupTimer;
     private readonly int _maxRequests;
     private readonly int _windowSeconds;
+    private readonly int _authLimit;
+    private readonly int _authWindowSeconds;
+    private readonly int _authOtherLimit;
+    private readonly int _authOtherWindowSeconds;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
 
-    public RateLimitingMiddleware(RequestDelegate next, int maxRequests = 120, int windowSeconds = 60)
+    /// <summary>
+    /// Endpoints that accept credentials. They get a strict per-endpoint budget so a
+    /// brute-force run against /auth/login cannot consume the budget of /auth/refresh.
+    /// </summary>
+    private static readonly string[] CredentialEndpoints =
+    [
+        "/auth/login",
+        "/auth/login-password",
+        "/auth/register",
+        "/auth/forgot-password",
+        "/auth/reset-password",
+        "/auth/mfa/login",
+        "/auth/mfa/verify",
+        "/auth/sso/",
+        "/auth/complete-profile",
+    ];
+
+    public RateLimitingMiddleware(
+        RequestDelegate next,
+        int maxRequests = 120,
+        int windowSeconds = 60,
+        int authLimit = 5,
+        int authWindowSeconds = 900,
+        int authOtherLimit = 30,
+        int authOtherWindowSeconds = 300)
     {
         _next = next;
         _maxRequests = maxRequests;
         _windowSeconds = windowSeconds;
+        _authLimit = authLimit;
+        _authWindowSeconds = authWindowSeconds;
+        _authOtherLimit = authOtherLimit;
+        _authOtherWindowSeconds = authOtherWindowSeconds;
 
         // Cleanup stale entries every 5 minutes
         _cleanupTimer = new Timer(CleanupStaleEntries, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
@@ -48,14 +88,26 @@ public sealed class RateLimitingMiddleware
 
         var clientKey = GetClientKey(context);
 
-        // Stricter rate limiting for auth endpoints
         if (path.Contains("/auth/", StringComparison.OrdinalIgnoreCase))
         {
-            if (!TryRequest($"auth:{clientKey}", 5, 900))
+            if (IsCredentialEndpoint(path))
             {
+                // Per-endpoint budget: login failures don't lock out /auth/refresh
+                var credentialKey = $"auth:{clientKey}:{path}";
+                if (!TryRequest(credentialKey, _authLimit, _authWindowSeconds))
+                {
+                    await WriteRateLimitResponse(context, 429,
+                        "Demasiados intentos de autenticación. Intenta de nuevo más tarde.",
+                        retryAfterSeconds: _authWindowSeconds);
+                    return;
+                }
+            }
+            else if (!TryRequest($"auth-other:{clientKey}", _authOtherLimit, _authOtherWindowSeconds))
+            {
+                // Refresh / logout / me — automatic calls, so a looser shared budget
                 await WriteRateLimitResponse(context, 429,
-                    "Demasiados intentos de autenticación. Intenta de nuevo en 15 minutos.",
-                    retryAfterSeconds: 900);
+                    "Demasiadas solicitudes de sesión. Intenta de nuevo más tarde.",
+                    retryAfterSeconds: _authOtherWindowSeconds);
                 return;
             }
 
@@ -73,6 +125,17 @@ public sealed class RateLimitingMiddleware
         }
 
         await _next(context);
+    }
+
+    private static bool IsCredentialEndpoint(string path)
+    {
+        foreach (var endpoint in CredentialEndpoints)
+        {
+            if (path.Contains(endpoint, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
     }
 
     private static string GetClientKey(HttpContext context)
@@ -98,6 +161,8 @@ public sealed class RateLimitingMiddleware
 
         lock (counter)
         {
+            counter.LastAccess = now;
+
             if (counter.WindowSlot != windowSlot)
             {
                 counter.WindowSlot = windowSlot;

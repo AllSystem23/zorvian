@@ -13199,6 +13199,9 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Property<decimal>("AguinaldoPay")
                         .HasColumnType("numeric");
 
+                    b.Property<decimal?>("AvgSalary6Months")
+                        .HasColumnType("numeric");
+
                     b.Property<Guid>("CompanyId")
                         .HasColumnType("uuid");
 
@@ -13268,6 +13271,12 @@ namespace Zorvian.Infrastructure.Migrations
 
                     b.Property<bool>("IsTrustPosition")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("IsVariableSalary")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal?>("MaxSalary6Months")
+                        .HasColumnType("numeric");
 
                     b.Property<decimal>("MonthlySalary")
                         .HasColumnType("numeric");
@@ -13472,6 +13481,114 @@ namespace Zorvian.Infrastructure.Migrations
                     b.HasKey("UserId", "TenantId");
 
                     b.ToTable("UserTenants");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.VacationPaymentReceipt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("BusinessDays")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CountryCode")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)");
+
+                    b.Property<decimal>("DailySalary")
+                        .HasColumnType("numeric");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("EndDate")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("InssEmployeeAmount")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("InssEmployeeRate")
+                        .HasColumnType("numeric");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("MonthlySalary")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Observations")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("PaidBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateOnly>("PaymentDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("ReceiptNumber")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateOnly>("ReturnDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("StartDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("VacationPay")
+                        .HasColumnType("numeric");
+
+                    b.Property<Guid>("VacationRequestId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReceiptNumber")
+                        .IsUnique();
+
+                    b.HasIndex("VacationRequestId");
+
+                    b.HasIndex("EmployeeId", "Status");
+
+                    b.ToTable("VacationPaymentReceipts");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.VacationRequest", b =>
@@ -17270,6 +17387,25 @@ namespace Zorvian.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.VacationPaymentReceipt", b =>
+                {
+                    b.HasOne("Zorvian.Core.Entities.Employee", "Employee")
+                        .WithMany()
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Zorvian.Core.Entities.VacationRequest", "VacationRequest")
+                        .WithMany()
+                        .HasForeignKey("VacationRequestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("VacationRequest");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.VacationRequest", b =>
