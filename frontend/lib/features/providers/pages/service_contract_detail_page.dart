@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/ds/ds.dart';
+import '../../../core/providers/company_branch_provider.dart';
 import '../data/provider_repository.dart';
 import '../../../core/entities/service_contract.dart';
 import '../../../core/entities/payment_milestone.dart';
 
 final contractDetailsProvider = FutureProvider.family<ServiceContract, String>((ref, id) async {
+  ref.watch(branchScopeProvider);
   final repository = ref.watch(providerRepositoryProvider);
   return repository.getContractById(id);
 });
 
 final contractMilestonesProvider = FutureProvider.family<List<PaymentMilestone>, String>((ref, contractId) async {
+  ref.watch(branchScopeProvider);
   final repository = ref.watch(providerRepositoryProvider);
   return repository.getMilestonesByContract(contractId);
 });

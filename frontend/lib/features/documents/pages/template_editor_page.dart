@@ -30,7 +30,7 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
 
   final _categories = ['HR', 'Sales', 'Legal', 'Finance', 'General'];
   final _modules    = ['Employee', 'Sale', 'Credit', 'Warranty', 'General'];
-  final _countries  = ['ALL', 'NI', 'CR', 'PA', 'GT', 'MX', 'CO'];
+  final _countries  = ['ALL', 'NIC', 'CRI', 'GTM', 'HND', 'SLV', 'PAN'];
 
   final _variables = {
     'Trabajador': ['{{ Employee.FullName }}', '{{ Employee.Position }}', '{{ Employee.Salary }}', '{{ Employee.HireDate }}', '{{ Employee.Identification }}'],

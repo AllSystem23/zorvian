@@ -419,6 +419,12 @@ public sealed class EmployeeContractLinkingTests : IDisposable
                     .ThenInclude(sp => sp!.Contracts)
                 .FirstOrDefaultAsync(e => e.Id == id);
 
+        public async Task<Employee?> GetByIdWithBranchAsync(Guid id) =>
+            await db.Set<Employee>()
+                .Include(e => e.Department)
+                .Include(e => e.Branch)
+                .FirstOrDefaultAsync(e => e.Id == id);
+
         public Task<Employee?> GetByEmployeeCodeAsync(string code) =>
             Task.FromResult<Employee?>(null);
 

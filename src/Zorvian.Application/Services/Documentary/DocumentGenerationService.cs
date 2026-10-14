@@ -1,4 +1,5 @@
 using Zorvian.Application.DTOs.Document;
+using Zorvian.Application.Helpers;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
@@ -39,9 +40,10 @@ public sealed class DocumentGenerationService : IDocumentGenerationService
         {
             case "employee":
             {
-                var employee = await _employeeRepo.GetByIdAsync(entityId);
+                var employee = await _employeeRepo.GetByIdWithBranchAsync(entityId);
                 if (employee == null) return null;
                 displayName = $"{employee.FirstName} {employee.LastName}";
+                var branchAddress = employee.Branch?.Address ?? "";
                 data["Employee.FullName"] = displayName;
                 data["Employee.Identification"] = employee.IdentificationNumber ?? "";
                 data["Employee.Position"] = employee.Position ?? "";
@@ -50,6 +52,10 @@ public sealed class DocumentGenerationService : IDocumentGenerationService
                 data["Employee.Address"] = employee.Address ?? "";
                 data["Employee.Email"] = employee.Email ?? "";
                 data["Employee.Phone"] = employee.Phone ?? "";
+                data["Branch.Name"] = employee.Branch?.Name ?? "";
+                data["Branch.Address"] = branchAddress;
+                data["Employee.BranchName"] = employee.Branch?.Name ?? "";
+                data["Employee.BranchAddress"] = branchAddress;
                 data["employee_name"] = displayName;
                 data["employee_id"] = employee.IdentificationNumber ?? "";
                 data["position"] = employee.Position ?? "";
@@ -68,11 +74,17 @@ public sealed class DocumentGenerationService : IDocumentGenerationService
                     : "General Public";
                 displayName = $"Venta {sale.InvoiceNumber} - {clientName}";
                 data["Sale.Number"] = sale.InvoiceNumber ?? "";
+                data["Sale.Subtotal"] = sale.Subtotal.ToString("N2");
+                data["Sale.Tax"] = sale.Tax.ToString("N2");
+                data["Sale.Discount"] = sale.Discount.ToString("N2");
                 data["Sale.Total"] = sale.Total.ToString("N2");
                 data["Sale.Date"] = sale.SaleDate.ToString("dd/MM/yyyy");
                 data["Sale.ClientName"] = clientName;
                 data["client_name"] = clientName;
                 data["invoice_ref"] = sale.InvoiceNumber ?? "";
+                data["quote_number"] = sale.InvoiceNumber ?? "";
+                data["quote_date"] = sale.SaleDate.ToString("dd/MM/yyyy");
+                data["delivery_date"] = sale.SaleDate.ToString("dd/MM/yyyy");
                 break;
             }
 
@@ -93,10 +105,17 @@ public sealed class DocumentGenerationService : IDocumentGenerationService
         }
 
         var company = await _companyRepo.GetByTenantIdAsync(_tenant.TenantId);
-        var companyName = company?.Name ?? "Mi Empresa";
-        data["Company.Name"] = companyName;
-        data["Company.Date"] = DateTime.UtcNow.ToString("dd/MM/yyyy");
-        data["Company.TaxId"] = company?.TaxId ?? "";
+
+        // Contexto base compartido (Company.*/Country.*/Contract.City) + claves de entidad.
+        foreach (var (key, value) in DocumentCompanyContext.Build(company))
+            data[key] = value;
+
+        // Lugar de emisión con fallback a la sucursal del empleado si la compañía no tiene dirección.
+        if (string.IsNullOrWhiteSpace(data["Contract.City"]))
+        {
+            var branchFallback = data.GetValueOrDefault("Branch.Address");
+            data["Contract.City"] = branchFallback ?? "";
+        }
 
         return new EntityContextResponse(entityType, entityId, displayName, data);
     }

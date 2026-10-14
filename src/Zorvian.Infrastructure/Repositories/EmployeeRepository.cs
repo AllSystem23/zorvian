@@ -21,6 +21,12 @@ public sealed class EmployeeRepository : IEmployeeRepository
                 .ThenInclude(sp => sp!.Contracts)
             .FirstOrDefaultAsync(e => e.Id == id);
 
+    public async Task<Employee?> GetByIdWithBranchAsync(Guid id) =>
+        await _db.Employees
+            .Include(e => e.Department)
+            .Include(e => e.Branch)
+            .FirstOrDefaultAsync(e => e.Id == id);
+
     public async Task<List<Employee>> GetFilteredAsync(
         string? search, string? status, Guid? departmentId, int page, int pageSize, Guid? branchId = null)
     {

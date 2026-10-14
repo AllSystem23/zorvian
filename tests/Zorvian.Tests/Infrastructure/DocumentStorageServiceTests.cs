@@ -11,32 +11,32 @@ public sealed class LocalFileStorageServiceTests : IDisposable
     private LocalFileStorageService Sut() => new(_basePath);
 
     [Fact]
-    public void GetSignedUrlAsync_BarePath_ReturnsRootedUrl()
+    public async Task GetSignedUrlAsync_BarePath_ReturnsRootedUrl()
     {
-        var url = Sut().GetSignedUrlAsync("companies/x/logo.png").Result;
+        var url = await Sut().GetSignedUrlAsync("companies/x/logo.png");
         Assert.Equal("/companies/x/logo.png", url);
     }
 
     [Fact]
-    public void GetSignedUrlAsync_RootedPath_ReturnsRootedUrl()
+    public async Task GetSignedUrlAsync_RootedPath_ReturnsRootedUrl()
     {
-        var url = Sut().GetSignedUrlAsync("/companies/x/logo.png").Result;
+        var url = await Sut().GetSignedUrlAsync("/companies/x/logo.png");
         Assert.Equal("/companies/x/logo.png", url);
     }
 
     [Fact]
-    public void GetSignedUrlAsync_GcsUrl_ExtractsObjectPath()
+    public async Task GetSignedUrlAsync_GcsUrl_ExtractsObjectPath()
     {
         var gcs = "https://storage.googleapis.com/bucket/attendance/p/e/2026_in.jpg?X-Goog-Signature=abc";
-        var url = Sut().GetSignedUrlAsync(gcs).Result;
+        var url = await Sut().GetSignedUrlAsync(gcs);
         Assert.Equal("/attendance/p/e/2026_in.jpg", url);
     }
 
     [Fact]
-    public void GetSignedUrlAsync_ExternalUrl_Passthrough()
+    public async Task GetSignedUrlAsync_ExternalUrl_Passthrough()
     {
         const string external = "https://example.com/doc.pdf";
-        var url = Sut().GetSignedUrlAsync(external).Result;
+        var url = await Sut().GetSignedUrlAsync(external);
         Assert.Equal(external, url);
     }
 
@@ -76,21 +76,21 @@ public sealed class FirebaseStorageServiceTests
     private FirebaseStorageService Sut() => new("test-bucket");
 
     [Fact]
-    public void GetSignedUrlAsync_Null_ReturnsNull()
+    public async Task GetSignedUrlAsync_Null_ReturnsNull()
     {
-        Assert.Null(Sut().GetSignedUrlAsync(null).Result);
+        Assert.Null(await Sut().GetSignedUrlAsync(null));
     }
 
     [Fact]
-    public void GetSignedUrlAsync_Empty_ReturnsEmpty()
+    public async Task GetSignedUrlAsync_Empty_ReturnsEmpty()
     {
-        Assert.Equal("", Sut().GetSignedUrlAsync("").Result);
+        Assert.Equal("", await Sut().GetSignedUrlAsync(""));
     }
 
     [Fact]
-    public void GetSignedUrlAsync_ExternalUrl_PassthroughWithoutSigning()
+    public async Task GetSignedUrlAsync_ExternalUrl_PassthroughWithoutSigning()
     {
         const string external = "https://example.com/doc.pdf";
-        Assert.Equal(external, Sut().GetSignedUrlAsync(external).Result);
+        Assert.Equal(external, await Sut().GetSignedUrlAsync(external));
     }
 }

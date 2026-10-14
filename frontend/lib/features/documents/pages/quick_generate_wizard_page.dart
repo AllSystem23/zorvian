@@ -80,8 +80,8 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
         if (widget.entityType == null) {
           setState(() {
             _selectedEntityType = switch (t.module) {
-              'HR' => 'employee',
-              'Sales' => _selectedEntityType == 'employee' ? 'sale' : _selectedEntityType,
+              'Employee' || 'HR' => 'employee',
+              'Sale' || 'Sales' => _selectedEntityType == 'employee' ? 'sale' : _selectedEntityType,
               _ => _selectedEntityType,
             };
           });
@@ -94,15 +94,18 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
 
   void _filterByEntityType() {
     final allTemplates = ref.read(documentProvider).templates;
-    final module = switch (_selectedEntityType) {
-      'employee' => 'HR',
-      'sale' => 'Sales',
-      'client' => 'Sales',
+    // Los módulos reales de las plantillas (editor y seed) son
+    // Employee / Sale / Credit / Warranty / General - nunca "HR"/"Sales"
+    // (esos son Category). "General" (p.ej. Poder Notarial) aplica a toda entidad.
+    final modules = switch (_selectedEntityType) {
+      'employee' => const {'Employee', 'General'},
+      'sale' => const {'Sale', 'General'},
+      'client' => const {'Sale', 'General'},
       _ => null,
     };
     setState(() {
       _filteredTemplates = allTemplates
-          .where((t) => module == null || t.module == module)
+          .where((t) => modules == null || (t.module != null && modules.contains(t.module)))
           .toList();
       _templatesLoaded = true;
     });

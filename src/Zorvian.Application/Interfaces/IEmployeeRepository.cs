@@ -5,6 +5,8 @@ namespace Zorvian.Application.Interfaces;
 public interface IEmployeeRepository
 {
     Task<Employee?> GetByIdAsync(Guid id);
+
+    Task<Employee?> GetByIdWithBranchAsync(Guid id);
     Task<Employee?> GetByEmployeeCodeAsync(string code);
     Task<List<Employee>> SearchByCodeAsync(string partialCode, int maxResults);
     Task<List<Employee>> GetFilteredAsync(string? search, string? status, Guid? departmentId, int page, int pageSize, Guid? branchId = null);

@@ -14,8 +14,10 @@ public sealed class DocumentTemplateRepository : IDocumentTemplateRepository
         _db = db;
     }
 
-    // NOTA: sin IgnoreQueryFilters - DocumentTemplate tiene query filter de tenant
-    // (ZorvianDbContext) y las plantillas se siembran/crean por compania.
+    // NOTA: sin IgnoreQueryFilters - el query filter de DocumentTemplate (ZorvianDbContext)
+    // es híbrido: plantillas de la propia compañía (TenantId = actual) + plantillas del
+    // seed del sistema (DocumentTemplate.SystemTenantId, visibles para todas las
+    // compañías) + bypass SuperAdmin. Las plantillas de otras compañías NO se ven.
     public async Task<DocumentTemplate?> GetByIdAsync(Guid id) =>
         await _db.DocumentTemplates.FirstOrDefaultAsync(t => t.Id == id);
 

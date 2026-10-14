@@ -5,6 +5,13 @@ namespace Zorvian.Core.Entities;
 /// </summary>
 public sealed class DocumentTemplate : BaseEntity
 {
+    /// <summary>
+    /// Tenant de las plantillas sembradas por el sistema (seed global en Startup).
+    /// Son visibles para TODAS las compañías (query filter híbrido en ZorvianDbContext):
+    /// el motor documental y Talento Humano deben poder usarlas en producción.
+    /// </summary>
+    public const string SystemTenantId = "SYSTEM";
+
     public string Name { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty; // HR, Sales, Legal, etc.
     public string Content { get; set; } = string.Empty; // HTML or XML content with Liquid syntax

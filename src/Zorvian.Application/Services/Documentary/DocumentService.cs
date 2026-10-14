@@ -1,7 +1,9 @@
 using Fluid;
 using Microsoft.Extensions.Logging;
+using Zorvian.Application.Helpers;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
+using Zorvian.Core.Interfaces;
 
 namespace Zorvian.Application.Services.Documentary;
 
@@ -11,18 +13,42 @@ public sealed class DocumentService : IDocumentService
     private readonly IDocumentTemplateRepository _templateRepo;
     private readonly IGeneratedDocumentRepository _docRepo;
     private readonly IAiDocumentService _aiService;
+    private readonly ICompanyRepository _companyRepo;
+    private readonly ITenantContext _tenant;
     private readonly ILogger<DocumentService> _logger;
 
     public DocumentService(
         IDocumentTemplateRepository templateRepo,
         IGeneratedDocumentRepository docRepo,
         IAiDocumentService aiService,
+        ICompanyRepository companyRepo,
+        ITenantContext tenant,
         ILogger<DocumentService> logger)
     {
         _templateRepo = templateRepo;
         _docRepo = docRepo;
         _aiService = aiService;
+        _companyRepo = companyRepo;
+        _tenant = tenant;
         _logger = logger;
+    }
+
+    /// <summary>
+    /// Base Company.*/Country.*/Contract.City bajo las variables recibidas (el usuario manda).
+    /// Así el wizard manual también renderiza datos multi-país sin pasarlos a mano.
+    /// </summary>
+    private async Task<Dictionary<string, string>> WithCompanyContextAsync(object model)
+    {
+        var company = await _companyRepo.GetByTenantIdAsync(_tenant.TenantId);
+        var merged = DocumentCompanyContext.Build(company);
+
+        if (model is Dictionary<string, string> vars)
+        {
+            foreach (var (key, value) in vars)
+                merged[key] = value;
+        }
+
+        return merged;
     }
 
     public async Task<List<DocumentTemplate>> SuggestTemplatesAsync(string module, string @event, string countryCode)
@@ -43,7 +69,8 @@ public sealed class DocumentService : IDocumentService
         string renderedContent;
         try
         {
-            renderedContent = await RenderLiquidTemplate(template.Content, variableData);
+            var model = await WithCompanyContextAsync(variableData);
+            renderedContent = await RenderLiquidTemplate(template.Content, model);
         }
         catch (Exception ex)
         {
@@ -130,7 +157,8 @@ public sealed class DocumentService : IDocumentService
 
     public async Task<string> RenderLiquidPreviewAsync(string templateContent, object variableData)
     {
-        return await RenderLiquidTemplate(templateContent, variableData);
+        var model = await WithCompanyContextAsync(variableData);
+        return await RenderLiquidTemplate(templateContent, model);
     }
 
     private async Task<string> RenderLiquidTemplate(string source, object model)
@@ -140,8 +168,11 @@ public sealed class DocumentService : IDocumentService
             throw new Exception($"Liquid syntax error: {error}");
         }
 
-        var context = new TemplateContext(model);
-        context.Options.MemberAccessStrategy.Register(model.GetType());
+        // Las claves con punto (Company.Name, Country.WeeklyHours) deben anidarse:
+        // Fluid resuelve acceso anidado, no claves planas con punto.
+        var normalized = LiquidModelNormalizer.Normalize(model);
+        var context = new TemplateContext(normalized);
+        context.Options.MemberAccessStrategy.Register(normalized.GetType());
         
         return await template.RenderAsync(context);
     }

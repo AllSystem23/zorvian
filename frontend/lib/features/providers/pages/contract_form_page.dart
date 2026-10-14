@@ -87,6 +87,8 @@ final class _ContractFormPageState extends ConsumerState<ContractFormPage> {
       } else {
         await dio.post('providers/$_selectedProviderId/contracts', data: body);
       }
+      ref.invalidate(allContractsProvider);
+      ref.invalidate(providerContractsProvider);
       if (mounted) context.pop(true);
     } catch (_) {
       setState(() => _error = 'Error al guardar contrato');

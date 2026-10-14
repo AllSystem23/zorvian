@@ -1,8 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../shared/ds/ds.dart';
+import '../../../shared/printing/print_utils.dart';
 import '../models/document_models.dart';
 
 class DocumentDetailPage extends ConsumerStatefulWidget {
@@ -286,7 +289,9 @@ class _DocumentDetailPageState extends ConsumerState<DocumentDetailPage> {
         'documents/${widget.documentId}/pdf',
         options: Options(responseType: ResponseType.bytes),
       );
-      final bytes = response.data as List<int>;
+      final bytes = Uint8List.fromList(response.data as List<int>);
+      final filename = _detail?.name ?? 'documento';
+      downloadPdf(bytes, filename);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
