@@ -203,13 +203,13 @@ BEGIN
             CONTINUE;
         END IF;
 
-        EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_%I ON %I', tbl, tbl);
+        EXECUTE format('DROP POLICY IF EXISTS %I ON %I', 'tenant_isolation_' || tbl, tbl);
         EXECUTE format(
-            $$CREATE POLICY tenant_isolation_%I ON %I FOR ALL USING (
+            $$CREATE POLICY %I ON %I FOR ALL USING (
                 coalesce(current_setting('app.tenant_id', true), '') IN ('', '00000000-0000-0000-0000-000000000000')
                 OR "TenantId" = current_setting('app.tenant_id', true)
             )$$,
-            tbl, tbl
+            'tenant_isolation_' || tbl, tbl
         );
         EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', tbl);
         EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', tbl);
@@ -284,10 +284,10 @@ BEGIN
             CONTINUE;
         END IF;
 
-        EXECUTE format('DROP POLICY IF EXISTS super_admin_bypass_%I ON %I', tbl, tbl);
+        EXECUTE format('DROP POLICY IF EXISTS %I ON %I', 'super_admin_bypass_' || tbl, tbl);
         EXECUTE format(
-            $$CREATE POLICY super_admin_bypass_%I ON %I FOR ALL USING (is_super_admin())$$,
-            tbl, tbl
+            $$CREATE POLICY %I ON %I FOR ALL USING (is_super_admin())$$,
+            'super_admin_bypass_' || tbl, tbl
         );
     END LOOP;
 END;
@@ -315,10 +315,10 @@ BEGIN
             CONTINUE;
         END IF;
 
-        EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_%I ON %I', tbl, tbl);
-        EXECUTE format('DROP POLICY IF EXISTS branch_scope_%I ON %I', tbl, tbl);
+        EXECUTE format('DROP POLICY IF EXISTS %I ON %I', 'tenant_isolation_' || tbl, tbl);
+        EXECUTE format('DROP POLICY IF EXISTS %I ON %I', 'branch_scope_' || tbl, tbl);
         EXECUTE format(
-            $$CREATE POLICY tenant_branch_scope_%I ON %I FOR ALL USING (
+            $$CREATE POLICY %I ON %I FOR ALL USING (
                 (
                     coalesce(current_setting('app.tenant_id', true), '') IN ('', '00000000-0000-0000-0000-000000000000')
                     OR "TenantId" = current_setting('app.tenant_id', true)
@@ -328,7 +328,7 @@ BEGIN
                     OR "BranchId"::text = current_setting('app.branch_id', true)
                 )
             )$$,
-            tbl, tbl
+            'tenant_branch_scope_' || tbl, tbl
         );
         EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', tbl);
         EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', tbl);

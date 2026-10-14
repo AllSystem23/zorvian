@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Zorvian.Infrastructure.Migrations;
@@ -75,11 +76,14 @@ public sealed class EnableRlsMigrationTests
         Assert.Contains("NOTE ON FORCE", sql);
         Assert.Contains("coalesce(current_setting('app.tenant_id', true), '') IN ('', '00000000-0000-0000-0000-000000000000')", sql);
 
-        // Las tablas con BranchId deben usar UNA política combinada (tenant AND sucursal):
-        // las políticas permisivas se OR-combinan, así que branch_scope por separado habría
-        // dejado visibles filas de OTROS tenants al forzar RLS.
-        Assert.Contains("tenant_branch_scope_", sql);
-        Assert.Contains("DROP POLICY IF EXISTS branch_scope_", sql);
+        // El nombre de política se arma COMPLETO y se pasa como %I. 'tenant_isolation_%I'
+        // produciría tenant_isolation_"Companies" (dos identificadores adyacentes) y PostgreSQL
+        // responde 42601 syntax error at or near ""Companies"".
+        Regex patronRoto = new(@"[A-Za-z_]+_%I");
+        Assert.DoesNotMatch(patronRoto, sql);
+        Assert.Contains("'tenant_isolation_' || tbl", sql);
+        Assert.Contains("'super_admin_bypass_' || tbl", sql);
+        Assert.Contains("'tenant_branch_scope_' || tbl", sql);
     }
 
     [Fact]
@@ -93,5 +97,30 @@ public sealed class EnableRlsMigrationTests
         var combinedIndex = sql.IndexOf("tenant_branch_scope_", StringComparison.Ordinal);
         Assert.True(tenantIndex >= 0 && combinedIndex > tenantIndex,
             "El bloque de políticas tenant debe ejecutarse antes del combinado para poder eliminarlas.");
+    }
+
+    [Fact]
+    public void EnableRls_DollarQuotedStrings_ArePairedInsideDoBlocks()
+    {
+        // PostgreSQL NO anida dollar-quotes con la misma etiqueta. Dentro de un DO $do$...$do$
+        // los strings de format() deben usar OTRA etiqueta ($$) y estar emparejados; si no, el
+        // cuerpo del DO se cierra antes de tiempo y CREATE POLICY queda como SQL suelto
+        // (42601: syntax error at or near "CREATE").
+        var sql = ReadEmbeddedRlsScript();
+
+        var regex = new Regex(@"DO (\$[A-Za-z_]*\$)(.*?)\1", RegexOptions.Singleline);
+        var blocks = regex.Matches(sql);
+        Assert.NotEmpty(blocks);
+
+        foreach (Match block in blocks)
+        {
+            var body = block.Groups[2].Value;
+            var innerOpens = Regex.Matches(body, @"\$\$").Count;
+
+            // Dentro del bloque los $$ solo deben aparecer en parejas; uno suelto cerraría el
+            // cuerpo del DO. Un número impar significa delimitador descasado.
+            Assert.True(innerOpens % 2 == 0,
+                $"Bloque DO sin delimitadores internos emparejados ({innerOpens} marcadores $$).");
+        }
     }
 }

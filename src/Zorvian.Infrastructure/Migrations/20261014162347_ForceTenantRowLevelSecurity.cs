@@ -162,13 +162,16 @@ namespace Zorvian.Infrastructure.Migrations
                             CONTINUE;
                         END IF;
 
-                        EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_%I ON %I', tbl, tbl);
+                        -- OJO: el nombre de política se arma completo y se pasa como %I.
+                        -- 'tenant_isolation_%I' produciría tenant_isolation_"Companies" (dos
+                        -- identificadores adyacentes) y falla con syntax error.
+                        EXECUTE format('DROP POLICY IF EXISTS %I ON %I', 'tenant_isolation_' || tbl, tbl);
                         EXECUTE format(
-                            $$CREATE POLICY tenant_isolation_%I ON %I FOR ALL USING (
+                            $$CREATE POLICY %I ON %I FOR ALL USING (
                                 {NoTenantContext}
                                 OR "TenantId" = current_setting('app.tenant_id', true)
                             )$$,
-                            tbl, tbl
+                            'tenant_isolation_' || tbl, tbl
                         );
                         EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', tbl);
                         EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', tbl);
@@ -211,10 +214,10 @@ namespace Zorvian.Infrastructure.Migrations
                             CONTINUE;
                         END IF;
 
-                        EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_%I ON %I', tbl, tbl);
-                        EXECUTE format('DROP POLICY IF EXISTS branch_scope_%I ON %I', tbl, tbl);
+                        EXECUTE format('DROP POLICY IF EXISTS %I ON %I', 'tenant_isolation_' || tbl, tbl);
+                        EXECUTE format('DROP POLICY IF EXISTS %I ON %I', 'branch_scope_' || tbl, tbl);
                         EXECUTE format(
-                            $$CREATE POLICY tenant_branch_scope_%I ON %I FOR ALL USING (
+                            $$CREATE POLICY %I ON %I FOR ALL USING (
                                 (
                                     coalesce(current_setting('app.tenant_id', true), '') IN ('', '00000000-0000-0000-0000-000000000000')
                                     OR "TenantId" = current_setting('app.tenant_id', true)
@@ -224,7 +227,7 @@ namespace Zorvian.Infrastructure.Migrations
                                     OR "BranchId"::text = current_setting('app.branch_id', true)
                                 )
                             )$$,
-                            tbl, tbl
+                            'tenant_branch_scope_' || tbl, tbl
                         );
                         EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', tbl);
                         EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', tbl);
@@ -252,19 +255,19 @@ namespace Zorvian.Infrastructure.Migrations
                             CONTINUE;
                         END IF;
 
-                        EXECUTE format('DROP POLICY IF EXISTS tenant_branch_scope_%I ON %I', tbl, tbl);
-                        EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_%I ON %I', tbl, tbl);
+                        EXECUTE format('DROP POLICY IF EXISTS %I ON %I', 'tenant_branch_scope_' || tbl, tbl);
+                        EXECUTE format('DROP POLICY IF EXISTS %I ON %I', 'tenant_isolation_' || tbl, tbl);
                         EXECUTE format('ALTER TABLE %I NO FORCE ROW LEVEL SECURITY', tbl);
                         EXECUTE format(
-                            $$CREATE POLICY tenant_isolation_%I ON %I FOR ALL USING ("TenantId" = current_setting('app.tenant_id', true))$$,
-                            tbl, tbl
+                            $$CREATE POLICY %I ON %I FOR ALL USING ("TenantId" = current_setting('app.tenant_id', true))$$,
+                            'tenant_isolation_' || tbl, tbl
                         );
                         EXECUTE format(
-                            $$CREATE POLICY branch_scope_%I ON %I FOR ALL USING (
+                            $$CREATE POLICY %I ON %I FOR ALL USING (
                                 current_setting('app.branch_id', true) = ''
                                 OR "BranchId"::text = current_setting('app.branch_id', true)
                             )$$,
-                            tbl, tbl
+                            'branch_scope_' || tbl, tbl
                         );
                     END LOOP;
                 END;
@@ -308,8 +311,12 @@ namespace Zorvian.Infrastructure.Migrations
                         'SaleDetails','AccountingEntryDetails'
                     ])
                     LOOP
-                        EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_%I ON %I', tbl, tbl);
-                        EXECUTE format('DROP POLICY IF EXISTS tenant_branch_scope_%I ON %I', tbl, tbl);
+                        IF to_regclass(format('public.%I', tbl)) IS NULL THEN
+                            CONTINUE;
+                        END IF;
+
+                        EXECUTE format('DROP POLICY IF EXISTS %I ON %I', 'tenant_isolation_' || tbl, tbl);
+                        EXECUTE format('DROP POLICY IF EXISTS %I ON %I', 'tenant_branch_scope_' || tbl, tbl);
                         EXECUTE format('ALTER TABLE %I NO FORCE ROW LEVEL SECURITY', tbl);
                     END LOOP;
                 END;
