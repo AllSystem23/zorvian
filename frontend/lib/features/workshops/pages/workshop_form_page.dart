@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../core/providers/company_branch_provider.dart';
+import '../providers/workshop_provider.dart';
 
 class WorkshopFormPage extends ConsumerStatefulWidget {
   final String? workshopId;
@@ -103,6 +104,7 @@ class _WorkshopFormPageState extends ConsumerState<WorkshopFormPage> {
         data['branchId'] = ref.read(companyBranchProvider).branchId;
         await dio.post('service-workshops', data: data);
       }
+      ref.invalidate(workshopProvider);
       if (mounted) context.pop(true);
     } catch (e) {
       setState(() => _error = 'Error al guardar: $e');

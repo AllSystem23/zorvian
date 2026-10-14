@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart' show dioClientProvider;
 import '../../../core/providers/company_branch_provider.dart';
 import '../../../shared/ds/ds.dart';
+import '../providers/driver_provider.dart';
 import '../providers/fleet_catalog_provider.dart';
 
 final class FleetDriverFormPage extends ConsumerStatefulWidget {
@@ -99,6 +100,7 @@ final class _FleetDriverFormPageState extends ConsumerState<FleetDriverFormPage>
       } else {
         await dio.post('fleet/drivers', data: body);
       }
+      ref.invalidate(driverProvider);
       if (mounted) context.pop(true);
     } catch (_) {
       setState(() => _error = 'Error al guardar');

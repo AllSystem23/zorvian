@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../shared/ds/ds.dart';
 import '../../../shared/printing/qr_code_dialog.dart';
+import '../providers/product_provider.dart';
 
 final class ProductFormPage extends ConsumerStatefulWidget {
   final String? productId;
@@ -86,6 +87,7 @@ final class _ProductFormPageState extends ConsumerState<ProductFormPage> {
       } else {
         await dio.post('products', data: body);
       }
+      ref.invalidate(productProvider);
       if (mounted) context.pop(true);
     } catch (_) {
       setState(() => _error = 'Error al guardar producto');

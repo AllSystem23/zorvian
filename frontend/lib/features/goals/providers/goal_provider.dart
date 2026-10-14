@@ -3,8 +3,10 @@ import '../data/goal_repository.dart';
 import '../../../core/entities/goal_definition.dart';
 import '../../../core/entities/goal_assignment.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 
 final goalDefinitionsProvider = FutureProvider<List<GoalDefinition>>((ref) async {
+  ref.watch(branchScopeProvider);
   final repository = ref.watch(goalRepositoryProvider);
   return repository.getDefinitions();
 });
@@ -12,23 +14,27 @@ final goalDefinitionsProvider = FutureProvider<List<GoalDefinition>>((ref) async
 final employeeGoalsProvider = FutureProvider<List<GoalAssignment>>((ref) async {
   final repository = ref.watch(goalRepositoryProvider);
   final auth = ref.watch(authProvider);
-  
+  ref.watch(branchScopeProvider);
+
   // En un escenario real, el employeeId vendría del perfil del usuario logueado
   final employeeId = auth.userId ?? '00000000-0000-0000-0000-000000000000';
   return repository.getAssignments(employeeId);
 });
 
 final assignmentsByGoalProvider = FutureProvider.family<List<GoalAssignment>, String>((ref, goalId) async {
+  ref.watch(branchScopeProvider);
   final repository = ref.watch(goalRepositoryProvider);
   return repository.getAssignmentsByGoal(goalId);
 });
 
 final goalDashboardProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   final repository = ref.watch(goalRepositoryProvider);
+  ref.watch(branchScopeProvider);
   return repository.getDashboard();
 });
 
 final incentivePaymentsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  ref.watch(branchScopeProvider);
   final repository = ref.watch(goalRepositoryProvider);
   final auth = ref.watch(authProvider);
   final employeeId = auth.userId ?? '00000000-0000-0000-0000-000000000000';

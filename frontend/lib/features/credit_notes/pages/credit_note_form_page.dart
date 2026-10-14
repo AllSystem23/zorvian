@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
+import '../providers/credit_note_provider.dart';
 
 final class _ReturnItem {
   final String productId;
@@ -80,6 +81,7 @@ final class _CreditNoteFormPageState extends ConsumerState<CreditNoteFormPage> {
           'unitPrice': i.unitPrice,
         }).toList(),
       }, options: Options(extra: {'suppressGlobalError': true}));
+      await ref.read(creditNoteProvider.notifier).load();
       if (mounted) context.pop(true);
     } catch (e) {
       var msg = 'Error al crear nota de crédito';

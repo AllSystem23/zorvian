@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
+import '../providers/credit_provider.dart';
 
 final class CreditRefinancingFormPage extends ConsumerStatefulWidget {
   final String creditId;
@@ -33,6 +34,7 @@ final class _CreditRefinancingFormPageState extends ConsumerState<CreditRefinanc
         'newFinancedAmount': double.parse(_financedCtrl.text),
         'reason': _reasonCtrl.text,
       });
+      ref.invalidate(creditProvider);
       if (mounted) context.pop(true);
     } catch (e) {
       setState(() => _error = 'Error al refinanciar');

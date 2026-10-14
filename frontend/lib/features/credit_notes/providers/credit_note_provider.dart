@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 
 final class CreditNoteItem {
   final String id;
@@ -37,8 +38,17 @@ final class CreditNoteState {
 }
 
 final class CreditNoteNotifier extends Notifier<CreditNoteState> {
-  @override
-  CreditNoteState build() => const CreditNoteState();
+    static String? _lastScope;
+
+@override
+  CreditNoteState build() {
+    final scope = ref.watch(branchScopeProvider);
+    if (_lastScope != null && _lastScope != scope) {
+      Future.microtask(() => load());
+    }
+    _lastScope = scope;
+    return const CreditNoteState();
+  }
 
   Future<void> load() async {
     state = state.copyWith(loading: true, error: null);

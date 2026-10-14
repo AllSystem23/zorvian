@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 import '../providers/treasury_provider.dart';
 
 /// Beneficiary model for check issuance
@@ -20,6 +21,7 @@ class _BeneficiaryOption {
 
 /// Provider that loads all possible beneficiaries (clients, suppliers, employees)
 final _beneficiariesProvider = FutureProvider<List<_BeneficiaryOption>>((ref) async {
+  ref.watch(branchScopeProvider);
   final dio = ref.read(dioClientProvider);
   final beneficiaries = <_BeneficiaryOption>[];
 

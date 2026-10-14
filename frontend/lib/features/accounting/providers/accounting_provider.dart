@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 
 final class AccountItem {
   final String id;
@@ -200,8 +201,22 @@ final class AccountingState {
 }
 
 class AccountingNotifier extends Notifier<AccountingState> {
+  static String? _lastScope;
+
   @override
-  AccountingState build() => const AccountingState();
+  AccountingState build() {
+    final scope = ref.watch(branchScopeProvider);
+    if (_lastScope != null && _lastScope != scope) {
+      Future.microtask(() {
+        loadAccounts();
+        loadEntries();
+        loadLinks();
+        loadPeriods();
+      });
+    }
+    _lastScope = scope;
+    return const AccountingState();
+  }
 
   Future<void> loadAccounts() async {
     try {

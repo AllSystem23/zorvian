@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../shared/ds/ds.dart';
+import '../providers/client_provider.dart';
 
 final class ClientFormPage extends ConsumerStatefulWidget {
   final String? clientId;
@@ -82,6 +83,7 @@ final class _ClientFormPageState extends ConsumerState<ClientFormPage> {
       } else {
         await dio.post('clients', data: body);
       }
+      ref.invalidate(clientProvider);
       if (mounted) context.pop(true);
     } catch (_) {
       setState(() => _error = 'Error al guardar cliente');

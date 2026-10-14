@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 
 final class SupplierItem {
   final String id;
@@ -36,8 +37,17 @@ final class SupplierState {
 }
 
 final class SupplierNotifier extends Notifier<SupplierState> {
-  @override
-  SupplierState build() => const SupplierState();
+    static String? _lastScope;
+
+@override
+  SupplierState build() {
+    final scope = ref.watch(branchScopeProvider);
+    if (_lastScope != null && _lastScope != scope) {
+      Future.microtask(() => load());
+    }
+    _lastScope = scope;
+    return const SupplierState();
+  }
   Future<void> load() async {
     state = state.copyWith(loading: true, error: null);
     try {

@@ -6,6 +6,7 @@ import 'package:zorvian/shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
 import '../../clients/providers/client_provider.dart';
 import '../../products/providers/product_provider.dart';
+import '../providers/warranty_provider.dart';
 import '../../../shared/printing/qr_code_dialog.dart';
 
 final class WarrantyFormPage extends ConsumerStatefulWidget {
@@ -96,6 +97,7 @@ final class _WarrantyFormPageState extends ConsumerState<WarrantyFormPage> {
       } else {
         await dio.post('warranties', data: body);
       }
+      ref.invalidate(warrantyProvider);
       if (mounted) context.pop(true);
     } catch (e) {
       String msg = 'Error al guardar garantía';

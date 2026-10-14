@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 
 final class BrandItem {
   final String id;
@@ -25,8 +26,17 @@ final class BrandState {
 }
 
 final class BrandNotifier extends Notifier<BrandState> {
-  @override
-  BrandState build() => const BrandState();
+    static String? _lastScope;
+
+@override
+  BrandState build() {
+    final scope = ref.watch(branchScopeProvider);
+    if (_lastScope != null && _lastScope != scope) {
+      Future.microtask(() => load());
+    }
+    _lastScope = scope;
+    return const BrandState();
+  }
   Future<void> load() async {
     state = state.copyWith(loading: true, error: null);
     try {

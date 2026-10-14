@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 
 final class ApprovalFlowItem {
   final String id;
@@ -67,8 +68,15 @@ final class ApprovalState {
 }
 
 final class ApprovalNotifier extends AsyncNotifier<ApprovalState> {
+  static String? _lastScope;
+
   @override
   Future<ApprovalState> build() async {
+    final scope = ref.watch(branchScopeProvider);
+    if (_lastScope != null && _lastScope != scope) {
+      Future.microtask(() => loadFlows());
+    }
+    _lastScope = scope;
     return const ApprovalState();
   }
 

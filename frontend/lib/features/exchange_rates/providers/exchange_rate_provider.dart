@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 
 class ExchangeRateState {
   final List<ExchangeRateItem> items;
@@ -59,8 +60,17 @@ class ExchangeRateItem {
 }
 
 class ExchangeRateNotifier extends Notifier<ExchangeRateState> {
-  @override
-  ExchangeRateState build() => const ExchangeRateState();
+    static String? _lastScope;
+
+@override
+  ExchangeRateState build() {
+    final scope = ref.watch(branchScopeProvider);
+    if (_lastScope != null && _lastScope != scope) {
+      Future.microtask(() => load());
+    }
+    _lastScope = scope;
+    return const ExchangeRateState();
+  }
 
   Future<void> load() async {
     state = state.copyWith(loading: true, error: null);

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 
 final class WorkshopItem {
   final String id;
@@ -49,8 +50,17 @@ final class WorkshopState {
 }
 
 class WorkshopNotifier extends Notifier<WorkshopState> {
-  @override
-  WorkshopState build() => const WorkshopState();
+    static String? _lastScope;
+
+@override
+  WorkshopState build() {
+    final scope = ref.watch(branchScopeProvider);
+    if (_lastScope != null && _lastScope != scope) {
+      Future.microtask(() => load());
+    }
+    _lastScope = scope;
+    return const WorkshopState();
+  }
 
   Future<void> load() async {
     state = const WorkshopState.loading();

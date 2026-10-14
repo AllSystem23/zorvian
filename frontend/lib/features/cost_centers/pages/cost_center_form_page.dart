@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
+import '../providers/cost_center_provider.dart';
 
 final class CostCenterFormPage extends ConsumerStatefulWidget {
   final String? costCenterId;
@@ -58,6 +59,7 @@ final class _CostCenterFormPageState extends ConsumerState<CostCenterFormPage> {
       } else {
         await dio.post('cost-centers', data: body);
       }
+      ref.invalidate(costCenterProvider);
       if (mounted) context.pop(true);
     } catch (_) {
       setState(() => _error = 'Error al guardar centro de costo');

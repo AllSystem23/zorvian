@@ -1,10 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zorvian/auth/auth_provider.dart';
+import 'package:zorvian/core/providers/company_branch_provider.dart';
 import 'package:zorvian/features/bi/models/bi_models.dart';
 
 class BiNotifier extends AsyncNotifier<BiExecutive> {
   @override
   Future<BiExecutive> build() async {
+    ref.watch(branchScopeProvider);
     final dio = ref.read(dioClientProvider);
     final res = await dio.get('bi/executive-summary');
     return BiExecutive.fromJson(res.data);

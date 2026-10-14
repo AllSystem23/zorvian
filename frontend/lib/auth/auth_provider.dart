@@ -10,6 +10,7 @@ import '../core/providers/company_branch_provider.dart';
 import '../core/providers/company_currency_provider.dart';
 import '../core/services/signalr_service.dart';
 import '../core/storage/secure_storage.dart';
+import '../core/navigation/nav_provider.dart';
 import '../features/credits/providers/credit_provider.dart';
 import '../features/dashboard/providers/dashboard_provider.dart';
 
@@ -277,6 +278,7 @@ class AuthNotifier extends Notifier<AuthState> {
     ref.invalidate(creditProvider);
     ref.invalidate(companyListProvider);
     ref.invalidate(headerBranchListProvider);
+    ref.invalidate(sidebarBadgesProvider);
   }
 
   Future<void> logout() async {

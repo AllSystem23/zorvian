@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/offline/product_repository.dart';
+import '../../../core/providers/company_branch_provider.dart';
 
 final class ProductItem {
   final String id;
@@ -60,8 +61,17 @@ final class ProductState {
 }
 
 final class ProductNotifier extends Notifier<ProductState> {
-  @override
-  ProductState build() => const ProductState();
+    static String? _lastScope;
+
+@override
+  ProductState build() {
+    final scope = ref.watch(branchScopeProvider);
+    if (_lastScope != null && _lastScope != scope) {
+      Future.microtask(() => load());
+    }
+    _lastScope = scope;
+    return const ProductState();
+  }
 
   Future<void> load() async {
     state = state.copyWith(loading: true, error: null);

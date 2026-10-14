@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../shared/ds/ds.dart';
+import '../providers/provider_state.dart';
 
 final class ProviderFormPage extends ConsumerStatefulWidget {
   final String? providerId;
@@ -78,6 +79,7 @@ final class _ProviderFormPageState extends ConsumerState<ProviderFormPage> {
       } else {
         await dio.post('providers', data: body);
       }
+      ref.invalidate(serviceProvidersProvider);
       if (mounted) context.pop(true);
     } catch (_) {
       setState(() => _error = 'Error al guardar prestador');

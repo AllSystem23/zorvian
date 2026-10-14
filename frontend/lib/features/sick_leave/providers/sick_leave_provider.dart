@@ -31,6 +31,11 @@ class SickLeaveNotifier extends Notifier<SickLeaveState> {
     try {
       final dio = ref.read(dioClientProvider);
       await dio.post('sickleave', data: data);
+      // Recarga la lista del empleado afectado para que la UI refleje el registro.
+      final employeeId = data['employeeId'] as String?;
+      if (employeeId != null && employeeId.isNotEmpty) {
+        await loadByEmployee(employeeId);
+      }
       return true;
     } catch (e) {
       state = state.copyWith(error: 'Error al crear: $e');

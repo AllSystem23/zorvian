@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 
 final class PurchaseItem {
   final String id;
@@ -96,6 +97,7 @@ final class PurchaseDetail {
 final class PurchaseNotifier extends AsyncNotifier<List<PurchaseItem>> {
   @override
   Future<List<PurchaseItem>> build() async {
+    ref.watch(branchScopeProvider);
     return _fetch();
   }
 

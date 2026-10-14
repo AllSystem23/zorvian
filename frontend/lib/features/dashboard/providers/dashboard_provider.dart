@@ -213,10 +213,15 @@ class DashboardState {
 }
 
 class DashboardNotifier extends Notifier<DashboardState> {
+  static String? _lastScope;
+
   @override
   DashboardState build() {
-    // Depend on branch scope so changing company/branch forces a rebuild.
-    ref.watch(branchScopeProvider);
+    final scope = ref.watch(branchScopeProvider);
+    if (_lastScope != null && _lastScope != scope) {
+      Future.microtask(() => loadAll());
+    }
+    _lastScope = scope;
     return const DashboardState();
   }
 

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 
 class PermissionType {
   final String id;
@@ -126,8 +127,17 @@ class PermissionListState {
 }
 
 class PermissionNotifier extends Notifier<PermissionListState> {
-  @override
-  PermissionListState build() => const PermissionListState();
+    static String? _lastScope;
+
+@override
+  PermissionListState build() {
+    final scope = ref.watch(branchScopeProvider);
+    if (_lastScope != null && _lastScope != scope) {
+      Future.microtask(() => load());
+    }
+    _lastScope = scope;
+    return const PermissionListState();
+  }
 
   Future<void> load({String? status, String? employeeId}) async {
     state = state.copyWith(loading: true, error: null);

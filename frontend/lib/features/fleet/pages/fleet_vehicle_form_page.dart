@@ -6,6 +6,7 @@ import '../../../auth/auth_provider.dart' show dioClientProvider;
 import '../../../core/providers/company_branch_provider.dart';
 import '../../../shared/ds/ds.dart';
 import '../providers/fleet_catalog_provider.dart';
+import '../providers/fleet_provider.dart';
 
 final class FleetVehicleFormPage extends ConsumerStatefulWidget {
   final String? vehicleId;
@@ -124,6 +125,7 @@ final class _FleetVehicleFormPageState extends ConsumerState<FleetVehicleFormPag
       } else {
         await dio.post('fleet/vehicles', data: body);
       }
+      ref.invalidate(fleetProvider);
       if (mounted) context.pop(true);
     } catch (e) {
       final msg = e is DioException

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 import '../../../shared/ds/ds.dart';
+import '../providers/branch_provider.dart';
 
 class BranchFormPage extends ConsumerStatefulWidget {
   final String? branchId;
@@ -86,7 +88,18 @@ class _BranchFormPageState extends ConsumerState<BranchFormPage> {
         await dio.post('branches', data: data);
       }
 
-      if (mounted) context.pop(true);
+      ref.invalidate(branchListProvider);
+      ref.invalidate(headerBranchListProvider);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_isEdit ? 'Sucursal actualizada' : 'Sucursal creada'),
+            backgroundColor: ZColors.success,
+          ),
+        );
+        context.pop(true);
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

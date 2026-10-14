@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 
 final class ReconciliationItem {
   final String id;
@@ -92,8 +93,17 @@ final class ReconciliationState {
 }
 
 final class ReconciliationNotifier extends Notifier<ReconciliationState> {
-  @override
-  ReconciliationState build() => const ReconciliationState();
+    static String? _lastScope;
+
+@override
+  ReconciliationState build() {
+    final scope = ref.watch(branchScopeProvider);
+    if (_lastScope != null && _lastScope != scope) {
+      Future.microtask(() => load());
+    }
+    _lastScope = scope;
+    return const ReconciliationState();
+  }
 
   Future<void> load({String? bankAccountId, String? status, int? page}) async {
     state = state.copyWith(loading: true, error: null);

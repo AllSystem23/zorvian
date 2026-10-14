@@ -607,7 +607,8 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
               label: 'Tipo de Salario',
               prefixIcon: Icons.payments_outlined,
               items: const [
-                DropdownMenuItem(value: 'monthly', child: Text('Mensual')),
+                DropdownMenuItem(value: 'monthly', child: Text('Fijo (Mensual)')),
+                DropdownMenuItem(value: 'variable', child: Text('Variable')),
                 DropdownMenuItem(value: 'biweekly', child: Text('Quincenal')),
                 DropdownMenuItem(value: 'hourly', child: Text('Por hora')),
               ],

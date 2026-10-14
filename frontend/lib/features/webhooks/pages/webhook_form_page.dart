@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../shared/ds/ds.dart';
+import '../providers/webhook_provider.dart';
 
 class WebhookFormPage extends ConsumerStatefulWidget {
   final String? webhookId;
@@ -81,6 +82,7 @@ class _WebhookFormPageState extends ConsumerState<WebhookFormPage> {
       } else {
         await dio.post('webhooks', data: body);
       }
+      ref.invalidate(webhookProvider);
       if (mounted) context.pop(true);
     } catch (_) {
       setState(() => _error = 'Error al guardar webhook');

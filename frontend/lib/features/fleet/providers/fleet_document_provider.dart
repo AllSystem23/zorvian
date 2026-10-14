@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/providers/company_branch_provider.dart';
 import '../../../auth/auth_provider.dart' show dioClientProvider;
 
 final class FleetDocumentItem {
@@ -82,8 +83,17 @@ final class FleetDocumentState {
 }
 
 final class FleetDocumentNotifier extends Notifier<FleetDocumentState> {
-  @override
-  FleetDocumentState build() => const FleetDocumentState();
+    static String? _lastScope;
+
+@override
+  FleetDocumentState build() {
+    final scope = ref.watch(branchScopeProvider);
+    if (_lastScope != null && _lastScope != scope) {
+      Future.microtask(() => load());
+    }
+    _lastScope = scope;
+    return const FleetDocumentState();
+  }
 
   Future<void> load() async {
     state = state.copyWith(loading: true, error: null);

@@ -133,6 +133,7 @@ class _PermissionFormPageState extends ConsumerState<PermissionFormPage> {
         if (_uploadedFileName != null) 'supportingDocumentFileName': _uploadedFileName,
       };
       await dio.post('leave-permissions', data: body);
+      await ref.read(permissionProvider.notifier).load();
       if (mounted) context.pop(true);
     } catch (e) {
       final msg = e is DioException

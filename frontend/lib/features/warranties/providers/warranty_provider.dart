@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 
 final class WarrantyItem {
   final String id;
@@ -43,8 +44,17 @@ final class WarrantyState {
 }
 
 class WarrantyNotifier extends Notifier<WarrantyState> {
-  @override
-  WarrantyState build() => const WarrantyState();
+    static String? _lastScope;
+
+@override
+  WarrantyState build() {
+    final scope = ref.watch(branchScopeProvider);
+    if (_lastScope != null && _lastScope != scope) {
+      Future.microtask(() => load());
+    }
+    _lastScope = scope;
+    return const WarrantyState();
+  }
 
   Future<void> load({int page = 1, int pageSize = 20, String? search, String? status}) async {
     state = state.copyWith(loading: true).clearError();

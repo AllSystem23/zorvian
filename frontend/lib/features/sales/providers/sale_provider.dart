@@ -145,9 +145,15 @@ final class SaleState {
 }
 
 final class SaleNotifier extends Notifier<SaleState> {
+  static String? _lastScope;
+
   @override
   SaleState build() {
-    ref.watch(branchScopeProvider);
+    final scope = ref.watch(branchScopeProvider);
+    if (_lastScope != null && _lastScope != scope) {
+      Future.microtask(() => load());
+    }
+    _lastScope = scope;
     return const SaleState();
   }
 

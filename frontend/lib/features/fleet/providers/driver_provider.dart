@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/providers/company_branch_provider.dart';
 import '../../../auth/auth_provider.dart' show dioClientProvider;
 
 final class FleetDriverItem {
@@ -69,8 +70,17 @@ final class DriverState {
 }
 
 final class DriverNotifier extends Notifier<DriverState> {
-  @override
-  DriverState build() => const DriverState();
+    static String? _lastScope;
+
+@override
+  DriverState build() {
+    final scope = ref.watch(branchScopeProvider);
+    if (_lastScope != null && _lastScope != scope) {
+      Future.microtask(() => load());
+    }
+    _lastScope = scope;
+    return const DriverState();
+  }
 
   Future<void> load() async {
     state = state.copyWith(loading: true, error: null);

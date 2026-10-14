@@ -1,14 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../auth/auth_provider.dart';
 import '../../../shared/ds/ds.dart';
-
-final branchListProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
-  final dio = ref.read(dioClientProvider);
-  final response = await dio.get('branches');
-  return (response.data as List).cast<Map<String, dynamic>>();
-});
+import '../providers/branch_provider.dart';
 
 class BranchListPage extends ConsumerWidget {
   const BranchListPage({super.key});

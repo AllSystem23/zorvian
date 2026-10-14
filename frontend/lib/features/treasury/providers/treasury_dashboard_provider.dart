@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 
 final class TreasuryDashboardSummary {
   final double totalBankBalance;
@@ -23,6 +24,7 @@ final class TreasuryDashboardSummary {
 }
 
 final treasuryDashboardSummaryProvider = FutureProvider<TreasuryDashboardSummary>((ref) async {
+  ref.watch(branchScopeProvider);
   final dio = ref.read(dioClientProvider);
   final r = await dio.get('treasury/dashboard-summary');
   return TreasuryDashboardSummary.fromJson(r.data);

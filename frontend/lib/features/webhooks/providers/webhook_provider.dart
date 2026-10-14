@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 
 class WebhookState {
   final List<WebhookItem> items;
@@ -74,8 +75,17 @@ class WebhookItem {
 }
 
 class WebhookNotifier extends Notifier<WebhookState> {
-  @override
-  WebhookState build() => const WebhookState();
+    static String? _lastScope;
+
+@override
+  WebhookState build() {
+    final scope = ref.watch(branchScopeProvider);
+    if (_lastScope != null && _lastScope != scope) {
+      Future.microtask(() => load());
+    }
+    _lastScope = scope;
+    return const WebhookState();
+  }
 
   Future<void> load() async {
     state = state.copyWith(loading: true, error: null);

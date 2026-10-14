@@ -3,28 +3,34 @@ import '../data/provider_repository.dart';
 import '../../../core/entities/service_provider.dart';
 import '../../../core/entities/service_contract.dart';
 import '../../../core/entities/provider_invoice.dart';
+import '../../../core/providers/company_branch_provider.dart';
 
 final serviceProvidersProvider = FutureProvider<List<ServiceProvider>>((ref) async {
+  ref.watch(branchScopeProvider);
   final repository = ref.watch(providerRepositoryProvider);
   return repository.getProviders();
 });
 
 final providerDetailsProvider = FutureProvider.family<ServiceProvider, String>((ref, id) async {
+  ref.watch(branchScopeProvider);
   final repository = ref.watch(providerRepositoryProvider);
   return repository.getProviderById(id);
 });
 
 final providerContractsProvider = FutureProvider.family<List<ServiceContract>, String>((ref, providerId) async {
+  ref.watch(branchScopeProvider);
   final repository = ref.watch(providerRepositoryProvider);
   return repository.getContractsByProvider(providerId);
 });
 
 final allContractsProvider = FutureProvider<List<ServiceContract>>((ref) async {
+  ref.watch(branchScopeProvider);
   final repository = ref.watch(providerRepositoryProvider);
   return repository.getContracts();
 });
 
 final allInvoicesProvider = FutureProvider<List<ProviderInvoice>>((ref) async {
+  ref.watch(branchScopeProvider);
   final repository = ref.watch(providerRepositoryProvider);
   return repository.getInvoices();
 });

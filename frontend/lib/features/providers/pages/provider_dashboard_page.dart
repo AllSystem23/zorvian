@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 import '../../../core/providers/company_currency_provider.dart';
 import '../../../core/widgets/responsive_layout.dart';
 import '../../../shared/ds/ds.dart';
@@ -15,6 +16,7 @@ class _CountryNotifier extends Notifier<String?> {
 final selectedCountryProvider = NotifierProvider<_CountryNotifier, String?>(_CountryNotifier.new);
 
 final providerDashboardProvider = FutureProvider<Map<String, dynamic>?>((ref) async {
+  ref.watch(branchScopeProvider);
   final dio = ref.read(dioClientProvider);
   final country = ref.watch(selectedCountryProvider);
   try {
@@ -26,6 +28,7 @@ final providerDashboardProvider = FutureProvider<Map<String, dynamic>?>((ref) as
 });
 
 final providerNotificationsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  ref.watch(branchScopeProvider);
   final dio = ref.read(dioClientProvider);
   final country = ref.watch(selectedCountryProvider);
   try {
@@ -37,6 +40,7 @@ final providerNotificationsProvider = FutureProvider<List<Map<String, dynamic>>>
 });
 
 final providerRankingsProvider = FutureProvider<Map<String, dynamic>?>((ref) async {
+  ref.watch(branchScopeProvider);
   final dio = ref.read(dioClientProvider);
   final country = ref.watch(selectedCountryProvider);
   try {
@@ -48,6 +52,7 @@ final providerRankingsProvider = FutureProvider<Map<String, dynamic>?>((ref) asy
 });
 
 final providerRankingHistoryProvider = FutureProvider<Map<String, dynamic>?>((ref) async {
+  ref.watch(branchScopeProvider);
   final dio = ref.read(dioClientProvider);
   final country = ref.watch(selectedCountryProvider);
   try {

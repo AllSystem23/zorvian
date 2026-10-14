@@ -1,10 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zorvian/auth/auth_provider.dart';
 import 'package:zorvian/features/admin/models/user_model.dart';
+import '../../../core/providers/company_branch_provider.dart';
 
 class UserNotifier extends AsyncNotifier<List<UserModel>> {
   @override
   Future<List<UserModel>> build() async {
+    ref.watch(branchScopeProvider);
     return _fetchUsers();
   }
 

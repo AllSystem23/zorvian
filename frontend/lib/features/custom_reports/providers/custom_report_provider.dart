@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
 import '../models/report_designer_models.dart';
+import '../../../core/providers/company_branch_provider.dart';
 
 class CustomReportState {
   final List<CustomReportItem> items;
@@ -112,8 +113,17 @@ class ReportResultState {
 }
 
 class CustomReportNotifier extends Notifier<CustomReportState> {
-  @override
-  CustomReportState build() => const CustomReportState();
+    static String? _lastScope;
+
+@override
+  CustomReportState build() {
+    final scope = ref.watch(branchScopeProvider);
+    if (_lastScope != null && _lastScope != scope) {
+      Future.microtask(() => load());
+    }
+    _lastScope = scope;
+    return const CustomReportState();
+  }
 
   Future<void> load() async {
     state = state.copyWith(loading: true, error: null);

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../shared/ds/ds.dart';
+import '../providers/supplier_provider.dart';
 
 final class SupplierFormPage extends ConsumerStatefulWidget {
   final String? supplierId;
@@ -67,6 +68,7 @@ final class _SupplierFormPageState extends ConsumerState<SupplierFormPage> {
       } else {
         await dio.post('suppliers', data: body);
       }
+      ref.invalidate(supplierProvider);
       if (mounted) context.pop(true);
     } catch (_) {
       setState(() => _error = 'Error al guardar proveedor');

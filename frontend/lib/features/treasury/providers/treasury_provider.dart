@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../core/providers/company_branch_provider.dart';
 
 // Provider para la lógica de tesorería
 final treasuryServiceProvider = Provider<TreasuryService>((ref) {
@@ -11,6 +12,7 @@ final treasuryServiceProvider = Provider<TreasuryService>((ref) {
 
 /// Provider that loads bank accounts for dropdowns
 final treasuryBankAccountsProvider = FutureProvider<List<DropdownMenuItem<String>>>((ref) async {
+  ref.watch(branchScopeProvider);
   final dio = ref.read(dioClientProvider);
   try {
     final res = await dio.get('bank-accounts');
@@ -26,6 +28,7 @@ final treasuryBankAccountsProvider = FutureProvider<List<DropdownMenuItem<String
 
 /// Provider that loads cost centers for dropdowns
 final treasuryCostCentersProvider = FutureProvider<List<DropdownMenuItem<String>>>((ref) async {
+  ref.watch(branchScopeProvider);
   final dio = ref.read(dioClientProvider);
   try {
     final res = await dio.get('cost-centers');
@@ -41,6 +44,7 @@ final treasuryCostCentersProvider = FutureProvider<List<DropdownMenuItem<String>
 
 /// Provider that loads invoices for dropdown
 final treasuryInvoicesProvider = FutureProvider<List<DropdownMenuItem<String>>>((ref) async {
+  ref.watch(branchScopeProvider);
   final dio = ref.read(dioClientProvider);
   try {
     final res = await dio.get('sales', params: {'page': 1, 'pageSize': 200});

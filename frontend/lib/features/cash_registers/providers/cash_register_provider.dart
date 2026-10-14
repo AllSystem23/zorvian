@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 
 final class CashRegisterItem {
   final String id;
@@ -75,8 +76,17 @@ final class CashRegisterState {
 }
 
 final class CashRegisterNotifier extends Notifier<CashRegisterState> {
-  @override
-  CashRegisterState build() => const CashRegisterState();
+    static String? _lastScope;
+
+@override
+  CashRegisterState build() {
+    final scope = ref.watch(branchScopeProvider);
+    if (_lastScope != null && _lastScope != scope) {
+      Future.microtask(() => load());
+    }
+    _lastScope = scope;
+    return const CashRegisterState();
+  }
   Future<void> load() async {
     state = state.copyWith(loading: true, error: null);
     try {

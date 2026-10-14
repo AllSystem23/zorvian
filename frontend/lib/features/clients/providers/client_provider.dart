@@ -54,9 +54,15 @@ final class ClientState {
 }
 
 final class ClientNotifier extends Notifier<ClientState> {
+  static String? _lastScope;
+
   @override
   ClientState build() {
-    ref.watch(branchScopeProvider);
+    final scope = ref.watch(branchScopeProvider);
+    if (_lastScope != null && _lastScope != scope) {
+      Future.microtask(() => load());
+    }
+    _lastScope = scope;
     return const ClientState();
   }
 

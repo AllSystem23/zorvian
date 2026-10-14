@@ -18,6 +18,7 @@ final companyInfoProvider = FutureProvider.autoDispose<Map<String, dynamic>>((re
   final dio = ref.read(dioClientProvider);
   final auth = ref.watch(authProvider);
   final companyBranch = ref.watch(companyBranchProvider);
+  ref.watch(branchScopeProvider);
 
   // SuperAdmin: go directly to companies/all filtered by selected companyId
   if (auth.role == 'SuperAdmin' && companyBranch.companyId != null) {

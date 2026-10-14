@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 
 final class QuoteItem {
   final String id;
@@ -103,8 +104,17 @@ final class QuoteState {
 }
 
 final class QuoteNotifier extends Notifier<QuoteState> {
-  @override
-  QuoteState build() => const QuoteState();
+    static String? _lastScope;
+
+@override
+  QuoteState build() {
+    final scope = ref.watch(branchScopeProvider);
+    if (_lastScope != null && _lastScope != scope) {
+      Future.microtask(() => load());
+    }
+    _lastScope = scope;
+    return const QuoteState();
+  }
 
   Future<void> load({String? search}) async {
     state = state.copyWith(loading: true, error: null);
