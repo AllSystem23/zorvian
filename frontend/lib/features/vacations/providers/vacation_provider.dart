@@ -1,36 +1,84 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
+
+class VacationApprovalStep {
+  final int step;
+  final String? approverName;
+  final String status;
+  final String? comments;
+  final String? approvedAt;
+
+  const VacationApprovalStep({
+    required this.step,
+    required this.status,
+    this.approverName,
+    this.comments,
+    this.approvedAt,
+  });
+
+  factory VacationApprovalStep.fromJson(Map<String, dynamic> json) => VacationApprovalStep(
+    step: (json['step'] as num?)?.toInt() ?? 0,
+    approverName: json['approverName'] as String?,
+    status: json['status'] as String? ?? 'pending',
+    comments: json['comments'] as String?,
+    approvedAt: json['approvedAt']?.toString(),
+  );
+}
 
 class VacationItem {
   final String id;
+  final String employeeId;
   final String employeeName;
   final String employeeCode;
   final String startDate;
   final String endDate;
   final double totalDays;
+  final double businessDays;
   final String status;
   final String? comments;
+  final String? rejectionReason;
+  final bool isAdvanced;
+  final List<VacationApprovalStep> approvalSteps;
+  final String? createdAt;
 
   const VacationItem({
     required this.id,
+    required this.employeeId,
     required this.employeeName,
     required this.employeeCode,
     required this.startDate,
     required this.endDate,
     required this.totalDays,
+    required this.businessDays,
     required this.status,
     this.comments,
+    this.rejectionReason,
+    this.isAdvanced = false,
+    this.approvalSteps = const [],
+    this.createdAt,
   });
 
   factory VacationItem.fromJson(Map<String, dynamic> json) => VacationItem(
     id: json['id'] as String,
+    employeeId: json['employeeId'] as String? ?? '',
     employeeName: json['employeeName'] as String? ?? '',
     employeeCode: json['employeeCode'] as String? ?? '',
     startDate: json['startDate'] as String? ?? '',
     endDate: json['endDate'] as String? ?? '',
     totalDays: (json['totalDays'] as num?)?.toDouble() ?? 0,
+    businessDays: (json['businessDays'] as num?)?.toDouble() ?? 0,
     status: json['status'] as String? ?? '',
     comments: json['comments'] as String?,
+    rejectionReason: json['rejectionReason'] as String?,
+    isAdvanced: json['isAdvanced'] as bool? ?? false,
+    approvalSteps: json['approvalSteps'] is List
+        ? (json['approvalSteps'] as List)
+            .whereType<Map<String, dynamic>>()
+            .map(VacationApprovalStep.fromJson)
+            .toList()
+        : const [],
+    createdAt: json['createdAt']?.toString(),
   );
 }
 
@@ -89,8 +137,17 @@ class VacationListState {
 }
 
 class VacationNotifier extends Notifier<VacationListState> {
-  @override
-  VacationListState build() => const VacationListState();
+    static String? _lastScope;
+
+@override
+  VacationListState build() {
+    final scope = ref.watch(branchScopeProvider);
+    if (_lastScope != null && _lastScope != scope) {
+      Future.microtask(() => load());
+    }
+    _lastScope = scope;
+    return const VacationListState();
+  }
 
   Future<void> load({String? status, String? employeeId}) async {
     state = state.copyWith(loading: true, error: null);
@@ -121,6 +178,17 @@ class VacationNotifier extends Notifier<VacationListState> {
       state = state.copyWith(balance: VacationBalance.fromJson(r.data));
     } catch (e) {
       state = state.copyWith(error: 'Error al cargar saldo');
+    }
+  }
+
+  /// Loads a single request with its full detail (approval steps, business days).
+  Future<VacationItem?> loadDetail(String vacationId) async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      final r = await dio.get('vacations/$vacationId');
+      return VacationItem.fromJson(r.data);
+    } catch (_) {
+      return null;
     }
   }
 }

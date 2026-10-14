@@ -35,6 +35,8 @@ import '../features/mfa/mfa_page.dart';
 import '../features/vacations/pages/vacation_detail_page.dart';
 import '../features/vacations/pages/vacation_form_page.dart';
 import '../features/vacations/pages/vacation_list_page.dart';
+import '../features/vacations/pages/vacation_receipt_detail_page.dart';
+import '../features/vacations/pages/vacation_receipts_list_page.dart';
 import '../features/permissions/pages/permission_detail_page.dart';
 import '../features/permissions/pages/permission_form_page.dart';
 import '../features/permissions/pages/permission_list_page.dart';
@@ -510,6 +512,8 @@ GoRouter buildGoRouter(AuthState authState) {
             builder: (_, _) => const VacationListPage(),
             routes: [
               GoRoute(path: 'new', name: 'vacation-new', builder: (_, _) => const VacationFormPage()),
+              GoRoute(path: 'receipts', name: 'vacation-receipts-list', builder: (_, _) => const VacationReceiptsListPage()),
+              GoRoute(path: 'receipts/:receiptId', name: 'vacation-receipt-detail', builder: (_, state) => VacationReceiptDetailPage(receiptId: state.pathParameters['receiptId']!)),
               GoRoute(path: ':vacationId', name: 'vacation-detail', builder: (_, state) => VacationDetailPage(vacationId: state.pathParameters['vacationId']!)),
             ],
           ),

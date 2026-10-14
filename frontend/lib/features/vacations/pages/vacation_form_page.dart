@@ -73,6 +73,7 @@ class _VacationFormPageState extends ConsumerState<VacationFormPage> {
         'comments': _commentsCtrl.text.trim(),
       };
       await dio.post('vacations', data: body);
+      await ref.read(vacationProvider.notifier).load();
       if (mounted) context.pop(true);
     } catch (e) {
       setState(() => _error = 'Error al crear solicitud');

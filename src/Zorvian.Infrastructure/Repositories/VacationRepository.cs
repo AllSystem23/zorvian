@@ -65,6 +65,18 @@ public sealed class VacationRepository : IVacationRepository
             .SumAsync(v => v.TotalDays);
     }
 
+    public async Task<decimal> GetVacationDaysTakenBeforeAsync(Guid employeeId, DateOnly beforeDate)
+    {
+        // Only vacations where the employee actually took the days off:
+        // the vacation period must have ENDED before the termination date.
+        // Approved future vacations are NOT "taken" — they get paid in the settlement.
+        return await _db.VacationRequests
+            .Where(v => v.EmployeeId == employeeId
+                && v.Status == "approved"
+                && v.EndDate < beforeDate)
+            .SumAsync(v => v.TotalDays);
+    }
+
     public async Task<int> GetOverlappingCountAsync(Guid departmentId, DateOnly start, DateOnly end, Guid excludeEmployeeId)
     {
         return await _db.VacationRequests
@@ -95,5 +107,51 @@ public sealed class VacationRepository : IVacationRepository
     public async Task SaveChangesAsync()
     {
         await _db.SaveChangesAsync();
+    }
+
+    // ── Vacation Payment Receipts ──
+    public async Task AddReceiptAsync(VacationPaymentReceipt receipt)
+    {
+        await _db.VacationPaymentReceipts.AddAsync(receipt);
+    }
+
+    public async Task<VacationPaymentReceipt?> GetReceiptByIdAsync(Guid id)
+    {
+        return await _db.VacationPaymentReceipts
+            .Include(r => r.Employee)
+            .Include(r => r.VacationRequest)
+            .FirstOrDefaultAsync(r => r.Id == id);
+    }
+
+    public async Task<VacationPaymentReceipt?> GetReceiptByRequestIdAsync(Guid vacationRequestId)
+    {
+        return await _db.VacationPaymentReceipts
+            .Include(r => r.Employee)
+            .Include(r => r.VacationRequest)
+            .FirstOrDefaultAsync(r => r.VacationRequestId == vacationRequestId);
+    }
+
+    public async Task<int> GetReceiptCountAsync()
+    {
+        return await _db.VacationPaymentReceipts.CountAsync();
+    }
+
+    public async Task<List<VacationPaymentReceipt>> GetReceiptsFilteredAsync(
+        Guid? employeeId, int? year, int page, int pageSize)
+    {
+        var query = _db.VacationPaymentReceipts
+            .Include(r => r.Employee)
+            .AsQueryable();
+
+        if (employeeId.HasValue)
+            query = query.Where(r => r.EmployeeId == employeeId.Value);
+        if (year.HasValue)
+            query = query.Where(r => r.StartDate.Year == year.Value || r.EndDate.Year == year.Value);
+
+        return await query
+            .OrderByDescending(r => r.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
     }
 }

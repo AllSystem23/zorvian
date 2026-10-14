@@ -226,6 +226,7 @@ final class NavConfig {
         NavItem(id: 'prestadores', label: 'Prestadores Externos', icon: Icons.business_center_outlined, route: '/providers'),
         NavItem(id: 'prestadores-dashboard', label: 'Dashboard Prestadores', icon: Icons.dashboard_outlined, route: '/providers/dashboard'),
         NavItem(id: 'vacaciones', label: 'Ausencias y Vacaciones', icon: Icons.event_busy_outlined, route: '/vacations'),
+        NavItem(id: 'recibos-vacaciones', label: 'Recibos de Vacaciones', icon: Icons.receipt_long_outlined, route: '/vacations/receipts', roles: ['SuperAdmin', 'CompanyAdmin', 'Rrhh']),
         NavItem(id: 'permisos', label: 'Permisos', icon: Icons.event_available_outlined, route: '/permissions'),
         NavItem(id: 'metas', label: 'Metas e Incentivos', icon: Icons.emoji_events_outlined, route: '/goals/dashboard'),
       ],

@@ -20,12 +20,21 @@ public sealed class VacationsController : ControllerBase
 {
     private readonly VacationService _service;
     private readonly IVacationRecommendationService _recommendationService;
+    private readonly IVacationPaymentService _paymentService;
+    private readonly IVacationReceiptPdfService _receiptPdfService;
     private readonly ITenantContext _tenant;
 
-    public VacationsController(VacationService service, IVacationRecommendationService recommendationService, ITenantContext tenant)
+    public VacationsController(
+        VacationService service,
+        IVacationRecommendationService recommendationService,
+        IVacationPaymentService paymentService,
+        IVacationReceiptPdfService receiptPdfService,
+        ITenantContext tenant)
     {
         _service = service;
         _recommendationService = recommendationService;
+        _paymentService = paymentService;
+        _receiptPdfService = receiptPdfService;
         _tenant = tenant;
     }
 
@@ -156,4 +165,94 @@ public sealed class VacationsController : ControllerBase
             return BadRequest(new { error = ex.Message });
         }
     }
+
+    // ── Vacation Payment ──────────────────────────────────────────
+
+    /// <summary>
+    /// Procesa el pago de una solicitud de vacaciones aprobada.
+    /// Genera un recibo secuencial y marca la solicitud como tomada.
+    /// </summary>
+    [Audit("Vacation", "Pay")]
+    [RequirePermission(Permissions.EmployeeWrite)]
+    [HttpPost("{id:guid}/pay")]
+    public async Task<IActionResult> PayVacation(Guid id, [FromBody] PayVacationRequest? body = null)
+    {
+        try
+        {
+            var result = await _paymentService.PayVacationAsync(
+                id,
+                body?.PaymentDate,
+                body?.Observations,
+                _tenant.CurrentUserId?.ToString());
+            return Ok(result);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Obtiene el recibo de vacaciones por su ID.
+    /// </summary>
+    [RequirePermission(Permissions.EmployeeRead)]
+    [HttpGet("receipts/{receiptId:guid}")]
+    public async Task<IActionResult> GetReceipt(Guid receiptId)
+    {
+        var result = await _paymentService.GetReceiptByIdAsync(receiptId);
+        if (result is null)
+            return NotFound(new { error = "Recibo no encontrado" });
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Obtiene el recibo de vacaciones para una solicitud específica.
+    /// </summary>
+    [RequirePermission(Permissions.EmployeeRead)]
+    [HttpGet("{id:guid}/receipt")]
+    public async Task<IActionResult> GetReceiptByRequest(Guid id)
+    {
+        var result = await _paymentService.GetReceiptByRequestIdAsync(id);
+        if (result is null)
+            return NotFound(new { error = "Esta solicitud aún no tiene recibo de pago" });
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Lista recibos de vacaciones pagados.
+    /// </summary>
+    [RequirePermission(Permissions.EmployeeRead)]
+    [HttpGet("receipts")]
+    public async Task<IActionResult> GetReceipts([FromQuery] Guid? employeeId, [FromQuery] int? year, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    {
+        var result = await _paymentService.GetReceiptsAsync(employeeId, year, page, pageSize);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Genera el PDF de un recibo de vacaciones.
+    /// </summary>
+    [RequirePermission(Permissions.EmployeeRead)]
+    [HttpGet("receipts/{receiptId:guid}/pdf")]
+    public async Task<IActionResult> DownloadReceiptPdf(Guid receiptId)
+    {
+        try
+        {
+            var pdfBytes = await _receiptPdfService.GenerateReceiptPdfAsync(receiptId);
+            return File(pdfBytes, "application/pdf", $"recibo_vacaciones_{receiptId}.pdf");
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+    }
 }
+
+/// <summary>
+/// Request body for processing a vacation payment.
+/// </summary>
+public sealed record PayVacationRequest(DateOnly? PaymentDate, string? Observations);
