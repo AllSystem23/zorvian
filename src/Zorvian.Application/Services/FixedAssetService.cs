@@ -353,7 +353,7 @@ public sealed class FixedAssetService
         var totalNetBook = netBookValues.Values.Sum();
 
         var byCategory = allAssets
-            .GroupBy(a => a.Category?.Name ?? "Sin categorÃ­a")
+            .GroupBy(a => a.Category?.Name ?? "Sin categoría")
             .Select(g => new CategorySummaryItem(
                 g.Key, g.Count(),
                 g.Sum(a => a.AcquisitionCost),

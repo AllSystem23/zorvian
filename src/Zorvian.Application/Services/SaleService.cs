@@ -284,8 +284,8 @@ public sealed class SaleService
                 var currentExposure = activeCredits.Sum(c => c.Balance);
                 if (currentExposure + financedAmount > client.CreditLimit.Value)
                     throw new InvalidOperationException(
-                        $"El crÃ©dito excede el lÃ­mite del cliente. LÃ­mite: {client.CreditLimit.Value:N2}, " +
-                        $"ExposiciÃ³n actual: {currentExposure:N2}, Nuevo financiamiento: {financedAmount:N2}");
+                        $"El crédito excede el límite del cliente. Límite: {client.CreditLimit.Value:N2}, " +
+                        $"Exposición actual: {currentExposure:N2}, Nuevo financiamiento: {financedAmount:N2}");
             }
 
             var sale = _mapper.Map<Sale>(request);

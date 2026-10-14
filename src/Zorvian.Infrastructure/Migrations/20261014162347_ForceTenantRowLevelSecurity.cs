@@ -99,21 +99,21 @@ namespace Zorvian.Infrastructure.Migrations
         }
 
         /// <summary>
-        /// Activa <c>FORCE ROW LEVEL SECURITY</c> y reescribe las políticas tenant/sucursal para que
-        /// el forzado sea seguro. Hasta ahora las políticas eran inertes (owner bypass).
+        /// Activa <c>FORCE ROW LEVEL SECURITY</c> y reescribe las polÃ­ticas tenant/sucursal para que
+        /// el forzado sea seguro. Hasta ahora las polÃ­ticas eran inertes (owner bypass).
         /// <list type="number">
-        ///   <item>Escape de contexto ausente: <c>app.tenant_id</c> vacío o GUID-cero ? no se acota.
+        ///   <item>Escape de contexto ausente: <c>app.tenant_id</c> vacÃ­o o GUID-cero â†’ no se acota.
         ///   Paridad con los <c>HasQueryFilter</c> de EF; es lo que mantiene funcionando login,
         ///   migraciones de arranque y jobs globales (SalesPredictionTrainingJob consulta con
-        ///   <c>IgnoreQueryFilters()</c> y tenant-cero: con política estricta devolvería 0 filas).</item>
-        ///   <item>Tablas con <c>BranchId</c>: política COMBINADA tenant AND sucursal. Las políticas
-        ///   permisivas de PostgreSQL se combinan con OR, así que mantener <c>branch_scope_*</c>
-        ///   aparte habría dejado visibles filas de OTROS tenants al forzar RLS.</item>
-        ///   <item><c>FORCE ROW LEVEL SECURITY</c> en todas las tablas con política tenant.</item>
+        ///   <c>IgnoreQueryFilters()</c> y tenant-cero: con polÃ­tica estricta devolverÃ­a 0 filas).</item>
+        ///   <item>Tablas con <c>BranchId</c>: polÃ­tica COMBINADA tenant AND sucursal. Las polÃ­ticas
+        ///   permisivas de PostgreSQL se combinan con OR, asÃ­ que mantener <c>branch_scope_*</c>
+        ///   aparte habrÃ­a dejado visibles filas de OTROS tenants al forzar RLS.</item>
+        ///   <item><c>FORCE ROW LEVEL SECURITY</c> en todas las tablas con polÃ­tica tenant.</item>
         /// </list>
-        /// <c>super_admin_bypass_*</c> se mantiene (OR): SuperAdmin sin compañía seleccionada sigue
-        /// viendo todo vía el GUC <c>app.is_super_admin</c>. El runbook del rol no-owner queda como
-        /// paso posterior (reducción de privilegios); el forzado no lo requiere.
+        /// <c>super_admin_bypass_*</c> se mantiene (OR): SuperAdmin sin compaÃ±Ã­a seleccionada sigue
+        /// viendo todo vÃ­a el GUC <c>app.is_super_admin</c>. El runbook del rol no-owner queda como
+        /// paso posterior (reducciÃ³n de privilegios); el forzado no lo requiere.
         /// </summary>
         private static void ForceRowLevelSecurity(MigrationBuilder migrationBuilder)
         {
@@ -196,7 +196,7 @@ namespace Zorvian.Infrastructure.Migrations
                 ALTER TABLE "AccountingEntryDetails" FORCE ROW LEVEL SECURITY;
                 """);
 
-            // Tablas con columna BranchId: una sola política combinada (tenant AND sucursal).
+            // Tablas con columna BranchId: una sola polÃ­tica combinada (tenant AND sucursal).
             migrationBuilder.Sql("""
                 DO $$
                 DECLARE
@@ -237,7 +237,7 @@ namespace Zorvian.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            // Revierte al estado previo: políticas estrictas SIN escape y sin forzado (owner bypass).
+            // Revierte al estado previo: polÃ­ticas estrictas SIN escape y sin forzado (owner bypass).
             migrationBuilder.Sql("""
                 DO $$
                 DECLARE

@@ -463,10 +463,10 @@ public sealed class CreditService
 
         var buckets = new List<OverdueAgingBucket>
         {
-            new("1-30 dÃ­as", 1, 30, scalars.Bucket1CreditCount, scalars.Bucket1InstallmentCount, scalars.Bucket1TotalBalance, scalars.Bucket1TotalAmount),
-            new("31-60 dÃ­as", 31, 60, scalars.Bucket2CreditCount, scalars.Bucket2InstallmentCount, scalars.Bucket2TotalBalance, scalars.Bucket2TotalAmount),
-            new("61-90 dÃ­as", 61, 90, scalars.Bucket3CreditCount, scalars.Bucket3InstallmentCount, scalars.Bucket3TotalBalance, scalars.Bucket3TotalAmount),
-            new("90+ dÃ­as", 91, 9999, scalars.Bucket4CreditCount, scalars.Bucket4InstallmentCount, scalars.Bucket4TotalBalance, scalars.Bucket4TotalAmount),
+            new("1-30 días", 1, 30, scalars.Bucket1CreditCount, scalars.Bucket1InstallmentCount, scalars.Bucket1TotalBalance, scalars.Bucket1TotalAmount),
+            new("31-60 días", 31, 60, scalars.Bucket2CreditCount, scalars.Bucket2InstallmentCount, scalars.Bucket2TotalBalance, scalars.Bucket2TotalAmount),
+            new("61-90 días", 61, 90, scalars.Bucket3CreditCount, scalars.Bucket3InstallmentCount, scalars.Bucket3TotalBalance, scalars.Bucket3TotalAmount),
+            new("90+ días", 91, 9999, scalars.Bucket4CreditCount, scalars.Bucket4InstallmentCount, scalars.Bucket4TotalBalance, scalars.Bucket4TotalAmount),
         };
 
         return new OverdueDashboardResponse(

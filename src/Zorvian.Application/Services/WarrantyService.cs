@@ -202,7 +202,7 @@ public sealed class WarrantyService
                 1,
                 0,
                 request.ProviderAuthorizationCode,
-                $"RMA: DevoluciÃ³n de producto defectuoso {claim.Warranty.SerialNumber}",
+                $"RMA: Devolución de producto defectuoso {claim.Warranty.SerialNumber}",
                 claim.BranchId,
                 claim.Warranty.SerialNumber
             ));
@@ -214,7 +214,7 @@ public sealed class WarrantyService
                 1,
                 0,
                 request.ProviderAuthorizationCode,
-                $"RMA: RecepciÃ³n de producto nuevo (Reemplazo {claim.Warranty.WarrantyNumber})",
+                $"RMA: Recepción de producto nuevo (Reemplazo {claim.Warranty.WarrantyNumber})",
                 claim.BranchId,
                 request.NewSerialNumber
             ));

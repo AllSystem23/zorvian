@@ -1,4 +1,4 @@
-﻿# ZORVIAN ERP — Plataforma SaaS Empresarial
+# ZORVIAN ERP — Plataforma SaaS Empresarial
 
 **Versión:** 2.0.0
 **Estado:** LEGACY — Documento histórico del concepto original (Nexora). El proyecto evolucionó a Zorvian ERP.
@@ -37,7 +37,7 @@
 
 ## 1.1 Descripción General
 
-> ⚠️ **NOTA HISTÓRICA:** Este documento describe el concepto original "Nexora", que inició como una plataforma SaaS de Recursos Humanos. El proyecto evolucionó significativamente hasta convertirse en **Zorvian ERP**, un sistema ERP completo con más de 40 módulos que incluyen Contabilidad, Ventas, Compras, Inventario, Flota, Garantías, BI, IA, y más. Consulte [README.md](README.md) para la documentación actualizada.
+> ?? **NOTA HISTÓRICA:** Este documento describe el concepto original "Nexora", que inició como una plataforma SaaS de Recursos Humanos. El proyecto evolucionó significativamente hasta convertirse en **Zorvian ERP**, un sistema ERP completo con más de 40 módulos que incluyen Contabilidad, Ventas, Compras, Inventario, Flota, Garantías, BI, IA, y más. Consulte [README.md](README.md) para la documentación actualizada.
 
 Nexora (ahora Zorvian ERP) comenzó como una plataforma SaaS de Recursos Humanos (HRM/HRIS) y evolucionó hasta convertirse en un ERP completo para empresas centroamericanas. Construida con una arquitectura cloud-native multiempresa, Zorvian ERP ofrece módulos que abarcan desde Contabilidad, Ventas, Inventario, hasta Flota, Garantías y BI.
 
@@ -261,34 +261,34 @@ graph TB
 
 \\\
 Nexora.sln
-├── Nexora.Core                // Domain layer
-│   ├── Entities
-│   ├── ValueObjects
-│   ├── Aggregates
-│   ├── Enums
-│   ├── Interfaces
-│   └── Exceptions
-├── Nexora.Application         // Use cases
-│   ├── DTOs
-│   ├── Mappings (AutoMapper)
-│   ├── Interfaces
-│   ├── Services
-│   ├── Validators (FluentValidation)
-│   └── Behaviors (Cross-cutting — logging, validación, transacciones)
-├── Nexora.Infrastructure      // Persistence + External
-│   ├── Data (DbContext, Migrations)
-│   ├── Repositories
-│   ├── Identity (Firebase)
-│   ├── Notifications (FCM, Email, SignalR)
-│   ├── FileStorage
-│   ├── Hangfire (job scheduler)
-│   └── Services (cache, jobs, AI/ML)
-└── Nexora.Web                 // Presentation / API
-    ├── Controllers
-    ├── Middleware
-    ├── Hubs
-    ├── Filters
-    └── Extensions
++-- Nexora.Core                // Domain layer
+│   +-- Entities
+│   +-- ValueObjects
+│   +-- Aggregates
+│   +-- Enums
+│   +-- Interfaces
+│   +-- Exceptions
++-- Nexora.Application         // Use cases
+│   +-- DTOs
+│   +-- Mappings (AutoMapper)
+│   +-- Interfaces
+│   +-- Services
+│   +-- Validators (FluentValidation)
+│   +-- Behaviors (Cross-cutting — logging, validación, transacciones)
++-- Nexora.Infrastructure      // Persistence + External
+│   +-- Data (DbContext, Migrations)
+│   +-- Repositories
+│   +-- Identity (Firebase)
+│   +-- Notifications (FCM, Email, SignalR)
+│   +-- FileStorage
+│   +-- Hangfire (job scheduler)
+│   +-- Services (cache, jobs, AI/ML)
++-- Nexora.Web                 // Presentation / API
+    +-- Controllers
+    +-- Middleware
+    +-- Hubs
+    +-- Filters
+    +-- Extensions
 \\\
 
 ### 3.3.3 Paquetes NuGet Principales
@@ -296,7 +296,7 @@ Nexora.sln
 | Paquete | Versión | Propósito |
 |---|---|---|
 | FluentValidation | 11.x | Validación de DTOs |
-| AutoMapper | 13.x | Mapeo Entity ↔ DTO |
+| AutoMapper | 13.x | Mapeo Entity ? DTO |
 | EF Core | 9.x | ORM con PostgreSQL |
 | Npgsql.EntityFrameworkCore.PostgreSQL | 9.x | Provider PostgreSQL |
 | FirebaseAdmin | 3.x | Auth + FCM |
@@ -367,10 +367,10 @@ Nexora utiliza el modelo **Shared Database + Shared Schema** para el MVP, con la
 \\\
 Neon PostgreSQL
 │
-└── nexora_db
-    ├── tenant: empresa_a (tenant_id = 'ten_001')
-    ├── tenant: empresa_b (tenant_id = 'ten_002')
-    └── tenant: empresa_c (tenant_id = 'ten_003')
++-- nexora_db
+    +-- tenant: empresa_a (tenant_id = 'ten_001')
+    +-- tenant: empresa_b (tenant_id = 'ten_002')
+    +-- tenant: empresa_c (tenant_id = 'ten_003')
 \\\
 
 ## 4.2 Implementación con Entity Framework Core
@@ -540,7 +540,7 @@ Automatizar todo el ciclo de vida de las vacaciones: acumulación de días, soli
 - **Vacaciones proporcionales** para empleados con menos de un año
 - **Vacaciones adelantadas** (consumo de días futuros con aprobación especial)
 - **Solicitudes** con selección de fechas, comentario y adjuntos
-- **Aprobaciones jerárquicas** (supervisor → RRHH → Admin)
+- **Aprobaciones jerárquicas** (supervisor ? RRHH ? Admin)
 - **Calendario de vacaciones** interactivo por equipo y empresa
 - **Historial completo** de solicitudes por empleado
 - **Liquidación de vacaciones** al momento de la baja
@@ -700,28 +700,28 @@ flowchart TD
 
 | Permiso | Super Admin | Admin Empresa | RRHH | Supervisor | Empleado |
 |---|---|---|---|---|---|
-| tenant.configure | ✅ | ✅ | ❌ | ❌ | ❌ |
-| employee.create | ✅ | ✅ | ✅ | ❌ | ❌ |
-| employee.read | ✅ | ✅ | ✅ | ✅ (equipo) | ✅ (sí mismo) |
-| employee.update | ✅ | ✅ | ✅ | ❌ | ❌ |
-| employee.delete | ✅ | ✅ | ❌ | ❌ | ❌ |
-| vacation.request | ✅ | ✅ | ✅ | ✅ | ✅ |
-| vacation.approve | ✅ | ✅ | ✅ | ✅ (equipo) | ❌ |
-| vacation.reject | ✅ | ✅ | ✅ | ✅ (equipo) | ❌ |
-| permission.request | ✅ | ✅ | ✅ | ✅ | ✅ |
-| permission.approve | ✅ | ✅ | ✅ | ✅ (equipo) | ❌ |
-| attendance.mark | ✅ | ✅ | ✅ | ✅ | ✅ |
-| attendance.edit | ✅ | ✅ | ✅ | ❌ | ❌ |
-| report.view | ✅ | ✅ | ✅ | ✅ (equipo) | ❌ |
-| report.export | ✅ | ✅ | ✅ | ❌ | ❌ |
-| audit.view | ✅ | ✅ | ✅ | ❌ | ❌ |
-| company.configure | ✅ | ✅ | ❌ | ❌ | ❌ |
-| user.manage | ✅ | ✅ | ✅ | ❌ | ❌ |
+| tenant.configure | ? | ? | ? | ? | ? |
+| employee.create | ? | ? | ? | ? | ? |
+| employee.read | ? | ? | ? | ? (equipo) | ? (sí mismo) |
+| employee.update | ? | ? | ? | ? | ? |
+| employee.delete | ? | ? | ? | ? | ? |
+| vacation.request | ? | ? | ? | ? | ? |
+| vacation.approve | ? | ? | ? | ? (equipo) | ? |
+| vacation.reject | ? | ? | ? | ? (equipo) | ? |
+| permission.request | ? | ? | ? | ? | ? |
+| permission.approve | ? | ? | ? | ? (equipo) | ? |
+| attendance.mark | ? | ? | ? | ? | ? |
+| attendance.edit | ? | ? | ? | ? | ? |
+| report.view | ? | ? | ? | ? (equipo) | ? |
+| report.export | ? | ? | ? | ? | ? |
+| audit.view | ? | ? | ? | ? | ? |
+| company.configure | ? | ? | ? | ? | ? |
+| user.manage | ? | ? | ? | ? | ? |
 
 ## 8.2 Jerarquía de Aprobación
 
 \\\
-Super Admin → Admin Empresa → RRHH → Supervisor → Empleado
+Super Admin ? Admin Empresa ? RRHH ? Supervisor ? Empleado
 \\\
 
 ## 8.3 Seguridad API
@@ -748,7 +748,7 @@ X-Request-Id: \<correlation_id\>
 - CORS configurado solo para el dominio de la aplicación
 - SQL Injection prevenido por EF Core parameterized queries
 - Password: mínimo 8 caracteres, mayúscula, número, símbolo
-- Account Lockout: 5 intentos fallidos → bloqueo 15 minutos
+- Account Lockout: 5 intentos fallidos ? bloqueo 15 minutos
 - Session: JWT 1 hora, refresh token 7 días
 
 ---
@@ -799,9 +799,9 @@ Inspirado en Notion, Linear, BambooHR y Slack.
 - Transiciones suaves con AnimatedTheme (300ms)
 ---
 
-# 10. DiseÃ±o de Base de Datos
+# 10. Diseño de Base de Datos
 
-## 10.1 Diagrama Entidad-RelaciÃ³n
+## 10.1 Diagrama Entidad-Relación
 
 ```mermaid
 erDiagram
@@ -1053,26 +1053,26 @@ CREATE TABLE company_settings (
 
 # 11. APIs REST
 
-## 11.1 EstÃ¡ndares API
+## 11.1 Estándares API
 
 ### 11.1.1 Convenciones
 
 - **Base URL:** `https://api.zorvian.com/zorvian/v1` (o `/zorvian/v1` como prefijo de ruta)
 - **Formato:** JSON (Content-Type: `application/json`)
-- **AutenticaciÃ³n:** Bearer Token (JWT) en header `Authorization`
-- **PaginaciÃ³n:** Query params `page` (1-based) y `pageSize` (default 20, max 100)
+- **Autenticación:** Bearer Token (JWT) en header `Authorization`
+- **Paginación:** Query params `page` (1-based) y `pageSize` (default 20, max 100)
 - **Filtros:** Query params con nombres de campos
 - **Ordenamiento:** `?sortBy=createdAt&sortDir=desc`
 
-### 11.1.2 CÃ³digos de Respuesta HTTP
+### 11.1.2 Códigos de Respuesta HTTP
 
-| CÃ³digo | Significado | Uso |
+| Código | Significado | Uso |
 |---|---|---|
-| 200 OK | Ã‰xito | GET, PUT, PATCH |
+| 200 OK | Éxito | GET, PUT, PATCH |
 | 201 Created | Recurso creado | POST |
-| 204 No Content | Ã‰xito sin cuerpo | DELETE |
-| 400 Bad Request | Error de validaciÃ³n | Datos invÃ¡lidos |
-| 401 Unauthorized | No autenticado | Token faltante o invÃ¡lido |
+| 204 No Content | Éxito sin cuerpo | DELETE |
+| 400 Bad Request | Error de validación | Datos inválidos |
+| 401 Unauthorized | No autenticado | Token faltante o inválido |
 | 403 Forbidden | Sin permisos | Rol no autorizado |
 | 404 Not Found | Recurso no existe | ID inexistente |
 | 409 Conflict | Conflicto de estado | Solicitud ya aprobada |
@@ -1083,7 +1083,7 @@ CREATE TABLE company_settings (
 ### 11.1.3 Formato de Respuesta
 
 ```json
-// Ã‰xito
+// Éxito
 {
   "data": { ... },
   "meta": {
@@ -1547,9 +1547,9 @@ graph TB
 
 ## 12.2 Eventos SignalR
 
-| Evento | DescripciÃ³n |
+| Evento | Descripción |
 |---|---|
-| NotificationReceived | Nueva notificaciÃ³n para el usuario |
+| NotificationReceived | Nueva notificación para el usuario |
 | VacationStatusChanged | Cambio de estado de solicitud de vacaciones |
 | PermissionStatusChanged | Cambio de estado de solicitud de permiso |
 | AttendanceAlert | Alerta de asistencia |
@@ -1565,9 +1565,9 @@ graph TB
 | permission_rejected | Permiso rechazado | Empleado |
 | new_request | Nueva solicitud pendiente | Supervisores y RRHH |
 | attendance_reminder | Recordatorio de marcaje (9:00 AM) | Empleados sin marcar |
-| birthday | CumpleaÃ±os de empleado | RRHH y equipo |
+| birthday | Cumpleaños de empleado | RRHH y equipo |
 
-## 12.4 Caso de Uso: NotificaciÃ³n de Vacaciones Aprobadas
+## 12.4 Caso de Uso: Notificación de Vacaciones Aprobadas
 
 1. RRHH aprueba vacaciones de Maria
 2. Backend emite evento VacationApproved vía MassTransit (event bus) + SignalR (tiempo real)
@@ -1692,7 +1692,7 @@ Password=****
 SSLMode=Require
 ```
 
-## 13.5 CI/CD â€” GitHub Actions
+## 13.5 CI/CD — GitHub Actions
 
 ### Backend Pipeline
 
@@ -1763,7 +1763,7 @@ jobs:
 
 ---
 
-# 14. Reportes y AnalÃ­tica
+# 14. Reportes y Analítica
 
 ## 14.1 Catalogo de Reportes
 
@@ -1778,7 +1778,7 @@ jobs:
 | Costos laborales | Salarios por depto, ausentismo | Mensual | Excel |
 | Cumplimiento legal | Vacaciones, permisos por ano | Anual | PDF |
 
-## 14.2 KPIs â€” Calculos SQL
+## 14.2 KPIs — Calculos SQL
 
 ```sql
 -- Tasa de ausentismo mensual
@@ -1807,7 +1807,7 @@ GROUP BY d.name;
 
 # 15. Roadmap del Proyecto
 
-## Fase 1 â€” MVP (Q2-Q3 2026)
+## Fase 1 — MVP (Q2-Q3 2026)
 
 ### Mes 1-2: Fundacion
 | Sprint | Entregables |
@@ -1830,7 +1830,7 @@ GROUP BY d.name;
 | Sprint 8 | Reportes exportables (Excel, PDF) |
 | Sprint 9 | Asistencia basica, notificaciones push, SignalR |
 
-## Fase 2 â€” Expansion (Q4 2026 - Q1 2027)
+## Fase 2 — Expansion (Q4 2026 - Q1 2027)
 
 | Modulo | Prioridad |
 |---|---|
@@ -1841,7 +1841,7 @@ GROUP BY d.name;
 | Administracion de documentos | Baja |
 | API Publica + Webhooks | Baja |
 
-## Fase 3 â€” IA Empresarial (Q2-Q3 2027)
+## Fase 3 — IA Empresarial (Q2-Q3 2027)
 
 | Modulo | Prioridad |
 |---|---|
@@ -1852,7 +1852,7 @@ GROUP BY d.name;
 | Evaluacion de desempeno con OKRs | Media |
 | Reclutamiento (vacantes, aplicacion, seguimiento) | Baja |
 
-## Fase 4 â€” Enterprise (2028+)
+## Fase 4 — Enterprise (2028+)
 
 - Multi-idioma (ingles, portugues)
 - Multi-moneda
@@ -2024,7 +2024,7 @@ PREDICTIVE AI        COMPUTER VISION       CONVERSATIONAL AI
 | RNF-012 | Soporte offline basico en mobile (solicitudes en cola) | Compatibilidad |
 | RNF-013 | Compatibilidad con navegadores: Chrome, Firefox, Safari, Edge (ultimas 2 versiones) | Compatibilidad |
 | RNF-014 | Aplicacion mobile nativa Android (API 24+) e iOS (15+) | Compatibilidad |
-| RNF-015 | DiseÃ±o responsive con breakpoints xs, sm, md, lg, xl | UX |
+| RNF-015 | Diseño responsive con breakpoints xs, sm, md, lg, xl | UX |
 | RNF-016 | Tiempo de carga inicial < 3 segundos en conexion 4G | Rendimiento |
 | RNF-017 | Pruebas unitarias con cobertura minima del 80% | Calidad |
 | RNF-018 | Pruebas de integracion para todos los endpoints criticos | Calidad |
@@ -2098,11 +2098,11 @@ jobs:
 ## 20.2 Estrategia de Branching
 
 ```
-main            â”€â”€â”€ Production (deploy automatico)
-develop         â”€â”€â”€ Staging (deploy automatico)
-feature/*       â”€â”€â”€ Nuevas funcionalidades
-fix/*           â”€â”€â”€ Correcciones de bugs
-release/*       â”€â”€â”€ Preparacion de release
+main            --- Production (deploy automatico)
+develop         --- Staging (deploy automatico)
+feature/*       --- Nuevas funcionalidades
+fix/*           --- Correcciones de bugs
+release/*       --- Preparacion de release
 ```
 
 ## 20.3 Monitoreo

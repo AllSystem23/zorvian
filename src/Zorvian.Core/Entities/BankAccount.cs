@@ -14,7 +14,7 @@ namespace Zorvian.Core.Entities
         public Company? Company { get; set; }
 
         [Required]
-        [StringLength(255)] // Aumentado para soportar base64 de encriptaciÃ³n
+        [StringLength(255)] // Aumentado para soportar base64 de encriptación
         [Encrypted]
         public string AccountNumber { get; set; } = string.Empty;
 

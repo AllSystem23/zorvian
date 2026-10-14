@@ -269,7 +269,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
             if (saleType == "cash")
                 entryDetails.Add(MakeDetail(cashAccountId, total, 0, "Venta al contado"));
             else
-                entryDetails.Add(MakeDetail(arAccountId, total, 0, "Venta al crÃ©dito"));
+                entryDetails.Add(MakeDetail(arAccountId, total, 0, "Venta al crédito"));
 
             foreach (var group in groupedDetails)
             {
@@ -302,7 +302,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
         {
             EntryNumber = await GenerateNumberAsync(),
             EntryDate = DateTime.UtcNow,
-            Description = $"Venta {(saleType == "cash" ? "Contado" : "CrÃ©dito")} #{saleId.ToString()[..8]}",
+            Description = $"Venta {(saleType == "cash" ? "Contado" : "Crédito")} #{saleId.ToString()[..8]}",
             ReferenceType = "Sale",
             ReferenceId = saleId,
             Status = "posted",
@@ -525,7 +525,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
                 }
 
                 entryDetails.Add(MakeDetail(invAccountId, group.Subtotal, 0, $"Inventario {group.TaxCategory?.Name}"));
-                entryDetails.Add(MakeDetail(vatAccountId, group.Tax, 0, $"IVA CrÃ©dito {group.TaxCategory?.Name}"));
+                entryDetails.Add(MakeDetail(vatAccountId, group.Tax, 0, $"IVA Crédito {group.TaxCategory?.Name}"));
             }
 
             // Validate that caller's total matches the computed sum
@@ -599,13 +599,13 @@ public sealed class AutoAccountingService : IAutoAccountingService
         else
         {
             var apAccountId = await GetAccountIdAsync(TransactionTypes.Purchase, AccountRoles.AccountsPayable);
-            entryDetails.Add(MakeDetail(apAccountId, total, 0, "AnulaciÃ³n compra - proveedor"));
+            entryDetails.Add(MakeDetail(apAccountId, total, 0, "Anulación compra - proveedor"));
 
             // Cuenta de inventario: AccountLink, NO desde TaxCategory.SalesAccountCode
             Guid invAcctId;
             try { invAcctId = await GetAccountIdAsync(TransactionTypes.Purchase, AccountRoles.Inventory); }
             catch { invAcctId = await GetAccountIdByCodeAsync("1.1.04"); }
-            entryDetails.Add(MakeDetail(invAcctId, 0, totalSubtotal, "AnulaciÃ³n compra - inventario"));
+            entryDetails.Add(MakeDetail(invAcctId, 0, totalSubtotal, "Anulación compra - inventario"));
 
             foreach (var group in groupedDetails)
             {
@@ -620,7 +620,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
                             ? await GetAccountIdByCodeAsync(vatAccountCode)
                             : await GetAccountIdByCodeAsync("1.1.05");
                     }
-                    entryDetails.Add(MakeDetail(vatAcctId, 0, group.Tax, "AnulaciÃ³n compra - IVA"));
+                    entryDetails.Add(MakeDetail(vatAcctId, 0, group.Tax, "Anulación compra - IVA"));
                 }
             }
         }
@@ -631,7 +631,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
         {
             EntryNumber = await GenerateNumberAsync(),
             EntryDate = DateTime.UtcNow,
-            Description = $"AnulaciÃ³n Compra #{purchaseId.ToString()[..8]}",
+            Description = $"Anulación Compra #{purchaseId.ToString()[..8]}",
             ReferenceType = "PurchaseReversal",
             ReferenceId = purchaseId,
             Status = "posted",
@@ -760,7 +760,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
             Id = Guid.NewGuid(),
             EntryNumber = $"AS-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..4]}",
             EntryDate = DateTime.UtcNow,
-            Description = $"Pago de crÃ©dito #{creditId.ToString()[..8]}",
+            Description = $"Pago de crédito #{creditId.ToString()[..8]}",
             ReferenceType = "CreditPayment",
             ReferenceId = paymentId,
             Status = "posted",
@@ -831,7 +831,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
         {
             EntryNumber = await GenerateNumberAsync(),
             EntryDate = DateTime.UtcNow,
-            Description = $"NÃ³mina #{payrollRunId.ToString()[..8]}",
+            Description = $"Nómina #{payrollRunId.ToString()[..8]}",
             ReferenceType = "Payroll",
             ReferenceId = payrollRunId,
             Status = "posted",
@@ -966,8 +966,8 @@ public sealed class AutoAccountingService : IAutoAccountingService
         var vatAccountId = await GetAccountIdAsync(TransactionTypes.SupplierCreditNote, AccountRoles.VatReceivable);
 
         var description = purchaseId.HasValue
-            ? $"Nota crÃ©dito proveedor #{purchaseId.Value.ToString()[..8]}"
-            : $"Nota crÃ©dito proveedor #{supplierId.ToString()[..8]}";
+            ? $"Nota crédito proveedor #{purchaseId.Value.ToString()[..8]}"
+            : $"Nota crédito proveedor #{supplierId.ToString()[..8]}";
 
         var entry = new AccountingEntry
         {
@@ -984,8 +984,8 @@ public sealed class AutoAccountingService : IAutoAccountingService
             PostedAt = DateTime.UtcNow,
             Details =
             [
-                new() { AccountId = apAccountId, DebitAmount = total, CreditAmount = 0, Description = "Nota crÃ©dito proveedor", CompanyId = companyId },
-                new() { AccountId = invAccountId, DebitAmount = 0, CreditAmount = total, Description = "DevoluciÃ³n de inventario", CompanyId = companyId },
+                new() { AccountId = apAccountId, DebitAmount = total, CreditAmount = 0, Description = "Nota crédito proveedor", CompanyId = companyId },
+                new() { AccountId = invAccountId, DebitAmount = 0, CreditAmount = total, Description = "Devolución de inventario", CompanyId = companyId },
             ],
         };
 
@@ -1007,7 +1007,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
         {
             EntryNumber = $"AS-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..4]}",
             EntryDate = DateTime.UtcNow,
-            Description = $"AdquisiciÃ³n activo fijo #{assetId.ToString()[..8]}",
+            Description = $"Adquisición activo fijo #{assetId.ToString()[..8]}",
             ReferenceType = "FixedAssetAcquisition",
             ReferenceId = assetId,
             Status = "posted",
@@ -1038,7 +1038,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
         {
             EntryNumber = $"AS-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..4]}",
             EntryDate = DateTime.UtcNow,
-            Description = $"DepreciaciÃ³n activo fijo #{entryId.ToString()[..8]}",
+            Description = $"Depreciación activo fijo #{entryId.ToString()[..8]}",
             ReferenceType = "FixedAssetDepreciation",
             ReferenceId = entryId,
             Status = "posted",
@@ -1049,8 +1049,8 @@ public sealed class AutoAccountingService : IAutoAccountingService
             PostedAt = DateTime.UtcNow,
             Details =
             [
-                new() { AccountId = deprExpenseId, DebitAmount = amount, CreditAmount = 0, Description = "Gasto depreciaciÃ³n", CompanyId = companyId },
-                new() { AccountId = accumDeprId, DebitAmount = 0, CreditAmount = amount, Description = "DepreciaciÃ³n acumulada", CompanyId = companyId },
+                new() { AccountId = deprExpenseId, DebitAmount = amount, CreditAmount = 0, Description = "Gasto depreciación", CompanyId = companyId },
+                new() { AccountId = accumDeprId, DebitAmount = 0, CreditAmount = amount, Description = "Depreciación acumulada", CompanyId = companyId },
             ],
         };
 
@@ -1133,7 +1133,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
         {
             EntryNumber = $"AS-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..4]}",
             EntryDate = DateTime.UtcNow,
-            Description = $"RevaluaciÃ³n activo fijo #{revaluationId.ToString()[..8]}",
+            Description = $"Revaluación activo fijo #{revaluationId.ToString()[..8]}",
             ReferenceType = "FixedAssetRevaluation",
             ReferenceId = revaluationId,
             Status = "posted",
@@ -1145,11 +1145,11 @@ public sealed class AutoAccountingService : IAutoAccountingService
             Details =
             [
                 isIncrease
-                    ? new() { AccountId = assetAccountId, DebitAmount = difference, CreditAmount = 0, Description = "Incremento por revaluaciÃ³n", CompanyId = companyId }
-                    : new() { AccountId = assetAccountId, DebitAmount = 0, CreditAmount = Math.Abs(difference), Description = "Decremento por revaluaciÃ³n", CompanyId = companyId },
+                    ? new() { AccountId = assetAccountId, DebitAmount = difference, CreditAmount = 0, Description = "Incremento por revaluación", CompanyId = companyId }
+                    : new() { AccountId = assetAccountId, DebitAmount = 0, CreditAmount = Math.Abs(difference), Description = "Decremento por revaluación", CompanyId = companyId },
                 isIncrease
-                    ? new() { AccountId = revalSurplusId, DebitAmount = 0, CreditAmount = difference, Description = "SuperÃ¡vit por revaluaciÃ³n", CompanyId = companyId }
-                    : new() { AccountId = revalSurplusId, DebitAmount = Math.Abs(difference), CreditAmount = 0, Description = "ReversiÃ³n superÃ¡vit por revaluaciÃ³n", CompanyId = companyId },
+                    ? new() { AccountId = revalSurplusId, DebitAmount = 0, CreditAmount = difference, Description = "Superávit por revaluación", CompanyId = companyId }
+                    : new() { AccountId = revalSurplusId, DebitAmount = Math.Abs(difference), CreditAmount = 0, Description = "Reversión superávit por revaluación", CompanyId = companyId },
             ],
         };
 
@@ -1177,7 +1177,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
         {
             EntryNumber = await GenerateNumberAsync(),
             EntryDate = DateTime.UtcNow,
-            Description = $"Costo de garantÃ­a {(paidBy == "provider" ? "a cargo del proveedor" : "por la empresa")} - {category}",
+            Description = $"Costo de garantía {(paidBy == "provider" ? "a cargo del proveedor" : "por la empresa")} - {category}",
             ReferenceType = "WarrantyCost",
             ReferenceId = costId,
             Status = "posted",
@@ -1234,25 +1234,25 @@ public sealed class AutoAccountingService : IAutoAccountingService
         var totalCost = details.Sum(d => d.Quantity * (d.Product?.CostPrice ?? 0));
         var entryDetails = new List<AccountingEntryDetail>
         {
-            MakeDetail(salesAccountId, subtotal, 0, "ReversiÃ³n venta - ingresos"),
-            MakeDetail(vatAccountId, tax, 0, "ReversiÃ³n venta - IVA"),
-            MakeDetail(invAccountId, totalCost, 0, "ReversiÃ³n inventario"),
-            MakeDetail(costAccountId, 0, totalCost, "ReversiÃ³n costo de venta"),
+            MakeDetail(salesAccountId, subtotal, 0, "Reversión venta - ingresos"),
+            MakeDetail(vatAccountId, tax, 0, "Reversión venta - IVA"),
+            MakeDetail(invAccountId, totalCost, 0, "Reversión inventario"),
+            MakeDetail(costAccountId, 0, totalCost, "Reversión costo de venta"),
         };
 
         var cashAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.Cash);
         var arAccountId = await GetAccountIdAsync(TransactionTypes.Sale, AccountRoles.AccountsReceivable);
 
         if (saleType == "cash")
-            entryDetails.Add(MakeDetail(cashAccountId, 0, total, "ReversiÃ³n venta - efectivo"));
+            entryDetails.Add(MakeDetail(cashAccountId, 0, total, "Reversión venta - efectivo"));
         else
-            entryDetails.Add(MakeDetail(arAccountId, 0, total, "ReversiÃ³n venta - cuenta por cobrar"));
+            entryDetails.Add(MakeDetail(arAccountId, 0, total, "Reversión venta - cuenta por cobrar"));
 
         var entry = new AccountingEntry
         {
             EntryNumber = await GenerateNumberAsync(),
             EntryDate = DateTime.UtcNow,
-            Description = $"Nota de CrÃ©dito #{creditNoteId.ToString()[..8]}",
+            Description = $"Nota de Crédito #{creditNoteId.ToString()[..8]}",
             ReferenceType = "CreditNote",
             ReferenceId = creditNoteId,
             Status = "posted",
@@ -1287,21 +1287,21 @@ public sealed class AutoAccountingService : IAutoAccountingService
             case "issuance":
             case "payment":
                 var apAccountId = await GetAccountIdAsync(TransactionTypes.Check, AccountRoles.AccountsPayable);
-                entryDetails.Add(MakeDetail(apAccountId, amount, 0, $"EmisiÃ³n cheque #{checkId.ToString()[..8]}"));
+                entryDetails.Add(MakeDetail(apAccountId, amount, 0, $"Emisión cheque #{checkId.ToString()[..8]}"));
                 entryDetails.Add(MakeDetail(bankAccId, 0, amount, "Cargo bancario por cheque"));
                 break;
             case "cancellation":
                 var canceledApId = await GetAccountIdAsync(TransactionTypes.Check, AccountRoles.AccountsPayable);
                 var canceledBankId = await GetAccountIdAsync(TransactionTypes.Check, AccountRoles.Bank);
-                entryDetails.Add(MakeDetail(canceledBankId, amount, 0, $"CancelaciÃ³n cheque #{checkId.ToString()[..8]}"));
-                entryDetails.Add(MakeDetail(canceledApId, 0, amount, "ReversiÃ³n CxP por cancelaciÃ³n cheque"));
+                entryDetails.Add(MakeDetail(canceledBankId, amount, 0, $"Cancelación cheque #{checkId.ToString()[..8]}"));
+                entryDetails.Add(MakeDetail(canceledApId, 0, amount, "Reversión CxP por cancelación cheque"));
                 break;
             case "reconciliation":
                 Guid reclassAccId;
                 try { reclassAccId = await GetAccountIdAsync(TransactionTypes.Check, AccountRoles.AccountsReceivable); }
                 catch { reclassAccId = await GetAccountIdByCodeAsync("1.1.03"); }
-                entryDetails.Add(MakeDetail(reclassAccId, amount, 0, $"ConciliaciÃ³n cheque #{checkId.ToString()[..8]}"));
-                entryDetails.Add(MakeDetail(bankAccId, 0, amount, "Ajuste conciliaciÃ³n bancaria"));
+                entryDetails.Add(MakeDetail(reclassAccId, amount, 0, $"Conciliación cheque #{checkId.ToString()[..8]}"));
+                entryDetails.Add(MakeDetail(bankAccId, 0, amount, "Ajuste conciliación bancaria"));
                 break;
             default:
                 throw new ArgumentException($"Unknown check type: {checkType}");
@@ -1344,15 +1344,15 @@ public sealed class AutoAccountingService : IAutoAccountingService
         catch { cashAccountId = await GetAccountIdByCodeAsync("1.1.01"); }
         var entryDetails = new List<AccountingEntryDetail>
         {
-            MakeDetail(bankAccountId, amount, 0, "DepÃ³sito bancario"),
-            MakeDetail(cashAccountId, 0, amount, "Salida de efectivo por depÃ³sito"),
+            MakeDetail(bankAccountId, amount, 0, "Depósito bancario"),
+            MakeDetail(cashAccountId, 0, amount, "Salida de efectivo por depósito"),
         };
 
         var entry = new AccountingEntry
         {
             EntryNumber = await GenerateNumberAsync(),
             EntryDate = DateTime.UtcNow,
-            Description = $"DepÃ³sito Bancario #{depositId.ToString()[..8]}",
+            Description = $"Depósito Bancario #{depositId.ToString()[..8]}",
             ReferenceType = "BankDeposit",
             ReferenceId = depositId,
             Status = "posted",
@@ -1423,15 +1423,15 @@ public sealed class AutoAccountingService : IAutoAccountingService
         catch { bankExpenseAccountId = await GetAccountIdByCodeAsync("5.1.01"); }
         var entryDetails = new List<AccountingEntryDetail>
         {
-            MakeDetail(bankExpenseAccountId, commission, 0, "ComisiÃ³n bancaria"),
-            MakeDetail(bankAccountId, 0, commission, "Cargo por comisiÃ³n bancaria"),
+            MakeDetail(bankExpenseAccountId, commission, 0, "Comisión bancaria"),
+            MakeDetail(bankAccountId, 0, commission, "Cargo por comisión bancaria"),
         };
 
         var entry = new AccountingEntry
         {
             EntryNumber = await GenerateNumberAsync(),
             EntryDate = DateTime.UtcNow,
-            Description = $"ComisiÃ³n Bancaria #{commissionId.ToString()[..8]}",
+            Description = $"Comisión Bancaria #{commissionId.ToString()[..8]}",
             ReferenceType = "BankCommission",
             ReferenceId = commissionId,
             Status = "posted",
@@ -1472,7 +1472,7 @@ public sealed class AutoAccountingService : IAutoAccountingService
         var entryDetails = new List<AccountingEntryDetail>
         {
             MakeDetail(cashAccountId, total, 0, $"Cobranza factura #{invoiceId.ToString()[..8]}"),
-            MakeDetail(arAccountId, 0, amount, "AplicaciÃ³n a cuenta por cobrar"),
+            MakeDetail(arAccountId, 0, amount, "Aplicación a cuenta por cobrar"),
         };
 
         if (interest > 0)
@@ -1561,15 +1561,15 @@ public sealed class AutoAccountingService : IAutoAccountingService
         var apAccountId = await GetAccountIdAsync(TransactionTypes.Purchase, AccountRoles.AccountsPayable);
         var entryDetails = new List<AccountingEntryDetail>
         {
-            MakeDetail(apAccountId, amount, 0, $"AplicaciÃ³n anticipo a compra #{purchaseId.ToString()[..8]}"),
-            MakeDetail(advancesAccountId, 0, amount, "CancelaciÃ³n anticipo"),
+            MakeDetail(apAccountId, amount, 0, $"Aplicación anticipo a compra #{purchaseId.ToString()[..8]}"),
+            MakeDetail(advancesAccountId, 0, amount, "Cancelación anticipo"),
         };
 
         var entry = new AccountingEntry
         {
             EntryNumber = await GenerateNumberAsync(),
             EntryDate = DateTime.UtcNow,
-            Description = $"AplicaciÃ³n Anticipo #{advanceId.ToString()[..8]} a Compra #{purchaseId.ToString()[..8]}",
+            Description = $"Aplicación Anticipo #{advanceId.ToString()[..8]} a Compra #{purchaseId.ToString()[..8]}",
             ReferenceType = "AdvanceApplication",
             ReferenceId = applicationId,
             Status = "posted",
