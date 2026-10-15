@@ -115,7 +115,9 @@ public static class DependencyInjectionExtensions
 
         // Documentary Engine
         services.AddScoped<IDocumentTemplateRepository, DocumentTemplateRepository>();
+        services.AddScoped<ICertificateCalculator, CertificateCalculator>();
         services.AddScoped<IGeneratedDocumentRepository, GeneratedDocumentRepository>();
+        services.AddScoped<ICertificateRequestRepository, CertificateRequestRepository>();
         services.AddScoped<IDocumentSignatureRepository, DocumentSignatureRepository>();
         services.AddScoped<ISignatureService, SignatureService>();
 
@@ -446,7 +448,9 @@ public static class DependencyInjectionExtensions
 
         // Documentary Engine (Professional)
         services.AddScoped<IDocumentService, Zorvian.Application.Services.Documentary.DocumentService>();
+        services.AddScoped<Zorvian.Application.Services.Documentary.IEntityDocumentContextBuilder, Zorvian.Application.Services.Documentary.EntityDocumentContextBuilder>();
         services.AddScoped<IDocumentGenerationService, Zorvian.Application.Services.Documentary.DocumentGenerationService>();
+        services.AddScoped<CertificateRequestService>();
 
         // API Keys
         services.AddScoped<ApiKeyService>();

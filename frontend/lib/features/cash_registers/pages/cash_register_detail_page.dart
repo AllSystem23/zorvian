@@ -1,6 +1,10 @@
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../shared/ds/ds.dart';
 import 'package:zorvian/core/widgets/responsive_layout.dart';
 import '../../../auth/auth_provider.dart';
@@ -69,6 +73,45 @@ final class _CashRegisterDetailPageState extends ConsumerState<CashRegisterDetai
       setState(() { _arqueo = r.data as Map<String, dynamic>?; _arqueoLoading = false; });
     } catch (_) {
       setState(() { _arqueo = null; _arqueoLoading = false; });
+    }
+  }
+
+  /// Genera el comprobante de caja (ingreso/egreso) vía el motor documental y lo comparte.
+  Future<void> _generateMovementPdf(String movementId) async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      final r = await dio.post('cash-registers/movements/$movementId/pdf/generate');
+      final documentId = r.data['generatedDocumentId'] as String?;
+      if (documentId == null) throw Exception('Respuesta sin documento generado');
+
+      final pdf = await dio.get(
+        'documents/$documentId/pdf',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final bytes = pdf.data as List<int>;
+      if (!mounted) return;
+      await SharePlus.instance.share(
+        ShareParams(files: [
+          XFile.fromData(
+            Uint8List.fromList(bytes),
+            mimeType: 'application/pdf',
+            name: 'comprobante_caja_$movementId.pdf',
+          ),
+        ]),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Comprobante generado (${bytes.length ~/ 1024} KB)'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al generar PDF: $e'), backgroundColor: Colors.red),
+      );
     }
   }
 
@@ -246,6 +289,7 @@ final class _CashRegisterDetailPageState extends ConsumerState<CashRegisterDetai
                       ZColumn(id: 'concept', label: 'Concepto'),
                       ZColumn(id: 'date', label: 'Hora'),
                       ZColumn(id: 'amount', label: 'Monto', numeric: true),
+                      ZColumn(id: 'actions', label: ''),
                     ],
                     rows: _movements,
                     emptyMessage: 'No se han registrado movimientos en esta caja.',
@@ -265,6 +309,22 @@ final class _CashRegisterDetailPageState extends ConsumerState<CashRegisterDetai
                             fontWeight: FontWeight.bold,
                             color: isIncome ? ZColors.success : ZColors.danger,
                           ),
+                        )),
+                        DataCell(PopupMenuButton<String>(
+                          tooltip: 'Acciones',
+                          icon: const Icon(Icons.more_vert, size: 18),
+                          onSelected: (value) {
+                            if (value == 'pdf') _generateMovementPdf(m.id);
+                          },
+                          itemBuilder: (_) => [
+                            const PopupMenuItem(
+                              value: 'pdf',
+                              child: ListTile(
+                                leading: Icon(Icons.picture_as_pdf_outlined),
+                                title: Text('Generar Comprobante PDF'),
+                              ),
+                            ),
+                          ],
                         )),
                       ]);
                     },

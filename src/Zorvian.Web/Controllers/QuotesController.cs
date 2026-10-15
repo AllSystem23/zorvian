@@ -69,10 +69,28 @@ public sealed class QuotesController : ControllerBase
     [RequirePermission(Permissions.SaleWrite)]
     public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateStatusRequest request)
     {
-        var updated = await _service.UpdateStatusAsync(id, request.Status);
-        if (!updated)
+        try
+        {
+            var updated = await _service.UpdateStatusAsync(id, request.Status);
+            if (!updated)
+                return NotFound(new { error = "Quote not found" });
+            return NoContent();
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [Audit("Quote", "ConvertToProforma")]
+    [HttpPost("{id:guid}/convert-to-proforma")]
+    [RequirePermission(Permissions.SaleWrite)]
+    public async Task<IActionResult> ConvertToProforma(Guid id)
+    {
+        var result = await _service.ConvertToProformaAsync(id);
+        if (result is null)
             return NotFound(new { error = "Quote not found" });
-        return NoContent();
+        return Ok(result);
     }
 
     [Audit("Quote", "Delete")]

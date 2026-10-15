@@ -21,6 +21,7 @@ public sealed class PurchaseRepository : IPurchaseRepository
                 .ThenInclude(d => d.Product)
             .Include(p => p.Payments)
             .Include(p => p.CreditNotes)
+            .Include(p => p.PurchaseOrder)
             .FirstOrDefaultAsync(p => p.Id == id);
 
     public async Task<List<Purchase>> GetFilteredAsync(Guid? supplierId, string? status, DateTime? fromDate, DateTime? toDate, string? search, Guid branchId, int page, int pageSize)

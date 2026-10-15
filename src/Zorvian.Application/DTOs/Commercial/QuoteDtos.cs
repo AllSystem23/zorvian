@@ -11,6 +11,7 @@ public sealed record QuoteDetailItem(
     decimal Subtotal
 );
 
+// QuoteType viaja como string en minúsculas: "cotizacion" (default) o "proforma".
 public sealed record CreateQuoteRequest(
     Guid ClientId,
     Guid? EmployeeId,
@@ -20,9 +21,12 @@ public sealed record CreateQuoteRequest(
     Guid BranchId,
     string? CurrencyCode,
     decimal? ExchangeRateToReporting,
+    string? QuoteType,
     List<QuoteDetailItem> Details
 );
 
+// Status viaja en minúsculas: pending/sent/accepted/rejected/expired/converted.
+// QuoteType viaja en minúsculas: cotizacion/proforma.
 public sealed record QuoteResponse(
     Guid Id,
     string QuoteNumber,
@@ -36,13 +40,15 @@ public sealed record QuoteResponse(
     decimal Tax,
     decimal Discount,
     decimal Total,
-    QuoteStatus Status,
+    string Status,
+    string QuoteType,
     string? Notes,
     string CurrencyCode,
     decimal? ExchangeRateToReporting,
     List<QuoteDetailItem> Details
 );
 
+// QuoteType null conserva el valor actual del documento.
 public sealed record UpdateQuoteRequest(
     Guid ClientId,
     Guid? EmployeeId,
@@ -50,12 +56,14 @@ public sealed record UpdateQuoteRequest(
     decimal Discount,
     string? Notes,
     Guid BranchId,
+    string? QuoteType,
     List<QuoteDetailItem> Details
 );
 
 public sealed record QuoteFilterRequest(
     Guid? ClientId,
     QuoteStatus? Status,
+    QuoteType? QuoteType,
     DateTime? FromDate,
     DateTime? ToDate,
     string? Search,
@@ -64,6 +72,7 @@ public sealed record QuoteFilterRequest(
     int? PageSize = 20
 );
 
+// Estado en minúsculas: pending/sent/accepted/rejected/expired/converted.
 public sealed record UpdateStatusRequest(
-    QuoteStatus Status
+    string Status
 );

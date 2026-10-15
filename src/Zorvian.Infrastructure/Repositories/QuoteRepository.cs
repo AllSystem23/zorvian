@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Enums;
@@ -23,7 +23,7 @@ public sealed class QuoteRepository : IQuoteRepository
                 .ThenInclude(d => d.Product)
             .FirstOrDefaultAsync(q => q.Id == id);
 
-    public async Task<List<Quote>> GetFilteredAsync(Guid? clientId, QuoteStatus? status, DateTime? fromDate, DateTime? toDate, string? search, Guid branchId, int page, int pageSize)
+    public async Task<List<Quote>> GetFilteredAsync(Guid? clientId, QuoteStatus? status, QuoteType? quoteType, DateTime? fromDate, DateTime? toDate, string? search, Guid branchId, int page, int pageSize)
     {
         var query = _db.Set<Quote>()
             .Include(q => q.Client)
@@ -37,6 +37,8 @@ public sealed class QuoteRepository : IQuoteRepository
             query = query.Where(q => q.ClientId == clientId.Value);
         if (status.HasValue)
             query = query.Where(q => q.Status == status.Value);
+        if (quoteType.HasValue)
+            query = query.Where(q => q.QuoteType == quoteType.Value);
         if (fromDate.HasValue)
             query = query.Where(q => q.QuoteDate >= DateOnly.FromDateTime(fromDate.Value));
         if (toDate.HasValue)
@@ -56,7 +58,7 @@ public sealed class QuoteRepository : IQuoteRepository
             .ToListAsync();
     }
 
-    public async Task<int> GetFilteredCountAsync(Guid? clientId, QuoteStatus? status, DateTime? fromDate, DateTime? toDate, string? search, Guid branchId)
+    public async Task<int> GetFilteredCountAsync(Guid? clientId, QuoteStatus? status, QuoteType? quoteType, DateTime? fromDate, DateTime? toDate, string? search, Guid branchId)
     {
         var query = _db.Set<Quote>()
             .Include(q => q.Client)
@@ -67,6 +69,8 @@ public sealed class QuoteRepository : IQuoteRepository
             query = query.Where(q => q.ClientId == clientId.Value);
         if (status.HasValue)
             query = query.Where(q => q.Status == status.Value);
+        if (quoteType.HasValue)
+            query = query.Where(q => q.QuoteType == quoteType.Value);
         if (fromDate.HasValue)
             query = query.Where(q => q.QuoteDate >= DateOnly.FromDateTime(fromDate.Value));
         if (toDate.HasValue)
@@ -82,10 +86,11 @@ public sealed class QuoteRepository : IQuoteRepository
         return await query.CountAsync();
     }
 
-    public async Task<string> GenerateNumberAsync(Guid companyId)
+    public async Task<string> GenerateNumberAsync(Guid companyId, QuoteType quoteType)
     {
         var count = await _db.Set<Quote>().CountAsync(q => q.CompanyId == companyId);
-        return $"COT-{DateTime.UtcNow:yyyyMMdd}-{(count + 1):D4}";
+        var prefix = quoteType == QuoteType.Proforma ? "PRO" : "COT";
+        return $"{prefix}-{DateTime.UtcNow:yyyyMMdd}-{(count + 1):D4}";
     }
 
     public async Task AddAsync(Quote quote) =>

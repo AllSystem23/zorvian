@@ -45,15 +45,22 @@ Future<Uint8List> generateQuotePdf({
   required Map<String, dynamic> company,
   required Map<String, dynamic> settings,
 }) async {
+  final isProforma = quote.quoteType == 'proforma';
+  final title = isProforma ? 'FACTURA PROFORMA' : 'COTIZACIÓN';
+  final numberLabel = isProforma ? 'No. Proforma' : 'Folio';
+
   final doc = pw.Document();
   final extra = <String, dynamic>{
     'Vence': quote.expirationDate ?? '—',
   };
   if (quote.employeeName != null) extra['Creado por'] = quote.employeeName!;
+  if (isProforma) {
+    extra['Estado'] = 'Requiere pago anticipado';
+  }
 
   doc.addPage(_buildPage(
-    title: 'COTIZACIÓN',
-    numberLabel: 'Folio',
+    title: title,
+    numberLabel: numberLabel,
     number: quote.quoteNumber,
     date: quote.quoteDate,
     clientName: quote.clientName,

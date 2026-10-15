@@ -1,5 +1,9 @@
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../shared/ds/ds.dart';
 import '../providers/purchase_provider.dart';
@@ -51,6 +55,45 @@ final class _PurchaseDetailPageState extends ConsumerState<PurchaseDetailPage> {
     }
   }
 
+  /// Genera el acta de recepción de compras vía el motor documental y la comparte.
+  Future<void> _generatePdf() async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      final r = await dio.post('purchases/${widget.purchaseId}/pdf/generate');
+      final documentId = r.data['generatedDocumentId'] as String?;
+      if (documentId == null) throw Exception('Respuesta sin documento generado');
+
+      final pdf = await dio.get(
+        'documents/$documentId/pdf',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final bytes = pdf.data as List<int>;
+      if (!mounted) return;
+      await SharePlus.instance.share(
+        ShareParams(files: [
+          XFile.fromData(
+            Uint8List.fromList(bytes),
+            mimeType: 'application/pdf',
+            name: 'acta_recepcion_${_data!.purchaseNumber}.pdf',
+          ),
+        ]),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Acta de recepción generada (${bytes.length ~/ 1024} KB)'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al generar PDF: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -67,16 +110,19 @@ final class _PurchaseDetailPageState extends ConsumerState<PurchaseDetailPage> {
     return Scaffold(
       body: Column(
         children: [
-          if (d.status != 'cancelled')
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                ZButton(text: 'Generar Acta de Recepción (PDF)', onPressed: _generatePdf, type: ZButtonType.secondary),
+                if (d.status != 'cancelled') ...[
+                  const SizedBox(width: 8),
                   IconButton(icon: const Icon(Icons.cancel_outlined, size: 20), tooltip: 'Anular', onPressed: _cancel),
                 ],
-              ),
+              ],
             ),
+          ),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.all(16),

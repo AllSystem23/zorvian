@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../auth/auth_provider.dart';
 import '../../shared/ds/ds.dart';
 import '../biometrics/providers/biometric_provider.dart';
+import 'providers/certificate_requests_provider.dart';
 
 final profileProvider = FutureProvider.autoDispose<Map<String, dynamic>?>((ref) async {
   final dio = ref.read(dioClientProvider);
@@ -78,6 +79,92 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     } finally {
       if (mounted) setState(() => _saving = false);
     }
+  }
+
+  void _showCertificateRequestDialog(BuildContext context, WidgetRef ref) {
+    String selectedType = 'salarial';
+    final reasonCtrl = TextEditingController();
+
+    const typeOptions = [
+      ('salarial', 'Salarial'),
+      ('laboral', 'Laboral'),
+      ('contrato', 'Contrato'),
+      ('liquidacion', 'Liquidación'),
+      ('poder', 'Poder Notarial'),
+    ];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          title: const Text('Solicitar Documento'),
+          content: SizedBox(
+            width: 320,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Tipo de documento:', style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: typeOptions.map((opt) {
+                    return ChoiceChip(
+                      label: Text(opt.$2),
+                      selected: selectedType == opt.$1,
+                      onSelected: (_) => setLocal(() => selectedType = opt.$1),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: reasonCtrl,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Motivo / Propósito (opcional)',
+                    hintText: 'Ej: Trámite bancario, visado...',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                try {
+                  final dio = ref.read(dioClientProvider);
+                  await dio.post(
+                    'certificate-requests/employees/me/certificate-requests',
+                    data: {
+                      'certificateType': selectedType,
+                      'reason': reasonCtrl.text.trim().isEmpty ? null : reasonCtrl.text.trim(),
+                    },
+                  );
+                  if (!ctx.mounted) return;
+                  Navigator.pop(ctx);
+                  ref.invalidate(myCertificateRequestsProvider);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Solicitud enviada. RRHH la revisará.')),
+                  );
+                } catch (e) {
+                  if (!ctx.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error al enviar solicitud: $e')),
+                  );
+                }
+              },
+              child: const Text('Enviar Solicitud'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -187,43 +274,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 _InfoRow(label: 'Estado', text: profile['status'] as String? ?? ''),
                 const SizedBox(height: 8),
                 FilledButton.icon(
-                  icon: const Icon(Icons.download, size: 18),
-                  label: const Text('Descargar Constancia'),
-                  onPressed: () async {
-                    try {
-                      // Descarga autenticada (header Authorization) en vez de
-                      // un launchUrl con el JWT en el query string.
-                      final dio = ref.read(dioClientProvider);
-                      final r = await dio.get<dynamic>(
-                        'employees/me/certificate',
-                        options: Options(responseType: ResponseType.bytes),
-                      );
-                      final bytes = r.data;
-                      if (bytes is! List<int> || bytes.isEmpty) {
-                        throw Exception('respuesta vacía');
-                      }
-                      final dir = await getTemporaryDirectory();
-                      final file = File('${dir.path}/constancia_laboral.html');
-                      await file.writeAsBytes(bytes, flush: true);
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Comparte o abre la constancia en tu navegador.'),
-                        ),
-                      );
-                      await SharePlus.instance.share(
-                        ShareParams(files: [
-                          XFile(file.path, mimeType: 'text/html'),
-                        ]),
-                      );
-                    } catch (e) {
-                      if (!context.mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('No se pudo descargar la constancia: $e')),
-                      );
-                    }
-                  },
+                  icon: const Icon(Icons.description_outlined, size: 18),
+                  label: const Text('Solicitar Constancia'),
+                  onPressed: () => _showCertificateRequestDialog(context, ref),
                 ),
+                const SizedBox(height: 8),
+                const _MyCertificateRequestsSection(),
               ]),
               const SizedBox(height: 16),
 
@@ -240,6 +296,107 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
         ],
       ),
     );
+  }
+}
+
+// ─── My Certificate Requests Section ───
+
+class _MyCertificateRequestsSection extends ConsumerWidget {
+  const _MyCertificateRequestsSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final requestsAsync = ref.watch(myCertificateRequestsProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Mis Solicitudes de Constancia',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+        const Divider(),
+        requestsAsync.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.all(8),
+            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+          ),
+          error: (e, _) => Text('Error: $e', style: const TextStyle(color: Colors.red)),
+          data: (requests) {
+            if (requests.isEmpty) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text('Sin solicitudes previas', style: TextStyle(color: Colors.grey)),
+              );
+            }
+            return Column(
+              children: requests.map((req) {
+                Color statusColor;
+                IconData statusIcon;
+                if (req.isPending) {
+                  statusColor = Colors.orange;
+                  statusIcon = Icons.hourglass_top;
+                } else if (req.isApproved) {
+                  statusColor = Colors.green;
+                  statusIcon = Icons.check_circle;
+                } else {
+                  statusColor = Colors.red;
+                  statusIcon = Icons.cancel;
+                }
+
+                return ListTile(
+                  dense: true,
+                  leading: Icon(statusIcon, color: statusColor, size: 20),
+                  title: Text('Constancia ${req.typeLabel}',
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                  subtitle: Text(
+                    '${req.statusLabel} · ${_formatDate(req.requestedAt)}\n${req.reason ?? ""}',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  trailing: req.canDownload
+                      ? IconButton(
+                          icon: const Icon(Icons.download, size: 18, color: Colors.green),
+                          tooltip: 'Descargar PDF',
+                          onPressed: () => _downloadCertificate(context, ref, req.id),
+                        )
+                      : null,
+                );
+              }).toList(),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  static String _formatDate(DateTime dt) {
+    return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+  }
+
+  static Future<void> _downloadCertificate(BuildContext context, WidgetRef ref, String id) async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      final r = await dio.get<dynamic>(
+        'certificate-requests/employees/me/certificate-requests/$id/pdf',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final bytes = r.data;
+      if (bytes is! List<int> || bytes.isEmpty) throw Exception('respuesta vacía');
+
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/constancia_$id.pdf');
+      await file.writeAsBytes(bytes, flush: true);
+      if (!context.mounted) return;
+
+      await SharePlus.instance.share(
+        ShareParams(files: [XFile(file.path, mimeType: 'application/pdf')]),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No se pudo descargar: $e')),
+      );
+    }
   }
 }
 

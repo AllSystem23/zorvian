@@ -1,123 +1,132 @@
 using Zorvian.Application.DTOs.Document;
-using Zorvian.Application.Helpers;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
 
 namespace Zorvian.Application.Services.Documentary;
 
+/// <summary>
+/// Orquestador del motor documental: contexto de entidades (delegado a
+/// <see cref="IEntityDocumentContextBuilder"/>), contextos de certificados,
+/// generación rápida y firmas. La construcción de datos por tipo de entidad
+/// vive en <see cref="EntityDocumentContextBuilder"/> para no acumular
+/// dependencias de repositorio en este servicio.
+/// </summary>
 public sealed class DocumentGenerationService : IDocumentGenerationService
 {
     private readonly IDocumentService _documentService;
+    private readonly IEntityDocumentContextBuilder _contextBuilder;
     private readonly IEmployeeRepository _employeeRepo;
-    private readonly ISaleRepository _saleRepo;
     private readonly ICompanyRepository _companyRepo;
-    private readonly IClientRepository _clientRepo;
+    private readonly ICertificateCalculator _certificateCalc;
     private readonly ITenantContext _tenant;
 
     public DocumentGenerationService(
         IDocumentService documentService,
+        IEntityDocumentContextBuilder contextBuilder,
         IEmployeeRepository employeeRepo,
-        ISaleRepository saleRepo,
         ICompanyRepository companyRepo,
-        IClientRepository clientRepo,
+        ICertificateCalculator certificateCalc,
         ITenantContext tenant)
     {
         _documentService = documentService;
+        _contextBuilder = contextBuilder;
         _employeeRepo = employeeRepo;
-        _saleRepo = saleRepo;
         _companyRepo = companyRepo;
-        _clientRepo = clientRepo;
+        _certificateCalc = certificateCalc;
         _tenant = tenant;
     }
 
-    public async Task<EntityContextResponse?> GetEntityContextAsync(string entityType, Guid entityId)
+    public Task<EntityContextResponse?> GetEntityContextAsync(string entityType, Guid entityId)
+        => _contextBuilder.BuildAsync(entityType, entityId);
+
+    /// <summary>
+    /// Obtiene el contexto completo para un certificado específico, calculando
+    /// todas las variables necesarias según el tipo de documento.
+    /// </summary>
+    public async Task<Dictionary<string, string>> GetCertificateContextAsync(
+        string certificateType, Guid employeeId)
     {
-        var data = new Dictionary<string, string>();
-        string displayName;
+        var employee = await _employeeRepo.GetByIdWithBranchAsync(employeeId)
+            ?? throw new KeyNotFoundException("Empleado no encontrado");
 
-        switch (entityType.ToLowerInvariant())
+        var entityContext = await GetEntityContextAsync("employee", employeeId)
+            ?? throw new InvalidOperationException("No se pudo obtener el contexto del empleado");
+
+        // El contexto de entidades expone Dictionary<string,object> (admite listas de
+        // ítems); los certificados son siempre valores escalares → aplanar a string.
+        var data = entityContext.Data.ToDictionary(
+            kv => kv.Key, kv => kv.Value?.ToString() ?? "", StringComparer.Ordinal);
+
+        var company = await _companyRepo.GetByTenantIdAsync(_tenant.TenantId)
+            ?? throw new InvalidOperationException("Compañía no encontrada");
+
+        switch (certificateType.ToLowerInvariant())
         {
-            case "employee":
-            {
-                var employee = await _employeeRepo.GetByIdWithBranchAsync(entityId);
-                if (employee == null) return null;
-                displayName = $"{employee.FirstName} {employee.LastName}";
-                var branchAddress = employee.Branch?.Address ?? "";
-                data["Employee.FullName"] = displayName;
-                data["Employee.Identification"] = employee.IdentificationNumber ?? "";
-                data["Employee.Position"] = employee.Position ?? "";
-                data["Employee.HireDate"] = employee.HireDate.ToString("dd/MM/yyyy");
-                data["Employee.Salary"] = (employee.Salary ?? 0).ToString("N2");
-                data["Employee.Address"] = employee.Address ?? "";
-                data["Employee.Email"] = employee.Email ?? "";
-                data["Employee.Phone"] = employee.Phone ?? "";
-                data["Branch.Name"] = employee.Branch?.Name ?? "";
-                data["Branch.Address"] = branchAddress;
-                data["Employee.BranchName"] = employee.Branch?.Name ?? "";
-                data["Employee.BranchAddress"] = branchAddress;
-                data["employee_name"] = displayName;
-                data["employee_id"] = employee.IdentificationNumber ?? "";
-                data["position"] = employee.Position ?? "";
-                data["salary"] = (employee.Salary ?? 0).ToString("N2");
-                data["start_date"] = employee.HireDate.ToString("dd/MM/yyyy");
-                data["department"] = employee.Department?.Name ?? "";
+            case "salarial":
+            case "laboral":
+                EnrichConstanciaContext(data, employee, company);
                 break;
-            }
-
-            case "sale":
-            {
-                var sale = await _saleRepo.GetByIdAsync(entityId);
-                if (sale == null) return null;
-                var clientName = sale.Client != null
-                    ? $"{sale.Client.FirstName} {sale.Client.LastName}"
-                    : "General Public";
-                displayName = $"Venta {sale.InvoiceNumber} - {clientName}";
-                data["Sale.Number"] = sale.InvoiceNumber ?? "";
-                data["Sale.Subtotal"] = sale.Subtotal.ToString("N2");
-                data["Sale.Tax"] = sale.Tax.ToString("N2");
-                data["Sale.Discount"] = sale.Discount.ToString("N2");
-                data["Sale.Total"] = sale.Total.ToString("N2");
-                data["Sale.Date"] = sale.SaleDate.ToString("dd/MM/yyyy");
-                data["Sale.ClientName"] = clientName;
-                data["client_name"] = clientName;
-                data["invoice_ref"] = sale.InvoiceNumber ?? "";
-                data["quote_number"] = sale.InvoiceNumber ?? "";
-                data["quote_date"] = sale.SaleDate.ToString("dd/MM/yyyy");
-                data["delivery_date"] = sale.SaleDate.ToString("dd/MM/yyyy");
+            case "contrato":
+                EnrichContratoContext(data, employee, company);
                 break;
-            }
-
-            case "client":
-            {
-                var client = await _clientRepo.GetByIdAsync(entityId);
-                if (client == null) return null;
-                displayName = $"{client.FirstName} {client.LastName}";
-                data["Client.FullName"] = displayName;
-                data["Client.Identification"] = client.IdentificationNumber ?? "";
-                data["Client.Phone"] = client.Phone ?? "";
-                data["client_name"] = displayName;
+            case "liquidacion":
+                await EnrichLiquidacionContextAsync(data, employee, company);
                 break;
-            }
-
-            default:
-                return null;
+            case "poder":
+                EnrichPoderContext(data, employee, company);
+                break;
         }
 
-        var company = await _companyRepo.GetByTenantIdAsync(_tenant.TenantId);
+        return data;
+    }
 
-        // Contexto base compartido (Company.*/Country.*/Contract.City) + claves de entidad.
-        foreach (var (key, value) in DocumentCompanyContext.Build(company))
+    private static void EnrichConstanciaContext(
+        Dictionary<string, string> data, Employee employee, Company company)
+    {
+        data["fecha_emision"] = DateTime.Now.ToString("dd/MM/yyyy");
+        data["contract_type"] = "Término Indefinido";
+        data["purpose"] = data.GetValueOrDefault("purpose", "Trámite general");
+    }
+
+    private static void EnrichContratoContext(
+        Dictionary<string, string> data, Employee employee, Company company)
+    {
+        data["contract_type"] = "Término Indefinido";
+        data["salary_type"] = employee.SalaryType == "monthly" ? "Mensual" : "Quincenal";
+        data["fecha_inicio"] = employee.HireDate.ToString("dd/MM/yyyy");
+        data["trial_period"] = "3 meses";
+        data["work_schedule"] = "Lunes a Viernes 8:00am - 5:00pm";
+        data["benefits"] = "Seguro Social (INSS), Aguinaldo, Vacaciones (15 días)";
+    }
+
+    private async Task EnrichLiquidacionContextAsync(
+        Dictionary<string, string> data, Employee employee, Company company)
+    {
+        var liquidationVars = await _certificateCalc.CalculateLiquidationVariablesAsync(
+            employee.Id,
+            employee.Salary ?? 0,
+            employee.HireDate,
+            employee.TerminationDate,
+            employee.TerminationReason);
+
+        foreach (var (key, value) in liquidationVars)
             data[key] = value;
 
-        // Lugar de emisión con fallback a la sucursal del empleado si la compañía no tiene dirección.
-        if (string.IsNullOrWhiteSpace(data["Contract.City"]))
-        {
-            var branchFallback = data.GetValueOrDefault("Branch.Address");
-            data["Contract.City"] = branchFallback ?? "";
-        }
+        data["autorizado_por"] = company.LegalName ?? company.Name ?? "";
+    }
 
-        return new EntityContextResponse(entityType, entityId, displayName, data);
+    private void EnrichPoderContext(
+        Dictionary<string, string> data, Employee employee, Company company)
+    {
+        var poderVars = _certificateCalc.CalculatePowerOfAttorneyVariables(
+            company.LegalName ?? company.Name ?? "La Empresa",
+            company.TaxId,
+            $"{employee.FirstName} {employee.LastName}",
+            employee.IdentificationNumber);
+
+        foreach (var (key, value) in poderVars)
+            data[key] = value;
     }
 
     public async Task<QuickGenerateResult> QuickGenerateAsync(string entityType, Guid entityId, Guid templateId)

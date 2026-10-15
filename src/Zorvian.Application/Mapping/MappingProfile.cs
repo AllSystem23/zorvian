@@ -261,13 +261,62 @@ public sealed class MappingProfile : Profile
             .ForMember(d => d.CompanyId, o => o.Ignore())
             .ForMember(d => d.QuoteNumber, o => o.Ignore())
             .ForMember(d => d.QuoteDate, o => o.MapFrom(_ => DateOnly.FromDateTime(DateTime.UtcNow)))
-            .ForMember(d => d.Status, o => o.MapFrom(_ => "draft"))
+            .ForMember(d => d.Status, o => o.MapFrom(_ => QuoteStatus.Pending))
+            .ForMember(d => d.QuoteType, o => o.Ignore())
+            .ForMember(d => d.Client, o => o.Ignore())
+            .ForMember(d => d.Employee, o => o.Ignore())
+            .ForMember(d => d.Details, o => o.Ignore());
+        CreateMap<UpdateQuoteRequest, Quote>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.CompanyId, o => o.Ignore())
+            .ForMember(d => d.QuoteNumber, o => o.Ignore())
+            .ForMember(d => d.QuoteDate, o => o.Ignore())
+            .ForMember(d => d.Status, o => o.Ignore())
+            .ForMember(d => d.QuoteType, o => o.Ignore())
             .ForMember(d => d.Client, o => o.Ignore())
             .ForMember(d => d.Employee, o => o.Ignore())
             .ForMember(d => d.Details, o => o.Ignore());
         CreateMap<Quote, QuoteResponse>()
-            .ForMember(d => d.ClientName, o => o.MapFrom(s => s.Client != null ? $"{s.Client.FirstName} {s.Client.LastName}".Trim() : ""))
-            .ForMember(d => d.EmployeeName, o => o.MapFrom(s => s.Employee != null ? $"{s.Employee.FirstName} {s.Employee.LastName}".Trim() : null));
+            // ConstructUsing explícito: AutoMapper 16 no puede armar el ctor del record
+            // porque ClientName/EmployeeName y las conversiones de enum→string no son
+            // miembros de la fuente (mismo motivo que EmployeeResponse).
+            .ConstructUsing(s => new QuoteResponse(
+                s.Id,
+                s.QuoteNumber,
+                s.ClientId,
+                s.Client != null ? $"{s.Client.FirstName} {s.Client.LastName}".Trim() : "",
+                s.EmployeeId,
+                s.Employee != null ? $"{s.Employee.FirstName} {s.Employee.LastName}".Trim() : null,
+                s.QuoteDate,
+                s.ExpirationDate,
+                s.Subtotal,
+                s.Tax,
+                s.Discount,
+                s.Total,
+                s.Status.ToDbValue(),
+                s.QuoteType.ToWire(),
+                s.Notes,
+                s.CurrencyCode,
+                s.ExchangeRateToReporting,
+                s.Details == null
+                    ? new List<QuoteDetailItem>()
+                    : s.Details.Select(d => new QuoteDetailItem(
+                        d.ProductId,
+                        d.Product != null ? d.Product.Name : string.Empty,
+                        d.Quantity,
+                        d.UnitPrice,
+                        d.Discount,
+                        d.Subtotal)).ToList()))
+            .ForAllMembers(o => o.Ignore());
+        CreateMap<QuoteDetail, QuoteDetailItem>()
+            .ConstructUsing(s => new QuoteDetailItem(
+                s.ProductId,
+                s.Product != null ? s.Product.Name : string.Empty,
+                s.Quantity,
+                s.UnitPrice,
+                s.Discount,
+                s.Subtotal))
+            .ForAllMembers(o => o.Ignore());
 
         // Sale
         CreateMap<CreateCashSaleRequest, Sale>()

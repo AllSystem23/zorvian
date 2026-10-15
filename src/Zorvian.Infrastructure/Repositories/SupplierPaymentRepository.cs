@@ -16,7 +16,7 @@ public sealed class SupplierPaymentRepository : ISupplierPaymentRepository
 
     public async Task<SupplierPayment?> GetByIdAsync(Guid id) =>
         await _db.Set<SupplierPayment>()
-            .Include(p => p.Purchase)
+            .Include(p => p.Purchase).ThenInclude(p => p.Supplier)
             .FirstOrDefaultAsync(p => p.Id == id);
 
     public async Task<List<SupplierPayment>> GetByPurchaseIdAsync(Guid purchaseId) =>

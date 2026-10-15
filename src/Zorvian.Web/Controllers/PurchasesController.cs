@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Zorvian.Application.DTOs.Commercial;
 using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
@@ -15,11 +16,25 @@ public sealed class PurchasesController : ControllerBase
 {
     private readonly PurchaseService _service;
     private readonly IPurchaseIntelligenceService _aiService;
+    private readonly IDocumentTemplateRepository _templateRepo;
+    private readonly IDocumentService _documentService;
+    private readonly IDocumentGenerationService _documentGenerationService;
+    private readonly ILogger<PurchasesController> _logger;
 
-    public PurchasesController(PurchaseService service, IPurchaseIntelligenceService aiService)
+    public PurchasesController(
+        PurchaseService service,
+        IPurchaseIntelligenceService aiService,
+        IDocumentTemplateRepository templateRepo,
+        IDocumentService documentService,
+        IDocumentGenerationService documentGenerationService,
+        ILogger<PurchasesController> logger)
     {
         _service = service;
         _aiService = aiService;
+        _templateRepo = templateRepo;
+        _documentService = documentService;
+        _documentGenerationService = documentGenerationService;
+        _logger = logger;
     }
 
     [RequirePermission(Permissions.PurchaseWrite)]
@@ -114,5 +129,46 @@ public sealed class PurchasesController : ControllerBase
     {
         var result = await _service.GetAgingAsync();
         return Ok(result);
+    }
+
+    [Audit("Purchase", "GeneratePdf")]
+    [RequirePermission(Permissions.PurchaseRead)]
+    [HttpPost("{id:guid}/pdf/generate")]
+    public async Task<IActionResult> GeneratePdf(Guid id)
+    {
+        try
+        {
+            var context = await _documentGenerationService.GetEntityContextAsync("purchase", id);
+            if (context is null)
+                return NotFound(new { error = "Compra no encontrada" });
+
+            var template = await _templateRepo.GetByNameAsync("Acta de Recepción de Compras");
+            if (template is null)
+                return NotFound(new { error = "Plantilla 'Acta de Recepción de Compras' no encontrada. Ejecute el seed." });
+
+            var generated = await _documentService.GenerateProfessionalDocumentAsync(
+                template.Id,
+                id,
+                context.Data,
+                "purchase");
+
+            return Ok(new
+            {
+                generatedDocumentId = generated.Id,
+                name = generated.Name,
+                status = generated.Status,
+                createdAt = generated.CreatedAt,
+                downloadUrl = $"/zorvian/v1/documents/{generated.Id}/pdf"
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generando acta de recepción de compra {PurchaseId}", id);
+            return StatusCode(500, new { error = "Error interno al generar el documento" });
+        }
     }
 }

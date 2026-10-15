@@ -1,0 +1,563 @@
+using Zorvian.Application.DTOs.Document;
+using Zorvian.Application.Helpers;
+using Zorvian.Application.Interfaces;
+using Zorvian.Application.Interfaces.Fleet;
+using Zorvian.Core.Entities;
+using Zorvian.Core.Interfaces;
+
+namespace Zorvian.Application.Services.Documentary;
+
+/// <summary>
+/// Construye el contexto de datos por entidad para el motor documental.
+/// Además de claves planas/anidadas, expone listas de ítems tabulados
+/// (<c>items</c>/<c>movements</c>) como List&lt;Dictionary&lt;string,object&gt;&gt;
+/// para que las plantillas rendericen filas con {% for %}.
+/// </summary>
+public sealed class EntityDocumentContextBuilder : IEntityDocumentContextBuilder
+{
+    private readonly IEmployeeRepository _employeeRepo;
+    private readonly ISaleRepository _saleRepo;
+    private readonly ICompanyRepository _companyRepo;
+    private readonly IClientRepository _clientRepo;
+    private readonly ITenantContext _tenant;
+    private readonly ICreditNoteRepository _creditNoteRepo;
+    private readonly IPurchaseOrderRepository _purchaseOrderRepo;
+    private readonly IPurchaseRepository _purchaseRepo;
+    private readonly ICreditPaymentRepository _creditPaymentRepo;
+    private readonly ICashMovementRepository _cashMovementRepo;
+    private readonly IWorkOrderRepository _workOrderRepo;
+    private readonly ISupplierPaymentRepository _supplierPaymentRepo;
+    private readonly IWarrantyRepository _warrantyRepo;
+    private readonly IDeliveryRepository _deliveryRepo;
+    private readonly IFixedAssetRepository _fixedAssetRepo;
+    private readonly IProductRepository _productRepo;
+    private readonly IInventoryMovementRepository _inventoryMovementRepo;
+    private readonly IQuoteRepository _quoteRepo;
+
+    public EntityDocumentContextBuilder(
+        IEmployeeRepository employeeRepo,
+        ISaleRepository saleRepo,
+        ICompanyRepository companyRepo,
+        IClientRepository clientRepo,
+        ITenantContext tenant,
+        ICreditNoteRepository creditNoteRepo,
+        IPurchaseOrderRepository purchaseOrderRepo,
+        IPurchaseRepository purchaseRepo,
+        ICreditPaymentRepository creditPaymentRepo,
+        ICashMovementRepository cashMovementRepo,
+        IWorkOrderRepository workOrderRepo,
+        ISupplierPaymentRepository supplierPaymentRepo,
+        IWarrantyRepository warrantyRepo,
+        IDeliveryRepository deliveryRepo,
+        IFixedAssetRepository fixedAssetRepo,
+        IProductRepository productRepo,
+        IInventoryMovementRepository inventoryMovementRepo,
+        IQuoteRepository quoteRepo)
+    {
+        _employeeRepo = employeeRepo;
+        _saleRepo = saleRepo;
+        _companyRepo = companyRepo;
+        _clientRepo = clientRepo;
+        _tenant = tenant;
+        _creditNoteRepo = creditNoteRepo;
+        _purchaseOrderRepo = purchaseOrderRepo;
+        _purchaseRepo = purchaseRepo;
+        _creditPaymentRepo = creditPaymentRepo;
+        _cashMovementRepo = cashMovementRepo;
+        _workOrderRepo = workOrderRepo;
+        _supplierPaymentRepo = supplierPaymentRepo;
+        _warrantyRepo = warrantyRepo;
+        _deliveryRepo = deliveryRepo;
+        _fixedAssetRepo = fixedAssetRepo;
+        _productRepo = productRepo;
+        _inventoryMovementRepo = inventoryMovementRepo;
+        _quoteRepo = quoteRepo;
+    }
+
+    public async Task<EntityContextResponse?> BuildAsync(string entityType, Guid entityId)
+    {
+        var data = new Dictionary<string, object>(StringComparer.Ordinal);
+        string displayName;
+
+        switch (entityType.ToLowerInvariant())
+        {
+            case "employee":
+            {
+                var employee = await _employeeRepo.GetByIdWithBranchAsync(entityId);
+                if (employee == null) return null;
+                displayName = $"{employee.FirstName} {employee.LastName}";
+                var branchAddress = employee.Branch?.Address ?? "";
+                data["Employee.FullName"] = displayName;
+                data["Employee.Identification"] = employee.IdentificationNumber ?? "";
+                data["Employee.Position"] = employee.Position ?? "";
+                data["Employee.HireDate"] = employee.HireDate.ToString("dd/MM/yyyy");
+                data["Employee.Salary"] = (employee.Salary ?? 0).ToString("N2");
+                data["Employee.Address"] = employee.Address ?? "";
+                data["Employee.Email"] = employee.Email ?? "";
+                data["Employee.Phone"] = employee.Phone ?? "";
+                data["Branch.Name"] = employee.Branch?.Name ?? "";
+                data["Branch.Address"] = branchAddress;
+                data["Employee.BranchName"] = employee.Branch?.Name ?? "";
+                data["Employee.BranchAddress"] = branchAddress;
+                data["employee_name"] = displayName;
+                data["employee_id"] = employee.IdentificationNumber ?? "";
+                data["position"] = employee.Position ?? "";
+                data["salary"] = (employee.Salary ?? 0).ToString("N2");
+                data["start_date"] = employee.HireDate.ToString("dd/MM/yyyy");
+                data["department"] = employee.Department?.Name ?? "";
+                break;
+            }
+
+            case "sale":
+            {
+                var sale = await _saleRepo.GetByIdAsync(entityId);
+                if (sale == null) return null;
+                var clientName = sale.Client != null
+                    ? $"{sale.Client.FirstName} {sale.Client.LastName}"
+                    : "General Public";
+                displayName = $"Venta {sale.InvoiceNumber} - {clientName}";
+                data["Sale.Number"] = sale.InvoiceNumber ?? "";
+                data["Sale.Subtotal"] = sale.Subtotal.ToString("N2");
+                data["Sale.Tax"] = sale.Tax.ToString("N2");
+                data["Sale.Discount"] = sale.Discount.ToString("N2");
+                data["Sale.Total"] = sale.Total.ToString("N2");
+                data["Sale.Date"] = sale.SaleDate.ToString("dd/MM/yyyy");
+                data["Sale.ClientName"] = clientName;
+                data["client_name"] = clientName;
+                data["invoice_ref"] = sale.InvoiceNumber ?? "";
+                data["quote_number"] = sale.InvoiceNumber ?? "";
+                data["quote_date"] = sale.SaleDate.ToString("dd/MM/yyyy");
+                data["delivery_date"] = sale.SaleDate.ToString("dd/MM/yyyy");
+                // Datos para Factura / Guía de Despacho
+                data["invoice_number"] = sale.InvoiceNumber ?? "";
+                data["invoice_date"] = sale.SaleDate.ToString("dd/MM/yyyy");
+                data["guide_number"] = sale.InvoiceNumber ?? "";
+                data["client_id"] = sale.Client?.IdentificationNumber ?? "";
+                data["client_address"] = sale.Client?.Address ?? "";
+                data["notes"] = sale.Notes ?? "";
+                data["Sale.PaidAmount"] = sale.PaidAmount.ToString("N2");
+                data["Sale.Balance"] = sale.Balance.ToString("N2");
+                data["Sale.Type"] = sale.SaleType == "credit" ? "Crédito" : "Contado";
+                data["items"] = BuildSaleItems(sale);
+                break;
+            }
+
+            case "quote":
+            {
+                var quote = await _quoteRepo.GetByIdAsync(entityId);
+                if (quote == null) return null;
+                var clientName = quote.Client != null
+                    ? $"{quote.Client.FirstName} {quote.Client.LastName}"
+                    : "General Public";
+                displayName = $"{(quote.QuoteType == Core.Enums.QuoteType.Proforma ? "Proforma" : "Cotización")} {quote.QuoteNumber} - {clientName}";
+                data["quote_number"] = quote.QuoteNumber;
+                data["quote_date"] = quote.QuoteDate.ToString("dd/MM/yyyy");
+                data["expiration_date"] = quote.ExpirationDate?.ToString("dd/MM/yyyy") ?? "";
+                data["validity_days"] = quote.ExpirationDate.HasValue
+                    ? Math.Max(0, quote.ExpirationDate.Value.DayNumber - quote.QuoteDate.DayNumber).ToString()
+                    : "";
+                data["client_name"] = clientName;
+                data["client_id"] = quote.Client?.IdentificationNumber ?? "";
+                data["client_address"] = quote.Client?.Address ?? "";
+                data["payment_terms"] = quote.Notes ?? "";
+                data["notes"] = quote.Notes ?? "";
+                data["quote_type_label"] = quote.QuoteType == Core.Enums.QuoteType.Proforma ? "Proforma" : "Cotización";
+                data["Sale.Subtotal"] = quote.Subtotal.ToString("N2");
+                data["Sale.Tax"] = quote.Tax.ToString("N2");
+                data["Sale.Discount"] = quote.Discount.ToString("N2");
+                data["Sale.Total"] = quote.Total.ToString("N2");
+                data["items"] = quote.Details?
+                    .Select(d => Item(
+                        ("code", d.Product?.Code ?? ""),
+                        ("description", d.Product?.Name ?? ""),
+                        ("quantity", d.Quantity.ToString()),
+                        ("unit_price", d.UnitPrice.ToString("N2")),
+                        ("discount", d.Discount.ToString("N2")),
+                        ("subtotal", d.Subtotal.ToString("N2"))))
+                    .ToList() ?? [];
+                break;
+            }
+
+            case "creditnote":
+            {
+                var creditNote = await _creditNoteRepo.GetByIdAsync(entityId);
+                if (creditNote == null) return null;
+                var clientName = creditNote.Sale?.Client != null
+                    ? $"{creditNote.Sale.Client.FirstName} {creditNote.Sale.Client.LastName}"
+                    : "General Public";
+                displayName = $"Nota de Crédito {creditNote.CreditNoteNumber} - {clientName}";
+                data["credit_note_number"] = creditNote.CreditNoteNumber;
+                data["issue_date"] = creditNote.IssueDate.ToString("dd/MM/yyyy");
+                data["invoice_ref"] = creditNote.Sale?.InvoiceNumber ?? "";
+                data["client_name"] = clientName;
+                data["reason"] = creditNote.Reason;
+                data["Sale.Subtotal"] = creditNote.Subtotal.ToString("N2");
+                data["Sale.Tax"] = creditNote.Tax.ToString("N2");
+                data["Sale.Total"] = creditNote.Total.ToString("N2");
+                data["Sale.Discount"] = "0.00";
+                data["items"] = creditNote.Details?
+                    .Select(d => Item(
+                        ("code", d.Product?.Code ?? ""),
+                        ("description", d.Product?.Name ?? ""),
+                        ("quantity", d.Quantity.ToString()),
+                        ("unit_price", d.UnitPrice.ToString("N2")),
+                        ("subtotal", d.Subtotal.ToString("N2"))))
+                    .ToList() ?? [];
+                break;
+            }
+
+            case "purchaseorder":
+            {
+                var order = await _purchaseOrderRepo.GetByIdAsync(entityId);
+                if (order == null) return null;
+                displayName = $"Orden de Compra {order.OrderNumber} - {order.Supplier?.Name}";
+                data["order_number"] = order.OrderNumber;
+                data["order_date"] = order.OrderDate.ToString("dd/MM/yyyy");
+                data["expected_date"] = order.ExpectedDate?.ToString("dd/MM/yyyy") ?? "";
+                data["supplier_name"] = order.Supplier?.Name ?? "";
+                data["supplier_id"] = order.Supplier?.TaxId ?? "";
+                data["supplier_address"] = order.Supplier?.Address ?? "";
+                data["notes"] = order.Notes ?? "";
+                data["order_status"] = order.Status;
+                data["Order.Subtotal"] = order.Subtotal.ToString("N2");
+                data["Order.Tax"] = order.Tax.ToString("N2");
+                data["Order.Discount"] = order.Discount.ToString("N2");
+                data["Order.Total"] = order.Total.ToString("N2");
+                data["Order.Currency"] = order.CurrencyCode;
+                data["items"] = order.Details?
+                    .Select(d => Item(
+                        ("code", d.Product?.Code ?? ""),
+                        ("description", d.Product?.Name ?? ""),
+                        ("quantity", d.QuantityOrdered.ToString()),
+                        ("quantity_received", d.QuantityReceived.ToString()),
+                        ("unit_price", d.UnitCost.ToString("N2")),
+                        ("subtotal", d.Subtotal.ToString("N2"))))
+                    .ToList() ?? [];
+                break;
+            }
+
+            case "purchase":
+            {
+                var purchase = await _purchaseRepo.GetByIdAsync(entityId);
+                if (purchase == null) return null;
+                displayName = $"Compra {purchase.PurchaseNumber} - {purchase.Supplier?.Name}";
+                data["purchase_number"] = purchase.PurchaseNumber;
+                data["acta_number"] = purchase.PurchaseNumber;
+                data["acta_date"] = (purchase.PurchaseDate ?? DateTime.UtcNow).ToString("dd/MM/yyyy");
+                data["invoice_ref"] = purchase.InvoiceReference ?? "";
+                data["order_ref"] = purchase.PurchaseOrder?.OrderNumber ?? "";
+                data["supplier_name"] = purchase.Supplier?.Name ?? "";
+                data["supplier_id"] = purchase.Supplier?.TaxId ?? "";
+                data["supplier_address"] = purchase.Supplier?.Address ?? "";
+                data["notes"] = purchase.Notes ?? "";
+                data["received_by"] = "";
+                data["Purchase.Subtotal"] = purchase.Subtotal.ToString("N2");
+                data["Purchase.Tax"] = purchase.Tax.ToString("N2");
+                data["Purchase.Discount"] = purchase.Discount.ToString("N2");
+                data["Purchase.Total"] = purchase.Total.ToString("N2");
+                data["Purchase.PaidAmount"] = purchase.PaidAmount.ToString("N2");
+                data["Purchase.Balance"] = purchase.Balance.ToString("N2");
+                data["Purchase.Currency"] = purchase.CurrencyCode;
+                data["items"] = purchase.Details?
+                    .Select(d => Item(
+                        ("code", d.Product?.Code ?? ""),
+                        ("description", d.Product?.Name ?? ""),
+                        ("quantity", d.Quantity.ToString()),
+                        ("unit_price", d.UnitCost.ToString("N2")),
+                        ("subtotal", d.Subtotal.ToString("N2"))))
+                    .ToList() ?? [];
+                break;
+            }
+
+            case "creditpayment":
+            {
+                var payment = await _creditPaymentRepo.GetByIdAsync(entityId);
+                if (payment == null) return null;
+                var client = payment.Credit?.Client;
+                var clientName = client != null ? $"{client.FirstName} {client.LastName}" : "Cliente";
+                displayName = $"Pago {payment.Amount:N2} - {clientName}";
+                data["receipt_number"] = string.IsNullOrWhiteSpace(payment.ReferenceNumber)
+                    ? $"RP-{payment.Id.ToString()[..8].ToUpperInvariant()}"
+                    : payment.ReferenceNumber!;
+                data["payment_date"] = payment.PaymentDate.ToString("dd/MM/yyyy");
+                data["client_name"] = clientName;
+                data["credit_number"] = payment.Credit?.CreditNumber ?? "";
+                data["payment_method"] = PaymentMethodLabel(payment.PaymentMethod);
+                data["payment_amount"] = payment.Amount.ToString("N2");
+                data["principal_amount"] = payment.PrincipalAmount.ToString("N2");
+                data["interest_amount"] = payment.InterestAmount.ToString("N2");
+                data["installment_ref"] = payment.CreditInstallment?.InstallmentNumber.ToString() ?? "";
+                data["credit_total"] = payment.Credit?.TotalAmount.ToString("N2") ?? "";
+                data["credit_balance"] = payment.Credit?.Balance.ToString("N2") ?? "";
+                data["sale_ref"] = payment.Credit?.Sale?.InvoiceNumber ?? "";
+                break;
+            }
+
+            case "cashmovement":
+            {
+                var movement = await _cashMovementRepo.GetByIdAsync(entityId);
+                if (movement == null) return null;
+                var isIncome = string.Equals(movement.MovementType, "income", StringComparison.OrdinalIgnoreCase);
+                displayName = $"{(isIncome ? "Ingreso" : "Egreso")} {movement.Amount:N2} - {movement.Concept}";
+                data["movement_title"] = isIncome ? "COMPROBANTE DE INGRESO" : "COMPROBANTE DE EGRESO";
+                data["movement_type"] = movement.MovementType;
+                data["movement_date"] = movement.CreatedAt.ToString("dd/MM/yyyy");
+                data["concept"] = movement.Concept ?? "";
+                data["amount"] = movement.Amount.ToString("N2");
+                data["register_code"] = movement.CashRegister?.Code ?? "";
+                data["reference"] = movement.ReferenceNumber ?? movement.DocumentReference ?? "";
+                data["employee_name"] = movement.Employee != null
+                    ? $"{movement.Employee.FirstName} {movement.Employee.LastName}"
+                    : "";
+                break;
+            }
+
+            case "workorder":
+            {
+                var workOrder = await _workOrderRepo.GetByIdAsync(entityId);
+                if (workOrder == null) return null;
+                displayName = $"OT {workOrder.Number} - {workOrder.Vehicle?.Plate}";
+                data["wo_number"] = workOrder.Number;
+                data["report_date"] = workOrder.ReportDateTime.ToString("dd/MM/yyyy");
+                data["vehicle_plate"] = workOrder.Vehicle?.Plate ?? "";
+                data["vehicle_desc"] = workOrder.Vehicle != null
+                    ? $"{workOrder.Vehicle.Model} {workOrder.Vehicle.Year}".Trim()
+                    : "";
+                data["driver_name"] = workOrder.Driver != null
+                    ? $"{workOrder.Driver.FirstName} {workOrder.Driver.LastName}"
+                    : "";
+                data["problem_description"] = workOrder.ProblemDescription ?? "";
+                data["diagnosis"] = workOrder.Diagnosis ?? "";
+                data["root_cause"] = workOrder.RootCause ?? "";
+                data["solution_applied"] = workOrder.SolutionApplied ?? "";
+                data["priority"] = workOrder.Priority;
+                data["workshop_name"] = workOrder.Workshop?.Name ?? "";
+                data["mechanic"] = workOrder.MechanicResponsible ?? "";
+                data["start_date"] = workOrder.StartDate?.ToString("dd/MM/yyyy") ?? "";
+                data["end_date"] = workOrder.EndDate?.ToString("dd/MM/yyyy") ?? "";
+                data["downtime_hours"] = workOrder.DowntimeHours?.ToString() ?? "";
+                data["WorkOrder.CostLabor"] = workOrder.CostLabor.ToString("N2");
+                data["WorkOrder.CostParts"] = workOrder.CostParts.ToString("N2");
+                data["WorkOrder.CostTotal"] = workOrder.CostTotal.ToString("N2");
+                data["cost_total"] = workOrder.CostTotal.ToString("N2");
+                break;
+            }
+
+            case "workshopreceipt":
+            {
+                var workOrder = await _workOrderRepo.GetByIdAsync(entityId);
+                if (workOrder == null) return null;
+                displayName = $"Recepción Taller {workOrder.Number} - {workOrder.Vehicle?.Plate}";
+                data["acta_number"] = workOrder.Number;
+                data["report_date"] = workOrder.ReportDateTime.ToString("dd/MM/yyyy");
+                data["workshop_name"] = workOrder.Workshop?.Name ?? "";
+                data["workshop_address"] = workOrder.Workshop?.Address ?? "";
+                data["workshop_phone"] = workOrder.Workshop?.Phone ?? "";
+                data["vehicle_plate"] = workOrder.Vehicle?.Plate ?? "";
+                data["vehicle_desc"] = workOrder.Vehicle != null
+                    ? $"{workOrder.Vehicle.Model} {workOrder.Vehicle.Year}".Trim()
+                    : "";
+                data["driver_name"] = workOrder.Driver != null
+                    ? $"{workOrder.Driver.FirstName} {workOrder.Driver.LastName}"
+                    : "";
+                data["problem_description"] = workOrder.ProblemDescription ?? "";
+                data["priority"] = workOrder.Priority;
+                data["wo_status"] = workOrder.Status;
+                data["cost_estimate"] = workOrder.CostEst.ToString("N2");
+                data["notes"] = workOrder.RootCause ?? "";
+                break;
+            }
+
+            case "supplierpayment":
+            {
+                var payment = await _supplierPaymentRepo.GetByIdAsync(entityId);
+                if (payment == null) return null;
+                var supplierName = payment.Purchase?.Supplier?.Name ?? "Proveedor";
+                displayName = $"Pago {payment.Amount:N2} - {supplierName}";
+                data["receipt_number"] = string.IsNullOrWhiteSpace(payment.ReferenceNumber)
+                    ? $"RP-{payment.Id.ToString()[..8].ToUpperInvariant()}"
+                    : payment.ReferenceNumber!;
+                data["payment_date"] = payment.PaymentDate.ToString("dd/MM/yyyy");
+                data["supplier_name"] = supplierName;
+                data["purchase_ref"] = payment.Purchase?.PurchaseNumber ?? "";
+                data["payment_method"] = PaymentMethodLabel(payment.PaymentMethod);
+                data["payment_amount"] = payment.Amount.ToString("N2");
+                data["purchase_balance"] = payment.Purchase?.Balance.ToString("N2") ?? "";
+                data["notes"] = payment.Notes ?? "";
+                break;
+            }
+
+            case "warranty":
+            {
+                var warranty = await _warrantyRepo.GetByIdAsync(entityId);
+                if (warranty == null) return null;
+                var clientName = warranty.Client != null ? $"{warranty.Client.FirstName} {warranty.Client.LastName}" : "Cliente";
+                displayName = $"Garantía {warranty.WarrantyNumber} - {warranty.Product?.Name}";
+                data["warranty_number"] = warranty.WarrantyNumber;
+                data["client_name"] = clientName;
+                data["product_name"] = warranty.Product?.Name ?? "";
+                data["serial_number"] = warranty.SerialNumber ?? warranty.Imei ?? warranty.LotNumber ?? "";
+                data["start_date"] = warranty.StartDate.ToString("dd/MM/yyyy");
+                data["end_date"] = warranty.EndDate.ToString("dd/MM/yyyy");
+                data["duration_months"] = warranty.DurationMonths.ToString();
+                data["terms"] = warranty.Terms ?? "";
+                data["status"] = warranty.Status.ToString();
+                break;
+            }
+
+            case "delivery":
+            {
+                var delivery = await _deliveryRepo.GetByIdAsync(entityId);
+                if (delivery == null) return null;
+                displayName = $"Entrega {delivery.Code}";
+                data["delivery_code"] = delivery.Code;
+                data["scheduled_date"] = delivery.ScheduledDate.ToString("dd/MM/yyyy");
+                data["time_window"] = delivery.TimeWindowStart.HasValue
+                    ? $"{delivery.TimeWindowStart:hh\\:mm} - {delivery.TimeWindowEnd:hh\\:mm}"
+                    : "";
+                data["client_name"] = delivery.Client != null ? $"{delivery.Client.FirstName} {delivery.Client.LastName}" : "";
+                data["delivery_address"] = delivery.DeliveryAddress;
+                data["driver_name"] = delivery.Driver != null ? $"{delivery.Driver.FirstName} {delivery.Driver.LastName}" : "";
+                data["vehicle_plate"] = delivery.Vehicle?.Plate ?? "";
+                data["route_name"] = delivery.Route?.Name ?? "";
+                data["receiver_name"] = delivery.ReceiverName ?? "";
+                data["observations"] = delivery.Observations ?? "";
+                data["status"] = delivery.Status;
+                data["items"] = delivery.Items?
+                    .Select(i => Item(
+                        ("product", i.Product != null ? $"{i.Product.Code} {i.Product.Name}".Trim() : ""),
+                        ("qty_ordered", i.QtyOrdered.ToString("0.##")),
+                        ("qty_delivered", i.QtyDelivered.ToString("0.##")),
+                        ("qty_returned", i.QtyReturned.ToString("0.##")),
+                        ("lot_serial", i.LotSerial ?? "")))
+                    .ToList() ?? [];
+                break;
+            }
+
+            case "fixedasset":
+            {
+                var asset = await _fixedAssetRepo.GetByIdAsync(entityId);
+                if (asset == null) return null;
+                displayName = $"Activo {asset.Code} - {asset.Name}";
+                data["asset_code"] = asset.Code;
+                data["asset_name"] = asset.Name;
+                data["acquisition_date"] = asset.AcquisitionDate.ToString("dd/MM/yyyy");
+                data["acquisition_cost"] = asset.AcquisitionCost.ToString("N2");
+                data["supplier_name"] = asset.Supplier?.Name ?? "";
+                data["useful_life_years"] = asset.UsefulLifeYears.ToString();
+                data["residual_value"] = asset.ResidualValue.ToString("N2");
+                data["depreciation_method"] = asset.DepreciationMethod switch
+                {
+                    "StraightLine" => "Línea Recta",
+                    "DecliningBalance" => "Saldo Decreciente",
+                    "UnitsOfProduction" => "Unidades de Producción",
+                    _ => asset.DepreciationMethod
+                };
+                data["assigned_to"] = asset.AssignedTo ?? "";
+                data["status"] = asset.Status;
+                data["location"] = asset.Location?.Name ?? "";
+                data["department"] = asset.Department?.Name ?? "";
+                break;
+            }
+
+            case "kardex":
+            {
+                var product = await _productRepo.GetByIdAsync(entityId);
+                if (product == null) return null;
+                displayName = $"Kardex {product.Code} - {product.Name}";
+                var movements = await _inventoryMovementRepo.GetFilteredAsync(
+                    entityId, null, null, null, null, null, 1, 1000);
+                data["product_code"] = product.Code;
+                data["product_name"] = product.Name;
+                data["unit_of_measure"] = product.UnitOfMeasure;
+                data["current_stock"] = product.Stock.ToString();
+                data["current_cost"] = product.CostPrice.ToString("N2");
+                data["period"] = movements.Count > 0
+                    ? $"{movements.Min(m => m.CreatedAt):dd/MM/yyyy} - {movements.Max(m => m.CreatedAt):dd/MM/yyyy}"
+                    : "";
+                data["total_in_qty"] = movements.Where(m => m.StockAfter >= m.StockBefore).Sum(m => m.Quantity).ToString();
+                data["total_out_qty"] = movements.Where(m => m.StockAfter < m.StockBefore).Sum(m => m.Quantity).ToString();
+                data["movements_count"] = movements.Count.ToString();
+                data["movements"] = movements
+                    .OrderBy(m => m.CreatedAt)
+                    .Select(m => Item(
+                        ("date", m.CreatedAt.ToString("dd/MM/yyyy")),
+                        ("type", MovementLabel(m.MovementType)),
+                        ("direction", m.StockAfter >= m.StockBefore ? "Entrada" : "Salida"),
+                        ("quantity", m.Quantity.ToString()),
+                        ("stock_before", m.StockBefore.ToString()),
+                        ("stock_after", m.StockAfter.ToString()),
+                        ("reference", m.ReferenceNumber ?? "")))
+                    .ToList();
+                break;
+            }
+
+            case "client":
+            {
+                var client = await _clientRepo.GetByIdAsync(entityId);
+                if (client == null) return null;
+                displayName = $"{client.FirstName} {client.LastName}";
+                data["Client.FullName"] = displayName;
+                data["Client.Identification"] = client.IdentificationNumber ?? "";
+                data["Client.Phone"] = client.Phone ?? "";
+                data["client_name"] = displayName;
+                break;
+            }
+
+            default:
+                return null;
+        }
+
+        var company = await _companyRepo.GetByTenantIdAsync(_tenant.TenantId);
+
+        foreach (var (key, value) in DocumentCompanyContext.Build(company))
+            data[key] = value;
+
+        if (string.IsNullOrWhiteSpace(data["Contract.City"]?.ToString()))
+        {
+            var branchFallback = data.GetValueOrDefault("Branch.Address");
+            data["Contract.City"] = branchFallback ?? "";
+        }
+
+        return new EntityContextResponse(entityType, entityId, displayName, data);
+    }
+
+    private static List<Dictionary<string, object>> BuildSaleItems(Sale sale) =>
+        sale.Details?
+            .Select(d => Item(
+                ("code", d.Product?.Code ?? ""),
+                ("description", d.Product?.Name ?? ""),
+                ("quantity", d.Quantity.ToString()),
+                ("unit_price", d.UnitPrice.ToString("N2")),
+                ("discount", d.Discount.ToString("N2")),
+                ("subtotal", d.Subtotal.ToString("N2"))))
+            .ToList() ?? [];
+
+    private static Dictionary<string, object> Item(params (string Key, string Value)[] fields)
+    {
+        var item = new Dictionary<string, object>(fields.Length, StringComparer.Ordinal);
+        foreach (var (key, value) in fields)
+            item[key] = value;
+        return item;
+    }
+
+    private static string PaymentMethodLabel(string method) => method.ToLowerInvariant() switch
+    {
+        "cash" => "Efectivo",
+        "card" => "Tarjeta",
+        "transfer" or "transferencia" or "bank_transfer" => "Transferencia",
+        "check" or "cheque" => "Cheque",
+        _ => method
+    };
+
+    private static string MovementLabel(string type) => type switch
+    {
+        "purchase" => "Compra",
+        "sale" => "Venta",
+        "initial" => "Stock inicial",
+        "credit_note" => "Devolución de cliente",
+        "purchase_cancellation" => "Anulación de compra",
+        "purchase_return" => "Devolución a proveedor",
+        _ => type
+    };
+}

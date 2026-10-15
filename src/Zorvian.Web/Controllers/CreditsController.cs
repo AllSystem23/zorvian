@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Zorvian.Application.DTOs.Credit;
+using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
 using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
@@ -13,10 +15,23 @@ namespace Zorvian.Web.Controllers;
 public sealed class CreditsController : ControllerBase
 {
     private readonly CreditService _service;
+    private readonly IDocumentTemplateRepository _templateRepo;
+    private readonly IDocumentService _documentService;
+    private readonly IDocumentGenerationService _documentGenerationService;
+    private readonly ILogger<CreditsController> _logger;
 
-    public CreditsController(CreditService service)
+    public CreditsController(
+        CreditService service,
+        IDocumentTemplateRepository templateRepo,
+        IDocumentService documentService,
+        IDocumentGenerationService documentGenerationService,
+        ILogger<CreditsController> logger)
     {
         _service = service;
+        _templateRepo = templateRepo;
+        _documentService = documentService;
+        _documentGenerationService = documentGenerationService;
+        _logger = logger;
     }
 
     [Audit("Credit", "Read")]
@@ -55,6 +70,47 @@ public sealed class CreditsController : ControllerBase
     {
         var result = await _service.GetPaymentsAsync(id, page, pageSize);
         return Ok(result);
+    }
+
+    [Audit("CreditPayment", "GeneratePdf")]
+    [HttpPost("payments/{paymentId:guid}/pdf/generate")]
+    [RequirePermission(Permissions.CreditRead)]
+    public async Task<IActionResult> GeneratePaymentReceiptPdf(Guid paymentId)
+    {
+        try
+        {
+            var context = await _documentGenerationService.GetEntityContextAsync("creditpayment", paymentId);
+            if (context is null)
+                return NotFound(new { error = "Pago no encontrado" });
+
+            var template = await _templateRepo.GetByNameAsync("Recibo de Pago (Cliente)");
+            if (template is null)
+                return NotFound(new { error = "Plantilla 'Recibo de Pago (Cliente)' no encontrada. Ejecute el seed." });
+
+            var generated = await _documentService.GenerateProfessionalDocumentAsync(
+                template.Id,
+                paymentId,
+                context.Data,
+                "creditpayment");
+
+            return Ok(new
+            {
+                generatedDocumentId = generated.Id,
+                name = generated.Name,
+                status = generated.Status,
+                createdAt = generated.CreatedAt,
+                downloadUrl = $"/zorvian/v1/documents/{generated.Id}/pdf"
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generando recibo de pago {PaymentId}", paymentId);
+            return StatusCode(500, new { error = "Error interno al generar el documento" });
+        }
     }
 
     [HttpPost("{id:guid}/late-fees/calculate")]

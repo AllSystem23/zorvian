@@ -5,6 +5,7 @@ namespace Zorvian.Application.Interfaces;
 public interface IDocumentTemplateRepository
 {
     Task<DocumentTemplate?> GetByIdAsync(Guid id);
+    Task<DocumentTemplate?> GetByNameAsync(string name);
     Task<List<DocumentTemplate>> GetAllAsync();
     Task<List<DocumentTemplate>> GetByCategoryAsync(string category);
     Task<List<DocumentTemplate>> GetByCountryAsync(string countryCode);

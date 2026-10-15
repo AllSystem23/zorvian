@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Zorvian.Application.DTOs.Common;
 using Zorvian.Application.DTOs.PurchaseOrder;
+using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
 using Zorvian.Web.Authorization;
+using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
 
@@ -13,8 +16,24 @@ namespace Zorvian.Web.Controllers;
 public sealed class PurchaseOrdersController : ControllerBase
 {
     private readonly PurchaseOrderService _service;
+    private readonly IDocumentTemplateRepository _templateRepo;
+    private readonly IDocumentService _documentService;
+    private readonly IDocumentGenerationService _documentGenerationService;
+    private readonly ILogger<PurchaseOrdersController> _logger;
 
-    public PurchaseOrdersController(PurchaseOrderService service) => _service = service;
+    public PurchaseOrdersController(
+        PurchaseOrderService service,
+        IDocumentTemplateRepository templateRepo,
+        IDocumentService documentService,
+        IDocumentGenerationService documentGenerationService,
+        ILogger<PurchaseOrdersController> logger)
+    {
+        _service = service;
+        _templateRepo = templateRepo;
+        _documentService = documentService;
+        _documentGenerationService = documentGenerationService;
+        _logger = logger;
+    }
 
     [RequirePermission(Permissions.PurchaseRead)]
     [HttpGet]
@@ -105,6 +124,47 @@ public sealed class PurchaseOrdersController : ControllerBase
         catch (KeyNotFoundException ex)
         {
             return NotFound(new { detail = ex.Message });
+        }
+    }
+
+    [Audit("PurchaseOrder", "GeneratePdf")]
+    [RequirePermission(Permissions.PurchaseRead)]
+    [HttpPost("{id}/pdf/generate")]
+    public async Task<IActionResult> GeneratePdf(Guid id)
+    {
+        try
+        {
+            var context = await _documentGenerationService.GetEntityContextAsync("purchaseorder", id);
+            if (context is null)
+                return NotFound(new { detail = "Orden de compra no encontrada" });
+
+            var template = await _templateRepo.GetByNameAsync("Orden de Compra");
+            if (template is null)
+                return NotFound(new { detail = "Plantilla 'Orden de Compra' no encontrada. Ejecute el seed." });
+
+            var generated = await _documentService.GenerateProfessionalDocumentAsync(
+                template.Id,
+                id,
+                context.Data,
+                "purchaseorder");
+
+            return Ok(new
+            {
+                generatedDocumentId = generated.Id,
+                name = generated.Name,
+                status = generated.Status,
+                createdAt = generated.CreatedAt,
+                downloadUrl = $"/zorvian/v1/documents/{generated.Id}/pdf"
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { detail = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generando PDF de orden de compra {PurchaseOrderId}", id);
+            return StatusCode(500, new { detail = "Error interno al generar el documento" });
         }
     }
 }

@@ -7,8 +7,9 @@ using Zorvian.Infrastructure.Repositories;
 namespace Zorvian.Tests.Services;
 
 /// <summary>
-/// En producción (Render + Neon) el seeder crea las 6 plantillas con
-/// TenantId = "SYSTEM" una sola vez. El query filter híbrido de DocumentTemplate
+/// En producción (Render + Neon) el seeder crea las 21 plantillas con
+/// TenantId = "SYSTEM" una sola vez (e inserta las que falten en arranques
+/// posteriores). El query filter híbrido de DocumentTemplate
 /// debe permitir que cualquier compañía las liste y genere desde el Motor
 /// Documental y desde Talento Humano, manteniendo aisladas las plantillas
 /// personalizadas de otras compañías (Sólo SuperAdmin con bypass las ve todas).
@@ -127,9 +128,23 @@ public sealed class DocumentTemplateSystemVisibilityTests : IDisposable
         var repo = new DocumentTemplateRepository(freshDb);
         var (items, total) = await repo.GetFilteredAsync(null, null, null, null, null, 1, 50);
 
-        Assert.Equal(7, total);
+        Assert.Equal(21, total);
         Assert.All(items, t => Assert.Equal(DocumentTemplate.SystemTenantId, t.TenantId));
         Assert.Equal(6, items.Count(t => t.Version == "2.1"));
         Assert.Contains(items, t => t.Name == "Liquidación Final (Nicaragua)" && t.CountryCode == "NIC");
+        Assert.Contains(items, t => t.Name == "Factura" && t.Version == "1.0");
+        Assert.Contains(items, t => t.Name == "Guía de Despacho" && t.Version == "1.0");
+        Assert.Contains(items, t => t.Name == "Nota de Crédito" && t.Version == "1.0");
+        Assert.Contains(items, t => t.Name == "Orden de Compra" && t.Version == "1.0");
+        Assert.Contains(items, t => t.Name == "Acta de Recepción de Compras" && t.Version == "1.0");
+        Assert.Contains(items, t => t.Name == "Recibo de Pago (Cliente)" && t.Version == "1.0");
+        Assert.Contains(items, t => t.Name == "Comprobante de Caja" && t.Version == "1.0");
+        Assert.Contains(items, t => t.Name == "Orden de Trabajo" && t.Version == "1.0");
+        Assert.Contains(items, t => t.Name == "Acta de Recepción (Taller)" && t.Version == "1.0");
+        Assert.Contains(items, t => t.Name == "Recibo de Pago (Proveedor)" && t.Version == "1.0");
+        Assert.Contains(items, t => t.Name == "Certificado de Garantía" && t.Version == "1.0");
+        Assert.Contains(items, t => t.Name == "Hoja de Ruta / Entrega" && t.Version == "1.0");
+        Assert.Contains(items, t => t.Name == "Ficha de Activo Fijo" && t.Version == "1.0");
+        Assert.Contains(items, t => t.Name == "Kardex de Producto" && t.Version == "1.0");
     }
 }

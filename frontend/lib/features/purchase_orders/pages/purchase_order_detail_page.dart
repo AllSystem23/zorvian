@@ -1,5 +1,9 @@
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../shared/ds/ds.dart';
 import '../providers/purchase_order_provider.dart';
@@ -93,6 +97,45 @@ final class _PurchaseOrderDetailPageState extends ConsumerState<PurchaseOrderDet
     }
   }
 
+  /// Genera el PDF de la orden de compra vía el motor documental y lo comparte.
+  Future<void> _generatePdf() async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      final r = await dio.post('purchase-orders/${widget.purchaseOrderId}/pdf/generate');
+      final documentId = r.data['generatedDocumentId'] as String?;
+      if (documentId == null) throw Exception('Respuesta sin documento generado');
+
+      final pdf = await dio.get(
+        'documents/$documentId/pdf',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final bytes = pdf.data as List<int>;
+      if (!mounted) return;
+      await SharePlus.instance.share(
+        ShareParams(files: [
+          XFile.fromData(
+            Uint8List.fromList(bytes),
+            mimeType: 'application/pdf',
+            name: 'orden_compra_${_data!.orderNumber}.pdf',
+          ),
+        ]),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Orden de compra generada (${bytes.length ~/ 1024} KB)'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al generar PDF: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -180,6 +223,8 @@ final class _PurchaseOrderDetailPageState extends ConsumerState<PurchaseOrderDet
               ),
             if (d.status == 'partially_received')
               Center(child: ZButton(text: 'Recibir Restante', onPressed: _receive, type: ZButtonType.primary)),
+            const SizedBox(height: 12),
+            ZButton(text: 'Generar PDF (Motor Documental)', onPressed: _generatePdf, type: ZButtonType.secondary),
             const SizedBox(height: 80),
           ],
         ),

@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Zorvian.Application.DTOs.CashRegister;
+using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
 using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
@@ -13,10 +15,23 @@ namespace Zorvian.Web.Controllers;
 public sealed class CashRegistersController : ControllerBase
 {
     private readonly CashRegisterService _service;
+    private readonly IDocumentTemplateRepository _templateRepo;
+    private readonly IDocumentService _documentService;
+    private readonly IDocumentGenerationService _documentGenerationService;
+    private readonly ILogger<CashRegistersController> _logger;
 
-    public CashRegistersController(CashRegisterService service)
+    public CashRegistersController(
+        CashRegisterService service,
+        IDocumentTemplateRepository templateRepo,
+        IDocumentService documentService,
+        IDocumentGenerationService documentGenerationService,
+        ILogger<CashRegistersController> logger)
     {
         _service = service;
+        _templateRepo = templateRepo;
+        _documentService = documentService;
+        _documentGenerationService = documentGenerationService;
+        _logger = logger;
     }
 
     [Audit("CashRegister", "Create")]
@@ -118,5 +133,46 @@ public sealed class CashRegistersController : ControllerBase
         if (result is null)
             return NotFound(new { error = "Arqueo not found" });
         return Ok(result);
+    }
+
+    [Audit("CashMovement", "GeneratePdf")]
+    [RequirePermission(Permissions.CashRead)]
+    [HttpPost("movements/{movementId:guid}/pdf/generate")]
+    public async Task<IActionResult> GenerateMovementPdf(Guid movementId)
+    {
+        try
+        {
+            var context = await _documentGenerationService.GetEntityContextAsync("cashmovement", movementId);
+            if (context is null)
+                return NotFound(new { error = "Movimiento de caja no encontrado" });
+
+            var template = await _templateRepo.GetByNameAsync("Comprobante de Caja");
+            if (template is null)
+                return NotFound(new { error = "Plantilla 'Comprobante de Caja' no encontrada. Ejecute el seed." });
+
+            var generated = await _documentService.GenerateProfessionalDocumentAsync(
+                template.Id,
+                movementId,
+                context.Data,
+                "cashmovement");
+
+            return Ok(new
+            {
+                generatedDocumentId = generated.Id,
+                name = generated.Name,
+                status = generated.Status,
+                createdAt = generated.CreatedAt,
+                downloadUrl = $"/zorvian/v1/documents/{generated.Id}/pdf"
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generando comprobante de caja {MovementId}", movementId);
+            return StatusCode(500, new { error = "Error interno al generar el documento" });
+        }
     }
 }

@@ -2,6 +2,7 @@ using FluentAssertions;
 using Moq;
 using Xunit;
 using Zorvian.Application.Interfaces;
+using Zorvian.Application.Interfaces.Fleet;
 using Zorvian.Application.Services.Documentary;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
@@ -20,22 +21,59 @@ public sealed class DocumentGenerationServiceContractContextTests
     private readonly Mock<ISaleRepository> _saleRepo = new();
     private readonly Mock<ICompanyRepository> _companyRepo = new();
     private readonly Mock<IClientRepository> _clientRepo = new();
+    private readonly Mock<ICertificateCalculator> _certificateCalc = new();
     private readonly Mock<ITenantContext> _tenant = new();
+    private readonly Mock<ICreditNoteRepository> _creditNoteRepo = new();
+    private readonly Mock<IPurchaseOrderRepository> _purchaseOrderRepo = new();
+    private readonly Mock<IPurchaseRepository> _purchaseRepo = new();
+    private readonly Mock<ICreditPaymentRepository> _creditPaymentRepo = new();
+    private readonly Mock<ICashMovementRepository> _cashMovementRepo = new();
+    private readonly Mock<IWorkOrderRepository> _workOrderRepo = new();
+    private readonly Mock<ISupplierPaymentRepository> _supplierPaymentRepo = new();
+    private readonly Mock<IWarrantyRepository> _warrantyRepo = new();
+    private readonly Mock<IDeliveryRepository> _deliveryRepo = new();
+    private readonly Mock<IFixedAssetRepository> _fixedAssetRepo = new();
+    private readonly Mock<IProductRepository> _productRepo = new();
+    private readonly Mock<IInventoryMovementRepository> _inventoryMovementRepo = new();
+    private readonly Mock<IQuoteRepository> _quoteRepo = new();
 
     private DocumentGenerationService CreateSut()
     {
         _tenant.Setup(t => t.TenantId).Returns("tenant-1");
-        return new DocumentGenerationService(
-            _documentService.Object,
+        var builder = new EntityDocumentContextBuilder(
             _employeeRepo.Object,
             _saleRepo.Object,
             _companyRepo.Object,
             _clientRepo.Object,
+            _tenant.Object,
+            _creditNoteRepo.Object,
+            _purchaseOrderRepo.Object,
+            _purchaseRepo.Object,
+            _creditPaymentRepo.Object,
+            _cashMovementRepo.Object,
+            _workOrderRepo.Object,
+            _supplierPaymentRepo.Object,
+            _warrantyRepo.Object,
+            _deliveryRepo.Object,
+            _fixedAssetRepo.Object,
+            _productRepo.Object,
+            _inventoryMovementRepo.Object,
+            _quoteRepo.Object);
+        return new DocumentGenerationService(
+            _documentService.Object,
+            builder,
+            _employeeRepo.Object,
+            _companyRepo.Object,
+            _certificateCalc.Object,
             _tenant.Object);
     }
 
     private void SetupCompany(Company? company) =>
         _companyRepo.Setup(r => r.GetByTenantIdAsync(It.IsAny<string>())).ReturnsAsync(company);
+
+    // El contexto expone Dictionary<string,object> (admite listas); los asserts de
+    // string necesitan el valor aplanado.
+    private static string Str(object? value) => value?.ToString() ?? string.Empty;
 
     private static Company MakeCompany(string? country) => new()
     {
@@ -95,9 +133,9 @@ public sealed class DocumentGenerationServiceContractContextTests
         data["Country.ProbationMonths"].Should().Be("2");
         data["Country.VacationDays"].Should().Be("14");
         data["Country.IdDocument"].Should().Be("Cédula de Identidad");
-        data["Country.LaborLaw"].Should().Contain("Costa Rica");
+        Str(data["Country.LaborLaw"]).Should().Contain("Costa Rica");
         data["Country.TaxAuthority"].Should().Be("Ministerio de Hacienda");
-        data["Country.SocialSecurity"].Should().Contain("CCSS");
+        Str(data["Country.SocialSecurity"]).Should().Contain("CCSS");
         data["Country.ThirteenthMonth"].Should().Be("Aguinaldo");
 
         // Etiqueta de identificación fiscal = tipo de ID (RUC/NIT/...), no la entidad
@@ -134,8 +172,8 @@ public sealed class DocumentGenerationServiceContractContextTests
         data["Country.Currency"].Should().Be("Q");
         data["Country.WeeklyHours"].Should().Be("44");
         data["Country.WeeklySchedule"].Should().Be("de lunes a viernes");
-        data["Country.TaxAuthority"].Should().Contain("SAT");
-        data["Country.SocialSecurity"].Should().Contain("IGSS");
+        Str(data["Country.TaxAuthority"]).Should().Contain("SAT");
+        Str(data["Country.SocialSecurity"]).Should().Contain("IGSS");
     }
 
     [Fact]
@@ -153,8 +191,8 @@ public sealed class DocumentGenerationServiceContractContextTests
         data["Country.WeeklyHours"].Should().Be("48");
         data["Country.WeeklySchedule"].Should().Be("de lunes a sábado");
         data["Company.TaxIdLabel"].Should().Be("RUC");
-        data["Country.SocialSecurity"].Should().Contain("INSS");
-        data["Country.LaborLaw"].Should().Contain("Nicaragua");
+        Str(data["Country.SocialSecurity"]).Should().Contain("INSS");
+        Str(data["Country.LaborLaw"]).Should().Contain("Nicaragua");
     }
 
     [Fact]
@@ -187,5 +225,709 @@ public sealed class DocumentGenerationServiceContractContextTests
         var ctx = await CreateSut().GetEntityContextAsync("employee", id);
 
         ctx.Should().BeNull();
+    }
+
+    // ── Contextos de esta tanda: purchase / creditpayment / cashmovement / workorder ──
+
+    [Fact]
+    public async Task Purchase_ExposesSupplierOrderRefAndTotals()
+    {
+        var id = Guid.NewGuid();
+        _purchaseRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(new Purchase
+        {
+            Id = id,
+            PurchaseNumber = "COM-2026-001",
+            InvoiceReference = "FAC-PROV-77",
+            PurchaseDate = new DateTime(2026, 10, 12),
+            Subtotal = 5000m, Tax = 750m, Discount = 100m, Total = 5650m,
+            PaidAmount = 2000m, Balance = 3650m,
+            CurrencyCode = "NIO",
+            Supplier = new Supplier { Name = "Distribuidora Norte S.A.", TaxId = "J0510000000002B", Address = "Barrio Industrial" },
+            PurchaseOrder = new PurchaseOrder { OrderNumber = "OC-2026-001" },
+        });
+
+        var ctx = await CreateSut().GetEntityContextAsync("purchase", id);
+
+        ctx.Should().NotBeNull();
+        ctx!.DisplayName.Should().Contain("COM-2026-001");
+        ctx.Data["acta_number"].Should().Be("COM-2026-001");
+        ctx.Data["order_ref"].Should().Be("OC-2026-001");
+        ctx.Data["invoice_ref"].Should().Be("FAC-PROV-77");
+        ctx.Data["supplier_name"].Should().Be("Distribuidora Norte S.A.");
+        ctx.Data["supplier_id"].Should().Be("J0510000000002B");
+        ctx.Data["Purchase.Total"].Should().Be("5,650.00");
+        ctx.Data["Purchase.Balance"].Should().Be("3,650.00");
+        ctx.Data["Purchase.Currency"].Should().Be("NIO");
+    }
+
+    [Fact]
+    public async Task CreditPayment_ExposesClientCreditAmountsAndMethodLabel()
+    {
+        var id = Guid.NewGuid();
+        _creditPaymentRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(new CreditPayment
+        {
+            Id = id,
+            Amount = 1500m, PrincipalAmount = 1300m, InterestAmount = 200m,
+            PaymentMethod = "cash",
+            PaymentDate = new DateTime(2026, 10, 12),
+            Credit = new Credit
+            {
+                CreditNumber = "CR-2026-001",
+                TotalAmount = 12000m, Balance = 10500m,
+                Client = new Client { FirstName = "Distribuidora", LastName = "Norte S.A." },
+                Sale = new Sale { InvoiceNumber = "FAC-2026-001" },
+            },
+        });
+
+        var ctx = await CreateSut().GetEntityContextAsync("creditpayment", id);
+
+        ctx.Should().NotBeNull();
+        Str(ctx!.Data["receipt_number"]).Should().StartWith("RP-");
+        ctx.Data["client_name"].Should().Be("Distribuidora Norte S.A.");
+        ctx.Data["credit_number"].Should().Be("CR-2026-001");
+        ctx.Data["payment_method"].Should().Be("Efectivo");
+        ctx.Data["payment_amount"].Should().Be("1,500.00");
+        ctx.Data["principal_amount"].Should().Be("1,300.00");
+        ctx.Data["credit_balance"].Should().Be("10,500.00");
+        ctx.Data["sale_ref"].Should().Be("FAC-2026-001");
+    }
+
+    [Fact]
+    public async Task CreditPayment_WithReferenceNumber_UsesItAsReceiptNumber()
+    {
+        var id = Guid.NewGuid();
+        _creditPaymentRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(new CreditPayment
+        {
+            Id = id,
+            Amount = 500m,
+            ReferenceNumber = "REC-42",
+            PaymentDate = new DateTime(2026, 10, 12),
+            Credit = new Credit { Client = new Client { FirstName = "Ana", LastName = "Torres" } },
+        });
+
+        var ctx = await CreateSut().GetEntityContextAsync("creditpayment", id);
+
+        ctx!.Data["receipt_number"].Should().Be("REC-42");
+    }
+
+    [Fact]
+    public async Task CashMovement_Income_ExposesTitleConceptAndRegisterCode()
+    {
+        var id = Guid.NewGuid();
+        _cashMovementRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(new CashMovement
+        {
+            Id = id,
+            MovementType = "income",
+            Amount = 1500m,
+            Concept = "Pago de cliente en efectivo",
+            ReferenceNumber = "REF-789",
+            CreatedAt = new DateTime(2026, 10, 12),
+            CashRegister = new CashRegister { Code = "CAJA-01" },
+            Employee = new Employee { FirstName = "Ana", LastName = "Torres" },
+        });
+
+        var ctx = await CreateSut().GetEntityContextAsync("cashmovement", id);
+
+        ctx.Should().NotBeNull();
+        ctx!.Data["movement_title"].Should().Be("COMPROBANTE DE INGRESO");
+        ctx.Data["concept"].Should().Be("Pago de cliente en efectivo");
+        ctx.Data["amount"].Should().Be("1,500.00");
+        ctx.Data["register_code"].Should().Be("CAJA-01");
+        ctx.Data["reference"].Should().Be("REF-789");
+        ctx.Data["employee_name"].Should().Be("Ana Torres");
+    }
+
+    [Fact]
+    public async Task CashMovement_Expense_UsesEgresoTitle()
+    {
+        var id = Guid.NewGuid();
+        _cashMovementRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(new CashMovement
+        {
+            Id = id,
+            MovementType = "expense",
+            Amount = 300m,
+            Concept = "Papelería",
+            CreatedAt = new DateTime(2026, 10, 12),
+        });
+
+        var ctx = await CreateSut().GetEntityContextAsync("cashmovement", id);
+
+        ctx!.Data["movement_title"].Should().Be("COMPROBANTE DE EGRESO");
+    }
+
+    [Fact]
+    public async Task WorkOrder_ExposesVehicleDriverDiagnosisAndCosts()
+    {
+        var id = Guid.NewGuid();
+        _workOrderRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(new Core.Entities.Fleet.WorkOrder
+        {
+            Id = id,
+            Number = "OT-2026-001",
+            ReportDateTime = new DateTime(2026, 10, 10),
+            ProblemDescription = "Ruido en el motor al arrancar",
+            Diagnosis = "Correa de distribución desgastada",
+            RootCause = "Desgaste por kilometraje",
+            SolutionApplied = "Cambio de correa y tensor",
+            Priority = "High",
+            MechanicResponsible = "Jorge Ruiz",
+            DowntimeHours = 16,
+            CostLabor = 800m, CostParts = 1200m, CostTotal = 2000m,
+            Vehicle = new Core.Entities.Fleet.Vehicle { Plate = "MZ-123", Model = "Hilux", Year = 2020 },
+            Driver = new Core.Entities.Fleet.Driver { FirstName = "Pedro", LastName = "Alonso" },
+            Workshop = new Core.Entities.Fleet.Workshop { Name = "Taller Central" },
+        });
+
+        var ctx = await CreateSut().GetEntityContextAsync("workorder", id);
+
+        ctx.Should().NotBeNull();
+        ctx!.DisplayName.Should().Contain("OT-2026-001");
+        ctx.Data["wo_number"].Should().Be("OT-2026-001");
+        ctx.Data["vehicle_plate"].Should().Be("MZ-123");
+        ctx.Data["vehicle_desc"].Should().Be("Hilux 2020");
+        ctx.Data["driver_name"].Should().Be("Pedro Alonso");
+        ctx.Data["diagnosis"].Should().Be("Correa de distribución desgastada");
+        ctx.Data["workshop_name"].Should().Be("Taller Central");
+        ctx.Data["WorkOrder.CostTotal"].Should().Be("2,000.00");
+        ctx.Data["downtime_hours"].Should().Be("16");
+    }
+
+    [Fact]
+    public async Task MissingPurchase_ReturnsNull()
+    {
+        var id = Guid.NewGuid();
+        _purchaseRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync((Purchase?)null);
+
+        (await CreateSut().GetEntityContextAsync("purchase", id)).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task MissingCreditPayment_ReturnsNull()
+    {
+        var id = Guid.NewGuid();
+        _creditPaymentRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync((Core.Entities.CreditPayment?)null);
+
+        (await CreateSut().GetEntityContextAsync("creditpayment", id)).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task MissingCashMovement_ReturnsNull()
+    {
+        var id = Guid.NewGuid();
+        _cashMovementRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync((CashMovement?)null);
+
+        (await CreateSut().GetEntityContextAsync("cashmovement", id)).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task MissingWorkOrder_ReturnsNull()
+    {
+        var id = Guid.NewGuid();
+        _workOrderRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync((Core.Entities.Fleet.WorkOrder?)null);
+
+        (await CreateSut().GetEntityContextAsync("workorder", id)).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task SupplierPayment_ExposesSupplierMethodAmountAndBalance()
+    {
+        var id = Guid.NewGuid();
+        _supplierPaymentRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(new SupplierPayment
+        {
+            Id = id,
+            Amount = 1500m,
+            PaymentMethod = "transfer",
+            ReferenceNumber = "RPP-001",
+            PaymentDate = new DateTime(2026, 10, 12),
+            Purchase = new Purchase
+            {
+                PurchaseNumber = "COM-2026-001",
+                Balance = 3650m,
+                Supplier = new Supplier { Name = "Distribuidora Norte S.A." },
+            },
+        });
+
+        var ctx = await CreateSut().GetEntityContextAsync("supplierpayment", id);
+
+        ctx.Should().NotBeNull();
+        ctx!.DisplayName.Should().Contain("Distribuidora Norte S.A.");
+        ctx.Data["receipt_number"].Should().Be("RPP-001");
+        ctx.Data["payment_date"].Should().Be("12/10/2026");
+        ctx.Data["supplier_name"].Should().Be("Distribuidora Norte S.A.");
+        ctx.Data["purchase_ref"].Should().Be("COM-2026-001");
+        ctx.Data["payment_method"].Should().Be("Transferencia");
+        ctx.Data["payment_amount"].Should().Be("1,500.00");
+        ctx.Data["purchase_balance"].Should().Be("3,650.00");
+    }
+
+    [Fact]
+    public async Task SupplierPayment_WithoutReference_GeneratesReceiptNumberFromId()
+    {
+        var id = Guid.NewGuid();
+        _supplierPaymentRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(new SupplierPayment
+        {
+            Id = id,
+            Amount = 200m,
+            PaymentMethod = "cash",
+            PaymentDate = new DateTime(2026, 10, 12),
+            Purchase = new Purchase { Supplier = new Supplier { Name = "Proveedor SA" } },
+        });
+
+        var ctx = await CreateSut().GetEntityContextAsync("supplierpayment", id);
+
+        ctx.Should().NotBeNull();
+        ctx!.Data["receipt_number"].Should().Be($"RP-{id.ToString()[..8].ToUpperInvariant()}");
+        ctx.Data["payment_method"].Should().Be("Efectivo");
+        ctx.Data["purchase_balance"].Should().Be("0.00", "Balance es decimal no-nullable (default 0)");
+    }
+
+    [Fact]
+    public async Task Warranty_ExposesClientProductSerialAndValidity()
+    {
+        var id = Guid.NewGuid();
+        _warrantyRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(new Warranty
+        {
+            Id = id,
+            WarrantyNumber = "GAR-2026-001",
+            SerialNumber = "SN-8842190",
+            StartDate = new DateOnly(2026, 1, 1),
+            EndDate = new DateOnly(2027, 1, 1),
+            DurationMonths = 12,
+            Terms = "Cobertura de partes y mano de obra",
+            Status = Core.Enums.WarrantyStatus.Registered,
+            Client = new Client { FirstName = "Distribuidora", LastName = "Norte S.A." },
+            Product = new Product { Name = "Laptop Lenovo ThinkPad E14" },
+        });
+
+        var ctx = await CreateSut().GetEntityContextAsync("warranty", id);
+
+        ctx.Should().NotBeNull();
+        ctx!.DisplayName.Should().Contain("GAR-2026-001");
+        ctx.Data["warranty_number"].Should().Be("GAR-2026-001");
+        ctx.Data["client_name"].Should().Be("Distribuidora Norte S.A.");
+        ctx.Data["product_name"].Should().Be("Laptop Lenovo ThinkPad E14");
+        ctx.Data["serial_number"].Should().Be("SN-8842190");
+        ctx.Data["start_date"].Should().Be("01/01/2026");
+        ctx.Data["end_date"].Should().Be("01/01/2027");
+        ctx.Data["duration_months"].Should().Be("12");
+        ctx.Data["terms"].Should().Be("Cobertura de partes y mano de obra");
+    }
+
+    [Fact]
+    public async Task Delivery_ExposesAddressDriverVehicleAndReceiver()
+    {
+        var id = Guid.NewGuid();
+        _deliveryRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(new Core.Entities.Fleet.Delivery
+        {
+            Id = id,
+            Code = "ENT-2026-001",
+            ScheduledDate = new DateOnly(2026, 10, 14),
+            TimeWindowStart = new TimeOnly(8, 0),
+            TimeWindowEnd = new TimeOnly(12, 0),
+            DeliveryAddress = "Km 12 Carretera Norte, Bodega 4",
+            ReceiverName = "Ana Torres",
+            Observations = "Entregar en recepción",
+            Status = "Delivered",
+            Client = new Client { FirstName = "Distribuidora", LastName = "Norte S.A." },
+            Vehicle = new Core.Entities.Fleet.Vehicle { Plate = "MZ-123" },
+            Driver = new Core.Entities.Fleet.Driver { FirstName = "Pedro", LastName = "Alonso" },
+            Route = new Core.Entities.Fleet.Route { Name = "Ruta Norte" },
+        });
+
+        var ctx = await CreateSut().GetEntityContextAsync("delivery", id);
+
+        ctx.Should().NotBeNull();
+        ctx!.DisplayName.Should().Contain("ENT-2026-001");
+        ctx.Data["delivery_code"].Should().Be("ENT-2026-001");
+        ctx.Data["scheduled_date"].Should().Be("14/10/2026");
+        ctx.Data["time_window"].Should().Be("08:00 - 12:00");
+        ctx.Data["client_name"].Should().Be("Distribuidora Norte S.A.");
+        ctx.Data["delivery_address"].Should().Be("Km 12 Carretera Norte, Bodega 4");
+        ctx.Data["driver_name"].Should().Be("Pedro Alonso");
+        ctx.Data["vehicle_plate"].Should().Be("MZ-123");
+        ctx.Data["route_name"].Should().Be("Ruta Norte");
+        ctx.Data["receiver_name"].Should().Be("Ana Torres");
+        ctx.Data["observations"].Should().Be("Entregar en recepción");
+    }
+
+    [Fact]
+    public async Task Delivery_WithoutOptionalNavigations_FallsBackToBlankStrings()
+    {
+        var id = Guid.NewGuid();
+        _deliveryRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(new Core.Entities.Fleet.Delivery
+        {
+            Id = id,
+            Code = "ENT-2026-002",
+            ScheduledDate = new DateOnly(2026, 10, 15),
+            DeliveryAddress = "Centro, Managua",
+        });
+
+        var ctx = await CreateSut().GetEntityContextAsync("delivery", id);
+
+        ctx.Should().NotBeNull();
+        Str(ctx!.Data["time_window"]).Should().BeEmpty();
+        Str(ctx.Data["client_name"]).Should().BeEmpty();
+        Str(ctx.Data["driver_name"]).Should().BeEmpty();
+        Str(ctx.Data["vehicle_plate"]).Should().BeEmpty();
+        Str(ctx.Data["route_name"]).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task FixedAsset_ExposesCodeCostLifeDepreciationAndLocation()
+    {
+        var id = Guid.NewGuid();
+        _fixedAssetRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(new FixedAsset
+        {
+            Id = id,
+            Code = "AF-001",
+            Name = "Servidor Dell PowerEdge R750",
+            AcquisitionDate = new DateTime(2026, 6, 1),
+            AcquisitionCost = 85000m,
+            UsefulLifeYears = 5,
+            ResidualValue = 5000m,
+            DepreciationMethod = "StraightLine",
+            AssignedTo = "Área de TI",
+            Status = "active",
+            Supplier = new Supplier { Name = "Distribuidora Norte S.A." },
+            Location = new Location { Name = "Datacenter Principal" },
+            Department = new Department { Name = "TI" },
+        });
+
+        var ctx = await CreateSut().GetEntityContextAsync("fixedasset", id);
+
+        ctx.Should().NotBeNull();
+        ctx!.DisplayName.Should().Contain("AF-001");
+        ctx.Data["asset_code"].Should().Be("AF-001");
+        ctx.Data["asset_name"].Should().Be("Servidor Dell PowerEdge R750");
+        ctx.Data["acquisition_date"].Should().Be("01/06/2026");
+        ctx.Data["acquisition_cost"].Should().Be("85,000.00");
+        ctx.Data["supplier_name"].Should().Be("Distribuidora Norte S.A.");
+        ctx.Data["useful_life_years"].Should().Be("5");
+        ctx.Data["residual_value"].Should().Be("5,000.00");
+        ctx.Data["depreciation_method"].Should().Be("Línea Recta");
+        ctx.Data["assigned_to"].Should().Be("Área de TI");
+        ctx.Data["status"].Should().Be("active");
+        ctx.Data["location"].Should().Be("Datacenter Principal");
+        ctx.Data["department"].Should().Be("TI");
+    }
+
+    [Fact]
+    public async Task Kardex_ExposesProductAndAggregatedMovementTotals()
+    {
+        var id = Guid.NewGuid();
+        _productRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(new Product
+        {
+            Id = id,
+            Code = "PRD-001",
+            Name = "Laptop Lenovo ThinkPad E14",
+            UnitOfMeasure = "unidad",
+            Stock = 90,
+            CostPrice = 250m,
+        });
+        _inventoryMovementRepo
+            .Setup(r => r.GetFilteredAsync(id, null, null, null, null, null, 1, 1000))
+            .ReturnsAsync(new List<InventoryMovement>
+            {
+                new()
+                {
+                    ProductId = id, MovementType = "purchase", Quantity = 20,
+                    StockBefore = 100, StockAfter = 120,
+                    CreatedAt = new DateTime(2026, 10, 1),
+                },
+                new()
+                {
+                    ProductId = id, MovementType = "sale", Quantity = 30,
+                    StockBefore = 120, StockAfter = 90,
+                    CreatedAt = new DateTime(2026, 10, 12),
+                },
+            });
+
+        var ctx = await CreateSut().GetEntityContextAsync("kardex", id);
+
+        ctx.Should().NotBeNull();
+        ctx!.DisplayName.Should().Contain("PRD-001");
+        ctx.Data["product_code"].Should().Be("PRD-001");
+        ctx.Data["product_name"].Should().Be("Laptop Lenovo ThinkPad E14");
+        ctx.Data["unit_of_measure"].Should().Be("unidad");
+        ctx.Data["current_stock"].Should().Be("90");
+        ctx.Data["current_cost"].Should().Be("250.00");
+        ctx.Data["period"].Should().Be("01/10/2026 - 12/10/2026");
+        ctx.Data["total_in_qty"].Should().Be("20");
+        ctx.Data["total_out_qty"].Should().Be("30");
+        ctx.Data["movements_count"].Should().Be("2");
+    }
+
+    [Fact]
+    public async Task Kardex_ProductWithoutMovements_HasEmptyPeriodAndZeroTotals()
+    {
+        var id = Guid.NewGuid();
+        _productRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(new Product
+        {
+            Id = id,
+            Code = "PRD-002",
+            Name = "Producto sin movimientos",
+        });
+        _inventoryMovementRepo
+            .Setup(r => r.GetFilteredAsync(id, null, null, null, null, null, 1, 1000))
+            .ReturnsAsync(new List<InventoryMovement>());
+
+        var ctx = await CreateSut().GetEntityContextAsync("kardex", id);
+
+        ctx.Should().NotBeNull();
+        Str(ctx!.Data["period"]).Should().BeEmpty();
+        ctx.Data["total_in_qty"].Should().Be("0");
+        ctx.Data["total_out_qty"].Should().Be("0");
+        ctx.Data["movements_count"].Should().Be("0");
+    }
+
+    [Fact]
+    public async Task MissingSupplierPayment_ReturnsNull()
+    {
+        var id = Guid.NewGuid();
+        _supplierPaymentRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync((SupplierPayment?)null);
+
+        (await CreateSut().GetEntityContextAsync("supplierpayment", id)).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task MissingWarranty_ReturnsNull()
+    {
+        var id = Guid.NewGuid();
+        _warrantyRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync((Warranty?)null);
+
+        (await CreateSut().GetEntityContextAsync("warranty", id)).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task MissingDelivery_ReturnsNull()
+    {
+        var id = Guid.NewGuid();
+        _deliveryRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync((Core.Entities.Fleet.Delivery?)null);
+
+        (await CreateSut().GetEntityContextAsync("delivery", id)).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task MissingFixedAsset_ReturnsNull()
+    {
+        var id = Guid.NewGuid();
+        _fixedAssetRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync((FixedAsset?)null);
+
+        (await CreateSut().GetEntityContextAsync("fixedasset", id)).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task MissingProduct_ForKardex_ReturnsNull()
+    {
+        var id = Guid.NewGuid();
+        _productRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync((Product?)null);
+
+        (await CreateSut().GetEntityContextAsync("kardex", id)).Should().BeNull();
+    }
+
+    // ── Acta de Recepción (Taller) ──
+
+    [Fact]
+    public async Task WorkshopReceipt_ExposesWorkshopVehicleProblemAndEstimate()
+    {
+        var id = Guid.NewGuid();
+        _workOrderRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(new Core.Entities.Fleet.WorkOrder
+        {
+            Id = id,
+            Number = "OT-2026-014",
+            ReportDateTime = new DateTime(2026, 10, 14),
+            ProblemDescription = "Freno blando en frenado de emergencia",
+            Priority = "High",
+            Status = "Reported",
+            CostEst = 1500m,
+            Vehicle = new Core.Entities.Fleet.Vehicle { Plate = "MZ-123", Model = "Hilux", Year = 2020 },
+            Driver = new Core.Entities.Fleet.Driver { FirstName = "Pedro", LastName = "Alonso" },
+            Workshop = new Core.Entities.Fleet.Workshop
+            {
+                Name = "Taller Central",
+                Address = "Km 5 Carretera Sur",
+                Phone = "2222-3333",
+            },
+        });
+
+        var ctx = await CreateSut().GetEntityContextAsync("workshopreceipt", id);
+
+        ctx.Should().NotBeNull();
+        ctx!.DisplayName.Should().Contain("OT-2026-014");
+        ctx.Data["acta_number"].Should().Be("OT-2026-014");
+        ctx.Data["report_date"].Should().Be("14/10/2026");
+        ctx.Data["workshop_name"].Should().Be("Taller Central");
+        Str(ctx.Data["workshop_address"]).Should().Contain("Km 5");
+        ctx.Data["workshop_phone"].Should().Be("2222-3333");
+        ctx.Data["vehicle_plate"].Should().Be("MZ-123");
+        ctx.Data["vehicle_desc"].Should().Be("Hilux 2020");
+        ctx.Data["driver_name"].Should().Be("Pedro Alonso");
+        Str(ctx.Data["problem_description"]).Should().Contain("Freno blando");
+        ctx.Data["cost_estimate"].Should().Be("1,500.00");
+        ctx.Data["wo_status"].Should().Be("Reported");
+    }
+
+    [Fact]
+    public async Task MissingWorkshopReceipt_ReturnsNull()
+    {
+        var id = Guid.NewGuid();
+        _workOrderRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync((Core.Entities.Fleet.WorkOrder?)null);
+
+        (await CreateSut().GetEntityContextAsync("workshopreceipt", id)).Should().BeNull();
+    }
+
+    // ── Cotización / Proforma (contexto nuevo + ítems tabulados) ──
+
+    [Fact]
+    public async Task Quote_ExposesTotalsClientTypeAndLineItems()
+    {
+        var id = Guid.NewGuid();
+        _quoteRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(new Quote
+        {
+            Id = id,
+            QuoteNumber = "COT-20260115-0001",
+            QuoteDate = new DateOnly(2026, 1, 15),
+            ExpirationDate = new DateOnly(2026, 1, 30),
+            Subtotal = 998.50m,
+            Tax = 149.78m,
+            Discount = 0m,
+            Total = 1148.28m,
+            Notes = "Precios en córdobas",
+            Client = new Client
+            {
+                FirstName = "Ana",
+                LastName = "Torres",
+                IdentificationNumber = "J0510000000002B",
+                Address = "Centro, Managua",
+            },
+            Details = new List<QuoteDetail>
+            {
+                new()
+                {
+                    Product = new Product { Code = "PRD-1", Name = "Laptop Lenovo" },
+                    Quantity = 2,
+                    UnitPrice = 499.25m,
+                    Discount = 0m,
+                    Subtotal = 998.50m,
+                },
+            },
+        });
+
+        var ctx = await CreateSut().GetEntityContextAsync("quote", id);
+
+        ctx.Should().NotBeNull();
+        ctx!.DisplayName.Should().Contain("COT-20260115-0001");
+        ctx.Data["quote_number"].Should().Be("COT-20260115-0001");
+        Str(ctx.Data["client_name"]).Should().Contain("Ana Torres");
+        ctx.Data["Sale.Subtotal"].Should().Be("998.50");
+        ctx.Data["Sale.Total"].Should().Be("1,148.28");
+        ctx.Data["validity_days"].Should().Be("15");
+        ctx.Data["quote_type_label"].Should().Be("Cotización");
+
+        var items = ctx.Data["items"].Should().BeOfType<List<Dictionary<string, object>>>().Subject;
+        items.Should().HaveCount(1);
+        items[0]["description"].Should().Be("Laptop Lenovo");
+        items[0]["quantity"].Should().Be("2");
+        items[0]["unit_price"].Should().Be("499.25");
+        items[0]["subtotal"].Should().Be("998.50");
+    }
+
+    [Fact]
+    public async Task MissingQuote_ReturnsNull()
+    {
+        var id = Guid.NewGuid();
+        _quoteRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync((Quote?)null);
+
+        (await CreateSut().GetEntityContextAsync("quote", id)).Should().BeNull();
+    }
+
+    // ── Ítems tabulados en venta y orden de compra ──
+
+    [Fact]
+    public async Task Sale_ExposesLineItemsList()
+    {
+        var id = Guid.NewGuid();
+        _saleRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(new Sale
+        {
+            Id = id,
+            InvoiceNumber = "FAC-2026-001",
+            SaleDate = new DateTime(2026, 10, 12),
+            Subtotal = 998.50m,
+            Tax = 149.78m,
+            Discount = 0m,
+            Total = 1148.28m,
+            PaidAmount = 1148.28m,
+            Balance = 0m,
+            SaleType = "cash",
+            Client = new Client { FirstName = "Ana", LastName = "Torres" },
+            Details = new List<SaleDetail>
+            {
+                new()
+                {
+                    Product = new Product { Code = "PRD-1", Name = "Laptop Lenovo" },
+                    Quantity = 2,
+                    UnitPrice = 499.25m,
+                    Discount = 0m,
+                    Subtotal = 998.50m,
+                },
+            },
+        });
+
+        var ctx = await CreateSut().GetEntityContextAsync("sale", id);
+
+        ctx.Should().NotBeNull();
+        var items = ctx!.Data["items"].Should().BeOfType<List<Dictionary<string, object>>>().Subject;
+        items.Should().HaveCount(1);
+        items[0]["code"].Should().Be("PRD-1");
+        items[0]["description"].Should().Be("Laptop Lenovo");
+        items[0]["quantity"].Should().Be("2");
+        items[0]["unit_price"].Should().Be("499.25");
+        items[0]["subtotal"].Should().Be("998.50");
+    }
+
+    [Fact]
+    public async Task PurchaseOrder_ExposesStatusAndLineItems()
+    {
+        var id = Guid.NewGuid();
+        _purchaseOrderRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(new PurchaseOrder
+        {
+            Id = id,
+            OrderNumber = "OC-2026-001",
+            OrderDate = new DateTime(2026, 10, 13),
+            Status = "approved",
+            CurrencyCode = "NIO",
+            Subtotal = 500m, Tax = 65m, Discount = 0m, Total = 565m,
+            Supplier = new Supplier { Name = "Distribuidora Norte S.A." },
+            Details = new List<PurchaseOrderDetail>
+            {
+                new()
+                {
+                    Product = new Product { Code = "REF-9", Name = "Refacciones Bomba" },
+                    QuantityOrdered = 10,
+                    QuantityReceived = 4,
+                    UnitCost = 50m,
+                    Subtotal = 500m,
+                },
+            },
+        });
+
+        var ctx = await CreateSut().GetEntityContextAsync("purchaseorder", id);
+
+        ctx.Should().NotBeNull();
+        ctx!.Data["order_status"].Should().Be("approved", "el sello APROBADA del PDF lee esta clave");
+
+        var items = ctx.Data["items"].Should().BeOfType<List<Dictionary<string, object>>>().Subject;
+        items.Should().HaveCount(1);
+        items[0]["quantity"].Should().Be("10");
+        items[0]["quantity_received"].Should().Be("4");
+        items[0]["unit_price"].Should().Be("50.00");
+    }
+
+    [Fact]
+    public async Task MissingPurchaseOrder_ReturnsNull()
+    {
+        var id = Guid.NewGuid();
+        _purchaseOrderRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync((PurchaseOrder?)null);
+
+        (await CreateSut().GetEntityContextAsync("purchaseorder", id)).Should().BeNull();
     }
 }

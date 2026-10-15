@@ -1,6 +1,10 @@
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:zorvian/shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
 import '../utils/warranty_utils.dart';
@@ -63,6 +67,45 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
     }
   }
 
+  /// Genera el certificado de garantía vía el motor documental y lo comparte.
+  Future<void> _generatePdf() async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      final r = await dio.post('warranties/${widget.warrantyId}/pdf/generate');
+      final documentId = r.data['generatedDocumentId'] as String?;
+      if (documentId == null) throw Exception('Respuesta sin documento generado');
+
+      final pdf = await dio.get(
+        'documents/$documentId/pdf',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final bytes = pdf.data as List<int>;
+      if (!mounted) return;
+      await SharePlus.instance.share(
+        ShareParams(files: [
+          XFile.fromData(
+            Uint8List.fromList(bytes),
+            mimeType: 'application/pdf',
+            name: 'certificado_garantia_${widget.warrantyId}.pdf',
+          ),
+        ]),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Certificado generado (${bytes.length ~/ 1024} KB)'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al generar PDF: $e'), backgroundColor: ZColors.danger),
+      );
+    }
+  }
+
   @override
   void dispose() {
     _tabController.dispose();
@@ -115,6 +158,7 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
               PopupMenuButton<String>(
                 onSelected: _onMenuAction,
                 itemBuilder: (_) => [
+                  const PopupMenuItem(value: 'pdf', child: Text('Generar Certificado PDF')),
                   if (status == 'Registered' || status == 'PendingReview')
                     const PopupMenuItem(value: 'claim', child: Text('Crear reclamo')),
                   if (status == 'SentToWorkshop' || status == 'InRepair')
@@ -407,6 +451,9 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
 
   void _onMenuAction(String action) async {
     switch (action) {
+      case 'pdf':
+        _generatePdf();
+        break;
       case 'claim':
         _showCreateClaimDialog();
         break;

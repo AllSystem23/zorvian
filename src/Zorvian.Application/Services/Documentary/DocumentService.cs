@@ -36,16 +36,28 @@ public sealed class DocumentService : IDocumentService
     /// <summary>
     /// Base Company.*/Country.*/Contract.City bajo las variables recibidas (el usuario manda).
     /// Así el wizard manual también renderiza datos multi-país sin pasarlos a mano.
+    /// Acepta Dictionary&lt;string,string&gt; (contextos clásicos) y Dictionary&lt;string,object&gt;
+    /// (contextos con listas de ítems tabulados para {% for %} en Liquid).
     /// </summary>
-    private async Task<Dictionary<string, string>> WithCompanyContextAsync(object model)
+    private async Task<Dictionary<string, object>> WithCompanyContextAsync(object model)
     {
         var company = await _companyRepo.GetByTenantIdAsync(_tenant.TenantId);
-        var merged = DocumentCompanyContext.Build(company);
+        var baseContext = DocumentCompanyContext.Build(company);
+        var merged = new Dictionary<string, object>(baseContext.Count, StringComparer.Ordinal);
 
-        if (model is Dictionary<string, string> vars)
+        foreach (var (key, value) in baseContext)
+            merged[key] = value;
+
+        switch (model)
         {
-            foreach (var (key, value) in vars)
-                merged[key] = value;
+            case Dictionary<string, string> vars:
+                foreach (var (key, value) in vars)
+                    merged[key] = value;
+                break;
+            case Dictionary<string, object> varsObj:
+                foreach (var (key, value) in varsObj)
+                    merged[key] = value;
+                break;
         }
 
         return merged;

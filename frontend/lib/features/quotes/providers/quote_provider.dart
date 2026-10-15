@@ -9,10 +9,12 @@ final class QuoteItem {
   final double total;
   final String status;
   final String quoteDate;
+  final String quoteType;
 
   const QuoteItem({
     required this.id, required this.quoteNumber, required this.clientName,
     required this.total, required this.status, required this.quoteDate,
+    this.quoteType = 'cotizacion',
   });
 
   factory QuoteItem.fromJson(Map<String, dynamic> j) => QuoteItem(
@@ -22,6 +24,7 @@ final class QuoteItem {
     total: (j['total'] as num?)?.toDouble() ?? 0,
     status: j['status'] as String? ?? '',
     quoteDate: j['quoteDate'] as String? ?? '',
+    quoteType: j['quoteType'] as String? ?? 'cotizacion',
   );
 }
 
@@ -62,6 +65,7 @@ final class QuoteDetail {
   final double discount;
   final double total;
   final String status;
+  final String quoteType;
   final String? notes;
   final List<QuoteDetailItem> details;
 
@@ -72,7 +76,8 @@ final class QuoteDetail {
     required this.quoteDate, this.expirationDate,
     required this.subtotal, required this.tax,
     required this.discount, required this.total,
-    required this.status, this.notes,
+    required this.status, this.quoteType = 'cotizacion',
+    this.notes,
     required this.details,
   });
 
@@ -89,6 +94,7 @@ final class QuoteDetail {
     discount: (j['discount'] as num?)?.toDouble() ?? 0,
     total: (j['total'] as num?)?.toDouble() ?? 0,
     status: j['status'] as String? ?? '',
+    quoteType: j['quoteType'] as String? ?? 'cotizacion',
     notes: j['notes'] as String?,
     details: (j['details'] as List?)?.map((e) => QuoteDetailItem.fromJson(e)).toList() ?? [],
   );

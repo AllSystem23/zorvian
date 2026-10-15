@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Zorvian.Application.DTOs.Inventory;
+using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
 using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
@@ -13,10 +15,23 @@ namespace Zorvian.Web.Controllers;
 public sealed class ProductsController : ControllerBase
 {
     private readonly ProductService _service;
+    private readonly IDocumentTemplateRepository _templateRepo;
+    private readonly IDocumentService _documentService;
+    private readonly IDocumentGenerationService _documentGenerationService;
+    private readonly ILogger<ProductsController> _logger;
 
-    public ProductsController(ProductService service)
+    public ProductsController(
+        ProductService service,
+        IDocumentTemplateRepository templateRepo,
+        IDocumentService documentService,
+        IDocumentGenerationService documentGenerationService,
+        ILogger<ProductsController> logger)
     {
         _service = service;
+        _templateRepo = templateRepo;
+        _documentService = documentService;
+        _documentGenerationService = documentGenerationService;
+        _logger = logger;
     }
 
     [Audit("Product", "Create")]
@@ -89,5 +104,46 @@ public sealed class ProductsController : ControllerBase
     {
         var result = await _service.GetMovementsAsync(filter);
         return Ok(result);
+    }
+
+    [Audit("Product", "GenerateKardexPdf")]
+    [RequirePermission(Permissions.InventoryRead)]
+    [HttpPost("{id:guid}/kardex/generate")]
+    public async Task<IActionResult> GenerateKardexPdf(Guid id)
+    {
+        try
+        {
+            var context = await _documentGenerationService.GetEntityContextAsync("kardex", id);
+            if (context is null)
+                return NotFound(new { error = "Producto no encontrado" });
+
+            var template = await _templateRepo.GetByNameAsync("Kardex de Producto");
+            if (template is null)
+                return NotFound(new { error = "Plantilla 'Kardex de Producto' no encontrada. Ejecute el seed." });
+
+            var generated = await _documentService.GenerateProfessionalDocumentAsync(
+                template.Id,
+                id,
+                context.Data,
+                "kardex");
+
+            return Ok(new
+            {
+                generatedDocumentId = generated.Id,
+                name = generated.Name,
+                status = generated.Status,
+                createdAt = generated.CreatedAt,
+                downloadUrl = $"/zorvian/v1/documents/{generated.Id}/pdf"
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generando kardex de producto {ProductId}", id);
+            return StatusCode(500, new { error = "Error interno al generar el documento" });
+        }
     }
 }

@@ -21,6 +21,9 @@ public sealed class DocumentTemplateRepository : IDocumentTemplateRepository
     public async Task<DocumentTemplate?> GetByIdAsync(Guid id) =>
         await _db.DocumentTemplates.FirstOrDefaultAsync(t => t.Id == id);
 
+    public async Task<DocumentTemplate?> GetByNameAsync(string name) =>
+        await _db.DocumentTemplates.FirstOrDefaultAsync(t => t.Name == name && t.IsActive);
+
     public async Task<List<DocumentTemplate>> GetAllAsync() =>
         await _db.DocumentTemplates.Where(t => t.IsActive).ToListAsync();
 

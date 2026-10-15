@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Zorvian.Application.DTOs.FixedAssets;
+using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
 using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
@@ -13,10 +15,23 @@ namespace Zorvian.Web.Controllers;
 public sealed class FixedAssetsController : ControllerBase
 {
     private readonly FixedAssetService _service;
+    private readonly IDocumentTemplateRepository _templateRepo;
+    private readonly IDocumentService _documentService;
+    private readonly IDocumentGenerationService _documentGenerationService;
+    private readonly ILogger<FixedAssetsController> _logger;
 
-    public FixedAssetsController(FixedAssetService service)
+    public FixedAssetsController(
+        FixedAssetService service,
+        IDocumentTemplateRepository templateRepo,
+        IDocumentService documentService,
+        IDocumentGenerationService documentGenerationService,
+        ILogger<FixedAssetsController> logger)
     {
         _service = service;
+        _templateRepo = templateRepo;
+        _documentService = documentService;
+        _documentGenerationService = documentGenerationService;
+        _logger = logger;
     }
 
     [Audit("FixedAsset", "Create")]
@@ -150,5 +165,46 @@ public sealed class FixedAssetsController : ControllerBase
     {
         var items = await _service.GetUpcomingMaintenanceAsync(days);
         return Ok(items);
+    }
+
+    [Audit("FixedAsset", "GeneratePdf")]
+    [RequirePermission(Permissions.FixedAssetRead)]
+    [HttpPost("{id:guid}/pdf/generate")]
+    public async Task<IActionResult> GeneratePdf(Guid id)
+    {
+        try
+        {
+            var context = await _documentGenerationService.GetEntityContextAsync("fixedasset", id);
+            if (context is null)
+                return NotFound(new { error = "Activo fijo no encontrado" });
+
+            var template = await _templateRepo.GetByNameAsync("Ficha de Activo Fijo");
+            if (template is null)
+                return NotFound(new { error = "Plantilla 'Ficha de Activo Fijo' no encontrada. Ejecute el seed." });
+
+            var generated = await _documentService.GenerateProfessionalDocumentAsync(
+                template.Id,
+                id,
+                context.Data,
+                "fixedasset");
+
+            return Ok(new
+            {
+                generatedDocumentId = generated.Id,
+                name = generated.Name,
+                status = generated.Status,
+                createdAt = generated.CreatedAt,
+                downloadUrl = $"/zorvian/v1/documents/{generated.Id}/pdf"
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generando ficha de activo fijo {AssetId}", id);
+            return StatusCode(500, new { error = "Error interno al generar el documento" });
+        }
     }
 }

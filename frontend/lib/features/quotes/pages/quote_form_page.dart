@@ -36,6 +36,7 @@ class _QuoteFormPageState extends ConsumerState<QuoteFormPage> {
   final List<_CartItem> _cart = [];
   bool _saving = false;
   bool _isEdit = false;
+  String _quoteType = 'cotizacion';
 
   double get _subtotal => _cart.fold(0, (sum, item) => sum + item.subtotal);
   double get _discount => double.tryParse(_discountCtrl.text) ?? 0;
@@ -63,6 +64,7 @@ class _QuoteFormPageState extends ConsumerState<QuoteFormPage> {
       final clients = ref.read(clientProvider).items;
       final client = clients.where((c) => c.id == clientId).firstOrNull;
       if (client != null) _selectedClient = client;
+      _quoteType = d['quoteType'] as String? ?? 'cotizacion';
       _discountCtrl.text = (d['discount'] as num?)?.toStringAsFixed(2) ?? '';
       _notesCtrl.text = d['notes'] as String? ?? '';
       final details = d['details'] as List? ?? [];
@@ -110,6 +112,7 @@ class _QuoteFormPageState extends ConsumerState<QuoteFormPage> {
       final body = {
         'clientId': _selectedClient!.id,
         'branchId': ref.read(companyBranchProvider).branchId,
+        'quoteType': _quoteType,
         'discount': _discount,
         'notes': _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
         'details': _cart.map((c) => {
@@ -164,6 +167,15 @@ class _QuoteFormPageState extends ConsumerState<QuoteFormPage> {
             initialValue: _selectedClient,
             items: clientsAsync.items.map((c) => DropdownMenuItem(value: c, child: Text(c.fullName))).toList(),
             onChanged: (v) => setState(() => _selectedClient = v),
+          ),
+          const SizedBox(height: 16),
+          SegmentedButton<String>(
+            segments: const [
+              ButtonSegment(value: 'cotizacion', label: Text('Cotización')),
+              ButtonSegment(value: 'proforma', label: Text('Proforma')),
+            ],
+            selected: {_quoteType},
+            onSelectionChanged: (s) => setState(() => _quoteType = s.first),
           ),
           const SizedBox(height: 16),
           Text('Productos', style: theme.textTheme.titleMedium),

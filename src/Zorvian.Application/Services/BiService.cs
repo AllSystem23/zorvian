@@ -141,7 +141,7 @@ public sealed class BiService
     {
         from ??= DateTime.UtcNow.AddMonths(-3);
         to ??= DateTime.UtcNow;
-        var quotes = await _quoteRepo.GetFilteredAsync(null, null, from, to, null, NullBranch, 1, int.MaxValue);
+        var quotes = await _quoteRepo.GetFilteredAsync(null, null, null, from, to, null, NullBranch, 1, int.MaxValue);
         var converted = quotes.Where(q => q.Status == QuoteStatus.Accepted).ToList();
         var total = quotes.Count;
         var rate = total > 0 ? (double)converted.Count / total * 100 : 0;

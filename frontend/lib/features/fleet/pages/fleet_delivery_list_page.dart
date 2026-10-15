@@ -1,6 +1,11 @@
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
+import '../../../auth/auth_provider.dart';
 import '../../../shared/ds/ds.dart';
 import '../providers/fleet_delivery_provider.dart';
 
@@ -94,9 +99,11 @@ final class _FleetDeliveryListPageState extends ConsumerState<FleetDeliveryListP
                                       final r2 = await context.push<bool>('/fleet/deliveries/${d.id}/edit');
                                       if (r2 == true) ref.read(fleetDeliveryProvider.notifier).load();
                                     }
+                                    if (action == 'pdf') _generatePdf(d.id);
                                     if (action == 'delete') _confirmDelete(d.id, d.code);
                                   },
                                   itemBuilder: (_) => [
+                                    const PopupMenuItem(value: 'pdf', child: Text('Generar Hoja de Ruta PDF')),
                                     const PopupMenuItem(value: 'edit', child: Text('Editar')),
                                     const PopupMenuItem(value: 'delete', child: Text('Eliminar', style: TextStyle(color: Colors.red))),
                                   ],
@@ -120,5 +127,44 @@ final class _FleetDeliveryListPageState extends ConsumerState<FleetDeliveryListP
     if (ok != true) return;
     final success = await ref.read(fleetDeliveryProvider.notifier).delete(id);
     if (mounted && !success) ZToast.error(context, 'Error al eliminar');
+  }
+
+  /// Genera la hoja de ruta/entrega vía el motor documental y la comparte.
+  Future<void> _generatePdf(String deliveryId) async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      final r = await dio.post('fleet/deliveries/$deliveryId/pdf/generate');
+      final documentId = r.data['generatedDocumentId'] as String?;
+      if (documentId == null) throw Exception('Respuesta sin documento generado');
+
+      final pdf = await dio.get(
+        'documents/$documentId/pdf',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final bytes = pdf.data as List<int>;
+      if (!mounted) return;
+      await SharePlus.instance.share(
+        ShareParams(files: [
+          XFile.fromData(
+            Uint8List.fromList(bytes),
+            mimeType: 'application/pdf',
+            name: 'hoja_ruta_$deliveryId.pdf',
+          ),
+        ]),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Hoja de ruta generada (${bytes.length ~/ 1024} KB)'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al generar PDF: $e'), backgroundColor: Colors.red),
+      );
+    }
   }
 }

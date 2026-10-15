@@ -23,12 +23,12 @@ public sealed class QuoteServiceTests
     {
         _sut = new QuoteService(_repo.Object, _tenant.Object, _mapper.Object);
         _repo.Setup(r => r.GetFilteredAsync(
-                It.IsAny<Guid?>(), It.IsAny<QuoteStatus?>(), It.IsAny<DateTime?>(),
+                It.IsAny<Guid?>(), It.IsAny<QuoteStatus?>(), It.IsAny<QuoteType?>(), It.IsAny<DateTime?>(),
                 It.IsAny<DateTime?>(), It.IsAny<string?>(), It.IsAny<Guid>(),
                 It.IsAny<int>(), It.IsAny<int>()))
             .ReturnsAsync(new List<Quote>());
         _repo.Setup(r => r.GetFilteredCountAsync(
-                It.IsAny<Guid?>(), It.IsAny<QuoteStatus?>(), It.IsAny<DateTime?>(),
+                It.IsAny<Guid?>(), It.IsAny<QuoteStatus?>(), It.IsAny<QuoteType?>(), It.IsAny<DateTime?>(),
                 It.IsAny<DateTime?>(), It.IsAny<string?>(), It.IsAny<Guid>()))
             .ReturnsAsync(0);
         _mapper.Setup(m => m.Map<List<QuoteResponse>>(It.IsAny<List<Quote>>()))
@@ -38,16 +38,14 @@ public sealed class QuoteServiceTests
     [Fact]
     public async Task GetFilteredAsync_UsesEnumStatus()
     {
-        // ARRANGE
-        var filter = new QuoteFilterRequest(null, QuoteStatus.Pending, null, null, null, null, 1, 10);
+        var filter = new QuoteFilterRequest(null, QuoteStatus.Pending, null, null, null, null, null, 1, 10);
 
-        // ACT
         await _sut.GetFilteredAsync(filter);
 
-        // ASSERT
         _repo.Verify(r => r.GetFilteredAsync(
             It.IsAny<Guid?>(),
             QuoteStatus.Pending,
+            It.IsAny<QuoteType?>(),
             It.IsAny<DateTime?>(),
             It.IsAny<DateTime?>(),
             It.IsAny<string?>(),
@@ -60,12 +58,12 @@ public sealed class QuoteServiceTests
     [Fact]
     public async Task GetFilteredAsync_SinBranchEnFiltroNiContexto_PasaTodasLasSucursales()
     {
-        var filter = new QuoteFilterRequest(null, null, null, null, null, null, 1, 10);
+        var filter = new QuoteFilterRequest(null, null, null, null, null, null, null, 1, 10);
 
         await _sut.GetFilteredAsync(filter);
 
         _repo.Verify(r => r.GetFilteredAsync(
-            It.IsAny<Guid?>(), It.IsAny<QuoteStatus?>(), It.IsAny<DateTime?>(),
+            It.IsAny<Guid?>(), It.IsAny<QuoteStatus?>(), It.IsAny<QuoteType?>(), It.IsAny<DateTime?>(),
             It.IsAny<DateTime?>(), It.IsAny<string?>(), Guid.Empty,
             It.IsAny<int>(), It.IsAny<int>()), Times.Once);
     }
@@ -74,12 +72,12 @@ public sealed class QuoteServiceTests
     public async Task GetFilteredAsync_SinBranchEnFiltro_UsaSucursalDelContexto()
     {
         _tenant.Setup(t => t.CurrentBranchId).Returns(_contextBranch);
-        var filter = new QuoteFilterRequest(null, null, null, null, null, null, 1, 10);
+        var filter = new QuoteFilterRequest(null, null, null, null, null, null, null, 1, 10);
 
         await _sut.GetFilteredAsync(filter);
 
         _repo.Verify(r => r.GetFilteredAsync(
-            It.IsAny<Guid?>(), It.IsAny<QuoteStatus?>(), It.IsAny<DateTime?>(),
+            It.IsAny<Guid?>(), It.IsAny<QuoteStatus?>(), It.IsAny<QuoteType?>(), It.IsAny<DateTime?>(),
             It.IsAny<DateTime?>(), It.IsAny<string?>(), _contextBranch,
             It.IsAny<int>(), It.IsAny<int>()), Times.Once);
     }
@@ -88,12 +86,12 @@ public sealed class QuoteServiceTests
     public async Task GetFilteredAsync_ConBranchEnFiltro_MandaSobreElContexto()
     {
         _tenant.Setup(t => t.CurrentBranchId).Returns(_contextBranch);
-        var filter = new QuoteFilterRequest(null, null, null, null, null, _filterBranch, 1, 10);
+        var filter = new QuoteFilterRequest(null, null, null, null, null, null, _filterBranch, 1, 10);
 
         await _sut.GetFilteredAsync(filter);
 
         _repo.Verify(r => r.GetFilteredAsync(
-            It.IsAny<Guid?>(), It.IsAny<QuoteStatus?>(), It.IsAny<DateTime?>(),
+            It.IsAny<Guid?>(), It.IsAny<QuoteStatus?>(), It.IsAny<QuoteType?>(), It.IsAny<DateTime?>(),
             It.IsAny<DateTime?>(), It.IsAny<string?>(), _filterBranch,
             It.IsAny<int>(), It.IsAny<int>()), Times.Once);
     }
@@ -101,17 +99,43 @@ public sealed class QuoteServiceTests
     [Fact]
     public async Task UpdateStatusAsync_UpdatesAndSaves()
     {
-        // ARRANGE
         var id = Guid.NewGuid();
         var status = QuoteStatus.Accepted;
         _repo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(new Quote());
 
-        // ACT
-        var result = await _sut.UpdateStatusAsync(id, status);
+        var result = await _sut.UpdateStatusAsync(id, "accepted");
 
-        // ASSERT
         Assert.True(result);
         _repo.Verify(r => r.UpdateStatusAsync(id, status), Times.Once);
         _repo.Verify(r => r.SaveChangesAsync(), Times.Once);
+    }
+
+    [Theory]
+    [InlineData("pending", QuoteStatus.Pending)]
+    [InlineData("sent", QuoteStatus.Sent)]
+    [InlineData("accepted", QuoteStatus.Accepted)]
+    [InlineData("approved", QuoteStatus.Accepted)]
+    [InlineData("rejected", QuoteStatus.Rejected)]
+    [InlineData("expired", QuoteStatus.Expired)]
+    [InlineData("converted", QuoteStatus.Converted)]
+    [InlineData("ACCEPTED", QuoteStatus.Accepted)]
+    public async Task UpdateStatusAsync_ParsesApiStringValues(string apiValue, QuoteStatus expected)
+    {
+        var id = Guid.NewGuid();
+        _repo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(new Quote());
+
+        var result = await _sut.UpdateStatusAsync(id, apiValue);
+
+        Assert.True(result);
+        _repo.Verify(r => r.UpdateStatusAsync(id, expected), Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateStatusAsync_InvalidValue_ThrowsArgumentException()
+    {
+        var id = Guid.NewGuid();
+        _repo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(new Quote());
+
+        await Assert.ThrowsAsync<ArgumentException>(() => _sut.UpdateStatusAsync(id, "no-existe"));
     }
 }

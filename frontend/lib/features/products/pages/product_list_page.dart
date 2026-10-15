@@ -1,6 +1,11 @@
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
+import '../../../auth/auth_provider.dart';
 import '../../../shared/ds/components/z_empty_state.dart';
 import '../../../shared/printing/qr_code_dialog.dart';
 import '../providers/product_provider.dart';
@@ -36,6 +41,45 @@ final class _ProductListPageState extends ConsumerState<ProductListPage> {
   void dispose() {
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  /// Genera el kardex del producto vía el motor documental y lo comparte.
+  Future<void> _generateKardexPdf(String productId) async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      final r = await dio.post('products/$productId/kardex/generate');
+      final documentId = r.data['generatedDocumentId'] as String?;
+      if (documentId == null) throw Exception('Respuesta sin documento generado');
+
+      final pdf = await dio.get(
+        'documents/$documentId/pdf',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final bytes = pdf.data as List<int>;
+      if (!mounted) return;
+      await SharePlus.instance.share(
+        ShareParams(files: [
+          XFile.fromData(
+            Uint8List.fromList(bytes),
+            mimeType: 'application/pdf',
+            name: 'kardex_$productId.pdf',
+          ),
+        ]),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Kardex generado (${bytes.length ~/ 1024} KB)'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al generar PDF: $e'), backgroundColor: Colors.red),
+      );
+    }
   }
 
   @override
@@ -104,10 +148,12 @@ final class _ProductListPageState extends ConsumerState<ProductListPage> {
                                   onSelected: (v) {
                                     if (v == 'edit') context.push('/products/${p.id}/edit');
                                     if (v == 'label') showProductLabelDialog(context, code: p.code, name: p.name, price: p.price, barcode: p.barcode, category: p.categoryName);
+                                    if (v == 'kardex') _generateKardexPdf(p.id);
                                   },
                                   itemBuilder: (_) => [
                                     const PopupMenuItem(value: 'edit', child: Text('Editar')),
                                     const PopupMenuItem(value: 'label', child: Text('Etiqueta QR')),
+                                    const PopupMenuItem(value: 'kardex', child: Text('Generar Kardex PDF')),
                                   ],
                                 ),
                               ],

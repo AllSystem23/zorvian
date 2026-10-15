@@ -8,11 +8,15 @@ using Zorvian.Infrastructure.Data;
 namespace Zorvian.Tests.Services;
 
 /// <summary>
-/// El seeder de plantillas documentales debe: (1) crear las 6 plantillas en v2.1
-/// multi-país, (2) ser idempotente (no pisar plantillas ya actuales), y (3) refrescar
-/// las versiones viejas (1.0 Nicaragua-hardcodeado / 2.0) aunque los nombres hayan
-/// ganado acentos (match por nombre normalizado). Es lo que hace el "reset" al
-/// arrancar la API sin borrar la BD.
+/// El seeder de plantillas documentales debe: (1) crear las 21 plantillas
+/// (6 multi-país v2.1 + liquidación NIC + 8 de tandas 1-2 + 5 de la tanda 3:
+/// Recibo de Pago Proveedor, Certificado de Garantía, Hoja de Ruta,
+/// Ficha de Activo Fijo y Kardex + Acta de Recepción (Taller)),
+/// (2) ser idempotente (no pisar plantillas ya actuales ni las de usuario),
+/// (3) refrescar las versiones viejas (1.0 Nicaragua-hardcodeado / 2.0) aunque
+/// los nombres hayan ganado acentos (match por nombre normalizado), y
+/// (4) insertar las plantillas sembradas que falten en una BD existente —
+/// así las nuevas llegan a instalaciones existentes.
 /// </summary>
 public sealed class DocumentTemplateSeederTests : IDisposable
 {
@@ -52,13 +56,13 @@ public sealed class DocumentTemplateSeederTests : IDisposable
     };
 
     [Fact]
-    public async Task SeedAsync_CreatesSevenTemplates_MultiCountryPlusNicaraguaLiquidation()
+    public async Task SeedAsync_CreatesAllSeededTemplates_MultiCountryPlusNicaraguaLiquidation()
     {
         await DocumentTemplateSeeder.SeedAsync(_db, _logger);
 
         var templates = await AllTemplates();
 
-        Assert.Equal(7, templates.Count);
+        Assert.Equal(21, templates.Count);
         Assert.Contains(templates, t => t.Name == "Contrato de Trabajo a Término Indefinido");
         Assert.Contains(templates, t => t.Name == "Carta de Oferta Laboral");
         Assert.Contains(templates, t => t.Name == "Constancia de Empleo");
@@ -66,10 +70,43 @@ public sealed class DocumentTemplateSeederTests : IDisposable
         Assert.Contains(templates, t => t.Name == "Nota de Entrega");
         Assert.Contains(templates, t => t.Name == "Poder Notarial General");
         Assert.Contains(templates, t => t.Name == "Liquidación Final (Nicaragua)");
+        Assert.Contains(templates, t => t.Name == "Factura");
+        Assert.Contains(templates, t => t.Name == "Guía de Despacho");
+        Assert.Contains(templates, t => t.Name == "Nota de Crédito");
+        Assert.Contains(templates, t => t.Name == "Orden de Compra");
+        Assert.Contains(templates, t => t.Name == "Acta de Recepción de Compras");
+        Assert.Contains(templates, t => t.Name == "Recibo de Pago (Cliente)");
+        Assert.Contains(templates, t => t.Name == "Comprobante de Caja");
+        Assert.Contains(templates, t => t.Name == "Orden de Trabajo");
+        Assert.Contains(templates, t => t.Name == "Acta de Recepción (Taller)");
+        Assert.Contains(templates, t => t.Name == "Recibo de Pago (Proveedor)");
+        Assert.Contains(templates, t => t.Name == "Certificado de Garantía");
+        Assert.Contains(templates, t => t.Name == "Hoja de Ruta / Entrega");
+        Assert.Contains(templates, t => t.Name == "Ficha de Activo Fijo");
+        Assert.Contains(templates, t => t.Name == "Kardex de Producto");
 
         var multiCountry = templates.Where(t => t.Name != "Liquidación Final (Nicaragua)").ToList();
-        Assert.All(multiCountry, t => Assert.Equal("2.1", t.Version));
         Assert.All(multiCountry, t => Assert.Equal("ALL", t.CountryCode));
+
+        // Las 7 originales van en v2.1; las nuevas arrancan en v1.0.
+        foreach (var name in new[]
+                 {
+                     "Contrato de Trabajo a Término Indefinido", "Carta de Oferta Laboral",
+                     "Constancia de Empleo", "Cotización Comercial", "Nota de Entrega",
+                     "Poder Notarial General"
+                 })
+            Assert.Equal("2.1", templates.Single(t => t.Name == name).Version);
+
+        foreach (var name in new[]
+                 {
+                     "Factura", "Guía de Despacho", "Nota de Crédito", "Orden de Compra",
+                     "Acta de Recepción de Compras", "Recibo de Pago (Cliente)",
+                     "Comprobante de Caja", "Orden de Trabajo",
+                     "Acta de Recepción (Taller)",
+                     "Recibo de Pago (Proveedor)", "Certificado de Garantía",
+                     "Hoja de Ruta / Entrega", "Ficha de Activo Fijo", "Kardex de Producto"
+                 })
+            Assert.Equal("1.0", templates.Single(t => t.Name == name).Version);
 
         var liquidacion = templates.Single(t => t.Name == "Liquidación Final (Nicaragua)");
         Assert.Equal("NIC", liquidacion.CountryCode);
@@ -77,6 +114,22 @@ public sealed class DocumentTemplateSeederTests : IDisposable
         Assert.Equal("HR", liquidacion.Category);
         Assert.Contains("Art. 93", liquidacion.Content);
         Assert.Contains("INATEC", liquidacion.Content);
+
+        // Módulos de las plantillas nuevas (los usan los endpoints de venta/compras/caja/fleet).
+        Assert.Equal("Sale", templates.Single(t => t.Name == "Factura").Module);
+        Assert.Equal("Sale", templates.Single(t => t.Name == "Guía de Despacho").Module);
+        Assert.Equal("Sale", templates.Single(t => t.Name == "Nota de Crédito").Module);
+        Assert.Equal("Purchase", templates.Single(t => t.Name == "Orden de Compra").Module);
+        Assert.Equal("Purchase", templates.Single(t => t.Name == "Acta de Recepción de Compras").Module);
+        Assert.Equal("Credit", templates.Single(t => t.Name == "Recibo de Pago (Cliente)").Module);
+        Assert.Equal("Treasury", templates.Single(t => t.Name == "Comprobante de Caja").Module);
+        Assert.Equal("Fleet", templates.Single(t => t.Name == "Orden de Trabajo").Module);
+        Assert.Equal("Fleet", templates.Single(t => t.Name == "Acta de Recepción (Taller)").Module);
+        Assert.Equal("Purchase", templates.Single(t => t.Name == "Recibo de Pago (Proveedor)").Module);
+        Assert.Equal("Warranty", templates.Single(t => t.Name == "Certificado de Garantía").Module);
+        Assert.Equal("Fleet", templates.Single(t => t.Name == "Hoja de Ruta / Entrega").Module);
+        Assert.Equal("Finance", templates.Single(t => t.Name == "Ficha de Activo Fijo").Module);
+        Assert.Equal("Inventory", templates.Single(t => t.Name == "Kardex de Producto").Module);
     }
 
     [Fact]
@@ -92,7 +145,44 @@ public sealed class DocumentTemplateSeederTests : IDisposable
 
         var refreshed = (await AllTemplates()).Single(t => t.Name == "Cotización Comercial");
         Assert.Equal("MARCADOR-DEL-USUARIO", refreshed.Content);
-        Assert.Equal(7, (await AllTemplates()).Count);
+        Assert.Equal(21, (await AllTemplates()).Count);
+    }
+
+    [Fact]
+    public async Task SeedAsync_InsertsMissingSeededTemplates_IntoExistingDatabases()
+    {
+        // BD existente que solo tiene una plantilla de usuario y una sembrada vieja:
+        // el seeder debe insertar las 20 sembradas que faltan sin tocar las existentes.
+        _db.DocumentTemplates.AddRange(
+            Legacy("Mi Plantilla Personalizada", "1.0", "ALL", "contenido de usuario"),
+            Legacy("Constancia de Empleo", "2.1", "ALL", "constancia del usuario"));
+        await _db.SaveChangesAsync();
+
+        await DocumentTemplateSeeder.SeedAsync(_db, _logger);
+
+        var all = await AllTemplates();
+        Assert.Equal(22, all.Count); // 2 preexistentes + 20 sembradas faltantes (Constancia ya existía)
+
+        var userTemplate = all.Single(t => t.Name == "Mi Plantilla Personalizada");
+        Assert.Equal("contenido de usuario", userTemplate.Content);
+
+        var constancia = all.Single(t => t.Name == "Constancia de Empleo");
+        Assert.Equal("constancia del usuario", constancia.Content);
+
+        Assert.Contains(all, t => t.Name == "Factura");
+        Assert.Contains(all, t => t.Name == "Guía de Despacho");
+        Assert.Contains(all, t => t.Name == "Nota de Crédito");
+        Assert.Contains(all, t => t.Name == "Orden de Compra");
+        Assert.Contains(all, t => t.Name == "Acta de Recepción de Compras");
+        Assert.Contains(all, t => t.Name == "Recibo de Pago (Cliente)");
+        Assert.Contains(all, t => t.Name == "Comprobante de Caja");
+        Assert.Contains(all, t => t.Name == "Orden de Trabajo");
+        Assert.Contains(all, t => t.Name == "Acta de Recepción (Taller)");
+        Assert.Contains(all, t => t.Name == "Recibo de Pago (Proveedor)");
+        Assert.Contains(all, t => t.Name == "Certificado de Garantía");
+        Assert.Contains(all, t => t.Name == "Hoja de Ruta / Entrega");
+        Assert.Contains(all, t => t.Name == "Ficha de Activo Fijo");
+        Assert.Contains(all, t => t.Name == "Kardex de Producto");
     }
 
     [Fact]
@@ -109,7 +199,8 @@ public sealed class DocumentTemplateSeederTests : IDisposable
         await DocumentTemplateSeeder.SeedAsync(_db, _logger);
 
         var all = await AllTemplates();
-        Assert.Equal(3, all.Count);
+        // 3 preexistentes + 19 sembradas faltantes (cotización y contrato ya existían).
+        Assert.Equal(22, all.Count);
 
         var quote = all.Single(t => t.Name == "Cotización Comercial");
         Assert.Equal("2.1", quote.Version);
@@ -134,10 +225,10 @@ public sealed class DocumentTemplateSeederTests : IDisposable
         await _db.SaveChangesAsync();
 
         await DocumentTemplateSeeder.SeedAsync(_db, _logger);
-        var afterFirst = (await AllTemplates()).Single();
+        var afterFirst = (await AllTemplates()).Single(t => t.Name == "Constancia de Empleo");
 
         await DocumentTemplateSeeder.SeedAsync(_db, _logger);
-        var afterSecond = (await AllTemplates()).Single();
+        var afterSecond = (await AllTemplates()).Single(t => t.Name == "Constancia de Empleo");
 
         Assert.Equal("2.1", afterSecond.Version);
         Assert.Equal(afterFirst.UpdatedAt, afterSecond.UpdatedAt);

@@ -19,7 +19,7 @@ public sealed record EntityContextResponse(
     string EntityType,
     Guid EntityId,
     string DisplayName,
-    Dictionary<string, string> Data
+    Dictionary<string, object> Data
 );
 
 public sealed record DocumentDetailResponse(

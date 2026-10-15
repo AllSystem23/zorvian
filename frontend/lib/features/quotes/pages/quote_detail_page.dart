@@ -39,6 +39,27 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
     }
   }
 
+  Future<void> _convertToProforma() async {
+    final confirm = await ZModal.confirm(
+      context,
+      title: 'Convertir a Proforma',
+      message: '¿Convierte esta cotización en proforma? Se cambiará el número a PRO-XXXX.',
+      confirmText: 'Convertir',
+      cancelText: 'Cancelar',
+    );
+    if (confirm != true) return;
+    try {
+      final dio = ref.read(dioClientProvider);
+      await dio.post('quotes/${widget.quoteId}/convert-to-proforma');
+      if (mounted) {
+        ZToast.success(context, 'Proforma generada');
+        _load();
+      }
+    } catch (e) {
+      if (mounted) ZToast.error(context, 'Error: $e');
+    }
+  }
+
   Future<void> _delete() async {
     final confirm = await ZModal.confirm(context,
       title: 'Eliminar cotización',
@@ -66,11 +87,15 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
 
     final d = _data!;
     final stColor = switch (d.status) {
-      'approved' => Colors.green,
+      'accepted' => Colors.green,
       'rejected' => Colors.red,
       'converted' => Colors.blue,
+      'sent' => Colors.teal,
+      'expired' => Colors.grey,
       _ => Colors.orange,
     };
+    final isProforma = d.quoteType == 'proforma';
+    final docTypeLabel = isProforma ? 'Proforma' : 'Cotización';
 
     return Scaffold(
       body: ListView(
@@ -144,6 +169,17 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
               ),
             ],
           ),
+          if (!isProforma) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.transform, size: 18),
+                label: const Text('Convertir a Proforma'),
+                onPressed: () => _convertToProforma(),
+              ),
+            ),
+          ],
           const SizedBox(height: 8),
           ZCard(
             padding: const EdgeInsets.all(16),
@@ -152,10 +188,14 @@ class _QuoteDetailPageState extends ConsumerState<QuoteDetailPage> {
               children: [
                 Row(children: [
                   Expanded(child: Text(d.clientName, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold))),
+                  Chip(label: Text(docTypeLabel, style: const TextStyle(fontSize: 10, color: Colors.white)),
+                    backgroundColor: isProforma ? Colors.purple : Colors.indigo),
+                  const SizedBox(width: 6),
                   Chip(label: Text(d.status, style: const TextStyle(fontSize: 11, color: Colors.white)), backgroundColor: stColor),
                 ]),
                 const SizedBox(height: 8),
-                _row('Folio', d.quoteNumber),
+                _row('Número', d.quoteNumber),
+                _row('Tipo', docTypeLabel),
                 _row('Fecha', d.quoteDate.length >= 10 ? d.quoteDate.substring(0, 10) : d.quoteDate),
                 if (d.expirationDate != null) _row('Vence', d.expirationDate!.length >= 10 ? d.expirationDate!.substring(0, 10) : d.expirationDate!),
                 if (d.employeeName != null) _row('Creado por', d.employeeName!),

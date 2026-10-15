@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Zorvian.Application.DTOs.Warranty;
+using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
 using Zorvian.Core.Enums;
 using Zorvian.Web.Authorization;
@@ -15,11 +17,25 @@ public sealed class WarrantiesController : ControllerBase
 {
     private readonly WarrantyService _service;
     private readonly WarrantyTimelineService _timelineService;
+    private readonly IDocumentTemplateRepository _templateRepo;
+    private readonly IDocumentService _documentService;
+    private readonly IDocumentGenerationService _documentGenerationService;
+    private readonly ILogger<WarrantiesController> _logger;
 
-    public WarrantiesController(WarrantyService service, WarrantyTimelineService timelineService)
+    public WarrantiesController(
+        WarrantyService service,
+        WarrantyTimelineService timelineService,
+        IDocumentTemplateRepository templateRepo,
+        IDocumentService documentService,
+        IDocumentGenerationService documentGenerationService,
+        ILogger<WarrantiesController> logger)
     {
         _service = service;
         _timelineService = timelineService;
+        _templateRepo = templateRepo;
+        _documentService = documentService;
+        _documentGenerationService = documentGenerationService;
+        _logger = logger;
     }
 
     [Audit("Warranty", "Create")]
@@ -119,5 +135,46 @@ public sealed class WarrantiesController : ControllerBase
     public async Task<IActionResult> GetTimeline(Guid id)
     {
         return Ok(await _timelineService.GetTimelineAsync(id));
+    }
+
+    [Audit("Warranty", "GeneratePdf")]
+    [RequirePermission(Permissions.WarrantyRead)]
+    [HttpPost("{id:guid}/pdf/generate")]
+    public async Task<IActionResult> GeneratePdf(Guid id)
+    {
+        try
+        {
+            var context = await _documentGenerationService.GetEntityContextAsync("warranty", id);
+            if (context is null)
+                return NotFound(new { error = "Garantía no encontrada" });
+
+            var template = await _templateRepo.GetByNameAsync("Certificado de Garantía");
+            if (template is null)
+                return NotFound(new { error = "Plantilla 'Certificado de Garantía' no encontrada. Ejecute el seed." });
+
+            var generated = await _documentService.GenerateProfessionalDocumentAsync(
+                template.Id,
+                id,
+                context.Data,
+                "warranty");
+
+            return Ok(new
+            {
+                generatedDocumentId = generated.Id,
+                name = generated.Name,
+                status = generated.Status,
+                createdAt = generated.CreatedAt,
+                downloadUrl = $"/zorvian/v1/documents/{generated.Id}/pdf"
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generando certificado de garantía {WarrantyId}", id);
+            return StatusCode(500, new { error = "Error interno al generar el documento" });
+        }
     }
 }

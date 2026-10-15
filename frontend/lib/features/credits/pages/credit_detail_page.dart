@@ -1,6 +1,10 @@
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
 import '../providers/credit_provider.dart';
@@ -19,6 +23,8 @@ final class _CreditDetailPageState extends ConsumerState<CreditDetailPage> with 
   List<LateFee> _lateFees = [];
   List<CollectionAction> _collectionActions = [];
   List<CreditRefinancing> _refinancings = [];
+  List<Map<String, dynamic>> _payments = [];
+  bool _paymentsLoading = false;
   bool _lateFeesLoading = false;
   bool _actionsLoading = false;
   bool _refinancingsLoading = false;
@@ -32,6 +38,7 @@ final class _CreditDetailPageState extends ConsumerState<CreditDetailPage> with 
     _loadLateFees();
     _loadActions();
     _loadRefinancings();
+    _loadPayments();
   }
 
   @override
@@ -91,6 +98,58 @@ final class _CreditDetailPageState extends ConsumerState<CreditDetailPage> with 
     if (result == true) { await _loadDetail(); await _loadRefinancings(); }
   }
 
+  Future<void> _loadPayments() async {
+    try {
+      setState(() => _paymentsLoading = true);
+      final dio = ref.read(dioClientProvider);
+      final r = await dio.get('credits/${widget.creditId}/payments', params: {'page': 1, 'pageSize': 50});
+      final data = r.data;
+      final list = data is Map ? (data['items'] ?? []) : (data is List ? data : []);
+      setState(() { _payments = (list as List).map((e) => Map<String, dynamic>.from(e as Map)).toList(); _paymentsLoading = false; });
+    } catch (_) {
+      setState(() => _paymentsLoading = false);
+    }
+  }
+
+  /// Genera el recibo de pago vía el motor documental y lo comparte.
+  Future<void> _generatePaymentPdf(String paymentId) async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      final r = await dio.post('credits/payments/$paymentId/pdf/generate');
+      final documentId = r.data['generatedDocumentId'] as String?;
+      if (documentId == null) throw Exception('Respuesta sin documento generado');
+
+      final pdf = await dio.get(
+        'documents/$documentId/pdf',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final bytes = pdf.data as List<int>;
+      if (!mounted) return;
+      await SharePlus.instance.share(
+        ShareParams(files: [
+          XFile.fromData(
+            Uint8List.fromList(bytes),
+            mimeType: 'application/pdf',
+            name: 'recibo_pago_$paymentId.pdf',
+          ),
+        ]),
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Recibo de pago generado (${bytes.length ~/ 1024} KB)'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al generar PDF: $e'), backgroundColor: Colors.red),
+      );
+    }
+  }
+
   Future<void> _calculateLateFees() async {
     setState(() => _lateFeesLoading = true);
     try {
@@ -137,6 +196,7 @@ final class _CreditDetailPageState extends ConsumerState<CreditDetailPage> with 
         'creditId': widget.creditId,
       });
       await _loadDetail();
+      await _loadPayments();
       if (mounted) ZToast.success(context, 'Pago registrado');
     } catch (e) {
       if (mounted) ZToast.error(context, 'Error: $e');
@@ -398,16 +458,61 @@ final class _CreditDetailPageState extends ConsumerState<CreditDetailPage> with 
   }
 
   Widget _paymentsTab(ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: SizedBox(
-        width: double.infinity,
-        child: OutlinedButton.icon(
-          icon: const Icon(Icons.payments),
-          label: const Text('Registrar Pago'),
-          onPressed: _registerPayment,
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.payments),
+              label: const Text('Registrar Pago'),
+              onPressed: _registerPayment,
+            ),
+          ),
         ),
-      ),
+        Expanded(
+          child: _paymentsLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _payments.isEmpty
+                  ? const Center(child: Text('Sin pagos registrados'))
+                  : RefreshIndicator(
+                      onRefresh: _loadPayments,
+                      child: ListView.separated(
+                        itemCount: _payments.length,
+                        separatorBuilder: (_, _) => const Divider(height: 1),
+                        itemBuilder: (_, i) {
+                          final p = _payments[i];
+                          final amount = (p['amount'] as num?)?.toStringAsFixed(2) ?? '0.00';
+                          final date = (p['paymentDate'] as String?) ?? '';
+                          final method = (p['paymentMethod'] as String?) ?? '';
+                          final id = (p['id'] as String?) ?? '';
+                          return ListTile(
+                            dense: true,
+                            title: Text('\$$amount  ·  $method', style: const TextStyle(fontWeight: FontWeight.w600)),
+                            subtitle: Text(date.length >= 10 ? date.substring(0, 10) : date),
+                            trailing: PopupMenuButton<String>(
+                              tooltip: 'Acciones',
+                              icon: const Icon(Icons.more_vert, size: 20),
+                              onSelected: (value) {
+                                if (value == 'pdf') _generatePaymentPdf(id);
+                              },
+                              itemBuilder: (_) => [
+                                const PopupMenuItem(
+                                  value: 'pdf',
+                                  child: ListTile(
+                                    leading: Icon(Icons.picture_as_pdf_outlined),
+                                    title: Text('Generar Recibo PDF'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+        ),
+      ],
     );
   }
 

@@ -14,6 +14,14 @@ public sealed class CreditPaymentRepository : ICreditPaymentRepository
         _db = db;
     }
 
+    public async Task<CreditPayment?> GetByIdAsync(Guid id) =>
+        await _db.Set<CreditPayment>()
+            .Include(p => p.Credit).ThenInclude(c => c.Client)
+            .Include(p => p.Credit).ThenInclude(c => c.Sale)
+            .Include(p => p.Employee)
+            .Include(p => p.CreditInstallment)
+            .FirstOrDefaultAsync(p => p.Id == id);
+
     public async Task<List<CreditPayment>> GetByCreditIdAsync(Guid creditId, int page, int pageSize) =>
         await _db.Set<CreditPayment>()
             .Include(p => p.Employee)

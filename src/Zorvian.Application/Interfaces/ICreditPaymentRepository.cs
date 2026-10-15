@@ -4,6 +4,7 @@ namespace Zorvian.Application.Interfaces;
 
 public interface ICreditPaymentRepository
 {
+    Task<CreditPayment?> GetByIdAsync(Guid id);
     Task<List<CreditPayment>> GetByCreditIdAsync(Guid creditId, int page, int pageSize);
     Task<int> GetCountByCreditIdAsync(Guid creditId);
     Task AddAsync(CreditPayment payment);

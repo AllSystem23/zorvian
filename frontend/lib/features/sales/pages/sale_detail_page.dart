@@ -1,6 +1,10 @@
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../shared/ds/components/z_badge.dart';
 import '../../../shared/ds/components/z_card.dart';
@@ -65,6 +69,43 @@ final class _SaleDetailPageState extends ConsumerState<SaleDetailPage> {
     } catch (e) {
       if (!mounted) return;
       ZToast.error(context, 'Error al anular: $e');
+    }
+  }
+
+  /// Genera el documento (factura o guía de despacho) vía el motor documental
+  /// y comparte el PDF resultante.
+  Future<void> _generateEngineDocument({
+    required String endpoint,
+    required String label,
+    required String fileName,
+  }) async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      final r = await dio.post('sales/${widget.saleId}/$endpoint');
+      final documentId = r.data['generatedDocumentId'] as String?;
+      if (documentId == null) throw Exception('Respuesta sin documento generado');
+
+      final pdf = await dio.get(
+        'documents/$documentId/pdf',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final bytes = pdf.data as List<int>;
+      if (!mounted) return;
+      await SharePlus.instance.share(
+        ShareParams(files: [
+          XFile.fromData(
+            Uint8List.fromList(bytes),
+            mimeType: 'application/pdf',
+            name: '$fileName.pdf',
+          ),
+        ]),
+      );
+      if (mounted) {
+        ZToast.success(context, '$label generada (${bytes.length ~/ 1024} KB)');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ZToast.error(context, 'Error al generar $label: $e');
     }
   }
 
@@ -143,6 +184,18 @@ final class _SaleDetailPageState extends ConsumerState<SaleDetailPage> {
                         total: d.total,
                         date: d.saleDate,
                       );
+                    } else if (value == 'invoice') {
+                      _generateEngineDocument(
+                        endpoint: 'invoice/generate',
+                        label: 'Factura',
+                        fileName: 'factura_${d.invoiceNumber}',
+                      );
+                    } else if (value == 'guide') {
+                      _generateEngineDocument(
+                        endpoint: 'delivery-guide/generate',
+                        label: 'Guía de Despacho',
+                        fileName: 'guia_despacho_${d.invoiceNumber}',
+                      );
                     } else if (value == 'share') {
                       showModalBottomSheet(
                         context: context,
@@ -207,6 +260,8 @@ final class _SaleDetailPageState extends ConsumerState<SaleDetailPage> {
                   },
                   itemBuilder: (_) => [
                     const PopupMenuItem(value: 'qr', child: ListTile(leading: Icon(Icons.qr_code), title: Text('Código QR'))),
+                    const PopupMenuItem(value: 'invoice', child: ListTile(leading: Icon(Icons.receipt_long), title: Text('Generar Factura (PDF)'))),
+                    const PopupMenuItem(value: 'guide', child: ListTile(leading: Icon(Icons.local_shipping_outlined), title: Text('Generar Guía de Despacho (PDF)'))),
                     const PopupMenuItem(value: 'share', child: ListTile(leading: Icon(Icons.share), title: Text('Compartir'))),
                   ],
                 ),

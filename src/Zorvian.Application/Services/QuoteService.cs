@@ -34,7 +34,8 @@ public sealed class QuoteService
         var total = taxableAmount + tax;
 
         var quote = _mapper.Map<Quote>(request);
-        quote.QuoteNumber = await _repo.GenerateNumberAsync(companyId);
+        quote.QuoteType = QuoteTypeExtensions.Parse(request.QuoteType);
+        quote.QuoteNumber = await _repo.GenerateNumberAsync(companyId, quote.QuoteType);
         quote.Subtotal = subtotal;
         quote.Tax = tax;
         quote.Total = total;
@@ -70,6 +71,8 @@ public sealed class QuoteService
         var total = taxableAmount + tax;
 
         _mapper.Map(request, quote);
+        if (!string.IsNullOrWhiteSpace(request.QuoteType))
+            quote.QuoteType = QuoteTypeExtensions.Parse(request.QuoteType);
         quote.Subtotal = subtotal;
         quote.Tax = tax;
         quote.Total = total;
@@ -100,12 +103,13 @@ public sealed class QuoteService
         return true;
     }
 
-    public async Task<bool> UpdateStatusAsync(Guid id, QuoteStatus status)
+    public async Task<bool> UpdateStatusAsync(Guid id, string status)
     {
         var quote = await _repo.GetByIdAsync(id);
         if (quote is null) return false;
 
-        await _repo.UpdateStatusAsync(id, status);
+        var parsed = QuoteStatusExtensions.Parse(status);
+        await _repo.UpdateStatusAsync(id, parsed);
         await _repo.SaveChangesAsync();
         return true;
     }
@@ -116,14 +120,34 @@ public sealed class QuoteService
         return quote is null ? null : _mapper.Map<QuoteResponse>(quote);
     }
 
+    /// <summary>Convierte una cotización en proforma y le asigna numeración PRO-.</summary>
+    public async Task<QuoteResponse?> ConvertToProformaAsync(Guid id)
+    {
+        var quote = await _repo.GetByIdAsync(id);
+        if (quote is null) return null;
+
+        if (quote.QuoteType == QuoteType.Proforma)
+            return _mapper.Map<QuoteResponse>(quote);
+
+        quote.QuoteType = QuoteType.Proforma;
+        quote.QuoteNumber = await _repo.GenerateNumberAsync(quote.CompanyId, QuoteType.Proforma);
+        quote.Status = QuoteStatus.Pending;
+        quote.UpdatedAt = DateTime.UtcNow;
+
+        await _repo.UpdateAsync(quote);
+        await _repo.SaveChangesAsync();
+
+        return await GetByIdAsync(quote.Id);
+    }
+
     public async Task<PagedResult<QuoteResponse>> GetFilteredAsync(QuoteFilterRequest filter)
     {
         var page = filter.Page ?? 1;
         var pageSize = filter.PageSize ?? 20;
         var branchId = filter.BranchId ?? _tenant.ResolveBranchId() ?? Guid.Empty;
 
-        var items = await _repo.GetFilteredAsync(filter.ClientId, filter.Status, filter.FromDate, filter.ToDate, filter.Search, branchId, page, pageSize);
-        var total = await _repo.GetFilteredCountAsync(filter.ClientId, filter.Status, filter.FromDate, filter.ToDate, filter.Search, branchId);
+        var items = await _repo.GetFilteredAsync(filter.ClientId, filter.Status, filter.QuoteType, filter.FromDate, filter.ToDate, filter.Search, branchId, page, pageSize);
+        var total = await _repo.GetFilteredCountAsync(filter.ClientId, filter.Status, filter.QuoteType, filter.FromDate, filter.ToDate, filter.Search, branchId);
 
         return new PagedResult<QuoteResponse>(
             _mapper.Map<List<QuoteResponse>>(items),

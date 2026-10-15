@@ -37,6 +37,7 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<ApprovalFlow> ApprovalFlows => Set<ApprovalFlow>();
     public DbSet<LeaveType> LeaveTypes => Set<LeaveType>();
     public DbSet<PermissionRequest> PermissionRequests => Set<PermissionRequest>();
+    public DbSet<CertificateRequest> CertificateRequests => Set<CertificateRequest>();
     public DbSet<AttendanceRecord> AttendanceRecords => Set<AttendanceRecord>();
     public DbSet<DeviceToken> DeviceTokens => Set<DeviceToken>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();

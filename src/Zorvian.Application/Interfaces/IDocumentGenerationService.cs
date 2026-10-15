@@ -9,4 +9,5 @@ public interface IDocumentGenerationService
     Task<GeneratedDocument> QuickGenerateSaleDocumentAsync(Guid saleId, Guid templateId);
     Task<QuickGenerateResult> QuickGenerateAsync(string entityType, Guid entityId, Guid templateId);
     Task<EntityContextResponse?> GetEntityContextAsync(string entityType, Guid entityId);
+    Task<Dictionary<string, string>> GetCertificateContextAsync(string certificateType, Guid employeeId);
 }

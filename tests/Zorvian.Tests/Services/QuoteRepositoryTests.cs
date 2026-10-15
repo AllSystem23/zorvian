@@ -65,6 +65,7 @@ public sealed class QuoteRepositoryTests
             QuoteNumber = number,
             ClientId = clientId,
             Status = QuoteStatus.Pending,
+            QuoteType = QuoteType.Cotizacion,
             QuoteDate = DateOnly.FromDateTime(DateTime.UtcNow),
             Subtotal = 100,
             Total = 115
@@ -75,8 +76,8 @@ public sealed class QuoteRepositoryTests
     [Fact]
     public async Task GetFilteredAsync_ConBranchVacio_DevuelveTodasLasSucursales()
     {
-        var items = await _sut.GetFilteredAsync(null, null, null, null, null, Guid.Empty, 1, 20);
-        var total = await _sut.GetFilteredCountAsync(null, null, null, null, null, Guid.Empty);
+        var items = await _sut.GetFilteredAsync(null, null, null, null, null, null, Guid.Empty, 1, 20);
+        var total = await _sut.GetFilteredCountAsync(null, null, null, null, null, null, Guid.Empty);
 
         Assert.Equal(3, items.Count);
         Assert.Equal(3, total);
@@ -85,8 +86,8 @@ public sealed class QuoteRepositoryTests
     [Fact]
     public async Task GetFilteredAsync_ConBranchConcreto_DevuelveSoloEsaSucursal()
     {
-        var items = await _sut.GetFilteredAsync(null, null, null, null, null, _branchA, 1, 20);
-        var total = await _sut.GetFilteredCountAsync(null, null, null, null, null, _branchA);
+        var items = await _sut.GetFilteredAsync(null, null, null, null, null, null, _branchA, 1, 20);
+        var total = await _sut.GetFilteredCountAsync(null, null, null, null, null, null, _branchA);
 
         Assert.Equal(2, items.Count);
         Assert.All(items, q => Assert.Equal(_branchA, q.BranchId));
@@ -96,7 +97,7 @@ public sealed class QuoteRepositoryTests
     [Fact]
     public async Task GetFilteredAsync_ConBranchSinDatos_DevuelveVacio()
     {
-        var items = await _sut.GetFilteredAsync(null, null, null, null, null, Guid.NewGuid(), 1, 20);
+        var items = await _sut.GetFilteredAsync(null, null, null, null, null, null, Guid.NewGuid(), 1, 20);
 
         Assert.Empty(items);
     }

@@ -7,6 +7,7 @@ import '../features/dashboard/dashboard_page.dart';
 import '../features/dashboard/pages/absence_calendar_page.dart';
 import '../features/executive_dashboard/executive_dashboard_page.dart';
 import '../features/profile/profile_page.dart';
+import '../features/certificate_requests/certificate_requests_page.dart';
 import '../features/attendance/pages/attendance_page.dart';
 import '../features/attendance/pages/attendance_history_page.dart';
 import '../features/attendance/pages/kiosk_page.dart';
@@ -215,6 +216,7 @@ final _routeRoles = <String, List<String>>{
   '/employees': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor'],
   '/departments': ['SuperAdmin', 'CompanyAdmin', 'Rrhh'],
   '/vacations': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
+  '/certificate-requests': ['SuperAdmin', 'CompanyAdmin', 'Rrhh'],
   '/permissions': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/attendance': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/reports': ['SuperAdmin', 'CompanyAdmin', 'Rrhh'],
@@ -441,6 +443,11 @@ GoRouter buildGoRouter(AuthState authState) {
             path: '/profile',
             name: 'profile',
             builder: (_, _) => const ProfilePage(),
+          ),
+          GoRoute(
+            path: '/certificate-requests',
+            name: 'certificate-requests',
+            builder: (_, _) => const CertificateRequestsPage(),
           ),
           GoRoute(
             path: '/absence-calendar',

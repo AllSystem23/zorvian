@@ -76,18 +76,27 @@ final class _QuoteListPageState extends ConsumerState<QuoteListPage> {
                                 itemBuilder: (_, i) {
                                   final q = items[i];
                                   final stColor = switch (q.status) {
-                                    'approved' => Colors.green,
+                                    'accepted' => Colors.green,
                                     'rejected' => Colors.red,
                                     'converted' => Colors.blue,
+                                    'sent' => Colors.teal,
+                                    'expired' => Colors.grey,
                                     _ => Colors.orange,
                                   };
                                   return ListTile(
                                     leading: CircleAvatar(
                                       backgroundColor: stColor.withAlpha(30),
-                                      child: Text(q.quoteNumber, style: TextStyle(fontSize: 10, color: stColor, fontWeight: FontWeight.bold)),
+                                      child: Icon(
+                                        q.quoteType == 'proforma' ? Icons.receipt_long : Icons.request_quote_outlined,
+                                        size: 18,
+                                        color: stColor,
+                                      ),
                                     ),
                                     title: Text(q.clientName, style: const TextStyle(fontWeight: FontWeight.w600)),
-                                    subtitle: Text('\$${q.total.toStringAsFixed(0)} · ${q.quoteDate.substring(0, 10)}'),
+                                    subtitle: Text(
+                                      '${q.quoteType == 'proforma' ? 'PROFORMA · ' : ''}${q.quoteNumber} · \$${q.total.toStringAsFixed(0)} · ${q.quoteDate.length >= 10 ? q.quoteDate.substring(0, 10) : q.quoteDate}',
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
                                     trailing: Chip(
                                       label: Text(q.status, style: TextStyle(fontSize: 11, color: stColor)),
                                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
