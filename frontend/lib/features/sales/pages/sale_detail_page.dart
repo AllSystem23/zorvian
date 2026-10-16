@@ -72,8 +72,8 @@ final class _SaleDetailPageState extends ConsumerState<SaleDetailPage> {
     }
   }
 
-  /// Genera el documento (factura o guía de despacho) vía el motor documental
-  /// y comparte el PDF resultante.
+  /// Genera el documento (factura, guía de despacho o guía de remisión) vía
+  /// el motor documental y comparte el PDF resultante.
   Future<void> _generateEngineDocument({
     required String endpoint,
     required String label,
@@ -196,6 +196,12 @@ final class _SaleDetailPageState extends ConsumerState<SaleDetailPage> {
                         label: 'Guía de Despacho',
                         fileName: 'guia_despacho_${d.invoiceNumber}',
                       );
+                    } else if (value == 'remission') {
+                      _generateEngineDocument(
+                        endpoint: 'remission-guide/generate',
+                        label: 'Guía de Remisión',
+                        fileName: 'guia_remision_${d.invoiceNumber}',
+                      );
                     } else if (value == 'share') {
                       showModalBottomSheet(
                         context: context,
@@ -262,6 +268,7 @@ final class _SaleDetailPageState extends ConsumerState<SaleDetailPage> {
                     const PopupMenuItem(value: 'qr', child: ListTile(leading: Icon(Icons.qr_code), title: Text('Código QR'))),
                     const PopupMenuItem(value: 'invoice', child: ListTile(leading: Icon(Icons.receipt_long), title: Text('Generar Factura (PDF)'))),
                     const PopupMenuItem(value: 'guide', child: ListTile(leading: Icon(Icons.local_shipping_outlined), title: Text('Generar Guía de Despacho (PDF)'))),
+                    const PopupMenuItem(value: 'remission', child: ListTile(leading: Icon(Icons.description_outlined), title: Text('Generar Guía de Remisión (PDF)'))),
                     const PopupMenuItem(value: 'share', child: ListTile(leading: Icon(Icons.share), title: Text('Compartir'))),
                   ],
                 ),

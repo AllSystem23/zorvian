@@ -207,6 +207,23 @@ public static class DocumentTemplateSeeder
             Content = BuildDeliveryGuideHtml()
         });
 
+        // ── Sales: Guía de Remisión / Traslado ──
+        templates.Add(new DocumentTemplate
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            CreatedAt = now,
+            CreatedBy = "system",
+            Name = "Guía de Remisión",
+            Category = "Sales",
+            Module = "Sale",
+            CountryCode = "ALL",
+            IsActive = true,
+            Version = "1.0",
+            Variables = "[{\"key\":\"guide_number\",\"label\":\"No. Guía de Remisión\",\"type\":\"text\",\"required\":true},{\"key\":\"delivery_date\",\"label\":\"Fecha de Traslado\",\"type\":\"date\",\"required\":true},{\"key\":\"client_name\",\"label\":\"Nombre del Cliente\",\"type\":\"text\",\"required\":true},{\"key\":\"client_id\",\"label\":\"No. Identificación Cliente\",\"type\":\"text\",\"required\":false},{\"key\":\"client_address\",\"label\":\"Dirección de Destino\",\"type\":\"text\",\"required\":false},{\"key\":\"invoice_ref\",\"label\":\"Ref. Factura\",\"type\":\"text\",\"required\":false},{\"key\":\"remission_reason\",\"label\":\"Motivo del Traslado\",\"type\":\"text\",\"required\":false},{\"key\":\"carrier\",\"label\":\"Transportista\",\"type\":\"text\",\"required\":false}]",
+            Content = BuildRemissionGuideHtml()
+        });
+
         // ── Sales: Nota de Crédito ──
         templates.Add(new DocumentTemplate
         {
@@ -1057,8 +1074,8 @@ public static class DocumentTemplateSeeder
   </div>
   {{% if client_address != blank %}}<p><strong>Dirección de entrega:</strong> {{{{ client_address }}}}</p>{{% endif %}}
   <table class='items'>
-    <thead><tr><th>Descripción</th><th style='text-align:center;'>Cantidad</th><th style='text-align:left;'>Observaciones</th></tr></thead>
-    <tbody><tr><td colspan='3' style='text-align:center; color:#888; padding:20px;'><em>Los items se cargan desde la venta del sistema.</em></td></tr></tbody>
+    <thead><tr><th>Código</th><th>Descripción</th><th style='text-align:center;'>Cantidad</th><th style='text-align:right;'>Subtotal</th></tr></thead>
+    <tbody>{{% for item in items %}}<tr><td>{{{{ item.code }}}}</td><td>{{{{ item.description }}}}</td><td style='text-align:center;'>{{{{ item.quantity }}}}</td><td style='text-align:right;'>{{{{ item.subtotal }}}}</td></tr>{{% else %}}<tr><td colspan='4' style='text-align:center; color:#888; padding:20px;'><em>Los items se cargan dinámicamente desde la venta del sistema.</em></td></tr>{{% endfor %}}</tbody>
   </table>
   {{% if carrier != blank %}}<p><strong>Transportista:</strong> {{{{ carrier }}}}</p>{{% endif %}}
   <p><strong>Recibido por:</strong> {{{{ received_by | default: '_________________________' }}}}</p>
@@ -1067,6 +1084,62 @@ public static class DocumentTemplateSeeder
     <div class='sig-block'><div class='sig-line'>Entregado por</div></div>
     <div class='sig-block'><div class='sig-line'>Recibido por</div></div>
     <div class='sig-block'><div class='sig-line'>Vo.Bo. Administración</div></div>
+  </div>
+  <div class='footer'>Documento generado por Zorvian ERP - Motor Documental Inteligente · {{{{ Country.Name }}}} · {{{{ Company.Date }}}}</div>
+</body></html>";
+
+    private static string BuildRemissionGuideHtml() => $@"<!DOCTYPE html>
+<html><head><meta charset='UTF-8'>
+  {SharedStyles()}
+  <style>
+    .doc-badge {{ background: #7C4DFF; color: white; padding: 8px 20px; border-radius: 20px; font-size: 14px; font-weight: 700; }}
+    .header {{ display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #7C4DFF; padding-bottom: 16px; }}
+    .meta-box {{ display: flex; gap: 20px; margin: 15px 0; flex-wrap: wrap; }}
+    .meta-card {{ flex: 1; min-width: 150px; background: #f5f3ff; padding: 12px 16px; border-radius: 8px; border-left: 3px solid #7C4DFF; }}
+    .meta-card small {{ color: #666; display: block; margin-bottom: 4px; }}
+    .meta-card strong {{ color: #1A0A3E; }}
+    .reason-box {{ margin: 14px 0; padding: 10px 16px; background: #f5f3ff; border-left: 4px solid #7C4DFF; border-radius: 6px; }}
+    .route-box {{ display: flex; gap: 16px; margin: 16px 0; align-items: stretch; }}
+    .route-point {{ flex: 1; background: #faf9ff; padding: 12px 16px; border-radius: 8px; border: 1px solid #e4dcff; }}
+    .route-point small {{ color: #666; display: block; margin-bottom: 4px; font-weight: 600; letter-spacing: 1px; }}
+    .route-arrow {{ align-self: center; font-size: 22px; color: #7C4DFF; font-weight: 700; }}
+    .value-box {{ text-align: right; margin-top: 10px; font-size: 15px; }}
+    .sig-area {{ display: flex; justify-content: space-between; margin-top: 70px; }}
+    .sig-block {{ text-align: center; width: 30%; }}
+  </style>
+</head><body>
+  <div class='header'>
+    <div>
+      <div class='company-name'>{{{{ Company.LegalName }}}}</div>
+      <div style='font-size:12px;color:#555;'>{{{{ Company.TaxIdLabel }}}} No. {{{{ Company.TaxId | default: '____________' }}}}</div>
+      <div style='font-size:12px;color:#555;'>{{{{ Company.Address | default: '____________' }}}}</div>
+    </div>
+    <div class='doc-badge'>GUÍA DE REMISIÓN</div>
+  </div>
+  <div class='meta-box'>
+    <div class='meta-card'><small>No. Guía de Remisión</small><strong>{{{{ guide_number }}}}</strong></div>
+    <div class='meta-card'><small>Fecha de Traslado</small><strong>{{{{ delivery_date }}}}</strong></div>
+    <div class='meta-card'><small>Cliente</small><strong>{{{{ client_name }}}}</strong></div>
+    {{% if invoice_ref != blank %}}<div class='meta-card'><small>Ref. Factura</small><strong>{{{{ invoice_ref }}}}</strong></div>{{% endif %}}
+  </div>
+  <div class='reason-box'><strong>Motivo del traslado:</strong> {{{{ remission_reason | default: 'Venta de mercadería' }}}}</div>
+  <div class='route-box'>
+    <div class='route-point'><small>ORIGEN</small><strong>{{{{ Company.Address | default: Contract.City | default: '____________' }}}}</strong><br /><span style='font-size:12px;color:#555;'>{{{{ Company.LegalName }}}}</span></div>
+    <div class='route-arrow'>&rarr;</div>
+    <div class='route-point'><small>DESTINO</small><strong>{{{{ client_address | default: '____________' }}}}</strong><br /><span style='font-size:12px;color:#555;'>{{{{ client_name }}}}</span></div>
+  </div>
+  <table class='items'>
+    <thead><tr><th>Código</th><th>Descripción</th><th style='text-align:center;'>Cantidad</th><th style='text-align:right;'>Subtotal</th></tr></thead>
+    <tbody>{{% for item in items %}}<tr><td>{{{{ item.code }}}}</td><td>{{{{ item.description }}}}</td><td style='text-align:center;'>{{{{ item.quantity }}}}</td><td style='text-align:right;'>{{{{ item.subtotal }}}}</td></tr>{{% else %}}<tr><td colspan='4' style='text-align:center; color:#888; padding:20px;'><em>Los items se cargan dinámicamente desde la venta del sistema.</em></td></tr>{{% endfor %}}</tbody>
+  </table>
+  <div class='value-box'><strong>Valor declarado:</strong> {{{{ Country.Currency | default: '' }}}} {{{{ Sale.Total | default: '0.00' }}}}</div>
+  {{% if carrier != blank %}}<p><strong>Transportista:</strong> {{{{ carrier }}}}</p>{{% endif %}}
+  {{% if client_id != blank %}}<p><strong>Identificación del cliente:</strong> {{{{ client_id }}}}</p>{{% endif %}}
+  <p style='margin-top:14px; font-size:13px;'>Documento que acompaña la mercancía durante su traslado. Al firmar, el receptor confirma la recepción de los bienes descritos, en cantidad y estado.</p>
+  <div class='sig-area'>
+    <div class='sig-block'><div class='sig-line'>Entregado por</div></div>
+    <div class='sig-block'><div class='sig-line'>Recibido por</div></div>
+    <div class='sig-block'><div class='sig-line'>Transportista</div></div>
   </div>
   <div class='footer'>Documento generado por Zorvian ERP - Motor Documental Inteligente · {{{{ Country.Name }}}} · {{{{ Company.Date }}}}</div>
 </body></html>";

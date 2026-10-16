@@ -4,21 +4,21 @@ Esta guía sirve para completar la implementación de documentos faltantes usand
 
 ## Estado actual (2026-10-16)
 - ✅ RRHH: Constancia de Empleo, Contrato de Trabajo, Carta de Oferta, Constancias vía solicitudes (salarial/laboral/contrato/liquidacion/poder), Liquidación Final (NIC)
-- ✅ Comerciales: Cotización, Proforma, Factura, Guía de Despacho, Nota de Crédito
+- ✅ Comerciales: Cotización, Proforma, Factura, Guía de Despacho, **Guía de Remisión / Traslado**, Nota de Crédito
 - ✅ Compras: Orden de Compra (**con sello por estado: APROBADA / RECIBIDA PARCIALMENTE / COMPLETADA / CANCELADA**), Acta de Recepción de Compras, **Recibo de Pago (Proveedor)**, **Solicitud de Cotización** (entidad PurchaseRequest construida en esta tanda)
 - ✅ Finanzas/Caja: Recibo de Pago (Cliente), Comprobante de Caja (Ingreso/Egreso — una plantilla con `movement_title` variable), **Ficha de Activo Fijo**
 - ✅ Fleet: Orden de Trabajo, **Hoja de Ruta / Entrega**, **Acta de Recepción (Taller)**
 - ✅ Garantías: **Certificado de Garantía**
 - ✅ Inventario: **Kardex de Producto** (endpoint por producto: totales de entradas/salidas, período y stock), **Transferencia entre Bodegas** (entidad StockTransfer construida en esta tanda)
 - ✅ Otros: Poder Notarial General
-- ✅ **Ítems tabulados**: 9 plantillas renderizan filas reales vía `{% for %}` (Factura, Cotización, Nota de Crédito, OC, Acta de Compras, Hoja de Ruta, Kardex, Solicitud de Cotización, Transferencia entre Bodegas)
+- ✅ **Ítems tabulados**: 11 plantillas renderizan filas reales vía `{% for %}` (Factura, Cotización, Nota de Crédito, OC, Acta de Compras, Hoja de Ruta, Kardex, Solicitud de Cotización, Transferencia entre Bodegas, Guía de Despacho, Guía de Remisión)
 
-Plantillas sembradas: **23** (6 en v2.1 multi-país + Liquidación NIC 1.1 + 16 en v1.0). El seeder **inserta las plantillas faltantes idempotentemente** en BDs existentes (`InsertMissingSeededTemplatesAsync`), así las nuevas llegan en el próximo arranque sin borrar la BD.
+Plantillas sembradas: **24** (6 en v2.1 multi-país + Liquidación NIC 1.1 + 17 en v1.0). El seeder **inserta las plantillas faltantes idempotentemente** en BDs existentes (`InsertMissingSeededTemplatesAsync`), así las nuevas llegan en el próximo arranque sin borrar la BD.
 
 ### Endpoints implementados (POST → genera + devuelve downloadUrl `/zorvian/v1/documents/{id}/pdf`)
 | Documento | Endpoint | Contexto | Plantilla |
 |---|---|---|---|
-| Factura / Guía | `/zorvian/v1/sales/{id}/invoice/generate` · `/delivery-guide/generate` | `sale` | Factura / Guía de Despacho |
+| Factura / Guía | `/zorvian/v1/sales/{id}/invoice/generate` · `/delivery-guide/generate` · `/remission-guide/generate` | `sale` | Factura / Guía de Despacho / Guía de Remisión |
 | Nota de Crédito | `/zorvian/v1/credit-notes/{id}/pdf/generate` | `creditnote` | Nota de Crédito |
 | Orden de Compra | `/zorvian/v1/purchase-orders/{id}/pdf/generate` | `purchaseorder` | Orden de Compra |
 | Acta de Recepción | `/zorvian/v1/purchases/{id}/pdf/generate` | `purchase` | Acta de Recepción de Compras |
@@ -62,9 +62,11 @@ Plantillas sembradas: **23** (6 en v2.1 multi-país + Liquidación NIC 1.1 + 16 
 - Certificados: `GetCertificateContextAsync` aplana `Data` a string antes de los `Enrich*` (sigue devolviendo `Dictionary<string,string>` por contrato de interfaz).
 
 ## Próxima tanda recomendada
-**El inventario original está 100% cerrado** — los 2 documentos descartados por falta de entidad se resolvieron construyendo las entidades (tanda 4: PurchaseRequest y StockTransfer). Candidatos naturales si el backlog pide nuevos documentos:
-- **Guía de Remisión/Traslado por sucursal** (reutilizaría el contexto `sale`, sin entidad nueva).
+**El inventario original está 100% cerrado** — los 2 documentos descartados por falta de entidad se resolvieron construyendo las entidades (tanda 4: PurchaseRequest y StockTransfer), y el primer candidato de la tanda 6 cerró el ciclo comercial de transporte (tanda 6: Guía de Remisión). Candidatos naturales si el backlog pide nuevos documentos:
+- ~~**Guía de Remisión/Traslado por sucursal**~~ — **Resuelto (tanda 6)**: plantilla "Guía de Remisión" (Module Sale, v1.0, ALL) reutilizando el contexto `sale`, con bloque ORIGEN→DESTINO, motivo de traslado, items loop y valor declarado; endpoint `POST /zorvian/v1/sales/{id}/remission-guide/generate`; botón "Generar Guía de Remisión (PDF)" en el popup del detalle de venta. Además la **Guía de Despacho** ganó `{% for %}` de items (antes mostraba placeholder estático).
 - Documentos de nómina multi-país (actualizar Liquidación NIC al resto de países).
 - Picking/packing list para preparación de pedidos (reutilizaría `delivery`).
 
+> **Nota (2026-10-16, cierre tanda 6)**: Guía de Remisión agregada como plantilla 24 del seeder + endpoint de venta + frontend; Guía de Despacho migrada a items loop. Sin entidad ni contexto nuevos (reutiliza `sale`). Suite al cierre: **1117/1117** backend, `flutter analyze lib` 0 issues, **357/357** frontend.
+>
 > **Nota (2026-10-16, cierre tanda 4)**: las 2 entidades nuevas incluyen migración EF (`AddPurchaseRequestAndStockTransfer` + secuencias `seq_purchase_request_number`/`seq_stock_transfer_number`), RLS en `SECURITY_RLS.sql` (bloques 1 y 2, Phase 8) + `test_rls_staging.sql`, enforcement de módulos (`PurchaseRequests`→Purchases, `StockTransfers`→Inventory), servicios con máquina de estados y BranchValidator, y tests (contexto, render Liquid, seeder 23/24, visibilidad, servicios y matrices de repositorio). Suite al cierre: **1114/1114** backend, `flutter analyze lib` 0 issues, **357/357** frontend.

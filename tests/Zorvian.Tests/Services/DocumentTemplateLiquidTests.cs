@@ -202,7 +202,7 @@ public class DocumentTemplateLiquidTests
         rendered.Should().Contain("Sucursal Central");
     }
 
-    // ── Las 20 plantillas sembradas: parsean, renderizan y no hardcodean país ──
+    // ── Plantillas sembradas: parsean, renderizan y no hardcodean país ──
 
     private static Dictionary<string, string> RichModel() => new()
     {
@@ -258,7 +258,7 @@ public class DocumentTemplateLiquidTests
         ["attorney_id"] = "001-050100-0003B",
         ["powers"] = "Administrar cuentas bancarias",
         ["scope"] = "Actos de administración",
-        // ── Factura / Guía de Despacho ──
+        // ── Factura / Guía de Despacho / Guía de Remisión ──
         ["invoice_number"] = "FAC-2026-001",
         ["invoice_date"] = "12/10/2026",
         ["guide_number"] = "GD-2026-001",
@@ -383,6 +383,7 @@ public class DocumentTemplateLiquidTests
     [InlineData("BuildLiquidationFinalHtml")]
     [InlineData("BuildInvoiceHtml")]
     [InlineData("BuildDeliveryGuideHtml")]
+    [InlineData("BuildRemissionGuideHtml")]
     [InlineData("BuildCreditNoteHtml")]
     [InlineData("BuildPurchaseOrderHtml")]
     [InlineData("BuildReceivingReportHtml")]
@@ -786,6 +787,104 @@ public class DocumentTemplateLiquidTests
         rendered.Should().Contain("COM-001");
         rendered.Should().Contain("Entrada");
         rendered.Should().NotContain("{{");
+    }
+
+    [Fact]
+    public async Task DeliveryGuide_ItemsLoop_RendersRowsFromSaleItems()
+    {
+        var html = InvokeBuilder("BuildDeliveryGuideHtml");
+        var model = new Dictionary<string, object>
+        {
+            ["guide_number"] = "GD-2026-001",
+            ["delivery_date"] = "12/10/2026",
+            ["client_name"] = "Distribuidora Norte S.A.",
+            ["items"] = new List<Dictionary<string, object>>
+            {
+                new(StringComparer.Ordinal)
+                {
+                    ["code"] = "PRD-1",
+                    ["description"] = "Laptop Lenovo",
+                    ["quantity"] = "2",
+                    ["unit_price"] = "50.00",
+                    ["discount"] = "0.00",
+                    ["subtotal"] = "100.00",
+                },
+            },
+        };
+
+        var rendered = await RenderRawAsync(html, LiquidModelNormalizer.Normalize(model));
+
+        rendered.Should().Contain("Laptop Lenovo", "el bucle {% for %} debe renderizar la fila");
+        rendered.Should().Contain("GD-2026-001");
+        rendered.Should().NotContain("Los items se cargan dinámicamente",
+            "con items presentes el placeholder no debe aparecer");
+        rendered.Should().NotContain("{{");
+
+        var fallback = await RenderRawAsync(html, LiquidModelNormalizer.Normalize(
+            new Dictionary<string, object> { ["guide_number"] = "GD-2026-002" }));
+        fallback.Should().Contain("Los items se cargan dinámicamente",
+            "sin items (entrada manual del wizard) debe conservarse el placeholder");
+        fallback.Should().NotContain("{{");
+    }
+
+    // ── Guía de Remisión (plantilla de la tanda 6: reutiliza el contexto sale) ──
+
+    [Fact]
+    public async Task RemissionGuide_RouteReasonItemsAndDeclaredValue()
+    {
+        var html = InvokeBuilder("BuildRemissionGuideHtml");
+        var model = new Dictionary<string, object>
+        {
+            ["guide_number"] = "GR-2026-001",
+            ["delivery_date"] = "16/10/2026",
+            ["client_name"] = "Distribuidora Norte S.A.",
+            ["client_id"] = "J0510000000001A",
+            ["client_address"] = "Km 12 Carretera Norte, Bodega 4",
+            ["invoice_ref"] = "FAC-2026-001",
+            ["Company.LegalName"] = "Comercializadora Zorvian S.A.",
+            ["Company.Address"] = "Av. Central 123",
+            ["Contract.City"] = "Av. Central 123",
+            ["Sale.Total"] = "1,100.00",
+            ["Country.Currency"] = "C$",
+            ["items"] = new List<Dictionary<string, object>>
+            {
+                new(StringComparer.Ordinal)
+                {
+                    ["code"] = "PRD-1",
+                    ["description"] = "Laptop Lenovo",
+                    ["quantity"] = "2",
+                    ["unit_price"] = "50.00",
+                    ["discount"] = "0.00",
+                    ["subtotal"] = "100.00",
+                },
+            },
+        };
+
+        var rendered = await RenderRawAsync(html, LiquidModelNormalizer.Normalize(model));
+
+        rendered.Should().Contain("GUÍA DE REMISIÓN");
+        rendered.Should().Contain("GR-2026-001");
+        rendered.Should().Contain("ORIGEN");
+        rendered.Should().Contain("DESTINO");
+        rendered.Should().Contain("Av. Central 123", "origen = domicilio de la compañía");
+        rendered.Should().Contain("Km 12 Carretera Norte, Bodega 4", "destino = dirección del cliente");
+        rendered.Should().Contain("Venta de mercadería", "motivo por defecto (contexto sale)");
+        rendered.Should().Contain("Laptop Lenovo", "el bucle {% for %} debe renderizar la fila");
+        rendered.Should().Contain("Valor declarado");
+        rendered.Should().Contain("1,100.00");
+        rendered.Should().NotContain("{{");
+
+        var fallback = await RenderRawAsync(html, LiquidModelNormalizer.Normalize(
+            new Dictionary<string, object>
+            {
+                ["guide_number"] = "GR-2026-002",
+                ["remission_reason"] = "Traslado a bodega externa",
+            }));
+        fallback.Should().Contain("Los items se cargan dinámicamente",
+            "sin items (entrada manual del wizard) debe conservarse el placeholder");
+        fallback.Should().Contain("Traslado a bodega externa", "el motivo manual pisa al por defecto");
+        fallback.Should().NotContain("Venta de mercadería");
+        fallback.Should().NotContain("{{");
     }
 
     // ── Orden de Compra: sello por estado (mismo template, badge condicional) ──

@@ -128,12 +128,13 @@ public sealed class DocumentTemplateSystemVisibilityTests : IDisposable
         var repo = new DocumentTemplateRepository(freshDb);
         var (items, total) = await repo.GetFilteredAsync(null, null, null, null, null, 1, 50);
 
-        Assert.Equal(23, total);
+        Assert.Equal(24, total);
         Assert.All(items, t => Assert.Equal(DocumentTemplate.SystemTenantId, t.TenantId));
         Assert.Equal(6, items.Count(t => t.Version == "2.1"));
         Assert.Contains(items, t => t.Name == "Liquidación Final (Nicaragua)" && t.CountryCode == "NIC");
         Assert.Contains(items, t => t.Name == "Factura" && t.Version == "1.0");
         Assert.Contains(items, t => t.Name == "Guía de Despacho" && t.Version == "1.0");
+        Assert.Contains(items, t => t.Name == "Guía de Remisión" && t.Version == "1.0");
         Assert.Contains(items, t => t.Name == "Nota de Crédito" && t.Version == "1.0");
         Assert.Contains(items, t => t.Name == "Orden de Compra" && t.Version == "1.0");
         Assert.Contains(items, t => t.Name == "Acta de Recepción de Compras" && t.Version == "1.0");

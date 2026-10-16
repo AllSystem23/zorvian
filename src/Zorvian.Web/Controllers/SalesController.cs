@@ -156,4 +156,43 @@ public sealed class SalesController : ControllerBase
             return StatusCode(500, new { error = "Error interno al generar guía de despacho" });
         }
     }
+
+    [Audit("Sale", "GenerateRemissionGuide")]
+    [HttpPost("{id:guid}/remission-guide/generate")]
+    [RequirePermission(Permissions.SaleRead)]
+    public async Task<IActionResult> GenerateRemissionGuide(Guid id)
+    {
+        try
+        {
+            var context = await _documentGenerationService.GetEntityContextAsync("sale", id);
+            if (context is null) return NotFound(new { error = "Venta no encontrada" });
+
+            var template = await _documentTemplateRepo.GetByNameAsync("Guía de Remisión");
+            if (template is null) return NotFound(new { error = "Plantilla 'Guía de Remisión' no encontrada. Ejecute el seed." });
+
+            var generated = await _documentService.GenerateProfessionalDocumentAsync(
+                template.Id,
+                id,
+                context.Data,
+                "sale");
+
+            return Ok(new
+            {
+                generatedDocumentId = generated.Id,
+                name = generated.Name,
+                status = generated.Status,
+                createdAt = generated.CreatedAt,
+                downloadUrl = $"/zorvian/v1/documents/{generated.Id}/pdf"
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generando guía de remisión para venta {SaleId}", id);
+            return StatusCode(500, new { error = "Error interno al generar guía de remisión" });
+        }
+    }
 }
