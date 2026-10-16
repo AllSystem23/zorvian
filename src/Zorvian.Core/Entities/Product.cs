@@ -25,5 +25,12 @@ public sealed class Product : BaseEntity
     public TaxCategory? TaxCategory { get; set; }
     public Guid BranchId { get; set; }
 
+    /// <summary>
+    /// Bodega que posee ESTA fila de stock (catálogo único por (Code, WarehouseId)).
+    /// BranchId = Warehouse.BranchId se mantiene sincronizado por el servicio.
+    /// </summary>
+    public Guid WarehouseId { get; set; }
+    public Warehouse? Warehouse { get; set; }
+
     public ICollection<InventoryMovement> InventoryMovements { get; set; } = [];
 }

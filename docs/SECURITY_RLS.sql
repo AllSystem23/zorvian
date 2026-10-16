@@ -161,6 +161,18 @@ ALTER TABLE IF EXISTS "StockTransfers" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS "StockTransferDetails" ENABLE ROW LEVEL SECURITY;
 
 -- ====================================================================
+-- Phase 9: Warehouses (1 table)
+-- ====================================================================
+
+ALTER TABLE IF EXISTS "Warehouses" ENABLE ROW LEVEL SECURITY;
+
+-- ====================================================================
+-- Phase 10: Employment Periods (1 table) — historial de contratos
+-- ====================================================================
+
+ALTER TABLE IF EXISTS "EmploymentPeriods" ENABLE ROW LEVEL SECURITY;
+
+-- ====================================================================
 -- Create RLS policies via DO blocks
 -- ====================================================================
 
@@ -208,7 +220,12 @@ BEGIN
         'PurchaseOrders','PurchaseOrderDetails','PurchaseDetails',
         -- Phase 8: Purchase Requests & Stock Transfers (4)
         'PurchaseRequests','PurchaseRequestDetails',
-        'StockTransfers','StockTransferDetails'
+        'StockTransfers','StockTransferDetails',
+        -- Phase 9: Warehouses (1) — el bloque dinámico 3 la reescribe con la
+        -- política combinada tenant AND sucursal (tiene columna BranchId)
+        'Warehouses',
+        -- Phase 10: Employment Periods (1) — sin BranchId, solo tenant
+        'EmploymentPeriods'
     ])
     LOOP
         IF to_regclass(format('public.%I', tbl)) IS NULL THEN
@@ -291,7 +308,9 @@ BEGIN
         'CreditNotes','CreditNoteDetails',
         'PurchaseOrders','PurchaseOrderDetails','PurchaseDetails',
         'PurchaseRequests','PurchaseRequestDetails',
-        'StockTransfers','StockTransferDetails'
+        'StockTransfers','StockTransferDetails',
+        'Warehouses',
+        'EmploymentPeriods'
     ])
     LOOP
         IF to_regclass(format('public.%I', tbl)) IS NULL THEN

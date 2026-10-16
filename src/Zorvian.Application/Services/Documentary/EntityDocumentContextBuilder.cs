@@ -35,6 +35,7 @@ public sealed class EntityDocumentContextBuilder : IEntityDocumentContextBuilder
     private readonly IQuoteRepository _quoteRepo;
     private readonly IPurchaseRequestRepository _purchaseRequestRepo;
     private readonly IStockTransferRepository _stockTransferRepo;
+    private readonly IPayrollRepository _payrollRepo;
 
     public EntityDocumentContextBuilder(
         IEmployeeRepository employeeRepo,
@@ -56,7 +57,8 @@ public sealed class EntityDocumentContextBuilder : IEntityDocumentContextBuilder
         IInventoryMovementRepository inventoryMovementRepo,
         IQuoteRepository quoteRepo,
         IPurchaseRequestRepository purchaseRequestRepo,
-        IStockTransferRepository stockTransferRepo)
+        IStockTransferRepository stockTransferRepo,
+        IPayrollRepository payrollRepo)
     {
         _employeeRepo = employeeRepo;
         _saleRepo = saleRepo;
@@ -78,6 +80,7 @@ public sealed class EntityDocumentContextBuilder : IEntityDocumentContextBuilder
         _quoteRepo = quoteRepo;
         _purchaseRequestRepo = purchaseRequestRepo;
         _stockTransferRepo = stockTransferRepo;
+        _payrollRepo = payrollRepo;
     }
 
     public async Task<EntityContextResponse?> BuildAsync(string entityType, Guid entityId)
@@ -501,7 +504,7 @@ public sealed class EntityDocumentContextBuilder : IEntityDocumentContextBuilder
                 if (product == null) return null;
                 displayName = $"Kardex {product.Code} - {product.Name}";
                 var movements = await _inventoryMovementRepo.GetFilteredAsync(
-                    entityId, null, null, null, null, null, 1, 1000);
+                    entityId, null, null, null, null, null, null, 1, 1000);
                 data["product_code"] = product.Code;
                 data["product_name"] = product.Name;
                 data["unit_of_measure"] = product.UnitOfMeasure;
@@ -531,24 +534,130 @@ public sealed class EntityDocumentContextBuilder : IEntityDocumentContextBuilder
             {
                 var transfer = await _stockTransferRepo.GetByIdAsync(entityId);
                 if (transfer == null) return null;
-                displayName = $"Transferencia {transfer.TransferNumber} - {transfer.FromBranch?.Name} → {transfer.ToBranch?.Name}";
+                var fromLabel = transfer.FromWarehouse?.Name ?? transfer.FromBranch?.Name ?? "";
+                var toLabel = transfer.ToWarehouse?.Name ?? transfer.ToBranch?.Name ?? "";
+                displayName = $"Transferencia {transfer.TransferNumber} - {fromLabel} → {toLabel}";
                 data["transfer_number"] = transfer.TransferNumber;
                 data["transfer_date"] = transfer.CreatedAt.ToString("dd/MM/yyyy");
                 data["dispatched_at"] = transfer.DispatchedAt?.ToString("dd/MM/yyyy HH:mm") ?? "";
                 data["received_at"] = transfer.ReceivedAt?.ToString("dd/MM/yyyy HH:mm") ?? "";
                 data["transfer_status"] = transfer.Status;
+                data["transfer_status_label"] = transfer.Status switch
+                {
+                    "draft" => "Borrador",
+                    "in_transit" => "En Tránsito",
+                    "partially_received" => "Recepción Parcial",
+                    "completed" => "Completada",
+                    "cancelled" => "Cancelada",
+                    _ => transfer.Status
+                };
                 data["from_branch"] = transfer.FromBranch?.Name ?? "";
                 data["to_branch"] = transfer.ToBranch?.Name ?? "";
-                data["requested_by"] = transfer.CreatedBy;
-                data["notes"] = transfer.Notes ?? "";
+                data["from_warehouse"] = transfer.FromWarehouse?.Name ?? "";
+                data["to_warehouse"] = transfer.ToWarehouse?.Name ?? "";
                 data["items_total"] = (transfer.Details?.Sum(d => d.UnitCost * d.Quantity) ?? 0).ToString("N2");
                 data["items"] = transfer.Details?
                     .Select(d => Item(
                         ("code", d.Product?.Code ?? ""),
                         ("description", d.Product?.Name ?? ""),
                         ("quantity", d.Quantity.ToString()),
+                        ("quantity_received", d.QuantityReceived.ToString()),
                         ("unit_price", d.UnitCost.ToString("N2")),
                         ("subtotal", (d.UnitCost * d.Quantity).ToString("N2"))))
+                    .ToList() ?? [];
+                data["requested_by"] = transfer.CreatedBy;
+                data["notes"] = transfer.Notes ?? "";
+                break;
+            }
+
+            case "payroll":
+            {
+                var run = await _payrollRepo.GetRunByIdAsync(entityId);
+                if (run == null) return null;
+                var periodName = run.PayrollPeriod?.Name ?? "";
+                displayName = $"Nómina {(string.IsNullOrEmpty(periodName) ? run.Id.ToString()[..8] : periodName)}";
+                data["period_name"] = periodName;
+                data["period_range"] = run.PayrollPeriod != null
+                    ? $"{run.PayrollPeriod.StartDate:dd/MM/yyyy} - {run.PayrollPeriod.EndDate:dd/MM/yyyy}"
+                    : "";
+                data["payment_date"] = run.PayrollPeriod?.PaymentDate.ToString("dd/MM/yyyy") ?? "";
+                data["run_status"] = run.Status;
+                data["run_status_label"] = run.Status switch
+                {
+                    "draft" => "Borrador",
+                    "approved" => "Aprobado",
+                    "paid" => "Pagado",
+                    "cancelled" => "Cancelado",
+                    _ => run.Status
+                };
+                data["processed_at"] = run.ProcessedAt?.ToString("dd/MM/yyyy HH:mm") ?? "";
+                data["processed_by"] = run.ProcessedBy ?? "";
+                data["employee_count"] = run.EmployeeCount.ToString();
+                data["total_salaries"] = run.TotalSalaries.ToString("N2");
+                data["total_deductions"] = run.TotalDeductions.ToString("N2");
+                data["total_net_pay"] = run.TotalNetPay.ToString("N2");
+                data["total_employer_costs"] = run.TotalEmployerCosts.ToString("N2");
+                data["run_currency"] = run.Currency;
+                data["notes"] = run.Notes ?? "";
+                data["employees"] = run.Details?
+                    .Select(d => Item(
+                        ("employee_name", d.Employee != null ? $"{d.Employee.FirstName} {d.Employee.LastName}" : ""),
+                        ("position", d.Employee?.Position ?? ""),
+                        ("department", d.Employee?.Department?.Name ?? ""),
+                        ("base_salary", d.BaseSalary.ToString("N2")),
+                        ("inss", (d.InssDeduction ?? 0).ToString("N2")),
+                        ("ir", (d.IrDeduction ?? 0).ToString("N2")),
+                        ("other_deductions", (d.OtherDeductions ?? 0).ToString("N2")),
+                        ("net_pay", d.NetPay.ToString("N2"))))
+                    .ToList() ?? [];
+                break;
+            }
+
+            case "payrolldetail":
+            {
+                var detail = await _payrollRepo.GetDetailByIdAsync(entityId);
+                if (detail == null) return null;
+                var empName = detail.Employee != null ? $"{detail.Employee.FirstName} {detail.Employee.LastName}" : "";
+                var period = detail.PayrollRun?.PayrollPeriod;
+                displayName = $"Colilla {(string.IsNullOrEmpty(period?.Name) ? "" : period!.Name)} - {empName}".Trim();
+                data["period_name"] = period?.Name ?? "";
+                data["period_range"] = period != null
+                    ? $"{period.StartDate:dd/MM/yyyy} - {period.EndDate:dd/MM/yyyy}"
+                    : "";
+                data["payment_date"] = period?.PaymentDate.ToString("dd/MM/yyyy") ?? "";
+                data["employee_name"] = empName;
+                data["employee_id"] = detail.Employee?.IdentificationNumber ?? "";
+                data["employee_code"] = detail.Employee?.EmployeeCode ?? "";
+                data["position"] = detail.Employee?.Position ?? "";
+                data["department"] = detail.Employee?.Department?.Name ?? "";
+                data["base_salary"] = detail.BaseSalary.ToString("N2");
+                data["gross_pay"] = detail.GrossPay.ToString("N2");
+                data["commissions"] = (detail.CommissionsAmount ?? 0).ToString("N2");
+                data["bonuses"] = (detail.BonusesAmount ?? 0).ToString("N2");
+                data["overtime"] = (detail.OvertimeAmount ?? 0).ToString("N2");
+                data["inss"] = (detail.InssDeduction ?? 0).ToString("N2");
+                data["ir"] = (detail.IrDeduction ?? 0).ToString("N2");
+                data["other_deductions"] = (detail.OtherDeductions ?? 0).ToString("N2");
+                data["total_deductions"] = detail.TotalDeductions.ToString("N2");
+                data["net_pay"] = detail.NetPay.ToString("N2");
+                data["inss_code"] = detail.InssCode ?? "";
+                data["payment_status"] = detail.PaymentStatus;
+                data["payment_status_label"] = detail.PaymentStatus == "paid" ? "Pagado" : "Pendiente";
+                data["payment_reference"] = detail.PaymentReference ?? "";
+                data["stub_currency"] = detail.Currency;
+                data["concepts"] = detail.Concepts?
+                    .Where(c => !c.IsEmployerCost)
+                    .Select(c => Item(
+                        ("code", c.ConceptCode),
+                        ("description", c.Description),
+                        ("amount", c.Amount.ToString("N2"))))
+                    .ToList() ?? [];
+                data["employer_concepts"] = detail.Concepts?
+                    .Where(c => c.IsEmployerCost)
+                    .Select(c => Item(
+                        ("code", c.ConceptCode),
+                        ("description", c.Description),
+                        ("amount", c.Amount.ToString("N2"))))
                     .ToList() ?? [];
                 break;
             }

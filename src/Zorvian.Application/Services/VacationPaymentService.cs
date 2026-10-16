@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Zorvian.Application.Helpers;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
@@ -10,6 +11,7 @@ public sealed class VacationPaymentService : IVacationPaymentService
     private readonly IVacationRepository _vacationRepo;
     private readonly IEmployeeRepository _employeeRepo;
     private readonly ICountryTaxConfigRepository _taxConfigRepo;
+    private readonly IPayrollRepository _payrollRepo;
     private readonly ITenantContext _tenant;
     private readonly ILogger<VacationPaymentService> _logger;
 
@@ -17,12 +19,14 @@ public sealed class VacationPaymentService : IVacationPaymentService
         IVacationRepository vacationRepo,
         IEmployeeRepository employeeRepo,
         ICountryTaxConfigRepository taxConfigRepo,
+        IPayrollRepository payrollRepo,
         ITenantContext tenant,
         ILogger<VacationPaymentService> logger)
     {
         _vacationRepo = vacationRepo;
         _employeeRepo = employeeRepo;
         _taxConfigRepo = taxConfigRepo;
+        _payrollRepo = payrollRepo;
         _tenant = tenant;
         _logger = logger;
     }
@@ -41,6 +45,20 @@ public sealed class VacationPaymentService : IVacationPaymentService
         var existingReceipt = await _vacationRepo.GetReceiptByRequestIdAsync(vacationRequestId);
         if (existingReceipt != null)
             throw new InvalidOperationException($"Esta solicitud ya fue pagada con el recibo {existingReceipt.ReceiptNumber}");
+
+        // 2.5. Anti doble pago: si una corrida de nómina NO cancelada cubre el período de estas
+        // vacaciones, la corrida ya les incluye vacationPay al aprobarse — pagar por recibo RV
+        // además duplicaría el pago. Se debe cancelar la corrida (revierte las vacaciones) o
+        // terminar el ciclo de nómina primero.
+        var periods = await _payrollRepo.GetPeriodsAsync(null) ?? new List<PayrollPeriod>();
+        foreach (var period in periods.Where(p => request.StartDate <= p.EndDate && request.EndDate >= p.StartDate))
+        {
+            var runs = await _payrollRepo.GetRunsAsync(period.Id) ?? new List<PayrollRun>();
+            if (runs.Any(r => r.Status != "cancelled"))
+                throw new InvalidOperationException(
+                    $"El período '{period.Name}' tiene una corrida de nómina activa que incluye estas vacaciones. " +
+                    "Cancele la corrida (revierte el consumo de saldo) o termine el ciclo de nómina antes de pagar por recibo.");
+        }
 
         // 3. Load employee
         var employee = await _employeeRepo.GetByIdAsync(request.EmployeeId)
@@ -94,8 +112,16 @@ public sealed class VacationPaymentService : IVacationPaymentService
         // 10. Mark vacation request as taken
         request.Status = "taken";
 
-        // 11. Update LeaveBalances (increment VacationDaysTaken)
-        await UpdateLeaveBalanceTakenAsync(employee.Id, businessDays, request.StartDate.Year);
+        // 11. Recalcula el espejo de LeaveBalances (idempotente — ver LeaveBalanceSync).
+        // Best-effort: un fallo aquí no debe invalidar el pago ya emitido.
+        try
+        {
+            await LeaveBalanceSync.SyncAsync(_vacationRepo, _tenant, employee.Id, request.StartDate.Year);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to sync LeaveBalances for employee {EmployeeId} year {Year}", employee.Id, request.StartDate.Year);
+        }
 
         // 12. Save
         await _vacationRepo.AddReceiptAsync(receipt);
@@ -123,36 +149,5 @@ public sealed class VacationPaymentService : IVacationPaymentService
         var count = await _vacationRepo.GetReceiptCountAsync();
         var now = DateTime.UtcNow;
         return $"RV-{now:yyyyMMdd}-{(count + 1):D4}";
-    }
-
-    private async Task UpdateLeaveBalanceTakenAsync(Guid employeeId, decimal days, int year)
-    {
-        try
-        {
-            var balance = await _vacationRepo.GetLeaveBalanceAsync(employeeId, year);
-            if (balance != null)
-            {
-                balance.VacationDaysTaken += days;
-            }
-            else
-            {
-                // Create balance record if it doesn't exist
-                balance = new LeaveBalances
-                {
-                    Id = Guid.NewGuid(),
-                    EmployeeId = employeeId,
-                    Year = year,
-                    VacationDaysAccrued = 0,
-                    VacationDaysTaken = days,
-                    TenantId = _tenant.TenantId.ToString(),
-                };
-                await _vacationRepo.AddLeaveBalanceAsync(balance);
-            }
-        }
-        catch (Exception ex)
-        {
-            // LeaveBalances update is best-effort — don't fail the payment
-            _logger.LogWarning(ex, "Failed to update LeaveBalances for employee {EmployeeId} year {Year}", employeeId, year);
-        }
     }
 }

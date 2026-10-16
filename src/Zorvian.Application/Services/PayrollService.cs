@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Zorvian.Application.DTOs.Payroll;
+using Zorvian.Application.Helpers;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
@@ -28,6 +29,8 @@ public sealed class PayrollService
     private readonly PayrollCalculationFactory _calcFactory;
     private readonly IBankTransferService _bankTransferService;
     private readonly ISickLeaveRepository _sickLeaveRepo;
+    private readonly IVacationRepository _vacationRepo;
+    private readonly IPermissionRepository _permissionRepo;
 
     public PayrollService(
         IPayrollRepository repo,
@@ -49,7 +52,9 @@ public sealed class PayrollService
         IAuditLogRepository auditRepo,
         PayrollCalculationFactory calcFactory,
         IBankTransferService bankTransferService,
-        ISickLeaveRepository sickLeaveRepo)
+        ISickLeaveRepository sickLeaveRepo,
+        IVacationRepository vacationRepo,
+        IPermissionRepository permissionRepo)
     {
         _repo = repo;
         _employeeRepo = employeeRepo;
@@ -71,6 +76,8 @@ public sealed class PayrollService
         _calcFactory = calcFactory;
         _bankTransferService = bankTransferService;
         _sickLeaveRepo = sickLeaveRepo;
+        _vacationRepo = vacationRepo;
+        _permissionRepo = permissionRepo;
     }
 
     private Guid RequireCompanyId()
@@ -224,6 +231,15 @@ public sealed class PayrollService
         if (period.Status != "open")
             throw new InvalidOperationException("Solo se pueden generar corridas para períodos abiertos.");
 
+        // Una segunda corrida para el mismo período pagaría salarios dos veces e incluiría
+        // vacationPay de vacaciones que otra corrida descontará del saldo al aprobarse.
+        // Hay que borrar (borrador) o cancelar la corrida existente antes: la cancelación
+        // reabre el período y revierte las vacaciones que hubiera consumido.
+        var existingRuns = await _repo.GetRunsAsync(request.PayrollPeriodId) ?? new List<PayrollRun>();
+        if (existingRuns.Any(r => r.Status != "cancelled"))
+            throw new InvalidOperationException(
+                "El período ya tiene una corrida de nómina. Elimine o cancele la corrida existente antes de regenerar.");
+
         var companyId = RequireCompanyId();
         var company = await _companyRepo.GetByTenantIdAsync(companyId.ToString()) 
             ?? throw new KeyNotFoundException("Company not found for selected tenant.");
@@ -245,6 +261,12 @@ public sealed class PayrollService
         var overtimeRecords = await _overtimeRepo.GetByPeriodAsync(period.Id, company.Id) ?? new List<OvertimeRecord>();
         var commissionRecords = await _commissionRepo.GetByPeriodAsync(period.Id, company.Id) ?? new List<CommissionRecord>();
         var bonusRecords = await _bonusRepo.GetByPeriodAsync(period.Id, company.Id) ?? new List<BonusRecord>();
+
+        // Permisos aprobados que se solapan con el período. Días CON goce (LeaveType.IsPaid = true)
+        // restauran salario (asistencia médica/personal/pagada: no son falta); días SIN goce no
+        // suman y el salario queda prorrateado por ellos (equivalente al descuento "sin goce").
+        var permissionRecords = await _permissionRepo.GetApprovedOverlappingAsync(period.StartDate, period.EndDate)
+            ?? new List<PermissionRequest>();
 
         var totalSalaries = 0m;
         var totalDeductions = 0m;
@@ -272,17 +294,35 @@ public sealed class PayrollService
             var attendanceRecords = await _employeeRepo.GetAttendanceInRangeAsync(emp.Id, period.StartDate, period.EndDate);
             var expectedDays = (period.EndDate.ToDateTime(TimeOnly.MinValue) - period.StartDate.ToDateTime(TimeOnly.MinValue)).Days + 1;
             var workedDays = attendanceRecords.Count(a => a.Status == "present" || a.Status == "late");
-            
-            // Adjust base salary if not full attendance (simple logic: proportional to days)
+
+            // Permisos aprobados de ESTE empleado dentro del período (medio día = 0.5).
+            decimal paidPermissionDays = 0m;
+            foreach (var perm in permissionRecords.Where(p => p.EmployeeId == emp.Id))
+            {
+                var ovStart = perm.StartDate > period.StartDate ? perm.StartDate : period.StartDate;
+                var ovEnd = perm.EndDate < period.EndDate ? perm.EndDate : period.EndDate;
+                if (ovStart > ovEnd) continue;
+                var days = perm.IsHalfDay ? 0.5m : CountBusinessDays(ovStart, ovEnd);
+                if (perm.LeaveType.IsPaid) paidPermissionDays += days;
+            }
+
+            // Adjust base salary if not full attendance (simple logic: proportional to days).
+            // Base de cálculo: días con derecho a salario = asistencia + permisos con goce
+            // (tope en días del período). Los permisos sin goce y las ausencias no excusadas
+            // no suman → prorratean como antes.
             var adjustedBaseSalary = baseSalary;
             if (emp.SalaryType == "hourly")
             {
                 var totalHours = attendanceRecords.Sum(a => a.TotalHours ?? 0m);
                 adjustedBaseSalary = totalHours * (baseSalary); // baseSalary here acts as hourly rate
             }
-            else if (workedDays < expectedDays && expectedDays > 0)
+            else
             {
-                adjustedBaseSalary = (baseSalary / expectedDays) * workedDays;
+                var daysWithRightToSalary = Math.Min((decimal)expectedDays, workedDays + paidPermissionDays);
+                if (daysWithRightToSalary < expectedDays && expectedDays > 0)
+                {
+                    adjustedBaseSalary = (baseSalary / expectedDays) * daysWithRightToSalary;
+                }
             }
 
             // Vacation Payment (H-BA-03)
@@ -291,14 +331,31 @@ public sealed class PayrollService
 
             var grossPay = adjustedBaseSalary + empOvertime + empCommission + empBonus + vacationPay;
 
-            // INSS empleado: usar tasa resuelta por régimen
-            var inssDeduction = Math.Min(grossPay * inssRates.EmployeeRate, taxConfig.InssEmployeeMax);
-            var irDeduction = strategy.CalculateIr(grossPay, inssDeduction, taxConfig);
+            // Base de retenciones de ley (INSS/IR): remuneración normal gravable por defecto
+            // (salario devengado + variables; EXCLUYE vacaciones — cumplimiento Ley 861/CCSS/IGSS/ISSS/IHSS/CSS).
+            // Configurable por empresa vía CompanySettings.RetentionBase ("base_salary" = solo salario base).
+            var retentionBase = companySettings?.RetentionBase == "base_salary"
+                ? adjustedBaseSalary
+                : grossPay - vacationPay;
+
+            // INSS empleado: usar tasa resuelta por régimen.
+            // Trabajador no cotizante (Employee.DeductInss = false, ej. pensionado del INSS en NIC):
+            // sin cuota del trabajador NI patronal; el IR se calcula igual con INSS = 0
+            // (base gravable completa). Paridad con TerminationService, que ya lo respeta en
+            // liquidaciones — el switch del formulario de empleado surte efecto real aquí.
+            var deductInss = emp.DeductInss;
+            var inssDeduction = deductInss
+                ? Math.Min(retentionBase * inssRates.EmployeeRate, taxConfig.InssEmployeeMax)
+                : 0m;
+            var irDeduction = strategy.CalculateIr(retentionBase, inssDeduction, taxConfig);
             
             var garnishmentDeduction = garnishments.Sum(g => g.GarnishmentType == "fixed" ? g.Value : grossPay * (g.Value / 100));
 
-            // Cálculo de costos patronales: usar tasa resuelta por régimen + tamaño
-            var employerInss = Math.Min(grossPay * inssRates.EmployerRate, taxConfig.InssEmployerMax);
+            // Cálculo de costos patronales: usar tasa resuelta por régimen + tamaño.
+            // El aporte patronal usa la MISMA base gravable legal que la retención al trabajador.
+            var employerInss = deductInss
+                ? Math.Min(retentionBase * inssRates.EmployerRate, taxConfig.InssEmployerMax)
+                : 0m;
             var otherEmployerCosts = grossPay * taxConfig.OtherEmployerRate;
             var totalEmployerCost = employerInss + otherEmployerCosts;
 
@@ -322,9 +379,11 @@ public sealed class PayrollService
 
             AddConcept("SALARY", adjustedBaseSalary);
             if (vacationPay > 0) AddConcept("VACATION_PAY", vacationPay);
-            AddConcept("INSS_EMP", inssDeduction);
+            // No crea filas de INSS en 0 (trabajador no cotizante): la colilla no debe
+            // mostrar "INSS: 0.00" como si hubiera una retención aplicada.
+            if (inssDeduction > 0) AddConcept("INSS_EMP", inssDeduction);
             AddConcept("IR", irDeduction);
-            AddConcept("INSS_PAT", employerInss, true);
+            if (employerInss > 0) AddConcept("INSS_PAT", employerInss, true);
 
             if (otherEmployerCosts > 0) AddConcept("OTHER_PAT", otherEmployerCosts, true);
             if (empOvertime > 0) AddConcept("OVERTIME", empOvertime);
@@ -345,6 +404,11 @@ public sealed class PayrollService
                 InssDeduction = inssDeduction,
                 IrDeduction = irDeduction,
                 OtherDeductions = loanDeduction + advanceDeduction + garnishmentDeduction,
+                // Escalares de ingresos variables: la Colilla de Pago los imprime como claves
+                // (commissions/bonuses/overtime) — sin esto imprimían 0.00 aunque existieran conceptos.
+                CommissionsAmount = empCommission,
+                BonusesAmount = empBonus,
+                OvertimeAmount = empOvertime,
                 Details = "{}",
                 Concepts = concepts,
                 Currency = company.Currency ?? "NIO",
@@ -457,6 +521,20 @@ public sealed class PayrollService
                     {
                         period.Status = "closed";
                         await _repo.UpdatePeriodAsync(period);
+
+                        // Vacaciones pagadas por esta corrida: las aprobadas del período pasan a
+                        // "taken" y descuentan el saldo (recálculo idempotente vía LeaveBalanceSync).
+                        // PaidByPayrollRunId las identifica para revertir el consumo si la corrida
+                        // se cancela, e impide que después se paguen también por recibo RV.
+                        var runVacations = await _vacationRepo.GetApprovedInRangeAsync(period.StartDate, period.EndDate)
+                            ?? new List<VacationRequest>();
+                        foreach (var v in runVacations)
+                        {
+                            v.Status = "taken";
+                            v.PaidByPayrollRunId = run.Id;
+                        }
+                        foreach (var g in runVacations.GroupBy(v => new { v.EmployeeId, Year = v.StartDate.Year }))
+                            await LeaveBalanceSync.SyncAsync(_vacationRepo, _tenant, g.Key.EmployeeId, g.Key.Year);
                     }
 
                     // Generate accounting entry
@@ -566,6 +644,19 @@ public sealed class PayrollService
         };
     }
 
+    /// <summary>
+    /// Días hábiles (lun–vie) de un rango inclusive — misma regla que PermissionService
+    /// usa al calcular BusinessDays de un permiso.
+    /// </summary>
+    private static int CountBusinessDays(DateOnly start, DateOnly end)
+    {
+        int count = 0;
+        for (var d = start; d <= end; d = d.AddDays(1))
+            if (d.DayOfWeek != DayOfWeek.Saturday && d.DayOfWeek != DayOfWeek.Sunday)
+                count++;
+        return count;
+    }
+
     public async Task<bool> DeleteRunAsync(Guid id)
     {
         var run = await _repo.GetRunByIdAsync(id);
@@ -586,6 +677,22 @@ public sealed class PayrollService
         run.Status = "cancelled";
         await _repo.UpdateRunAsync(run);
         await _repo.SaveChangesAsync();
+
+        // Revierte las vacaciones que esta corrida consumió al aprobarse: vuelven a "approved"
+        // (disponibles para pago por recibo o nueva corrida) y se recalculan sus espejos de saldo.
+        // Vacaciones marcadas por otros caminos (recibo RV, "marcar como tomada") no tienen
+        // PaidByPayrollRunId y por tanto no se tocan.
+        var runVacations = await _vacationRepo.GetByPayrollRunAsync(run.Id) ?? new List<VacationRequest>();
+        if (runVacations.Count > 0)
+        {
+            foreach (var v in runVacations)
+            {
+                v.Status = "approved";
+                v.PaidByPayrollRunId = null;
+            }
+            foreach (var g in runVacations.GroupBy(v => new { v.EmployeeId, Year = v.StartDate.Year }))
+                await LeaveBalanceSync.SyncAsync(_vacationRepo, _tenant, g.Key.EmployeeId, g.Key.Year);
+        }
 
         // Re-open the period if it was closed by approval
         var period = await _repo.GetPeriodByIdAsync(run.PayrollPeriodId);
@@ -622,6 +729,11 @@ public sealed class PayrollService
         detail.TotalDeductions = (detail.InssDeduction ?? 0) + (detail.IrDeduction ?? 0) + (detail.OtherDeductions ?? 0);
         detail.NetPay = detail.GrossPay - detail.TotalDeductions;
 
+        // Sincroniza los conceptos con los valores editados: la Colilla de Pago imprime las
+        // deducciones desde Concepts ({% for c in concepts %}), NO los escalares — sin este
+        // sync la Planilla mostraba el valor editado y la Colilla el calculado original.
+        await SyncConceptsAsync(detail);
+
         await _repo.UpdateDetailAsync(detail);
         await _repo.SaveChangesAsync();
 
@@ -650,6 +762,76 @@ public sealed class PayrollService
             detail.PaymentStatus, detail.Currency,
             detail.Concepts?.Select(c => new PayrollDetailConceptResponse(c.ConceptCode, c.Description, c.Amount, c.IsEmployerCost)).ToList()
         );
+    }
+
+    /// <summary>
+    /// Sincroniza las filas de PayrollDetailConcept con los escalares editados del detalle.
+    /// La Colilla de Pago renderiza sus deducciones desde Concepts, y la Planilla desde los
+    /// escalares: ambos documentos deben coincidir. Además refresca las claves escalares de
+    /// ingresos variables (commissions/bonuses/overtime) que la Colilla imprime como filas de
+    /// "Ingresos". La diferencia entre "Otras deducciones" editadas y sus conceptos
+    /// (LOAN/ADVANCE/GARNISHMENT/…) se vuelca en un concepto ADJUSTMENT.
+    /// </summary>
+    private async Task SyncConceptsAsync(PayrollDetail detail)
+    {
+        // ?? new List: mismo patrón defensivo del resto del archivo — un repo/mock sin
+        // configurar devuelve null y NO debe tumbar la edición del detalle.
+        var definitions = await _conceptRepo.GetAllAsync(_tenant.TenantId)
+            ?? new List<PayrollConceptDefinition>();
+        string NameOf(string code, string fallback) =>
+            definitions.FirstOrDefault(d => d.Code == code)?.Name ?? fallback;
+
+        detail.Concepts ??= new List<PayrollDetailConcept>();
+
+        // Ingresos variables: escalar = suma de sus conceptos (autorrepara filas antiguas
+        // generadas antes de setear CommissionsAmount/BonusesAmount/OvertimeAmount).
+        detail.CommissionsAmount = detail.Concepts.Where(c => !c.IsEmployerCost && c.ConceptCode == "COMMISSION").Sum(c => c.Amount);
+        detail.BonusesAmount = detail.Concepts.Where(c => !c.IsEmployerCost && c.ConceptCode == "BONUS").Sum(c => c.Amount);
+        detail.OvertimeAmount = detail.Concepts.Where(c => !c.IsEmployerCost && c.ConceptCode == "OVERTIME").Sum(c => c.Amount);
+
+        // Retenciones de ley: el concepto refleja el monto editado.
+        UpsertConcept(detail, "INSS_EMP", NameOf("INSS_EMP", "INSS Empleado"), detail.InssDeduction ?? 0m);
+        UpsertConcept(detail, "IR", NameOf("IR", "Impuesto sobre la Renta"), detail.IrDeduction ?? 0m);
+
+        // Otras deducciones: la diferencia entre el total editado y sus conceptos (préstamos,
+        // anticipos, embargos, …) se vuelca en un concepto ADJUSTMENT para cuadrar la colilla.
+        var fixedCodes = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "SALARY", "VACATION_PAY", "COMMISSION", "BONUS", "OVERTIME",
+            "INSS_EMP", "IR", "INSS_PAT", "OTHER_PAT", "ADJUSTMENT"
+        };
+        var othersSum = detail.Concepts
+            .Where(c => !c.IsEmployerCost && !fixedCodes.Contains(c.ConceptCode))
+            .Sum(c => c.Amount);
+        var delta = (detail.OtherDeductions ?? 0m) - othersSum;
+        if (delta != 0m)
+        {
+            var current = detail.Concepts.FirstOrDefault(c => c.ConceptCode == "ADJUSTMENT" && !c.IsEmployerCost)?.Amount ?? 0m;
+            UpsertConcept(detail, "ADJUSTMENT", NameOf("ADJUSTMENT", "Ajuste Manual"), current + delta);
+        }
+    }
+
+    private static void UpsertConcept(PayrollDetail detail, string code, string description, decimal amount)
+    {
+        var concept = detail.Concepts.FirstOrDefault(c => c.ConceptCode == code && !c.IsEmployerCost);
+        if (concept is null)
+        {
+            // No crea filas de retención sin monto (evita conceptos INSS/IR en 0 sin dato previo).
+            if (amount == 0m) return;
+            detail.Concepts.Add(new PayrollDetailConcept
+            {
+                ConceptCode = code,
+                Description = description,
+                Amount = amount,
+                IsEmployerCost = false,
+                CompanyId = detail.CompanyId,
+                PayrollDetailId = detail.Id
+            });
+            return;
+        }
+
+        concept.Amount = amount;
+        concept.Description = description;
     }
 
     // --- Mapping ---

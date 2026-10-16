@@ -216,6 +216,22 @@ class SettlementNotifier extends AsyncNotifier<SettlementResult?> {
     }
   }
 
+  /// Aplica la liquidación calculada: marca al trabajador como terminado,
+  /// cierra su período de contrato (historial), desactiva el salario activo
+  /// y liquida los saldos de vacaciones del año. Irreversible desde la UI.
+  Future<void> apply() async {
+    final record = state.value;
+    if (record == null) return;
+    state = const AsyncValue.loading();
+    try {
+      final dio = ref.read(dioClientProvider);
+      await dio.post('termination/${record.id}/apply');
+      state = AsyncData(record);
+    } catch (e, st) {
+      state = AsyncError(e, st);
+    }
+  }
+
   void clear() {
     state = const AsyncData(null);
   }

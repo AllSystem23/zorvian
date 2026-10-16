@@ -8,6 +8,7 @@ using Zorvian.Application.Services;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
 using Zorvian.Infrastructure.Data;
+using Zorvian.Infrastructure.Repositories;
 
 namespace Zorvian.Tests.Services;
 
@@ -68,7 +69,8 @@ public sealed class EmployeeContractLinkingTests : IDisposable
                     : (Guid?)null));
 
         var employeeRepo = new EmployeeRepo(_db);
-        _sut = new EmployeeService(employeeRepo, _providerRepo.Object, _collaboratorRepo.Object, _mapper.Object, _publishEndpoint.Object, _authRepo.Object, _tenant.Object);
+        var periodRepo = new EmploymentPeriodRepository(_db);
+        _sut = new EmployeeService(employeeRepo, _providerRepo.Object, _collaboratorRepo.Object, periodRepo, _mapper.Object, _publishEndpoint.Object, _authRepo.Object, _tenant.Object);
     }
 
     [Fact]

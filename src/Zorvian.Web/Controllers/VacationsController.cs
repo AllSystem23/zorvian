@@ -169,6 +169,29 @@ public sealed class VacationsController : ControllerBase
     // ── Vacation Payment ──────────────────────────────────────────
 
     /// <summary>
+    /// Marca una solicitud de vacaciones APROBADA como tomada sin generar recibo de pago
+    /// (vacación descansada que no se paga por recibo RV ni por corrida de nómina):
+    /// registra el disfrute y descuenta el saldo del año.
+    /// </summary>
+    [Audit("Vacation", "MarkTaken")]
+    [RequirePermission(Permissions.EmployeeWrite)]
+    [HttpPut("{id:guid}/mark-taken")]
+    public async Task<IActionResult> MarkTaken(Guid id)
+    {
+        try
+        {
+            var result = await _service.MarkTakenAsync(id);
+            if (result is null)
+                return NotFound(new { error = "Vacation request not found" });
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
     /// Procesa el pago de una solicitud de vacaciones aprobada.
     /// Genera un recibo secuencial y marca la solicitud como tomada.
     /// </summary>

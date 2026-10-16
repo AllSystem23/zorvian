@@ -3,7 +3,7 @@
 Esta guía sirve para completar la implementación de documentos faltantes usando el Motor Documental Inteligente (Liquid + DocumentService.GenerateProfessionalDocumentAsync).
 
 ## Estado actual (2026-10-16)
-- ✅ RRHH: Constancia de Empleo, Contrato de Trabajo, Carta de Oferta, Constancias vía solicitudes (salarial/laboral/contrato/liquidacion/poder), Liquidación Final (NIC)
+- ✅ RRHH: Constancia de Empleo, Contrato de Trabajo, Carta de Oferta, Constancias vía solicitudes (salarial/laboral/contrato/liquidacion/poder), Liquidación Final (NIC), **Planilla de Pago** (corrida de nómina) y **Colilla de Pago** (stub por trabajador)
 - ✅ Comerciales: Cotización, Proforma, Factura, Guía de Despacho, **Guía de Remisión / Traslado**, Nota de Crédito
 - ✅ Compras: Orden de Compra (**con sello por estado: APROBADA / RECIBIDA PARCIALMENTE / COMPLETADA / CANCELADA**), Acta de Recepción de Compras, **Recibo de Pago (Proveedor)**, **Solicitud de Cotización** (entidad PurchaseRequest construida en esta tanda)
 - ✅ Finanzas/Caja: Recibo de Pago (Cliente), Comprobante de Caja (Ingreso/Egreso — una plantilla con `movement_title` variable), **Ficha de Activo Fijo**
@@ -11,9 +11,9 @@ Esta guía sirve para completar la implementación de documentos faltantes usand
 - ✅ Garantías: **Certificado de Garantía**
 - ✅ Inventario: **Kardex de Producto** (endpoint por producto: totales de entradas/salidas, período y stock), **Transferencia entre Bodegas** (entidad StockTransfer construida en esta tanda)
 - ✅ Otros: Poder Notarial General
-- ✅ **Ítems tabulados**: 11 plantillas renderizan filas reales vía `{% for %}` (Factura, Cotización, Nota de Crédito, OC, Acta de Compras, Hoja de Ruta, Kardex, Solicitud de Cotización, Transferencia entre Bodegas, Guía de Despacho, Guía de Remisión)
+- ✅ **Ítems tabulados**: 13 plantillas renderizan filas reales vía `{% for %}` (Factura, Cotización, Nota de Crédito, OC, Acta de Compras, Hoja de Ruta, Kardex, Solicitud de Cotización, Transferencia entre Bodegas, Guía de Despacho, Guía de Remisión, Planilla de Pago —lista de trabajadores—, Colilla de Pago —conceptos del trabajador—)
 
-Plantillas sembradas: **24** (6 en v2.1 multi-país + Liquidación NIC 1.1 + 17 en v1.0). El seeder **inserta las plantillas faltantes idempotentemente** en BDs existentes (`InsertMissingSeededTemplatesAsync`), así las nuevas llegan en el próximo arranque sin borrar la BD.
+Plantillas sembradas: **26** (6 en v2.1 multi-país + Liquidación NIC 1.1 + 19 en v1.0). El seeder **inserta las plantillas faltantes idempotentemente** en BDs existentes (`InsertMissingSeededTemplatesAsync`), así las nuevas llegan en el próximo arranque sin borrar la BD.
 
 ### Endpoints implementados (POST → genera + devuelve downloadUrl `/zorvian/v1/documents/{id}/pdf`)
 | Documento | Endpoint | Contexto | Plantilla |
@@ -33,6 +33,8 @@ Plantillas sembradas: **24** (6 en v2.1 multi-país + Liquidación NIC 1.1 + 17 
 | Kardex de Producto | `/zorvian/v1/products/{id}/kardex/generate` | `kardex` | Kardex de Producto (botón en el popup por fila del listado de productos) |
 | Solicitud de Cotización | `/zorvian/v1/purchase-requests/{id}/pdf/generate` | `purchaserequest` | Solicitud de Cotización (botón "Generar PDF" en el detalle; sello por estado + prioridad) |
 | Transferencia entre Bodegas | `/zorvian/v1/stock-transfers/{id}/pdf/generate` | `stocktransfer` | Transferencia entre Bodegas (botón "Generar PDF" en el detalle; sello BORRADOR/EN TRÁNSITO/COMPLETADA) |
+| Planilla de Pago | `/zorvian/v1/payroll/runs/{id}/pdf/generate` | `payroll` | Planilla de Pago (botón junto a "Exportar ACH" en el detalle de la corrida; resumen de totales + tabla de trabajadores) |
+| Colilla de Pago | `/zorvian/v1/payroll/details/{detailId}/pdf/generate` | `payrolldetail` | Colilla de Pago (ícono de recibo por fila en la tabla de trabajadores; Ingresos/Deducciones en paralelo, sello PAGADO) |
 
 ## 1. Compras / Proveedores
 | Documento | Entidad | Tipo | Prioridad | Notas |
@@ -67,6 +69,8 @@ Plantillas sembradas: **24** (6 en v2.1 multi-país + Liquidación NIC 1.1 + 17 
 - Documentos de nómina multi-país (actualizar Liquidación NIC al resto de países).
 - Picking/packing list para preparación de pedidos (reutilizaría `delivery`).
 
+> **Nota (2026-10-16, cierre tanda 7 — nómina)**: Planilla de Pago y Colilla de Pago agregadas como plantillas 25 y 26 (Module `Employee`, v1.0, ALL). Contextos nuevos `payroll` (período, estado, totales y lista `employees`) y `payrolldetail` (trabajador, ingresos, `concepts`/`employer_concepts` separados por `IsEmployerCost`) en `EntityDocumentContextBuilder` — el ctor pasó a **21 repos** (+`IPayrollRepository`; el mock del CreateSut en `DocumentGenerationServiceContractContextTests` debe pasarlos). Endpoints `POST /payroll/runs/{id}/pdf/generate` y `POST /payroll/details/{detailId}/pdf/generate` en `PayrollController` (el ctor ganó `IDocumentTemplateRepository` + `IDocumentService` + `IDocumentGenerationService` + logger). Las colillas imprimen lo que el sistema ya calculó (conceptos y deducciones vienen de la BD) → sin fórmulas legales por país en el template. Suite al cierre: **1125/1125** backend, `flutter analyze lib` 0 issues, **357/357** frontend.
+>
 > **Nota (2026-10-16, cierre tanda 6)**: Guía de Remisión agregada como plantilla 24 del seeder + endpoint de venta + frontend; Guía de Despacho migrada a items loop. Sin entidad ni contexto nuevos (reutiliza `sale`). Suite al cierre: **1117/1117** backend, `flutter analyze lib` 0 issues, **357/357** frontend.
 >
 > **Nota (2026-10-16, cierre tanda 4)**: las 2 entidades nuevas incluyen migración EF (`AddPurchaseRequestAndStockTransfer` + secuencias `seq_purchase_request_number`/`seq_stock_transfer_number`), RLS en `SECURITY_RLS.sql` (bloques 1 y 2, Phase 8) + `test_rls_staging.sql`, enforcement de módulos (`PurchaseRequests`→Purchases, `StockTransfers`→Inventory), servicios con máquina de estados y BranchValidator, y tests (contexto, render Liquid, seeder 23/24, visibilidad, servicios y matrices de repositorio). Suite al cierre: **1114/1114** backend, `flutter analyze lib` 0 issues, **357/357** frontend.

@@ -68,8 +68,8 @@ public sealed class VacationServiceTests
         });
         _employeeRepo.Setup(r => r.GetFilteredCountAsync(null, null, emp.DepartmentId, It.IsAny<Guid?>())).ReturnsAsync(10);
         _repo.Setup(r => r.GetOverlappingCountAsync(emp.DepartmentId!.Value, It.IsAny<DateOnly>(), It.IsAny<DateOnly>(), _employeeId)).ReturnsAsync(1);
-        _repo.Setup(r => r.GetVacationDaysSumAsync(_employeeId, "taken")).ReturnsAsync(0);
-        _repo.Setup(r => r.GetVacationDaysSumAsync(_employeeId, "pending")).ReturnsAsync(0);
+        _repo.Setup(r => r.GetVacationBalanceSumsAsync(_employeeId, null)).ReturnsAsync(new LeaveBalanceSums(0m, 0m));
+        _repo.Setup(r => r.GetVacationBalanceSumsAsync(_employeeId, _base.Year)).ReturnsAsync(new LeaveBalanceSums(0m, 5m));
 
         var request = new CreateVacationRequest(
             _base,
@@ -83,6 +83,8 @@ public sealed class VacationServiceTests
         Assert.Equal(5, result.TotalDays);
         _repo.Verify(r => r.AddAsync(It.IsAny<VacationRequest>()), Times.Once);
         _repo.Verify(r => r.SaveChangesAsync(), Times.AtLeast(2));
+        // La solicitud "pending" reserva el saldo en el espejo anual al crearse.
+        _repo.Verify(r => r.GetVacationBalanceSumsAsync(_employeeId, _base.Year), Times.Once);
     }
 
     [Fact]
@@ -215,7 +217,8 @@ public sealed class VacationServiceTests
         Assert.NotNull(result);
         Assert.Equal("rejected", result.Status);
         Assert.Equal("No cumple requisitos", result.RejectionReason);
-        _repo.Verify(r => r.SaveChangesAsync(), Times.Once);
+        // 2 llamadas: guardar el rechazo + recalcular el espejo de saldo (LeaveBalanceSync).
+        _repo.Verify(r => r.SaveChangesAsync(), Times.Exactly(2));
     }
 
     [Fact]
@@ -225,6 +228,59 @@ public sealed class VacationServiceTests
         _repo.Setup(r => r.GetByIdAsync(v.Id)).ReturnsAsync(v);
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.RejectAsync(v.Id, "motivo"));
+    }
+
+    // ── Marcar como tomada (disfrute sin recibo de pago) ──
+
+    [Fact]
+    public async Task MarkTakenAsync_Approved_MarksTakenAndRecalculatesBalance()
+    {
+        var v = MakeVacation(status: "approved");
+        var balance = new LeaveBalances { Id = Guid.NewGuid(), EmployeeId = _employeeId, Year = 2026 };
+        _repo.Setup(r => r.GetByIdAsync(v.Id)).ReturnsAsync(v);
+        _repo.Setup(r => r.GetVacationBalanceSumsAsync(_employeeId, 2026))
+            .ReturnsAsync(new LeaveBalanceSums(5m, 0m));
+        _repo.Setup(r => r.GetLeaveBalanceAsync(_employeeId, 2026)).ReturnsAsync(balance);
+
+        var result = await _sut.MarkTakenAsync(v.Id);
+
+        Assert.NotNull(result);
+        Assert.Equal("taken", result.Status);
+        // El espejo se RECALCULA desde las solicitudes (idempotente), no se incrementa a mano.
+        Assert.Equal(5m, balance.VacationDaysTaken);
+        _repo.Verify(r => r.SaveChangesAsync(), Times.AtLeastOnce);
+    }
+
+    [Fact]
+    public async Task MarkTakenAsync_NotApproved_ThrowsAndDoesNotConsume()
+    {
+        var v = MakeVacation(status: "pending");
+        _repo.Setup(r => r.GetByIdAsync(v.Id)).ReturnsAsync(v);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.MarkTakenAsync(v.Id));
+
+        Assert.Contains("aprobadas", ex.Message);
+        Assert.Equal("pending", v.Status);
+        _repo.Verify(r => r.SaveChangesAsync(), Times.Never);
+        _repo.Verify(r => r.GetVacationBalanceSumsAsync(It.IsAny<Guid>(), It.IsAny<int?>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task MarkTakenAsync_AlreadyTaken_Throws()
+    {
+        var v = MakeVacation(status: "taken");
+        _repo.Setup(r => r.GetByIdAsync(v.Id)).ReturnsAsync(v);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _sut.MarkTakenAsync(v.Id));
+        _repo.Verify(r => r.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task MarkTakenAsync_NotFound_ReturnsNull()
+    {
+        _repo.Setup(r => r.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync((VacationRequest?)null);
+
+        Assert.Null(await _sut.MarkTakenAsync(Guid.NewGuid()));
     }
 
     [Fact]
@@ -266,8 +322,8 @@ public sealed class VacationServiceTests
         emp.CountryCode = "NIC";
         _employeeRepo.Setup(r => r.GetByIdAsync(_employeeId)).ReturnsAsync(emp);
         _taxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC")).ReturnsAsync(new CountryTaxConfig { VacationDaysPerYear = 15 });
-        _repo.Setup(r => r.GetVacationDaysSumAsync(_employeeId, "taken")).ReturnsAsync(3);
-        _repo.Setup(r => r.GetVacationDaysSumAsync(_employeeId, "pending")).ReturnsAsync(2);
+        _repo.Setup(r => r.GetVacationBalanceSumsAsync(_employeeId, null))
+            .ReturnsAsync(new LeaveBalanceSums(3m, 2m));
 
         var result = await _sut.CalculateBalanceAsync();
 

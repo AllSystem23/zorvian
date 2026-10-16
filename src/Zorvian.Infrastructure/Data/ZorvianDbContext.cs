@@ -30,6 +30,7 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<EmployeeDocument> EmployeeDocuments => Set<EmployeeDocument>();
     public DbSet<LeaveBalances> LeaveBalances => Set<LeaveBalances>();
     public DbSet<EmployeeHistory> EmployeeHistories => Set<EmployeeHistory>();
+    public DbSet<EmploymentPeriod> EmploymentPeriods => Set<EmploymentPeriod>();
     public DbSet<EntityHistory> EntityHistories => Set<EntityHistory>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<VacationRequest> VacationRequests => Set<VacationRequest>();
@@ -75,6 +76,7 @@ public sealed class ZorvianDbContext : DbContext
 
     // New Module: Multisucursal
     public DbSet<Branch> Branches => Set<Branch>();
+    public DbSet<Warehouse> Warehouses => Set<Warehouse>();
 
     // New Module: Comercial
     public DbSet<Client> Clients => Set<Client>();
@@ -499,6 +501,7 @@ public sealed class ZorvianDbContext : DbContext
             e.Property(cs => cs.LateFeeDailyRate).HasColumnType("decimal(18,6)");
             e.Property(cs => cs.LateFeePercentage).HasColumnType("decimal(18,6)");
             e.Property(cs => cs.TaxRate).HasColumnType("decimal(18,6)");
+            e.Property(cs => cs.RetentionBase).HasMaxLength(30).IsRequired().HasDefaultValue("taxable_gross");
             e.HasOne(cs => cs.Company)
                 .WithOne(c => c.Settings)
                 .HasForeignKey<CompanySettings>(cs => cs.CompanyId)
@@ -582,6 +585,28 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(es => (es.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.BypassTenantFilter) && !es.IsDeleted);
         });
 
+        // Historial de contratos: cada contratación abre un período, cada
+        // liquidación lo cierra. El invariante "un solo período abierto por
+        // empleado" lo garantiza el servicio (GetOpenByEmployeeAsync antes de
+        // abrir uno nuevo); el índice único es por número de período.
+        builder.Entity<EmploymentPeriod>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.Property(p => p.TerminationReason).HasMaxLength(500);
+            e.Property(p => p.Position).HasMaxLength(255);
+            e.Property(p => p.Status).HasMaxLength(20).IsRequired().HasDefaultValue("open");
+            e.Property(p => p.Notes).HasMaxLength(1000);
+            e.Property(p => p.BaseSalary).HasColumnType("decimal(18,2)");
+            e.HasOne(p => p.Employee)
+                .WithMany(emp => emp.EmploymentPeriods)
+                .HasForeignKey(p => p.EmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(p => new { p.EmployeeId, p.PeriodNumber }).IsUnique();
+            e.HasIndex(p => new { p.EmployeeId, p.Status });
+            e.HasIndex(p => new { p.TenantId, p.EmployeeId });
+            e.HasQueryFilter(p => (p.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.BypassTenantFilter) && !p.IsDeleted);
+        });
+
         builder.Entity<EmployeeDocument>(e =>
         {
             e.HasKey(ed => ed.Id);
@@ -643,6 +668,7 @@ public sealed class ZorvianDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(v => new { v.EmployeeId, v.Status });
             e.HasIndex(v => new { v.StartDate, v.EndDate });
+            e.HasIndex(v => v.PaidByPayrollRunId);
             e.HasQueryFilter(v => (v.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.BypassTenantFilter) && !v.IsDeleted);
         });
 
@@ -707,6 +733,7 @@ public sealed class ZorvianDbContext : DbContext
         {
             e.HasKey(p => p.Id);
             e.Property(p => p.Status).HasMaxLength(30).IsRequired();
+            e.Property(p => p.IsHalfDay).HasDefaultValue(false);
             e.Property(p => p.Reason).HasMaxLength(1000);
             e.Property(p => p.SupportingDocumentUrl).HasMaxLength(500);
             e.Property(p => p.SupportingDocumentFileName).HasMaxLength(255);
@@ -973,6 +1000,22 @@ public sealed class ZorvianDbContext : DbContext
             e.HasQueryFilter(b => (b.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.BypassTenantFilter) && !b.IsDeleted);
         });
 
+        builder.Entity<Warehouse>(e =>
+        {
+            e.HasKey(w => w.Id);
+            e.Property(w => w.Name).HasMaxLength(150).IsRequired();
+            e.Property(w => w.Code).HasMaxLength(30);
+            e.Property(w => w.Address).HasMaxLength(500);
+            e.HasOne(w => w.Branch)
+                .WithMany(b => b.Warehouses)
+                .HasForeignKey(w => w.BranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+            // Nombre único por sucursal (case-insensitive a nivel de servicio).
+            e.HasIndex(w => new { w.BranchId, w.Name }).IsUnique();
+            e.HasIndex(w => new { w.TenantId, w.BranchId });
+            e.HasQueryFilter(w => (w.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.BypassTenantFilter) && !w.IsDeleted);
+        });
+
         // ---- New Module: Comercial ----
         builder.Entity<Client>(e =>
         {
@@ -1205,7 +1248,13 @@ public sealed class ZorvianDbContext : DbContext
                 .WithMany(s => s.Products)
                 .HasForeignKey(p => p.SupplierId)
                 .OnDelete(DeleteBehavior.SetNull);
-            e.HasIndex(p => new { p.Code, p.BranchId }).IsUnique();
+            e.HasOne(p => p.Warehouse)
+                .WithMany(w => w.Products)
+                .HasForeignKey(p => p.WarehouseId)
+                .OnDelete(DeleteBehavior.Restrict);
+            // Catálogo único por BODEGA (antes por sucursal): el mismo código
+            // puede existir en varias bodegas como filas independientes.
+            e.HasIndex(p => new { p.Code, p.WarehouseId }).IsUnique();
             e.HasQueryFilter(p => (p.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.BypassTenantFilter) && !p.IsDeleted);
         });
 
@@ -1803,6 +1852,14 @@ public sealed class ZorvianDbContext : DbContext
             e.HasOne(t => t.ToBranch)
                 .WithMany()
                 .HasForeignKey(t => t.ToBranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(t => t.FromWarehouse)
+                .WithMany()
+                .HasForeignKey(t => t.FromWarehouseId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(t => t.ToWarehouse)
+                .WithMany()
+                .HasForeignKey(t => t.ToWarehouseId)
                 .OnDelete(DeleteBehavior.Restrict);
             e.HasIndex(t => t.TransferNumber).IsUnique();
             e.HasQueryFilter(t => (t.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.BypassTenantFilter) && !t.IsDeleted);

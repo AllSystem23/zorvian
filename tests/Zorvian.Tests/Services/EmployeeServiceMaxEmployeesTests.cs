@@ -14,6 +14,7 @@ public sealed class EmployeeServiceMaxEmployeesTests
     private readonly Mock<IEmployeeRepository> _repo = new();
     private readonly Mock<IProviderRepository> _providerRepo = new();
     private readonly Mock<ICollaboratorRepository> _collaboratorRepo = new();
+    private readonly Mock<IEmploymentPeriodRepository> _periodRepo = new();
     private readonly Mock<IMapper> _mapper = new();
     private readonly Mock<IPublishEndpoint> _publishEndpoint = new();
     private readonly Mock<IAuthRepository> _authRepo = new();
@@ -26,7 +27,7 @@ public sealed class EmployeeServiceMaxEmployeesTests
         _tenant.Setup(t => t.TenantId).Returns(_tenantId);
         return new EmployeeService(
             _repo.Object, _providerRepo.Object, _collaboratorRepo.Object,
-            _mapper.Object, _publishEndpoint.Object, _authRepo.Object, _tenant.Object);
+            _periodRepo.Object, _mapper.Object, _publishEndpoint.Object, _authRepo.Object, _tenant.Object);
     }
 
     private static CreateEmployeeRequest Request() => new(

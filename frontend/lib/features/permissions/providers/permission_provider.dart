@@ -56,6 +56,7 @@ class PermissionItem {
   final String? supportingDocumentUrl;
   final String? supportingDocumentFileName;
   final bool isPaid;
+  final bool isHalfDay;
 
   const PermissionItem({
     required this.id,
@@ -72,6 +73,7 @@ class PermissionItem {
     this.supportingDocumentUrl,
     this.supportingDocumentFileName,
     required this.isPaid,
+    this.isHalfDay = false,
   });
 
   factory PermissionItem.fromJson(Map<String, dynamic> json) => PermissionItem(
@@ -89,6 +91,7 @@ class PermissionItem {
     supportingDocumentUrl: json['supportingDocumentUrl'] as String?,
     supportingDocumentFileName: json['supportingDocumentFileName'] as String?,
     isPaid: json['isPaid'] as bool? ?? false,
+    isHalfDay: json['isHalfDay'] as bool? ?? false,
   );
 }
 

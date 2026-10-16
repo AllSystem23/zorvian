@@ -24,6 +24,7 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
   final _graceDaysCtrl = TextEditingController();
   final _taxRateCtrl = TextEditingController();
   bool _taxEnabled = true;
+  String _retentionBase = 'taxable_gross';
 
   @override
   void dispose() {
@@ -53,6 +54,7 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
         'lateFeeGracePeriod': int.tryParse(_graceDaysCtrl.text),
         'taxEnabled': _taxEnabled,
         'taxRate': double.tryParse(_taxRateCtrl.text),
+        'retentionBase': _retentionBase,
       });
       ref.invalidate(companySettingsProvider);
       if (mounted) {
@@ -126,6 +128,7 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
     _graceDaysCtrl.text = (s['lateFeeGracePeriod'] ?? 0).toString();
     _taxEnabled = s['taxEnabled'] as bool? ?? true;
     _taxRateCtrl.text = (s['taxRate'] ?? 0.15).toString();
+    _retentionBase = (s['retentionBase'] as String?) ?? 'taxable_gross';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -189,6 +192,31 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
             label: 'Días de Gracia',
             keyboardType: TextInputType.number,
             hint: '0 = sin gracia'),
+        const SizedBox(height: 20),
+        Text('Nómina',
+            style: const TextStyle(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          initialValue: _retentionBase,
+          decoration: const InputDecoration(
+              labelText: 'Base de retenciones de ley (INSS/IR)'),
+          items: const [
+            DropdownMenuItem(
+                value: 'taxable_gross',
+                child: Text('Remuneración gravable (recomendado)')),
+            DropdownMenuItem(
+                value: 'base_salary', child: Text('Solo salario base')),
+          ],
+          onChanged: (v) =>
+              setState(() => _retentionBase = v ?? 'taxable_gross'),
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'La remuneración gravable incluye salario + comisiones/bonos/horas extras y '
+          'excluye vacaciones. "Solo salario base" aplica solo si la ley local lo permite '
+          'y es bajo responsabilidad de la empresa.',
+          style: TextStyle(fontSize: 12, color: Colors.grey),
+        ),
         const SizedBox(height: 12),
         ZButton(text: 'Guardar Configuración', onPressed: _saveSettings),
       ],

@@ -1,10 +1,19 @@
 using System.Text.Json;
+using Zorvian.Application.DTOs.Employee;
 using Zorvian.Application.DTOs.Payroll;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
 
 namespace Zorvian.Application.Services;
 
+/// <summary>
+/// Ciclo de vida del contrato de un trabajador: cálculo/aplicación de
+/// liquidaciones y recontrataciones. Cada liquidación cierra el período de
+/// contrato abierto (<see cref="EmploymentPeriod"/>); cada recontratación abre
+/// uno nuevo sobre el MISMO empleado — el historial laboral se conserva entero
+/// y la antigüedad del nuevo período arranca en su fecha de ingreso (la
+/// indemnización del período anterior ya se pagó en su liquidación).
+/// </summary>
 public sealed class TerminationService
 {
     private readonly ITerminationRepository _repo;
@@ -13,6 +22,7 @@ public sealed class TerminationService
     private readonly ICountryTaxConfigRepository _taxConfigRepo;
     private readonly IVacationRepository _vacationRepo;
     private readonly IPayrollRepository _payrollRepo;
+    private readonly IEmploymentPeriodRepository _periodRepo;
 
     public TerminationService(
         ITerminationRepository repo,
@@ -20,7 +30,8 @@ public sealed class TerminationService
         IBenefitProvisionRepository benefitRepo,
         ICountryTaxConfigRepository taxConfigRepo,
         IVacationRepository vacationRepo,
-        IPayrollRepository payrollRepo)
+        IPayrollRepository payrollRepo,
+        IEmploymentPeriodRepository periodRepo)
     {
         _repo = repo;
         _employeeRepo = employeeRepo;
@@ -28,6 +39,7 @@ public sealed class TerminationService
         _taxConfigRepo = taxConfigRepo;
         _vacationRepo = vacationRepo;
         _payrollRepo = payrollRepo;
+        _periodRepo = periodRepo;
     }
 
     /// <summary>
@@ -273,6 +285,168 @@ public sealed class TerminationService
         await _repo.SaveChangesAsync();
         return record;
     }
+
+    /// <summary>
+    /// Aplica una liquidación calculada (draft → processed): marca al empleado
+    /// como terminado, cierra su período de contrato abierto, desactiva el
+    /// salario activo y liquida los saldos de vacaciones del año (los días
+    /// devengados no tomados ya se pagaron en la liquidación — se iguala
+    /// accrued = taken para que la recontratación arranque en cero y el
+    /// VacationAutomatedJob no herede días ya cobrados).
+    /// </summary>
+    public async Task<TerminationRecord> ApplyTerminationAsync(Guid recordId)
+    {
+        var record = await _repo.GetByIdAsync(recordId)
+            ?? throw new KeyNotFoundException("Liquidación no encontrada");
+        if (record.Status == "processed")
+            throw new InvalidOperationException("La liquidación ya fue aplicada.");
+
+        var employee = await _employeeRepo.GetByIdAsync(record.EmployeeId)
+            ?? throw new KeyNotFoundException("Empleado no encontrado");
+
+        // ── Empleado: terminado ──
+        employee.Status = "terminated";
+        employee.TerminationDate = record.TerminationDate;
+        employee.TerminationReason = record.Reason.ToString();
+        employee.History.Add(new EmployeeHistory
+        {
+            EmployeeId = employee.Id,
+            ChangeType = "Terminate",
+            FieldName = "Status",
+            OldValue = "active",
+            NewValue = "terminated",
+        });
+
+        // ── Período de contrato: cerrar el abierto (si existe) ──
+        var openPeriod = await _periodRepo.GetOpenByEmployeeAsync(employee.Id);
+        if (openPeriod is not null)
+        {
+            openPeriod.Status = "closed";
+            openPeriod.TerminationDate = record.TerminationDate;
+            openPeriod.TerminationReason = record.Reason.ToString();
+            openPeriod.TerminationRecordId = record.Id;
+            await _periodRepo.UpdateAsync(openPeriod);
+        }
+
+        // ── Salario activo: desactivar (la liquidación cierra la relación) ──
+        var activeSalary = await _payrollRepo.GetActiveSalaryAsync(employee.Id);
+        if (activeSalary is not null)
+        {
+            activeSalary.IsActive = false;
+            await _payrollRepo.UpdateSalaryAsync(activeSalary);
+        }
+
+        // ── Saldos del año de salida: los devengados no tomados ya se pagaron ──
+        var balance = await _vacationRepo.GetLeaveBalanceAsync(employee.Id, record.TerminationDate.Year);
+        if (balance is not null)
+        {
+            balance.VacationDaysAccrued = balance.VacationDaysTaken;
+            balance.VacationDaysPending = 0m;
+            await _vacationRepo.SaveChangesAsync();
+        }
+
+        record.Status = "processed";
+        await _repo.UpdateAsync(record);
+        await _repo.SaveChangesAsync();
+        await _employeeRepo.SaveChangesAsync();
+        return record;
+    }
+
+    /// <summary>
+    /// Recontrata a un trabajador dado de baja, sobre el MISMO registro de
+    /// empleado (conserva códigos, documentos y historial). Abre un nuevo
+    /// período de contrato con la nueva fecha de ingreso — la antigüedad
+    /// reinicia porque el período anterior ya fue liquidado y pagado —,
+    /// reactiva el estado, crea el salario activo del nuevo contrato y asegura
+    /// los balances de vacaciones del año (en cero; el trabajo mensual los
+    /// devenga).
+    /// </summary>
+    public async Task<Employee> RehireAsync(Guid employeeId, RehireEmployeeRequest request)
+    {
+        var employee = await _employeeRepo.GetByIdAsync(employeeId)
+            ?? throw new KeyNotFoundException("Empleado no encontrado");
+        if (employee.Status == "active")
+            throw new InvalidOperationException("El trabajador ya está activo; no requiere recontratación.");
+
+        var lastPeriod = (await _periodRepo.GetByEmployeeAsync(employeeId)).FirstOrDefault();
+        if (lastPeriod is not null && lastPeriod.TerminationDate.HasValue && request.HireDate <= lastPeriod.TerminationDate.Value)
+            throw new InvalidOperationException(
+                $"La fecha de ingreso debe ser posterior a la salida del período anterior ({lastPeriod.TerminationDate:yyyy-MM-dd}).");
+
+        // ── Nuevo período de contrato (antigüedad reinicia) ──
+        var period = new EmploymentPeriod
+        {
+            EmployeeId = employee.Id,
+            PeriodNumber = await _periodRepo.GetNextPeriodNumberAsync(employee.Id),
+            HireDate = request.HireDate,
+            BaseSalary = request.Salary ?? employee.Salary,
+            Position = request.Position ?? employee.Position,
+            Status = "open",
+            Notes = request.Notes,
+        };
+        await _periodRepo.AddAsync(period);
+
+        // ── Reactivar el empleado con los datos del nuevo contrato ──
+        employee.HireDate = request.HireDate;
+        employee.Status = "active";
+        employee.TerminationDate = null;
+        employee.TerminationReason = null;
+        if (request.Salary.HasValue) employee.Salary = request.Salary;
+        if (request.Position is not null) employee.Position = request.Position;
+        if (request.DepartmentId.HasValue) employee.DepartmentId = request.DepartmentId;
+        if (request.BranchId.HasValue) employee.BranchId = request.BranchId;
+        employee.History.Add(new EmployeeHistory
+        {
+            EmployeeId = employee.Id,
+            ChangeType = "Rehire",
+            FieldName = "Status",
+            OldValue = "terminated",
+            NewValue = "active",
+        });
+
+        // ── Salario activo del nuevo contrato ──
+        var newSalary = request.Salary ?? employee.Salary ?? 0m;
+        if (newSalary > 0)
+        {
+            await _payrollRepo.AddSalaryAsync(new EmployeeSalary
+            {
+                EmployeeId = employee.Id,
+                BaseSalary = newSalary,
+                SalaryType = employee.SalaryType ?? "monthly",
+                EffectiveDate = request.HireDate,
+                IsActive = true,
+                Notes = $"Recontratación — período {period.PeriodNumber}",
+            });
+        }
+
+        // ── Balances del año de reingreso (en cero; el job mensual devenga) ──
+        var balance = await _vacationRepo.GetLeaveBalanceAsync(employee.Id, request.HireDate.Year);
+        if (balance is null)
+        {
+            await _vacationRepo.AddLeaveBalanceAsync(new LeaveBalances
+            {
+                EmployeeId = employee.Id,
+                Year = request.HireDate.Year,
+                VacationDaysAccrued = 0m,
+                VacationDaysTaken = 0m,
+                VacationDaysPending = 0m,
+                SickDaysAccrued = 0m,
+                SickDaysTaken = 0m,
+                PersonalDaysAccrued = 0m,
+                PersonalDaysTaken = 0m,
+            });
+        }
+
+        await _periodRepo.SaveChangesAsync();
+        await _payrollRepo.SaveChangesAsync();
+        await _vacationRepo.SaveChangesAsync();
+        await _employeeRepo.SaveChangesAsync();
+        return employee;
+    }
+
+    /// <summary>Historial de contratos de un trabajador (períodos, más reciente primero).</summary>
+    public async Task<List<EmploymentPeriod>> GetEmploymentPeriodsAsync(Guid employeeId) =>
+        await _periodRepo.GetByEmployeeAsync(employeeId);
 
     /// <summary>
     /// Calculates monthly IR on ordinary salary using annual projection method (Art. 23 Ley 822).

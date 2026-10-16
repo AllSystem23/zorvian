@@ -39,6 +39,8 @@ class VacationItem {
   final String? comments;
   final String? rejectionReason;
   final bool isAdvanced;
+  /// Corrida de nómina que pagó estas vacaciones (null = no pagadas por planilla).
+  final String? paidByPayrollRunId;
   final List<VacationApprovalStep> approvalSteps;
   final String? createdAt;
 
@@ -55,6 +57,7 @@ class VacationItem {
     this.comments,
     this.rejectionReason,
     this.isAdvanced = false,
+    this.paidByPayrollRunId,
     this.approvalSteps = const [],
     this.createdAt,
   });
@@ -72,6 +75,7 @@ class VacationItem {
     comments: json['comments'] as String?,
     rejectionReason: json['rejectionReason'] as String?,
     isAdvanced: json['isAdvanced'] as bool? ?? false,
+    paidByPayrollRunId: json['paidByPayrollRunId'] as String?,
     approvalSteps: json['approvalSteps'] is List
         ? (json['approvalSteps'] as List)
             .whereType<Map<String, dynamic>>()
@@ -189,6 +193,18 @@ class VacationNotifier extends Notifier<VacationListState> {
       return VacationItem.fromJson(r.data);
     } catch (_) {
       return null;
+    }
+  }
+
+  /// Marca una vacación aprobada como tomada SIN recibo de pago (vacación descansada):
+  /// registra el disfrute y descuenta el saldo en el servidor.
+  Future<bool> markVacationTaken(String vacationId) async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      await dio.put('vacations/$vacationId/mark-taken');
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 }

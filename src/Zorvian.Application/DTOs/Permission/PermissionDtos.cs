@@ -19,7 +19,8 @@ public sealed record CreatePermissionRequest(
     DateOnly EndDate,
     string? Reason,
     string? SupportingDocumentUrl,
-    string? SupportingDocumentFileName
+    string? SupportingDocumentFileName,
+    bool IsHalfDay = false
 );
 
 public sealed record PermissionResponse(
@@ -34,6 +35,7 @@ public sealed record PermissionResponse(
     DateOnly EndDate,
     decimal TotalDays,
     decimal BusinessDays,
+    bool IsHalfDay,
     string? Reason,
     string Status,
     string? SupportingDocumentUrl,

@@ -84,6 +84,14 @@ public sealed class TenantMiddleware
         var validatedBranchId = await ResolveBranchAsync(context, tenantContext, logger);
         tenantWriter.SetBranchId(validatedBranchId);
 
+        // 6. Resolver y validar la bodega seleccionada (header X-Warehouse-Id).
+        //    Misma semántica que la sucursal: la bodega debe existir, pertenecer a
+        //    la compañía operativa y, si hay sucursal activa, a ESA sucursal.
+        //    La escritura al contexto se hace AQUÍ por la misma razón de AsyncLocal.
+        var validatedWarehouseId = await ResolveWarehouseAsync(
+            context, tenantContext, validatedBranchId, logger);
+        tenantWriter.SetWarehouseId(validatedWarehouseId);
+
         await _next(context);
     }
 
@@ -126,6 +134,65 @@ public sealed class TenantMiddleware
             "X-Branch-Id={BranchId} rechazado: no pertenece a la compañía {CompanyId}.",
             branchId, companyId);
         return null;
+    }
+
+    private static async Task<Guid?> ResolveWarehouseAsync(
+        HttpContext context,
+        ITenantContext tenantContext,
+        Guid? validatedBranchId,
+        ILogger<TenantMiddleware> logger)
+    {
+        // Sin header de bodega → sin alcance de bodega (todas).
+        var warehouseHeader = context.Request.Headers["X-Warehouse-Id"].FirstOrDefault();
+        if (string.IsNullOrWhiteSpace(warehouseHeader))
+        {
+            return null;
+        }
+
+        if (!Guid.TryParse(warehouseHeader, out var warehouseId) || warehouseId == Guid.Empty)
+        {
+            return null;
+        }
+
+        if (tenantContext.SelectedCompanyId is not { } companyId)
+        {
+            logger.LogWarning(
+                "X-Warehouse-Id={WarehouseId} ignorado: no hay compañía seleccionada (tenant={Tenant}).",
+                warehouseId, tenantContext.TenantId);
+            return null;
+        }
+
+        using var scope = context.RequestServices.CreateScope();
+        var warehouseRepo = scope.ServiceProvider.GetRequiredService<IWarehouseRepository>();
+        var warehouse = await warehouseRepo.GetByIdAsync(warehouseId);
+
+        if (warehouse is null)
+        {
+            logger.LogWarning(
+                "X-Warehouse-Id={WarehouseId} rechazado: no existe en la compañía {CompanyId}.",
+                warehouseId, companyId);
+            return null;
+        }
+
+        var belongsToCompany = warehouse.CompanyId == companyId ||
+            warehouse.TenantId == companyId.ToString();
+        if (!belongsToCompany)
+        {
+            logger.LogWarning(
+                "X-Warehouse-Id={WarehouseId} rechazado: no pertenece a la compañía {CompanyId}.",
+                warehouseId, companyId);
+            return null;
+        }
+
+        if (validatedBranchId is { } branch && warehouse.BranchId != branch)
+        {
+            logger.LogWarning(
+                "X-Warehouse-Id={WarehouseId} rechazado: no pertenece a la sucursal activa {BranchId}.",
+                warehouseId, branch);
+            return null;
+        }
+
+        return warehouseId;
     }
 }
 

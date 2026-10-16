@@ -458,8 +458,42 @@ public static class DocumentTemplateSeeder
             CountryCode = "ALL",
             IsActive = true,
             Version = "1.0",
-            Variables = "[{\"key\":\"transfer_number\",\"label\":\"No. Transferencia\",\"type\":\"text\",\"required\":true},{\"key\":\"transfer_date\",\"label\":\"Fecha\",\"type\":\"date\",\"required\":true},{\"key\":\"from_branch\",\"label\":\"Sucursal Origen\",\"type\":\"text\",\"required\":true},{\"key\":\"to_branch\",\"label\":\"Sucursal Destino\",\"type\":\"text\",\"required\":true},{\"key\":\"dispatched_at\",\"label\":\"Despachada\",\"type\":\"text\",\"required\":false},{\"key\":\"received_at\",\"label\":\"Recibida\",\"type\":\"text\",\"required\":false}]",
+            Variables = "[{\"key\":\"transfer_number\",\"label\":\"No. Transferencia\",\"type\":\"text\",\"required\":true},{\"key\":\"transfer_date\",\"label\":\"Fecha\",\"type\":\"date\",\"required\":true},{\"key\":\"from_warehouse\",\"label\":\"Bodega Origen\",\"type\":\"text\",\"required\":true},{\"key\":\"to_warehouse\",\"label\":\"Bodega Destino\",\"type\":\"text\",\"required\":true},{\"key\":\"from_branch\",\"label\":\"Sucursal Origen\",\"type\":\"text\",\"required\":false},{\"key\":\"to_branch\",\"label\":\"Sucursal Destino\",\"type\":\"text\",\"required\":false},{\"key\":\"dispatched_at\",\"label\":\"Despachada\",\"type\":\"text\",\"required\":false},{\"key\":\"received_at\",\"label\":\"Recibida\",\"type\":\"text\",\"required\":false}]",
             Content = BuildStockTransferHtml()
+        });
+
+        // ── HR: Planilla de Pago ──
+        templates.Add(new DocumentTemplate
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            CreatedAt = now,
+            CreatedBy = "system",
+            Name = "Planilla de Pago",
+            Category = "HR",
+            Module = "Employee",
+            CountryCode = "ALL",
+            IsActive = true,
+            Version = "1.0",
+            Variables = "[{\"key\":\"period_name\",\"label\":\"Período\",\"type\":\"text\",\"required\":true},{\"key\":\"period_range\",\"label\":\"Rango de Fechas\",\"type\":\"text\",\"required\":false},{\"key\":\"payment_date\",\"label\":\"Fecha de Pago\",\"type\":\"date\",\"required\":true},{\"key\":\"run_status_label\",\"label\":\"Estado\",\"type\":\"text\",\"required\":false},{\"key\":\"processed_by\",\"label\":\"Procesado Por\",\"type\":\"text\",\"required\":false},{\"key\":\"notes\",\"label\":\"Notas\",\"type\":\"textarea\",\"required\":false}]",
+            Content = BuildPayrollSheetHtml()
+        });
+
+        // ── HR: Colilla de Pago ──
+        templates.Add(new DocumentTemplate
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            CreatedAt = now,
+            CreatedBy = "system",
+            Name = "Colilla de Pago",
+            Category = "HR",
+            Module = "Employee",
+            CountryCode = "ALL",
+            IsActive = true,
+            Version = "1.0",
+            Variables = "[{\"key\":\"employee_name\",\"label\":\"Nombre del Trabajador\",\"type\":\"text\",\"required\":true},{\"key\":\"employee_id\",\"label\":\"No. Identificación\",\"type\":\"text\",\"required\":false},{\"key\":\"position\",\"label\":\"Cargo\",\"type\":\"text\",\"required\":false},{\"key\":\"period_name\",\"label\":\"Período\",\"type\":\"text\",\"required\":true},{\"key\":\"payment_date\",\"label\":\"Fecha de Pago\",\"type\":\"date\",\"required\":true},{\"key\":\"gross_pay\",\"label\":\"Sueldo Bruto\",\"type\":\"number\",\"required\":false},{\"key\":\"inss\",\"label\":\"INSS\",\"type\":\"number\",\"required\":false},{\"key\":\"ir\",\"label\":\"IR\",\"type\":\"number\",\"required\":false},{\"key\":\"other_deductions\",\"label\":\"Otras Deducciones\",\"type\":\"number\",\"required\":false},{\"key\":\"net_pay\",\"label\":\"Neto a Recibir\",\"type\":\"number\",\"required\":true}]",
+            Content = BuildPayslipHtml()
         });
 
         return templates;
@@ -1777,19 +1811,22 @@ public static class DocumentTemplateSeeder
     <div style='text-align:right;'>
       <div class='doc-badge'>TRANSFERENCIA ENTRE BODEGAS</div>
       {{% if transfer_status == 'in_transit' %}}<div style='margin-top:8px; display:inline-block; border:2px solid #FFD54F; color:#92400e; background:#fffbeb; padding:6px 18px; border-radius:6px; font-weight:800; letter-spacing:2px;'>EN TRÁNSITO</div>{{% endif %}}
+      {{% if transfer_status == 'partially_received' %}}<div style='margin-top:8px; display:inline-block; border:2px solid #FFD54F; color:#92400e; background:#fffbeb; padding:6px 18px; border-radius:6px; font-weight:800; letter-spacing:2px;'>RECEPCIÓN PARCIAL</div>{{% endif %}}
       {{% if transfer_status == 'completed' %}}<div style='margin-top:8px; display:inline-block; border:2px solid #1A0A3E; color:#1A0A3E; background:#f5f3ff; padding:6px 18px; border-radius:6px; font-weight:800; letter-spacing:2px;'>COMPLETADA</div>{{% endif %}}
       {{% if transfer_status == 'cancelled' %}}<div style='margin-top:8px; display:inline-block; border:2px solid #b91c1c; color:#b91c1c; background:#fef2f2; padding:6px 18px; border-radius:6px; font-weight:800; letter-spacing:2px;'>CANCELADA</div>{{% endif %}}
     </div>
   </div>
   <div class='parties'>
     <div class='party-card'>
-      <div class='party-title'>Sucursal Origen</div>
-      <strong>{{{{ from_branch | default: '____________' }}}}</strong><br />
+      <div class='party-title'>Bodega Origen</div>
+      <strong>{{{{ from_warehouse | default: '____________' }}}}</strong><br />
+      {{% if from_branch != blank %}}<span style='color:#555;'>Sucursal: {{{{ from_branch }}}}</span><br />{{% endif %}}
       Despacho de mercancía
     </div>
     <div class='party-card'>
-      <div class='party-title'>Sucursal Destino</div>
-      <strong>{{{{ to_branch | default: '____________' }}}}</strong><br />
+      <div class='party-title'>Bodega Destino</div>
+      <strong>{{{{ to_warehouse | default: '____________' }}}}</strong><br />
+      {{% if to_branch != blank %}}<span style='color:#555;'>Sucursal: {{{{ to_branch }}}}</span><br />{{% endif %}}
       Recepción de mercancía
     </div>
   </div>
@@ -1801,8 +1838,8 @@ public static class DocumentTemplateSeeder
     {{% if requested_by != blank %}}<tr><td class='meta-label'>Registrada por:</td><td class='meta-value'>{{{{ requested_by }}}}</td></tr>{{% endif %}}
   </table>
   <table class='items'>
-    <thead><tr><th>Código</th><th>Producto</th><th style='text-align:center;'>Cant.</th><th style='text-align:right;'>Costo U.</th><th style='text-align:right;'>Subtotal</th></tr></thead>
-    <tbody>{{% for item in items %}}<tr><td>{{{{ item.code }}}}</td><td>{{{{ item.description }}}}</td><td style='text-align:center;'>{{{{ item.quantity }}}}</td><td style='text-align:right;'>{{{{ item.unit_price }}}}</td><td style='text-align:right;'>{{{{ item.subtotal }}}}</td></tr>{{% else %}}<tr><td colspan='5' style='text-align:center; color:#888; padding:20px;'><em>Los items se cargan dinámicamente desde la transferencia del sistema.</em></td></tr>{{% endfor %}}</tbody>
+    <thead><tr><th>Código</th><th>Producto</th><th style='text-align:center;'>Cant.</th><th style='text-align:center;'>Recib.</th><th style='text-align:right;'>Costo U.</th><th style='text-align:right;'>Subtotal</th></tr></thead>
+    <tbody>{{% for item in items %}}<tr><td>{{{{ item.code }}}}</td><td>{{{{ item.description }}}}</td><td style='text-align:center;'>{{{{ item.quantity }}}}</td><td style='text-align:center;'>{{{{ item.quantity_received | default: '0' }}}}</td><td style='text-align:right;'>{{{{ item.unit_price }}}}</td><td style='text-align:right;'>{{{{ item.subtotal }}}}</td></tr>{{% else %}}<tr><td colspan='6' style='text-align:center; color:#888; padding:20px;'><em>Los items se cargan dinámicamente desde la transferencia del sistema.</em></td></tr>{{% endfor %}}</tbody>
   </table>
   <div class='totals'>
     <div class='totals-grand'>VALOR TOTAL: {{{{ Country.Currency }}}} <strong>{{{{ items_total | default: '0.00' }}}}</strong></div>
@@ -1812,6 +1849,136 @@ public static class DocumentTemplateSeeder
   <div class='sig-area' style='display:flex; justify-content:space-between; margin-top:70px;'>
     <div class='sig-block' style='text-align:center; width:40%;'><div class='sig-line'>Despachó (Origen)</div></div>
     <div class='sig-block' style='text-align:center; width:40%;'><div class='sig-line'>Recibió (Destino)</div></div>
+  </div>
+  <div class='footer'>Documento generado por Zorvian ERP - Motor Documental Inteligente · {{{{ Country.Name }}}} · {{{{ Company.Date }}}}</div>
+</body></html>";
+
+    private static string BuildPayrollSheetHtml() => $@"<!DOCTYPE html>
+<html><head><meta charset='UTF-8'>
+  {SharedStyles()}
+  <style>
+    .doc-badge {{ background: #1A0A3E; color: white; padding: 8px 20px; border-radius: 20px; font-size: 14px; font-weight: 700; }}
+    .header {{ display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #1A0A3E; padding-bottom: 16px; }}
+    .meta-box {{ display: flex; gap: 16px; margin: 14px 0; flex-wrap: wrap; }}
+    .meta-card {{ flex: 1; min-width: 150px; background: #f5f3ff; padding: 10px 14px; border-radius: 8px; border-left: 3px solid #7C4DFF; }}
+    .meta-card small {{ color: #666; display: block; margin-bottom: 3px; }}
+    .meta-card strong {{ color: #1A0A3E; font-size: 13px; }}
+    .totals-box {{ display: flex; gap: 16px; margin: 16px 0; flex-wrap: wrap; }}
+    .total-card {{ flex: 1; min-width: 140px; padding: 12px 16px; border-radius: 8px; border: 1px solid #e4dcff; text-align: center; }}
+    .total-card small {{ color: #666; display: block; margin-bottom: 4px; font-weight: 600; }}
+    .total-card strong {{ color: #1A0A3E; font-size: 15px; }}
+    .grand-net {{ background: #1A0A3E; color: #fff; }}
+    .grand-net strong {{ color: #2EE59D; }}
+    .section-title {{ background: #1A0A3E; color: #fff; padding: 5px 12px; font-weight: 700; font-size: 12px; letter-spacing: 1px; margin-top: 16px; text-transform: uppercase; }}
+  </style>
+</head><body>
+  <div class='header'>
+    <div>
+      <div class='company-name'>{{{{ Company.LegalName }}}}</div>
+      <div style='font-size:12px;color:#555;'>{{{{ Company.TaxIdLabel }}}} No. {{{{ Company.TaxId | default: '____________' }}}}</div>
+    </div>
+    <div class='doc-badge'>PLANILLA DE PAGO</div>
+  </div>
+  <div class='meta-box'>
+    <div class='meta-card'><small>Período</small><strong>{{{{ period_name }}}}</strong></div>
+    {{% if period_range != blank %}}<div class='meta-card'><small>Rango</small><strong>{{{{ period_range }}}}</strong></div>{{% endif %}}
+    <div class='meta-card'><small>Fecha de Pago</small><strong>{{{{ payment_date }}}}</strong></div>
+    {{% if run_status_label != blank %}}<div class='meta-card'><small>Estado</small><strong>{{{{ run_status_label }}}}</strong></div>{{% endif %}}
+  </div>
+  <div class='section-title'>Resumen de la Planilla</div>
+  <div class='totals-box'>
+    <div class='total-card'><small>Salarios</small><strong>{{{{ run_currency | default: Country.Currency }}}} {{{{ total_salaries | default: '0.00' }}}}</strong></div>
+    <div class='total-card'><small>Deducciones</small><strong>- {{{{ run_currency | default: Country.Currency }}}} {{{{ total_deductions | default: '0.00' }}}}</strong></div>
+    <div class='total-card grand-net'><small style='color:#cfc6ff;'>Neto a Pagar</small><strong>{{{{ run_currency | default: Country.Currency }}}} {{{{ total_net_pay | default: '0.00' }}}}</strong></div>
+    <div class='total-card'><small>Costo Empleador</small><strong>{{{{ run_currency | default: Country.Currency }}}} {{{{ total_employer_costs | default: '0.00' }}}}</strong></div>
+    <div class='total-card'><small>Trabajadores</small><strong>{{{{ employee_count | default: '0' }}}}</strong></div>
+  </div>
+  <div class='section-title'>Detalle por Trabajador</div>
+  <table class='items'>
+    <thead><tr><th>Trabajador</th><th>Departamento</th><th style='text-align:right;'>Salario Base</th><th style='text-align:right;'>INSS</th><th style='text-align:right;'>IR</th><th style='text-align:right;'>Otras Ded.</th><th style='text-align:right;'>Neto</th></tr></thead>
+    <tbody>{{% for e in employees %}}<tr><td>{{{{ e.employee_name }}}}</td><td>{{{{ e.department }}}}</td><td style='text-align:right;'>{{{{ e.base_salary }}}}</td><td style='text-align:right;'>{{{{ e.inss }}}}</td><td style='text-align:right;'>{{{{ e.ir }}}}</td><td style='text-align:right;'>{{{{ e.other_deductions }}}}</td><td style='text-align:right;'><strong>{{{{ e.net_pay }}}}</strong></td></tr>{{% else %}}<tr><td colspan='7' style='text-align:center; color:#888; padding:20px;'><em>Los trabajadores se cargan dinámicamente desde la corrida de nómina del sistema.</em></td></tr>{{% endfor %}}</tbody>
+  </table>
+  {{% if notes != blank %}}<p style='margin-top:16px; padding:12px; background:#f5f3ff; border-radius:6px;'><strong>Notas:</strong> {{{{ notes }}}}</p>{{% endif %}}
+  <p style='margin-top:12px; font-size:12px;'>Planilla elaborada conforme a los registros de nómina del sistema. El pago se efectúa conforme a la metodología de pagos de la empresa.</p>
+  <div class='sig-area' style='display:flex; justify-content:space-between; margin-top:70px;'>
+    <div class='sig-block' style='text-align:center; width:30%;'><div class='sig-line'>Elaborado por<br /><small>{{{{ processed_by | default: '____________' }}}}</small></div></div>
+    <div class='sig-block' style='text-align:center; width:30%;'><div class='sig-line'>Revisado por</div></div>
+    <div class='sig-block' style='text-align:center; width:30%;'><div class='sig-line'>Vo.Bo. Dirección</div></div>
+  </div>
+  <div class='footer'>Documento generado por Zorvian ERP - Motor Documental Inteligente · {{{{ Country.Name }}}} · {{{{ Company.Date }}}}</div>
+</body></html>";
+
+    private static string BuildPayslipHtml() => $@"<!DOCTYPE html>
+<html><head><meta charset='UTF-8'>
+  {SharedStyles()}
+  <style>
+    .doc-badge {{ background: #FFD54F; color: #1A0A3E; padding: 8px 20px; border-radius: 20px; font-size: 14px; font-weight: 700; }}
+    .header {{ display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #FFD54F; padding-bottom: 14px; }}
+    .employee-box {{ background: #f5f3ff; border-left: 4px solid #7C4DFF; padding: 12px 16px; border-radius: 8px; margin: 14px 0; }}
+    .employee-box small {{ color: #666; }}
+    .meta-box {{ display: flex; gap: 16px; margin: 12px 0; flex-wrap: wrap; }}
+    .meta-card {{ flex: 1; min-width: 140px; background: #fffbeb; padding: 10px 14px; border-radius: 8px; border-left: 3px solid #FFD54F; }}
+    .meta-card small {{ color: #666; display: block; margin-bottom: 3px; }}
+    .meta-card strong {{ color: #1A0A3E; font-size: 13px; }}
+    .col2 {{ display: flex; gap: 16px; align-items: flex-start; }}
+    .col2 > div {{ flex: 1; }}
+    .mini-title {{ background: #1A0A3E; color: #fff; padding: 4px 10px; font-weight: 700; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 0; }}
+    .net-box {{ text-align: center; margin: 18px 0; padding: 14px; background: #1A0A3E; border-radius: 10px; color: #fff; }}
+    .net-box small {{ display: block; letter-spacing: 2px; font-weight: 600; color: #cfc6ff; margin-bottom: 4px; }}
+    .net-box .net-amount {{ font-size: 22px; font-weight: 800; color: #2EE59D; }}
+  </style>
+</head><body>
+  <div class='header'>
+    <div>
+      <div class='company-name'>{{{{ Company.LegalName }}}}</div>
+      <div style='font-size:12px;color:#555;'>{{{{ Company.TaxIdLabel }}}} No. {{{{ Company.TaxId | default: '____________' }}}}</div>
+    </div>
+    <div style='text-align:right;'>
+      <div class='doc-badge'>COLILLA DE PAGO</div>
+      {{% if payment_status == 'paid' %}}<div style='margin-top:8px; display:inline-block; border:2px solid #2EE59D; color:#047857; background:#f0fdf4; padding:5px 16px; border-radius:6px; font-weight:800; letter-spacing:2px;'>PAGADO</div>{{% endif %}}
+    </div>
+  </div>
+  <div class='employee-box'>
+    <strong>{{{{ employee_name | default: '____________' }}}}</strong>
+    {{% if employee_id != blank %}} &middot; <small>No. {{{{ employee_id }}}}</small>{{% endif %}}
+    {{% if position != blank %}}<br /><small>Cargo: {{{{ position }}}}</small>{{% endif %}}
+    {{% if department != blank %}} &middot; <small>Depto.: {{{{ department }}}}</small>{{% endif %}}
+  </div>
+  <div class='meta-box'>
+    <div class='meta-card'><small>Período</small><strong>{{{{ period_name }}}}</strong></div>
+    {{% if period_range != blank %}}<div class='meta-card'><small>Rango</small><strong>{{{{ period_range }}}}</strong></div>{{% endif %}}
+    <div class='meta-card'><small>Fecha de Pago</small><strong>{{{{ payment_date }}}}</strong></div>
+    {{% if inss_code != blank %}}<div class='meta-card'><small>No. INSS</small><strong>{{{{ inss_code }}}}</strong></div>{{% endif %}}
+  </div>
+  <div class='col2'>
+    <div>
+      <div class='mini-title'>Ingresos</div>
+      <table class='items'>
+        <tbody>
+          <tr><td>Sueldo Base</td><td style='text-align:right;'>{{{{ base_salary | default: '0.00' }}}}</td></tr>
+          <tr><td>Comisiones</td><td style='text-align:right;'>{{{{ commissions | default: '0.00' }}}}</td></tr>
+          <tr><td>Bonos</td><td style='text-align:right;'>{{{{ bonuses | default: '0.00' }}}}</td></tr>
+          <tr><td>Horas Extras</td><td style='text-align:right;'>{{{{ overtime | default: '0.00' }}}}</td></tr>
+          <tr><td><strong>Sueldo Bruto</strong></td><td style='text-align:right;'><strong>{{{{ gross_pay | default: '0.00' }}}}</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <div class='mini-title'>Deducciones</div>
+      <table class='items'>
+        <tbody>{{% for c in concepts %}}<tr><td>{{{{ c.description }}}}</td><td style='text-align:right;'>- {{{{ c.amount }}}}</td></tr>{{% else %}}<tr><td>INSS</td><td style='text-align:right;'>- {{{{ inss | default: '0.00' }}}}</td></tr><tr><td>IR</td><td style='text-align:right;'>- {{{{ ir | default: '0.00' }}}}</td></tr><tr><td>Otras Deducciones</td><td style='text-align:right;'>- {{{{ other_deductions | default: '0.00' }}}}</td></tr>{{% endfor %}}</tbody>
+      </table>
+      <table class='items' style='margin-top:8px;'>
+        <tbody><tr><td><strong>Total Deducciones</strong></td><td style='text-align:right;'><strong>- {{{{ total_deductions | default: '0.00' }}}}</strong></td></tr></tbody>
+      </table>
+    </div>
+  </div>
+  <div class='net-box'><small>NETO A RECIBIR</small><span class='net-amount'>{{{{ stub_currency | default: Country.Currency }}}} {{{{ net_pay | default: '0.00' }}}}</span></div>
+  {{% if payment_reference != blank %}}<p style='font-size:12px;'><strong>Referencia de pago:</strong> {{{{ payment_reference }}}}</p>{{% endif %}}
+  <p style='margin-top:10px; font-size:12px;'>Documento que acompaña el pago de salarios del período indicado. Cualquier diferencia debe reportarse a Recursos Humanos dentro de los 3 días hábiles siguientes.</p>
+  <div class='sig-area' style='display:flex; justify-content:space-between; margin-top:60px;'>
+    <div class='sig-block' style='text-align:center; width:40%;'><div class='sig-line'>Recibí Conforme<br /><small>{{{{ employee_name | default: '____________' }}}}</small></div></div>
+    <div class='sig-block' style='text-align:center; width:40%;'><div class='sig-line'>Pagado por<br /><small>{{{{ Company.LegalName }}}}</small></div></div>
   </div>
   <div class='footer'>Documento generado por Zorvian ERP - Motor Documental Inteligente · {{{{ Country.Name }}}} · {{{{ Company.Date }}}}</div>
 </body></html>";

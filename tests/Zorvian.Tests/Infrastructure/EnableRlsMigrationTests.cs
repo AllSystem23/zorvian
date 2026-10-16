@@ -140,4 +140,103 @@ public sealed class EnableRlsMigrationTests
         Assert.Contains("'PurchaseRequests','PurchaseRequestDetails',", sql);
         Assert.Contains("'StockTransfers','StockTransferDetails'", sql);
     }
+
+    [Fact]
+    public void EnableRls_CoversWarehousesTable()
+    {
+        // Bodegas (2026-10-16): tabla nueva con columna BranchId — el ALTER estático
+        // la habilita, los arrays de los bloques 1/2 le dan política tenant + bypass
+        // y el bloque dinámico 3 la reescribe con la combinada tenant AND sucursal.
+        var sql = ReadEmbeddedRlsScript();
+
+        Assert.Contains("ALTER TABLE IF EXISTS \"Warehouses\" ENABLE ROW LEVEL SECURITY;", sql);
+        Assert.Contains("'Warehouses'", sql);
+    }
+
+    [Fact]
+    public void AddWarehousesMigration_CreatesCombinedPolicy_WithPairedDollarQuotes()
+    {
+        // Las políticas de la tabla nueva viajan en la propia migración (las RLS
+        // históricas ya corrieron en BDs existentes). Regresión del bug de
+        // dollar-quotes: DO $$ + $$ interno cierra el cuerpo antes de tiempo
+        // (42601 syntax error at or near "CREATE") — verificado en PG16 real.
+        var sql = ReadMigrationSourceFile("20261016210153_AddWarehouses.cs");
+
+        Assert.Contains("tenant_branch_scope_Warehouses", sql);
+        Assert.Contains("super_admin_bypass_Warehouses", sql);
+        Assert.Contains("is_super_admin()", sql);
+        Assert.Contains("FORCE ROW LEVEL SECURITY", sql);
+
+        var regex = new Regex(@"DO (\$[A-Za-z_]*\$)(.*?)\1", RegexOptions.Singleline);
+        var blocks = regex.Matches(sql);
+        Assert.True(blocks.Count > 0,
+            "la migración debe contener el bloque DO de políticas");
+
+        foreach (Match block in blocks)
+        {
+            var body = block.Groups[2].Value;
+            var innerOpens = Regex.Matches(body, @"\$\$").Count;
+            Assert.True(innerOpens % 2 == 0,
+                $"Bloque DO de AddWarehouses con delimitadores $$ descasados ({innerOpens}).");
+        }
+    }
+
+    [Fact]
+    public void EnableRls_CoversEmploymentPeriodsTable()
+    {
+        // Historial de contratos (2026-10-16): tabla nueva SIN BranchId — el
+        // ALTER estático la habilita y los arrays de los bloques 1/2 le dan
+        // política solo-tenant + bypass SuperAdmin (el bloque 3 no aplica).
+        var sql = ReadEmbeddedRlsScript();
+
+        Assert.Contains("ALTER TABLE IF EXISTS \"EmploymentPeriods\" ENABLE ROW LEVEL SECURITY;", sql);
+        Assert.Contains("'EmploymentPeriods'", sql);
+    }
+
+    [Fact]
+    public void AddEmploymentPeriodsMigration_CreatesPolicies_AndBackfillsExistingEmployees()
+    {
+        // Las políticas de la tabla nueva viajan en la propia migración (las RLS
+        // históricas ya corrieron en BDs existentes). Regresión del bug de
+        // dollar-quotes: DO $$ + $$ interno cierra el cuerpo antes de tiempo
+        // (42601 syntax error at or near "CREATE").
+        var sql = ReadMigrationSourceFile("20261016224911_AddEmploymentPeriods.cs");
+
+        Assert.Contains("tenant_isolation_EmploymentPeriods", sql);
+        Assert.Contains("super_admin_bypass_EmploymentPeriods", sql);
+        Assert.Contains("is_super_admin()", sql);
+        Assert.Contains("FORCE ROW LEVEL SECURITY", sql);
+
+        // Backfill: cada empleado existente abre su período 1 (los terminados
+        // quedan cerrados con su fecha de salida).
+        Assert.Contains("INSERT INTO \"EmploymentPeriods\"", sql);
+        Assert.Contains("NOT EXISTS", sql);
+        Assert.Contains("'closed' ELSE 'open'", sql);
+
+        var regex = new Regex(@"DO (\$[A-Za-z_]*\$)(.*?)\1", RegexOptions.Singleline);
+        var blocks = regex.Matches(sql);
+        Assert.True(blocks.Count > 0,
+            "la migración debe contener el bloque DO de políticas");
+
+        foreach (Match block in blocks)
+        {
+            var body = block.Groups[2].Value;
+            var innerOpens = Regex.Matches(body, @"\$\$").Count;
+            Assert.True(innerOpens % 2 == 0,
+                $"Bloque DO de AddEmploymentPeriods con delimitadores $$ descasados ({innerOpens}).");
+        }
+    }
+
+    private static string ReadMigrationSourceFile(string fileName)
+    {
+        // Los tests corren desde bin/Debug/net9.0: se sube hasta encontrar la raíz del repo.
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir != null)
+        {
+            var candidate = Path.Combine(dir.FullName, "src", "Zorvian.Infrastructure", "Migrations", fileName);
+            if (File.Exists(candidate)) return File.ReadAllText(candidate);
+            dir = dir.Parent!;
+        }
+        throw new FileNotFoundException($"No se encontró {fileName} subiendo desde {AppContext.BaseDirectory}");
+    }
 }

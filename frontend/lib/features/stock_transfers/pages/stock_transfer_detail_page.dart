@@ -39,6 +39,7 @@ final class _StockTransferDetailPageState extends ConsumerState<StockTransferDet
   String _statusLabel(String s) => switch (s) {
     'draft' => 'Borrador',
     'in_transit' => 'En Tránsito',
+    'partially_received' => 'Recepción Parcial',
     'completed' => 'Completada',
     'cancelled' => 'Anulada',
     _ => s,
@@ -46,11 +47,14 @@ final class _StockTransferDetailPageState extends ConsumerState<StockTransferDet
 
   Color _statusColor(String s) => switch (s) {
     'in_transit' => Colors.orange,
+    'partially_received' => Colors.amber.shade800,
     'completed' => Colors.green,
     'cancelled' => Colors.red,
     'draft' => Colors.grey,
     _ => Colors.grey,
   };
+
+  bool _canReceive(String s) => s == 'in_transit' || s == 'partially_received';
 
   Future<void> _transition(String action, String confirmTitle, String confirmMsg, String successMsg) async {
     final confirm = await ZModal.confirm(context, title: confirmTitle, message: confirmMsg);
@@ -73,16 +77,118 @@ final class _StockTransferDetailPageState extends ConsumerState<StockTransferDet
   Future<void> _dispatch() => _transition(
     'dispatch',
     'Despachar transferencia',
-    'Se descontará el stock de la sucursal ORIGEN y quedará en tránsito. ¿Continuar?',
+    'Se descontará el stock de la bodega ORIGEN y quedará en tránsito. ¿Continuar?',
     'Transferencia despachada',
   );
 
-  Future<void> _receive() => _transition(
+  /// Recepción TOTAL: sin body el backend recibe todo lo pendiente.
+  Future<void> _receiveAll() => _transition(
     'receive',
-    'Recepción de transferencia',
-    'Se dará de alta el stock en la sucursal DESTINO. ¿Continuar?',
+    'Recepción total',
+    'Se dará de alta el stock pendiente en la bodega DESTINO. ¿Continuar?',
     'Transferencia recibida',
   );
+
+  /// Recepción PARCIAL: diálogo con cantidades recibidas por línea (0..pendiente).
+  Future<void> _receivePartial() async {
+    final d = _data!;
+    final received = <String, TextEditingController>{};
+    final pending = <String, int>{};
+    for (final item in d.details) {
+      final p = item.quantity - item.quantityReceived;
+      if (p <= 0 || item.id.isEmpty) continue;
+      pending[item.id] = p;
+      received[item.id] = TextEditingController(text: '$p');
+    }
+    if (pending.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No hay cantidades pendientes por recibir'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Recepción parcial'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Indique cuántas unidades recibe de cada línea (puede dejar 0). '
+                'Lo no recibido queda pendiente en la transferencia.',
+                style: Theme.of(ctx).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 12),
+              ...d.details.where((i) => pending.containsKey(i.id)).map((i) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          i.productName.isNotEmpty ? i.productName : i.productCode,
+                          style: Theme.of(ctx).textTheme.bodyMedium,
+                        ),
+                      ),
+                      Text('pend. ${pending[i.id]}', style: Theme.of(ctx).textTheme.bodySmall),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: 72,
+                        child: TextField(
+                          controller: received[i.id],
+                          keyboardType: TextInputType.number,
+                          textAlign: TextAlign.center,
+                          decoration: const InputDecoration(isDense: true, hintText: '0'),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Confirmar recepción')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+
+    final lines = <ReceiveStockTransferLine>[];
+    for (final entry in received.entries) {
+      final raw = entry.value.text.trim();
+      final qty = int.tryParse(raw) ?? 0;
+      final max = pending[entry.key]!;
+      lines.add(ReceiveStockTransferLine(
+        detailId: entry.key,
+        quantity: qty < 0 ? 0 : (qty > max ? max : qty),
+      ));
+    }
+
+    try {
+      final dio = ref.read(dioClientProvider);
+      await receiveStockTransfer(dio, widget.stockTransferId, lines: lines);
+      ref.invalidate(stockTransferProvider);
+      _load();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Recepción parcial registrada'), backgroundColor: Colors.green),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error en la recepción'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
 
   Future<void> _cancel() => _transition(
     'cancel',
@@ -156,19 +262,41 @@ final class _StockTransferDetailPageState extends ConsumerState<StockTransferDet
                     ],
                   ),
                   const SizedBox(height: 8),
+                  // Origen (sucursal + bodega) → Destino (sucursal + bodega).
                   Row(
                     children: [
-                      const Icon(Icons.warehouse_outlined, size: 18),
-                      const SizedBox(width: 6),
-                      Expanded(child: Text(d.fromBranchName, style: theme.textTheme.bodyMedium)),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              d.fromWarehouseName.isNotEmpty ? d.fromWarehouseName : 'Bodega origen',
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            if (d.fromBranchName.isNotEmpty)
+                              Text(d.fromBranchName, style: theme.textTheme.bodySmall),
+                          ],
+                        ),
+                      ),
                       const Icon(Icons.arrow_forward, size: 16),
-                      const SizedBox(width: 6),
-                      const Icon(Icons.store_mall_directory_outlined, size: 18),
-                      const SizedBox(width: 6),
-                      Expanded(child: Text(d.toBranchName, style: theme.textTheme.bodyMedium)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              d.toWarehouseName.isNotEmpty ? d.toWarehouseName : 'Bodega destino',
+                              textAlign: TextAlign.end,
+                              style: const TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            if (d.toBranchName.isNotEmpty)
+                              Text(d.toBranchName, textAlign: TextAlign.end, style: theme.textTheme.bodySmall),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 8),
                   Text('Creada: ${d.createdAt}', style: theme.textTheme.bodySmall),
                   if (d.dispatchedAt != null && d.dispatchedAt!.isNotEmpty)
                     Text('Despachada: ${d.dispatchedAt}', style: theme.textTheme.bodySmall),
@@ -184,27 +312,44 @@ final class _StockTransferDetailPageState extends ConsumerState<StockTransferDet
             ZCard(
               padding: const EdgeInsets.all(16),
               child: Column(
-                children: d.details.map((item) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(item.productName, style: const TextStyle(fontWeight: FontWeight.w500)),
-                            if (item.productCode.isNotEmpty) Text('Cód: ${item.productCode}', style: theme.textTheme.bodySmall),
-                          ],
+                children: d.details.map((item) {
+                  final pending = item.quantity - item.quantityReceived;
+                  final showReceived = _canReceive(d.status) || d.status == 'completed';
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(item.productName, style: const TextStyle(fontWeight: FontWeight.w500)),
+                              if (item.productCode.isNotEmpty) Text('Cód: ${item.productCode}', style: theme.textTheme.bodySmall),
+                            ],
+                          ),
                         ),
-                      ),
-                      Text('${item.quantity} uds.', style: const TextStyle(fontWeight: FontWeight.w600)),
-                      if (item.unitCost > 0) ...[
-                        const SizedBox(width: 12),
-                        Text('@ ${item.unitCost.toStringAsFixed(2)}', style: theme.textTheme.bodySmall),
+                        if (showReceived) ...[
+                          Text(
+                            '${item.quantityReceived}/${item.quantity} rec.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: pending > 0 && d.status != 'completed'
+                                  ? Colors.amber.shade800
+                                  : Colors.green,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                        ],
+                        Text('${item.quantity} uds.', style: const TextStyle(fontWeight: FontWeight.w600)),
+                        if (item.unitCost > 0) ...[
+                          const SizedBox(width: 12),
+                          Text('@ ${item.unitCost.toStringAsFixed(2)}', style: theme.textTheme.bodySmall),
+                        ],
                       ],
-                    ],
-                  ),
-                )).toList(),
+                    ),
+                  );
+                }).toList(),
               ),
             ),
             const SizedBox(height: 24),
@@ -216,8 +361,14 @@ final class _StockTransferDetailPageState extends ConsumerState<StockTransferDet
                   Expanded(child: ZButton(text: 'Despachar', onPressed: _dispatch, type: ZButtonType.primary)),
                 ],
               ),
-            if (d.status == 'in_transit')
-              ZButton(text: 'Recibir en Destino', onPressed: _receive, type: ZButtonType.primary),
+            if (_canReceive(d.status))
+              Row(
+                children: [
+                  Expanded(child: ZButton(text: 'Recibir todo', onPressed: _receiveAll, type: ZButtonType.primary)),
+                  const SizedBox(width: 12),
+                  Expanded(child: ZButton(text: 'Recepción parcial', onPressed: _receivePartial, type: ZButtonType.secondary)),
+                ],
+              ),
             const SizedBox(height: 12),
             ZButton(text: 'Generar PDF (Motor Documental)', onPressed: _generatePdf, type: ZButtonType.secondary),
             const SizedBox(height: 80),

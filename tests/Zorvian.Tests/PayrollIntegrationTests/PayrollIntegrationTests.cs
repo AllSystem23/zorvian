@@ -72,13 +72,16 @@ var factory = new PayrollCalculationFactory(new List<IPayrollCalculationStrategy
 var mockAuditRepo = new Mock<IAuditLogRepository>();
 var mockBankTransfer = new Mock<IBankTransferService>();
 var mockSickLeaveRepo = new Mock<ISickLeaveRepository>();
+var mockVacationRepo = new Mock<IVacationRepository>();
+var mockPermissionRepo = new Mock<IPermissionRepository>();
 
 var payrollService = new PayrollService(
     mockRepo.Object, mockEmployeeRepo.Object, mockTenant.Object, mockWebhook.Object, 
     mockAch.Object, mockAutoAccounting.Object, mockTaxConfigRepo.Object, mockCompanyRepo.Object,
     mockOvertimeRepo.Object, mockCommissionRepo.Object, mockBonusRepo.Object, 
     mockConceptRepo.Object, mockLoanRepo.Object, mockAdvanceRepo.Object, mockGarnishmentRepo.Object,
-    mockBenefitProvisionRepo.Object, mockAuditRepo.Object, factory, mockBankTransfer.Object, mockSickLeaveRepo.Object);
+    mockBenefitProvisionRepo.Object, mockAuditRepo.Object, factory, mockBankTransfer.Object, mockSickLeaveRepo.Object,
+    mockVacationRepo.Object, mockPermissionRepo.Object);
 
 // ACT
 var request = new GeneratePayrollRequest(periodId, "Nómina de prueba");

@@ -28,6 +28,7 @@ final class _StockTransferListPageState extends ConsumerState<StockTransferListP
   String _statusLabel(String s) => switch (s) {
     'draft' => 'Borrador',
     'in_transit' => 'En Tránsito',
+    'partially_received' => 'Recepción Parcial',
     'completed' => 'Completada',
     'cancelled' => 'Anulada',
     _ => s,
@@ -35,11 +36,25 @@ final class _StockTransferListPageState extends ConsumerState<StockTransferListP
 
   Color _statusColor(String s) => switch (s) {
     'in_transit' => Colors.orange,
+    'partially_received' => Colors.amber.shade800,
     'completed' => Colors.green,
     'cancelled' => Colors.red,
     'draft' => Colors.grey,
     _ => Colors.grey,
   };
+
+  /// Ruta origen → destino priorizando bodegas; las sucursales quedan como
+  /// desambiguación cuando hay transferencias entre sucursales.
+  String _route(StockTransferItem t) {
+    final origin = t.fromWarehouseName.isNotEmpty ? t.fromWarehouseName : t.fromBranchName;
+    final dest = t.toWarehouseName.isNotEmpty ? t.toWarehouseName : t.toBranchName;
+    final crossBranch = t.fromBranchName.isNotEmpty &&
+        t.toBranchName.isNotEmpty &&
+        t.fromBranchName != t.toBranchName;
+    return crossBranch
+        ? '$origin (${t.fromBranchName}) → $dest (${t.toBranchName})'
+        : '$origin → $dest';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +97,7 @@ final class _StockTransferListPageState extends ConsumerState<StockTransferListP
                     final t = items[i];
                     return ListTile(
                       title: Text(t.transferNumber, style: const TextStyle(fontWeight: FontWeight.w600)),
-                      subtitle: Text('${t.fromBranchName} → ${t.toBranchName} · ${t.createdAt}'),
+                      subtitle: Text('${_route(t)} · ${t.createdAt}'),
                       leading: const Icon(Icons.swap_horiz),
                       trailing: Chip(label: Text(_statusLabel(t.status), style: TextStyle(color: _statusColor(t.status), fontSize: 12))),
                       onTap: () => context.push('/stock-transfers/${t.id}'),

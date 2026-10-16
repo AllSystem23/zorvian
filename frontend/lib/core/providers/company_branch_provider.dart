@@ -5,19 +5,23 @@ import '../../auth/auth_provider.dart';
 
 final _silentOptions = Options(extra: {'suppressGlobalError': true});
 
-/// Stores the currently selected company and branch IDs.
+/// Stores the currently selected company, branch and warehouse IDs.
 /// These are used by the header selectors and can be consumed by any module.
 class CompanyBranchState {
   final String? companyId;
   final String? companyName;
   final String? branchId;
   final String? branchName;
+  final String? warehouseId;
+  final String? warehouseName;
 
   const CompanyBranchState({
     this.companyId,
     this.companyName,
     this.branchId,
     this.branchName,
+    this.warehouseId,
+    this.warehouseName,
   });
 
   CompanyBranchState copyWith({
@@ -25,12 +29,16 @@ class CompanyBranchState {
     String? companyName,
     String? branchId,
     String? branchName,
+    String? warehouseId,
+    String? warehouseName,
   }) {
     return CompanyBranchState(
       companyId: companyId ?? this.companyId,
       companyName: companyName ?? this.companyName,
       branchId: branchId ?? this.branchId,
       branchName: branchName ?? this.branchName,
+      warehouseId: warehouseId ?? this.warehouseId,
+      warehouseName: warehouseName ?? this.warehouseName,
     );
   }
 }
@@ -40,6 +48,8 @@ class CompanyBranchNotifier extends Notifier<CompanyBranchState> {
   static const _kCompanyName = 'selected_company_name';
   static const _kBranchId = 'selected_branch_id';
   static const _kBranchName = 'selected_branch_name';
+  static const _kWarehouseId = 'selected_warehouse_id';
+  static const _kWarehouseName = 'selected_warehouse_name';
 
   late final Future<void> _hydrated;
 
@@ -66,6 +76,8 @@ class CompanyBranchNotifier extends Notifier<CompanyBranchState> {
         companyName: prefs.getString(_kCompanyName),
         branchId: prefs.getString(_kBranchId),
         branchName: prefs.getString(_kBranchName),
+        warehouseId: prefs.getString(_kWarehouseId),
+        warehouseName: prefs.getString(_kWarehouseName),
       );
     } catch (_) {
       // Sin persistencia disponible: el header rehace la selección.
@@ -81,6 +93,8 @@ class CompanyBranchNotifier extends Notifier<CompanyBranchState> {
         await prefs.remove(_kCompanyName);
         await prefs.remove(_kBranchId);
         await prefs.remove(_kBranchName);
+        await prefs.remove(_kWarehouseId);
+        await prefs.remove(_kWarehouseName);
         return;
       }
       await prefs.setString(_kCompanyId, s.companyId!);
@@ -99,13 +113,23 @@ class CompanyBranchNotifier extends Notifier<CompanyBranchState> {
       } else {
         await prefs.remove(_kBranchName);
       }
+      if (s.warehouseId != null) {
+        await prefs.setString(_kWarehouseId, s.warehouseId!);
+      } else {
+        await prefs.remove(_kWarehouseId);
+      }
+      if (s.warehouseName != null) {
+        await prefs.setString(_kWarehouseName, s.warehouseName!);
+      } else {
+        await prefs.remove(_kWarehouseName);
+      }
     } catch (_) {
       // La persistencia es best-effort; el contexto en memoria sigue siendo válido.
     }
   }
 
   /// Selects a company. When the company actually changes, the selected
-  /// branch is reset: the previous branch belongs to the previous company.
+  /// branch and warehouse are reset: they belong to the previous company.
   void selectCompany(String id, String name) {
     final companyChanged = state.companyId != id;
     state = CompanyBranchState(
@@ -113,12 +137,35 @@ class CompanyBranchNotifier extends Notifier<CompanyBranchState> {
       companyName: name,
       branchId: companyChanged ? null : state.branchId,
       branchName: companyChanged ? null : state.branchName,
+      warehouseId: companyChanged ? null : state.warehouseId,
+      warehouseName: companyChanged ? null : state.warehouseName,
     );
     _persist();
   }
 
+  /// Selects a branch. The warehouse is ALWAYS reset: each branch has its
+  /// own set of warehouses (Compañía → Sucursales → Bodegas).
   void selectBranch(String id, String name) {
-    state = state.copyWith(branchId: id, branchName: name);
+    state = CompanyBranchState(
+      companyId: state.companyId,
+      companyName: state.companyName,
+      branchId: id,
+      branchName: name,
+    );
+    _persist();
+  }
+
+  /// Selects a warehouse within the current branch. `id == null` clears the
+  /// warehouse selection (= todas las bodegas de la sucursal activa).
+  void selectWarehouse(String? id, String? name) {
+    state = CompanyBranchState(
+      companyId: state.companyId,
+      companyName: state.companyName,
+      branchId: state.branchId,
+      branchName: state.branchName,
+      warehouseId: id,
+      warehouseName: name,
+    );
     _persist();
   }
 
@@ -133,7 +180,7 @@ class CompanyBranchNotifier extends Notifier<CompanyBranchState> {
     _persist();
   }
 
-  /// Clears the whole company/branch scope (logout or tenant switch).
+  /// Clears the whole company/branch/warehouse scope (logout or tenant switch).
   void clearSelection() {
     state = const CompanyBranchState();
     _persist();
@@ -193,11 +240,36 @@ final headerBranchListProvider =
   }
 });
 
-/// Scope key that changes when a different company or branch is selected.
-/// Data providers that respect multi-tenant scoping should depend on this
-/// (via ref.watch(branchScopeProvider)) so that changing the scope forces a
-/// cache invalidation and a fresh fetch with the new X-Tenant-Id/X-Branch-Id headers.
+/// Provider that lists the warehouses of the current branch (when one is
+/// selected) or of the whole company (no branch → todas). Feeds the header
+/// warehouse selector; pages use it to pick origin/destination warehouses.
+final headerWarehouseListProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
+  final dio = ref.read(dioClientProvider);
+  final cb = ref.watch(companyBranchProvider);
+  final params = <String, dynamic>{};
+  if (cb.branchId != null && cb.branchId!.isNotEmpty) {
+    params['branchId'] = cb.branchId;
+  }
+  try {
+    final response = await dio
+        .get('warehouses', params: params, options: _silentOptions)
+        .timeout(const Duration(seconds: 15));
+    if (response.data is List) {
+      return (response.data as List).cast<Map<String, dynamic>>();
+    }
+    return [];
+  } catch (e) {
+    return [];
+  }
+});
+
+/// Scope key that changes when a different company, branch or warehouse is
+/// selected. Data providers that respect multi-tenant scoping should depend
+/// on this (via ref.watch(branchScopeProvider)) so that changing the scope
+/// forces a cache invalidation and a fresh fetch with the new
+/// X-Tenant-Id/X-Branch-Id/X-Warehouse-Id headers.
 final branchScopeProvider = Provider<String>((ref) {
   final cb = ref.watch(companyBranchProvider);
-  return '${cb.companyId ?? ''}_${cb.branchId ?? ''}';
+  return '${cb.companyId ?? ''}_${cb.branchId ?? ''}_${cb.warehouseId ?? ''}';
 });

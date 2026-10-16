@@ -41,13 +41,14 @@ public sealed class StockTransfersController : ControllerBase
         [FromQuery] string? search,
         [FromQuery] string? status,
         [FromQuery] Guid? branchId,
+        [FromQuery] Guid? warehouseId,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
         page = Math.Clamp(page, 1, 1000);
         pageSize = Math.Clamp(pageSize, 1, 100);
         var (items, total) = await _service.GetFilteredAsync(
-            search, status, branchId, page, pageSize);
+            search, status, branchId, warehouseId, page, pageSize);
         return Ok(new PagedResult<StockTransferResponse>(items, total, page, pageSize));
     }
 
@@ -93,13 +94,19 @@ public sealed class StockTransfersController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Recepción total (body vacío/omitido o sin líneas) o parcial
+    /// (líneas con DetailId + Quantity a recibir en esta tanda).
+    /// </summary>
     [RequirePermission(Permissions.InventoryWrite)]
     [HttpPost("{id}/receive")]
-    public async Task<IActionResult> Receive(Guid id)
+    public async Task<IActionResult> Receive(
+        Guid id,
+        [FromBody] ReceiveStockTransferRequest? request = null)
     {
         try
         {
-            return Ok(await _service.ReceiveAsync(id));
+            return Ok(await _service.ReceiveAsync(id, request));
         }
         catch (InvalidOperationException ex)
         {

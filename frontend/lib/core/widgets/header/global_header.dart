@@ -67,6 +67,9 @@ final class GlobalHeader extends ConsumerWidget {
                 SizedBox(width: ZSpacing.sm),
                 // ── Branch Selector (hide on compact) ──
                 _BranchSelector(),
+                SizedBox(width: ZSpacing.sm),
+                // ── Warehouse Selector (hide on compact) ──
+                _WarehouseSelector(),
               ],
               SizedBox(width: ZSpacing.sm),
 
@@ -296,7 +299,94 @@ class _BranchSelector extends ConsumerWidget {
   }
 }
 
-/// Reusable selector chip used by both company and branch selectors
+/// Warehouse selector — dropdown of the active branch's warehouses.
+/// Default = "Todas" (sin bodega elegida el backend no filtra por bodega:
+/// lecturas company-wide/branch-wide). Al cambiar de sucursal la selección
+/// de bodega se resetea (cada sucursal tiene sus propias bodegas).
+class _WarehouseSelector extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final companyBranch = ref.watch(companyBranchProvider);
+    final warehousesAsync = ref.watch(headerWarehouseListProvider);
+
+    return warehousesAsync.when(
+      loading: () => _SelectorChip(
+        icon: Icons.warehouse_outlined,
+        label: companyBranch.warehouseName ?? 'Bodegas',
+        isDark: isDark,
+        isLoading: true,
+      ),
+      error: (_, _) => _SelectorChip(
+        icon: Icons.warehouse_outlined,
+        label: companyBranch.warehouseName ?? 'Bodegas',
+        isDark: isDark,
+      ),
+      data: (warehouses) {
+        final selectedId = companyBranch.warehouseId;
+        final selectionExists = selectedId == null ||
+            warehouses.any((w) => w['id'] == selectedId);
+
+        // La bodega seleccionada ya no existe en la sucursal activa
+        // (cambio de compañía/sucursal o bodega eliminada): limpiarla.
+        if (!selectionExists) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ref.read(companyBranchProvider.notifier).selectWarehouse(null, null);
+          });
+        }
+
+        final displayName = companyBranch.warehouseName ?? 'Todas';
+        return MenuAnchor(
+          menuChildren: [
+            MenuItemButton(
+              leadingIcon: companyBranch.warehouseId == null
+                  ? const Icon(Icons.check, size: 16, color: ZColors.brandPrimary)
+                  : const Icon(Icons.all_inclusive_outlined, size: 16),
+              child: Text('Todas las bodegas', style: TextStyle(
+                fontWeight: companyBranch.warehouseId == null ? FontWeight.w600 : FontWeight.normal,
+              )),
+              onPressed: () {
+                ref.read(companyBranchProvider.notifier).selectWarehouse(null, null);
+              },
+            ),
+            ...warehouses.map((w) {
+              final name = w['name'] ?? 'Sin nombre';
+              final id = w['id'] ?? '';
+              final isDefault = w['isDefault'] as bool? ?? false;
+              final isSelected = companyBranch.warehouseId == id;
+              return MenuItemButton(
+                leadingIcon: isSelected
+                    ? const Icon(Icons.check, size: 16, color: ZColors.brandPrimary)
+                    : const Icon(Icons.warehouse_outlined, size: 16),
+                child: Text(
+                  isDefault ? '$name (principal)' : name,
+                  style: TextStyle(
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  ),
+                ),
+                onPressed: () {
+                  ref.read(companyBranchProvider.notifier).selectWarehouse(id, name);
+                },
+              );
+            }),
+          ],
+          builder: (context, controller, child) {
+            return GestureDetector(
+              onTap: controller.open,
+              child: _SelectorChip(
+                icon: Icons.warehouse_outlined,
+                label: displayName,
+                isDark: isDark,
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+/// Reusable selector chip used by company, branch and warehouse selectors.
 class _SelectorChip extends StatelessWidget {
   final IconData icon;
   final String label;

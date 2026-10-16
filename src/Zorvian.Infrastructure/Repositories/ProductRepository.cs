@@ -40,16 +40,26 @@ public sealed class ProductRepository : IProductRepository
             .Include(p => p.TaxCategory)
             .FirstOrDefaultAsync(p => p.Code == code && p.BranchId == branchId);
 
-    public async Task<List<Product>> GetFilteredAsync(string? search, Guid? categoryId, Guid? brandId, bool? lowStock, bool? isActive, Guid? branchId, int page, int pageSize)
+    public async Task<Product?> GetByCodeForWarehouseAsync(string code, Guid warehouseId) =>
+        await _db.Set<Product>()
+            .Include(p => p.Category)
+            .Include(p => p.Brand)
+            .Include(p => p.Supplier)
+            .Include(p => p.TaxCategory)
+            .FirstOrDefaultAsync(p => p.Code == code && p.WarehouseId == warehouseId);
+
+    public async Task<List<Product>> GetFilteredAsync(string? search, Guid? categoryId, Guid? brandId, bool? lowStock, bool? isActive, Guid? branchId, Guid? warehouseId, int page, int pageSize)
     {
         var query = _db.Set<Product>()
             .Include(p => p.Category)
             .Include(p => p.Brand)
             .Include(p => p.Supplier)
             .Include(p => p.TaxCategory)
+            .Include(p => p.Warehouse)
             .AsQueryable();
 
         query = query.ApplyBranchScope(branchId, p => p.BranchId);
+        query = ApplyWarehouseScope(query, warehouseId);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -72,11 +82,12 @@ public sealed class ProductRepository : IProductRepository
             .ToListAsync();
     }
 
-    public async Task<int> GetFilteredCountAsync(string? search, Guid? categoryId, Guid? brandId, bool? lowStock, bool? isActive, Guid? branchId)
+    public async Task<int> GetFilteredCountAsync(string? search, Guid? categoryId, Guid? brandId, bool? lowStock, bool? isActive, Guid? branchId, Guid? warehouseId)
     {
         var query = _db.Set<Product>().AsQueryable();
 
         query = query.ApplyBranchScope(branchId, p => p.BranchId);
+        query = ApplyWarehouseScope(query, warehouseId);
 
         if (!string.IsNullOrWhiteSpace(search))
         {
@@ -95,14 +106,16 @@ public sealed class ProductRepository : IProductRepository
         return await query.CountAsync();
     }
 
-    public async Task<List<Product>> GetLowStockAsync(Guid? branchId)
+    public async Task<List<Product>> GetLowStockAsync(Guid? branchId, Guid? warehouseId)
     {
         var query = _db.Set<Product>()
             .Include(p => p.Category)
+            .Include(p => p.Warehouse)
             .Where(p => p.Stock <= p.MinStock && p.IsActive)
             .AsQueryable();
 
         query = query.ApplyBranchScope(branchId, p => p.BranchId);
+        query = ApplyWarehouseScope(query, warehouseId);
 
         return await query
             .OrderBy(p => p.Stock)
@@ -147,13 +160,14 @@ public sealed class ProductRepository : IProductRepository
             .ToList();
     }
 
-    public async Task<InventorySummaryRaw> GetInventorySummaryRawAsync(Guid? branchId)
+    public async Task<InventorySummaryRaw> GetInventorySummaryRawAsync(Guid? branchId, Guid? warehouseId)
     {
         var query = _db.Set<Product>()
             .Where(p => !p.IsDeleted)
             .AsQueryable();
 
         query = query.ApplyBranchScope(branchId, p => p.BranchId);
+        query = ApplyWarehouseScope(query, warehouseId);
 
         var totals = await query
             .Select(p => new
@@ -246,4 +260,15 @@ public sealed class ProductRepository : IProductRepository
 
     public async Task SaveChangesAsync() =>
         await _db.SaveChangesAsync();
+
+    /// <summary>
+    /// Semántica paridad con ApplyBranchScope: null o Guid.Empty = todas las
+    /// bodegas; cualquier otro GUID = exactamente esa bodega.
+    /// </summary>
+    private static IQueryable<Product> ApplyWarehouseScope(IQueryable<Product> query, Guid? warehouseId)
+    {
+        if (warehouseId is { } w && w != Guid.Empty)
+            query = query.Where(p => p.WarehouseId == w);
+        return query;
+    }
 }

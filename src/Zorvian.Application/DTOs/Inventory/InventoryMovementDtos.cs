@@ -33,6 +33,7 @@ public sealed record InventoryMovementFilterRequest(
     DateTime? FromDate,
     DateTime? ToDate,
     string? Search,
+    Guid? WarehouseId,   // null = bodega activa del contexto (o todas si no hay)
     int? Page = 1,
     int? PageSize = 20
 );

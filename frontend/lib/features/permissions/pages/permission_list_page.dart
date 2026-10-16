@@ -110,7 +110,9 @@ class _PermissionListPageState extends ConsumerState<PermissionListPage> {
                               child: Icon(_typeIcon(p.leaveTypeCode), color: _statusColor(p.status), size: 20),
                             ),
                             title: Text(p.leaveTypeName, style: const TextStyle(fontWeight: FontWeight.w600)),
-                            subtitle: Text('${p.startDate} → ${p.endDate} · ${p.totalDays} días'),
+                            subtitle: Text(p.isHalfDay
+                                ? '${p.startDate} → ${p.endDate} · Medio día'
+                                : '${p.startDate} → ${p.endDate} · ${p.totalDays} días'),
                             trailing: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(

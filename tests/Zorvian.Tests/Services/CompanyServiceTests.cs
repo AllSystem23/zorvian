@@ -177,7 +177,8 @@ public sealed class CompanyServiceTests
             TaxEnabled: true,
             TaxRate: 15.0m,
             FiscalYearStartMonth: null,
-            InssRegime: null
+            InssRegime: null,
+            RetentionBase: null
         );
 
         var result = await _sut.UpdateSettingsAsync(request);

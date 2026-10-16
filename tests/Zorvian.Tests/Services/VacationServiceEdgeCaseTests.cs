@@ -43,8 +43,8 @@ public sealed class VacationServiceEdgeCaseTests
 
         _employeeRepo.Setup(r => r.GetByIdAsync(employeeId)).ReturnsAsync(employee);
         _taxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC")).ReturnsAsync(new CountryTaxConfig { VacationDaysPerYear = 15 });
-        _repo.Setup(r => r.GetVacationDaysSumAsync(employeeId, "taken")).ReturnsAsync(0);
-        _repo.Setup(r => r.GetVacationDaysSumAsync(employeeId, "pending")).ReturnsAsync(0);
+        _repo.Setup(r => r.GetVacationBalanceSumsAsync(employeeId, null))
+            .ReturnsAsync(new LeaveBalanceSums(0m, 0m));
 
         var result = await _sut.CalculateBalanceAsync(employeeId);
 
@@ -67,8 +67,8 @@ public sealed class VacationServiceEdgeCaseTests
 
         _employeeRepo.Setup(r => r.GetByIdAsync(employeeId)).ReturnsAsync(employee);
         _taxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC")).ReturnsAsync(new CountryTaxConfig { VacationDaysPerYear = 15 });
-        _repo.Setup(r => r.GetVacationDaysSumAsync(employeeId, "taken")).ReturnsAsync(5);
-        _repo.Setup(r => r.GetVacationDaysSumAsync(employeeId, "pending")).ReturnsAsync(3);
+        _repo.Setup(r => r.GetVacationBalanceSumsAsync(employeeId, null))
+            .ReturnsAsync(new LeaveBalanceSums(5m, 3m));
 
         var result = await _sut.CalculateBalanceAsync(employeeId);
 

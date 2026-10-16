@@ -89,6 +89,7 @@ Widget buildTestApp({
       // Override FutureProviders that make HTTP calls to prevent pending timers
       companyListProvider.overrideWith((ref) => Future.value(<Map<String, dynamic>>[])),
       headerBranchListProvider.overrideWith((ref) => Future.value(<Map<String, dynamic>>[])),
+      headerWarehouseListProvider.overrideWith((ref) => Future.value(<Map<String, dynamic>>[])),
       tenantsListProvider.overrideWith((ref) => Future.value(<TenantInfo>[])),
     ],
     child: MaterialApp(

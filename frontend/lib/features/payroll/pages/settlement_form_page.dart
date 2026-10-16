@@ -71,6 +71,48 @@ class _SettlementFormPageState extends ConsumerState<SettlementFormPage> {
     }
   }
 
+  /// Confirma la aplicación de la liquidación (acción irreversible): termina
+  /// al trabajador, cierra su período de contrato y desactiva el salario.
+  Future<void> _confirmApply(SettlementResult result) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Aplicar liquidación'),
+        content: Text(
+          'Se marcará al trabajador como DADO DE BAJA, se cerrará su período '
+          'de contrato en el historial y se desactivará su salario.\n\n'
+          'Neto a pagar: ${result.currencySymbol} '
+          '${NumberFormat('#,##0.00').format(result.netSettlement)}.\n\n'
+          'Esta acción inicia la baja definitiva del período actual. ¿Desea '
+          'continuar?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: ZColors.danger),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Aplicar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    await ref.read(settlementProvider.notifier).apply();
+    if (!mounted) return;
+
+    final err = ref.read(settlementProvider).error;
+    if (err != null) {
+      ZToast.error(context, 'Error al aplicar la liquidación: $err');
+    } else {
+      ZToast.success(context, 'Liquidación aplicada: trabajador dado de baja');
+      setState(() {}); // refresca el estado del botón
+    }
+  }
+
   // ── Currency helper ──
   String _fmt(SettlementResult r, double amount) =>
       '${r.currencySymbol} ${NumberFormat('#,##0.00').format(amount)}';
@@ -145,12 +187,24 @@ class _SettlementFormPageState extends ConsumerState<SettlementFormPage> {
                   ),
                   if (result != null) ...[
                     const SizedBox(height: ZSpacing.md),
-                    ZButton(
-                      text: 'Descargar PDF',
-                      icon: Icons.picture_as_pdf,
-                      fullWidth: false,
-                      isLoading: _isGeneratingPdf,
-                      onPressed: _downloadPdf,
+                    Row(
+                      children: [
+                        ZButton(
+                          text: 'Descargar PDF',
+                          icon: Icons.picture_as_pdf,
+                          fullWidth: false,
+                          isLoading: _isGeneratingPdf,
+                          onPressed: _downloadPdf,
+                        ),
+                        const SizedBox(width: ZSpacing.md),
+                        ZButton(
+                          text: 'Aplicar Liquidación',
+                          icon: Icons.gavel,
+                          fullWidth: false,
+                          isLoading: settlementAsync is AsyncLoading,
+                          onPressed: () => _confirmApply(result),
+                        ),
+                      ],
                     ),
                   ],
                   const SizedBox(height: ZSpacing.xl),

@@ -28,6 +28,8 @@ public sealed class PayrollServiceTests
     private readonly Mock<IAuditLogRepository> _auditRepo = new();
     private readonly Mock<IBankTransferService> _bankTransferService = new();
     private readonly Mock<ISickLeaveRepository> _sickLeaveRepo = new();
+    private readonly Mock<IVacationRepository> _vacationRepo = new();
+    private readonly Mock<IPermissionRepository> _permissionRepo = new();
     private readonly PayrollService _sut;
 
     public PayrollServiceTests()
@@ -39,7 +41,8 @@ public sealed class PayrollServiceTests
             _autoAccounting.Object, _taxConfigRepo.Object, _companyRepo.Object, 
             _overtimeRepo.Object, _commissionRepo.Object, _bonusRepo.Object, _conceptRepo.Object,
             _loanRepo.Object, _advanceRepo.Object, _garnishmentRepo.Object, _benefitProvisionRepo.Object,
-            _auditRepo.Object, factory, _bankTransferService.Object, _sickLeaveRepo.Object);
+            _auditRepo.Object, factory, _bankTransferService.Object, _sickLeaveRepo.Object,
+            _vacationRepo.Object, _permissionRepo.Object);
     }
 
     [Fact]

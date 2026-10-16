@@ -28,6 +28,7 @@ class _VacationListPageState extends ConsumerState<VacationListPage> {
       case 'approved': return Colors.green;
       case 'rejected': return Colors.red;
       case 'pending': return Colors.orange;
+      case 'taken': return Colors.teal;
       case 'cancelled': return Colors.grey;
       default: return Colors.blue;
     }
@@ -38,6 +39,7 @@ class _VacationListPageState extends ConsumerState<VacationListPage> {
       case 'approved': return 'Aprobado';
       case 'rejected': return 'Rechazado';
       case 'pending': return 'Pendiente';
+      case 'taken': return 'Tomada';
       case 'cancelled': return 'Cancelado';
       default: return s;
     }
@@ -66,6 +68,7 @@ class _VacationListPageState extends ConsumerState<VacationListPage> {
                     const PopupMenuItem(value: null, child: Text('Todas')),
                     const PopupMenuItem(value: 'pending', child: Text('Pendientes')),
                     const PopupMenuItem(value: 'approved', child: Text('Aprobadas')),
+                    const PopupMenuItem(value: 'taken', child: Text('Tomadas')),
                     const PopupMenuItem(value: 'rejected', child: Text('Rechazadas')),
                   ],
                 ),

@@ -87,6 +87,7 @@ public sealed class TenantAuditInterceptor : SaveChangesInterceptor
                     }
 
                     StampBranchFromContext(entry);
+                    StampWarehouseFromContext(entry);
 
                     if (string.IsNullOrEmpty(entry.Entity.CreatedBy))
                         entry.Entity.CreatedBy = userId;
@@ -118,6 +119,26 @@ public sealed class TenantAuditInterceptor : SaveChangesInterceptor
         if (contextBranch is { } branch && branch != Guid.Empty)
         {
             entry.Property("BranchId").CurrentValue = branch;
+        }
+    }
+
+    /// <summary>
+    /// Sella la bodega seleccionada en el contexto sobre entidades con campo WarehouseId
+    /// cuando el servicio no proporcionó una explícitamente (p. ej. Product).
+    /// No toca entidades sin WarehouseId (StockTransfer usa From/ToWarehouseId explícitos).
+    /// </summary>
+    private void StampWarehouseFromContext(EntityEntry<BaseEntity> entry)
+    {
+        var warehouseProperty = entry.Metadata.FindProperty("WarehouseId");
+        if (warehouseProperty is null) return;
+
+        var current = entry.Property("WarehouseId").CurrentValue;
+        if (current is not null && current is Guid existing && existing != Guid.Empty) return;
+
+        var contextWarehouse = _tenant.CurrentWarehouseId;
+        if (contextWarehouse is { } warehouse && warehouse != Guid.Empty)
+        {
+            entry.Property("WarehouseId").CurrentValue = warehouse;
         }
     }
 }

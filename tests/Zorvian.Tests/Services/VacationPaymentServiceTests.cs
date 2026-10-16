@@ -12,6 +12,7 @@ public class VacationPaymentServiceTests
     private readonly Mock<IVacationRepository> _mockVacationRepo = new();
     private readonly Mock<IEmployeeRepository> _mockEmployeeRepo = new();
     private readonly Mock<ICountryTaxConfigRepository> _mockTaxConfigRepo = new();
+    private readonly Mock<IPayrollRepository> _mockPayrollRepo = new();
     private readonly Mock<ITenantContext> _mockTenant = new();
     private readonly Mock<ILogger<VacationPaymentService>> _mockLogger = new();
     private readonly VacationPaymentService _sut;
@@ -23,6 +24,7 @@ public class VacationPaymentServiceTests
             _mockVacationRepo.Object,
             _mockEmployeeRepo.Object,
             _mockTaxConfigRepo.Object,
+            _mockPayrollRepo.Object,
             _mockTenant.Object,
             _mockLogger.Object);
     }
@@ -93,7 +95,8 @@ public class VacationPaymentServiceTests
         Assert.Equal("taken", request.Status);
         // Receipt saved
         _mockVacationRepo.Verify(r => r.AddReceiptAsync(It.IsAny<VacationPaymentReceipt>()), Times.Once);
-        _mockVacationRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
+        // 2 llamadas: recálculo de LeaveBalances (LeaveBalanceSync) + guardado del recibo.
+        _mockVacationRepo.Verify(r => r.SaveChangesAsync(), Times.Exactly(2));
     }
 
     [Fact]
@@ -165,6 +168,8 @@ public class VacationPaymentServiceTests
         _mockVacationRepo.Setup(r => r.GetByIdAsync(request.Id)).ReturnsAsync(request);
         _mockVacationRepo.Setup(r => r.GetReceiptByRequestIdAsync(request.Id)).ReturnsAsync((VacationPaymentReceipt?)null);
         _mockVacationRepo.Setup(r => r.GetReceiptCountAsync()).ReturnsAsync(0);
+        _mockVacationRepo.Setup(r => r.GetVacationBalanceSumsAsync(empId, 2026))
+            .ReturnsAsync(new LeaveBalanceSums(15m, 0m));
         _mockVacationRepo.Setup(r => r.GetLeaveBalanceAsync(empId, 2026)).ReturnsAsync(existingBalance);
         _mockEmployeeRepo.Setup(r => r.GetByIdAsync(empId)).ReturnsAsync(employee);
         _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC")).ReturnsAsync(CreateNicConfig());
@@ -172,7 +177,8 @@ public class VacationPaymentServiceTests
         // ACT
         await _sut.PayVacationAsync(request.Id);
 
-        // ASSERT — Taken days incremented by 15
+        // ASSERT — el espejo se RECALCULA desde las solicitudes (no se incrementa a mano):
+        // taken = 15 (la solicitud pasó a "taken").
         Assert.Equal(15m, existingBalance.VacationDaysTaken);
     }
 
@@ -187,6 +193,8 @@ public class VacationPaymentServiceTests
         _mockVacationRepo.Setup(r => r.GetByIdAsync(request.Id)).ReturnsAsync(request);
         _mockVacationRepo.Setup(r => r.GetReceiptByRequestIdAsync(request.Id)).ReturnsAsync((VacationPaymentReceipt?)null);
         _mockVacationRepo.Setup(r => r.GetReceiptCountAsync()).ReturnsAsync(0);
+        _mockVacationRepo.Setup(r => r.GetVacationBalanceSumsAsync(empId, 2026))
+            .ReturnsAsync(new LeaveBalanceSums(15m, 0m));
         _mockVacationRepo.Setup(r => r.GetLeaveBalanceAsync(empId, 2026)).ReturnsAsync((LeaveBalances?)null);
         _mockEmployeeRepo.Setup(r => r.GetByIdAsync(empId)).ReturnsAsync(employee);
         _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC")).ReturnsAsync(CreateNicConfig());
@@ -251,5 +259,62 @@ public class VacationPaymentServiceTests
         Assert.Equal("HND", result.CountryCode);
         Assert.Equal("HNL", result.Currency);
         Assert.Equal(0.05m, result.InssEmployeeRate);
+    }
+
+    // ── Anti doble pago con nómina ──
+
+    [Fact]
+    public async Task PayVacation_ActivePayrollRunOverlapping_ThrowsToAvoidDoublePay()
+    {
+        var empId = Guid.NewGuid();
+        var request = CreateApprovedRequest(empId);
+
+        _mockVacationRepo.Setup(r => r.GetByIdAsync(request.Id)).ReturnsAsync(request);
+        _mockVacationRepo.Setup(r => r.GetReceiptByRequestIdAsync(request.Id))
+            .ReturnsAsync((VacationPaymentReceipt?)null);
+        _mockPayrollRepo.Setup(r => r.GetPeriodsAsync(null)).ReturnsAsync(new List<PayrollPeriod>
+        {
+            new() { Id = Guid.NewGuid(), Name = "Enero 2026", StartDate = new DateOnly(2026, 1, 1), EndDate = new DateOnly(2026, 1, 31) },
+        });
+        _mockPayrollRepo.Setup(r => r.GetRunsAsync(It.IsAny<Guid?>()))
+            .ReturnsAsync(new List<PayrollRun> { new() { Id = Guid.NewGuid(), Status = "approved" } });
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => _sut.PayVacationAsync(request.Id));
+
+        // El período solapa las vacaciones (5–19 ene) y tiene corrida activa → bloqueado.
+        Assert.Contains("corrida de nómina activa", ex.Message);
+        _mockVacationRepo.Verify(r => r.AddReceiptAsync(It.IsAny<VacationPaymentReceipt>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task PayVacation_CancelledRunOverlapping_DoesNotBlock()
+    {
+        var empId = Guid.NewGuid();
+        var request = CreateApprovedRequest(empId);
+        var employee = CreateEmployee(empId);
+
+        _mockVacationRepo.Setup(r => r.GetByIdAsync(request.Id)).ReturnsAsync(request);
+        _mockVacationRepo.Setup(r => r.GetReceiptByRequestIdAsync(request.Id))
+            .ReturnsAsync((VacationPaymentReceipt?)null);
+        _mockPayrollRepo.Setup(r => r.GetPeriodsAsync(null)).ReturnsAsync(new List<PayrollPeriod>
+        {
+            new() { Id = Guid.NewGuid(), Name = "Enero 2026", StartDate = new DateOnly(2026, 1, 1), EndDate = new DateOnly(2026, 1, 31) },
+        });
+        // Corrida cancelada → revirtió las vacaciones, el pago por recibo vuelve a ser válido.
+        _mockPayrollRepo.Setup(r => r.GetRunsAsync(It.IsAny<Guid?>()))
+            .ReturnsAsync(new List<PayrollRun> { new() { Id = Guid.NewGuid(), Status = "cancelled" } });
+        _mockEmployeeRepo.Setup(r => r.GetByIdAsync(empId)).ReturnsAsync(employee);
+        _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC")).ReturnsAsync(CreateNicConfig());
+        _mockVacationRepo.Setup(r => r.GetReceiptCountAsync()).ReturnsAsync(0);
+        _mockVacationRepo.Setup(r => r.GetVacationBalanceSumsAsync(empId, request.StartDate.Year))
+            .ReturnsAsync(new LeaveBalanceSums(0m, 15m));
+        _mockVacationRepo.Setup(r => r.GetLeaveBalanceAsync(empId, request.StartDate.Year))
+            .ReturnsAsync(new LeaveBalances { Id = Guid.NewGuid(), EmployeeId = empId, Year = request.StartDate.Year });
+
+        var receipt = await _sut.PayVacationAsync(request.Id);
+
+        Assert.NotNull(receipt);
+        _mockVacationRepo.Verify(r => r.AddReceiptAsync(It.IsAny<VacationPaymentReceipt>()), Times.Once);
     }
 }

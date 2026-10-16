@@ -1,6 +1,10 @@
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../core/error/error_notifier.dart';
 import '../../../core/widgets/responsive_layout.dart';
@@ -81,14 +85,28 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text('Detalle por Trabajador', style: ZTypography.titleLarge),
-                          if (_run!['status'] == 'approved')
-                            ZButton(
-                              text: 'Exportar ACH',
-                              onPressed: _exportAch,
-                              icon: Icons.download,
-                              type: ZButtonType.secondary,
-                              fullWidth: false,
-                            ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ZButton(
+                                text: 'Planilla de Pago (PDF)',
+                                onPressed: _generatePayrollSheet,
+                                icon: Icons.picture_as_pdf_outlined,
+                                type: ZButtonType.secondary,
+                                fullWidth: false,
+                              ),
+                              if (_run!['status'] == 'approved') ...[
+                                const SizedBox(width: 8),
+                                ZButton(
+                                  text: 'Exportar ACH',
+                                  onPressed: _exportAch,
+                                  icon: Icons.download,
+                                  type: ZButtonType.secondary,
+                                  fullWidth: false,
+                                ),
+                              ],
+                            ],
+                          ),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -114,6 +132,11 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
                                 DataCell(Row(
                                   children: [
                                     Text('C\$ ${(d['netPay'] as num?)?.toStringAsFixed(2) ?? '0.00'}', style: const TextStyle(fontWeight: FontWeight.bold, color: ZColors.brandPrimary)),
+                                    IconButton(
+                                      icon: const Icon(Icons.receipt_long, size: 16),
+                                      tooltip: 'Colilla de Pago (PDF)',
+                                      onPressed: () => _generatePayslip(d['id'].toString()),
+                                    ),
                                     if (_run!['status'] == 'draft')
                                       IconButton(
                                         icon: const Icon(Icons.edit, size: 16),
@@ -262,6 +285,46 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
     }
   }
 
+  Future<void> _generatePayrollSheet() =>
+      _generateDocument('payroll/runs/${widget.runId}/pdf/generate',
+          fileName: 'planilla_${widget.runId}', docLabel: 'Planilla de pago');
+
+  Future<void> _generatePayslip(String detailId) =>
+      _generateDocument('payroll/details/$detailId/pdf/generate',
+          fileName: 'colilla_$detailId', docLabel: 'Colilla de pago');
+
+  /// Genera el documento vía el motor documental (POST generate →
+  /// generatedDocumentId → GET PDF en bytes) y lo comparte con SharePlus.
+  Future<void> _generateDocument(String endpoint, {required String fileName, required String docLabel}) async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      final r = await dio.post(endpoint);
+      final documentId = r.data['generatedDocumentId'] as String?;
+      if (documentId == null) throw Exception('Respuesta sin documento generado');
+
+      final pdf = await dio.get(
+        'documents/$documentId/pdf',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final bytes = pdf.data as List<int>;
+      if (!mounted) return;
+      await SharePlus.instance.share(
+        ShareParams(files: [
+          XFile.fromData(
+            Uint8List.fromList(bytes),
+            mimeType: 'application/pdf',
+            name: '$fileName.pdf',
+          ),
+        ]),
+      );
+      if (mounted) {
+        ref.read(errorNotifierProvider.notifier).showInfo('$docLabel generada (${bytes.length ~/ 1024} KB)');
+      }
+    } catch (e) {
+      if (mounted) ref.read(errorNotifierProvider.notifier).showError('Error al generar $docLabel: $e');
+    }
+  }
+
   Future<void> _editDetail(dynamic d) async {
     final grossCtrl = TextEditingController(text: (d['grossPay'] as num?)?.toStringAsFixed(2) ?? '');
     final inssCtrl = TextEditingController(text: (d['inssDeduction'] as num?)?.toStringAsFixed(2) ?? '');
@@ -283,6 +346,11 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
             ZTextField(controller: irCtrl, label: 'IR', keyboardType: TextInputType.number),
             const SizedBox(height: 8),
             ZTextField(controller: otherCtrl, label: 'Otras deducciones', keyboardType: TextInputType.number),
+            const SizedBox(height: 12),
+            const Text(
+              'Los cambios se reflejan en la Planilla y la Colilla de Pago.',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
           ],
         ),
       ),

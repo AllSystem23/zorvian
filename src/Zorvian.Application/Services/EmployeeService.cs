@@ -14,16 +14,18 @@ public sealed class EmployeeService
     private readonly IEmployeeRepository _repo;
     private readonly IProviderRepository _providerRepo;
     private readonly ICollaboratorRepository _collaboratorRepo;
+    private readonly IEmploymentPeriodRepository _periodRepo;
     private readonly IMapper _mapper;
     private readonly IPublishEndpoint _publishEndpoint;
     private readonly IAuthRepository _authRepo;
     private readonly ITenantContext _tenant;
 
-    public EmployeeService(IEmployeeRepository repo, IProviderRepository providerRepo, ICollaboratorRepository collaboratorRepo, IMapper mapper, IPublishEndpoint publishEndpoint, IAuthRepository authRepo, ITenantContext tenant)
+    public EmployeeService(IEmployeeRepository repo, IProviderRepository providerRepo, ICollaboratorRepository collaboratorRepo, IEmploymentPeriodRepository periodRepo, IMapper mapper, IPublishEndpoint publishEndpoint, IAuthRepository authRepo, ITenantContext tenant)
     {
         _repo = repo;
         _providerRepo = providerRepo;
         _collaboratorRepo = collaboratorRepo;
+        _periodRepo = periodRepo;
         _mapper = mapper;
         _publishEndpoint = publishEndpoint;
         _authRepo = authRepo;
@@ -68,6 +70,20 @@ public sealed class EmployeeService
         });
 
         await _repo.SaveChangesAsync();
+
+        // ── Historial de contratos: abrir el período 1 ──
+        // La primera contratación inicia el rastro laboral; las
+        // recontrataciones abren períodos adicionales vía TerminationService.
+        await _periodRepo.AddAsync(new EmploymentPeriod
+        {
+            EmployeeId = employee.Id,
+            PeriodNumber = 1,
+            HireDate = employee.HireDate,
+            BaseSalary = employee.Salary,
+            Position = employee.Position,
+            Status = "open",
+        });
+        await _periodRepo.SaveChangesAsync();
 
         // Vincula contrato de prestación de servicios solo para "service_provider"
         // (Prestador de Servicio), que es el único tipo con selector de contrato en la UI.

@@ -14,6 +14,7 @@ public class TerminationServiceTests
     private readonly Mock<ICountryTaxConfigRepository> _mockTaxConfigRepo = new();
     private readonly Mock<IVacationRepository> _mockVacationRepo = new();
     private readonly Mock<IPayrollRepository> _mockPayrollRepo = new();
+    private readonly Mock<IEmploymentPeriodRepository> _mockPeriodRepo = new();
     private readonly TerminationService _sut;
 
     // NIC tiered formula: [{upToYears:3, daysPerYear:30}, {upToYears:6, daysPerYear:20}], MaxDays=150
@@ -40,7 +41,8 @@ public class TerminationServiceTests
     {
         _sut = new TerminationService(
             _mockRepo.Object, _mockEmployeeRepo.Object, _mockBenefitRepo.Object,
-            _mockTaxConfigRepo.Object, _mockVacationRepo.Object, _mockPayrollRepo.Object);
+            _mockTaxConfigRepo.Object, _mockVacationRepo.Object, _mockPayrollRepo.Object,
+            _mockPeriodRepo.Object);
     }
 
     [Fact]

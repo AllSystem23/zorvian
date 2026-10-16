@@ -25,6 +25,7 @@ class _PermissionFormPageState extends ConsumerState<PermissionFormPage> {
   PlatformFile? _selectedFile;
   bool _loading = false;
   bool _uploading = false;
+  bool _isHalfDay = false;
   String? _error;
   String? _uploadedUrl;
   String? _uploadedFileName;
@@ -41,8 +42,9 @@ class _PermissionFormPageState extends ConsumerState<PermissionFormPage> {
     super.dispose();
   }
 
-  int get _totalDays {
+  double get _totalDays {
     if (_startDate == null || _endDate == null) return 0;
+    if (_isHalfDay) return 0.5;
     return _endDate!.difference(_startDate!).inDays + 1;
   }
 
@@ -58,8 +60,13 @@ class _PermissionFormPageState extends ConsumerState<PermissionFormPage> {
     setState(() {
       if (isStart) {
         _startDate = picked;
-        if (_endDate != null && _endDate!.isBefore(picked)) _endDate = picked;
-      } else {
+        if (_isHalfDay) {
+          // Medio día = fecha única: fin siempre igual a inicio.
+          _endDate = picked;
+        } else if (_endDate != null && _endDate!.isBefore(picked)) {
+          _endDate = picked;
+        }
+      } else if (!_isHalfDay) {
         _endDate = picked;
       }
     });
@@ -110,6 +117,10 @@ class _PermissionFormPageState extends ConsumerState<PermissionFormPage> {
       setState(() => _error = 'Seleccione fecha inicio y fin');
       return;
     }
+    if (_isHalfDay && _startDate != _endDate) {
+      setState(() => _error = 'Un permiso de medio día debe ser de fecha única');
+      return;
+    }
     if (_selectedType!.requiresAttachment && _uploadedUrl == null) {
       setState(() => _error = 'Debe adjuntar un documento');
       return;
@@ -128,6 +139,7 @@ class _PermissionFormPageState extends ConsumerState<PermissionFormPage> {
         'leaveTypeId': _selectedTypeId,
         'startDate': _startDate!.toIso8601String().substring(0, 10),
         'endDate': _endDate!.toIso8601String().substring(0, 10),
+        'isHalfDay': _isHalfDay,
         'reason': _reasonCtrl.text.trim(),
         if (_uploadedUrl != null) 'supportingDocumentUrl': _uploadedUrl,
         if (_uploadedFileName != null) 'supportingDocumentFileName': _uploadedFileName,
@@ -203,9 +215,24 @@ class _PermissionFormPageState extends ConsumerState<PermissionFormPage> {
               ),
               ListTile(
                 leading: const Icon(Icons.calendar_today),
-                title: Text(ZFormatters.dateOrNull(_endDate, fallback: 'Fecha fin')),
-                trailing: const Icon(Icons.edit),
+                title: Text(_isHalfDay && _startDate != null
+                    ? 'Fecha: ${ZFormatters.dateOrNull(_startDate, fallback: '—')}'
+                    : ZFormatters.dateOrNull(_endDate, fallback: 'Fecha fin')),
+                trailing: Icon(_isHalfDay ? Icons.lock : Icons.edit),
+                enabled: !_isHalfDay,
                 onTap: () => _pickDate(false),
+              ),
+              SwitchListTile(
+                secondary: const Icon(Icons.timelapse),
+                title: const Text('Medio día'),
+                subtitle: const Text('0.5 día — el fin queda igual al inicio'),
+                value: _isHalfDay,
+                onChanged: (v) {
+                  setState(() {
+                    _isHalfDay = v;
+                    if (v && _startDate != null) _endDate = _startDate;
+                  });
+                },
               ),
               if (_totalDays > 0)
                 Padding(

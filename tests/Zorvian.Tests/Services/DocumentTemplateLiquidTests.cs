@@ -396,6 +396,8 @@ public class DocumentTemplateLiquidTests
     [InlineData("BuildDeliveryRouteSheetHtml")]
     [InlineData("BuildFixedAssetCardHtml")]
     [InlineData("BuildKardexHtml")]
+    [InlineData("BuildPayrollSheetHtml")]
+    [InlineData("BuildPayslipHtml")]
     public async Task SeededBuilder_Renders_WithoutLeftoverPlaceholders(string builderName)
     {
         var html = InvokeBuilder(builderName);
@@ -1044,5 +1046,121 @@ public class DocumentTemplateLiquidTests
         rendered.Should().Contain("1,500.00");
         rendered.Should().Contain("Recibido por (Taller)");
         rendered.Should().NotContain("{{");
+    }
+
+    // ── Planilla de Pago (plantilla de la tanda 7) ──
+
+    [Fact]
+    public async Task PayrollSheet_RendersPeriodTotalsAndEmployeeRows()
+    {
+        var html = InvokeBuilder("BuildPayrollSheetHtml");
+        var model = new Dictionary<string, object>
+        {
+            ["period_name"] = "Octubre 2026",
+            ["period_range"] = "01/10/2026 - 31/10/2026",
+            ["payment_date"] = "30/10/2026",
+            ["run_status_label"] = "Aprobado",
+            ["processed_by"] = "ana@zorvian.com",
+            ["total_salaries"] = "25,000.00",
+            ["total_deductions"] = "3,750.00",
+            ["total_net_pay"] = "21,250.00",
+            ["total_employer_costs"] = "30,000.00",
+            ["employee_count"] = "2",
+            ["run_currency"] = "NIO",
+            ["employees"] = new List<Dictionary<string, object>>
+            {
+                new(StringComparer.Ordinal)
+                {
+                    ["employee_name"] = "María López",
+                    ["position"] = "Coordinadora",
+                    ["department"] = "Comercial",
+                    ["base_salary"] = "15,000.00",
+                    ["inss"] = "1,050.00",
+                    ["ir"] = "1,200.00",
+                    ["other_deductions"] = "0.00",
+                    ["net_pay"] = "12,750.00",
+                },
+            },
+        };
+
+        var rendered = await RenderRawAsync(html, LiquidModelNormalizer.Normalize(model));
+
+        rendered.Should().Contain("PLANILLA DE PAGO");
+        rendered.Should().Contain("Octubre 2026");
+        rendered.Should().Contain("01/10/2026 - 31/10/2026");
+        rendered.Should().Contain("30/10/2026");
+        rendered.Should().Contain("Aprobado");
+        rendered.Should().Contain("21,250.00", "neto a pagar del resumen");
+        rendered.Should().Contain("30,000.00", "costo empleador");
+        rendered.Should().Contain("María López", "el bucle {% for %} debe renderizar la fila del trabajador");
+        rendered.Should().Contain("Comercial");
+        rendered.Should().NotContain("{{");
+
+        var fallback = await RenderRawAsync(html, LiquidModelNormalizer.Normalize(
+            new Dictionary<string, object> { ["period_name"] = "Noviembre 2026", ["payment_date"] = "30/11/2026" }));
+        fallback.Should().Contain("Los trabajadores se cargan dinámicamente");
+        fallback.Should().NotContain("{{");
+    }
+
+    // ── Colilla de Pago (plantilla de la tanda 7) ──
+
+    [Fact]
+    public async Task Payslip_RendersEarningsConceptsNetAndPaidSeal()
+    {
+        var html = InvokeBuilder("BuildPayslipHtml");
+        var model = new Dictionary<string, object>
+        {
+            ["employee_name"] = "María López",
+            ["employee_id"] = "001-050100-0001X",
+            ["position"] = "Coordinadora",
+            ["department"] = "Comercial",
+            ["period_name"] = "Octubre 2026",
+            ["period_range"] = "01/10/2026 - 31/10/2026",
+            ["payment_date"] = "30/10/2026",
+            ["inss_code"] = "INSS-123",
+            ["base_salary"] = "700.00",
+            ["commissions"] = "80.00",
+            ["bonuses"] = "0.00",
+            ["overtime"] = "0.00",
+            ["gross_pay"] = "780.00",
+            ["total_deductions"] = "109.00",
+            ["net_pay"] = "671.00",
+            ["stub_currency"] = "NIO",
+            ["payment_status"] = "paid",
+            ["payment_reference"] = "ACH-7788",
+            ["concepts"] = new List<Dictionary<string, object>>
+            {
+                new(StringComparer.Ordinal) { ["code"] = "INSS_EMP", ["description"] = "INSS (7%)", ["amount"] = "49.00" },
+                new(StringComparer.Ordinal) { ["code"] = "IR", ["description"] = "IR", ["amount"] = "60.00" },
+            },
+        };
+
+        var rendered = await RenderRawAsync(html, LiquidModelNormalizer.Normalize(model));
+
+        rendered.Should().Contain("COLILLA DE PAGO");
+        rendered.Should().Contain("PAGADO", "sello por payment_status == 'paid'");
+        rendered.Should().Contain("María López");
+        rendered.Should().Contain("001-050100-0001X");
+        rendered.Should().Contain("Octubre 2026");
+        rendered.Should().Contain("INSS-123");
+        rendered.Should().Contain("780.00", "sueldo bruto");
+        rendered.Should().Contain("INSS (7%)", "el bucle de conceptos deduce la fila real");
+        rendered.Should().Contain("109.00", "total de deducciones");
+        rendered.Should().Contain("671.00", "neto a recibir");
+        rendered.Should().Contain("ACH-7788");
+        rendered.Should().NotContain("{{");
+
+        var draft = await RenderRawAsync(html, LiquidModelNormalizer.Normalize(
+            new Dictionary<string, object>
+            {
+                ["employee_name"] = "Pedro Alonso",
+                ["payment_status"] = "pending",
+                ["inss"] = "49.00",
+                ["ir"] = "60.00",
+                ["other_deductions"] = "0.00",
+            }));
+        draft.Should().NotContain("PAGADO", "una colilla pendiente no lleva sello");
+        draft.Should().Contain("INSS", "sin conceptos detallados cae al fallback INSS/IR/Otras");
+        draft.Should().NotContain("{{");
     }
 }

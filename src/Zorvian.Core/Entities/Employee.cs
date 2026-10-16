@@ -72,6 +72,7 @@ public sealed class Employee : BaseEntity
     public ICollection<VacationRequest> VacationRequests { get; set; } = [];
     public ICollection<PermissionRequest> PermissionRequests { get; set; } = [];
     public ICollection<AttendanceRecord> AttendanceRecords { get; set; } = [];
+    public ICollection<EmploymentPeriod> EmploymentPeriods { get; set; } = [];
     public ICollection<Sale> Sales { get; set; } = [];
     public ICollection<Credit> ManagedCredits { get; set; } = [];
     public ICollection<CashRegister> CashRegisters { get; set; } = [];

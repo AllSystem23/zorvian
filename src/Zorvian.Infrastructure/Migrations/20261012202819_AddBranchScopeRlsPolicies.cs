@@ -22,8 +22,12 @@ namespace Zorvian.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            // Ojo dollar-quotes: el bloque DO usa $do$ para que los $$ internos de
+            // format() no cierren el cuerpo del DO (bug corregido 2026-10-16: con
+            // DO $$ la migración fallaba con "syntax error at or near CREATE" y
+            // sus políticas nunca se aplicaban — verificado en PG16 real).
             migrationBuilder.Sql("""
-                DO $$
+                DO $do$
                 DECLARE
                     tbl TEXT;
                 BEGIN
@@ -32,17 +36,17 @@ namespace Zorvian.Infrastructure.Migrations
                         FROM information_schema.columns
                         WHERE column_name = 'BranchId' AND table_schema = 'public'
                     LOOP
-                        EXECUTE format('DROP POLICY IF EXISTS branch_scope_%I ON %I', tbl, tbl);
+                        EXECUTE format('DROP POLICY IF EXISTS %I ON %I', 'branch_scope_' || tbl, tbl);
                         EXECUTE format(
-                            $$CREATE POLICY branch_scope_%I ON %I FOR ALL USING (
+                            $$CREATE POLICY %I ON %I FOR ALL USING (
                                 current_setting('app.branch_id', true) = ''
                                 OR "BranchId"::text = current_setting('app.branch_id', true)
                             )$$,
-                            tbl, tbl
+                            'branch_scope_' || tbl, tbl
                         );
                     END LOOP;
                 END;
-                $$;
+                $do$;
                 """);
         }
 
@@ -50,7 +54,7 @@ namespace Zorvian.Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.Sql("""
-                DO $$
+                DO $do$
                 DECLARE
                     tbl TEXT;
                 BEGIN
@@ -59,10 +63,10 @@ namespace Zorvian.Infrastructure.Migrations
                         FROM information_schema.columns
                         WHERE column_name = 'BranchId' AND table_schema = 'public'
                     LOOP
-                        EXECUTE format('DROP POLICY IF EXISTS branch_scope_%I ON %I', tbl, tbl);
+                        EXECUTE format('DROP POLICY IF EXISTS %I ON %I', 'branch_scope_' || tbl, tbl);
                     END LOOP;
                 END;
-                $$;
+                $do$;
                 """);
         }
     }

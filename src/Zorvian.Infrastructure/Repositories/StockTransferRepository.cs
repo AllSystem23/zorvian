@@ -15,30 +15,40 @@ public sealed class StockTransferRepository : IStockTransferRepository
         await _db.StockTransfers
             .Include(t => t.FromBranch)
             .Include(t => t.ToBranch)
+            .Include(t => t.FromWarehouse)
+            .Include(t => t.ToWarehouse)
             .Include(t => t.Details)
                 .ThenInclude(d => d.Product)
             .FirstOrDefaultAsync(t => t.Id == id);
 
     public async Task<(List<StockTransfer> Items, int Total)> GetFilteredAsync(
         string? search, string? status,
-        Guid branchId, int page, int pageSize)
+        Guid branchId, Guid warehouseId, int page, int pageSize)
     {
         // Sin columna BranchId propia: la transferencia es visible para la sucursal
         // de ORIGEN y la de DESTINO (el filtro es explícito, no ApplyBranchScope).
+        // Mismo criterio para la bodega: origen O destino.
         var query = _db.StockTransfers
             .Include(t => t.FromBranch)
             .Include(t => t.ToBranch)
+            .Include(t => t.FromWarehouse)
+            .Include(t => t.ToWarehouse)
             .Include(t => t.Details)
             .AsQueryable();
 
         if (branchId != Guid.Empty)
             query = query.Where(t => t.FromBranchId == branchId || t.ToBranchId == branchId);
 
+        if (warehouseId != Guid.Empty)
+            query = query.Where(t => t.FromWarehouseId == warehouseId || t.ToWarehouseId == warehouseId);
+
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(t =>
                 t.TransferNumber.Contains(search) ||
                 t.FromBranch!.Name.Contains(search) ||
-                t.ToBranch!.Name.Contains(search));
+                t.ToBranch!.Name.Contains(search) ||
+                t.FromWarehouse!.Name.Contains(search) ||
+                t.ToWarehouse!.Name.Contains(search));
 
         if (!string.IsNullOrWhiteSpace(status))
             query = query.Where(t => t.Status == status);

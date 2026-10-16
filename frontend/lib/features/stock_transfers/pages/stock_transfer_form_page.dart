@@ -26,7 +26,9 @@ final class StockTransferFormPage extends ConsumerStatefulWidget {
 final class _StockTransferFormPageState extends ConsumerState<StockTransferFormPage> {
   final _notesCtrl = TextEditingController();
   final List<_CartLine> _cart = [];
+  String? _fromWarehouseId;
   String? _toBranchId;
+  String? _toWarehouseId;
   bool _saving = false;
 
   @override
@@ -63,10 +65,16 @@ final class _StockTransferFormPageState extends ConsumerState<StockTransferFormP
   }
 
   Future<void> _save() async {
-    final fromBranchId = ref.read(companyBranchProvider).branchId;
-    if (fromBranchId == null) { _err('Seleccione la sucursal origen en el cabecero superior'); return; }
-    if (_toBranchId == null) { _err('Seleccione la sucursal destino'); return; }
-    if (_toBranchId == fromBranchId) { _err('El destino debe ser distinto al origen'); return; }
+    final branchId = ref.read(companyBranchProvider).branchId;
+    // Bodega origen: la elegida en el form, o la del cabecero; null = default de la sucursal.
+    final headerWarehouseId = ref.read(companyBranchProvider).warehouseId;
+    final fromWarehouseId = _fromWarehouseId ?? headerWarehouseId;
+    if (branchId == null) { _err('Seleccione la sucursal origen en el cabecero superior'); return; }
+    if (_toWarehouseId == null) { _err('Seleccione la bodega destino'); return; }
+    if (fromWarehouseId != null && _toWarehouseId == fromWarehouseId) {
+      _err('La bodega destino debe ser distinta a la de origen');
+      return;
+    }
     if (_cart.isEmpty) { _err('Agregue al menos un producto'); return; }
     if (_cart.any((l) => l.qty <= 0)) { _err('Todas las cantidades deben ser mayores a 0'); return; }
 
@@ -74,8 +82,8 @@ final class _StockTransferFormPageState extends ConsumerState<StockTransferFormP
     try {
       final dio = ref.read(dioClientProvider);
       final body = CreateStockTransferRequest(
-        fromBranchId: fromBranchId,
-        toBranchId: _toBranchId,
+        fromWarehouseId: fromWarehouseId,
+        toWarehouseId: _toWarehouseId,
         notes: _notesCtrl.text.isEmpty ? null : _notesCtrl.text,
         details: _cart.map((l) => CreateStockTransferLine(
           productId: l.productId,
@@ -95,8 +103,9 @@ final class _StockTransferFormPageState extends ConsumerState<StockTransferFormP
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final fromBranchId = ref.watch(companyBranchProvider).branchId;
+    final cb = ref.watch(companyBranchProvider);
     final branches = ref.watch(headerBranchListProvider);
+    final warehouses = ref.watch(headerWarehouseListProvider);
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -119,33 +128,76 @@ final class _StockTransferFormPageState extends ConsumerState<StockTransferFormP
             const SizedBox(height: 16),
             ZCard(
               padding: const EdgeInsets.all(16),
-              child: branches.when(
-                data: (items) {
-                  final fromName = fromBranchId == null
-                      ? null
-                      : items.where((e) => e['id'] == fromBranchId).map((e) => e['name'] as String? ?? '').firstOrNull;
-                  final destinations = items.where((e) => e['id'] != fromBranchId).toList();
+              child: warehouses.when(
+                data: (whItems) {
+                  // Bodega origen preseleccionada: la del cabecero, o la default.
+                  _fromWarehouseId ??= cb.warehouseId ??
+                      whItems.where((w) => (w['isDefault'] as bool? ?? false)).map((w) => w['id'] as String).firstOrNull ??
+                      (whItems.isNotEmpty ? whItems.first['id'] as String? : null);
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       InputDecorator(
                         decoration: InputDecoration(
                           labelText: 'Sucursal origen (actual)',
-                          prefixIcon: const Icon(Icons.warehouse_outlined),
+                          prefixIcon: const Icon(Icons.store_mall_directory_outlined),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                         ),
-                        child: Text(fromName == null || fromName.isEmpty ? 'Sucursal actual' : fromName),
+                        child: Text(cb.branchName == null || cb.branchName!.isEmpty ? 'Sucursal actual' : cb.branchName!),
                       ),
                       const SizedBox(height: 12),
                       ZDropdownFormField<String>(
-                        value: _toBranchId,
-                        label: 'Sucursal destino *',
-                        prefixIcon: Icons.store_mall_directory_outlined,
-                        items: destinations
-                            .map((e) => DropdownMenuItem(value: e['id'] as String, child: Text(e['name'] as String? ?? '')))
+                        value: _fromWarehouseId,
+                        label: 'Bodega origen *',
+                        prefixIcon: Icons.warehouse_outlined,
+                        items: whItems
+                            .map((w) => DropdownMenuItem(
+                                  value: w['id'] as String,
+                                  child: Text((w['name'] as String? ?? 'Bodega') +
+                                      ((w['isDefault'] as bool? ?? false) ? ' (principal)' : '')),
+                                ))
                             .toList(),
-                        onChanged: (v) => setState(() => _toBranchId = v),
+                        onChanged: (v) => setState(() => _fromWarehouseId = v),
                         validator: (v) => v == null ? 'Requerido' : null,
+                      ),
+                      const SizedBox(height: 12),
+                      // Destino: cascada sucursal → bodega (permite otras sucursales
+                      // u otras bodegas de la misma sucursal).
+                      branches.when(
+                        data: (items) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ZDropdownFormField<String>(
+                                value: _toBranchId,
+                                label: 'Sucursal destino *',
+                                prefixIcon: Icons.store_mall_directory_outlined,
+                                items: items
+                                    .map((e) => DropdownMenuItem(
+                                          value: e['id'] as String,
+                                          child: Text(e['name'] as String? ?? ''),
+                                        ))
+                                    .toList(),
+                                onChanged: (v) => setState(() {
+                                  _toBranchId = v;
+                                  _toWarehouseId = null; // recarga de la nueva sucursal
+                                }),
+                                validator: (v) => v == null ? 'Requerido' : null,
+                              ),
+                              if (_toBranchId != null) ...[
+                                const SizedBox(height: 12),
+                                _DestinationWarehousesField(
+                                  branchId: _toBranchId!,
+                                  value: _toWarehouseId,
+                                  excludeWarehouseId: _fromWarehouseId,
+                                  onChanged: (v) => setState(() => _toWarehouseId = v),
+                                ),
+                              ],
+                            ],
+                          );
+                        },
+                        loading: () => const LinearProgressIndicator(),
+                        error: (_, _) => const Text('No se pudieron cargar las sucursales'),
                       ),
                       const SizedBox(height: 12),
                       TextField(
@@ -160,9 +212,9 @@ final class _StockTransferFormPageState extends ConsumerState<StockTransferFormP
                   );
                 },
                 loading: () => const Column(
-                  children: [LinearProgressIndicator(), SizedBox(height: 16), Text('Cargando sucursales...')],
+                  children: [LinearProgressIndicator(), SizedBox(height: 16), Text('Cargando bodegas...')],
                 ),
-                error: (_, _) => const Text('No se pudieron cargar las sucursales'),
+                error: (_, _) => const Text('No se pudieron cargar las bodegas'),
               ),
             ),
             const SizedBox(height: 16),
@@ -178,7 +230,7 @@ final class _StockTransferFormPageState extends ConsumerState<StockTransferFormP
               const ZEmptyState(
                 icon: Icons.swap_horizontal_circle_outlined,
                 title: 'No hay productos',
-                subtitle: 'Agregue los productos a transferir (catálogo de la sucursal origen)',
+                subtitle: 'Agregue los productos a transferir (catálogo de la bodega origen)',
               )
             else
               ZCard(
@@ -215,6 +267,88 @@ final class _StockTransferFormPageState extends ConsumerState<StockTransferFormP
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Dropdown de bodegas de la sucursal destino (fetch con branchId explícito,
+/// que manda sobre la sucursal del contexto). Excluye la bodega origen.
+final class _DestinationWarehousesField extends ConsumerStatefulWidget {
+  final String branchId;
+  final String? value;
+  final String? excludeWarehouseId;
+  final ValueChanged<String?> onChanged;
+  const _DestinationWarehousesField({
+    required this.branchId,
+    required this.value,
+    required this.excludeWarehouseId,
+    required this.onChanged,
+  });
+  @override
+  ConsumerState<_DestinationWarehousesField> createState() => _DestinationWarehousesFieldState();
+}
+
+final class _DestinationWarehousesFieldState extends ConsumerState<_DestinationWarehousesField> {
+  late Future<List<Map<String, dynamic>>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _fetch();
+  }
+
+  @override
+  void didUpdateWidget(covariant _DestinationWarehousesField old) {
+    super.didUpdateWidget(old);
+    if (old.branchId != widget.branchId) {
+      _future = _fetch();
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _fetch() async {
+    final dio = ref.read(dioClientProvider);
+    try {
+      final r = await dio.get('warehouses', params: {'branchId': widget.branchId});
+      if (r.data is List) return (r.data as List).cast<Map<String, dynamic>>();
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _future,
+      builder: (context, snap) {
+        if (snap.connectionState != ConnectionState.done) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: LinearProgressIndicator(),
+          );
+        }
+        final items = (snap.data ?? [])
+            .where((w) => w['id'] != widget.excludeWarehouseId)
+            .toList();
+        if (items.isEmpty) {
+          return const Text('Esta sucursal no tiene otras bodegas.',
+              style: TextStyle(fontSize: 13, color: Colors.grey));
+        }
+        return ZDropdownFormField<String>(
+          value: widget.value,
+          label: 'Bodega destino *',
+          prefixIcon: Icons.warehouse_outlined,
+          items: items
+              .map((w) => DropdownMenuItem(
+                    value: w['id'] as String,
+                    child: Text((w['name'] as String? ?? 'Bodega') +
+                        ((w['isDefault'] as bool? ?? false) ? ' (principal)' : '')),
+                  ))
+              .toList(),
+          onChanged: widget.onChanged,
+          validator: (v) => v == null ? 'Requerido' : null,
+        );
+      },
     );
   }
 }

@@ -16,8 +16,16 @@ public sealed class ProductService
     private readonly IMapper _mapper;
     private readonly ISyncService _sync;
     private readonly IBranchValidator _branchValidator;
+    private readonly WarehouseService _warehouseService;
 
-    public ProductService(IProductRepository repo, IInventoryMovementRepository movementRepo, ITenantContext tenant, IMapper mapper, ISyncService sync, IBranchValidator branchValidator)
+    public ProductService(
+        IProductRepository repo,
+        IInventoryMovementRepository movementRepo,
+        ITenantContext tenant,
+        IMapper mapper,
+        ISyncService sync,
+        IBranchValidator branchValidator,
+        WarehouseService warehouseService)
     {
         _repo = repo;
         _movementRepo = movementRepo;
@@ -25,6 +33,7 @@ public sealed class ProductService
         _mapper = mapper;
         _sync = sync;
         _branchValidator = branchValidator;
+        _warehouseService = warehouseService;
     }
 
     private Guid RequireCompanyId()
@@ -42,6 +51,17 @@ public sealed class ProductService
         var product = _mapper.Map<Product>(request);
         product.BranchId = branchId ?? Guid.Empty;
         product.TenantId = _tenant.TenantId.ToString();
+
+        // Bodega: la explícita del request (validada contra la sucursal) o la
+        // por defecto de la sucursal (se crea si la sucursal no tiene ninguna).
+        if (branchId is { } branch && branch != Guid.Empty)
+        {
+            var warehouse = await _warehouseService.ResolveForWriteAsync(request.WarehouseId, branch);
+            product.WarehouseId = warehouse.Id;
+            product.BranchId = warehouse.BranchId; // paridad catálogo ↔ bodega
+        }
+        // Sin sucursal válida: WarehouseId queda vacío y el interceptor sella la
+        // bodega activa del contexto (mismo destino degradado que BranchId hoy).
 
         await _repo.AddAsync(product);
 
@@ -94,10 +114,16 @@ public sealed class ProductService
         var page = filter.Page ?? 1;
         var pageSize = filter.PageSize ?? 20;
 
-        var branchId = _tenant.ResolveBranchId();
+        // Semántica: el filtro explícito manda sobre el contexto (paridad con sucursal).
+        // Una bodega explícita IMPLICA su sucursal → se omite el filtro de sucursal
+        // para no vaciar el resultado si el header apunta a otra sucursal.
+        var warehouseId = filter.WarehouseId ?? _tenant.ResolveWarehouseId();
+        var branchId = filter.WarehouseId is { } explicitWh && explicitWh != Guid.Empty
+            ? null
+            : _tenant.ResolveBranchId();
 
-        var items = await _repo.GetFilteredAsync(filter.Search, filter.CategoryId, filter.BrandId, filter.LowStock, filter.IsActive, branchId, page, pageSize);
-        var total = await _repo.GetFilteredCountAsync(filter.Search, filter.CategoryId, filter.BrandId, filter.LowStock, filter.IsActive, branchId);
+        var items = await _repo.GetFilteredAsync(filter.Search, filter.CategoryId, filter.BrandId, filter.LowStock, filter.IsActive, branchId, warehouseId, page, pageSize);
+        var total = await _repo.GetFilteredCountAsync(filter.Search, filter.CategoryId, filter.BrandId, filter.LowStock, filter.IsActive, branchId, warehouseId);
 
         return new PagedResult<ProductListResponse>(
             _mapper.Map<List<ProductListResponse>>(items),
@@ -108,7 +134,8 @@ public sealed class ProductService
     public async Task<List<ProductListResponse>> GetLowStockAsync()
     {
         var branchId = _tenant.ResolveBranchId();
-        var items = await _repo.GetLowStockAsync(branchId);
+        var warehouseId = _tenant.ResolveWarehouseId();
+        var items = await _repo.GetLowStockAsync(branchId, warehouseId);
         return _mapper.Map<List<ProductListResponse>>(items);
     }
 
@@ -118,9 +145,10 @@ public sealed class ProductService
         var pageSize = filter.PageSize ?? 20;
 
         var branchId = _tenant.ResolveBranchId();
+        var warehouseId = filter.WarehouseId ?? _tenant.ResolveWarehouseId();
 
-        var items = await _movementRepo.GetFilteredAsync(filter.ProductId, filter.MovementType, filter.FromDate, filter.ToDate, null, branchId, page, pageSize);
-        var total = await _movementRepo.GetFilteredCountAsync(filter.ProductId, filter.MovementType, filter.FromDate, filter.ToDate, null, branchId);
+        var items = await _movementRepo.GetFilteredAsync(filter.ProductId, filter.MovementType, filter.FromDate, filter.ToDate, null, branchId, warehouseId, page, pageSize);
+        var total = await _movementRepo.GetFilteredCountAsync(filter.ProductId, filter.MovementType, filter.FromDate, filter.ToDate, null, branchId, warehouseId);
 
         return new PagedResult<InventoryMovementResponse>(
             _mapper.Map<List<InventoryMovementResponse>>(items),

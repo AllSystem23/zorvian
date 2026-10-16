@@ -36,9 +36,9 @@ public partial class EnableRLS : Migration
             BEGIN
                 FOR r IN SELECT tablename FROM pg_tables WHERE schemaname = 'public' LOOP
                     EXECUTE format('ALTER TABLE %I DISABLE ROW LEVEL SECURITY', r.tablename);
-                    EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_policy ON %I', r.tablename);
-                    EXECUTE format('DROP POLICY IF EXISTS tenant_isolation_%I ON %I', r.tablename, r.tablename);
-                    EXECUTE format('DROP POLICY IF EXISTS super_admin_bypass_%I ON %I', r.tablename, r.tablename);
+                    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', 'tenant_isolation_policy', r.tablename);
+                    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', 'tenant_isolation_' || r.tablename, r.tablename);
+                    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', 'super_admin_bypass_' || r.tablename, r.tablename);
                 END LOOP;
             END $$;
             DROP FUNCTION IF EXISTS is_super_admin();

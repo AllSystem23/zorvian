@@ -128,7 +128,7 @@ public sealed class DocumentTemplateSystemVisibilityTests : IDisposable
         var repo = new DocumentTemplateRepository(freshDb);
         var (items, total) = await repo.GetFilteredAsync(null, null, null, null, null, 1, 50);
 
-        Assert.Equal(24, total);
+        Assert.Equal(26, total);
         Assert.All(items, t => Assert.Equal(DocumentTemplate.SystemTenantId, t.TenantId));
         Assert.Equal(6, items.Count(t => t.Version == "2.1"));
         Assert.Contains(items, t => t.Name == "Liquidación Final (Nicaragua)" && t.CountryCode == "NIC");
@@ -149,5 +149,7 @@ public sealed class DocumentTemplateSystemVisibilityTests : IDisposable
         Assert.Contains(items, t => t.Name == "Kardex de Producto" && t.Version == "1.0");
         Assert.Contains(items, t => t.Name == "Solicitud de Cotización" && t.Version == "1.0");
         Assert.Contains(items, t => t.Name == "Transferencia entre Bodegas" && t.Version == "1.0");
+        Assert.Contains(items, t => t.Name == "Planilla de Pago" && t.Version == "1.0");
+        Assert.Contains(items, t => t.Name == "Colilla de Pago" && t.Version == "1.0");
     }
 }

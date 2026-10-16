@@ -100,6 +100,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IBankAccountRepository, BankAccountRepository>();
         services.AddScoped<ISickLeaveRepository, SickLeaveRepository>();
         services.AddScoped<ITerminationRepository, TerminationRepository>();
+        services.AddScoped<IEmploymentPeriodRepository, EmploymentPeriodRepository>();
         services.AddScoped<IEmployeeLoanRepository, EmployeeLoanRepository>();
         services.AddScoped<ISalaryAdvanceRepository, SalaryAdvanceRepository>();
         services.AddScoped<IWageGarnishmentRepository, WageGarnishmentRepository>();
@@ -149,6 +150,8 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IInventoryMovementRepository, InventoryMovementRepository>();
         services.AddScoped<IStockTransferRepository, StockTransferRepository>();
         services.AddScoped<StockTransferService>();
+        services.AddScoped<IWarehouseRepository, WarehouseRepository>();
+        services.AddScoped<WarehouseService>();
 
         // Purchases
         services.AddScoped<IPurchaseRepository, PurchaseRepository>();
@@ -324,7 +327,9 @@ public static class DependencyInjectionExtensions
             sp.GetRequiredService<IAuditLogRepository>(),
             sp.GetRequiredService<PayrollCalculationFactory>(),
             sp.GetRequiredService<IBankTransferService>(),
-            sp.GetRequiredService<ISickLeaveRepository>()));
+            sp.GetRequiredService<ISickLeaveRepository>(),
+            sp.GetRequiredService<IVacationRepository>(),
+            sp.GetRequiredService<IPermissionRepository>()));
         services.AddScoped<PayrollConceptService>();
         services.AddScoped<EmployeeLoanService>();
         services.AddScoped<SalaryAdvanceService>();

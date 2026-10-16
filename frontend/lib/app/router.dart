@@ -125,6 +125,8 @@ import '../features/purchase_requests/pages/purchase_request_detail_page.dart';
 import '../features/stock_transfers/pages/stock_transfer_list_page.dart';
 import '../features/stock_transfers/pages/stock_transfer_form_page.dart';
 import '../features/stock_transfers/pages/stock_transfer_detail_page.dart';
+import '../features/warehouses/pages/warehouse_list_page.dart';
+import '../features/warehouses/pages/warehouse_form_page.dart';
 import '../features/approval/pages/approval_flow_list_page.dart';
 import '../features/approval/pages/approval_flow_form_page.dart';
 import '../features/approval/pages/approval_pending_page.dart';
@@ -975,6 +977,15 @@ GoRouter buildGoRouter(AuthState authState) {
             routes: [
               GoRoute(path: 'new', name: 'stock-transfer-new', builder: (_, _) => const StockTransferFormPage()),
               GoRoute(path: ':stockTransferId', name: 'stock-transfer-detail', builder: (_, state) => StockTransferDetailPage(stockTransferId: state.pathParameters['stockTransferId']!)),
+            ],
+          ),
+          GoRoute(
+            path: '/warehouses',
+            name: 'warehouses',
+            builder: (_, _) => const WarehouseListPage(),
+            routes: [
+              // `extra` = warehouseId para editar; null = crear.
+              GoRoute(path: 'form', name: 'warehouse-form', builder: (_, state) => WarehouseFormPage(warehouseId: state.extra as String?)),
             ],
           ),
           GoRoute(

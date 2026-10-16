@@ -124,7 +124,7 @@ public sealed class DynamicReportEngine
 
     private async Task<List<Dictionary<string, object?>>> LoadProductsAsync(Guid companyId)
     {
-        var products = await _productRepo.GetFilteredAsync(null, null, null, null, null, Guid.Empty, 1, int.MaxValue);
+        var products = await _productRepo.GetFilteredAsync(null, null, null, null, null, Guid.Empty, null, 1, int.MaxValue);
         return products.Select(p => new Dictionary<string, object?>
         {
             ["id"] = p.Id,

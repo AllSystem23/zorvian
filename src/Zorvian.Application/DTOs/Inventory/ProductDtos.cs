@@ -16,7 +16,8 @@ public sealed record CreateProductRequest(
     int MaxStock,
     string? Location,
     string? Barcode,
-    Guid BranchId
+    Guid BranchId,
+    Guid? WarehouseId   // null = bodega por defecto/contexto de la sucursal
 );
 
 public sealed record UpdateProductRequest(
@@ -58,7 +59,9 @@ public sealed record ProductResponse(
     string? Location,
     string? Barcode,
     bool IsActive,
-    Guid BranchId
+    Guid BranchId,
+    Guid WarehouseId,
+    string? WarehouseName
 );
 
 public sealed record ProductListResponse(
@@ -70,7 +73,9 @@ public sealed record ProductListResponse(
     decimal TaxRate,
     int Stock,
     int MinStock,
-    bool IsActive
+    bool IsActive,
+    Guid WarehouseId,
+    string? WarehouseName
 );
 
 public sealed record ProductFilterRequest(
@@ -79,6 +84,7 @@ public sealed record ProductFilterRequest(
     Guid? BrandId,
     bool? LowStock,
     bool? IsActive,
+    Guid? WarehouseId,   // null = bodega activa del contexto (o todas si no hay)
     int? Page = 1,
     int? PageSize = 20
 );

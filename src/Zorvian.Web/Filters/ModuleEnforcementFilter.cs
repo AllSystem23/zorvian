@@ -34,6 +34,7 @@ public sealed class ModuleEnforcementFilter : IAsyncAuthorizationFilter
         ["Brands"] = ModuleType.Inventory,
         ["InventoryMovements"] = ModuleType.Inventory,
         ["StockTransfers"] = ModuleType.Inventory,
+        ["Warehouses"] = ModuleType.Inventory,
         ["Warranties"] = ModuleType.Inventory,
         ["PublicWarranties"] = ModuleType.Inventory,
         ["WarrantyCommunications"] = ModuleType.Inventory,

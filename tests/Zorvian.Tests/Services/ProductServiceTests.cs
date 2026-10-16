@@ -24,7 +24,9 @@ public sealed class ProductServiceTests
         _tenant.Setup(t => t.TenantId).Returns(new TenantId(Guid.NewGuid()));
         // Pass-through: la lógica de pertenencia de sucursal se prueba en BranchValidatorTests.
         _branchValidator.Setup(v => v.ResolveForWriteAsync(It.IsAny<Guid?>())).ReturnsAsync((Guid? b) => b);
-        _sut = new ProductService(_productRepo.Object, _movementRepo.Object, _tenant.Object, _mapper.Object, _sync.Object, _branchValidator.Object);
+        var warehouseRepo = new Mock<IWarehouseRepository>();
+        var warehouseService = new WarehouseService(warehouseRepo.Object, _branchValidator.Object, _tenant.Object);
+        _sut = new ProductService(_productRepo.Object, _movementRepo.Object, _tenant.Object, _mapper.Object, _sync.Object, _branchValidator.Object, warehouseService);
     }
 
     [Fact]
@@ -34,7 +36,7 @@ public sealed class ProductServiceTests
         var product = new Product { Id = id, Code = "PROD-001", Name = "Test Product" };
         _productRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(product);
         var expected = new ProductResponse(id, "PROD-001", "Test Product", null, null, null, null, null,
-            null, null, null, null, 0, 0, "unit", 0, 0, 0, null, null, true, Guid.Empty);
+            null, null, null, null, 0, 0, "unit", 0, 0, 0, null, null, true, Guid.Empty, Guid.Empty, null);
         _mapper.Setup(m => m.Map<ProductResponse>(product)).Returns(expected);
 
         var result = await _sut.GetByIdAsync(id);

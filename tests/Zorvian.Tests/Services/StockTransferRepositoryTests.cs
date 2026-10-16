@@ -9,10 +9,12 @@ using Zorvian.Infrastructure.Repositories;
 namespace Zorvian.Tests.Services;
 
 /// <summary>
-/// Matriz de visibilidad por sucursal del StockTransferRepository. Una
-/// transferencia NO tiene columna propia (abarca 2 sucursales): el filtro es
-/// From == b OR To == b; Guid.Empty = todas. Los Include de las navs de
-/// sucursal son INNER JOIN (FK requerida), así que se siembran ambas filas.
+/// Matriz de visibilidad del StockTransferRepository por SUCURSAL y por BODEGA.
+/// Una transferencia NO tiene columna BranchId propia (abarca 2 sucursales/2
+/// bodegas): los filtros son "es origen O destino" (explícitos, no
+/// ApplyBranchScope); Guid.Empty = todas. Los Include de las navs requeridas
+/// son INNER JOIN en InMemory, así que se siembran sucursales, bodegas y
+/// productos (fila por bodega).
 /// </summary>
 public sealed class StockTransferRepositoryTests : IDisposable
 {
@@ -24,6 +26,9 @@ public sealed class StockTransferRepositoryTests : IDisposable
     private readonly Guid _branchA = Guid.NewGuid();
     private readonly Guid _branchB = Guid.NewGuid();
     private readonly Guid _branchC = Guid.NewGuid();
+    private readonly Guid _whA = Guid.NewGuid();
+    private readonly Guid _whB = Guid.NewGuid();
+    private readonly Guid _whC = Guid.NewGuid();
 
     public StockTransferRepositoryTests()
     {
@@ -39,8 +44,11 @@ public sealed class StockTransferRepositoryTests : IDisposable
         SeedBranch(_branchA, "Sucursal Central");
         SeedBranch(_branchB, "Sucursal Norte");
         SeedBranch(_branchC, "Sucursal Este");
-        SeedTransfer(_branchA, _branchB, "TR-AB", "Refacciones bomba");
-        SeedTransfer(_branchB, _branchC, "TR-BC", "Papel de oficina");
+        SeedWarehouse(_whA, _branchA, "Bodega A");
+        SeedWarehouse(_whB, _branchB, "Bodega B");
+        SeedWarehouse(_whC, _branchC, "Bodega C");
+        SeedTransfer(_whA, _whB, "TR-AB", "Refacciones bomba");
+        SeedTransfer(_whB, _whC, "TR-BC", "Papel de oficina");
     }
 
     public void Dispose() => _db.Dispose();
@@ -60,15 +68,36 @@ public sealed class StockTransferRepositoryTests : IDisposable
         _db.SaveChanges();
     }
 
-    private void SeedTransfer(Guid fromId, Guid toId, string number, string title)
+    private void SeedWarehouse(Guid id, Guid branchId, string name)
     {
+        _db.Warehouses.Add(new Warehouse
+        {
+            Id = id,
+            TenantId = _tenantId,
+            CompanyId = _company,
+            BranchId = branchId,
+            Name = name,
+            IsActive = true,
+            IsDefault = true,
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test",
+        });
+        _db.SaveChanges();
+    }
+
+    private void SeedTransfer(Guid fromWh, Guid toWh, string number, string title)
+    {
+        var fromBranch = _db.Warehouses.First(w => w.Id == fromWh).BranchId;
+        var toBranch = _db.Warehouses.First(w => w.Id == toWh).BranchId;
+
         var productId = Guid.NewGuid();
         _db.Products.Add(new Product
         {
             Id = productId,
             TenantId = _tenantId,
             CompanyId = _company,
-            BranchId = fromId,
+            BranchId = fromBranch,
+            WarehouseId = fromWh,
             Code = $"P{number}",
             Name = title,
             Stock = 10,
@@ -84,8 +113,10 @@ public sealed class StockTransferRepositoryTests : IDisposable
             Id = transferId,
             TenantId = _tenantId,
             CompanyId = _company,
-            FromBranchId = fromId,
-            ToBranchId = toId,
+            FromWarehouseId = fromWh,
+            ToWarehouseId = toWh,
+            FromBranchId = fromBranch,
+            ToBranchId = toBranch,
             TransferNumber = number,
             Status = "draft",
             Notes = title,
@@ -108,9 +139,9 @@ public sealed class StockTransferRepositoryTests : IDisposable
     }
 
     [Fact]
-    public async Task GetFiltered_ConBranchVacio_DevuelveTodasLasSucursales()
+    public async Task GetFiltered_ConScopeVacio_DevuelveTodas()
     {
-        var (items, total) = await _sut.GetFilteredAsync(null, null, Guid.Empty, 1, 20);
+        var (items, total) = await _sut.GetFilteredAsync(null, null, Guid.Empty, Guid.Empty, 1, 20);
 
         Assert.Equal(2, total);
         Assert.Contains(items, t => t.TransferNumber == "TR-AB");
@@ -118,43 +149,61 @@ public sealed class StockTransferRepositoryTests : IDisposable
     }
 
     [Fact]
-    public async Task GetFiltered_PorOrigenODestino_DevuelveTransferenciasQueTocanLaSucursal()
+    public async Task GetFiltered_PorSucursalOrigenODestino_DevuelveLasQueTocanLaSucursal()
     {
         // Sucursal B es destino en TR-AB y origen en TR-BC → ambas visibles.
-        var (itemsB, totalB) = await _sut.GetFilteredAsync(null, null, _branchB, 1, 20);
+        var (itemsB, totalB) = await _sut.GetFilteredAsync(null, null, _branchB, Guid.Empty, 1, 20);
         Assert.Equal(2, totalB);
 
         // Sucursal A solo participa en TR-AB.
-        var (itemsA, totalA) = await _sut.GetFilteredAsync(null, null, _branchA, 1, 20);
+        var (itemsA, totalA) = await _sut.GetFilteredAsync(null, null, _branchA, Guid.Empty, 1, 20);
         Assert.Equal(1, totalA);
         Assert.Equal("TR-AB", itemsA.Single().TransferNumber);
     }
 
     [Fact]
-    public async Task GetFiltered_BranchInexistente_DevuelveVacio()
+    public async Task GetFiltered_PorBodegaOrigenODestino_DevuelveLasQueTocanLaBodega()
     {
-        var (_, total) = await _sut.GetFilteredAsync(null, null, Guid.NewGuid(), 1, 20);
+        // Bodega B es destino en TR-AB y origen en TR-BC → ambas visibles.
+        var (itemsB, totalB) = await _sut.GetFilteredAsync(null, null, Guid.Empty, _whB, 1, 20);
+        Assert.Equal(2, totalB);
 
-        Assert.Equal(0, total);
+        // Bodega A solo participa en TR-AB.
+        var (itemsA, totalA) = await _sut.GetFilteredAsync(null, null, Guid.Empty, _whA, 1, 20);
+        Assert.Equal(1, totalA);
+        Assert.Equal("TR-AB", itemsA.Single().TransferNumber);
+    }
+
+    [Fact]
+    public async Task GetFiltered_BranchOWarehouseInexistente_DevuelveVacio()
+    {
+        var (_, byBranch) = await _sut.GetFilteredAsync(null, null, Guid.NewGuid(), Guid.Empty, 1, 20);
+        Assert.Equal(0, byBranch);
+
+        var (_, byWarehouse) = await _sut.GetFilteredAsync(null, null, Guid.Empty, Guid.NewGuid(), 1, 20);
+        Assert.Equal(0, byWarehouse);
     }
 
     [Fact]
     public async Task GetFiltered_PorBusquedaYEstado_Filtra()
     {
-        // El search mira número y nombres de sucursal origen/destino.
-        var (bySearch, totalSearch) = await _sut.GetFilteredAsync("Central", null, Guid.Empty, 1, 20);
+        // El search mira número, sucursales y bodegas origen/destino.
+        var (bySearch, totalSearch) = await _sut.GetFilteredAsync("Central", null, Guid.Empty, Guid.Empty, 1, 20);
         Assert.Equal(1, totalSearch);
         Assert.Equal("TR-AB", bySearch.Single().TransferNumber);
 
-        var (_, totalStatus) = await _sut.GetFilteredAsync(null, "completed", Guid.Empty, 1, 20);
+        var (byWarehouseSearch, totalWhSearch) = await _sut.GetFilteredAsync("Bodega B", null, Guid.Empty, Guid.Empty, 1, 20);
+        Assert.Equal(2, totalWhSearch); // la bodega B participa en ambas transferencias
+
+        var (_, totalStatus) = await _sut.GetFilteredAsync(null, "completed", Guid.Empty, Guid.Empty, 1, 20);
         Assert.Equal(0, totalStatus); // no sembramos completadas
 
-        var (_, totalDraft) = await _sut.GetFilteredAsync(null, "draft", Guid.Empty, 1, 20);
+        var (_, totalDraft) = await _sut.GetFilteredAsync(null, "draft", Guid.Empty, Guid.Empty, 1, 20);
         Assert.Equal(2, totalDraft);
     }
 
     [Fact]
-    public async Task GetById_IncluyeSucursalesDetalleYProducto()
+    public async Task GetById_IncluyeSucursalesBodegasDetalleYProducto()
     {
         var seeded = await _db.StockTransfers.IgnoreQueryFilters()
             .FirstAsync(t => t.TransferNumber == "TR-AB");
@@ -164,8 +213,11 @@ public sealed class StockTransferRepositoryTests : IDisposable
         Assert.NotNull(loaded);
         Assert.Equal("Sucursal Central", loaded!.FromBranch?.Name);
         Assert.Equal("Sucursal Norte", loaded.ToBranch?.Name);
+        Assert.Equal("Bodega A", loaded.FromWarehouse?.Name);
+        Assert.Equal("Bodega B", loaded.ToWarehouse?.Name);
         var detail = loaded.Details.Single();
         Assert.Equal(5, detail.Quantity);
+        Assert.Equal(0, detail.QuantityReceived);
         Assert.Equal("Refacciones bomba", detail.Product?.Name);
     }
 
@@ -181,6 +233,8 @@ public sealed class StockTransferRepositoryTests : IDisposable
             Id = Guid.NewGuid(),
             TenantId = _tenantId,
             CompanyId = _company,
+            FromWarehouseId = _whA,
+            ToWarehouseId = _whB,
             FromBranchId = _branchA,
             ToBranchId = _branchB,
             TransferNumber = first,

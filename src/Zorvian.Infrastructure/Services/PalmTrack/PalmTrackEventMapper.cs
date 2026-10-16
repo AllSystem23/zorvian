@@ -605,6 +605,51 @@ public sealed class PalmTrackEventMapper : IPalmTrackEventMapper
         return MappingResult.Ok("production_logged_consolidated");
     }
 
+    /// <summary>
+    /// Primera sucursal activa de la compañía + su bodega por defecto (crea
+    /// "Bodega Principal" si la sucursal aún no tiene ninguna). Usado por la
+    /// creación de productos desde eventos PalmTrack, que corren sin sucursal
+    /// activa en el contexto.
+    /// </summary>
+    private async Task<(Guid BranchId, Guid WarehouseId)> ResolveDefaultStockLocationAsync(Guid tenantId)
+    {
+        var tenant = tenantId.ToString();
+        var branch = await _db.Branches
+                .Where(b => b.TenantId == tenant && b.IsActive)
+                .OrderBy(b => b.Name)
+                .FirstOrDefaultAsync()
+            ?? await _db.Branches
+                .Where(b => b.TenantId == tenant)
+                .OrderBy(b => b.Name)
+                .FirstOrDefaultAsync();
+
+        if (branch is null) return (Guid.Empty, Guid.Empty);
+
+        var warehouse = await _db.Warehouses
+            .Where(w => w.BranchId == branch.Id && w.IsActive)
+            .OrderByDescending(w => w.IsDefault)
+            .ThenBy(w => w.Name)
+            .FirstOrDefaultAsync();
+
+        if (warehouse is null)
+        {
+            warehouse = new Warehouse
+            {
+                BranchId = branch.Id,
+                Name = "Bodega Principal",
+                IsActive = true,
+                IsDefault = true,
+                TenantId = tenant,
+                CompanyId = tenantId,
+                CreatedBy = ExternalSystemName,
+            };
+            _db.Warehouses.Add(warehouse);
+            await _db.SaveChangesAsync();
+        }
+
+        return (branch.Id, warehouse.Id);
+    }
+
     private async Task<MappingResult> ProcessInventoryEventAsync(JsonElement payload, Guid tenantId, string eventName)
     {
         var data = TryGetData(payload);
@@ -630,6 +675,10 @@ public sealed class PalmTrackEventMapper : IPalmTrackEventMapper
 
             if (itemProduct == null)
             {
+                // El contexto de este consumidor no trae sucursal activa: asigna la
+                // primera sucursal de la compañía y su bodega por defecto para no
+                // dejar Guid.Empty en las FKs obligatorias BranchId/WarehouseId.
+                var (palmBranchId, palmWarehouseId) = await ResolveDefaultStockLocationAsync(tenantId);
                 itemProduct = new Product
                 {
                     Code = $"PT-PROD-{externalId}",
@@ -638,6 +687,8 @@ public sealed class PalmTrackEventMapper : IPalmTrackEventMapper
                     CostPrice = itemUnitCost ?? 0,
                     SellingPrice = itemUnitCost ?? 0,
                     Stock = stock.HasValue ? (int)Math.Round(stock.Value) : 0,
+                    BranchId = palmBranchId,
+                    WarehouseId = palmWarehouseId,
                     TenantId = tenantId.ToString(),
                     CompanyId = tenantId,
                     CreatedBy = ExternalSystemName,

@@ -21,6 +21,7 @@ public sealed record VacationResponse(
     string Status,
     string? RejectionReason,
     bool IsAdvanced,
+    Guid? PaidByPayrollRunId,
     List<ApprovalStepResponse> ApprovalSteps,
     DateTime CreatedAt
 );

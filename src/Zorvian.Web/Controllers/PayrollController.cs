@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Zorvian.Application.DTOs.Payroll;
+using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
 using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
@@ -13,8 +15,24 @@ namespace Zorvian.Web.Controllers;
 public sealed class PayrollController : ControllerBase
 {
     private readonly PayrollService _service;
+    private readonly IDocumentTemplateRepository _documentTemplateRepo;
+    private readonly IDocumentService _documentService;
+    private readonly IDocumentGenerationService _documentGenerationService;
+    private readonly ILogger<PayrollController> _logger;
 
-    public PayrollController(PayrollService service) => _service = service;
+    public PayrollController(
+        PayrollService service,
+        IDocumentTemplateRepository documentTemplateRepo,
+        IDocumentService documentService,
+        IDocumentGenerationService documentGenerationService,
+        ILogger<PayrollController> logger)
+    {
+        _service = service;
+        _documentTemplateRepo = documentTemplateRepo;
+        _documentService = documentService;
+        _documentGenerationService = documentGenerationService;
+        _logger = logger;
+    }
 
     // Deduction Types
     [Audit("Payroll", "ReadDeductionTypes")]
@@ -182,5 +200,83 @@ public sealed class PayrollController : ControllerBase
         if (result is null) return NotFound(new { message = "Payroll run not found or not approved" });
 
         return File(result.Content, "text/csv", result.FileName);
+    }
+
+    [Audit("Payroll", "GeneratePayrollSheet")]
+    [HttpPost("runs/{id:guid}/pdf/generate")]
+    [RequirePermission(Permissions.PayrollRead)]
+    public async Task<IActionResult> GeneratePayrollSheet(Guid id)
+    {
+        try
+        {
+            var context = await _documentGenerationService.GetEntityContextAsync("payroll", id);
+            if (context is null) return NotFound(new { message = "Corrida de nómina no encontrada" });
+
+            var template = await _documentTemplateRepo.GetByNameAsync("Planilla de Pago");
+            if (template is null) return NotFound(new { message = "Plantilla 'Planilla de Pago' no encontrada. Ejecute el seed." });
+
+            var generated = await _documentService.GenerateProfessionalDocumentAsync(
+                template.Id,
+                id,
+                context.Data,
+                "payroll");
+
+            return Ok(new
+            {
+                generatedDocumentId = generated.Id,
+                name = generated.Name,
+                status = generated.Status,
+                createdAt = generated.CreatedAt,
+                downloadUrl = $"/zorvian/v1/documents/{generated.Id}/pdf"
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generando planilla de pago para corrida {RunId}", id);
+            return StatusCode(500, new { message = "Error interno al generar la planilla de pago" });
+        }
+    }
+
+    [Audit("Payroll", "GeneratePayslip")]
+    [HttpPost("details/{detailId:guid}/pdf/generate")]
+    [RequirePermission(Permissions.PayrollRead)]
+    public async Task<IActionResult> GeneratePayslip(Guid detailId)
+    {
+        try
+        {
+            var context = await _documentGenerationService.GetEntityContextAsync("payrolldetail", detailId);
+            if (context is null) return NotFound(new { message = "Detalle de nómina no encontrado" });
+
+            var template = await _documentTemplateRepo.GetByNameAsync("Colilla de Pago");
+            if (template is null) return NotFound(new { message = "Plantilla 'Colilla de Pago' no encontrada. Ejecute el seed." });
+
+            var generated = await _documentService.GenerateProfessionalDocumentAsync(
+                template.Id,
+                detailId,
+                context.Data,
+                "payrolldetail");
+
+            return Ok(new
+            {
+                generatedDocumentId = generated.Id,
+                name = generated.Name,
+                status = generated.Status,
+                createdAt = generated.CreatedAt,
+                downloadUrl = $"/zorvian/v1/documents/{generated.Id}/pdf"
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generando colilla de pago para detalle {DetailId}", detailId);
+            return StatusCode(500, new { message = "Error interno al generar la colilla de pago" });
+        }
     }
 }

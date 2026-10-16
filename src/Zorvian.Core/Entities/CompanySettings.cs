@@ -26,6 +26,12 @@ public sealed class CompanySettings : BaseEntity
     // Régimen INSS: "integral" o "ivm"
     public string InssRegime { get; set; } = "integral";
 
+    // Base de cálculo de retenciones de ley (INSS/IR):
+    // - "taxable_gross" (default, cumple ley): remuneración normal gravable del período
+    //   (salario devengado + comisiones + bonos + horas extras; EXCLUYE vacaciones).
+    // - "base_salary": opt-in de la empresa — retiene solo sobre el salario base.
+    public string RetentionBase { get; set; } = "taxable_gross";
+
     // PalmTrack integration feature flags (Plan §10.1)
     public bool PalmTrackEnabled { get; set; }
     public bool PalmTrackSsoEnabled { get; set; }

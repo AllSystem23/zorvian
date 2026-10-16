@@ -350,7 +350,7 @@ public sealed class BiService
 
     public async Task<BiInventorySummaryResponse> GetInventorySummaryAsync()
     {
-        var summary = await _productRepo.GetInventorySummaryRawAsync(NullBranch);
+        var summary = await _productRepo.GetInventorySummaryRawAsync(NullBranch, null);
         var slowMovers = summary.TopSlowMovers
             .Select(p => new BiSlowMoverItem(
                 p.ProductName,

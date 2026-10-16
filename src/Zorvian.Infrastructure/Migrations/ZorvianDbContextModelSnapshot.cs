@@ -3458,6 +3458,13 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Property<bool>("PalmTrackSsoSharedProject")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("RetentionBase")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("taxable_gross");
+
                     b.Property<bool>("TaxEnabled")
                         .HasColumnType("boolean");
 
@@ -5533,6 +5540,87 @@ namespace Zorvian.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("EmployeeSupervisors");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.EmploymentPeriod", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("BaseSalary")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("HireDate")
+                        .HasColumnType("date");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("PeriodNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Position")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("open");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateOnly?>("TerminationDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("TerminationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("TerminationRecordId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeId", "PeriodNumber")
+                        .IsUnique();
+
+                    b.HasIndex("EmployeeId", "Status");
+
+                    b.HasIndex("TenantId", "EmployeeId");
+
+                    b.ToTable("EmploymentPeriods");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.EntityHistory", b =>
@@ -10764,6 +10852,11 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsHalfDay")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<Guid>("LeaveTypeId")
                         .HasColumnType("uuid");
 
@@ -11093,6 +11186,9 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Property<string>("UpdatedBy")
                         .HasColumnType("text");
 
+                    b.Property<Guid>("WarehouseId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("BrandId");
@@ -11103,7 +11199,9 @@ namespace Zorvian.Infrastructure.Migrations
 
                     b.HasIndex("TaxCategoryId");
 
-                    b.HasIndex("Code", "BranchId")
+                    b.HasIndex("WarehouseId");
+
+                    b.HasIndex("Code", "WarehouseId")
                         .IsUnique();
 
                     b.HasIndex("TenantId", "BranchId");
@@ -13026,6 +13124,9 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Property<Guid>("FromBranchId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("FromWarehouseId")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
@@ -13048,6 +13149,9 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Property<Guid>("ToBranchId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid>("ToWarehouseId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("TransferNumber")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -13063,7 +13167,11 @@ namespace Zorvian.Infrastructure.Migrations
 
                     b.HasIndex("FromBranchId");
 
+                    b.HasIndex("FromWarehouseId");
+
                     b.HasIndex("ToBranchId");
+
+                    b.HasIndex("ToWarehouseId");
 
                     b.HasIndex("TransferNumber")
                         .IsUnique();
@@ -13099,6 +13207,9 @@ namespace Zorvian.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("QuantityReceived")
                         .HasColumnType("integer");
 
                     b.Property<Guid>("StockTransferId")
@@ -13981,6 +14092,9 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid?>("PaidByPayrollRunId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("RejectionReason")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -14007,6 +14121,8 @@ namespace Zorvian.Infrastructure.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PaidByPayrollRunId");
 
                     b.HasIndex("EmployeeId", "Status");
 
@@ -14084,6 +14200,70 @@ namespace Zorvian.Infrastructure.Migrations
                     b.HasIndex("EmployeeId");
 
                     b.ToTable("WageGarnishments");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.Warehouse", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId", "Name")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "BranchId");
+
+                    b.ToTable("Warehouses");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.Warranty", b =>
@@ -16410,6 +16590,17 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Navigation("Supervisor");
                 });
 
+            modelBuilder.Entity("Zorvian.Core.Entities.EmploymentPeriod", b =>
+                {
+                    b.HasOne("Zorvian.Core.Entities.Employee", "Employee")
+                        .WithMany("EmploymentPeriods")
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+                });
+
             modelBuilder.Entity("Zorvian.Core.Entities.FixedAsset", b =>
                 {
                     b.HasOne("Zorvian.Core.Entities.FixedAssetCategory", "Category")
@@ -17298,6 +17489,12 @@ namespace Zorvian.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("TaxCategoryId");
 
+                    b.HasOne("Zorvian.Core.Entities.Warehouse", "Warehouse")
+                        .WithMany("Products")
+                        .HasForeignKey("WarehouseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Brand");
 
                     b.Navigation("Category");
@@ -17305,6 +17502,8 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Navigation("Supplier");
 
                     b.Navigation("TaxCategory");
+
+                    b.Navigation("Warehouse");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.ProviderBrand", b =>
@@ -17666,15 +17865,31 @@ namespace Zorvian.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Zorvian.Core.Entities.Warehouse", "FromWarehouse")
+                        .WithMany()
+                        .HasForeignKey("FromWarehouseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("Zorvian.Core.Entities.Branch", "ToBranch")
                         .WithMany()
                         .HasForeignKey("ToBranchId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Zorvian.Core.Entities.Warehouse", "ToWarehouse")
+                        .WithMany()
+                        .HasForeignKey("ToWarehouseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("FromBranch");
 
+                    b.Navigation("FromWarehouse");
+
                     b.Navigation("ToBranch");
+
+                    b.Navigation("ToWarehouse");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.StockTransferDetail", b =>
@@ -17859,6 +18074,17 @@ namespace Zorvian.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Employee");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.Warehouse", b =>
+                {
+                    b.HasOne("Zorvian.Core.Entities.Branch", "Branch")
+                        .WithMany("Warehouses")
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.Warranty", b =>
@@ -18257,6 +18483,11 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Navigation("Actions");
                 });
 
+            modelBuilder.Entity("Zorvian.Core.Entities.Branch", b =>
+                {
+                    b.Navigation("Warehouses");
+                });
+
             modelBuilder.Entity("Zorvian.Core.Entities.Brand", b =>
                 {
                     b.Navigation("Products");
@@ -18350,6 +18581,8 @@ namespace Zorvian.Infrastructure.Migrations
                     b.Navigation("CommissionAssignments");
 
                     b.Navigation("Documents");
+
+                    b.Navigation("EmploymentPeriods");
 
                     b.Navigation("GoalAssignments");
 
@@ -18553,6 +18786,11 @@ namespace Zorvian.Infrastructure.Migrations
             modelBuilder.Entity("Zorvian.Core.Entities.VacationRequest", b =>
                 {
                     b.Navigation("ApprovalSteps");
+                });
+
+            modelBuilder.Entity("Zorvian.Core.Entities.Warehouse", b =>
+                {
+                    b.Navigation("Products");
                 });
 
             modelBuilder.Entity("Zorvian.Core.Entities.Warranty", b =>

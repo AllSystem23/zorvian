@@ -390,7 +390,8 @@ public sealed class CompanyService
         TaxEnabled: true,
         TaxRate: 0.15m,
         FiscalYearStartMonth: 1,
-        InssRegime: "integral"
+        InssRegime: "integral",
+        RetentionBase: "taxable_gross"
     );
 
     public async Task<CompanySettingsResponse?> UpdateSettingsAsync(UpdateCompanySettingsRequest request)
@@ -418,6 +419,7 @@ public sealed class CompanyService
         if (request.TaxRate.HasValue) settings.TaxRate = request.TaxRate.Value;
         if (request.FiscalYearStartMonth.HasValue) settings.FiscalYearStartMonth = request.FiscalYearStartMonth.Value;
         if (request.InssRegime is not null) settings.InssRegime = request.InssRegime;
+        if (request.RetentionBase is "taxable_gross" or "base_salary") settings.RetentionBase = request.RetentionBase;
 
         await _repo.UpdateSettingsAsync(settings);
         await _repo.SaveChangesAsync();
@@ -442,6 +444,7 @@ public sealed class CompanyService
         s.TaxEnabled,
         s.TaxRate,
         s.FiscalYearStartMonth,
-        s.InssRegime
+        s.InssRegime,
+        s.RetentionBase
     );
 }

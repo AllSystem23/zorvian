@@ -1,14 +1,62 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 import '../../../shared/ds/ds.dart';
 import '../providers/branch_provider.dart';
 
-class BranchListPage extends ConsumerWidget {
+class BranchListPage extends ConsumerStatefulWidget {
   const BranchListPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<BranchListPage> createState() => _BranchListPageState();
+}
+
+class _BranchListPageState extends ConsumerState<BranchListPage> {
+  Future<void> _delete(Map<String, dynamic> b) async {
+    final name = b['name'] ?? '';
+    final confirm = await ZModal.confirm(
+      context,
+      title: 'Eliminar sucursal',
+      message: '¿Eliminar "$name"? Solo es posible si no tiene productos activos, '
+          'ventas, compras ni empleados asignados. Sus bodegas se darán de baja.',
+    );
+    if (!confirm) return;
+
+    final branchId = b['id']?.toString();
+    try {
+      final dio = ref.read(dioClientProvider);
+      await dio.delete('branches/$branchId');
+
+      // Si la sucursal eliminada era la activa en el cabecero, limpia la
+      // selección (y la bodega asociada) para no mandar un X-Branch-Id muerto.
+      final selected = ref.read(companyBranchProvider).branchId;
+      if (branchId != null && selected == branchId) {
+        ref.read(companyBranchProvider.notifier).clearBranch();
+      }
+
+      ref.invalidate(headerBranchListProvider);
+      ref.invalidate(branchListProvider);
+    } catch (e) {
+      if (!mounted) return;
+      final msg = e is DioException
+          ? (e.response?.data is Map
+              ? e.response?.data['message']?.toString()
+              : null)
+          : null;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(msg ?? 'No se pudo eliminar la sucursal'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final branchesAsync = ref.watch(branchListProvider);
 
     return Scaffold(
@@ -52,9 +100,20 @@ class BranchListPage extends ConsumerWidget {
                                 child: const Text('Inactiva', style: TextStyle(fontSize: 12, color: Colors.grey)),
                               ),
                             const SizedBox(width: 4),
-                            IconButton(
-                              icon: const Icon(Icons.edit, size: 20),
-                              onPressed: () => context.push('/branches/${b['id']}'),
+                            PopupMenuButton<String>(
+                              padding: EdgeInsets.zero,
+                              icon: const Icon(Icons.more_vert, size: 20),
+                              onSelected: (value) {
+                                if (value == 'edit') {
+                                  context.push('/branches/${b['id']}');
+                                } else if (value == 'delete') {
+                                  _delete(b);
+                                }
+                              },
+                              itemBuilder: (_) => const [
+                                PopupMenuItem(value: 'edit', child: Text('Editar')),
+                                PopupMenuItem(value: 'delete', child: Text('Eliminar')),
+                              ],
                             ),
                           ],
                         ),
@@ -67,7 +126,6 @@ class BranchListPage extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Error: $e')),
       ),
-
     );
   }
 }

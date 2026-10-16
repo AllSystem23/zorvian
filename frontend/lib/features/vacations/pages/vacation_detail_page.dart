@@ -20,6 +20,8 @@ class _VacationDetailPageState extends ConsumerState<VacationDetailPage> {
   bool _loading = true;
   String? _error;
   bool _actionLoading = false;
+  /// true si la solicitud "tomada" tiene recibo RV asociado (pago por recibo).
+  bool _receiptFound = false;
   static String? _lastScope;
 
   @override
@@ -30,9 +32,20 @@ class _VacationDetailPageState extends ConsumerState<VacationDetailPage> {
 
   Future<void> _load() async {
     final request = await ref.read(vacationProvider.notifier).loadDetail(widget.vacationId);
+    // Solicitud tomada sin pago por planilla → saber si existe recibo RV para decidir
+    // si mostramos "Ver Recibo de Pago" (marcadas como tomadas sin recibo no lo muestran).
+    var receiptFound = false;
+    if (request != null &&
+        request.status == 'taken' &&
+        request.paidByPayrollRunId == null) {
+      final receipt =
+          await ref.read(vacationReceiptProvider.notifier).loadReceiptByRequest(widget.vacationId);
+      receiptFound = receipt != null;
+    }
     if (!mounted) return;
     setState(() {
       _request = request;
+      _receiptFound = receiptFound;
       _loading = false;
       _error = request == null ? 'Error al cargar solicitud' : null;
     });
@@ -157,7 +170,7 @@ class _VacationDetailPageState extends ConsumerState<VacationDetailPage> {
       case 'approved': return 'Aprobado';
       case 'rejected': return 'Rechazado';
       case 'pending': return 'Pendiente';
-      case 'taken': return 'Pagado';
+      case 'taken': return 'Tomada';
       case 'cancelled': return 'Cancelado';
       default: return s;
     }
@@ -165,7 +178,42 @@ class _VacationDetailPageState extends ConsumerState<VacationDetailPage> {
 
   bool _canAct() => _request?.status == 'pending';
   bool _canPay() => _request?.status == 'approved';
-  bool _isPaid() => _request?.status == 'taken';
+  bool _isTaken() => _request?.status == 'taken';
+  bool _paidByPayroll() => _request?.paidByPayrollRunId != null;
+
+  /// Marcada como tomada con recibo RV (pago por recibo) — es la única con recibo que ver.
+  bool _hasReceiptPath() => _isTaken() && !_paidByPayroll() && _receiptFound;
+
+  Future<void> _markTaken() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Marcar como Tomada'),
+        content: const Text(
+            'Registra la vacación como disfrutada SIN generar recibo de pago y descuenta los días del saldo. Continuar?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Confirmar')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _actionLoading = true);
+    try {
+      final ok = await ref.read(vacationProvider.notifier).markVacationTaken(widget.vacationId);
+      if (!mounted) return;
+      if (ok) {
+        await _load();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo marcar como tomada (solo vacaciones aprobadas)')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _actionLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -287,18 +335,45 @@ class _VacationDetailPageState extends ConsumerState<VacationDetailPage> {
             if (_canPay())
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                child: ElevatedButton.icon(
-                  onPressed: _actionLoading ? null : _pay,
-                  icon: const Icon(Icons.payment),
-                  label: const Text('Procesar Pago de Vacaciones'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF7C4DFF),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: _actionLoading ? null : _pay,
+                      icon: const Icon(Icons.payment),
+                      label: const Text('Procesar Pago de Vacaciones'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF7C4DFF),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: _actionLoading ? null : _markTaken,
+                      icon: const Icon(Icons.beach_access),
+                      label: const Text('Marcar como Tomada (sin pago)'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            if (_isTaken() && _paidByPayroll())
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Card(
+                  color: Color(0xFFE8F5E9),
+                  child: ListTile(
+                    leading: Icon(Icons.account_balance, color: Colors.teal),
+                    title: Text('Pagada por Planilla de Pago'),
+                    subtitle: Text(
+                        'Estas vacaciones se pagaron y descontaron del saldo al aprobar la nómina.'),
                   ),
                 ),
               ),
-            if (_isPaid())
+            if (_hasReceiptPath())
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: ElevatedButton.icon(

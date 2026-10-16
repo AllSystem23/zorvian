@@ -113,6 +113,7 @@ final class NavConfig {
         NavItem(id: 'marcas', label: 'Marcas', icon: Icons.branding_watermark_outlined, route: '/brands'),
         NavItem(id: 'movimientos-inv', label: 'Movimientos de Inventario', icon: Icons.swap_horiz_outlined, route: '/inventory-movements'),
         NavItem(id: 'transferencias-inv', label: 'Transferencias', icon: Icons.swap_horizontal_circle_outlined, route: '/stock-transfers'),
+        NavItem(id: 'bodegas-inv', label: 'Bodegas', icon: Icons.warehouse_outlined, route: '/warehouses'),
         NavItem(id: 'ajustes-inv', label: 'Ajustes de Inventario', icon: Icons.tune_outlined, route: '/inventory-adjustment'),
         NavItem(id: 'garantias', label: 'Garantías', icon: Icons.shield_outlined, route: '/warranties'),
         NavItem(id: 'talleres', label: 'Talleres', icon: Icons.build_outlined, route: '/workshops'),

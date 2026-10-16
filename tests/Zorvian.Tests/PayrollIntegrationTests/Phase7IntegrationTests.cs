@@ -40,13 +40,18 @@ public class Phase7IntegrationTests
 
     private PayrollService CreateService()
     {
+        // Gotcha: TenantId es record (clase) y op_Implicit a string hace NRE con null —
+        // todo mock de ITenantContext debe stubbearlo (SyncConceptsAsync lo lee).
+        _mockTenant.Setup(t => t.TenantId).Returns(Guid.NewGuid().ToString());
+
         return new PayrollService(
             _mockRepo.Object, _mockEmployeeRepo.Object, _mockTenant.Object, _mockWebhook.Object,
             _mockAch.Object, _mockAutoAccounting.Object, _mockTaxConfigRepo.Object, _mockCompanyRepo.Object,
             _mockOvertimeRepo.Object, _mockCommissionRepo.Object, _mockBonusRepo.Object,
             _mockConceptRepo.Object, _mockLoanRepo.Object, _mockAdvanceRepo.Object, _mockGarnishmentRepo.Object,
             _mockBenefitProvisionRepo.Object, _mockAuditRepo.Object, _factory, 
-            new Mock<IBankTransferService>().Object, _mockSickLeaveRepo.Object);
+            new Mock<IBankTransferService>().Object, _mockSickLeaveRepo.Object,
+            new Mock<IVacationRepository>().Object, new Mock<IPermissionRepository>().Object);
     }
 
     [Fact]

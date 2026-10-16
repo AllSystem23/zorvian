@@ -406,12 +406,14 @@ public sealed class MappingProfile : Profile
             .ForMember(d => d.Category, o => o.Ignore())
             .ForMember(d => d.Brand, o => o.Ignore())
             .ForMember(d => d.Supplier, o => o.Ignore())
+            .ForMember(d => d.Warehouse, o => o.Ignore())
             .ForMember(d => d.InventoryMovements, o => o.Ignore());
         CreateMap<UpdateProductRequest, Product>()
             .ForMember(d => d.Id, o => o.Ignore())
             .ForMember(d => d.Code, o => o.Ignore())
             .ForMember(d => d.CompanyId, o => o.Ignore())
             .ForMember(d => d.BranchId, o => o.Ignore())
+            .ForMember(d => d.WarehouseId, o => o.Ignore())
             .ForMember(d => d.Stock, o => o.Ignore())
             .ForMember(d => d.ImageUrl, o => o.Ignore())
             .ForMember(d => d.Category, o => o.Ignore())
@@ -423,10 +425,12 @@ public sealed class MappingProfile : Profile
             .ForMember(d => d.CategoryName, o => o.MapFrom(s => s.Category != null ? s.Category.Name : null))
             .ForMember(d => d.BrandName, o => o.MapFrom(s => s.Brand != null ? s.Brand.Name : null))
             .ForMember(d => d.SupplierName, o => o.MapFrom(s => s.Supplier != null ? s.Supplier.Name : null))
-            .ForMember(d => d.TaxCategoryName, o => o.MapFrom(s => s.TaxCategory != null ? s.TaxCategory.Name : null));
+            .ForMember(d => d.TaxCategoryName, o => o.MapFrom(s => s.TaxCategory != null ? s.TaxCategory.Name : null))
+            .ForMember(d => d.WarehouseName, o => o.MapFrom(s => s.Warehouse != null ? s.Warehouse.Name : null));
         CreateMap<Product, ProductListResponse>()
             .ForMember(d => d.CategoryName, o => o.MapFrom(s => s.Category != null ? s.Category.Name : null))
-            .ForMember(d => d.TaxRate, o => o.MapFrom(s => s.TaxCategory != null ? s.TaxCategory.Rate : 0m));
+            .ForMember(d => d.TaxRate, o => o.MapFrom(s => s.TaxCategory != null ? s.TaxCategory.Rate : 0m))
+            .ForMember(d => d.WarehouseName, o => o.MapFrom(s => s.Warehouse != null ? s.Warehouse.Name : null));
 
         // Tax Category
         CreateMap<CreateTaxCategoryRequest, TaxCategory>()

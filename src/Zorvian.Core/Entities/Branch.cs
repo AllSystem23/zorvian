@@ -9,4 +9,6 @@ public sealed class Branch : BaseEntity
     public string? Phone { get; set; }
     public string? Email { get; set; }
     public bool IsActive { get; set; } = true;
+
+    public ICollection<Warehouse> Warehouses { get; set; } = [];
 }

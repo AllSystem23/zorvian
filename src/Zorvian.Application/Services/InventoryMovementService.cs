@@ -96,9 +96,10 @@ public class InventoryMovementService : IInventoryMovementService
         var pageSize = filter.PageSize ?? 20;
 
         var branchId = _tenant.ResolveBranchId();
+        var warehouseId = filter.WarehouseId ?? _tenant.ResolveWarehouseId();
 
-        var items = await _movementRepo.GetFilteredAsync(filter.ProductId, filter.MovementType, filter.FromDate, filter.ToDate, filter.Search, branchId, page, pageSize);
-        var total = await _movementRepo.GetFilteredCountAsync(filter.ProductId, filter.MovementType, filter.FromDate, filter.ToDate, filter.Search, branchId);
+        var items = await _movementRepo.GetFilteredAsync(filter.ProductId, filter.MovementType, filter.FromDate, filter.ToDate, filter.Search, branchId, warehouseId, page, pageSize);
+        var total = await _movementRepo.GetFilteredCountAsync(filter.ProductId, filter.MovementType, filter.FromDate, filter.ToDate, filter.Search, branchId, warehouseId);
 
         return new PagedResult<InventoryMovementResponse>(
             _mapper.Map<List<InventoryMovementResponse>>(items),

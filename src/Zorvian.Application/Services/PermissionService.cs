@@ -12,6 +12,7 @@ public sealed class PermissionService
 {
     private readonly IPermissionRepository _repo;
     private readonly IEmployeeRepository _employeeRepo;
+    private readonly IVacationRepository _vacationRepo;
     private readonly ITenantContext _tenant;
     private readonly INotificationService _notification;
     private readonly IJobScheduler _jobScheduler;
@@ -20,6 +21,7 @@ public sealed class PermissionService
     public PermissionService(
         IPermissionRepository repo,
         IEmployeeRepository employeeRepo,
+        IVacationRepository vacationRepo,
         ITenantContext tenant,
         INotificationService notification,
         IJobScheduler jobScheduler,
@@ -27,11 +29,21 @@ public sealed class PermissionService
     {
         _repo = repo;
         _employeeRepo = employeeRepo;
+        _vacationRepo = vacationRepo;
         _tenant = tenant;
         _notification = notification;
         _jobScheduler = jobScheduler;
         _storage = storage;
     }
+
+    /// <summary>
+    /// Códigos de LeaveType que consumen cada bucket de <see cref="LeaveBalances"/>.
+    /// Solo los 10 tipos sembrados tienen bucket asignado; los tipos personalizados que cree
+    /// una compañía NO consumen buckets (se rigen por sus propios MaxDays* de LeaveType),
+    /// para no inventar política de saldos que la empresa no configuró.
+    /// </summary>
+    private static readonly string[] SickBucketCodes = ["SICK", "SUBSIDY", "MEDICAL_APPT"];
+    private static readonly string[] PersonalBucketCodes = ["PERSONAL", "STUDY"];
 
     public async Task<List<PermissionTypeResponse>> GetTypesAsync()
     {
@@ -61,11 +73,26 @@ public sealed class PermissionService
         if (request.StartDate < tomorrow)
             throw new InvalidOperationException("Start date must be tomorrow or later");
 
-        var totalDays = request.EndDate.DayNumber - request.StartDate.DayNumber + 1;
-        var businessDays = CountBusinessDays(request.StartDate, request.EndDate);
+        decimal totalDays;
+        decimal businessDays;
+        if (request.IsHalfDay)
+        {
+            // Medio día laboral (0.5): única fecha. El 0.5 fluye a los límites MaxDays*,
+            // a los buckets de saldo y al prorrateo de nómina.
+            if (request.StartDate != request.EndDate)
+                throw new InvalidOperationException(
+                    "A half-day permission must have the same start and end date");
+            totalDays = 0.5m;
+            businessDays = 0.5m;
+        }
+        else
+        {
+            totalDays = request.EndDate.DayNumber - request.StartDate.DayNumber + 1;
+            businessDays = CountBusinessDays(request.StartDate, request.EndDate);
 
-        if (totalDays < 1)
-            throw new InvalidOperationException("Minimum period is 1 day");
+            if (totalDays < 1)
+                throw new InvalidOperationException("Minimum period is 1 day");
+        }
 
         if (leaveType.MaxDaysPerRequest.HasValue && totalDays > leaveType.MaxDaysPerRequest.Value)
             throw new InvalidOperationException(
@@ -113,6 +140,7 @@ public sealed class PermissionService
             EndDate = request.EndDate,
             TotalDays = totalDays,
             BusinessDays = businessDays,
+            IsHalfDay = request.IsHalfDay,
             Reason = request.Reason,
             Status = status,
             SupportingDocumentUrl = StoragePathHelper.ExtractStoragePath(request.SupportingDocumentUrl)
@@ -124,6 +152,10 @@ public sealed class PermissionService
 
         await _repo.AddAsync(permission);
         await _repo.SaveChangesAsync();
+
+        // Tipos sin aprobación nacen "approved" → descuentan sus buckets de saldo de inmediato.
+        if (status == "approved")
+            await SyncLeaveBalanceBucketsAsync(employeeId, permission.StartDate.Year);
 
         // Trigger OCR if document exists
         if (!string.IsNullOrEmpty(permission.SupportingDocumentUrl))
@@ -192,6 +224,10 @@ public sealed class PermissionService
 
         await _repo.SaveChangesAsync();
 
+        // Descuenta los buckets SickDaysTaken/PersonalDays del año según el tipo de permiso
+        // (recálculo idempotente desde los permisos aprobados — ver SyncLeaveBalanceBucketsAsync).
+        await SyncLeaveBalanceBucketsAsync(permission.EmployeeId, permission.StartDate.Year);
+
         await _notification.NotifyTenantAsync(
             _tenant.TenantId!,
             "Solicitud de permiso aprobada",
@@ -240,6 +276,37 @@ public sealed class PermissionService
         return count;
     }
 
+    /// <summary>
+    /// Recalcula <see cref="LeaveBalances.SickDaysTaken"/> / <see cref="LeaveBalances.PersonalDaysTaken"/>
+    /// del año desde los permisos aprobados (fuente de verdad). Idempotente — mismo criterio que
+    /// <see cref="LeaveBalanceSync"/> para vacaciones: se re-evalúa en cada alta aprobada y en cada
+    /// aprobación, así los reintentos o correcciones no acumulan dobles descuentos.
+    /// Los buckets solo se mapean para los tipos sembrados (SickBucketCodes/PersonalBucketCodes);
+    /// los demás tipos se rigen por sus propios límites MaxDays* de LeaveType.
+    /// </summary>
+    private async Task SyncLeaveBalanceBucketsAsync(Guid employeeId, int year)
+    {
+        var sickDays = await _repo.GetApprovedDaysByCodesAsync(employeeId, year, SickBucketCodes.ToList());
+        var personalDays = await _repo.GetApprovedDaysByCodesAsync(employeeId, year, PersonalBucketCodes.ToList());
+
+        var balance = await _vacationRepo.GetLeaveBalanceAsync(employeeId, year);
+        if (balance is null)
+        {
+            balance = new LeaveBalances
+            {
+                Id = Guid.NewGuid(),
+                EmployeeId = employeeId,
+                Year = year,
+                TenantId = _tenant.TenantId?.ToString() ?? string.Empty,
+            };
+            await _vacationRepo.AddLeaveBalanceAsync(balance);
+        }
+
+        balance.SickDaysTaken = sickDays;
+        balance.PersonalDaysTaken = personalDays;
+        await _vacationRepo.SaveChangesAsync();
+    }
+
     private async Task<PermissionResponse> MapToResponseAsync(PermissionRequest p) => new(
         p.Id,
         p.EmployeeId,
@@ -252,6 +319,7 @@ public sealed class PermissionService
         p.EndDate,
         p.TotalDays,
         p.BusinessDays,
+        p.IsHalfDay,
         p.Reason,
         p.Status,
         await _storage.GetSignedUrlAsync(p.SupportingDocumentUrl),

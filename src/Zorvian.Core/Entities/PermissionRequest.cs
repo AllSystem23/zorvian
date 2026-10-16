@@ -10,6 +10,10 @@ public sealed class PermissionRequest : BaseEntity
     public DateOnly EndDate { get; set; }
     public decimal TotalDays { get; set; }
     public decimal BusinessDays { get; set; }
+    /// <summary>
+    /// Medio día laboral (0.5): StartDate == EndDate y TotalDays/BusinessDays = 0.5.
+    /// </summary>
+    public bool IsHalfDay { get; set; }
     public string? Reason { get; set; }
     public string Status { get; set; } = "pending";
     public string? SupportingDocumentUrl { get; set; }

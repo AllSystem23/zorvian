@@ -38,6 +38,7 @@ public sealed class DocumentGenerationServiceContractContextTests
     private readonly Mock<IQuoteRepository> _quoteRepo = new();
     private readonly Mock<IPurchaseRequestRepository> _purchaseRequestRepo = new();
     private readonly Mock<IStockTransferRepository> _stockTransferRepo = new();
+    private readonly Mock<IPayrollRepository> _payrollRepo = new();
 
     private DocumentGenerationService CreateSut()
     {
@@ -62,7 +63,8 @@ public sealed class DocumentGenerationServiceContractContextTests
             _inventoryMovementRepo.Object,
             _quoteRepo.Object,
             _purchaseRequestRepo.Object,
-            _stockTransferRepo.Object);
+            _stockTransferRepo.Object,
+            _payrollRepo.Object);
         return new DocumentGenerationService(
             _documentService.Object,
             builder,
@@ -628,7 +630,7 @@ public sealed class DocumentGenerationServiceContractContextTests
             CostPrice = 250m,
         });
         _inventoryMovementRepo
-            .Setup(r => r.GetFilteredAsync(id, null, null, null, null, null, 1, 1000))
+            .Setup(r => r.GetFilteredAsync(id, null, null, null, null, null, null, 1, 1000))
             .ReturnsAsync(new List<InventoryMovement>
             {
                 new()
@@ -671,7 +673,7 @@ public sealed class DocumentGenerationServiceContractContextTests
             Name = "Producto sin movimientos",
         });
         _inventoryMovementRepo
-            .Setup(r => r.GetFilteredAsync(id, null, null, null, null, null, 1, 1000))
+            .Setup(r => r.GetFilteredAsync(id, null, null, null, null, null, null, 1, 1000))
             .ReturnsAsync(new List<InventoryMovement>());
 
         var ctx = await CreateSut().GetEntityContextAsync("kardex", id);
@@ -994,7 +996,7 @@ public sealed class DocumentGenerationServiceContractContextTests
     // ── Transferencia entre Bodegas (contexto de la tanda 4) ──
 
     [Fact]
-    public async Task StockTransfer_ExposesBranchesStatusAndLineItems()
+    public async Task StockTransfer_ExposesBranchesWarehousesStatusAndLineItems()
     {
         var id = Guid.NewGuid();
         _stockTransferRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(new StockTransfer
@@ -1003,6 +1005,8 @@ public sealed class DocumentGenerationServiceContractContextTests
             TransferNumber = "TR-20261016-0001",
             FromBranch = new Branch { Name = "Sucursal Central" },
             ToBranch = new Branch { Name = "Sucursal Norte" },
+            FromWarehouse = new Warehouse { Name = "Bodega Central" },
+            ToWarehouse = new Warehouse { Name = "Bodega Norte" },
             Status = "in_transit",
             DispatchedAt = new DateTime(2026, 10, 16, 14, 30, 0),
             CreatedAt = new DateTime(2026, 10, 16),
@@ -1013,6 +1017,7 @@ public sealed class DocumentGenerationServiceContractContextTests
                 {
                     Product = new Product { Code = "PRD-REF-09", Name = "Refacciones Bomba de Agua" },
                     Quantity = 10,
+                    QuantityReceived = 4,
                     UnitCost = 150m,
                 },
             },
@@ -1023,16 +1028,41 @@ public sealed class DocumentGenerationServiceContractContextTests
         ctx.Should().NotBeNull();
         ctx!.Data["transfer_number"].Should().Be("TR-20261016-0001");
         ctx.Data["transfer_status"].Should().Be("in_transit", "el sello EN TRÁNSITO del PDF lee esta clave");
+        ctx.Data["transfer_status_label"].Should().Be("En Tránsito");
         ctx.Data["from_branch"].Should().Be("Sucursal Central");
         ctx.Data["to_branch"].Should().Be("Sucursal Norte");
+        ctx.Data["from_warehouse"].Should().Be("Bodega Central", "el PDF imprime bodegas, no solo sucursales");
+        ctx.Data["to_warehouse"].Should().Be("Bodega Norte");
         ctx.Data["items_total"].Should().Be("1,500.00");
 
         var items = ctx.Data["items"].Should().BeOfType<List<Dictionary<string, object>>>().Subject;
         items.Should().HaveCount(1);
         items[0]["code"].Should().Be("PRD-REF-09");
         items[0]["quantity"].Should().Be("10");
+        items[0]["quantity_received"].Should().Be("4", "recepción parcial: la columna Recib. del PDF");
         items[0]["unit_price"].Should().Be("150.00");
         items[0]["subtotal"].Should().Be("1,500.00");
+    }
+
+    [Fact]
+    public async Task StockTransfer_PartiallyReceived_StatusLabelIsSpanish()
+    {
+        var id = Guid.NewGuid();
+        _stockTransferRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(new StockTransfer
+        {
+            Id = id,
+            TransferNumber = "TR-20261016-0002",
+            Status = "partially_received",
+            CreatedAt = new DateTime(2026, 10, 16),
+            CreatedBy = "carlos@zorvian.com",
+            Details = new List<StockTransferDetail>(),
+        });
+
+        var ctx = await CreateSut().GetEntityContextAsync("stocktransfer", id);
+
+        ctx.Should().NotBeNull();
+        ctx!.Data["transfer_status"].Should().Be("partially_received");
+        ctx.Data["transfer_status_label"].Should().Be("Recepción Parcial");
     }
 
     [Fact]
@@ -1042,5 +1072,169 @@ public sealed class DocumentGenerationServiceContractContextTests
         _stockTransferRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync((StockTransfer?)null);
 
         (await CreateSut().GetEntityContextAsync("stocktransfer", id)).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Payroll_ExposesPeriodTotalsStatusAndEmployees()
+    {
+        var id = Guid.NewGuid();
+        _payrollRepo.Setup(r => r.GetRunByIdAsync(id)).ReturnsAsync(new PayrollRun
+        {
+            Id = id,
+            Status = "approved",
+            TotalSalaries = 25000m,
+            TotalDeductions = 3750m,
+            TotalNetPay = 21250m,
+            TotalEmployerCosts = 30000m,
+            EmployeeCount = 2,
+            Currency = "NIO",
+            ProcessedAt = new DateTime(2026, 10, 15, 8, 30, 0),
+            ProcessedBy = "ana@zorvian.com",
+            PayrollPeriod = new PayrollPeriod
+            {
+                Name = "Octubre 2026",
+                StartDate = new DateOnly(2026, 10, 1),
+                EndDate = new DateOnly(2026, 10, 31),
+                PaymentDate = new DateOnly(2026, 10, 30),
+            },
+            Details = new List<PayrollDetail>
+            {
+                new()
+                {
+                    Employee = new Employee
+                    {
+                        FirstName = "María",
+                        LastName = "López",
+                        Position = "Coordinadora",
+                        Department = new Department { Name = "Comercial" },
+                    },
+                    BaseSalary = 15000m,
+                    InssDeduction = 1050m,
+                    IrDeduction = 1200m,
+                    OtherDeductions = 0m,
+                    NetPay = 12750m,
+                },
+            },
+        });
+
+        var ctx = await CreateSut().GetEntityContextAsync("payroll", id);
+
+        ctx.Should().NotBeNull();
+        ctx!.Data["period_name"].Should().Be("Octubre 2026");
+        Str(ctx.Data["period_range"]).Should().Be("01/10/2026 - 31/10/2026");
+        ctx.Data["payment_date"].Should().Be("30/10/2026");
+        ctx.Data["run_status"].Should().Be("approved", "el sello del PDF compara contra el valor crudo");
+        ctx.Data["run_status_label"].Should().Be("Aprobado");
+        ctx.Data["processed_by"].Should().Be("ana@zorvian.com");
+        Str(ctx.Data["processed_at"]).Should().Be("15/10/2026 08:30");
+        ctx.Data["employee_count"].Should().Be("2");
+        ctx.Data["total_salaries"].Should().Be("25,000.00");
+        ctx.Data["total_deductions"].Should().Be("3,750.00");
+        ctx.Data["total_net_pay"].Should().Be("21,250.00");
+        ctx.Data["total_employer_costs"].Should().Be("30,000.00");
+
+        var employees = ctx.Data["employees"].Should().BeOfType<List<Dictionary<string, object>>>().Subject;
+        employees.Should().HaveCount(1);
+        employees[0]["employee_name"].Should().Be("María López");
+        employees[0]["department"].Should().Be("Comercial");
+        employees[0]["position"].Should().Be("Coordinadora");
+        employees[0]["base_salary"].Should().Be("15,000.00");
+        employees[0]["inss"].Should().Be("1,050.00");
+        employees[0]["ir"].Should().Be("1,200.00");
+        employees[0]["net_pay"].Should().Be("12,750.00");
+    }
+
+    [Fact]
+    public async Task MissingPayroll_ReturnsNull()
+    {
+        var id = Guid.NewGuid();
+        _payrollRepo.Setup(r => r.GetRunByIdAsync(id)).ReturnsAsync((PayrollRun?)null);
+
+        (await CreateSut().GetEntityContextAsync("payroll", id)).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task PayrollDetail_ExposesEmployeeEarningsConceptsAndPaymentStatus()
+    {
+        var id = Guid.NewGuid();
+        _payrollRepo.Setup(r => r.GetDetailByIdAsync(id)).ReturnsAsync(new PayrollDetail
+        {
+            Id = id,
+            BaseSalary = 700m,
+            GrossPay = 780m,
+            TotalDeductions = 109m,
+            NetPay = 671m,
+            InssCode = "INSS-123",
+            InssDeduction = 49m,
+            IrDeduction = 60m,
+            OtherDeductions = 0m,
+            CommissionsAmount = 80m,
+            PaymentStatus = "paid",
+            PaymentReference = "ACH-7788",
+            Currency = "NIO",
+            Employee = new Employee
+            {
+                FirstName = "María",
+                LastName = "López",
+                IdentificationNumber = "001-050100-0001X",
+                EmployeeCode = "EMP-01",
+                Position = "Coordinadora",
+            },
+            PayrollRun = new PayrollRun
+            {
+                PayrollPeriod = new PayrollPeriod
+                {
+                    Name = "Octubre 2026",
+                    StartDate = new DateOnly(2026, 10, 1),
+                    EndDate = new DateOnly(2026, 10, 31),
+                    PaymentDate = new DateOnly(2026, 10, 30),
+                },
+            },
+            Concepts = new List<PayrollDetailConcept>
+            {
+                new() { ConceptCode = "INSS_EMP", Description = "INSS (7%)", Amount = 49m },
+                new() { ConceptCode = "IR", Description = "IR", Amount = 60m },
+                new() { ConceptCode = "INSS_PATRONAL", Description = "INSS Patronal", Amount = 61.5m, IsEmployerCost = true },
+            },
+        });
+
+        var ctx = await CreateSut().GetEntityContextAsync("payrolldetail", id);
+
+        ctx.Should().NotBeNull();
+        ctx!.Data["employee_name"].Should().Be("María López");
+        ctx.Data["employee_id"].Should().Be("001-050100-0001X");
+        ctx.Data["employee_code"].Should().Be("EMP-01");
+        ctx.Data["period_name"].Should().Be("Octubre 2026");
+        Str(ctx.Data["period_range"]).Should().Be("01/10/2026 - 31/10/2026");
+        ctx.Data["payment_date"].Should().Be("30/10/2026");
+        ctx.Data["gross_pay"].Should().Be("780.00");
+        ctx.Data["commissions"].Should().Be("80.00");
+        ctx.Data["inss"].Should().Be("49.00");
+        ctx.Data["ir"].Should().Be("60.00");
+        ctx.Data["total_deductions"].Should().Be("109.00");
+        ctx.Data["net_pay"].Should().Be("671.00");
+        ctx.Data["inss_code"].Should().Be("INSS-123");
+        ctx.Data["payment_status"].Should().Be("paid", "el sello PAGADO compara contra el valor crudo");
+        ctx.Data["payment_status_label"].Should().Be("Pagado");
+        ctx.Data["payment_reference"].Should().Be("ACH-7788");
+
+        var concepts = ctx.Data["concepts"].Should().BeOfType<List<Dictionary<string, object>>>().Subject;
+        concepts.Should().HaveCount(2, "los conceptos de empleador van aparte");
+        concepts[0]["code"].Should().Be("INSS_EMP");
+        concepts[0]["description"].Should().Be("INSS (7%)");
+        concepts[0]["amount"].Should().Be("49.00");
+
+        var employer = ctx.Data["employer_concepts"].Should().BeOfType<List<Dictionary<string, object>>>().Subject;
+        employer.Should().HaveCount(1);
+        employer[0]["description"].Should().Be("INSS Patronal");
+    }
+
+    [Fact]
+    public async Task MissingPayrollDetail_ReturnsNull()
+    {
+        var id = Guid.NewGuid();
+        _payrollRepo.Setup(r => r.GetDetailByIdAsync(id)).ReturnsAsync((PayrollDetail?)null);
+
+        (await CreateSut().GetEntityContextAsync("payrolldetail", id)).Should().BeNull();
     }
 }

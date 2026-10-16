@@ -120,6 +120,27 @@ public sealed class PermissionRepository : IPermissionRepository
             .SumAsync(p => p.TotalDays);
     }
 
+    public async Task<List<PermissionRequest>> GetApprovedOverlappingAsync(DateOnly start, DateOnly end)
+    {
+        return await _db.PermissionRequests
+            .Include(p => p.LeaveType)
+            .Where(p => p.Status == "approved"
+                && p.StartDate <= end
+                && p.EndDate >= start)
+            .ToListAsync();
+    }
+
+    public async Task<decimal> GetApprovedDaysByCodesAsync(
+        Guid employeeId, int year, List<string> leaveTypeCodes)
+    {
+        return await _db.PermissionRequests
+            .Where(p => p.EmployeeId == employeeId
+                && p.Status == "approved"
+                && p.StartDate.Year == year
+                && leaveTypeCodes.Contains(p.LeaveType.Code))
+            .SumAsync(p => p.BusinessDays);
+    }
+
     public async Task AddAsync(PermissionRequest request)
     {
         await _db.PermissionRequests.AddAsync(request);

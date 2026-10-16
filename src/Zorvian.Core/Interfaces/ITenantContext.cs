@@ -23,6 +23,9 @@ public interface ITenantContext
     /// <summary>Sucursal seleccionada por el usuario (null = todas / no aplica).</summary>
     Guid? CurrentBranchId { get; }
 
+    /// <summary>Bodega seleccionada por el usuario (null = todas / no aplica).</summary>
+    Guid? CurrentWarehouseId { get; }
+
     /// <summary>Compañía concretamente seleccionada (null si no hay selección válida).</summary>
     Guid? SelectedCompanyId { get; }
 
@@ -50,4 +53,5 @@ public interface ITenantContextWriter
     void SetCurrentUser(Guid? userId, Guid? employeeId);
     void SetIsSuperAdmin(bool isSuperAdmin);
     void SetBranchId(Guid? branchId);
+    void SetWarehouseId(Guid? warehouseId);
 }

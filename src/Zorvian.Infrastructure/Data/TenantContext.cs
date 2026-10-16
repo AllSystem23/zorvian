@@ -11,12 +11,14 @@ public sealed class TenantContext : ITenantContext, ITenantContextWriter
     private static readonly AsyncLocal<Guid?> CurrentUserIdValue = new();
     private static readonly AsyncLocal<Guid?> CurrentEmployeeIdValue = new();
     private static readonly AsyncLocal<Guid?> CurrentBranchIdValue = new();
+    private static readonly AsyncLocal<Guid?> CurrentWarehouseIdValue = new();
 
     public TenantId TenantId => TenantIdValue.Value ?? new(Guid.Empty);
     public bool IsSuperAdmin => IsSuperAdminValue.Value;
     public Guid? CurrentUserId => CurrentUserIdValue.Value;
     public Guid? CurrentEmployeeId => CurrentEmployeeIdValue.Value;
     public Guid? CurrentBranchId => CurrentBranchIdValue.Value;
+    public Guid? CurrentWarehouseId => CurrentWarehouseIdValue.Value;
 
     public Guid? SelectedCompanyId =>
         TenantId.TryGetCompanyId(out var id) && id != Guid.Empty ? id : null;
@@ -45,5 +47,10 @@ public sealed class TenantContext : ITenantContext, ITenantContextWriter
     public void SetBranchId(Guid? branchId)
     {
         CurrentBranchIdValue.Value = branchId;
+    }
+
+    public void SetWarehouseId(Guid? warehouseId)
+    {
+        CurrentWarehouseIdValue.Value = warehouseId;
     }
 }

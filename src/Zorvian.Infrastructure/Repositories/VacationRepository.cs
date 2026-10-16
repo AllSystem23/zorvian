@@ -65,6 +65,42 @@ public sealed class VacationRepository : IVacationRepository
             .SumAsync(v => v.TotalDays);
     }
 
+    public async Task<LeaveBalanceSums> GetVacationBalanceSumsAsync(Guid employeeId, int? year)
+    {
+        var query = _db.VacationRequests.AsQueryable()
+            .Where(v => v.EmployeeId == employeeId);
+        if (year.HasValue)
+            query = query.Where(v => v.StartDate.Year == year.Value);
+
+        // taken = consumidas; pending = en aprobación + aprobadas (reservan el saldo).
+        // Medida BusinessDays-preferente (misma regla que el pago de vacaciones), alineada
+        // con la bonificación anual (15 días hábiles/año), no con días de calendario.
+        var taken = await query
+            .Where(v => v.Status == "taken")
+            .SumAsync(v => v.BusinessDays > 0 ? v.BusinessDays : v.TotalDays);
+        var pending = await query
+            .Where(v => v.Status == "pending" || v.Status == "approved")
+            .SumAsync(v => v.BusinessDays > 0 ? v.BusinessDays : v.TotalDays);
+
+        return new LeaveBalanceSums(taken, pending);
+    }
+
+    public async Task<List<VacationRequest>> GetApprovedInRangeAsync(DateOnly start, DateOnly end)
+    {
+        return await _db.VacationRequests
+            .Where(v => v.Status == "approved"
+                && v.StartDate <= end
+                && v.EndDate >= start)
+            .ToListAsync();
+    }
+
+    public async Task<List<VacationRequest>> GetByPayrollRunAsync(Guid payrollRunId)
+    {
+        return await _db.VacationRequests
+            .Where(v => v.PaidByPayrollRunId == payrollRunId)
+            .ToListAsync();
+    }
+
     public async Task<decimal> GetVacationDaysTakenBeforeAsync(Guid employeeId, DateOnly beforeDate)
     {
         // Only vacations where the employee actually took the days off:

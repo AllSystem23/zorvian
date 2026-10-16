@@ -13,6 +13,7 @@ public sealed class PermissionServiceTests
     private static readonly DateOnly _base = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(14));
     private readonly Mock<IPermissionRepository> _repo = new();
     private readonly Mock<IEmployeeRepository> _employeeRepo = new();
+    private readonly Mock<IVacationRepository> _vacationRepo = new();
     private readonly Mock<ITenantContext> _tenant = new();
     private readonly Mock<INotificationService> _notification = new();
     private readonly Mock<IJobScheduler> _jobScheduler = new();
@@ -27,7 +28,7 @@ public sealed class PermissionServiceTests
         _tenant.Setup(t => t.CurrentEmployeeId).Returns(_employeeId);
         _storage.Setup(s => s.GetSignedUrlAsync(It.IsAny<string?>(), It.IsAny<TimeSpan?>()))
             .ReturnsAsync((string? v, TimeSpan? _) => v);
-        _sut = new PermissionService(_repo.Object, _employeeRepo.Object, _tenant.Object, _notification.Object, _jobScheduler.Object, _storage.Object);
+        _sut = new PermissionService(_repo.Object, _employeeRepo.Object, _vacationRepo.Object, _tenant.Object, _notification.Object, _jobScheduler.Object, _storage.Object);
     }
 
     private Employee MakeEmployee() => new()

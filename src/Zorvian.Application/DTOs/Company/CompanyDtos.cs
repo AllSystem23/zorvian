@@ -61,7 +61,8 @@ public sealed record CompanySettingsResponse(
     bool TaxEnabled,
     decimal TaxRate,
     int FiscalYearStartMonth,
-    string InssRegime
+    string InssRegime,
+    string RetentionBase
 );
 
 public sealed record UpdateCompanySettingsRequest(
@@ -81,7 +82,8 @@ public sealed record UpdateCompanySettingsRequest(
     bool? TaxEnabled,
     decimal? TaxRate,
     int? FiscalYearStartMonth,
-    string? InssRegime
+    string? InssRegime,
+    string? RetentionBase
 );
 
 public sealed record CompanyListItemResponse(

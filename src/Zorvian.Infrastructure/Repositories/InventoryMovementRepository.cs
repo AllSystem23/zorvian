@@ -20,7 +20,7 @@ public sealed class InventoryMovementRepository : IInventoryMovementRepository
             .Include(m => m.PerformedBy)
             .FirstOrDefaultAsync(m => m.Id == id);
 
-    public async Task<List<InventoryMovement>> GetFilteredAsync(Guid? productId, string? movementType, DateTime? fromDate, DateTime? toDate, string? search, Guid? branchId, int page, int pageSize)
+    public async Task<List<InventoryMovement>> GetFilteredAsync(Guid? productId, string? movementType, DateTime? fromDate, DateTime? toDate, string? search, Guid? branchId, Guid? warehouseId, int page, int pageSize)
     {
         var query = _db.Set<InventoryMovement>()
             .Include(m => m.Product)
@@ -28,6 +28,7 @@ public sealed class InventoryMovementRepository : IInventoryMovementRepository
             .AsQueryable();
 
         query = query.ApplyBranchScope(branchId, m => m.BranchId);
+        query = ApplyWarehouseScope(query, warehouseId);
 
         if (productId.HasValue) query = query.Where(m => m.ProductId == productId.Value);
         if (!string.IsNullOrWhiteSpace(movementType)) query = query.Where(m => m.MovementType == movementType);
@@ -48,13 +49,14 @@ public sealed class InventoryMovementRepository : IInventoryMovementRepository
             .ToListAsync();
     }
 
-    public async Task<int> GetFilteredCountAsync(Guid? productId, string? movementType, DateTime? fromDate, DateTime? toDate, string? search, Guid? branchId)
+    public async Task<int> GetFilteredCountAsync(Guid? productId, string? movementType, DateTime? fromDate, DateTime? toDate, string? search, Guid? branchId, Guid? warehouseId)
     {
         var query = _db.Set<InventoryMovement>()
             .Include(m => m.Product)
             .AsQueryable();
 
         query = query.ApplyBranchScope(branchId, m => m.BranchId);
+        query = ApplyWarehouseScope(query, warehouseId);
 
         if (productId.HasValue) query = query.Where(m => m.ProductId == productId.Value);
         if (!string.IsNullOrWhiteSpace(movementType)) query = query.Where(m => m.MovementType == movementType);
@@ -76,4 +78,16 @@ public sealed class InventoryMovementRepository : IInventoryMovementRepository
 
     public async Task SaveChangesAsync() =>
         await _db.SaveChangesAsync();
+
+    /// <summary>
+    /// El kardex se agrupa por bodega vía la fila de producto que posee el
+    /// movimiento (Product.WarehouseId). null/Empty = todas las bodegas.
+    /// </summary>
+    private static IQueryable<InventoryMovement> ApplyWarehouseScope(
+        IQueryable<InventoryMovement> query, Guid? warehouseId)
+    {
+        if (warehouseId is { } w && w != Guid.Empty)
+            query = query.Where(m => m.Product.WarehouseId == w);
+        return query;
+    }
 }

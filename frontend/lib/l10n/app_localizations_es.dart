@@ -24,7 +24,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get welcome => 'Bienvenido a Zorvian ERP';
 
   @override
-  String get employees => 'Trabajadores';
+  String get employees => 'Empleados';
 
   @override
   String get payroll => 'Nómina';

@@ -80,6 +80,12 @@ public static class TenantContextExtensions
         => tenant.CurrentBranchId is { } b && b != Guid.Empty ? b : null;
 
     /// <summary>
+    /// Bodega seleccionada para lecturas/escrituras. null = todas las bodegas / no aplica.
+    /// </summary>
+    public static Guid? ResolveWarehouseId(this ITenantContext tenant)
+        => tenant.CurrentWarehouseId is { } w && w != Guid.Empty ? w : null;
+
+    /// <summary>
     /// Verifica si el usuario tiene un tenant/empresa válido configurado.
     /// </summary>
     public static bool HasValidCompany(this ITenantContext tenant)

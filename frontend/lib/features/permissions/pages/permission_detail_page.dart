@@ -176,6 +176,7 @@ class _PermissionDetailPageState extends ConsumerState<PermissionDetailPage> {
                 _infoRow('Período', '${p['startDate'] ?? ''} → ${p['endDate'] ?? ''}'),
                 _infoRow('Días totales', '${p['totalDays'] ?? 0}'),
                 _infoRow('Días hábiles', '${p['businessDays'] ?? 0}'),
+                if (p['isHalfDay'] == true) _infoRow('Medio día', 'Sí'),
                 _infoRow('Pagado', p['isPaid'] == true ? 'Sí' : 'No'),
                 if (p['reason'] != null && (p['reason'] as String).isNotEmpty)
                   _infoRow('Motivo', p['reason'] as String),

@@ -34,14 +34,16 @@ final dioClientProvider = Provider<DioClient>((ref) {
     onUnauthorized: () {
       ref.read(authProvider.notifier).logout();
     },
-    // Alcance activo (compañía + sucursal) para que el backend filtre cada request.
-    // X-Tenant-Id es fallback del claim JWT; X-Branch-Id define el alcance de sucursal.
+    // Alcance activo (compañía + sucursal + bodega) para que el backend filtre
+    // cada request. X-Tenant-Id es fallback del claim JWT; X-Branch-Id define
+    // el alcance de sucursal; X-Warehouse-Id el de bodega (opcional).
     dynamicHeaders: () {
       final tenantId = ref.read(authProvider).tenantId;
-      final branchId = ref.read(companyBranchProvider).branchId;
+      final scope = ref.read(companyBranchProvider);
       return {
         'X-Tenant-Id': tenantId,
-        'X-Branch-Id': branchId,
+        'X-Branch-Id': scope.branchId,
+        'X-Warehouse-Id': scope.warehouseId,
       };
     },
   );

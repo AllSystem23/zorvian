@@ -1,6 +1,7 @@
 using Zorvian.Application.DTOs.Employee;
 using Zorvian.Application.DTOs.Common;
 using Zorvian.Application.DTOs.Vacation;
+using Zorvian.Application.Helpers;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
@@ -96,6 +97,9 @@ public sealed class VacationService
         });
 
         await _repo.SaveChangesAsync();
+
+        // Reserva el saldo en el espejo anual (la solicitud "pending" ya no está disponible).
+        await LeaveBalanceSync.SyncAsync(_repo, _tenant, employeeId, vacation.StartDate.Year);
 
         await _notification.NotifyTenantAsync(
             _tenant.TenantId!,
@@ -207,12 +211,38 @@ public sealed class VacationService
 
         await _repo.SaveChangesAsync();
 
+        // Libera la reserva del saldo (la solicitud ya no cuenta como pending).
+        await LeaveBalanceSync.SyncAsync(_repo, _tenant, vacation.EmployeeId, vacation.StartDate.Year);
+
         await _notification.NotifyTenantAsync(
             _tenant.TenantId!,
             "Solicitud de vacaciones rechazada",
             $"Una solicitud de vacaciones ha sido rechazada. Motivo: {reason}",
             "vacation",
             vacation.Id.ToString());
+
+        return MapToResponse(vacation);
+    }
+
+    /// <summary>
+    /// Marca una vacación aprobada como "tomada" SIN generar recibo de pago: registra el
+    /// disfrute (descanso) y descuenta el saldo del año vía LeaveBalanceSync. Es la vía para
+    /// vacaciones descansadas que no se pagan por recibo RV ni por corrida de nómina.
+    /// Una solicitud pagada por recibo o por planilla ya queda en "taken" y este método la rechaza.
+    /// </summary>
+    public async Task<VacationResponse?> MarkTakenAsync(Guid requestId)
+    {
+        var vacation = await _repo.GetByIdAsync(requestId);
+        if (vacation is null) return null;
+
+        if (vacation.Status != "approved")
+            throw new InvalidOperationException(
+                $"Solo se pueden marcar como tomadas las solicitudes aprobadas (estado actual: '{vacation.Status}')");
+
+        vacation.Status = "taken";
+        await _repo.SaveChangesAsync();
+
+        await LeaveBalanceSync.SyncAsync(_repo, _tenant, vacation.EmployeeId, vacation.StartDate.Year);
 
         return MapToResponse(vacation);
     }
@@ -242,8 +272,12 @@ public sealed class VacationService
 
         var accruedDays = Math.Min(Math.Max(monthsEmployed, 0) * ((decimal)daysPerYear / 12), (decimal)daysPerYear * 2);
 
-        var takenDays = await _repo.GetVacationDaysSumAsync(employeeId, "taken");
-        var pendingDays = await _repo.GetVacationDaysSumAsync(employeeId, "pending");
+        // taken = consumidas; pending = en aprobación + APROBADAS (reservadas) — antes las
+        // aprobadas no se contaban y el saldo disponible quedaba sobreestimado.
+        var sums = await _repo.GetVacationBalanceSumsAsync(employeeId, null)
+            ?? new LeaveBalanceSums(0m, 0m);
+        var takenDays = sums.TakenDays;
+        var pendingDays = sums.PendingDays;
 
         return new VacationBalanceResponse(
             daysPerYear,
@@ -288,6 +322,7 @@ public sealed class VacationService
         v.Status,
         v.RejectionReason,
         v.IsAdvanced,
+        v.PaidByPayrollRunId,
         v.ApprovalSteps
             .OrderBy(a => a.Step)
             .Select(a => new ApprovalStepResponse(
