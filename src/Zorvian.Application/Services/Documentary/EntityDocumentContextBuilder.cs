@@ -461,6 +461,9 @@ public sealed class EntityDocumentContextBuilder : IEntityDocumentContextBuilder
                 data["receiver_name"] = delivery.ReceiverName ?? "";
                 data["observations"] = delivery.Observations ?? "";
                 data["status"] = delivery.Status;
+                // Totales de preparación (usados por la Lista de Empaque).
+                data["items_count"] = (delivery.Items?.Count ?? 0).ToString();
+                data["total_units"] = (delivery.Items?.Sum(i => i.QtyOrdered) ?? 0).ToString("0.##");
                 data["items"] = delivery.Items?
                     .Select(i => Item(
                         ("product", i.Product != null ? $"{i.Product.Code} {i.Product.Name}".Trim() : ""),

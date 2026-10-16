@@ -394,6 +394,23 @@ public static class DocumentTemplateSeeder
             Content = BuildDeliveryRouteSheetHtml()
         });
 
+        // ── Fleet: Lista de Empaque (preparación/picking de la entrega) ──
+        templates.Add(new DocumentTemplate
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            CreatedAt = now,
+            CreatedBy = "system",
+            Name = "Lista de Empaque",
+            Category = "Fleet",
+            Module = "Fleet",
+            CountryCode = "ALL",
+            IsActive = true,
+            Version = "1.0",
+            Variables = "[{\"key\":\"delivery_code\",\"label\":\"Código de Entrega\",\"type\":\"text\",\"required\":true},{\"key\":\"scheduled_date\",\"label\":\"Fecha Programada\",\"type\":\"date\",\"required\":true},{\"key\":\"time_window\",\"label\":\"Franja Horaria\",\"type\":\"text\",\"required\":false},{\"key\":\"client_name\",\"label\":\"Cliente\",\"type\":\"text\",\"required\":false},{\"key\":\"delivery_address\",\"label\":\"Dirección de Entrega\",\"type\":\"text\",\"required\":true},{\"key\":\"driver_name\",\"label\":\"Conductor\",\"type\":\"text\",\"required\":false},{\"key\":\"vehicle_plate\",\"label\":\"Placa\",\"type\":\"text\",\"required\":false},{\"key\":\"route_name\",\"label\":\"Ruta\",\"type\":\"text\",\"required\":false},{\"key\":\"items_count\",\"label\":\"Cantidad de Ítems\",\"type\":\"number\",\"required\":false},{\"key\":\"total_units\",\"label\":\"Unidades Totales\",\"type\":\"number\",\"required\":false},{\"key\":\"observations\",\"label\":\"Observaciones\",\"type\":\"textarea\",\"required\":false}]",
+            Content = BuildPackingListHtml()
+        });
+
         // ── Finance: Ficha de Activo Fijo ──
         templates.Add(new DocumentTemplate
         {
@@ -1648,6 +1665,55 @@ public static class DocumentTemplateSeeder
     <div style='text-align:center; width:30%;'><div style='border-top:1px solid #333; padding-top:8px;'><strong>Entregado por</strong><br /><small>{{{{ driver_name | default: '____________' }}}}</small></div></div>
     <div style='text-align:center; width:30%;'><div style='border-top:1px solid #333; padding-top:8px;'><strong>Recibí Conforme</strong><br /><small>{{{{ receiver_name | default: '____________' }}}}</small></div></div>
     <div style='text-align:center; width:30%;'><div style='border-top:1px solid #333; padding-top:8px;'><strong>{{{{ Company.LegalName }}}}</strong></div></div>
+  </div>
+  <div class='footer'>Documento generado por Zorvian ERP - Motor Documental Inteligente · {{{{ Country.Name }}}} · {{{{ Company.Date }}}}</div>
+</body></html>";
+
+    private static string BuildPackingListHtml() => $@"<!DOCTYPE html>
+<html><head><meta charset='UTF-8'>
+  {SharedStyles()}
+  <style>
+    .doc-badge {{ background: #2EE59D; color: #0A2E1F; padding: 8px 20px; border-radius: 20px; font-size: 14px; font-weight: 700; }}
+    .header {{ display: flex; justify-content: space-between; align-items: center; }}
+    .meta-box {{ display: flex; gap: 16px; margin: 14px 0; flex-wrap: wrap; }}
+    .meta-card {{ flex: 1; min-width: 150px; background: #f0fdf8; padding: 10px 14px; border-radius: 8px; border-left: 3px solid #2EE59D; }}
+    .meta-card small {{ color: #666; display: block; margin-bottom: 3px; }}
+    .meta-card strong {{ color: #1A0A3E; font-size: 13px; }}
+    .totals-box {{ display: flex; gap: 16px; margin: 10px 0; }}
+    .total-card {{ flex: 1; text-align: center; background: #1A0A3E; color: #fff; padding: 8px; border-radius: 8px; }}
+    .total-card small {{ display: block; font-size: 10px; letter-spacing: 1px; opacity: 0.8; }}
+    .total-card strong {{ font-size: 18px; }}
+    .check {{ display: inline-block; width: 14px; height: 14px; border: 1.5px solid #333; border-radius: 3px; vertical-align: middle; }}
+    .picking-note {{ background: #f0fdf8; border-left: 4px solid #2EE59D; padding: 8px 14px; font-size: 12px; margin-top: 10px; border-radius: 6px; color: #444; }}
+  </style>
+</head><body>
+  <div class='header'>
+    <div class='company-name'>{{{{ Company.LegalName }}}}</div>
+    <div class='doc-badge'>LISTA DE EMPAQUE</div>
+  </div>
+  <div class='meta-box'>
+    <div class='meta-card'><small>Entrega</small><strong>{{{{ delivery_code }}}}</strong></div>
+    <div class='meta-card'><small>Fecha Programada</small><strong>{{{{ scheduled_date }}}}</strong></div>
+    {{% if time_window != blank %}}<div class='meta-card'><small>Franja Horaria</small><strong>{{{{ time_window }}}}</strong></div>{{% endif %}}
+    {{% if route_name != blank %}}<div class='meta-card'><small>Ruta</small><strong>{{{{ route_name }}}}</strong></div>{{% endif %}}
+    {{% if vehicle_plate != blank %}}<div class='meta-card'><small>Vehículo</small><strong>{{{{ vehicle_plate }}}}</strong></div>{{% endif %}}
+    {{% if driver_name != blank %}}<div class='meta-card'><small>Conductor</small><strong>{{{{ driver_name }}}}</strong></div>{{% endif %}}
+  </div>
+  {{% if client_name != blank %}}<div class='section-title'>Destino</div><div class='section-body'><strong>{{{{ client_name }}}}</strong><br />{{{{ delivery_address }}}}</div>{{% else %}}<div class='section-title'>Dirección de Entrega</div><div class='section-body'>{{{{ delivery_address }}}}</div>{{% endif %}}
+  <div class='totals-box'>
+    <div class='total-card'><small>ÍTEMS A EMPACAR</small><strong>{{{{ items_count | default: 0 }}}}</strong></div>
+    <div class='total-card'><small>UNIDADES TOTALES</small><strong>{{{{ total_units | default: 0 }}}}</strong></div>
+  </div>
+  <table class='items'>
+    <thead><tr><th style='text-align:center;'>#</th><th>Producto</th><th>Lote / Serie</th><th style='text-align:center;'>Cant. a Empacar</th><th style='text-align:center;'>Empacado</th></tr></thead>
+    <tbody>{{% for item in items %}}<tr><td style='text-align:center;'>{{{{ forloop.index }}}}</td><td>{{{{ item.product }}}}</td><td>{{{{ item.lot_serial }}}}</td><td style='text-align:center;'><strong>{{{{ item.qty_ordered }}}}</strong></td><td style='text-align:center;'><span class='check'></span></td></tr>{{% else %}}<tr><td colspan='5' style='text-align:center; color:#888; padding:20px;'><em>Los ítems (con su cantidad a empacar y casilla de verificación) se cargan dinámicamente desde la entrega registrada en el sistema.</em></td></tr>{{% endfor %}}</tbody>
+  </table>
+  <div class='picking-note'>Marque la casilla de cada ítem una vez empacado y verificado contra la cantidad indicada. Reporte cualquier diferencia al supervisor antes de despachar.</div>
+  {{% if observations != blank %}}<div class='section-title'>Observaciones de Preparación</div><div class='section-body'>{{{{ observations }}}}</div>{{% endif %}}
+  <div class='signature-area' style='display:flex; justify-content:space-between;'>
+    <div style='text-align:center; width:30%;'><div style='border-top:1px solid #333; padding-top:8px;'><strong>Preparado por (Bodega)</strong><br /><small>________________________</small></div></div>
+    <div style='text-align:center; width:30%;'><div style='border-top:1px solid #333; padding-top:8px;'><strong>Verificado por</strong><br /><small>________________________</small></div></div>
+    <div style='text-align:center; width:30%;'><div style='border-top:1px solid #333; padding-top:8px;'><strong>Entregado a (Conductor)</strong><br /><small>{{{{ driver_name | default: '________________________' }}}}</small></div></div>
   </div>
   <div class='footer'>Documento generado por Zorvian ERP - Motor Documental Inteligente · {{{{ Country.Name }}}} · {{{{ Company.Date }}}}</div>
 </body></html>";

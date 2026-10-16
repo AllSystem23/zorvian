@@ -121,4 +121,50 @@ public sealed class DeliveriesController : ControllerBase
             return StatusCode(500, new { error = "Error interno al generar el documento" });
         }
     }
+
+    /// <summary>
+    /// Lista de Empaque (picking): preparación de la entrega en bodega con
+    /// casillas de verificación por ítem y totales a empacar. Reutiliza el
+    /// contexto de la entrega.
+    /// </summary>
+    [Audit("FleetDelivery", "GeneratePackingList")]
+    [RequirePermission(Permissions.FleetRead)]
+    [HttpPost("{id:guid}/packing-list/generate")]
+    public async Task<IActionResult> GeneratePackingList(Guid id)
+    {
+        try
+        {
+            var context = await _documentGenerationService.GetEntityContextAsync("delivery", id);
+            if (context is null)
+                return NotFound(new { error = "Entrega no encontrada" });
+
+            var template = await _templateRepo.GetByNameAsync("Lista de Empaque");
+            if (template is null)
+                return NotFound(new { error = "Plantilla 'Lista de Empaque' no encontrada. Ejecute el seed." });
+
+            var generated = await _documentService.GenerateProfessionalDocumentAsync(
+                template.Id,
+                id,
+                context.Data,
+                "delivery");
+
+            return Ok(new
+            {
+                generatedDocumentId = generated.Id,
+                name = generated.Name,
+                status = generated.Status,
+                createdAt = generated.CreatedAt,
+                downloadUrl = $"/zorvian/v1/documents/{generated.Id}/pdf"
+            });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generando lista de empaque {DeliveryId}", id);
+            return StatusCode(500, new { error = "Error interno al generar el documento" });
+        }
+    }
 }

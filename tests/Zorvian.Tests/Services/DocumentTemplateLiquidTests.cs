@@ -394,6 +394,7 @@ public class DocumentTemplateLiquidTests
     [InlineData("BuildSupplierPaymentReceiptHtml")]
     [InlineData("BuildWarrantyCertificateHtml")]
     [InlineData("BuildDeliveryRouteSheetHtml")]
+    [InlineData("BuildPackingListHtml")]
     [InlineData("BuildFixedAssetCardHtml")]
     [InlineData("BuildKardexHtml")]
     [InlineData("BuildPayrollSheetHtml")]
@@ -758,6 +759,63 @@ public class DocumentTemplateLiquidTests
 
         rendered.Should().Contain("Refacciones Bomba");
         rendered.Should().Contain("LOTE-77");
+        rendered.Should().NotContain("{{");
+    }
+
+    [Fact]
+    public async Task PackingList_ItemsLoop_TotalsAndCheckboxes()
+    {
+        var html = InvokeBuilder("BuildPackingListHtml");
+        var model = new Dictionary<string, object>
+        {
+            ["delivery_code"] = "ENT-002",
+            ["scheduled_date"] = "16/10/2026",
+            ["client_name"] = "Distribuidora Norte",
+            ["delivery_address"] = "Km 12 Carretera Norte",
+            ["driver_name"] = "Pedro Alonso",
+            ["items_count"] = "2",
+            ["total_units"] = "25",
+            ["items"] = new List<Dictionary<string, object>>
+            {
+                new(StringComparer.Ordinal)
+                {
+                    ["product"] = "PRD-1 Filtros de Aceite",
+                    ["lot_serial"] = "LOTE-10",
+                    ["qty_ordered"] = "15",
+                },
+                new(StringComparer.Ordinal)
+                {
+                    ["product"] = "PRD-2 Correas Alternador",
+                    ["lot_serial"] = "SER-9988",
+                    ["qty_ordered"] = "10",
+                },
+            },
+        };
+
+        var rendered = await RenderRawAsync(html, LiquidModelNormalizer.Normalize(model));
+
+        rendered.Should().Contain("LISTA DE EMPAQUE");
+        rendered.Should().Contain("Filtros de Aceite");
+        rendered.Should().Contain("Correas Alternador");
+        rendered.Should().Contain("SER-9988");
+        rendered.Should().Contain("25"); // unidades totales
+        rendered.Should().Contain("class='check'"); // casillas de verificación
+        rendered.Should().NotContain("{{");
+    }
+
+    [Fact]
+    public async Task PackingList_NoItems_ShowsFallbackPlaceholder()
+    {
+        var html = InvokeBuilder("BuildPackingListHtml");
+        var model = new Dictionary<string, object>
+        {
+            ["delivery_code"] = "ENT-003",
+            ["delivery_address"] = "Centro",
+        };
+
+        var rendered = await RenderRawAsync(html, LiquidModelNormalizer.Normalize(model));
+
+        rendered.Should().Contain("se cargan dinámicamente");
         rendered.Should().NotContain("{{");
     }
 

@@ -556,6 +556,32 @@ public sealed class DocumentGenerationServiceContractContextTests
     }
 
     [Fact]
+    public async Task Delivery_ExposesPackingTotals_ForPackingList()
+    {
+        var id = Guid.NewGuid();
+        _deliveryRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(new Core.Entities.Fleet.Delivery
+        {
+            Id = id,
+            Code = "ENT-2026-002",
+            ScheduledDate = new DateOnly(2026, 10, 16),
+            DeliveryAddress = "Centro",
+            Status = "Pending",
+            Items = new List<Core.Entities.Fleet.DeliveryItem>
+            {
+                new() { QtyOrdered = 15 },
+                new() { QtyOrdered = 10 },
+                new() { QtyOrdered = 5 },
+            },
+        });
+
+        var ctx = await CreateSut().GetEntityContextAsync("delivery", id);
+
+        ctx.Should().NotBeNull();
+        ctx!.Data["items_count"].Should().Be("3");
+        ctx.Data["total_units"].Should().Be("30");
+    }
+
+    [Fact]
     public async Task Delivery_WithoutOptionalNavigations_FallsBackToBlankStrings()
     {
         var id = Guid.NewGuid();

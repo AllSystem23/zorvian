@@ -100,10 +100,12 @@ final class _FleetDeliveryListPageState extends ConsumerState<FleetDeliveryListP
                                       if (r2 == true) ref.read(fleetDeliveryProvider.notifier).load();
                                     }
                                     if (action == 'pdf') _generatePdf(d.id);
+                                    if (action == 'packing') _generatePackingList(d.id);
                                     if (action == 'delete') _confirmDelete(d.id, d.code);
                                   },
                                   itemBuilder: (_) => [
                                     const PopupMenuItem(value: 'pdf', child: Text('Generar Hoja de Ruta PDF')),
+                                    const PopupMenuItem(value: 'packing', child: Text('Generar Lista de Empaque PDF')),
                                     const PopupMenuItem(value: 'edit', child: Text('Editar')),
                                     const PopupMenuItem(value: 'delete', child: Text('Eliminar', style: TextStyle(color: Colors.red))),
                                   ],
@@ -130,10 +132,17 @@ final class _FleetDeliveryListPageState extends ConsumerState<FleetDeliveryListP
   }
 
   /// Genera la hoja de ruta/entrega vía el motor documental y la comparte.
-  Future<void> _generatePdf(String deliveryId) async {
+  Future<void> _generatePdf(String deliveryId) =>
+      _generateDocument(deliveryId, 'pdf/generate', 'hoja_ruta', 'Hoja de ruta');
+
+  /// Genera la lista de empaque (picking con casillas de verificación).
+  Future<void> _generatePackingList(String deliveryId) =>
+      _generateDocument(deliveryId, 'packing-list/generate', 'lista_empaque', 'Lista de empaque');
+
+  Future<void> _generateDocument(String deliveryId, String endpoint, String filePrefix, String docLabel) async {
     try {
       final dio = ref.read(dioClientProvider);
-      final r = await dio.post('fleet/deliveries/$deliveryId/pdf/generate');
+      final r = await dio.post('fleet/deliveries/$deliveryId/$endpoint');
       final documentId = r.data['generatedDocumentId'] as String?;
       if (documentId == null) throw Exception('Respuesta sin documento generado');
 
@@ -148,14 +157,14 @@ final class _FleetDeliveryListPageState extends ConsumerState<FleetDeliveryListP
           XFile.fromData(
             Uint8List.fromList(bytes),
             mimeType: 'application/pdf',
-            name: 'hoja_ruta_$deliveryId.pdf',
+            name: '${filePrefix}_$deliveryId.pdf',
           ),
         ]),
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Hoja de ruta generada (${bytes.length ~/ 1024} KB)'),
+            content: Text('$docLabel generada (${bytes.length ~/ 1024} KB)'),
             backgroundColor: Colors.green,
           ),
         );

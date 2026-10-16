@@ -64,7 +64,7 @@ public sealed class DocumentTemplateSeederTests : IDisposable
 
         var templates = await AllTemplates();
 
-        Assert.Equal(26, templates.Count);
+        Assert.Equal(27, templates.Count);
         Assert.Contains(templates, t => t.Name == "Contrato de Trabajo a Término Indefinido");
         Assert.Contains(templates, t => t.Name == "Carta de Oferta Laboral");
         Assert.Contains(templates, t => t.Name == "Constancia de Empleo");
@@ -85,6 +85,7 @@ public sealed class DocumentTemplateSeederTests : IDisposable
         Assert.Contains(templates, t => t.Name == "Recibo de Pago (Proveedor)");
         Assert.Contains(templates, t => t.Name == "Certificado de Garantía");
         Assert.Contains(templates, t => t.Name == "Hoja de Ruta / Entrega");
+        Assert.Contains(templates, t => t.Name == "Lista de Empaque");
         Assert.Contains(templates, t => t.Name == "Ficha de Activo Fijo");
         Assert.Contains(templates, t => t.Name == "Kardex de Producto");
         Assert.Contains(templates, t => t.Name == "Solicitud de Cotización");
@@ -159,14 +160,14 @@ public sealed class DocumentTemplateSeederTests : IDisposable
 
         var refreshed = (await AllTemplates()).Single(t => t.Name == "Cotización Comercial");
         Assert.Equal("MARCADOR-DEL-USUARIO", refreshed.Content);
-        Assert.Equal(26, (await AllTemplates()).Count);
+        Assert.Equal(27, (await AllTemplates()).Count);
     }
 
     [Fact]
     public async Task SeedAsync_InsertsMissingSeededTemplates_IntoExistingDatabases()
     {
         // BD existente que solo tiene una plantilla de usuario y una sembrada vieja:
-        // el seeder debe insertar las 25 sembradas que faltan sin tocar las existentes.
+        // el seeder debe insertar las 26 sembradas que faltan sin tocar las existentes.
         _db.DocumentTemplates.AddRange(
             Legacy("Mi Plantilla Personalizada", "1.0", "ALL", "contenido de usuario"),
             Legacy("Constancia de Empleo", "2.1", "ALL", "constancia del usuario"));
@@ -175,7 +176,7 @@ public sealed class DocumentTemplateSeederTests : IDisposable
         await DocumentTemplateSeeder.SeedAsync(_db, _logger);
 
         var all = await AllTemplates();
-        Assert.Equal(27, all.Count); // 2 preexistentes + 25 sembradas faltantes (Constancia ya existía)
+        Assert.Equal(28, all.Count); // 2 preexistentes + 26 sembradas faltantes (Constancia ya existía)
 
         var userTemplate = all.Single(t => t.Name == "Mi Plantilla Personalizada");
         Assert.Equal("contenido de usuario", userTemplate.Content);
@@ -196,6 +197,7 @@ public sealed class DocumentTemplateSeederTests : IDisposable
         Assert.Contains(all, t => t.Name == "Recibo de Pago (Proveedor)");
         Assert.Contains(all, t => t.Name == "Certificado de Garantía");
         Assert.Contains(all, t => t.Name == "Hoja de Ruta / Entrega");
+        Assert.Contains(all, t => t.Name == "Lista de Empaque");
         Assert.Contains(all, t => t.Name == "Ficha de Activo Fijo");
         Assert.Contains(all, t => t.Name == "Kardex de Producto");
         Assert.Contains(all, t => t.Name == "Solicitud de Cotización");
@@ -218,8 +220,8 @@ public sealed class DocumentTemplateSeederTests : IDisposable
         await DocumentTemplateSeeder.SeedAsync(_db, _logger);
 
         var all = await AllTemplates();
-        // 3 preexistentes + 24 sembradas faltantes (cotización y contrato ya existían).
-        Assert.Equal(27, all.Count);
+        // 3 preexistentes + 25 sembradas faltantes (cotización y contrato ya existían).
+        Assert.Equal(28, all.Count);
 
         var quote = all.Single(t => t.Name == "Cotización Comercial");
         Assert.Equal("2.1", quote.Version);
