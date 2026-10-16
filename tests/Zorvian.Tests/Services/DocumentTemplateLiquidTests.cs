@@ -822,6 +822,95 @@ public class DocumentTemplateLiquidTests
         cancelledHtml.Should().NotContain("APROBADA");
     }
 
+    // ── Solicitud de Cotización (plantilla de la tanda 4) ──
+
+    [Fact]
+    public async Task PurchaseRequest_ItemsLoopTotalAndRejectedSeal()
+    {
+        var html = InvokeBuilder("BuildPurchaseRequestHtml");
+        var model = new Dictionary<string, object>
+        {
+            ["request_number"] = "SC-20261016-0001",
+            ["request_date"] = "16/10/2026",
+            ["title"] = "Reposición de laptops",
+            ["priority"] = "Alta",
+            ["requested_by"] = "ana@zorvian.com",
+            ["branch_name"] = "Sucursal Central",
+            ["request_status"] = "rejected",
+            ["rejection_reason"] = "Presupuesto no disponible este mes",
+            ["Request.EstimatedTotal"] = "2,400.00",
+            ["Country.Currency"] = "C$",
+            ["items"] = new List<Dictionary<string, object>>
+            {
+                new(StringComparer.Ordinal)
+                {
+                    ["code"] = "PRD-LAP-01",
+                    ["description"] = "Laptop Lenovo ThinkPad E14",
+                    ["quantity"] = "3",
+                    ["unit_price"] = "800.00",
+                    ["subtotal"] = "2,400.00",
+                },
+            },
+        };
+
+        var rendered = await RenderRawAsync(html, LiquidModelNormalizer.Normalize(model));
+
+        rendered.Should().Contain("SC-20261016-0001");
+        rendered.Should().Contain("Laptop Lenovo ThinkPad E14", "el bucle {% for %} debe renderizar la fila");
+        rendered.Should().Contain("RECHAZADA");
+        rendered.Should().Contain("Presupuesto no disponible este mes");
+        rendered.Should().NotContain("{{");
+
+        var fallback = await RenderRawAsync(html, LiquidModelNormalizer.Normalize(
+            new Dictionary<string, object> { ["request_number"] = "SC-20261016-0002", ["request_status"] = "draft" }));
+        fallback.Should().Contain("Los items se cargan dinámicamente");
+        fallback.Should().NotContain("RECHAZADA", "un borrador no lleva sello de rechazo");
+    }
+
+    // ── Transferencia entre Bodegas (plantilla de la tanda 4) ──
+
+    [Fact]
+    public async Task StockTransfer_ItemsLoopBranchesAndInTransitSeal()
+    {
+        var html = InvokeBuilder("BuildStockTransferHtml");
+        var model = new Dictionary<string, object>
+        {
+            ["transfer_number"] = "TR-20261016-0001",
+            ["transfer_date"] = "16/10/2026",
+            ["from_branch"] = "Sucursal Central",
+            ["to_branch"] = "Sucursal Norte",
+            ["dispatched_at"] = "16/10/2026 14:30",
+            ["transfer_status"] = "in_transit",
+            ["items_total"] = "1,500.00",
+            ["Country.Currency"] = "C$",
+            ["items"] = new List<Dictionary<string, object>>
+            {
+                new(StringComparer.Ordinal)
+                {
+                    ["code"] = "PRD-REF-09",
+                    ["description"] = "Refacciones Bomba de Agua",
+                    ["quantity"] = "10",
+                    ["unit_price"] = "150.00",
+                    ["subtotal"] = "1,500.00",
+                },
+            },
+        };
+
+        var rendered = await RenderRawAsync(html, LiquidModelNormalizer.Normalize(model));
+
+        rendered.Should().Contain("TR-20261016-0001");
+        rendered.Should().Contain("Sucursal Central");
+        rendered.Should().Contain("Sucursal Norte");
+        rendered.Should().Contain("Refacciones Bomba de Agua", "el bucle {% for %} debe renderizar la fila");
+        rendered.Should().Contain("EN TRÁNSITO");
+        rendered.Should().NotContain("{{");
+
+        var completed = await RenderRawAsync(html, LiquidModelNormalizer.Normalize(
+            new Dictionary<string, object> { ["transfer_number"] = "TR-20261016-0002", ["transfer_status"] = "completed" }));
+        completed.Should().Contain("COMPLETADA");
+        completed.Should().NotContain("EN TRÁNSITO");
+    }
+
     // ── Acta de Recepción (Taller) ──
 
     [Fact]

@@ -2,18 +2,18 @@
 
 Esta guía sirve para completar la implementación de documentos faltantes usando el Motor Documental Inteligente (Liquid + DocumentService.GenerateProfessionalDocumentAsync).
 
-## Estado actual (2026-10-15)
+## Estado actual (2026-10-16)
 - ✅ RRHH: Constancia de Empleo, Contrato de Trabajo, Carta de Oferta, Constancias vía solicitudes (salarial/laboral/contrato/liquidacion/poder), Liquidación Final (NIC)
 - ✅ Comerciales: Cotización, Proforma, Factura, Guía de Despacho, Nota de Crédito
-- ✅ Compras: Orden de Compra (**con sello por estado: APROBADA / RECIBIDA PARCIALMENTE / COMPLETADA / CANCELADA**), Acta de Recepción de Compras, **Recibo de Pago (Proveedor)**
+- ✅ Compras: Orden de Compra (**con sello por estado: APROBADA / RECIBIDA PARCIALMENTE / COMPLETADA / CANCELADA**), Acta de Recepción de Compras, **Recibo de Pago (Proveedor)**, **Solicitud de Cotización** (entidad PurchaseRequest construida en esta tanda)
 - ✅ Finanzas/Caja: Recibo de Pago (Cliente), Comprobante de Caja (Ingreso/Egreso — una plantilla con `movement_title` variable), **Ficha de Activo Fijo**
 - ✅ Fleet: Orden de Trabajo, **Hoja de Ruta / Entrega**, **Acta de Recepción (Taller)**
 - ✅ Garantías: **Certificado de Garantía**
-- ✅ Inventario: **Kardex de Producto** (endpoint por producto: totales de entradas/salidas, período y stock)
+- ✅ Inventario: **Kardex de Producto** (endpoint por producto: totales de entradas/salidas, período y stock), **Transferencia entre Bodegas** (entidad StockTransfer construida en esta tanda)
 - ✅ Otros: Poder Notarial General
-- ✅ **Ítems tabulados**: 7 plantillas renderizan filas reales vía `{% for %}` (Factura, Cotización, Nota de Crédito, OC, Acta de Compras, Hoja de Ruta, Kardex)
+- ✅ **Ítems tabulados**: 9 plantillas renderizan filas reales vía `{% for %}` (Factura, Cotización, Nota de Crédito, OC, Acta de Compras, Hoja de Ruta, Kardex, Solicitud de Cotización, Transferencia entre Bodegas)
 
-Plantillas sembradas: **21** (6 en v2.1 multi-país + Liquidación NIC 1.1 + 14 en v1.0). El seeder **inserta las plantillas faltantes idempotentemente** en BDs existentes (`InsertMissingSeededTemplatesAsync`), así las nuevas llegan en el próximo arranque sin borrar la BD.
+Plantillas sembradas: **23** (6 en v2.1 multi-país + Liquidación NIC 1.1 + 16 en v1.0). El seeder **inserta las plantillas faltantes idempotentemente** en BDs existentes (`InsertMissingSeededTemplatesAsync`), así las nuevas llegan en el próximo arranque sin borrar la BD.
 
 ### Endpoints implementados (POST → genera + devuelve downloadUrl `/zorvian/v1/documents/{id}/pdf`)
 | Documento | Endpoint | Contexto | Plantilla |
@@ -31,18 +31,20 @@ Plantillas sembradas: **21** (6 en v2.1 multi-país + Liquidación NIC 1.1 + 14 
 | Hoja de Ruta / Entrega | `/zorvian/v1/fleet/deliveries/{id}/pdf/generate` | `delivery` | Hoja de Ruta / Entrega |
 | Ficha de Activo Fijo | `/zorvian/v1/fixed-assets/{id}/pdf/generate` | `fixedasset` | Ficha de Activo Fijo (backend-only: no hay página de activos fijos en el frontend) |
 | Kardex de Producto | `/zorvian/v1/products/{id}/kardex/generate` | `kardex` | Kardex de Producto (botón en el popup por fila del listado de productos) |
+| Solicitud de Cotización | `/zorvian/v1/purchase-requests/{id}/pdf/generate` | `purchaserequest` | Solicitud de Cotización (botón "Generar PDF" en el detalle; sello por estado + prioridad) |
+| Transferencia entre Bodegas | `/zorvian/v1/stock-transfers/{id}/pdf/generate` | `stocktransfer` | Transferencia entre Bodegas (botón "Generar PDF" en el detalle; sello BORRADOR/EN TRÁNSITO/COMPLETADA) |
 
 ## 1. Compras / Proveedores
 | Documento | Entidad | Tipo | Prioridad | Notas |
 |---|---|---|---|---|
 | ~~Orden de Compra Aprobada~~ | PurchaseOrder | purchase_order_approved | ✅ | **Resuelto**: mismo template OC + `{% if order_status == 'approved' %}` (badge APROBADA; también parcial/completada/cancelada). Clave `order_status` en el contexto `purchaseorder`. |
-| Solicitud de Cotización (SC) | ~~PurchaseRequest~~ | purchase_request | ⛔ | **Descartado**: la entidad `PurchaseRequest` NO existe en el codebase. Requiere construir el módulo de solicitudes de compra (entidad + migración + flujo de aprobación) antes que el documento. |
+| ~~Solicitud de Cotización (SC)~~ | PurchaseRequest | purchase_request | ✅ | **Resuelto (tanda 4)**: entidad `PurchaseRequest` + `PurchaseRequestDetail` construidas (estados draft→submitted→approved/rejected/cancelled, numeración `SC-YYYYMMDD-NNNN`, sucursal obligatoria), plantilla "Solicitud de Cotización" (Module Purchase), contexto `purchaserequest` con `items` + sello por estado + etiqueta de prioridad, endpoint `POST /purchase-requests/{id}/pdf/generate`, frontend completo (`/purchase-requests`: lista + form + detalle con acciones Enviar/Aprobar/Rechazar/Anular y botón PDF). |
 
 ## 2. Logística / Taller
 | Documento | Entidad | Tipo | Prioridad | Notas |
 |---|---|---|---|---|
 | ~~Acta de Recepción (Taller)~~ | WorkOrder | workshop_receipt | ✅ | **Resuelto**: plantilla "Acta de Recepción (Taller)" + contexto `workshopreceipt` + endpoint `receipt/pdf/generate` + botón en frontend. |
-| Transferencia entre Bodegas | ~~StockTransfer~~ | stock_transfer | ⛔ | **Descartado**: la entidad `StockTransfer` NO existe (solo hay movimientos de inventario con tipos sale/purchase/initial/…, sin tipo transfer). Requiere construir el flujo de transferencias antes que el documento. |
+| ~~Transferencia entre Bodegas~~ | StockTransfer | stock_transfer | ✅ | **Resuelto (tanda 4)**: entidad `StockTransfer` + `StockTransferDetail` construidas (estados draft→in_transit→completed/cancelled, numeración `TR-YYYYMMDD-NNNN`, SIN columna BranchId: filtro origen O destino, clon de producto en destino si el código no existe allí, costo promedio ponderado al recibir), plantilla "Transferencia entre Bodegas" (Module Inventory), contexto `stocktransfer` con `items` + sello por estado, endpoint `POST /stock-transfers/{id}/pdf/generate`, frontend completo (`/stock-transfers`: lista + form origen/destino + detalle con Despachar/Recibir/Anular y botón PDF). |
 
 ## Patrón de implementación
 1. Plantilla HTML en DocumentTemplateSeeder (Build{Nombre}Html) — escaping C#: en `$@""` las claves Liquid van con 4 llaves `{{{{ X }}}}` y `{% if %}` como `{{% if %}}`
@@ -60,10 +62,9 @@ Plantillas sembradas: **21** (6 en v2.1 multi-país + Liquidación NIC 1.1 + 14 
 - Certificados: `GetCertificateContextAsync` aplana `Data` a string antes de los `Enrich*` (sigue devolviendo `Dictionary<string,string>` por contrato de interfaz).
 
 ## Próxima tanda recomendada
-**No quedan documentos del inventario originalemente previsto** — los 4 pendientes se resolvieron o descartaron (ver tablas 1 y 2). Pendientes transversales que sí quedaron cerrados en esta pasada:
-- ✅ Refactor `IEntityDocumentContextBuilder` (constructor de DocumentGenerationService: 19 → 6 deps).
-- ✅ Ítems tabulados (pipeline + 7 plantillas).
+**El inventario original está 100% cerrado** — los 2 documentos descartados por falta de entidad se resolvieron construyendo las entidades (tanda 4: PurchaseRequest y StockTransfer). Candidatos naturales si el backlog pide nuevos documentos:
+- **Guía de Remisión/Traslado por sucursal** (reutilizaría el contexto `sale`, sin entidad nueva).
+- Documentos de nómina multi-país (actualizar Liquidación NIC al resto de países).
+- Picking/packing list para preparación de pedidos (reutilizaría `delivery`).
 
-Si el backlog pide nuevos documentos, los candidatos naturales son los que requieren **entidades nuevas primero**: Solicitud de Cotización (PurchaseRequest) y Transferencia entre Bodegas (StockTransfer). Un candidato ya viable sin entidad nueva: **Guía de Remisión/Traslado por sucursal** (reutilizaría el contexto `sale`).
-
-> **Nota (2026-10-15, cierre)**: `DocumentGenerationService` quedó en **6 dependencias** (`IDocumentService`, `IEntityDocumentContextBuilder`, `IEmployeeRepository`, `ICompanyRepository`, `ICertificateCalculator`, `ITenantContext`) y `EntityDocumentContextBuilder` concentra los **18 repos** (incluye `IQuoteRepository` — el caso `quote` es nuevo y alimenta la plantilla Cotización Comercial). Registro DI en `DependencyInjectionExtensions`. Suite al cierre: **1061/1061** backend, `flutter analyze lib` 0 issues, **351/351** frontend.
+> **Nota (2026-10-16, cierre tanda 4)**: las 2 entidades nuevas incluyen migración EF (`AddPurchaseRequestAndStockTransfer` + secuencias `seq_purchase_request_number`/`seq_stock_transfer_number`), RLS en `SECURITY_RLS.sql` (bloques 1 y 2, Phase 8) + `test_rls_staging.sql`, enforcement de módulos (`PurchaseRequests`→Purchases, `StockTransfers`→Inventory), servicios con máquina de estados y BranchValidator, y tests (contexto, render Liquid, seeder 23/24, visibilidad, servicios y matrices de repositorio). Suite al cierre: **1114/1114** backend, `flutter analyze lib` 0 issues, **357/357** frontend.

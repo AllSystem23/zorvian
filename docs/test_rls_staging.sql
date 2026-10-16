@@ -57,7 +57,10 @@ INSERT INTO expected_rls_tables VALUES
     -- Phase 6: Purchases & Suppliers (7)
     ('SupplierPayments'), ('SupplierCreditNotes'),
     ('CreditNotes'), ('CreditNoteDetails'), ('PurchaseOrders'),
-    ('PurchaseOrderDetails'), ('PurchaseDetails');
+    ('PurchaseOrderDetails'), ('PurchaseDetails'),
+    -- Phase 8: Purchase Requests & Stock Transfers (4)
+    ('PurchaseRequests'), ('PurchaseRequestDetails'),
+    ('StockTransfers'), ('StockTransferDetails');
 
 SELECT
     e.tablename,

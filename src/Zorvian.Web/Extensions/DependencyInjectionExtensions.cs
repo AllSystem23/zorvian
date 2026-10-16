@@ -147,11 +147,15 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<ITaxCategoryRepository, TaxCategoryRepository>();
         services.AddScoped<IInventoryMovementRepository, InventoryMovementRepository>();
+        services.AddScoped<IStockTransferRepository, StockTransferRepository>();
+        services.AddScoped<StockTransferService>();
 
         // Purchases
         services.AddScoped<IPurchaseRepository, PurchaseRepository>();
         services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
         services.AddScoped<PurchaseOrderService>();
+        services.AddScoped<IPurchaseRequestRepository, PurchaseRequestRepository>();
+        services.AddScoped<PurchaseRequestService>();
         services.AddScoped<ISupplierPaymentRepository, SupplierPaymentRepository>();
         services.AddScoped<ISupplierCreditNoteRepository, SupplierCreditNoteRepository>();
         services.AddScoped<IWithholdingRepository, WithholdingRepository>();

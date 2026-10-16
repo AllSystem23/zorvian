@@ -8,10 +8,11 @@ using Zorvian.Infrastructure.Data;
 namespace Zorvian.Tests.Services;
 
 /// <summary>
-/// El seeder de plantillas documentales debe: (1) crear las 21 plantillas
+/// El seeder de plantillas documentales debe: (1) crear las 23 plantillas
 /// (6 multi-país v2.1 + liquidación NIC + 8 de tandas 1-2 + 5 de la tanda 3:
 /// Recibo de Pago Proveedor, Certificado de Garantía, Hoja de Ruta,
-/// Ficha de Activo Fijo y Kardex + Acta de Recepción (Taller)),
+/// Ficha de Activo Fijo y Kardex + Acta de Recepción (Taller) + 2 de la tanda 4:
+/// Solicitud de Cotización y Transferencia entre Bodegas),
 /// (2) ser idempotente (no pisar plantillas ya actuales ni las de usuario),
 /// (3) refrescar las versiones viejas (1.0 Nicaragua-hardcodeado / 2.0) aunque
 /// los nombres hayan ganado acentos (match por nombre normalizado), y
@@ -62,7 +63,7 @@ public sealed class DocumentTemplateSeederTests : IDisposable
 
         var templates = await AllTemplates();
 
-        Assert.Equal(21, templates.Count);
+        Assert.Equal(23, templates.Count);
         Assert.Contains(templates, t => t.Name == "Contrato de Trabajo a Término Indefinido");
         Assert.Contains(templates, t => t.Name == "Carta de Oferta Laboral");
         Assert.Contains(templates, t => t.Name == "Constancia de Empleo");
@@ -84,6 +85,8 @@ public sealed class DocumentTemplateSeederTests : IDisposable
         Assert.Contains(templates, t => t.Name == "Hoja de Ruta / Entrega");
         Assert.Contains(templates, t => t.Name == "Ficha de Activo Fijo");
         Assert.Contains(templates, t => t.Name == "Kardex de Producto");
+        Assert.Contains(templates, t => t.Name == "Solicitud de Cotización");
+        Assert.Contains(templates, t => t.Name == "Transferencia entre Bodegas");
 
         var multiCountry = templates.Where(t => t.Name != "Liquidación Final (Nicaragua)").ToList();
         Assert.All(multiCountry, t => Assert.Equal("ALL", t.CountryCode));
@@ -104,7 +107,8 @@ public sealed class DocumentTemplateSeederTests : IDisposable
                      "Comprobante de Caja", "Orden de Trabajo",
                      "Acta de Recepción (Taller)",
                      "Recibo de Pago (Proveedor)", "Certificado de Garantía",
-                     "Hoja de Ruta / Entrega", "Ficha de Activo Fijo", "Kardex de Producto"
+                     "Hoja de Ruta / Entrega", "Ficha de Activo Fijo", "Kardex de Producto",
+                     "Solicitud de Cotización", "Transferencia entre Bodegas"
                  })
             Assert.Equal("1.0", templates.Single(t => t.Name == name).Version);
 
@@ -130,6 +134,8 @@ public sealed class DocumentTemplateSeederTests : IDisposable
         Assert.Equal("Fleet", templates.Single(t => t.Name == "Hoja de Ruta / Entrega").Module);
         Assert.Equal("Finance", templates.Single(t => t.Name == "Ficha de Activo Fijo").Module);
         Assert.Equal("Inventory", templates.Single(t => t.Name == "Kardex de Producto").Module);
+        Assert.Equal("Purchase", templates.Single(t => t.Name == "Solicitud de Cotización").Module);
+        Assert.Equal("Inventory", templates.Single(t => t.Name == "Transferencia entre Bodegas").Module);
     }
 
     [Fact]
@@ -145,14 +151,14 @@ public sealed class DocumentTemplateSeederTests : IDisposable
 
         var refreshed = (await AllTemplates()).Single(t => t.Name == "Cotización Comercial");
         Assert.Equal("MARCADOR-DEL-USUARIO", refreshed.Content);
-        Assert.Equal(21, (await AllTemplates()).Count);
+        Assert.Equal(23, (await AllTemplates()).Count);
     }
 
     [Fact]
     public async Task SeedAsync_InsertsMissingSeededTemplates_IntoExistingDatabases()
     {
         // BD existente que solo tiene una plantilla de usuario y una sembrada vieja:
-        // el seeder debe insertar las 20 sembradas que faltan sin tocar las existentes.
+        // el seeder debe insertar las 22 sembradas que faltan sin tocar las existentes.
         _db.DocumentTemplates.AddRange(
             Legacy("Mi Plantilla Personalizada", "1.0", "ALL", "contenido de usuario"),
             Legacy("Constancia de Empleo", "2.1", "ALL", "constancia del usuario"));
@@ -161,7 +167,7 @@ public sealed class DocumentTemplateSeederTests : IDisposable
         await DocumentTemplateSeeder.SeedAsync(_db, _logger);
 
         var all = await AllTemplates();
-        Assert.Equal(22, all.Count); // 2 preexistentes + 20 sembradas faltantes (Constancia ya existía)
+        Assert.Equal(24, all.Count); // 2 preexistentes + 22 sembradas faltantes (Constancia ya existía)
 
         var userTemplate = all.Single(t => t.Name == "Mi Plantilla Personalizada");
         Assert.Equal("contenido de usuario", userTemplate.Content);
@@ -183,6 +189,8 @@ public sealed class DocumentTemplateSeederTests : IDisposable
         Assert.Contains(all, t => t.Name == "Hoja de Ruta / Entrega");
         Assert.Contains(all, t => t.Name == "Ficha de Activo Fijo");
         Assert.Contains(all, t => t.Name == "Kardex de Producto");
+        Assert.Contains(all, t => t.Name == "Solicitud de Cotización");
+        Assert.Contains(all, t => t.Name == "Transferencia entre Bodegas");
     }
 
     [Fact]
@@ -199,8 +207,8 @@ public sealed class DocumentTemplateSeederTests : IDisposable
         await DocumentTemplateSeeder.SeedAsync(_db, _logger);
 
         var all = await AllTemplates();
-        // 3 preexistentes + 19 sembradas faltantes (cotización y contrato ya existían).
-        Assert.Equal(22, all.Count);
+        // 3 preexistentes + 21 sembradas faltantes (cotización y contrato ya existían).
+        Assert.Equal(24, all.Count);
 
         var quote = all.Single(t => t.Name == "Cotización Comercial");
         Assert.Equal("2.1", quote.Version);

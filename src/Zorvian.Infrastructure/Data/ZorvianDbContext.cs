@@ -123,6 +123,10 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<PurchaseDetail> PurchaseDetails => Set<PurchaseDetail>();
     public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
     public DbSet<PurchaseOrderDetail> PurchaseOrderDetails => Set<PurchaseOrderDetail>();
+    public DbSet<PurchaseRequest> PurchaseRequests => Set<PurchaseRequest>();
+    public DbSet<PurchaseRequestDetail> PurchaseRequestDetails => Set<PurchaseRequestDetail>();
+    public DbSet<StockTransfer> StockTransfers => Set<StockTransfer>();
+    public DbSet<StockTransferDetail> StockTransferDetails => Set<StockTransferDetail>();
     public DbSet<SupplierPayment> SupplierPayments => Set<SupplierPayment>();
     public DbSet<SupplierCreditNote> SupplierCreditNotes => Set<SupplierCreditNote>();
     public DbSet<Withholding> Withholdings => Set<Withholding>();
@@ -1039,6 +1043,10 @@ public sealed class ZorvianDbContext : DbContext
         builder.Entity<Quote>().HasIndex(q => new { q.TenantId, q.BranchId });
         builder.Entity<Purchase>().HasIndex(p => new { p.TenantId, p.BranchId });
         builder.Entity<PurchaseOrder>().HasIndex(po => new { po.TenantId, po.BranchId });
+        builder.Entity<PurchaseRequest>().HasIndex(pr => new { pr.TenantId, pr.BranchId });
+        // StockTransfer no tiene BranchId propio (abarcado por diseño): el índice va
+        // por la sucursal de ORIGEN, la más frecuente en búsquedas del listado.
+        builder.Entity<StockTransfer>().HasIndex(st => new { st.TenantId, st.FromBranchId });
         builder.Entity<Warranty>().HasIndex(w => new { w.TenantId, w.BranchId });
         builder.Entity<CashRegister>().HasIndex(cr => new { cr.TenantId, cr.BranchId });
         builder.Entity<InventoryMovement>().HasIndex(im => new { im.TenantId, im.BranchId });
@@ -1739,6 +1747,74 @@ public sealed class ZorvianDbContext : DbContext
             e.HasOne(d => d.PurchaseOrder)
                 .WithMany(o => o.Details)
                 .HasForeignKey(d => d.PurchaseOrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(d => d.Product)
+                .WithMany()
+                .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(d => (d.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.BypassTenantFilter) && !d.IsDeleted);
+        });
+
+        builder.Entity<PurchaseRequest>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.Property(r => r.RequestNumber).HasMaxLength(30).IsRequired();
+            e.Property(r => r.Title).HasMaxLength(200).IsRequired();
+            e.Property(r => r.Priority).HasMaxLength(20).IsRequired();
+            e.Property(r => r.Status).HasMaxLength(30).IsRequired();
+            e.Property(r => r.RejectionReason).HasMaxLength(500);
+            e.Property(r => r.EstimatedTotal).HasColumnType("decimal(18,2)");
+            e.Property(r => r.Notes).HasMaxLength(500);
+            e.HasOne(r => r.Branch)
+                .WithMany()
+                .HasForeignKey(r => r.BranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(r => r.RequestNumber).IsUnique();
+            e.HasQueryFilter(r => (r.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.BypassTenantFilter) && !r.IsDeleted);
+        });
+
+        builder.Entity<PurchaseRequestDetail>(e =>
+        {
+            e.HasKey(d => d.Id);
+            e.Property(d => d.EstimatedUnitPrice).HasColumnType("decimal(19,4)");
+            e.Property(d => d.Subtotal).HasColumnType("decimal(18,2)");
+            e.Property(d => d.Notes).HasMaxLength(500);
+            e.HasOne(d => d.PurchaseRequest)
+                .WithMany(r => r.Details)
+                .HasForeignKey(d => d.PurchaseRequestId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(d => d.Product)
+                .WithMany()
+                .HasForeignKey(d => d.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(d => (d.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.BypassTenantFilter) && !d.IsDeleted);
+        });
+
+        builder.Entity<StockTransfer>(e =>
+        {
+            e.HasKey(t => t.Id);
+            e.Property(t => t.TransferNumber).HasMaxLength(30).IsRequired();
+            e.Property(t => t.Status).HasMaxLength(30).IsRequired();
+            e.Property(t => t.Notes).HasMaxLength(500);
+            e.HasOne(t => t.FromBranch)
+                .WithMany()
+                .HasForeignKey(t => t.FromBranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(t => t.ToBranch)
+                .WithMany()
+                .HasForeignKey(t => t.ToBranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(t => t.TransferNumber).IsUnique();
+            e.HasQueryFilter(t => (t.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.BypassTenantFilter) && !t.IsDeleted);
+        });
+
+        builder.Entity<StockTransferDetail>(e =>
+        {
+            e.HasKey(d => d.Id);
+            e.Property(d => d.UnitCost).HasColumnType("decimal(19,4)");
+            e.HasOne(d => d.StockTransfer)
+                .WithMany(t => t.Details)
+                .HasForeignKey(d => d.StockTransferId)
                 .OnDelete(DeleteBehavior.Cascade);
             e.HasOne(d => d.Product)
                 .WithMany()

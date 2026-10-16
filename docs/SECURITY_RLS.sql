@@ -152,6 +152,15 @@ ALTER TABLE IF EXISTS "PurchaseOrderDetails" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS "PurchaseDetails" ENABLE ROW LEVEL SECURITY;
 
 -- ====================================================================
+-- Phase 8: Purchase Requests & Stock Transfers (4 tables)
+-- ====================================================================
+
+ALTER TABLE IF EXISTS "PurchaseRequests" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "PurchaseRequestDetails" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "StockTransfers" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "StockTransferDetails" ENABLE ROW LEVEL SECURITY;
+
+-- ====================================================================
 -- Create RLS policies via DO blocks
 -- ====================================================================
 
@@ -196,7 +205,10 @@ BEGIN
         -- Phase 6: Purchases (7)
         'SupplierPayments','SupplierCreditNotes',
         'CreditNotes','CreditNoteDetails',
-        'PurchaseOrders','PurchaseOrderDetails','PurchaseDetails'
+        'PurchaseOrders','PurchaseOrderDetails','PurchaseDetails',
+        -- Phase 8: Purchase Requests & Stock Transfers (4)
+        'PurchaseRequests','PurchaseRequestDetails',
+        'StockTransfers','StockTransferDetails'
     ])
     LOOP
         IF to_regclass(format('public.%I', tbl)) IS NULL THEN
@@ -277,7 +289,9 @@ BEGIN
         'BudgetDetails','BudgetTrackings',
         'SupplierPayments','SupplierCreditNotes',
         'CreditNotes','CreditNoteDetails',
-        'PurchaseOrders','PurchaseOrderDetails','PurchaseDetails'
+        'PurchaseOrders','PurchaseOrderDetails','PurchaseDetails',
+        'PurchaseRequests','PurchaseRequestDetails',
+        'StockTransfers','StockTransferDetails'
     ])
     LOOP
         IF to_regclass(format('public.%I', tbl)) IS NULL THEN

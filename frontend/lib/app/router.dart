@@ -119,6 +119,12 @@ import '../features/purchases/pages/inventory_adjustment_page.dart';
 import '../features/purchase_orders/pages/purchase_order_list_page.dart';
 import '../features/purchase_orders/pages/purchase_order_form_page.dart';
 import '../features/purchase_orders/pages/purchase_order_detail_page.dart';
+import '../features/purchase_requests/pages/purchase_request_list_page.dart';
+import '../features/purchase_requests/pages/purchase_request_form_page.dart';
+import '../features/purchase_requests/pages/purchase_request_detail_page.dart';
+import '../features/stock_transfers/pages/stock_transfer_list_page.dart';
+import '../features/stock_transfers/pages/stock_transfer_form_page.dart';
+import '../features/stock_transfers/pages/stock_transfer_detail_page.dart';
 import '../features/approval/pages/approval_flow_list_page.dart';
 import '../features/approval/pages/approval_flow_form_page.dart';
 import '../features/approval/pages/approval_pending_page.dart';
@@ -951,6 +957,24 @@ GoRouter buildGoRouter(AuthState authState) {
             routes: [
               GoRoute(path: 'new', name: 'purchase-order-new', builder: (_, _) => const PurchaseOrderFormPage()),
               GoRoute(path: ':purchaseOrderId', name: 'purchase-order-detail', builder: (_, state) => PurchaseOrderDetailPage(purchaseOrderId: state.pathParameters['purchaseOrderId']!)),
+            ],
+          ),
+          GoRoute(
+            path: '/purchase-requests',
+            name: 'purchase-requests',
+            builder: (_, _) => const PurchaseRequestListPage(),
+            routes: [
+              GoRoute(path: 'new', name: 'purchase-request-new', builder: (_, _) => const PurchaseRequestFormPage()),
+              GoRoute(path: ':purchaseRequestId', name: 'purchase-request-detail', builder: (_, state) => PurchaseRequestDetailPage(purchaseRequestId: state.pathParameters['purchaseRequestId']!)),
+            ],
+          ),
+          GoRoute(
+            path: '/stock-transfers',
+            name: 'stock-transfers',
+            builder: (_, _) => const StockTransferListPage(),
+            routes: [
+              GoRoute(path: 'new', name: 'stock-transfer-new', builder: (_, _) => const StockTransferFormPage()),
+              GoRoute(path: ':stockTransferId', name: 'stock-transfer-detail', builder: (_, state) => StockTransferDetailPage(stockTransferId: state.pathParameters['stockTransferId']!)),
             ],
           ),
           GoRoute(

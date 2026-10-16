@@ -411,6 +411,40 @@ public static class DocumentTemplateSeeder
             Content = BuildKardexHtml()
         });
 
+        // ── Purchases: Solicitud de Cotización ──
+        templates.Add(new DocumentTemplate
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            CreatedAt = now,
+            CreatedBy = "system",
+            Name = "Solicitud de Cotización",
+            Category = "Purchase",
+            Module = "Purchase",
+            CountryCode = "ALL",
+            IsActive = true,
+            Version = "1.0",
+            Variables = "[{\"key\":\"request_number\",\"label\":\"No. Solicitud\",\"type\":\"text\",\"required\":true},{\"key\":\"request_date\",\"label\":\"Fecha\",\"type\":\"date\",\"required\":true},{\"key\":\"title\",\"label\":\"Título\",\"type\":\"text\",\"required\":true},{\"key\":\"priority\",\"label\":\"Prioridad\",\"type\":\"text\",\"required\":false},{\"key\":\"needed_by_date\",\"label\":\"Requerida Para\",\"type\":\"date\",\"required\":false},{\"key\":\"requested_by\",\"label\":\"Solicitante\",\"type\":\"text\",\"required\":false}]",
+            Content = BuildPurchaseRequestHtml()
+        });
+
+        // ── Inventory: Transferencia entre Bodegas ──
+        templates.Add(new DocumentTemplate
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            CreatedAt = now,
+            CreatedBy = "system",
+            Name = "Transferencia entre Bodegas",
+            Category = "Inventory",
+            Module = "Inventory",
+            CountryCode = "ALL",
+            IsActive = true,
+            Version = "1.0",
+            Variables = "[{\"key\":\"transfer_number\",\"label\":\"No. Transferencia\",\"type\":\"text\",\"required\":true},{\"key\":\"transfer_date\",\"label\":\"Fecha\",\"type\":\"date\",\"required\":true},{\"key\":\"from_branch\",\"label\":\"Sucursal Origen\",\"type\":\"text\",\"required\":true},{\"key\":\"to_branch\",\"label\":\"Sucursal Destino\",\"type\":\"text\",\"required\":true},{\"key\":\"dispatched_at\",\"label\":\"Despachada\",\"type\":\"text\",\"required\":false},{\"key\":\"received_at\",\"label\":\"Recibida\",\"type\":\"text\",\"required\":false}]",
+            Content = BuildStockTransferHtml()
+        });
+
         return templates;
     }
 
@@ -1593,6 +1627,118 @@ public static class DocumentTemplateSeeder
     <div style='display:inline-block; width:250px; border-top:1px solid #333; padding-top:8px;'>
       <strong>{{{{ Company.LegalName }}}}</strong><br /><small>Responsable de Almacén</small>
     </div>
+  </div>
+  <div class='footer'>Documento generado por Zorvian ERP - Motor Documental Inteligente · {{{{ Country.Name }}}} · {{{{ Company.Date }}}}</div>
+</body></html>";
+
+    private static string BuildPurchaseRequestHtml() => $@"<!DOCTYPE html>
+<html><head><meta charset='UTF-8'>
+  {SharedStyles()}
+  <style>
+    .doc-badge {{ background: #7C4DFF; color: white; padding: 8px 20px; border-radius: 20px; font-size: 14px; font-weight: 600; }}
+    .header {{ display: flex; justify-content: space-between; align-items: center; }}
+    .meta-table {{ width: 100%; border-collapse: collapse; margin: 14px 0; }}
+    .meta-table td {{ padding: 6px 10px; font-size: 13px; border-bottom: 1px solid #eee; }}
+    .meta-label {{ font-weight: 600; color: #1A0A3E; width: 180px; }}
+    .totals {{ text-align: right; margin-top: 10px; }}
+    .totals-grand {{ font-size: 18px; font-weight: 700; color: #7C4DFF; border-top: 2px solid #1A0A3E; padding-top: 8px; }}
+    .reject-box {{ margin-top: 14px; padding: 10px 14px; background: #fef2f2; border-left: 4px solid #b91c1c; border-radius: 6px; font-size: 13px; color: #991b1b; }}
+  </style>
+</head><body>
+  <div class='header'>
+    <div class='company-name'>{{{{ Company.LegalName }}}}</div>
+    <div style='text-align:right;'>
+      <div class='doc-badge'>SOLICITUD DE COTIZACIÓN</div>
+      {{% if request_status == 'submitted' %}}<div style='margin-top:8px; display:inline-block; border:2px solid #3b82f6; color:#1d4ed8; background:#eff6ff; padding:6px 18px; border-radius:6px; font-weight:800; letter-spacing:2px;'>ENVIADA</div>{{% endif %}}
+      {{% if request_status == 'approved' %}}<div style='margin-top:8px; display:inline-block; border:2px solid #2EE59D; color:#0f766e; background:#f0fdfa; padding:6px 18px; border-radius:6px; font-weight:800; letter-spacing:2px;'>APROBADA</div>{{% endif %}}
+      {{% if request_status == 'rejected' %}}<div style='margin-top:8px; display:inline-block; border:2px solid #b91c1c; color:#b91c1c; background:#fef2f2; padding:6px 18px; border-radius:6px; font-weight:800; letter-spacing:2px;'>RECHAZADA</div>{{% endif %}}
+      {{% if request_status == 'cancelled' %}}<div style='margin-top:8px; display:inline-block; border:2px solid #6b7280; color:#6b7280; background:#f3f4f6; padding:6px 18px; border-radius:6px; font-weight:800; letter-spacing:2px;'>CANCELADA</div>{{% endif %}}
+    </div>
+  </div>
+  <table class='meta-table'>
+    <tr><td class='meta-label'>No. Solicitud:</td><td class='meta-value'>{{{{ request_number }}}}</td></tr>
+    <tr><td class='meta-label'>Fecha:</td><td class='meta-value'>{{{{ request_date }}}}</td></tr>
+    {{% if title != blank %}}<tr><td class='meta-label'>Título:</td><td class='meta-value'>{{{{ title }}}}</td></tr>{{% endif %}}
+    {{% if priority != blank %}}<tr><td class='meta-label'>Prioridad:</td><td class='meta-value'>{{{{ priority }}}}</td></tr>{{% endif %}}
+    {{% if needed_by_date != blank %}}<tr><td class='meta-label'>Requerida Para:</td><td class='meta-value'>{{{{ needed_by_date }}}}</td></tr>{{% endif %}}
+    {{% if requested_by != blank %}}<tr><td class='meta-label'>Solicitante:</td><td class='meta-value'>{{{{ requested_by }}}}</td></tr>{{% endif %}}
+    {{% if branch_name != blank %}}<tr><td class='meta-label'>Sucursal:</td><td class='meta-value'>{{{{ branch_name }}}}</td></tr>{{% endif %}}
+  </table>
+  <table class='items'>
+    <thead><tr><th>Código</th><th>Descripción</th><th style='text-align:center;'>Cant.</th><th style='text-align:right;'>P. Estimado</th><th style='text-align:right;'>Subtotal</th></tr></thead>
+    <tbody>{{% for item in items %}}<tr><td>{{{{ item.code }}}}</td><td>{{{{ item.description }}}}</td><td style='text-align:center;'>{{{{ item.quantity }}}}</td><td style='text-align:right;'>{{{{ item.unit_price }}}}</td><td style='text-align:right;'>{{{{ item.subtotal }}}}</td></tr>{{% else %}}<tr><td colspan='5' style='text-align:center; color:#888; padding:20px;'><em>Los items se cargan dinámicamente desde la solicitud del sistema.</em></td></tr>{{% endfor %}}</tbody>
+  </table>
+  <div class='totals'>
+    <div class='totals-grand'>TOTAL ESTIMADO: {{{{ Country.Currency }}}} <strong>{{{{ Request.EstimatedTotal | default: '0.00' }}}}</strong></div>
+  </div>
+  {{% if request_status == 'rejected' %}}
+  <div class='reject-box'><strong>Motivo de rechazo:</strong> {{{{ rejection_reason | default: 'Sin motivo indicado' }}}}</div>
+  {{% endif %}}
+  {{% if notes != blank %}}<p style='margin-top:20px; padding:12px; background:#f0f0f0; border-radius:6px;'><strong>Notas:</strong> {{{{ notes }}}}</p>{{% endif %}}
+  <div class='sig-area' style='display:flex; justify-content:space-between; margin-top:70px;'>
+    <div class='sig-block' style='text-align:center; width:30%;'><div class='sig-line'>Solicitado por</div></div>
+    <div class='sig-block' style='text-align:center; width:30%;'><div class='sig-line'>Vo.Bo. Compras</div></div>
+    <div class='sig-block' style='text-align:center; width:30%;'><div class='sig-line'>Aprobado por</div></div>
+  </div>
+  <div class='footer'>Documento generado por Zorvian ERP - Motor Documental Inteligente · {{{{ Country.Name }}}} · {{{{ Company.Date }}}}</div>
+</body></html>";
+
+    private static string BuildStockTransferHtml() => $@"<!DOCTYPE html>
+<html><head><meta charset='UTF-8'>
+  {SharedStyles()}
+  <style>
+    .doc-badge {{ background: #0f766e; color: white; padding: 8px 20px; border-radius: 20px; font-size: 14px; font-weight: 600; }}
+    .header {{ display: flex; justify-content: space-between; align-items: center; }}
+    .parties {{ display: flex; gap: 20px; margin: 16px 0; }}
+    .party-card {{ flex: 1; background: #f0fdfa; padding: 14px 18px; border-radius: 8px; border-left: 3px solid #0f766e; font-size: 13px; }}
+    .party-card .party-title {{ font-weight: 700; color: #0f766e; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; margin-bottom: 6px; }}
+    .meta-table {{ width: 100%; border-collapse: collapse; margin: 14px 0; }}
+    .meta-table td {{ padding: 6px 10px; font-size: 13px; border-bottom: 1px solid #eee; }}
+    .meta-label {{ font-weight: 600; color: #1A0A3E; width: 180px; }}
+    .totals {{ text-align: right; margin-top: 10px; }}
+    .totals-grand {{ font-size: 18px; font-weight: 700; color: #0f766e; border-top: 2px solid #1A0A3E; padding-top: 8px; }}
+  </style>
+</head><body>
+  <div class='header'>
+    <div class='company-name'>{{{{ Company.LegalName }}}}</div>
+    <div style='text-align:right;'>
+      <div class='doc-badge'>TRANSFERENCIA ENTRE BODEGAS</div>
+      {{% if transfer_status == 'in_transit' %}}<div style='margin-top:8px; display:inline-block; border:2px solid #FFD54F; color:#92400e; background:#fffbeb; padding:6px 18px; border-radius:6px; font-weight:800; letter-spacing:2px;'>EN TRÁNSITO</div>{{% endif %}}
+      {{% if transfer_status == 'completed' %}}<div style='margin-top:8px; display:inline-block; border:2px solid #1A0A3E; color:#1A0A3E; background:#f5f3ff; padding:6px 18px; border-radius:6px; font-weight:800; letter-spacing:2px;'>COMPLETADA</div>{{% endif %}}
+      {{% if transfer_status == 'cancelled' %}}<div style='margin-top:8px; display:inline-block; border:2px solid #b91c1c; color:#b91c1c; background:#fef2f2; padding:6px 18px; border-radius:6px; font-weight:800; letter-spacing:2px;'>CANCELADA</div>{{% endif %}}
+    </div>
+  </div>
+  <div class='parties'>
+    <div class='party-card'>
+      <div class='party-title'>Sucursal Origen</div>
+      <strong>{{{{ from_branch | default: '____________' }}}}</strong><br />
+      Despacho de mercancía
+    </div>
+    <div class='party-card'>
+      <div class='party-title'>Sucursal Destino</div>
+      <strong>{{{{ to_branch | default: '____________' }}}}</strong><br />
+      Recepción de mercancía
+    </div>
+  </div>
+  <table class='meta-table'>
+    <tr><td class='meta-label'>No. Transferencia:</td><td class='meta-value'>{{{{ transfer_number }}}}</td></tr>
+    <tr><td class='meta-label'>Fecha de Registro:</td><td class='meta-value'>{{{{ transfer_date }}}}</td></tr>
+    {{% if dispatched_at != blank %}}<tr><td class='meta-label'>Despachada:</td><td class='meta-value'>{{{{ dispatched_at }}}}</td></tr>{{% endif %}}
+    {{% if received_at != blank %}}<tr><td class='meta-label'>Recibida:</td><td class='meta-value'>{{{{ received_at }}}}</td></tr>{{% endif %}}
+    {{% if requested_by != blank %}}<tr><td class='meta-label'>Registrada por:</td><td class='meta-value'>{{{{ requested_by }}}}</td></tr>{{% endif %}}
+  </table>
+  <table class='items'>
+    <thead><tr><th>Código</th><th>Producto</th><th style='text-align:center;'>Cant.</th><th style='text-align:right;'>Costo U.</th><th style='text-align:right;'>Subtotal</th></tr></thead>
+    <tbody>{{% for item in items %}}<tr><td>{{{{ item.code }}}}</td><td>{{{{ item.description }}}}</td><td style='text-align:center;'>{{{{ item.quantity }}}}</td><td style='text-align:right;'>{{{{ item.unit_price }}}}</td><td style='text-align:right;'>{{{{ item.subtotal }}}}</td></tr>{{% else %}}<tr><td colspan='5' style='text-align:center; color:#888; padding:20px;'><em>Los items se cargan dinámicamente desde la transferencia del sistema.</em></td></tr>{{% endfor %}}</tbody>
+  </table>
+  <div class='totals'>
+    <div class='totals-grand'>VALOR TOTAL: {{{{ Country.Currency }}}} <strong>{{{{ items_total | default: '0.00' }}}}</strong></div>
+  </div>
+  {{% if notes != blank %}}<p style='margin-top:20px; padding:12px; background:#f0f0f0; border-radius:6px;'><strong>Notas:</strong> {{{{ notes }}}}</p>{{% endif %}}
+  <p style='margin-top:16px; font-size:12px;'>La recepción en la sucursal destino confirma la conformidad de cantidades y estado de la mercancía transferida.</p>
+  <div class='sig-area' style='display:flex; justify-content:space-between; margin-top:70px;'>
+    <div class='sig-block' style='text-align:center; width:40%;'><div class='sig-line'>Despachó (Origen)</div></div>
+    <div class='sig-block' style='text-align:center; width:40%;'><div class='sig-line'>Recibió (Destino)</div></div>
   </div>
   <div class='footer'>Documento generado por Zorvian ERP - Motor Documental Inteligente · {{{{ Country.Name }}}} · {{{{ Company.Date }}}}</div>
 </body></html>";

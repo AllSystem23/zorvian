@@ -7,7 +7,7 @@ using Zorvian.Infrastructure.Repositories;
 namespace Zorvian.Tests.Services;
 
 /// <summary>
-/// En producción (Render + Neon) el seeder crea las 21 plantillas con
+/// En producción (Render + Neon) el seeder crea las 23 plantillas con
 /// TenantId = "SYSTEM" una sola vez (e inserta las que falten en arranques
 /// posteriores). El query filter híbrido de DocumentTemplate
 /// debe permitir que cualquier compañía las liste y genere desde el Motor
@@ -128,7 +128,7 @@ public sealed class DocumentTemplateSystemVisibilityTests : IDisposable
         var repo = new DocumentTemplateRepository(freshDb);
         var (items, total) = await repo.GetFilteredAsync(null, null, null, null, null, 1, 50);
 
-        Assert.Equal(21, total);
+        Assert.Equal(23, total);
         Assert.All(items, t => Assert.Equal(DocumentTemplate.SystemTenantId, t.TenantId));
         Assert.Equal(6, items.Count(t => t.Version == "2.1"));
         Assert.Contains(items, t => t.Name == "Liquidación Final (Nicaragua)" && t.CountryCode == "NIC");
@@ -146,5 +146,7 @@ public sealed class DocumentTemplateSystemVisibilityTests : IDisposable
         Assert.Contains(items, t => t.Name == "Hoja de Ruta / Entrega" && t.Version == "1.0");
         Assert.Contains(items, t => t.Name == "Ficha de Activo Fijo" && t.Version == "1.0");
         Assert.Contains(items, t => t.Name == "Kardex de Producto" && t.Version == "1.0");
+        Assert.Contains(items, t => t.Name == "Solicitud de Cotización" && t.Version == "1.0");
+        Assert.Contains(items, t => t.Name == "Transferencia entre Bodegas" && t.Version == "1.0");
     }
 }

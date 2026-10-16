@@ -123,4 +123,21 @@ public sealed class EnableRlsMigrationTests
                 $"Bloque DO sin delimitadores internos emparejados ({innerOpens} marcadores $$).");
         }
     }
+
+    [Fact]
+    public void EnableRls_CoversPurchaseRequestAndStockTransferTables()
+    {
+        // Tanda 4: las 4 tablas nuevas necesitan política tenant (+ bypass SuperAdmin).
+        // Las de sucursal (PurchaseRequest*) tienen columna BranchId, así que el bloque
+        // dinámico 3 además las reescribe con la política combinada tenant AND sucursal.
+        var sql = ReadEmbeddedRlsScript();
+
+        Assert.Contains("ALTER TABLE IF EXISTS \"PurchaseRequests\" ENABLE ROW LEVEL SECURITY;", sql);
+        Assert.Contains("ALTER TABLE IF EXISTS \"PurchaseRequestDetails\" ENABLE ROW LEVEL SECURITY;", sql);
+        Assert.Contains("ALTER TABLE IF EXISTS \"StockTransfers\" ENABLE ROW LEVEL SECURITY;", sql);
+        Assert.Contains("ALTER TABLE IF EXISTS \"StockTransferDetails\" ENABLE ROW LEVEL SECURITY;", sql);
+
+        Assert.Contains("'PurchaseRequests','PurchaseRequestDetails',", sql);
+        Assert.Contains("'StockTransfers','StockTransferDetails'", sql);
+    }
 }

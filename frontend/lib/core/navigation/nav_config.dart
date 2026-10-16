@@ -112,6 +112,7 @@ final class NavConfig {
         NavItem(id: 'categorias', label: 'Categorías', icon: Icons.category_outlined, route: '/categories'),
         NavItem(id: 'marcas', label: 'Marcas', icon: Icons.branding_watermark_outlined, route: '/brands'),
         NavItem(id: 'movimientos-inv', label: 'Movimientos de Inventario', icon: Icons.swap_horiz_outlined, route: '/inventory-movements'),
+        NavItem(id: 'transferencias-inv', label: 'Transferencias', icon: Icons.swap_horizontal_circle_outlined, route: '/stock-transfers'),
         NavItem(id: 'ajustes-inv', label: 'Ajustes de Inventario', icon: Icons.tune_outlined, route: '/inventory-adjustment'),
         NavItem(id: 'garantias', label: 'Garantías', icon: Icons.shield_outlined, route: '/warranties'),
         NavItem(id: 'talleres', label: 'Talleres', icon: Icons.build_outlined, route: '/workshops'),
@@ -129,6 +130,7 @@ final class NavConfig {
       children: [
         NavItem(id: 'facturas-compra', label: 'Facturas de Compra', icon: Icons.receipt_long_outlined, route: '/purchases'),
         NavItem(id: 'compras-ordenes', label: 'Órdenes de Compra', icon: Icons.receipt_outlined, route: '/purchase-orders'),
+        NavItem(id: 'compras-solicitudes', label: 'Solicitudes de Cotización', icon: Icons.difference_outlined, route: '/purchase-requests'),
         NavItem(id: 'proveedores', label: 'Proveedores', icon: Icons.factory_outlined, route: '/suppliers'),
         NavItem(id: 'pagos-proveedores', label: 'Pagos a Proveedores', icon: Icons.payments_outlined, route: '/purchases/payments'),
         NavItem(id: 'notas-credito-proveedores', label: 'Notas de Crédito a Proveedores', icon: Icons.request_quote_outlined, route: '/purchases/credit-notes'),

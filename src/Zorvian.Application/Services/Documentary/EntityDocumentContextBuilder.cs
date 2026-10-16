@@ -33,6 +33,8 @@ public sealed class EntityDocumentContextBuilder : IEntityDocumentContextBuilder
     private readonly IProductRepository _productRepo;
     private readonly IInventoryMovementRepository _inventoryMovementRepo;
     private readonly IQuoteRepository _quoteRepo;
+    private readonly IPurchaseRequestRepository _purchaseRequestRepo;
+    private readonly IStockTransferRepository _stockTransferRepo;
 
     public EntityDocumentContextBuilder(
         IEmployeeRepository employeeRepo,
@@ -52,7 +54,9 @@ public sealed class EntityDocumentContextBuilder : IEntityDocumentContextBuilder
         IFixedAssetRepository fixedAssetRepo,
         IProductRepository productRepo,
         IInventoryMovementRepository inventoryMovementRepo,
-        IQuoteRepository quoteRepo)
+        IQuoteRepository quoteRepo,
+        IPurchaseRequestRepository purchaseRequestRepo,
+        IStockTransferRepository stockTransferRepo)
     {
         _employeeRepo = employeeRepo;
         _saleRepo = saleRepo;
@@ -72,6 +76,8 @@ public sealed class EntityDocumentContextBuilder : IEntityDocumentContextBuilder
         _productRepo = productRepo;
         _inventoryMovementRepo = inventoryMovementRepo;
         _quoteRepo = quoteRepo;
+        _purchaseRequestRepo = purchaseRequestRepo;
+        _stockTransferRepo = stockTransferRepo;
     }
 
     public async Task<EntityContextResponse?> BuildAsync(string entityType, Guid entityId)
@@ -231,6 +237,35 @@ public sealed class EntityDocumentContextBuilder : IEntityDocumentContextBuilder
                         ("quantity", d.QuantityOrdered.ToString()),
                         ("quantity_received", d.QuantityReceived.ToString()),
                         ("unit_price", d.UnitCost.ToString("N2")),
+                        ("subtotal", d.Subtotal.ToString("N2"))))
+                    .ToList() ?? [];
+                break;
+            }
+
+            case "purchaserequest":
+            {
+                var request = await _purchaseRequestRepo.GetByIdAsync(entityId);
+                if (request == null) return null;
+                displayName = $"Solicitud de Cotización {request.RequestNumber} - {request.Title}";
+                data["request_number"] = request.RequestNumber;
+                data["request_date"] = request.CreatedAt.ToString("dd/MM/yyyy");
+                data["needed_by_date"] = request.NeededByDate?.ToString("dd/MM/yyyy") ?? "";
+                data["priority"] = PriorityLabel(request.Priority);
+                data["priority_label"] = PriorityLabel(request.Priority);
+                data["requested_by"] = request.CreatedBy;
+                data["request_status"] = request.Status;
+                data["rejection_reason"] = request.RejectionReason ?? "";
+                data["notes"] = request.Notes ?? "";
+                data["branch_name"] = request.Branch?.Name ?? "";
+                data["Branch.Name"] = request.Branch?.Name ?? "";
+                data["title"] = request.Title;
+                data["Request.EstimatedTotal"] = request.EstimatedTotal.ToString("N2");
+                data["items"] = request.Details?
+                    .Select(d => Item(
+                        ("code", d.Product?.Code ?? ""),
+                        ("description", d.Product?.Name ?? ""),
+                        ("quantity", d.Quantity.ToString()),
+                        ("unit_price", d.EstimatedUnitPrice.ToString("N2")),
                         ("subtotal", d.Subtotal.ToString("N2"))))
                     .ToList() ?? [];
                 break;
@@ -492,6 +527,32 @@ public sealed class EntityDocumentContextBuilder : IEntityDocumentContextBuilder
                 break;
             }
 
+            case "stocktransfer":
+            {
+                var transfer = await _stockTransferRepo.GetByIdAsync(entityId);
+                if (transfer == null) return null;
+                displayName = $"Transferencia {transfer.TransferNumber} - {transfer.FromBranch?.Name} → {transfer.ToBranch?.Name}";
+                data["transfer_number"] = transfer.TransferNumber;
+                data["transfer_date"] = transfer.CreatedAt.ToString("dd/MM/yyyy");
+                data["dispatched_at"] = transfer.DispatchedAt?.ToString("dd/MM/yyyy HH:mm") ?? "";
+                data["received_at"] = transfer.ReceivedAt?.ToString("dd/MM/yyyy HH:mm") ?? "";
+                data["transfer_status"] = transfer.Status;
+                data["from_branch"] = transfer.FromBranch?.Name ?? "";
+                data["to_branch"] = transfer.ToBranch?.Name ?? "";
+                data["requested_by"] = transfer.CreatedBy;
+                data["notes"] = transfer.Notes ?? "";
+                data["items_total"] = (transfer.Details?.Sum(d => d.UnitCost * d.Quantity) ?? 0).ToString("N2");
+                data["items"] = transfer.Details?
+                    .Select(d => Item(
+                        ("code", d.Product?.Code ?? ""),
+                        ("description", d.Product?.Name ?? ""),
+                        ("quantity", d.Quantity.ToString()),
+                        ("unit_price", d.UnitCost.ToString("N2")),
+                        ("subtotal", (d.UnitCost * d.Quantity).ToString("N2"))))
+                    .ToList() ?? [];
+                break;
+            }
+
             case "client":
             {
                 var client = await _clientRepo.GetByIdAsync(entityId);
@@ -541,6 +602,14 @@ public sealed class EntityDocumentContextBuilder : IEntityDocumentContextBuilder
         return item;
     }
 
+    private static string PriorityLabel(string priority) => priority.ToLowerInvariant() switch
+    {
+        "urgent" => "Urgente",
+        "high" => "Alta",
+        "low" => "Baja",
+        _ => "Normal",
+    };
+
     private static string PaymentMethodLabel(string method) => method.ToLowerInvariant() switch
     {
         "cash" => "Efectivo",
@@ -558,6 +627,8 @@ public sealed class EntityDocumentContextBuilder : IEntityDocumentContextBuilder
         "credit_note" => "Devolución de cliente",
         "purchase_cancellation" => "Anulación de compra",
         "purchase_return" => "Devolución a proveedor",
+        "transfer_out" => "Transferencia a otra sucursal",
+        "transfer_in" => "Transferencia desde otra sucursal",
         _ => type
     };
 }

@@ -33,6 +33,7 @@ public sealed class ModuleEnforcementFilter : IAsyncAuthorizationFilter
         ["Categories"] = ModuleType.Inventory,
         ["Brands"] = ModuleType.Inventory,
         ["InventoryMovements"] = ModuleType.Inventory,
+        ["StockTransfers"] = ModuleType.Inventory,
         ["Warranties"] = ModuleType.Inventory,
         ["PublicWarranties"] = ModuleType.Inventory,
         ["WarrantyCommunications"] = ModuleType.Inventory,
@@ -49,6 +50,7 @@ public sealed class ModuleEnforcementFilter : IAsyncAuthorizationFilter
         // Compras
         ["Purchases"] = ModuleType.Purchases,
         ["PurchaseOrders"] = ModuleType.Purchases,
+        ["PurchaseRequests"] = ModuleType.Purchases,
         ["Suppliers"] = ModuleType.Purchases,
         ["SupplierPayments"] = ModuleType.Purchases,
         ["SupplierCreditNotes"] = ModuleType.Purchases,

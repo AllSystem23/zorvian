@@ -36,6 +36,8 @@ public sealed class DocumentGenerationServiceContractContextTests
     private readonly Mock<IProductRepository> _productRepo = new();
     private readonly Mock<IInventoryMovementRepository> _inventoryMovementRepo = new();
     private readonly Mock<IQuoteRepository> _quoteRepo = new();
+    private readonly Mock<IPurchaseRequestRepository> _purchaseRequestRepo = new();
+    private readonly Mock<IStockTransferRepository> _stockTransferRepo = new();
 
     private DocumentGenerationService CreateSut()
     {
@@ -58,7 +60,9 @@ public sealed class DocumentGenerationServiceContractContextTests
             _fixedAssetRepo.Object,
             _productRepo.Object,
             _inventoryMovementRepo.Object,
-            _quoteRepo.Object);
+            _quoteRepo.Object,
+            _purchaseRequestRepo.Object,
+            _stockTransferRepo.Object);
         return new DocumentGenerationService(
             _documentService.Object,
             builder,
@@ -929,5 +933,114 @@ public sealed class DocumentGenerationServiceContractContextTests
         _purchaseOrderRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync((PurchaseOrder?)null);
 
         (await CreateSut().GetEntityContextAsync("purchaseorder", id)).Should().BeNull();
+    }
+
+    // ── Solicitud de Cotización (contexto de la tanda 4) ──
+
+    [Fact]
+    public async Task PurchaseRequest_ExposesStatusPriorityAndLineItems()
+    {
+        var id = Guid.NewGuid();
+        _purchaseRequestRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(new PurchaseRequest
+        {
+            Id = id,
+            RequestNumber = "SC-20261016-0001",
+            Title = "Reposición de laptops",
+            Priority = "high",
+            Status = "submitted",
+            EstimatedTotal = 2400m,
+            CreatedAt = new DateTime(2026, 10, 16),
+            CreatedBy = "ana@zorvian.com",
+            Branch = new Branch { Name = "Sucursal Central" },
+            Details = new List<PurchaseRequestDetail>
+            {
+                new()
+                {
+                    Product = new Product { Code = "PRD-LAP-01", Name = "Laptop Lenovo ThinkPad E14" },
+                    Quantity = 3,
+                    EstimatedUnitPrice = 800m,
+                    Subtotal = 2400m,
+                },
+            },
+        });
+
+        var ctx = await CreateSut().GetEntityContextAsync("purchaserequest", id);
+
+        ctx.Should().NotBeNull();
+        ctx!.Data["request_number"].Should().Be("SC-20261016-0001");
+        ctx.Data["request_status"].Should().Be("submitted", "el sello ENVIADA del PDF lee esta clave");
+        ctx.Data["priority"].Should().Be("Alta", "la prioridad se traduce a etiqueta legible");
+        ctx.Data["branch_name"].Should().Be("Sucursal Central");
+        ctx.Data["requested_by"].Should().Be("ana@zorvian.com");
+        ctx.Data["Request.EstimatedTotal"].Should().Be("2,400.00");
+
+        var items = ctx.Data["items"].Should().BeOfType<List<Dictionary<string, object>>>().Subject;
+        items.Should().HaveCount(1);
+        items[0]["code"].Should().Be("PRD-LAP-01");
+        items[0]["quantity"].Should().Be("3");
+        items[0]["unit_price"].Should().Be("800.00");
+        items[0]["subtotal"].Should().Be("2,400.00");
+    }
+
+    [Fact]
+    public async Task MissingPurchaseRequest_ReturnsNull()
+    {
+        var id = Guid.NewGuid();
+        _purchaseRequestRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync((PurchaseRequest?)null);
+
+        (await CreateSut().GetEntityContextAsync("purchaserequest", id)).Should().BeNull();
+    }
+
+    // ── Transferencia entre Bodegas (contexto de la tanda 4) ──
+
+    [Fact]
+    public async Task StockTransfer_ExposesBranchesStatusAndLineItems()
+    {
+        var id = Guid.NewGuid();
+        _stockTransferRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(new StockTransfer
+        {
+            Id = id,
+            TransferNumber = "TR-20261016-0001",
+            FromBranch = new Branch { Name = "Sucursal Central" },
+            ToBranch = new Branch { Name = "Sucursal Norte" },
+            Status = "in_transit",
+            DispatchedAt = new DateTime(2026, 10, 16, 14, 30, 0),
+            CreatedAt = new DateTime(2026, 10, 16),
+            CreatedBy = "carlos@zorvian.com",
+            Details = new List<StockTransferDetail>
+            {
+                new()
+                {
+                    Product = new Product { Code = "PRD-REF-09", Name = "Refacciones Bomba de Agua" },
+                    Quantity = 10,
+                    UnitCost = 150m,
+                },
+            },
+        });
+
+        var ctx = await CreateSut().GetEntityContextAsync("stocktransfer", id);
+
+        ctx.Should().NotBeNull();
+        ctx!.Data["transfer_number"].Should().Be("TR-20261016-0001");
+        ctx.Data["transfer_status"].Should().Be("in_transit", "el sello EN TRÁNSITO del PDF lee esta clave");
+        ctx.Data["from_branch"].Should().Be("Sucursal Central");
+        ctx.Data["to_branch"].Should().Be("Sucursal Norte");
+        ctx.Data["items_total"].Should().Be("1,500.00");
+
+        var items = ctx.Data["items"].Should().BeOfType<List<Dictionary<string, object>>>().Subject;
+        items.Should().HaveCount(1);
+        items[0]["code"].Should().Be("PRD-REF-09");
+        items[0]["quantity"].Should().Be("10");
+        items[0]["unit_price"].Should().Be("150.00");
+        items[0]["subtotal"].Should().Be("1,500.00");
+    }
+
+    [Fact]
+    public async Task MissingStockTransfer_ReturnsNull()
+    {
+        var id = Guid.NewGuid();
+        _stockTransferRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync((StockTransfer?)null);
+
+        (await CreateSut().GetEntityContextAsync("stocktransfer", id)).Should().BeNull();
     }
 }

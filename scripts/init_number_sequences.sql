@@ -44,3 +44,17 @@ CREATE SEQUENCE IF NOT EXISTS seq_order_number
     START WITH 1
     NO CYCLE
     CACHE 1;
+
+-- Secuencia para números de solicitud de cotización (SC-YYYYMMDD-NNNN)
+CREATE SEQUENCE IF NOT EXISTS seq_purchase_request_number
+    INCREMENT BY 1
+    START WITH 1
+    NO CYCLE
+    CACHE 1;
+
+-- Secuencia para números de transferencia entre bodegas (TR-YYYYMMDD-NNNN)
+CREATE SEQUENCE IF NOT EXISTS seq_stock_transfer_number
+    INCREMENT BY 1
+    START WITH 1
+    NO CYCLE
+    CACHE 1;
