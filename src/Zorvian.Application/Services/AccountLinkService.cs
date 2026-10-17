@@ -80,10 +80,17 @@ public sealed class AccountLinkService
             keywords.Any(k => a.Name.Contains(k, StringComparison.OrdinalIgnoreCase)));
     }
 
+    /// <summary>Semeilla (o completa) los enlaces de cuentas por defecto. Semántica
+    /// ensure-missing: solo agrega los pares (TransactionType, Role) que aún no existen,
+    /// por lo que es idempotente y sirve de ruta de upgrade para compañías existentes
+    /// (ejecutable de nuevo vía POST /account-links/seed). Los pares cuya cuenta no se
+    /// resuelve se omiten sin error (plan contable personalizado: los configura el contador).</summary>
     public async Task SeedDefaultLinksAsync()
     {
         var existing = await _repo.GetByCompanyAsync(CompanyId);
-        if (existing.Count > 0) return;
+        var existingPairs = existing
+            .Select(l => $"{l.TransactionType}|{l.Role}")
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var inventoryAccount = await ResolveAccountAsync("1.1.04", "Inventario", CompanyId);
         var clientsAccount = await ResolveAccountAsync("1.1.03", "Clientes", CompanyId);
@@ -95,55 +102,95 @@ public sealed class AccountLinkService
         var costAccount = await ResolveAccountAsync("5.1.01", "Costo", CompanyId);
         var retainedEarnings = await ResolveAccountAsync("3.1.02", "Utilidades Retenidas", CompanyId);
 
+        // ── Cuentas de nómina, prestadores de servicios, INSS y adelantos ──
+        // (sembradas por AccountService.SeedDefaultChartOfAccountsAsync; en plan contables
+        // personalizado la resolución cae a fuzzy-name y, si no hay match, se omite el par).
+        var sueldosAccount = await ResolveAccountAsync("6.1.03", "Sueldos", CompanyId);
+        var inssPatronalExpAccount = await ResolveAccountAsync("6.1.06", "INSS", CompanyId);
+        var horasExtraAccount = await ResolveAccountAsync("6.1.07", "Horas Extra", CompanyId);
+        var beneficiosAccount = await ResolveAccountAsync("6.1.08", "Beneficios", CompanyId);
+        var honorariosAccount = await ResolveAccountAsync("6.1.09", "Honorarios", CompanyId);
+        var gastosAdminAccount = await ResolveAccountAsync("6.1.01", "Gastos Administrativos", CompanyId);
+        var inssLaboralPagar = await ResolveAccountAsync("2.1.04", "INSS Laboral", CompanyId);
+        var inssPatronalPagar = await ResolveAccountAsync("2.1.05", "INSS Patronal por Pagar", CompanyId);
+        var isrPagarAccount = await ResolveAccountAsync("2.1.03", "ISR", CompanyId);
+        var adelantosAccount = await ResolveAccountAsync("1.1.06", "Adelantos", CompanyId);
+
         var links = new List<AccountLink>();
+        void Add(string transactionType, string role, Account? account)
+        {
+            if (account is null) return;
+            var key = $"{transactionType}|{role}";
+            if (existingPairs.Contains(key)) return;
+            if (links.Any(l => l.TransactionType == transactionType && string.Equals(l.Role, role, StringComparison.OrdinalIgnoreCase))) return;
+            links.Add(new() { TransactionType = transactionType, Role = role, AccountId = account.Id, CompanyId = CompanyId });
+        }
         if (inventoryAccount != null)
         {
-            links.Add(new() { TransactionType = "Sale", Role = AccountRoles.Inventory, AccountId = inventoryAccount.Id, CompanyId = CompanyId });
-            links.Add(new() { TransactionType = "Purchase", Role = AccountRoles.Inventory, AccountId = inventoryAccount.Id, CompanyId = CompanyId });
-            links.Add(new() { TransactionType = "InventoryMovement", Role = AccountRoles.Inventory, AccountId = inventoryAccount.Id, CompanyId = CompanyId });
-            links.Add(new() { TransactionType = "SupplierCreditNote", Role = AccountRoles.Inventory, AccountId = inventoryAccount.Id, CompanyId = CompanyId });
+            Add("Sale", AccountRoles.Inventory, inventoryAccount);
+            Add("Purchase", AccountRoles.Inventory, inventoryAccount);
+            Add("InventoryMovement", AccountRoles.Inventory, inventoryAccount);
+            Add("SupplierCreditNote", AccountRoles.Inventory, inventoryAccount);
+            Add("InventoryMovement", AccountRoles.InventoryAdjustment, inventoryAccount);
         }
         if (clientsAccount != null)
         {
-            links.Add(new() { TransactionType = "Sale", Role = AccountRoles.AccountsReceivable, AccountId = clientsAccount.Id, CompanyId = CompanyId });
-            links.Add(new() { TransactionType = "Check", Role = AccountRoles.AccountsReceivable, AccountId = clientsAccount.Id, CompanyId = CompanyId });
-            links.Add(new() { TransactionType = "CreditPayment", Role = AccountRoles.AccountsReceivable, AccountId = clientsAccount.Id, CompanyId = CompanyId });
-            links.Add(new() { TransactionType = "Collection", Role = AccountRoles.AccountsReceivable, AccountId = clientsAccount.Id, CompanyId = CompanyId });
+            Add("Sale", AccountRoles.AccountsReceivable, clientsAccount);
+            Add("Check", AccountRoles.AccountsReceivable, clientsAccount);
+            Add("CreditPayment", AccountRoles.AccountsReceivable, clientsAccount);
+            Add("Collection", AccountRoles.AccountsReceivable, clientsAccount);
         }
         if (cashAccount != null)
         {
-            links.Add(new() { TransactionType = "Sale", Role = AccountRoles.Cash, AccountId = cashAccount.Id, CompanyId = CompanyId });
-            links.Add(new() { TransactionType = "BankDeposit", Role = AccountRoles.Cash, AccountId = cashAccount.Id, CompanyId = CompanyId });
-            links.Add(new() { TransactionType = "SupplierPayment", Role = AccountRoles.Cash, AccountId = cashAccount.Id, CompanyId = CompanyId });
-            links.Add(new() { TransactionType = "CreditPayment", Role = AccountRoles.Cash, AccountId = cashAccount.Id, CompanyId = CompanyId });
-            links.Add(new() { TransactionType = "CashMovement", Role = AccountRoles.Cash, AccountId = cashAccount.Id, CompanyId = CompanyId });
-            links.Add(new() { TransactionType = "Collection", Role = AccountRoles.Cash, AccountId = cashAccount.Id, CompanyId = CompanyId });
+            Add("Sale", AccountRoles.Cash, cashAccount);
+            Add("BankDeposit", AccountRoles.Cash, cashAccount);
+            Add("SupplierPayment", AccountRoles.Cash, cashAccount);
+            Add("CreditPayment", AccountRoles.Cash, cashAccount);
+            Add("CashMovement", AccountRoles.Cash, cashAccount);
+            Add("Collection", AccountRoles.Cash, cashAccount);
+            // Nómina: neto a pagar en efectivo. Prestadores: efectivo saliente del comprobante.
+            Add(TransactionTypes.Payroll, "NetPayCash", cashAccount);
+            Add(TransactionTypes.ServiceProviderPayment, AccountRoles.Cash, cashAccount);
         }
         if (salesAccount != null)
-            links.Add(new() { TransactionType = "Sale", Role = AccountRoles.SalesRevenue, AccountId = salesAccount.Id, CompanyId = CompanyId });
+            Add("Sale", AccountRoles.SalesRevenue, salesAccount);
         if (costAccount != null)
         {
-            links.Add(new() { TransactionType = "Sale", Role = AccountRoles.CostOfSales, AccountId = costAccount.Id, CompanyId = CompanyId });
-            links.Add(new() { TransactionType = "BankCommission", Role = AccountRoles.BankExpense, AccountId = costAccount.Id, CompanyId = CompanyId });
+            Add("Sale", AccountRoles.CostOfSales, costAccount);
+            Add("BankCommission", AccountRoles.BankExpense, costAccount);
         }
         if (vatPayableAccount != null)
-            links.Add(new() { TransactionType = "Sale", Role = AccountRoles.VatPayable, AccountId = vatPayableAccount.Id, CompanyId = CompanyId });
+            Add("Sale", AccountRoles.VatPayable, vatPayableAccount);
         if (suppliersAccount != null)
         {
-            links.Add(new() { TransactionType = "Purchase", Role = AccountRoles.AccountsPayable, AccountId = suppliersAccount.Id, CompanyId = CompanyId });
-            links.Add(new() { TransactionType = "SupplierPayment", Role = AccountRoles.AccountsPayable, AccountId = suppliersAccount.Id, CompanyId = CompanyId });
-            links.Add(new() { TransactionType = "SupplierCreditNote", Role = AccountRoles.AccountsPayable, AccountId = suppliersAccount.Id, CompanyId = CompanyId });
+            Add("Purchase", AccountRoles.AccountsPayable, suppliersAccount);
+            Add("SupplierPayment", AccountRoles.AccountsPayable, suppliersAccount);
+            Add("SupplierCreditNote", AccountRoles.AccountsPayable, suppliersAccount);
         }
         if (vatReceivableAccount != null)
         {
-            links.Add(new() { TransactionType = "Purchase", Role = AccountRoles.VatReceivable, AccountId = vatReceivableAccount.Id, CompanyId = CompanyId });
-            links.Add(new() { TransactionType = "SupplierCreditNote", Role = AccountRoles.VatReceivable, AccountId = vatReceivableAccount.Id, CompanyId = CompanyId });
+            Add("Purchase", AccountRoles.VatReceivable, vatReceivableAccount);
+            Add("SupplierCreditNote", AccountRoles.VatReceivable, vatReceivableAccount);
         }
-        if (inventoryAccount != null)
-            links.Add(new() { TransactionType = "InventoryMovement", Role = AccountRoles.InventoryAdjustment, AccountId = inventoryAccount.Id, CompanyId = CompanyId });
+
+        // ── Nómina (PayrollService → GeneratePayrollEntryAsync al aprobar la corrida) ──
+        Add(TransactionTypes.Payroll, "SalaryExpense", sueldosAccount);
+        Add(TransactionTypes.Payroll, "OvertimeExpense", horasExtraAccount ?? sueldosAccount);
+        Add(TransactionTypes.Payroll, "EmployerInssExpense", inssPatronalExpAccount);
+        Add(TransactionTypes.Payroll, "OtherEmployerExpense", beneficiosAccount ?? sueldosAccount);
+        Add(TransactionTypes.Payroll, "OtherEarningExpense", horasExtraAccount ?? sueldosAccount);
+        Add(TransactionTypes.Payroll, "EmployeeInssPayable", inssLaboralPagar);
+        Add(TransactionTypes.Payroll, "EmployerInssPayable", inssPatronalPagar);
+        Add(TransactionTypes.Payroll, "IrWithholdingPayable", isrPagarAccount);
+
+        // ── Pago a Prestadores de Servicios (GenerateServiceProviderPaymentEntryAsync al pagar) ──
+        Add(TransactionTypes.ServiceProviderPayment, AccountRoles.ServicesExpense, honorariosAccount ?? gastosAdminAccount);
+        Add(TransactionTypes.ServiceProviderPayment, AccountRoles.Advances, adelantosAccount);
+        Add(TransactionTypes.ServiceProviderPayment, AccountRoles.WithholdingPayable, inssLaboralPagar);
 
         foreach (var link in links)
             await _repo.AddAsync(link);
-        await _repo.SaveChangesAsync();
+        if (links.Count > 0)
+            await _repo.SaveChangesAsync();
     }
 }

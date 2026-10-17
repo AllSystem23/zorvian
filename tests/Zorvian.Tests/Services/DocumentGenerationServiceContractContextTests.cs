@@ -39,6 +39,7 @@ public sealed class DocumentGenerationServiceContractContextTests
     private readonly Mock<IPurchaseRequestRepository> _purchaseRequestRepo = new();
     private readonly Mock<IStockTransferRepository> _stockTransferRepo = new();
     private readonly Mock<IPayrollRepository> _payrollRepo = new();
+    private readonly Mock<IServiceProviderPaymentRepository> _servicePaymentRepo = new();
 
     private DocumentGenerationService CreateSut()
     {
@@ -64,7 +65,8 @@ public sealed class DocumentGenerationServiceContractContextTests
             _quoteRepo.Object,
             _purchaseRequestRepo.Object,
             _stockTransferRepo.Object,
-            _payrollRepo.Object);
+            _payrollRepo.Object,
+            _servicePaymentRepo.Object);
         return new DocumentGenerationService(
             _documentService.Object,
             builder,
@@ -1262,5 +1264,154 @@ public sealed class DocumentGenerationServiceContractContextTests
         _payrollRepo.Setup(r => r.GetDetailByIdAsync(id)).ReturnsAsync((PayrollDetail?)null);
 
         (await CreateSut().GetEntityContextAsync("payrolldetail", id)).Should().BeNull();
+    }
+
+    // ── Pago a Prestador de Servicios (contexto del comprobante) ──
+
+    [Fact]
+    public async Task ServicePayment_ExposesPeriodTotalsLinesAndDeductions()
+    {
+        var id = Guid.NewGuid();
+        var branchId = Guid.NewGuid();
+        _servicePaymentRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(new ServiceProviderPayment
+        {
+            Id = id,
+            PaymentNumber = "PP-20261015-0001",
+            Employee = new Employee
+            {
+                FirstName = "María",
+                LastName = "Fernández",
+                EmployeeCode = "PS-001",
+                BranchId = branchId,
+                Branch = new Branch { Id = branchId, Name = "Sucursal Norte" },
+            },
+            PeriodYear = 2026,
+            PeriodMonth = 10,
+            PeriodHalf = 1,
+            PaymentDate = new DateOnly(2026, 10, 15),
+            Status = "paid",
+            GoalEvaluationMode = "total",
+            GoalMet = true,
+            GoalBonusAmount = 1000m,
+            OtherIncome = 0m,
+            TotalCollected = 550669m,
+            TotalContracted = 550669m,
+            TotalCommission = 22026.76m,
+            TotalAccumulated = 23026.76m,
+            TotalDeductions = 13923.36m,
+            NetAmount = 9103.40m,
+            Notes = "Quincena conforme",
+            CreatedAt = new DateTime(2026, 10, 15),
+            CreatedBy = "rrhh@zorvian.com",
+            Lines = new List<ServiceProviderPaymentLine>
+            {
+                new()
+                {
+                    LineName = "OTROS",
+                    CollectedAmount = 495782m,
+                    ContractedAmount = 495782m,
+                    CommissionRate = 4m,
+                    CommissionAmount = 19831.28m,
+                    LineGoalMet = true,
+                },
+            },
+            Deductions = new List<ServiceProviderPaymentDeduction>
+            {
+                new()
+                {
+                    DeductionType = "store_credit",
+                    Description = "LAVADORA FRIGIDAIRE SALDO 4692",
+                    Amount = 5000m,
+                    AgreementReference = "AC-2026-02",
+                    AgreementDate = new DateOnly(2026, 10, 1),
+                },
+            },
+        });
+
+        var ctx = await CreateSut().GetEntityContextAsync("servicepayment", id);
+
+        ctx.Should().NotBeNull();
+        ctx!.Data["payment_number"].Should().Be("PP-20261015-0001");
+        ctx.Data["employee_name"].Should().Be("María Fernández");
+        ctx.Data["employee_code"].Should().Be("PS-001");
+        ctx.Data["branch_name"].Should().Be("Sucursal Norte", "reportería por sucursal en el comprobante");
+        ctx.Data["period_label"].Should().Be("Quincena 1 · Oct 2026");
+        ctx.Data["payment_date"].Should().Be("15/10/2026");
+        ctx.Data["payment_status"].Should().Be("paid");
+        ctx.Data["payment_status_label"].Should().Be("Pagado");
+        ctx.Data["goal_met_label"].Should().Be("SI");
+        ctx.Data["goal_evaluation_mode"].Should().Be("total");
+        ctx.Data["goal_bonus"].Should().Be("1,000.00");
+        ctx.Data["total_collected"].Should().Be("550,669.00");
+        ctx.Data["total_contracted"].Should().Be("550,669.00");
+        ctx.Data["total_commission"].Should().Be("22,026.76");
+        ctx.Data["total_accumulated"].Should().Be("23,026.76");
+        ctx.Data["total_deductions"].Should().Be("13,923.36");
+        ctx.Data["net_amount"].Should().Be("9,103.40", "matemática exacta del comprobante base");
+
+        var lines = ctx.Data["lines"].Should().BeOfType<List<Dictionary<string, object>>>().Subject;
+        lines.Should().HaveCount(1);
+        lines[0]["line_name"].Should().Be("OTROS");
+        lines[0]["collected"].Should().Be("495,782.00");
+        lines[0]["contracted"].Should().Be("495,782.00");
+        lines[0]["rate"].Should().Be("4%");
+        lines[0]["commission"].Should().Be("19,831.28");
+        lines[0]["line_goal_met"].Should().Be("SI");
+
+        var deductions = ctx.Data["deductions"].Should().BeOfType<List<Dictionary<string, object>>>().Subject;
+        deductions.Should().HaveCount(1);
+        deductions[0]["type_label"].Should().Be("Crédito Interno", "label en español para el PDF");
+        deductions[0]["description"].Should().Be("LAVADORA FRIGIDAIRE SALDO 4692");
+        deductions[0]["amount"].Should().Be("5,000.00");
+        deductions[0]["agreement_reference"].Should().Be("AC-2026-02");
+        deductions[0]["agreement_date"].Should().Be("01/10/2026");
+    }
+
+    [Fact]
+    public async Task ServicePayment_GoalNotMetAndDraft_RendersSpanishStatusAndNoBonus()
+    {
+        var id = Guid.NewGuid();
+        _servicePaymentRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(new ServiceProviderPayment
+        {
+            Id = id,
+            PaymentNumber = "PP-20261016-0003",
+            Employee = new Employee { FirstName = "Carlos", LastName = "Ruiz" },
+            PeriodYear = 2026,
+            PeriodMonth = 10,
+            PeriodHalf = 2,
+            PaymentDate = new DateOnly(2026, 10, 31),
+            Status = "draft",
+            GoalEvaluationMode = "total",
+            GoalMet = false,
+            TotalAccumulated = 2000m,
+            NetAmount = 2000m,
+            CreatedAt = new DateTime(2026, 10, 16),
+            CreatedBy = "rrhh@zorvian.com",
+            Lines = new List<ServiceProviderPaymentLine>(),
+            Deductions = new List<ServiceProviderPaymentDeduction>(),
+        });
+
+        var ctx = await CreateSut().GetEntityContextAsync("servicepayment", id);
+
+        ctx.Should().NotBeNull();
+        ctx!.Data["goal_met_label"].Should().Be("NO", "la meta no se cumplió → el PDF imprime NO");
+        ctx.Data["payment_status"].Should().Be("draft");
+        ctx.Data["payment_status_label"].Should().Be("Borrador");
+        ctx.Data["period_label"].Should().Be("Quincena 2 · Oct 2026");
+        ctx.Data["employee_name"].Should().Be("Carlos Ruiz");
+
+        var lines = ctx.Data["lines"].Should().BeOfType<List<Dictionary<string, object>>>().Subject;
+        lines.Should().BeEmpty();
+        var deductions = ctx.Data["deductions"].Should().BeOfType<List<Dictionary<string, object>>>().Subject;
+        deductions.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task MissingServicePayment_ReturnsNull()
+    {
+        var id = Guid.NewGuid();
+        _servicePaymentRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync((ServiceProviderPayment?)null);
+
+        (await CreateSut().GetEntityContextAsync("servicepayment", id)).Should().BeNull();
     }
 }

@@ -227,6 +227,53 @@ public sealed class EnableRlsMigrationTests
         }
     }
 
+    [Fact]
+    public void EnableRls_CoversServiceProviderPaymentTables()
+    {
+        // Pago a prestadores (2026-10-17): 3 tablas nuevas SIN BranchId — el
+        // ALTER estático las habilita y los arrays de los bloques 1/2 les dan
+        // política solo-tenant + bypass SuperAdmin (el bloque 3 no aplica).
+        var sql = ReadEmbeddedRlsScript();
+
+        Assert.Contains("ALTER TABLE IF EXISTS \"ServiceProviderPayments\" ENABLE ROW LEVEL SECURITY;", sql);
+        Assert.Contains("ALTER TABLE IF EXISTS \"ServiceProviderPaymentLines\" ENABLE ROW LEVEL SECURITY;", sql);
+        Assert.Contains("ALTER TABLE IF EXISTS \"ServiceProviderPaymentDeductions\" ENABLE ROW LEVEL SECURITY;", sql);
+        Assert.Contains("'ServiceProviderPayments','ServiceProviderPaymentLines','ServiceProviderPaymentDeductions'", sql);
+    }
+
+    [Fact]
+    public void AddServiceProviderPaymentsMigration_CreatesPolicies_AndSequence()
+    {
+        // Las políticas de las tablas nuevas viajan en la propia migración (las RLS
+        // históricas ya corrieron en BDs existentes). Regresión del bug de
+        // dollar-quotes: DO $$ + $$ interno cierra el cuerpo antes de tiempo
+        // (42601 syntax error at or near "CREATE"). Además crea la secuencia
+        // de numeración PP-YYYYMMDD-NNNN.
+        var sql = ReadMigrationSourceFile("20261017151536_AddServiceProviderPayments.cs");
+
+        Assert.Contains("tenant_isolation_ServiceProviderPayments", sql);
+        Assert.Contains("super_admin_bypass_ServiceProviderPayments", sql);
+        Assert.Contains("tenant_isolation_ServiceProviderPaymentLines", sql);
+        Assert.Contains("tenant_isolation_ServiceProviderPaymentDeductions", sql);
+        Assert.Contains("is_super_admin()", sql);
+        Assert.Contains("FORCE ROW LEVEL SECURITY", sql);
+        Assert.Contains("CREATE SEQUENCE IF NOT EXISTS seq_service_provider_payment_number", sql);
+        Assert.Contains("DROP SEQUENCE IF EXISTS seq_service_provider_payment_number", sql);
+
+        var regex = new Regex(@"DO (\$[A-Za-z_]*\$)(.*?)\1", RegexOptions.Singleline);
+        var blocks = regex.Matches(sql);
+        Assert.True(blocks.Count > 0,
+            "la migración debe contener el bloque DO de políticas");
+
+        foreach (Match block in blocks)
+        {
+            var body = block.Groups[2].Value;
+            var innerOpens = Regex.Matches(body, @"\$\$").Count;
+            Assert.True(innerOpens % 2 == 0,
+                $"Bloque DO de AddServiceProviderPayments con delimitadores $$ descasados ({innerOpens}).");
+        }
+    }
+
     private static string ReadMigrationSourceFile(string fileName)
     {
         // Los tests corren desde bin/Debug/net9.0: se sube hasta encontrar la raíz del repo.

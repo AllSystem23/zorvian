@@ -60,7 +60,14 @@ INSERT INTO expected_rls_tables VALUES
     ('PurchaseOrderDetails'), ('PurchaseDetails'),
     -- Phase 8: Purchase Requests & Stock Transfers (4)
     ('PurchaseRequests'), ('PurchaseRequestDetails'),
-    ('StockTransfers'), ('StockTransferDetails');
+    ('StockTransfers'), ('StockTransferDetails'),
+    -- Phase 9: Warehouses (1)
+    ('Warehouses'),
+    -- Phase 10: Employment Periods (1)
+    ('EmploymentPeriods'),
+    -- Phase 11: Service Provider Payments (3)
+    ('ServiceProviderPayments'), ('ServiceProviderPaymentLines'),
+    ('ServiceProviderPaymentDeductions');
 
 SELECT
     e.tablename,

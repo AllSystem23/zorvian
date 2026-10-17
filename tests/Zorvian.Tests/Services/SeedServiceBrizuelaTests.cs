@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Moq;
 using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
@@ -49,7 +50,7 @@ public sealed class SeedServiceBrizuelaTests : IDisposable
         _fiscal.Setup(f => f.SetupDefaultTaxesAsync(It.IsAny<Guid>(), It.IsAny<string>()))
                .Returns(Task.CompletedTask);
 
-        _seed = new SeedService(_db, _firebase.Object, _fiscal.Object, accountService, linkService, _templateRepo.Object, _tenantContext);
+        _seed = new SeedService(_db, _firebase.Object, _fiscal.Object, accountService, linkService, _templateRepo.Object, _tenantContext, new Mock<ILogger<SeedService>>().Object);
     }
 
     public void Dispose() => _db.Dispose();

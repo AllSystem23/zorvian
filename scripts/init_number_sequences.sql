@@ -58,3 +58,10 @@ CREATE SEQUENCE IF NOT EXISTS seq_stock_transfer_number
     START WITH 1
     NO CYCLE
     CACHE 1;
+
+-- Secuencia para números de pago a prestadores de servicio (PP-YYYYMMDD-NNNN)
+CREATE SEQUENCE IF NOT EXISTS seq_service_provider_payment_number
+    INCREMENT BY 1
+    START WITH 1
+    NO CYCLE
+    CACHE 1;

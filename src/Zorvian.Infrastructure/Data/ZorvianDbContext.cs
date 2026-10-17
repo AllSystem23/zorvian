@@ -234,6 +234,9 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<ServiceContract> ServiceContracts => Set<ServiceContract>();
     public DbSet<PaymentMilestone> PaymentMilestones => Set<PaymentMilestone>();
     public DbSet<ProviderInvoice> ProviderInvoices => Set<ProviderInvoice>();
+    public DbSet<ServiceProviderPayment> ServiceProviderPayments => Set<ServiceProviderPayment>();
+    public DbSet<ServiceProviderPaymentLine> ServiceProviderPaymentLines => Set<ServiceProviderPaymentLine>();
+    public DbSet<ServiceProviderPaymentDeduction> ServiceProviderPaymentDeductions => Set<ServiceProviderPaymentDeduction>();
 
     // New Module: Motor Documental
     public DbSet<DocumentTemplate> DocumentTemplates => Set<DocumentTemplate>();
@@ -1877,6 +1880,54 @@ public sealed class ZorvianDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(d => d.ProductId)
                 .OnDelete(DeleteBehavior.Restrict);
+            e.HasQueryFilter(d => (d.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.BypassTenantFilter) && !d.IsDeleted);
+        });
+
+        // ---- Pago a Prestadores de Servicios (quincenal, fuera de planilla) ----
+        builder.Entity<ServiceProviderPayment>(e =>
+        {
+            e.HasKey(p => p.Id);
+            e.Property(p => p.PaymentNumber).HasMaxLength(30).IsRequired();
+            e.Property(p => p.GoalEvaluationMode).HasMaxLength(20).IsRequired();
+            e.Property(p => p.Status).HasMaxLength(30).IsRequired();
+            e.Property(p => p.Notes).HasMaxLength(500);
+            e.Property(p => p.PaymentReference).HasMaxLength(100);
+            e.HasOne(p => p.Employee)
+                .WithMany()
+                .HasForeignKey(p => p.EmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(p => p.PaymentNumber).IsUnique();
+            e.HasIndex(p => new { p.EmployeeId, p.PeriodYear, p.PeriodMonth, p.PeriodHalf });
+            e.HasIndex(p => new { p.TenantId, p.Status });
+            e.HasQueryFilter(p => (p.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.BypassTenantFilter) && !p.IsDeleted);
+        });
+
+        builder.Entity<ServiceProviderPaymentLine>(e =>
+        {
+            e.HasKey(l => l.Id);
+            e.Property(l => l.LineName).HasMaxLength(100).IsRequired();
+            e.Property(l => l.CollectedAmount).HasColumnType("decimal(18,2)");
+            e.Property(l => l.ContractedAmount).HasColumnType("decimal(18,2)");
+            e.Property(l => l.CommissionRate).HasColumnType("decimal(5,2)");
+            e.Property(l => l.CommissionAmount).HasColumnType("decimal(18,2)");
+            e.HasOne(l => l.Payment)
+                .WithMany(p => p.Lines)
+                .HasForeignKey(l => l.PaymentId)
+                .OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(l => (l.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.BypassTenantFilter) && !l.IsDeleted);
+        });
+
+        builder.Entity<ServiceProviderPaymentDeduction>(e =>
+        {
+            e.HasKey(d => d.Id);
+            e.Property(d => d.DeductionType).HasMaxLength(30).IsRequired();
+            e.Property(d => d.Description).HasMaxLength(300);
+            e.Property(d => d.Amount).HasColumnType("decimal(18,2)");
+            e.Property(d => d.AgreementReference).HasMaxLength(200);
+            e.HasOne(d => d.Payment)
+                .WithMany(p => p.Deductions)
+                .HasForeignKey(d => d.PaymentId)
+                .OnDelete(DeleteBehavior.Cascade);
             e.HasQueryFilter(d => (d.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.BypassTenantFilter) && !d.IsDeleted);
         });
 

@@ -229,21 +229,27 @@ public sealed class AccountService
         return null;
     }
 
+    /// <summary>Siembra (o COMPLETA) el plan contable por defecto. Semántica ensure-missing:
+    /// solo crea las cuentas que falten — detectadas por código (con variantes rellenas) o por
+    /// nombre exacto — por lo que es idempotente y sirve de upgrade automático para compañías
+    /// existentes (corre en cada arranque vía SeedService.EnsureAccountsAndLinksAsync).
+    /// Incluye las cuentas que alimentan los asientos automáticos de Nómina (6.1.03/06/07/08,
+    /// 2.1.04/05) y de Pago a Prestadores de Servicios (6.1.09, 1.1.06): ninguna requiere
+    /// configuración manual del contador.</summary>
     public async Task SeedDefaultChartOfAccountsAsync()
     {
         var companyId = await GetCompanyIdAsync();
-        var count = (await _repo.GetAllAsync(companyId)).Count;
-        if (count > 0) return;
+        var existing = await _repo.GetAllAsync(companyId);
 
         // Step 1: Generate explicit IDs and build code→Id map for parent resolution
         var idMap = new Dictionary<string, Guid>();
-        string[] codes = ["1","1.1","1.1.01","1.1.02","1.1.03","1.1.04","1.1.05",
+        string[] codes = ["1","1.1","1.1.01","1.1.02","1.1.03","1.1.04","1.1.05","1.1.06",
                           "1.2","1.2.01","1.2.02",
-                          "2","2.1","2.1.01","2.1.02","2.1.03",
+                          "2","2.1","2.1.01","2.1.02","2.1.03","2.1.04","2.1.05",
                           "3","3.1.01","3.1.02","3.1.03",
                           "4","4.1.01","4.4.01",
                           "5","5.1.01",
-                          "6","6.1.01","6.1.02","6.1.04","6.1.05","6.2.01"];
+                          "6","6.1.01","6.1.02","6.1.03","6.1.04","6.1.05","6.1.06","6.1.07","6.1.08","6.1.09","6.2.01"];
         foreach (var code in codes) idMap[code] = Guid.NewGuid();
 
         // Parent code lookup: "1.1.02" → "1.1", "1.1" → "1"
@@ -264,6 +270,7 @@ public sealed class AccountService
             new() { Id = idMap["1.1.03"], Code = "1.1.03", Name = "Clientes", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 2, CompanyId = companyId, IsActive = true },
             new() { Id = idMap["1.1.04"], Code = "1.1.04", Name = "Inventario", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 2, CompanyId = companyId, IsActive = true },
             new() { Id = idMap["1.1.05"], Code = "1.1.05", Name = "IVA Crédito Fiscal", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 2, CompanyId = companyId, IsActive = true },
+            new() { Id = idMap["1.1.06"], Code = "1.1.06", Name = "Adelantos y Préstamos", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 2, CompanyId = companyId, IsActive = true },
             new() { Id = idMap["1.2"], Code = "1.2", Name = "Activos No Circulantes", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsSystem = true, IsActive = true },
             new() { Id = idMap["1.2.01"], Code = "1.2.01", Name = "Propiedad, Planta y Equipo", Type = AccountTypes.Asset, NormalSide = AccountSide.Debit, Level = 2, CompanyId = companyId, IsActive = true },
             new() { Id = idMap["1.2.02"], Code = "1.2.02", Name = "Depreciación Acumulada", Type = AccountTypes.Asset, NormalSide = AccountSide.Credit, Level = 2, CompanyId = companyId, IsActive = true },
@@ -273,6 +280,8 @@ public sealed class AccountService
             new() { Id = idMap["2.1.01"], Code = "2.1.01", Name = "Proveedores", Type = AccountTypes.Liability, NormalSide = AccountSide.Credit, Level = 2, CompanyId = companyId, IsActive = true },
             new() { Id = idMap["2.1.02"], Code = "2.1.02", Name = "IVA Débito Fiscal", Type = AccountTypes.Liability, NormalSide = AccountSide.Credit, Level = 2, CompanyId = companyId, IsActive = true },
             new() { Id = idMap["2.1.03"], Code = "2.1.03", Name = "ISR por Pagar", Type = AccountTypes.Liability, NormalSide = AccountSide.Credit, Level = 2, CompanyId = companyId, IsActive = true },
+            new() { Id = idMap["2.1.04"], Code = "2.1.04", Name = "INSS Laboral por Pagar", Type = AccountTypes.Liability, NormalSide = AccountSide.Credit, Level = 2, CompanyId = companyId, IsActive = true },
+            new() { Id = idMap["2.1.05"], Code = "2.1.05", Name = "INSS Patronal por Pagar", Type = AccountTypes.Liability, NormalSide = AccountSide.Credit, Level = 2, CompanyId = companyId, IsActive = true },
 
             new() { Id = idMap["3"], Code = "3", Name = "Patrimonio", Type = AccountTypes.Equity, NormalSide = AccountSide.Credit, Level = 0, CompanyId = companyId, IsSystem = true, IsActive = true },
             new() { Id = idMap["3.1.01"], Code = "3.1.01", Name = "Capital Social", Type = AccountTypes.Equity, NormalSide = AccountSide.Credit, Level = 1, CompanyId = companyId, IsActive = true },
@@ -289,28 +298,71 @@ public sealed class AccountService
             new() { Id = idMap["6"], Code = "6", Name = "Gastos", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 0, CompanyId = companyId, IsSystem = true, IsActive = true },
             new() { Id = idMap["6.1.01"], Code = "6.1.01", Name = "Gastos Administrativos", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true },
             new() { Id = idMap["6.1.02"], Code = "6.1.02", Name = "Gastos de Venta", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true },
+            new() { Id = idMap["6.1.03"], Code = "6.1.03", Name = "Sueldos y Salarios", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true },
             new() { Id = idMap["6.1.04"], Code = "6.1.04", Name = "Depreciación", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true },
             new() { Id = idMap["6.1.05"], Code = "6.1.05", Name = "Mantenimiento y Reparaciones", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true },
+            new() { Id = idMap["6.1.06"], Code = "6.1.06", Name = "INSS Patronal", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true },
+            new() { Id = idMap["6.1.07"], Code = "6.1.07", Name = "Horas Extra y Bonos", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true },
+            new() { Id = idMap["6.1.08"], Code = "6.1.08", Name = "Otros Beneficios al Personal", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true },
+            new() { Id = idMap["6.1.09"], Code = "6.1.09", Name = "Servicios y Honorarios Profesionales", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true },
             new() { Id = idMap["6.2.01"], Code = "6.2.01", Name = "Pérdida en Baja de Activos", Type = AccountTypes.Expense, NormalSide = AccountSide.Debit, Level = 1, CompanyId = companyId, IsActive = true },
         };
 
-        // STEP 2a: Insert all accounts (no ParentId = no FK violations)
+        // STEP 2a: ensure-missing — solo crear las cuentas que aún no existan en la compañía
+        // (por código con variantes rellenas, o por nombre exacto en charts personalizados).
+        var created = new List<Account>();
         foreach (var a in accounts)
+        {
+            if (await AccountExistsAsync(a, companyId, existing)) continue;
+            created.Add(a);
+        }
+
+        if (created.Count == 0) return;
+
+        // STEP 2b: Insert created accounts WITHOUT ParentId (avoids FK ordering issues)
+        foreach (var a in created)
             await _repo.AddAsync(a);
         await _repo.SaveChangesAsync();
 
-        // STEP 2b: Now update ParentId for each account that has a parent
-        // All rows exist in the DB, so FK constraints are satisfied
-        foreach (var a in accounts)
+        // STEP 2c: Now update ParentId for each created account that has a parent
+        // (el padre puede ser de ESTA pasada — idMap — o ya existente en la compañía)
+        foreach (var a in created)
         {
             var parentCode = GetParentCode(a.Code);
-            if (parentCode != null && idMap.TryGetValue(parentCode, out var parentId))
-            {
-                a.ParentId = parentId;
-                await _repo.UpdateAsync(a);
-            }
+            if (parentCode == null) continue;
+
+            var parentId = idMap.TryGetValue(parentCode, out var newParentId) && created.Any(c => c.Code == parentCode)
+                ? newParentId
+                : existing.FirstOrDefault(e => e.Code == parentCode)?.Id;
+            if (parentId is not Guid pid) continue;
+
+            a.ParentId = pid;
+            await _repo.UpdateAsync(a);
         }
         await _repo.SaveChangesAsync();
+    }
+
+    /// <summary>¿Existe ya la cuenta en la compañía? Por código (exacto o variantes
+    /// rellenas: 6.1.03 / 6.1.03.000 / 6.01.03) o por nombre exacto (charts con otro esquema
+    /// de códigos, p.ej. catálogo importado por CSV).</summary>
+    private async Task<bool> AccountExistsAsync(Account candidate, Guid companyId, List<Account> existing)
+    {
+        if (existing.Any(e => string.Equals(
+                (e.Name ?? string.Empty).Trim(), candidate.Name, StringComparison.OrdinalIgnoreCase)))
+            return true;
+
+        var parts = candidate.Code.Split('.');
+        var variants = parts.Length == 3
+            ? new[]
+            {
+                candidate.Code,
+                $"{candidate.Code}.000", $"{candidate.Code}.0000",
+                $"{parts[0]}.0{parts[1]}.{parts[2]}",
+                $"{parts[0]}.0{parts[1]}.0{parts[2]}",
+            }
+            : new[] { candidate.Code };
+
+        return (await _repo.GetByCodesAsync(variants, companyId)).Count > 0;
     }
 }
 

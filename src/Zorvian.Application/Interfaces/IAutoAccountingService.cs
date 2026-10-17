@@ -26,6 +26,11 @@ public interface IAutoAccountingService
     Task<Guid> GenerateRevaluationEntryAsync(Guid revaluationId, decimal previousValue, decimal newValue, decimal accumulatedDep, Guid companyId, Guid branchId);
     Task<Guid> GenerateDisposalEntryAsync(Guid disposalId, decimal acquisitionCost, decimal accumulatedDep, decimal saleAmount, decimal gainOrLoss, string disposalType, Guid companyId, Guid branchId);
     Task<Guid> GeneratePayrollEntryAsync(Guid payrollRunId, Guid? branchId = null);
+    // Pago a Prestadores de Servicios: se postea al MARCAR COMO PAGADO —
+    // débito Gasto de Servicios por el acumulado (comisiones + bono + otros),
+    // crédito Efectivo por el neto y crédito de cada deducción a Adelantos /
+    // Retenciones por pagar según el tipo (el entity viene cargado con Deductions).
+    Task<Guid> GenerateServiceProviderPaymentEntryAsync(ServiceProviderPayment payment, Guid? branchId = null);
     Task ReversePurchaseEntryAsync(Guid purchaseId, List<PurchaseDetail> details, decimal total, Guid? branchId = null);
     Task ReverseSaleEntryAsync(Guid saleId, List<SaleDetail> details, decimal discount, string saleType, Guid? costCenterId = null, Guid? branchId = null);
 

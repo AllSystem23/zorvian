@@ -173,6 +173,14 @@ ALTER TABLE IF EXISTS "Warehouses" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS "EmploymentPeriods" ENABLE ROW LEVEL SECURITY;
 
 -- ====================================================================
+-- Phase 11: Service Provider Payments (3 tables) — pago a prestadores
+-- ====================================================================
+
+ALTER TABLE IF EXISTS "ServiceProviderPayments" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "ServiceProviderPaymentLines" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "ServiceProviderPaymentDeductions" ENABLE ROW LEVEL SECURITY;
+
+-- ====================================================================
 -- Create RLS policies via DO blocks
 -- ====================================================================
 
@@ -225,7 +233,9 @@ BEGIN
         -- política combinada tenant AND sucursal (tiene columna BranchId)
         'Warehouses',
         -- Phase 10: Employment Periods (1) — sin BranchId, solo tenant
-        'EmploymentPeriods'
+        'EmploymentPeriods',
+        -- Phase 11: Service Provider Payments (3) — sin BranchId, solo tenant
+        'ServiceProviderPayments','ServiceProviderPaymentLines','ServiceProviderPaymentDeductions'
     ])
     LOOP
         IF to_regclass(format('public.%I', tbl)) IS NULL THEN
@@ -310,7 +320,8 @@ BEGIN
         'PurchaseRequests','PurchaseRequestDetails',
         'StockTransfers','StockTransferDetails',
         'Warehouses',
-        'EmploymentPeriods'
+        'EmploymentPeriods',
+        'ServiceProviderPayments','ServiceProviderPaymentLines','ServiceProviderPaymentDeductions'
     ])
     LOOP
         IF to_regclass(format('public.%I', tbl)) IS NULL THEN

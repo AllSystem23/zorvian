@@ -297,6 +297,19 @@ if (!mockExternal)
     await Zorvian.Infrastructure.Data.FleetCatalogSeeder.SeedAsync(db, logger);
     await Zorvian.Infrastructure.Data.CountryTaxConfigSeeder.SeedAsync(db, logger);
     await Zorvian.Infrastructure.Data.SubscriptionPlanSeeder.SeedAsync(db, logger);
+
+    // 4. Upgrade automático del plan contable + enlaces de cuentas (ensure-missing) para
+    //    TODAS las compañías: los asientos de Nómina y Pago a Prestadores quedan operativos
+    //    sin configuración manual del contador. Idempotente; un fallo no detiene el arranque.
+    try
+    {
+        var seedService = scope.ServiceProvider.GetRequiredService<Zorvian.Infrastructure.Services.SeedService>();
+        await seedService.EnsureAccountsAndLinksAsync();
+    }
+    catch (Exception seedEx)
+    {
+        logger.LogError(seedEx, "Account chart/link auto-upgrade failed — app continues");
+    }
 }
 
 // ── Endpoints ──

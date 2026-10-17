@@ -121,6 +121,7 @@ public sealed class ModuleEnforcementFilter : IAsyncAuthorizationFilter
         ["Departments"] = ModuleType.Hr,
         ["Attendance"] = ModuleType.Hr,
         ["Payroll"] = ModuleType.Hr,
+        ["ServiceProviderPayments"] = ModuleType.Hr,
         ["Providers"] = ModuleType.Hr,
         ["Vacations"] = ModuleType.Hr,
         ["LeavePermissions"] = ModuleType.Hr,

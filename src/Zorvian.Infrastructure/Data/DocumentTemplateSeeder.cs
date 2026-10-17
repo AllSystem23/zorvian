@@ -513,6 +513,23 @@ public static class DocumentTemplateSeeder
             Content = BuildPayslipHtml()
         });
 
+        // ── HR: Pago a Prestador de Servicios (fuera de planilla) ──
+        templates.Add(new DocumentTemplate
+        {
+            Id = Guid.NewGuid(),
+            TenantId = tenantId,
+            CreatedAt = now,
+            CreatedBy = "system",
+            Name = "Pago a Prestador de Servicios",
+            Category = "HR",
+            Module = "Employee",
+            CountryCode = "ALL",
+            IsActive = true,
+            Version = "1.0",
+            Variables = "[{\"key\":\"payment_number\",\"label\":\"No. de Pago\",\"type\":\"text\",\"required\":true},{\"key\":\"employee_name\",\"label\":\"Nombre del Prestador\",\"type\":\"text\",\"required\":true},{\"key\":\"branch_name\",\"label\":\"Sucursal\",\"type\":\"text\",\"required\":false},{\"key\":\"period_label\",\"label\":\"Período (Quincena)\",\"type\":\"text\",\"required\":true},{\"key\":\"payment_date\",\"label\":\"Fecha de Pago\",\"type\":\"date\",\"required\":true},{\"key\":\"goal_met_label\",\"label\":\"Meta Cumplida\",\"type\":\"text\",\"required\":false},{\"key\":\"goal_bonus\",\"label\":\"Bono por Meta\",\"type\":\"number\",\"required\":false},{\"key\":\"other_income\",\"label\":\"Otros Ingresos\",\"type\":\"number\",\"required\":false},{\"key\":\"total_collected\",\"label\":\"Total Recaudado\",\"type\":\"number\",\"required\":false},{\"key\":\"total_contracted\",\"label\":\"Total en Contrato\",\"type\":\"number\",\"required\":false},{\"key\":\"total_commission\",\"label\":\"Total Comisiones\",\"type\":\"number\",\"required\":false},{\"key\":\"total_accumulated\",\"label\":\"Total Acumulado\",\"type\":\"number\",\"required\":true},{\"key\":\"total_deductions\",\"label\":\"Total Deducciones\",\"type\":\"number\",\"required\":false},{\"key\":\"net_amount\",\"label\":\"Total Recibido\",\"type\":\"number\",\"required\":true},{\"key\":\"notes\",\"label\":\"Notas\",\"type\":\"textarea\",\"required\":false}]",
+            Content = BuildServiceProviderPaymentHtml()
+        });
+
         return templates;
     }
 
@@ -2045,6 +2062,84 @@ public static class DocumentTemplateSeeder
   <div class='sig-area' style='display:flex; justify-content:space-between; margin-top:60px;'>
     <div class='sig-block' style='text-align:center; width:40%;'><div class='sig-line'>Recibí Conforme<br /><small>{{{{ employee_name | default: '____________' }}}}</small></div></div>
     <div class='sig-block' style='text-align:center; width:40%;'><div class='sig-line'>Pagado por<br /><small>{{{{ Company.LegalName }}}}</small></div></div>
+  </div>
+  <div class='footer'>Documento generado por Zorvian ERP - Motor Documental Inteligente · {{{{ Country.Name }}}} · {{{{ Company.Date }}}}</div>
+</body></html>";
+
+    private static string BuildServiceProviderPaymentHtml() => $@"<!DOCTYPE html>
+<html><head><meta charset='UTF-8'>
+  {SharedStyles()}
+  <style>
+    .doc-badge {{ background: #1A0A3E; color: #00E5FF; padding: 8px 20px; border-radius: 20px; font-size: 14px; font-weight: 700; }}
+    .header {{ display: flex; justify-content: space-between; align-items: center; }}
+    .provider-box {{ background: #f5f3ff; border-left: 4px solid #7C4DFF; padding: 12px 16px; border-radius: 8px; margin: 14px 0; }}
+    .provider-box small {{ color: #666; }}
+    .meta-box {{ display: flex; gap: 16px; margin: 12px 0; flex-wrap: wrap; }}
+    .meta-card {{ flex: 1; min-width: 140px; background: #f5f3ff; padding: 10px 14px; border-radius: 8px; border-left: 3px solid #7C4DFF; }}
+    .meta-card small {{ color: #666; display: block; margin-bottom: 3px; }}
+    .meta-card strong {{ color: #1A0A3E; font-size: 13px; }}
+    .section-title {{ background: #1A0A3E; color: #fff; padding: 5px 12px; font-weight: 700; font-size: 12px; letter-spacing: 1px; margin-top: 14px; text-transform: uppercase; }}
+    table.money {{ width: 100%; border-collapse: collapse; margin: 0 0 4px 0; }}
+    table.money td {{ padding: 6px 8px; font-size: 13px; border-bottom: 1px dashed #bbb; }}
+    table.money td.amount {{ text-align: right; font-weight: 600; white-space: nowrap; }}
+    table.money tr.sum td {{ border-bottom: 2px solid #1A0A3E; border-top: 2px solid #1A0A3E; font-weight: 800; background: #f5f3ff; }}
+    .goal-row {{ display: flex; justify-content: space-between; align-items: center; background: #f0fdf8; border-left: 4px solid #2EE59D; padding: 10px 14px; border-radius: 8px; margin: 10px 0; }}
+    .goal-row .met {{ font-weight: 800; color: #047857; letter-spacing: 1px; }}
+    .goal-row .not-met {{ font-weight: 800; color: #b91c1c; letter-spacing: 1px; }}
+    .net-box {{ text-align: center; margin: 16px 0 6px 0; padding: 14px; background: #1A0A3E; border-radius: 10px; color: #fff; }}
+    .net-box small {{ display: block; letter-spacing: 2px; font-weight: 600; color: #cfc6ff; margin-bottom: 4px; }}
+    .net-box .net-amount {{ font-size: 22px; font-weight: 800; color: #2EE59D; }}
+  </style>
+</head><body>
+  <div class='header'>
+    <div>
+      <div class='company-name'>{{{{ Company.LegalName }}}}</div>
+      <div style='font-size:12px;color:#555;'>{{{{ Company.TaxIdLabel }}}} No. {{{{ Company.TaxId | default: '____________' }}}}</div>
+    </div>
+    <div style='text-align:right;'>
+      <div class='doc-badge'>COMPROBANTE DE PAGO</div>
+      <div style='font-size:12px; margin-top:6px;'><strong>{{{{ payment_number | default: '____________' }}}}</strong></div>
+      {{% if payment_status == 'paid' %}}<div style='margin-top:6px; display:inline-block; border:2px solid #2EE59D; color:#047857; background:#f0fdf4; padding:4px 14px; border-radius:6px; font-weight:800; letter-spacing:2px;'>PAGADO</div>{{% endif %}}
+    </div>
+  </div>
+  <div class='meta-box'>
+    <div class='meta-card'><small>Fecha de Pago</small><strong>{{{{ payment_date }}}}</strong></div>
+    <div class='meta-card'><small>Mes Pagado</small><strong>{{{{ period_label }}}}</strong></div>
+    {{% if payment_reference != blank %}}<div class='meta-card'><small>Referencia</small><strong>{{{{ payment_reference }}}}</strong></div>{{% endif %}}
+  </div>
+  <div class='provider-box'><small style='text-transform:uppercase; letter-spacing:1px;'>Prestador de Servicios</small><br /><strong>{{{{ employee_name | default: '____________' }}}}</strong>{{% if employee_code != blank %}} &middot; <small>Cód. {{{{ employee_code }}}}</small>{{% endif %}}{{% if branch_name != blank %}} &middot; <small>Sucursal: {{{{ branch_name }}}}</small>{{% endif %}}</div>
+
+  <div class='section-title'>Recaudo en Efectivo</div>
+  <table class='money'>
+    <tbody>{{% for l in lines %}}<tr><td>MONTOS {{{{ l.line_name | upcase }}}}</td><td class='amount'>{{{{ l.collected }}}}</td></tr>{{% else %}}<tr><td><em>Sin líneas de recaudo registradas.</em></td><td class='amount'>0.00</td></tr>{{% endfor %}}<tr class='sum'><td>SUMA TOTAL RECAUDO EN EFECTIVO</td><td class='amount'>{{{{ total_collected | default: '0.00' }}}}</td></tr></tbody>
+  </table>
+
+  <div class='section-title'>En Contrato (Meta por Línea)</div>
+  <table class='money'>
+    <tbody>{{% for l in lines %}}<tr><td>{{{{ l.line_name | upcase }}}} EN CONTRATO</td><td class='amount'>{{{{ l.contracted }}}}</td></tr>{{% else %}}<tr><td><em>Sin montos en contrato.</em></td><td class='amount'>0.00</td></tr>{{% endfor %}}<tr class='sum'><td>SUMA TOTAL EN CONTRATO</td><td class='amount'>{{{{ total_contracted | default: '0.00' }}}}</td></tr></tbody>
+  </table>
+
+  <div class='goal-row'>
+    <div><strong>META CUMPLIDA:</strong> {{% if goal_met_label == 'SI' %}}<span class='met'>SI</span>{{% else %}}<span class='not-met'>NO</span>{{% endif %}}</div>
+    <div><strong>SUMA TOTAL META CUMPLIDA:</strong> {{{{ goal_bonus | default: '0.00' }}}}</div>
+  </div>
+
+  <div class='section-title'>Comisiones e Ingresos</div>
+  <table class='money'>
+    <tbody>{{% for l in lines %}}<tr><td>COMISIÓN {{{{ l.line_name | upcase }}}} &nbsp; {{{{ l.rate }}}}</td><td class='amount'>{{{{ l.commission }}}}</td></tr>{{% else %}}<tr><td><em>Sin comisiones calculadas.</em></td><td class='amount'>0.00</td></tr>{{% endfor %}}<tr><td>Otros Ingresos</td><td class='amount'>{{{{ other_income | default: '0.00' }}}}</td></tr><tr class='sum'><td>TOTAL ACUMULADO</td><td class='amount'>{{{{ total_accumulated | default: '0.00' }}}}</td></tr></tbody>
+  </table>
+
+  <div class='section-title'>Deducciones (con Acuerdo Previo)</div>
+  <table class='money'>
+    <tbody>{{% for d in deductions %}}<tr><td>{{{{ d.type_label | upcase }}}}{{% if d.description != blank %}}: {{{{ d.description }}}}{{% endif %}}{{% if d.agreement_reference != blank %}} <small>(Acuerdo: {{{{ d.agreement_reference }}}})</small>{{% endif %}}</td><td class='amount'>- {{{{ d.amount }}}}</td></tr>{{% else %}}<tr><td><em>Sin deducciones registradas.</em></td><td class='amount'>0.00</td></tr>{{% endfor %}}<tr class='sum'><td>TOTAL DEDUCCIÓN</td><td class='amount'>- {{{{ total_deductions | default: '0.00' }}}}</td></tr></tbody>
+  </table>
+
+  <div class='net-box'><small>TOTAL RECIBIDO</small><span class='net-amount'>{{{{ Country.Currency }}}} {{{{ net_amount | default: '0.00' }}}}</span></div>
+  {{% if notes != blank %}}<p style='font-size:12px; margin-top:10px;'><strong>Notas:</strong> {{{{ notes }}}}</p>{{% endif %}}
+  <p style='margin-top:10px; font-size:12px;'>Comprobante de pago por servicios prestados fuera de planilla. El prestador declara recibir el monto indicado, del cual se descontaron las deducciones acordadas previamente.</p>
+  <div class='sig-area' style='display:flex; justify-content:space-between; margin-top:56px;'>
+    <div class='sig-block' style='text-align:center; width:40%;'><div class='sig-line'>Recibí Conforme<br /><small>{{{{ employee_name | default: '____________' }}}}</small></div></div>
+    <div class='sig-block' style='text-align:center; width:40%;'><div class='sig-line'>Autorizado Por<br /><small>{{{{ Company.LegalName }}}}</small></div></div>
   </div>
   <div class='footer'>Documento generado por Zorvian ERP - Motor Documental Inteligente · {{{{ Country.Name }}}} · {{{{ Company.Date }}}}</div>
 </body></html>";

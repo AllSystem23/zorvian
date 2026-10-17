@@ -125,6 +125,9 @@ import '../features/purchase_requests/pages/purchase_request_detail_page.dart';
 import '../features/stock_transfers/pages/stock_transfer_list_page.dart';
 import '../features/stock_transfers/pages/stock_transfer_form_page.dart';
 import '../features/stock_transfers/pages/stock_transfer_detail_page.dart';
+import '../features/service_payments/pages/service_payment_list_page.dart';
+import '../features/service_payments/pages/service_payment_form_page.dart';
+import '../features/service_payments/pages/service_payment_detail_page.dart';
 import '../features/warehouses/pages/warehouse_list_page.dart';
 import '../features/warehouses/pages/warehouse_form_page.dart';
 import '../features/approval/pages/approval_flow_list_page.dart';
@@ -977,6 +980,16 @@ GoRouter buildGoRouter(AuthState authState) {
             routes: [
               GoRoute(path: 'new', name: 'stock-transfer-new', builder: (_, _) => const StockTransferFormPage()),
               GoRoute(path: ':stockTransferId', name: 'stock-transfer-detail', builder: (_, state) => StockTransferDetailPage(stockTransferId: state.pathParameters['stockTransferId']!)),
+            ],
+          ),
+          GoRoute(
+            path: '/service-payments',
+            name: 'service-payments',
+            builder: (_, _) => const ServicePaymentListPage(),
+            routes: [
+              GoRoute(path: 'new', name: 'service-payment-new', builder: (_, _) => const ServicePaymentFormPage()),
+              GoRoute(path: 'edit/:servicePaymentId', name: 'service-payment-edit', builder: (_, state) => ServicePaymentFormPage(paymentId: state.pathParameters['servicePaymentId']!)),
+              GoRoute(path: ':servicePaymentId', name: 'service-payment-detail', builder: (_, state) => ServicePaymentDetailPage(servicePaymentId: state.pathParameters['servicePaymentId']!)),
             ],
           ),
           GoRoute(

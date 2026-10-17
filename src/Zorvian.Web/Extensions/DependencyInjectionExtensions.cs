@@ -267,7 +267,8 @@ public static class DependencyInjectionExtensions
             sp.GetRequiredService<AccountService>(),
             sp.GetRequiredService<AccountLinkService>(),
             sp.GetRequiredService<IAccountingRuleTemplateRepository>(),
-            sp.GetRequiredService<ITenantContextWriter>()));
+            sp.GetRequiredService<ITenantContextWriter>(),
+            sp.GetRequiredService<ILogger<SeedService>>()));
         services.AddScoped<ISeedService>(sp => sp.GetRequiredService<SeedService>());
         services.AddScoped<CompanyService>();
         services.AddScoped<EmployeeService>();
@@ -283,6 +284,10 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IPolicyService, PolicyService>();
         services.AddScoped<PerformanceService>();
         services.AddScoped<IVacationRecommendationService, VacationRecommendationService>();
+
+        // Pago a Prestadores de Servicios (quincenal, fuera de planilla)
+        services.AddScoped<IServiceProviderPaymentRepository, ServiceProviderPaymentRepository>();
+        services.AddScoped<ServiceProviderPaymentService>();
 
         // Commissions Engine
         services.AddScoped<RuleEvaluator>();

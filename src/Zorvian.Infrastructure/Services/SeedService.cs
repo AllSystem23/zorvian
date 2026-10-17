@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Zorvian.Application.Helpers;
 using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
@@ -26,8 +27,9 @@ public sealed class SeedService : ISeedService
     private readonly AccountService _accountService;
     private readonly AccountLinkService _accountLinkService;
     private readonly IAccountingRuleTemplateRepository _templateRepo;
+    private readonly ILogger<SeedService> _logger;
 
-    public SeedService(ZorvianDbContext db, IFirebaseAuthService firebase, IFiscalService fiscal, AccountService accountService, AccountLinkService accountLinkService, IAccountingRuleTemplateRepository templateRepo, ITenantContextWriter tenantWriter)
+    public SeedService(ZorvianDbContext db, IFirebaseAuthService firebase, IFiscalService fiscal, AccountService accountService, AccountLinkService accountLinkService, IAccountingRuleTemplateRepository templateRepo, ITenantContextWriter tenantWriter, ILogger<SeedService> logger)
     {
         _db = db;
         _firebase = firebase;
@@ -36,6 +38,46 @@ public sealed class SeedService : ISeedService
         _accountLinkService = accountLinkService;
         _templateRepo = templateRepo;
         _tenantWriter = tenantWriter;
+        _logger = logger;
+    }
+
+    /// <summary>
+    /// Upgrade automático al arranque: para CADA compañía existente completa el plan contable
+    /// (ensure-missing: solo agrega las cuentas que falten) y los enlaces de cuentas
+    /// (Payroll, ServiceProviderPayment, CashMovement, etc.). Idempotente y sin intervención
+    /// manual: los asientos automáticos de Nómina y Pago a Prestadores de Servicios quedan
+    /// operativos aunque la compañía se creó antes de existir esas cuentas/enlaces.
+    /// Un fallo en una compañía no detiene el proceso de las demás.
+    /// </summary>
+    public async Task EnsureAccountsAndLinksAsync()
+    {
+        var companies = await _db.Companies.IgnoreQueryFilters()
+            .Where(c => c.TenantId != null && c.TenantId != "")
+            .Select(c => new { c.Id, c.TenantId })
+            .ToListAsync();
+
+        var processed = 0;
+        foreach (var c in companies)
+        {
+            if (!Guid.TryParse(c.TenantId, out _)) continue;
+            try
+            {
+                _tenantWriter.SetTenantId(TenantId.FromString(c.TenantId));
+                _tenantWriter.SetIsSuperAdmin(false);
+                await _accountService.SeedDefaultChartOfAccountsAsync();
+                await _accountLinkService.SeedDefaultLinksAsync();
+                processed++;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "No se pudo completar el plan contable/enlaces de la compañía {CompanyId}", c.Id);
+            }
+        }
+
+        if (processed > 0)
+            _logger.LogInformation(
+                "Plan contable y enlaces de cuentas verificados (ensure-missing) en {Count} compañía(s)", processed);
     }
 
     /// <summary>

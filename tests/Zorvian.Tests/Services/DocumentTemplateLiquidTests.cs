@@ -399,6 +399,7 @@ public class DocumentTemplateLiquidTests
     [InlineData("BuildKardexHtml")]
     [InlineData("BuildPayrollSheetHtml")]
     [InlineData("BuildPayslipHtml")]
+    [InlineData("BuildServiceProviderPaymentHtml")]
     public async Task SeededBuilder_Renders_WithoutLeftoverPlaceholders(string builderName)
     {
         var html = InvokeBuilder(builderName);
@@ -1220,5 +1221,124 @@ public class DocumentTemplateLiquidTests
         draft.Should().NotContain("PAGADO", "una colilla pendiente no lleva sello");
         draft.Should().Contain("INSS", "sin conceptos detallados cae al fallback INSS/IR/Otras");
         draft.Should().NotContain("{{");
+    }
+
+    [Fact]
+    public async Task ServiceProviderPayment_LoopsLinesAndDeductions_RendersTotals()
+    {
+        var html = InvokeBuilder("BuildServiceProviderPaymentHtml");
+        var model = new Dictionary<string, object>
+        {
+            ["payment_number"] = "PP-20261015-0001",
+            ["employee_name"] = "María Fernández",
+            ["period_label"] = "Quincena 1 · Oct 2026",
+            ["payment_date"] = "15/10/2026",
+            ["payment_status"] = "paid",
+            ["goal_met_label"] = "SI",
+            ["goal_bonus"] = "1,000.00",
+            ["other_income"] = "0.00",
+            ["total_collected"] = "550,669.00",
+            ["total_contracted"] = "550,669.00",
+            ["total_commission"] = "22,026.76",
+            ["total_accumulated"] = "23,026.76",
+            ["total_deductions"] = "13,923.36",
+            ["net_amount"] = "9,103.40",
+            ["lines"] = new List<Dictionary<string, object>>
+            {
+                new(StringComparer.Ordinal)
+                {
+                    ["line_name"] = "OTROS",
+                    ["collected"] = "495,782.00",
+                    ["contracted"] = "495,782.00",
+                    ["rate"] = "4%",
+                    ["commission"] = "19,831.28",
+                    ["line_goal_met"] = "SI",
+                },
+                new(StringComparer.Ordinal)
+                {
+                    ["line_name"] = "TELÉFONO",
+                    ["collected"] = "54,887.00",
+                    ["contracted"] = "54,887.00",
+                    ["rate"] = "4%",
+                    ["commission"] = "2,195.48",
+                    ["line_goal_met"] = "SI",
+                },
+            },
+            ["deductions"] = new List<Dictionary<string, object>>
+            {
+                new(StringComparer.Ordinal)
+                {
+                    ["type_label"] = "Crédito Interno",
+                    ["description"] = "LAVADORA FRIGIDAIRE SALDO 4692",
+                    ["amount"] = "5,000.00",
+                    ["agreement_reference"] = "AC-2026-02",
+                    ["agreement_date"] = "01/10/2026",
+                },
+            },
+        };
+
+        var rendered = await RenderRawAsync(html, LiquidModelNormalizer.Normalize(model));
+
+        rendered.Should().Contain("COMPROBANTE DE PAGO");
+        rendered.Should().Contain("PAGADO", "sello de estado pagado");
+        rendered.Should().Contain("MONTOS OTROS", "el loop imprime cada línea con upcase");
+        rendered.Should().Contain("TELÉFONO EN CONTRATO");
+        rendered.Should().Contain("19,831.28");
+        rendered.Should().Contain("2,195.48");
+        rendered.Should().Contain("SUMA TOTAL RECAUDO EN EFECTIVO");
+        rendered.Should().Contain("TOTAL ACUMULADO");
+        rendered.Should().Contain("LAVADORA FRIGIDAIRE SALDO 4692");
+        rendered.Should().Contain("CRÉDITO INTERNO", "type_label se imprime en mayúsculas");
+        rendered.Should().Contain("9,103.40");
+        rendered.Should().Contain("META CUMPLIDA");
+        rendered.Should().NotContain("{{");
+    }
+
+    [Fact]
+    public async Task ServiceProviderPayment_NoLinesOrDeductions_ShowsFallbackRows()
+    {
+        var html = InvokeBuilder("BuildServiceProviderPaymentHtml");
+        var model = new Dictionary<string, object>
+        {
+            ["payment_number"] = "PP-20261016-0002",
+            ["employee_name"] = "Carlos Ruiz",
+            ["goal_met_label"] = "NO",
+        };
+
+        var rendered = await RenderRawAsync(html, LiquidModelNormalizer.Normalize(model));
+
+        rendered.Should().Contain("Sin líneas de recaudo registradas.");
+        rendered.Should().Contain("Sin deducciones registradas.");
+        rendered.Should().NotContain("PAGADO", "sin estado pagado no lleva sello");
+        rendered.Should().NotContain("{{");
+    }
+
+    [Fact]
+    public async Task ServiceProviderPayment_ShowsBranch_WhenProvided_HidesWhenBlank()
+    {
+        var html = InvokeBuilder("BuildServiceProviderPaymentHtml");
+
+        var withBranch = new Dictionary<string, object>
+        {
+            ["payment_number"] = "PP-20261017-0003",
+            ["employee_name"] = "Ana López",
+            ["branch_name"] = "Sucursal Norte",
+        };
+        var rendered = await RenderRawAsync(html, LiquidModelNormalizer.Normalize(withBranch));
+
+        rendered.Should().Contain("Sucursal: Sucursal Norte",
+            "el comprobante imprime la sucursal del prestador para la reportería");
+        rendered.Should().NotContain("{{");
+
+        // Sin sucursal (prestador sin branch asignada) no queda un "Sucursal:" vacío.
+        var withoutBranch = new Dictionary<string, object>
+        {
+            ["payment_number"] = "PP-20261017-0004",
+            ["employee_name"] = "Ana López",
+        };
+        var renderedBlank = await RenderRawAsync(html, LiquidModelNormalizer.Normalize(withoutBranch));
+
+        renderedBlank.Should().NotContain("Sucursal:");
+        renderedBlank.Should().NotContain("{{");
     }
 }

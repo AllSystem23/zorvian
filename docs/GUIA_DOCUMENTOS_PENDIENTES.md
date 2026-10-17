@@ -3,7 +3,7 @@
 Esta guía sirve para completar la implementación de documentos faltantes usando el Motor Documental Inteligente (Liquid + DocumentService.GenerateProfessionalDocumentAsync).
 
 ## Estado actual (2026-10-16)
-- ✅ RRHH: Constancia de Empleo, Contrato de Trabajo, Carta de Oferta, Constancias vía solicitudes (salarial/laboral/contrato/liquidacion/poder), Liquidación Final (NIC), **Planilla de Pago** (corrida de nómina) y **Colilla de Pago** (stub por trabajador)
+- ✅ RRHH: Constancia de Empleo, Contrato de Trabajo, Carta de Oferta, Constancias vía solicitudes (salarial/laboral/contrato/liquidacion/poder), Liquidación Final (NIC), **Planilla de Pago** (corrida de nómina), **Colilla de Pago** (stub por trabajador) y **Pago a Prestador de Servicios** (comprobante quincenal: recaudo por línea + comisión + deducciones con acuerdo)
 - ✅ Comerciales: Cotización, Proforma, Factura, Guía de Despacho, **Guía de Remisión / Traslado**, Nota de Crédito
 - ✅ Compras: Orden de Compra (**con sello por estado: APROBADA / RECIBIDA PARCIALMENTE / COMPLETADA / CANCELADA**), Acta de Recepción de Compras, **Recibo de Pago (Proveedor)**, **Solicitud de Cotización** (entidad PurchaseRequest construida en esta tanda)
 - ✅ Finanzas/Caja: Recibo de Pago (Cliente), Comprobante de Caja (Ingreso/Egreso — una plantilla con `movement_title` variable), **Ficha de Activo Fijo**
@@ -11,9 +11,9 @@ Esta guía sirve para completar la implementación de documentos faltantes usand
 - ✅ Garantías: **Certificado de Garantía**
 - ✅ Inventario: **Kardex de Producto** (endpoint por producto: totales de entradas/salidas, período y stock), **Transferencia entre Bodegas** (entidad StockTransfer construida en esta tanda)
 - ✅ Otros: Poder Notarial General
-- ✅ **Ítems tabulados**: 13 plantillas renderizan filas reales vía `{% for %}` (Factura, Cotización, Nota de Crédito, OC, Acta de Compras, Hoja de Ruta, Kardex, Solicitud de Cotización, Transferencia entre Bodegas, Guía de Despacho, Guía de Remisión, Planilla de Pago —lista de trabajadores—, Colilla de Pago —conceptos del trabajador—)
+- ✅ **Ítems tabulados**: 14 plantillas renderizan filas reales vía `{% for %}` (Factura, Cotización, Nota de Crédito, OC, Acta de Compras, Hoja de Ruta, Kardex, Solicitud de Cotización, Transferencia entre Bodegas, Guía de Despacho, Guía de Remisión, Planilla de Pago —lista de trabajadores—, Colilla de Pago —conceptos del trabajador—, Pago a Prestador de Servicios —líneas de recaudo + deducciones—)
 
-Plantillas sembradas: **27** (6 en v2.1 multi-país + Liquidación NIC 1.1 + 20 en v1.0). El seeder **inserta las plantillas faltantes idempotentemente** en BDs existentes (`InsertMissingSeededTemplatesAsync`), así las nuevas llegan en el próximo arranque sin borrar la BD.
+Plantillas sembradas: **28** (6 en v2.1 multi-país + Liquidación NIC 1.1 + 21 en v1.0). El seeder **inserta las plantillas faltantes idempotentemente** en BDs existentes (`InsertMissingSeededTemplatesAsync`), así las nuevas llegan en el próximo arranque sin borrar la BD.
 
 ### Endpoints implementados (POST → genera + devuelve downloadUrl `/zorvian/v1/documents/{id}/pdf`)
 | Documento | Endpoint | Contexto | Plantilla |
@@ -36,6 +36,7 @@ Plantillas sembradas: **27** (6 en v2.1 multi-país + Liquidación NIC 1.1 + 20 
 | Transferencia entre Bodegas | `/zorvian/v1/stock-transfers/{id}/pdf/generate` | `stocktransfer` | Transferencia entre Bodegas (botón "Generar PDF" en el detalle; sello BORRADOR/EN TRÁNSITO/COMPLETADA) |
 | Planilla de Pago | `/zorvian/v1/payroll/runs/{id}/pdf/generate` | `payroll` | Planilla de Pago (botón junto a "Exportar ACH" en el detalle de la corrida; resumen de totales + tabla de trabajadores) |
 | Colilla de Pago | `/zorvian/v1/payroll/details/{detailId}/pdf/generate` | `payrolldetail` | Colilla de Pago (ícono de recibo por fila en la tabla de trabajadores; Ingresos/Deducciones en paralelo, sello PAGADO) |
+| Pago a Prestador de Servicios | `/zorvian/v1/service-provider-payments/{id}/pdf/generate` | `servicepayment` | Comprobante de Pago a Prestador (botón "Comprobante PDF" en el detalle; líneas de recaudo con `{% for %}`, deducciones con acuerdo, sello PAGADO, neto destacado) |
 
 ## 1. Compras / Proveedores
 | Documento | Entidad | Tipo | Prioridad | Notas |

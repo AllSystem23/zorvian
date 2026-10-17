@@ -128,7 +128,7 @@ public sealed class DocumentTemplateSystemVisibilityTests : IDisposable
         var repo = new DocumentTemplateRepository(freshDb);
         var (items, total) = await repo.GetFilteredAsync(null, null, null, null, null, 1, 50);
 
-        Assert.Equal(27, total);
+        Assert.Equal(28, total);
         Assert.All(items, t => Assert.Equal(DocumentTemplate.SystemTenantId, t.TenantId));
         Assert.Equal(6, items.Count(t => t.Version == "2.1"));
         Assert.Contains(items, t => t.Name == "Liquidación Final (Nicaragua)" && t.CountryCode == "NIC");

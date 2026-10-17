@@ -64,7 +64,7 @@ public sealed class DocumentTemplateSeederTests : IDisposable
 
         var templates = await AllTemplates();
 
-        Assert.Equal(27, templates.Count);
+        Assert.Equal(28, templates.Count);
         Assert.Contains(templates, t => t.Name == "Contrato de Trabajo a Término Indefinido");
         Assert.Contains(templates, t => t.Name == "Carta de Oferta Laboral");
         Assert.Contains(templates, t => t.Name == "Constancia de Empleo");
@@ -92,6 +92,7 @@ public sealed class DocumentTemplateSeederTests : IDisposable
         Assert.Contains(templates, t => t.Name == "Transferencia entre Bodegas");
         Assert.Contains(templates, t => t.Name == "Planilla de Pago");
         Assert.Contains(templates, t => t.Name == "Colilla de Pago");
+        Assert.Contains(templates, t => t.Name == "Pago a Prestador de Servicios");
 
         var multiCountry = templates.Where(t => t.Name != "Liquidación Final (Nicaragua)").ToList();
         Assert.All(multiCountry, t => Assert.Equal("ALL", t.CountryCode));
@@ -114,7 +115,7 @@ public sealed class DocumentTemplateSeederTests : IDisposable
                      "Recibo de Pago (Proveedor)", "Certificado de Garantía",
                      "Hoja de Ruta / Entrega", "Ficha de Activo Fijo", "Kardex de Producto",
                      "Solicitud de Cotización", "Transferencia entre Bodegas",
-                     "Planilla de Pago", "Colilla de Pago"
+                     "Planilla de Pago", "Colilla de Pago", "Pago a Prestador de Servicios"
                  })
             Assert.Equal("1.0", templates.Single(t => t.Name == name).Version);
 
@@ -145,6 +146,8 @@ public sealed class DocumentTemplateSeederTests : IDisposable
         Assert.Equal("Inventory", templates.Single(t => t.Name == "Transferencia entre Bodegas").Module);
         Assert.Equal("Employee", templates.Single(t => t.Name == "Planilla de Pago").Module);
         Assert.Equal("Employee", templates.Single(t => t.Name == "Colilla de Pago").Module);
+        Assert.Equal("Employee", templates.Single(t => t.Name == "Pago a Prestador de Servicios").Module);
+        Assert.Equal("HR", templates.Single(t => t.Name == "Pago a Prestador de Servicios").Category);
     }
 
     [Fact]
@@ -160,14 +163,14 @@ public sealed class DocumentTemplateSeederTests : IDisposable
 
         var refreshed = (await AllTemplates()).Single(t => t.Name == "Cotización Comercial");
         Assert.Equal("MARCADOR-DEL-USUARIO", refreshed.Content);
-        Assert.Equal(27, (await AllTemplates()).Count);
+        Assert.Equal(28, (await AllTemplates()).Count);
     }
 
     [Fact]
     public async Task SeedAsync_InsertsMissingSeededTemplates_IntoExistingDatabases()
     {
         // BD existente que solo tiene una plantilla de usuario y una sembrada vieja:
-        // el seeder debe insertar las 26 sembradas que faltan sin tocar las existentes.
+        // el seeder debe insertar las 27 sembradas que faltan sin tocar las existentes.
         _db.DocumentTemplates.AddRange(
             Legacy("Mi Plantilla Personalizada", "1.0", "ALL", "contenido de usuario"),
             Legacy("Constancia de Empleo", "2.1", "ALL", "constancia del usuario"));
@@ -176,7 +179,7 @@ public sealed class DocumentTemplateSeederTests : IDisposable
         await DocumentTemplateSeeder.SeedAsync(_db, _logger);
 
         var all = await AllTemplates();
-        Assert.Equal(28, all.Count); // 2 preexistentes + 26 sembradas faltantes (Constancia ya existía)
+        Assert.Equal(29, all.Count); // 2 preexistentes + 27 sembradas faltantes (Constancia ya existía)
 
         var userTemplate = all.Single(t => t.Name == "Mi Plantilla Personalizada");
         Assert.Equal("contenido de usuario", userTemplate.Content);
@@ -204,6 +207,7 @@ public sealed class DocumentTemplateSeederTests : IDisposable
         Assert.Contains(all, t => t.Name == "Transferencia entre Bodegas");
         Assert.Contains(all, t => t.Name == "Planilla de Pago");
         Assert.Contains(all, t => t.Name == "Colilla de Pago");
+        Assert.Contains(all, t => t.Name == "Pago a Prestador de Servicios");
     }
 
     [Fact]
@@ -220,8 +224,8 @@ public sealed class DocumentTemplateSeederTests : IDisposable
         await DocumentTemplateSeeder.SeedAsync(_db, _logger);
 
         var all = await AllTemplates();
-        // 3 preexistentes + 25 sembradas faltantes (cotización y contrato ya existían).
-        Assert.Equal(28, all.Count);
+        // 3 preexistentes + 26 sembradas faltantes (cotización y contrato ya existían).
+        Assert.Equal(29, all.Count);
 
         var quote = all.Single(t => t.Name == "Cotización Comercial");
         Assert.Equal("2.1", quote.Version);

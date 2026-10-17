@@ -848,6 +848,132 @@ public sealed class AutoAccountingService : IAutoAccountingService
         return entry.Id;
     }
 
+    /// <summary>Pago a Prestadores de Servicios — se genera al MARCAR COMO PAGADO.
+    /// DÉBITO: Gasto de Servicios (ServicesExpense) por el acumulado (comisiones + bono +
+    /// otros ingresos). CRÉDITO: Efectivo por el neto recibido; cada deducción con acuerdo
+    /// previo abona a Adelantos por aplicar (adelanto/préstamo liquidado) o a INSS por pagar
+    /// (retención). Invariante: TotalDebit == TotalCredit == TotalAccumulated, porque
+    /// Recompute garantiza NetAmount = Acumulado − Deducciones.</summary>
+    public async Task<Guid> GenerateServiceProviderPaymentEntryAsync(ServiceProviderPayment payment, Guid? branchId = null)
+    {
+        if (payment.TotalAccumulated <= 0)
+            throw new InvalidOperationException($"El pago {payment.PaymentNumber} no tiene acumulado; no hay gasto que registrar.");
+
+        var periodId = await GetPeriodIdAsync();
+        var companyId = CompanyId;
+
+        var entryDetails = new List<AccountingEntryDetail>();
+
+        void AddDetail(Guid accountId, decimal debit, decimal credit, string description) =>
+            entryDetails.Add(new() { AccountId = accountId, DebitAmount = debit, CreditAmount = credit, Description = description });
+
+        // Resolución AUTOMÁTICA de cuentas (sin configuración manual): primero el enlace
+        // configurado (override del contador), luego el plan contable por código del chart
+        // default, luego por nombre. Solo falla si ni siquiera existe el plan contable.
+        var expenseAcc = await TryLinkAccountAsync(TransactionTypes.ServiceProviderPayment, AccountRoles.ServicesExpense)
+            ?? await TryChartCodeAsync("6.1.09")          // Servicios y Honorarios Profesionales
+            ?? await TryChartCodeAsync("6.1.01")          // Gastos Administrativos (equivalente)
+            ?? await TryChartNameAsync("Honorarios", "Servicios y Honorarios")
+            ?? throw new InvalidOperationException(
+                $"No se encontró cuenta de gasto de servicios para {payment.PaymentNumber}: " +
+                $"agregue la cuenta 6.1.09 'Servicios y Honorarios Profesionales' al plan contable o " +
+                $"configure el enlace {TransactionTypes.ServiceProviderPayment}/{AccountRoles.ServicesExpense}.");
+
+        var cashAcc = await TryLinkAccountAsync(TransactionTypes.ServiceProviderPayment, AccountRoles.Cash)
+            ?? await TryLinkAccountAsync(TransactionTypes.CashMovement, AccountRoles.Cash)
+            ?? await TryChartCodeAsync("1.1.01")          // Caja General
+            ?? await TryChartNameAsync("Caja")
+            ?? throw new InvalidOperationException(
+                $"No se encontró cuenta de efectivo para {payment.PaymentNumber}: " +
+                "verifique que el plan contable incluya 1.1.01 'Caja General'.");
+
+        var employeeName = payment.Employee != null
+            ? $"{payment.Employee.FirstName} {payment.Employee.LastName}".Trim()
+            : payment.EmployeeId.ToString()[..8];
+
+        AddDetail(expenseAcc, payment.TotalAccumulated, 0, $"Gasto servicios prestador {employeeName}");
+        if (payment.NetAmount != 0)
+            AddDetail(cashAcc, 0, payment.NetAmount, $"Neto pagado a {employeeName}");
+
+        // Deducciones: la cuenta también se resuelve SOLO (enlace → plan contable → nombre);
+        // como último recurso abonan a la misma cuenta de gasto (reduce el gasto neto) para
+        // que el asiento nunca quede desbalanceado ni dependa de una configuración manual.
+        var deductions = payment.Deductions?.Where(d => d.Amount != 0) ?? Enumerable.Empty<ServiceProviderPaymentDeduction>();
+        foreach (var group in deductions.GroupBy(d => d.DeductionType == "inss" ? AccountRoles.WithholdingPayable : AccountRoles.Advances))
+        {
+            var isWithholding = group.Key == AccountRoles.WithholdingPayable;
+            var acc = isWithholding
+                ? await TryLinkAccountAsync(TransactionTypes.ServiceProviderPayment, AccountRoles.WithholdingPayable)
+                    ?? await TryLinkAccountAsync(TransactionTypes.Payroll, "EmployeeInssPayable")
+                    ?? await TryChartCodeAsync("2.1.04")  // INSS Laboral por Pagar
+                    ?? await TryChartNameAsync("INSS Laboral")
+                    ?? expenseAcc
+                : await TryLinkAccountAsync(TransactionTypes.ServiceProviderPayment, AccountRoles.Advances)
+                    ?? await TryChartCodeAsync("1.1.06")  // Adelantos y Préstamos
+                    ?? await TryChartNameAsync("Adelanto")
+                    ?? expenseAcc;
+
+            AddDetail(acc, 0, group.Sum(d => d.Amount),
+                isWithholding ? "INSS retenido" : "Deducciones aplicadas");
+        }
+
+        var totalDebit = entryDetails.Sum(d => d.DebitAmount);
+        var totalCredit = entryDetails.Sum(d => d.CreditAmount);
+        if (totalDebit != totalCredit)
+            throw new InvalidOperationException(
+                $"Asiento desbalanceado del pago {payment.PaymentNumber}: debe {totalDebit} != haber {totalCredit} (recomputar totales).");
+
+        var entry = new AccountingEntry
+        {
+            EntryNumber = await GenerateNumberAsync(),
+            EntryDate = DateTime.UtcNow,
+            Description = $"Pago a prestador {payment.PaymentNumber} — {employeeName}",
+            ReferenceType = "ServiceProviderPayment",
+            ReferenceId = payment.Id,
+            Status = "posted",
+            AccountingPeriodId = periodId,
+            BranchId = branchId,
+            TotalDebit = totalDebit,
+            TotalCredit = totalCredit,
+            PostedAt = DateTime.UtcNow,
+            Details = entryDetails.Select(d => { d.CompanyId = companyId; return d; }).ToList(),
+        };
+
+        await _entryRepo!.AddAsync(entry);
+        await _entryRepo.SaveChangesAsync();
+        return entry.Id;
+    }
+
+    /// <summary>Intenta resolver la cuenta vía enlace (AccountLink) sin lanzar:
+    /// (transactionType, role) y luego el wildcard ("*", role).</summary>
+    private async Task<Guid?> TryLinkAccountAsync(string transactionType, string role)
+    {
+        try { return await GetAccountIdAsync(transactionType, role); }
+        catch (InvalidOperationException) { return null; }
+    }
+
+    /// <summary>Intenta resolver la cuenta por CÓDIGO en el plan contable
+    /// (exacto + variantes rellenas), sin lanzar si el código no existe.</summary>
+    private async Task<Guid?> TryChartCodeAsync(string code)
+    {
+        try { return await GetAccountIdByCodeAsync(code); }
+        catch (InvalidOperationException) { return null; }
+    }
+
+    /// <summary>Intenta resolver la cuenta por NOMBRE en el plan contable
+    /// (primer keyword que haga match, case-insensitive).</summary>
+    private async Task<Guid?> TryChartNameAsync(params string[] keywords)
+    {
+        var all = await _accountRepo!.GetAllAsync(CompanyId);
+        foreach (var keyword in keywords)
+        {
+            var match = all.FirstOrDefault(a =>
+                a.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+            if (match != null) return match.Id;
+        }
+        return null;
+    }
+
     public async Task<Guid> GenerateCashMovementEntryAsync(Guid movementId, Guid? branchId = null)
     {
         var movement = await _cashRepo!.GetByIdAsync(movementId)

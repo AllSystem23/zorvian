@@ -36,6 +36,7 @@ public sealed class EntityDocumentContextBuilder : IEntityDocumentContextBuilder
     private readonly IPurchaseRequestRepository _purchaseRequestRepo;
     private readonly IStockTransferRepository _stockTransferRepo;
     private readonly IPayrollRepository _payrollRepo;
+    private readonly IServiceProviderPaymentRepository _servicePaymentRepo;
 
     public EntityDocumentContextBuilder(
         IEmployeeRepository employeeRepo,
@@ -58,7 +59,8 @@ public sealed class EntityDocumentContextBuilder : IEntityDocumentContextBuilder
         IQuoteRepository quoteRepo,
         IPurchaseRequestRepository purchaseRequestRepo,
         IStockTransferRepository stockTransferRepo,
-        IPayrollRepository payrollRepo)
+        IPayrollRepository payrollRepo,
+        IServiceProviderPaymentRepository servicePaymentRepo)
     {
         _employeeRepo = employeeRepo;
         _saleRepo = saleRepo;
@@ -81,6 +83,7 @@ public sealed class EntityDocumentContextBuilder : IEntityDocumentContextBuilder
         _purchaseRequestRepo = purchaseRequestRepo;
         _stockTransferRepo = stockTransferRepo;
         _payrollRepo = payrollRepo;
+        _servicePaymentRepo = servicePaymentRepo;
     }
 
     public async Task<EntityContextResponse?> BuildAsync(string entityType, Guid entityId)
@@ -677,6 +680,60 @@ public sealed class EntityDocumentContextBuilder : IEntityDocumentContextBuilder
                 break;
             }
 
+            case "servicepayment":
+            {
+                var payment = await _servicePaymentRepo.GetByIdAsync(entityId);
+                if (payment == null) return null;
+                var empName = payment.Employee != null ? $"{payment.Employee.FirstName} {payment.Employee.LastName}" : "";
+                displayName = $"Pago {payment.PaymentNumber} - {empName}".Trim();
+                data["payment_number"] = payment.PaymentNumber;
+                data["employee_name"] = empName;
+                data["employee_code"] = payment.Employee?.EmployeeCode ?? "";
+                data["branch_name"] = payment.Employee?.Branch?.Name ?? "";
+                data["period_label"] = ServiceProviderPaymentService.PeriodLabel(
+                    payment.PeriodYear, payment.PeriodMonth, payment.PeriodHalf);
+                data["payment_date"] = payment.PaymentDate.ToString("dd/MM/yyyy");
+                data["payment_status"] = payment.Status;
+                data["payment_status_label"] = payment.Status switch
+                {
+                    "draft" => "Borrador",
+                    "approved" => "Aprobado",
+                    "paid" => "Pagado",
+                    "cancelled" => "Cancelado",
+                    _ => payment.Status
+                };
+                data["goal_evaluation_mode"] = payment.GoalEvaluationMode;
+                data["goal_met_label"] = payment.GoalMet ? "SI" : "NO";
+                data["goal_bonus"] = payment.GoalBonusAmount.ToString("N2");
+                data["other_income"] = payment.OtherIncome.ToString("N2");
+                data["total_collected"] = payment.TotalCollected.ToString("N2");
+                data["total_contracted"] = payment.TotalContracted.ToString("N2");
+                data["total_commission"] = payment.TotalCommission.ToString("N2");
+                data["total_accumulated"] = payment.TotalAccumulated.ToString("N2");
+                data["total_deductions"] = payment.TotalDeductions.ToString("N2");
+                data["net_amount"] = payment.NetAmount.ToString("N2");
+                data["notes"] = payment.Notes ?? "";
+                data["payment_reference"] = payment.PaymentReference ?? "";
+                data["lines"] = payment.Lines?
+                    .Select(l => Item(
+                        ("line_name", l.LineName),
+                        ("collected", l.CollectedAmount.ToString("N2")),
+                        ("contracted", l.ContractedAmount.ToString("N2")),
+                        ("rate", l.CommissionRate.ToString("0.##") + "%"),
+                        ("commission", l.CommissionAmount.ToString("N2")),
+                        ("line_goal_met", l.LineGoalMet ? "SI" : "NO")))
+                    .ToList() ?? [];
+                data["deductions"] = payment.Deductions?
+                    .Select(d => Item(
+                        ("type_label", DeductionTypeLabel(d.DeductionType)),
+                        ("description", d.Description ?? ""),
+                        ("amount", d.Amount.ToString("N2")),
+                        ("agreement_reference", d.AgreementReference ?? ""),
+                        ("agreement_date", d.AgreementDate?.ToString("dd/MM/yyyy") ?? "")))
+                    .ToList() ?? [];
+                break;
+            }
+
             default:
                 return null;
         }
@@ -720,6 +777,16 @@ public sealed class EntityDocumentContextBuilder : IEntityDocumentContextBuilder
         "high" => "Alta",
         "low" => "Baja",
         _ => "Normal",
+    };
+
+    private static string DeductionTypeLabel(string type) => type.ToLowerInvariant() switch
+    {
+        "advance_first_half" => "Adelanto Primera Quincena",
+        "store_credit" => "Crédito Interno",
+        "salary_advance" => "Adelanto Salarial",
+        "cash_loan" => "Préstamo de Efectivo",
+        "inss" => "INSS",
+        _ => "Otra Deducción",
     };
 
     private static string PaymentMethodLabel(string method) => method.ToLowerInvariant() switch

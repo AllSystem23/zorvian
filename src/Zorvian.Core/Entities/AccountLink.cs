@@ -18,6 +18,7 @@ public static class TransactionTypes
     public const string SupplierCreditNote = "SupplierCreditNote";
     public const string CashMovement = "CashMovement";
     public const string Payroll = "Payroll";
+    public const string ServiceProviderPayment = "ServiceProviderPayment";
     public const string FixedAssetAcquisition = "FixedAssetAcquisition";
     public const string FixedAssetDepreciation = "FixedAssetDepreciation";
     public const string FixedAssetDisposal = "FixedAssetDisposal";
@@ -71,4 +72,5 @@ public static class AccountRoles
     public const string FleetOperatingExpense = "FleetOperatingExpense";
     public const string FleetFuelExpense = "FleetFuelExpense";
     public const string FleetMaintenanceExpense = "FleetMaintenanceExpense";
+    public const string ServicesExpense = "ServicesExpense";
 }
