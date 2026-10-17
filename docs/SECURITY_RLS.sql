@@ -113,6 +113,7 @@ ALTER TABLE IF EXISTS "Incentives" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS "IncentivePayments" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS "KpiDefinitions" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS "KpiRecords" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS "Rankings" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS "Budgets" ENABLE ROW LEVEL SECURITY;
 
 -- ====================================================================
@@ -214,7 +215,7 @@ BEGIN
         -- Phase 4: Goals (8)
         'GoalDefinitions','GoalAssignments','GoalProgressEntries',
         'Incentives','IncentivePayments',
-        'KpiDefinitions','KpiRecords','Budgets',
+        'KpiDefinitions','KpiRecords','Rankings','Budgets',
         -- Phase 5: Treasury (9)
         'Banks','BankAccounts','Checkbooks','Checks',
         'CheckAuditTrails','CheckPrintTemplates',
@@ -308,7 +309,7 @@ BEGIN
         'CommissionRecords','OvertimeRecords',
         'GoalDefinitions','GoalAssignments','GoalProgressEntries',
         'Incentives','IncentivePayments',
-        'KpiDefinitions','KpiRecords','Budgets',
+        'KpiDefinitions','KpiRecords','Rankings','Budgets',
         'Banks','BankAccounts','Checkbooks','Checks',
         'CheckAuditTrails','CheckPrintTemplates',
         'CashRegisters','CashRegisterArqueos','CashArqueoDenominations',

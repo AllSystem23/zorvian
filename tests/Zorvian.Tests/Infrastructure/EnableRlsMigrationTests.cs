@@ -274,6 +274,49 @@ public sealed class EnableRlsMigrationTests
         }
     }
 
+    [Fact]
+    public void EnableRls_CoversRankingsTable()
+    {
+        // Fase D (2026-10-17): Rankings era la ÚNICA tabla multi-tenant del modelo
+        // ausente de las listas del script (sin ALTER estático, sin política tenant
+        // ni bypass SuperAdmin). Tiene columna BranchId → el bloque dinámico 3 la
+        // reescribe con la política combinada tenant AND sucursal.
+        var sql = ReadEmbeddedRlsScript();
+
+        Assert.Contains("ALTER TABLE IF EXISTS \"Rankings\" ENABLE ROW LEVEL SECURITY;", sql);
+        Assert.Contains("'KpiDefinitions','KpiRecords','Rankings','Budgets',", sql);
+    }
+
+    [Fact]
+    public void AddRankingsRlsPoliciesMigration_CreatesCombinedPolicies()
+    {
+        // Las políticas viajan en la propia migración (EnableRLS está backdatada y
+        // ya corrió en BDs existentes). Regresión del bug de dollar-quotes: DO $do$
+        // + $$ interno cierra el cuerpo antes de tiempo (42601 at or near "CREATE").
+        var sql = ReadMigrationSourceFile("20261017214954_AddRankingsRlsPolicies.cs");
+
+        Assert.Contains("tenant_branch_scope_Rankings", sql);
+        Assert.Contains("super_admin_bypass_Rankings", sql);
+        Assert.Contains("is_super_admin()", sql);
+        Assert.Contains("FORCE ROW LEVEL SECURITY", sql);
+        // Con BranchId la política debe ser la COMBINADA: tenant_isolation sola
+        // combinada por OR con branch_scope dejaría ver otros tenants sin sucursal.
+        Assert.Contains("\"BranchId\"::text = current_setting('app.branch_id', true)", sql);
+
+        var regex = new Regex(@"DO (\$[A-Za-z_]*\$)(.*?)\1", RegexOptions.Singleline);
+        var blocks = regex.Matches(sql);
+        Assert.True(blocks.Count > 0,
+            "la migración debe contener el bloque DO de políticas");
+
+        foreach (Match block in blocks)
+        {
+            var body = block.Groups[2].Value;
+            var innerOpens = Regex.Matches(body, @"\$\$").Count;
+            Assert.True(innerOpens % 2 == 0,
+                $"Bloque DO de AddRankingsRlsPolicies con delimitadores $$ descasados ({innerOpens}).");
+        }
+    }
+
     private static string ReadMigrationSourceFile(string fileName)
     {
         // Los tests corren desde bin/Debug/net9.0: se sube hasta encontrar la raíz del repo.

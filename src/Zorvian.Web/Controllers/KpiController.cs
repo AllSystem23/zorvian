@@ -67,9 +67,9 @@ public sealed class KpiController : ControllerBase
     [Audit("Kpi", "ReadRecords")]
     [HttpGet("records")]
     [RequirePermission(Permissions.KpiRead)]
-    public async Task<IActionResult> GetRecords([FromQuery] Guid? definitionId, [FromQuery] string? periodKey)
+    public async Task<IActionResult> GetRecords([FromQuery] Guid? definitionId, [FromQuery] string? periodKey, [FromQuery] Guid? branchId)
     {
-        var result = await _service.GetKpiRecordsAsync(definitionId, null, periodKey);
+        var result = await _service.GetKpiRecordsAsync(definitionId, null, periodKey, branchId);
         return Ok(result);
     }
 
@@ -78,20 +78,22 @@ public sealed class KpiController : ControllerBase
     [RequirePermission(Permissions.KpiWrite)]
     public async Task<IActionResult> GenerateRankings([FromBody] GenerateRankingsRequest request)
     {
-        var result = await _service.GenerateRankingAsync(request.PeriodKey, request.RankingType);
+        var result = await _service.GenerateRankingAsync(request.PeriodKey, request.RankingType, request.BranchId);
         return Ok(result);
     }
 
     [Audit("Kpi", "ReadRankings")]
     [HttpGet("rankings")]
     [RequirePermission(Permissions.KpiRead)]
-    public async Task<IActionResult> GetRankings([FromQuery] string? type, [FromQuery] string? periodKey)
+    public async Task<IActionResult> GetRankings([FromQuery] string? type, [FromQuery] string? periodKey, [FromQuery] Guid? branchId)
     {
         if (string.IsNullOrEmpty(periodKey))
             return Ok(new List<Ranking>());
-        var result = await _service.GetRankingsAsync(periodKey, type);
+        var result = await _service.GetRankingsAsync(periodKey, type, branchId);
         return Ok(result);
     }
 }
 
-public sealed record GenerateRankingsRequest(string PeriodKey, string RankingType);
+// BranchId opcional: null = usar la sucursal del contexto (header X-Branch-Id);
+// Guid.Empty explícito = rankings/records de TODAS las sucursales.
+public sealed record GenerateRankingsRequest(string PeriodKey, string RankingType, Guid? BranchId = null);

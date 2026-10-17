@@ -43,10 +43,10 @@ INSERT INTO expected_rls_tables VALUES
     ('TerminationRecords'), ('PermissionRequests'),
     ('EmployeeSalaries'), ('BenefitProvisions'), ('BonusRecords'),
     ('CommissionRecords'), ('OvertimeRecords'),
-    -- Phase 4: Goals (8)
+    -- Phase 4: Goals & KPI (9)
     ('GoalDefinitions'), ('GoalAssignments'), ('GoalProgressEntries'),
     ('Incentives'), ('IncentivePayments'),
-    ('KpiDefinitions'), ('KpiRecords'), ('Budgets'),
+    ('KpiDefinitions'), ('KpiRecords'), ('Rankings'), ('Budgets'),
     -- Phase 5: Treasury (9)
     ('Banks'), ('BankAccounts'), ('Checkbooks'), ('Checks'),
     ('CheckAuditTrails'), ('CheckPrintTemplates'),

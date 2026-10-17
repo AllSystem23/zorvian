@@ -40,25 +40,28 @@ public sealed class KpiRepository : IKpiRepository
             _db.KpiDefinitions.Remove(kpi);
     }
 
-    public async Task<List<KpiRecord>> GetKpiRecordsByDefinitionIdAsync(Guid definitionId) =>
+    public async Task<List<KpiRecord>> GetKpiRecordsByDefinitionIdAsync(Guid definitionId, Guid? branchId = null) =>
         await _db.KpiRecords
             .Include(r => r.Employee)
             .Where(r => r.KpiDefinitionId == definitionId)
+            .ApplyBranchScope(branchId, r => r.BranchId)
             .OrderByDescending(r => r.EvaluationDate)
             .ToListAsync();
 
-    public async Task<List<KpiRecord>> GetKpiRecordsByEmployeeIdAsync(Guid employeeId) =>
+    public async Task<List<KpiRecord>> GetKpiRecordsByEmployeeIdAsync(Guid employeeId, Guid? branchId = null) =>
         await _db.KpiRecords
             .Include(r => r.KpiDefinition)
             .Where(r => r.EmployeeId == employeeId)
+            .ApplyBranchScope(branchId, r => r.BranchId)
             .OrderByDescending(r => r.EvaluationDate)
             .ToListAsync();
 
-    public async Task<List<KpiRecord>> GetKpiRecordsByPeriodAsync(string periodKey) =>
+    public async Task<List<KpiRecord>> GetKpiRecordsByPeriodAsync(string periodKey, Guid? branchId = null) =>
         await _db.KpiRecords
             .Include(r => r.KpiDefinition)
             .Include(r => r.Employee)
             .Where(r => r.PeriodKey == periodKey)
+            .ApplyBranchScope(branchId, r => r.BranchId)
             .ToListAsync();
 
     public async Task AddKpiRecordAsync(KpiRecord record) =>
@@ -67,17 +70,35 @@ public sealed class KpiRepository : IKpiRepository
     public async Task AddKpiRecordsAsync(List<KpiRecord> records) =>
         await _db.KpiRecords.AddRangeAsync(records);
 
-    public async Task<List<Ranking>> GetRankingsByPeriodAsync(string periodKey) =>
+    public async Task<List<Ranking>> GetRankingsByPeriodAsync(string periodKey, Guid? branchId = null) =>
         await _db.Rankings
             .Where(r => r.PeriodKey == periodKey)
-            .OrderBy(r => r.Position)
+            .ApplyBranchScope(branchId, r => r.BranchId)
+            .OrderBy(r => r.BranchId)
+            .ThenBy(r => r.Position)
             .ToListAsync();
 
-    public async Task<List<Ranking>> GetRankingsByTypeAsync(string rankingType, string periodKey) =>
+    public async Task<List<Ranking>> GetRankingsByTypeAsync(string rankingType, string periodKey, Guid? branchId = null) =>
         await _db.Rankings
             .Where(r => r.RankingType == rankingType && r.PeriodKey == periodKey)
-            .OrderBy(r => r.Position)
+            .ApplyBranchScope(branchId, r => r.BranchId)
+            .OrderBy(r => r.BranchId)
+            .ThenBy(r => r.Position)
             .ToListAsync();
+
+    public Task DeleteRankingsAsync(string periodKey, string rankingType, Guid? branchId)
+    {
+        // null/Empty = regeneración company-wide → borra todos los del período+tipo
+        // (incluidos los legados sin sucursal). GUID concreto → solo esa sucursal.
+        var query = _db.Rankings
+            .Where(r => r.PeriodKey == periodKey && r.RankingType == rankingType);
+
+        if (branchId is { } b && b != Guid.Empty)
+            query = query.Where(r => r.BranchId == b);
+
+        _db.Rankings.RemoveRange(query);
+        return Task.CompletedTask;
+    }
 
     public async Task AddRankingAsync(Ranking ranking) =>
         await _db.Rankings.AddAsync(ranking);
