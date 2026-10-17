@@ -90,10 +90,17 @@ public sealed class VehicleRepository : IVehicleRepository
         return result ?? new FleetDashboardScalars();
     }
 
-    public async Task<FleetKpiScalars> GetFleetKpiReportRawAsync(string tenantId, bool isSuperAdmin)
+    /// <summary>
+    /// KPI report de flota. branchId: Guid.Empty = toda la compañía. Vehículos,
+    /// entregas (vía vehículo), OTs (vía vehículo) y combustible (vía vehículo) se
+    /// acotan; FleetDocuments se queda company-wide por diseño (polimórfico, sin
+    /// ruta de branch — ver Fase A).
+    /// </summary>
+    public async Task<FleetKpiScalars> GetFleetKpiReportRawAsync(string tenantId, bool isSuperAdmin, Guid branchId)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var thirtyDaysFromNow = today.AddDays(30);
+        var emptyBranch = branchId == Guid.Empty;
         var sql = @"
             WITH vehicle_stats AS (
                 SELECT
@@ -104,6 +111,7 @@ public sealed class VehicleRepository : IVehicleRepository
                     COUNT(*)::int AS ""TotalVehicles""
                 FROM ""Vehicles""
                 WHERE (""TenantId"" = @tenantId OR @isSuperAdmin = true) AND ""IsDeleted"" = false
+                  AND (@emptyBranch = true OR ""BranchId"" = @branchId)
             ),
             delivery_stats AS (
                 SELECT
@@ -116,6 +124,7 @@ public sealed class VehicleRepository : IVehicleRepository
                     ))::int AS ""OnTimeDeliveries""
                 FROM ""Deliveries""
                 WHERE (""TenantId"" = @tenantId OR @isSuperAdmin = true) AND ""IsDeleted"" = false
+                  AND (@emptyBranch = true OR ""VehicleId"" IN (SELECT ""Id"" FROM ""Vehicles"" WHERE ""BranchId"" = @branchId))
             ),
             document_stats AS (
                 SELECT
@@ -132,6 +141,7 @@ public sealed class VehicleRepository : IVehicleRepository
                     (COUNT(*) FILTER (WHERE ""Status"" <> 'Closed' AND ""Status"" <> 'Cancelled'))::int AS ""OpenWorkOrders""
                 FROM ""WorkOrders""
                 WHERE (""TenantId"" = @tenantId OR @isSuperAdmin = true) AND ""IsDeleted"" = false
+                  AND (@emptyBranch = true OR ""VehicleId"" IN (SELECT ""Id"" FROM ""Vehicles"" WHERE ""BranchId"" = @branchId))
             ),
             fuel_stats AS (
                 SELECT
@@ -140,6 +150,7 @@ public sealed class VehicleRepository : IVehicleRepository
                     COALESCE(SUM(""TotalCost""), 0) AS ""TotalFuelCost""
                 FROM ""FuelRefills""
                 WHERE (""TenantId"" = @tenantId OR @isSuperAdmin = true) AND ""IsDeleted"" = false
+                  AND (@emptyBranch = true OR ""VehicleId"" IN (SELECT ""Id"" FROM ""Vehicles"" WHERE ""BranchId"" = @branchId))
             )
             SELECT
                 vs.""TotalVehicles"",
@@ -167,7 +178,9 @@ public sealed class VehicleRepository : IVehicleRepository
             .SqlQueryRaw<FleetKpiScalars>(sql,
                 new Npgsql.NpgsqlParameter("@tenantId", tenantId),
                 new Npgsql.NpgsqlParameter("@isSuperAdmin", isSuperAdmin),
-                new Npgsql.NpgsqlParameter("@thirtyDaysFromNow", thirtyDaysFromNow))
+                new Npgsql.NpgsqlParameter("@thirtyDaysFromNow", thirtyDaysFromNow),
+                new Npgsql.NpgsqlParameter("@emptyBranch", emptyBranch),
+                new Npgsql.NpgsqlParameter("@branchId", branchId))
             .FirstOrDefaultAsync();
 
         return result ?? new FleetKpiScalars();

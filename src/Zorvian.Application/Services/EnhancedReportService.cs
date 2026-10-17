@@ -30,6 +30,12 @@ public sealed class EnhancedReportService
 
     private Guid CompanyId => _tenant.ResolveCompanyId();
 
+    /// <summary>
+    /// Fase B: scope de sucursal (filtro explícito ?? header ?? todas). Los saldos de
+    /// apertura siguen siendo de compañía (ver FinancialReportService.BranchScope).
+    /// </summary>
+    private Guid BranchScope(Guid? branchId) => branchId ?? _tenant.ResolveBranchId() ?? Guid.Empty;
+
     private async Task<string> GetCompanyCurrencyAsync()
     {
         if (_companyCurrencyCache != null) return _companyCurrencyCache;
@@ -41,11 +47,12 @@ public sealed class EnhancedReportService
     private static decimal Convert(decimal amount, AccountingEntry entry, string cc) =>
         CurrencyConverter.ToReporting(amount, entry.CurrencyCode, entry.ExchangeRateToReporting, cc);
 
-    public async Task<EquityChangeResponse?> GetEquityChangesAsync(Guid periodId)
+    public async Task<EquityChangeResponse?> GetEquityChangesAsync(Guid periodId, Guid? branchId = null)
     {
         var period = await _periodRepo.GetByIdAsync(periodId);
         if (period is null) return null;
         var cc = await GetCompanyCurrencyAsync();
+        var branch = BranchScope(branchId);
         var accounts = await _accountRepo.GetAllAsync(CompanyId);
         var equityAccounts = accounts.Where(a => a.Type == AccountTypes.Equity && a.IsActive).OrderBy(a => a.Code).ToList();
 
@@ -58,11 +65,11 @@ public sealed class EnhancedReportService
             
         foreach (var p in periodsToFetch)
         {
-            var entries = await _entryRepo.GetFilteredAsync(p.Id, null, "posted", null, null, CompanyId, 1, int.MaxValue);
+            var entries = await _entryRepo.GetFilteredAsync(p.Id, null, "posted", null, null, CompanyId, 1, int.MaxValue, branch);
             prevPeriods.AddRange(entries);
         }
 
-        var currentPosted = await _entryRepo.GetFilteredAsync(periodId, null, "posted", null, null, CompanyId, 1, int.MaxValue);
+        var currentPosted = await _entryRepo.GetFilteredAsync(periodId, null, "posted", null, null, CompanyId, 1, int.MaxValue, branch);
         var currentEntries = await _entryRepo.GetListByIdsAsync(currentPosted.Select(e => e.Id));
         if (currentEntries.Count == 0) return null;
         var entryMap = currentEntries.ToDictionary(e => e.Id);
@@ -101,12 +108,13 @@ public sealed class EnhancedReportService
         return all.Where(p => p.Year == year && p.Month <= month && p.Status == "closed").OrderBy(p => p.Month);
     }
 
-    public async Task<CashFlowStatementResponse?> GetCashFlowStatementAsync(Guid periodId)
+    public async Task<CashFlowStatementResponse?> GetCashFlowStatementAsync(Guid periodId, Guid? branchId = null)
     {
         var period = await _periodRepo.GetByIdAsync(periodId);
         if (period is null) return null;
         var cc = await GetCompanyCurrencyAsync();
-        var posted = await _entryRepo.GetFilteredAsync(periodId, null, "posted", null, null, CompanyId, 1, int.MaxValue);
+        var branch = BranchScope(branchId);
+        var posted = await _entryRepo.GetFilteredAsync(periodId, null, "posted", null, null, CompanyId, 1, int.MaxValue, branch);
         var entries = await _entryRepo.GetListByIdsAsync(posted.Select(e => e.Id));
         var entryMap = entries.ToDictionary(e => e.Id);
         var details = entries.SelectMany(e => e.Details).ToList();
@@ -188,7 +196,7 @@ public sealed class EnhancedReportService
         var beginningCash = 0m;
         if (prevPeriod != null)
         {
-            var prevTrial = await _reports.GetTrialBalanceAsync(prevPeriod.Id);
+            var prevTrial = await _reports.GetTrialBalanceAsync(prevPeriod.Id, branch);
             if (prevTrial != null)
             {
                 var cashCodes = new[] { "1.1.01", "1.1.02", "1.1.03", "1.1.04", "1.1.05" };
@@ -207,7 +215,7 @@ public sealed class EnhancedReportService
         );
     }
 
-    public async Task<ComparativeReportResponse?> GetComparativeReportAsync(string reportType, List<Guid> periodIds)
+    public async Task<ComparativeReportResponse?> GetComparativeReportAsync(string reportType, List<Guid> periodIds, Guid? branchId = null)
     {
         if (periodIds.Count < 2)
             return null;
@@ -223,7 +231,7 @@ public sealed class EnhancedReportService
         var trialBalancesList = new List<TrialBalanceResponse>();
         foreach (var id in periodIds)
         {
-            var tb = await _reports.GetTrialBalanceAsync(id);
+            var tb = await _reports.GetTrialBalanceAsync(id, branchId);
             if (tb != null) trialBalancesList.Add(tb);
         }
         var trialBalances = trialBalancesList.ToArray();

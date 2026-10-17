@@ -30,13 +30,14 @@ public sealed class FixedAssetRepository : IFixedAssetRepository
         await _db.Set<FixedAsset>().FirstOrDefaultAsync(a => a.Code == code && a.CompanyId == companyId);
 
     public async Task<List<FixedAsset>> GetFilteredAsync(Guid? categoryId, string? status, Guid? locationId, Guid? departmentId,
-        string? search, DateTime? fromDate, DateTime? toDate, Guid companyId, int page, int pageSize)
+        string? search, DateTime? fromDate, DateTime? toDate, Guid companyId, int page, int pageSize, Guid? branchId = null)
     {
         var query = _db.Set<FixedAsset>()
             .Include(a => a.Category)
             .Include(a => a.Location)
             .Include(a => a.Department)
             .Where(a => a.CompanyId == companyId)
+            .ApplyBranchScope(branchId, a => a.BranchId)
             .AsQueryable();
 
         if (categoryId.HasValue) query = query.Where(a => a.CategoryId == categoryId.Value);
@@ -64,10 +65,11 @@ public sealed class FixedAssetRepository : IFixedAssetRepository
     }
 
     public async Task<int> GetFilteredCountAsync(Guid? categoryId, string? status, Guid? locationId, Guid? departmentId,
-        string? search, DateTime? fromDate, DateTime? toDate, Guid companyId)
+        string? search, DateTime? fromDate, DateTime? toDate, Guid companyId, Guid? branchId = null)
     {
         var query = _db.Set<FixedAsset>()
             .Where(a => a.CompanyId == companyId)
+            .ApplyBranchScope(branchId, a => a.BranchId)
             .AsQueryable();
 
         if (categoryId.HasValue) query = query.Where(a => a.CategoryId == categoryId.Value);

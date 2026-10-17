@@ -152,7 +152,8 @@ public sealed record FixedAssetFilterRequest(
     DateTime? FromDate,
     DateTime? ToDate,
     int? Page = 1,
-    int? PageSize = 20
+    int? PageSize = 20,
+    Guid? BranchId = null
 );
 
 public sealed record RunDepreciationRequest(

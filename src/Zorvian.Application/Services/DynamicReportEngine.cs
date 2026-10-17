@@ -14,6 +14,7 @@ public sealed class DynamicReportEngine
     private readonly IClientRepository _clientRepo;
     private readonly ISupplierRepository _supplierRepo;
     private readonly IEmployeeRepository _employeeRepo;
+    private readonly IBranchRepository _branchRepo;
 
     public DynamicReportEngine(
         ISaleRepository saleRepo,
@@ -22,7 +23,8 @@ public sealed class DynamicReportEngine
         IAccountingEntryRepository entryRepo,
         IClientRepository clientRepo,
         ISupplierRepository supplierRepo,
-        IEmployeeRepository employeeRepo)
+        IEmployeeRepository employeeRepo,
+        IBranchRepository branchRepo)
     {
         _saleRepo = saleRepo;
         _purchaseRepo = purchaseRepo;
@@ -31,8 +33,15 @@ public sealed class DynamicReportEngine
         _clientRepo = clientRepo;
         _supplierRepo = supplierRepo;
         _employeeRepo = employeeRepo;
+        _branchRepo = branchRepo;
     }
 
+    /// <summary>
+    /// Ejecuta un reporte dinámico. branchId: Guid.Empty = todas las sucursales
+    /// (los loaders lo pasan a los repos con semántica ApplyBranchScope); los suppliers
+    /// no tienen sucursal (company-wide). Las filas exponen branchId/branchName donde
+    /// aplica — los filtros "eq"/"contains" sobre branchName funcionan vía filter engine.
+    /// </summary>
     public async Task<ReportResult> ExecuteAsync(
         string module,
         List<ReportField> fields,
@@ -40,16 +49,21 @@ public sealed class DynamicReportEngine
         string? groupByField,
         string? sortByField,
         string sortOrder,
-        Guid companyId)
+        Guid companyId,
+        Guid branchId)
     {
+        // Nombres de sucursal para las filas (1 query; dict id→nombre).
+        var branches = await _branchRepo.GetAllAsync(companyId);
+        var branchNames = branches.ToDictionary(b => b.Id, b => b.Name);
+
         var rows = module.ToLowerInvariant() switch
         {
-            "sales" => await LoadSalesAsync(companyId),
-            "purchases" => await LoadPurchasesAsync(companyId),
-            "products" => await LoadProductsAsync(companyId),
-            "clients" => await LoadClientsAsync(companyId),
+            "sales" => await LoadSalesAsync(branchId, branchNames),
+            "purchases" => await LoadPurchasesAsync(branchId, branchNames),
+            "products" => await LoadProductsAsync(branchId, branchNames),
+            "clients" => await LoadClientsAsync(branchId, branchNames),
             "suppliers" => await LoadSuppliersAsync(companyId),
-            "employees" => await LoadEmployeesAsync(companyId),
+            "employees" => await LoadEmployeesAsync(branchId, branchNames),
             _ => throw new ArgumentException($"Unknown module: {module}"),
         };
 
@@ -68,9 +82,8 @@ public sealed class DynamicReportEngine
 
     // ── Module data loaders ──
 
-    private async Task<List<Dictionary<string, object?>>> LoadSalesAsync(Guid companyId)
+    private async Task<List<Dictionary<string, object?>>> LoadSalesAsync(Guid branchId, Dictionary<Guid, string> branchNames)
     {
-        var branchId = Guid.Empty;
         var sales = await _saleRepo.GetFilteredAsync(null, null, null, null, null, null, branchId, 1, int.MaxValue);
         return sales.Select(s => new Dictionary<string, object?>
         {
@@ -93,12 +106,12 @@ public sealed class DynamicReportEngine
             ["employeeName"] = s.Employee != null ? $"{s.Employee.FirstName} {s.Employee.LastName}" : null,
             ["createdAt"] = s.CreatedAt,
             ["branchId"] = s.BranchId,
+            ["branchName"] = branchNames.GetValueOrDefault(s.BranchId),
         }).ToList();
     }
 
-    private async Task<List<Dictionary<string, object?>>> LoadPurchasesAsync(Guid companyId)
+    private async Task<List<Dictionary<string, object?>>> LoadPurchasesAsync(Guid branchId, Dictionary<Guid, string> branchNames)
     {
-        var branchId = Guid.Empty;
         var purchases = await _purchaseRepo.GetFilteredAsync(null, null, null, null, null, branchId, 1, int.MaxValue);
         return purchases.Select(p => new Dictionary<string, object?>
         {
@@ -119,12 +132,13 @@ public sealed class DynamicReportEngine
             ["supplierTaxId"] = p.Supplier?.TaxId,
             ["createdAt"] = p.CreatedAt,
             ["branchId"] = p.BranchId,
+            ["branchName"] = branchNames.GetValueOrDefault(p.BranchId),
         }).ToList();
     }
 
-    private async Task<List<Dictionary<string, object?>>> LoadProductsAsync(Guid companyId)
+    private async Task<List<Dictionary<string, object?>>> LoadProductsAsync(Guid branchId, Dictionary<Guid, string> branchNames)
     {
-        var products = await _productRepo.GetFilteredAsync(null, null, null, null, null, Guid.Empty, null, 1, int.MaxValue);
+        var products = await _productRepo.GetFilteredAsync(null, null, null, null, null, branchId, null, 1, int.MaxValue);
         return products.Select(p => new Dictionary<string, object?>
         {
             ["id"] = p.Id,
@@ -143,12 +157,13 @@ public sealed class DynamicReportEngine
             ["isActive"] = p.IsActive,
             ["barcode"] = p.Barcode,
             ["createdAt"] = p.CreatedAt,
+            ["branchId"] = p.BranchId,
+            ["branchName"] = branchNames.GetValueOrDefault(p.BranchId),
         }).ToList();
     }
 
-    private async Task<List<Dictionary<string, object?>>> LoadClientsAsync(Guid companyId)
+    private async Task<List<Dictionary<string, object?>>> LoadClientsAsync(Guid branchId, Dictionary<Guid, string> branchNames)
     {
-        var branchId = Guid.Empty;
         var clients = await _clientRepo.GetFilteredAsync(null, null, branchId, 1, int.MaxValue);
         return clients.Select(c => new Dictionary<string, object?>
         {
@@ -164,6 +179,8 @@ public sealed class DynamicReportEngine
             ["status"] = c.Status,
             ["creditLimit"] = c.CreditLimit,
             ["createdAt"] = c.CreatedAt,
+            ["branchId"] = c.BranchId,
+            ["branchName"] = branchNames.GetValueOrDefault(c.BranchId),
         }).ToList();
     }
 
@@ -184,9 +201,11 @@ public sealed class DynamicReportEngine
         }).ToList();
     }
 
-    private async Task<List<Dictionary<string, object?>>> LoadEmployeesAsync(Guid companyId)
+    private async Task<List<Dictionary<string, object?>>> LoadEmployeesAsync(Guid branchId, Dictionary<Guid, string> branchNames)
     {
-        var employees = await _employeeRepo.GetFilteredAsync(null, null, null, 1, int.MaxValue);
+        // EmployeeRepository usa Guid? (null = todas); los demás loaders usan Guid.Empty.
+        var employees = await _employeeRepo.GetFilteredAsync(null, null, null, 1, int.MaxValue,
+            branchId == Guid.Empty ? null : branchId);
         return employees.Select(e => new Dictionary<string, object?>
         {
             ["id"] = e.Id,
@@ -203,6 +222,8 @@ public sealed class DynamicReportEngine
             ["salaryType"] = e.SalaryType,
             ["status"] = e.Status,
             ["createdAt"] = e.CreatedAt,
+            ["branchId"] = e.BranchId,
+            ["branchName"] = e.BranchId is { } b ? branchNames.GetValueOrDefault(b) : null,
         }).ToList();
     }
 
@@ -236,9 +257,23 @@ public sealed class DynamicReportEngine
         };
     }
 
+    /// <summary>
+    /// Compara el valor de la fila contra el filtro. Soporta numéricos Y fechas —
+    /// antes los filtros gt/lt sobre fechas (saleDate, createdAt…) devolvían siempre
+    /// 0 porque CompareNumeric solo parseaba decimals.
+    /// </summary>
     private static int CompareNumeric(object? value, string compareTo)
     {
         if (value is null) return -1;
+
+        // Fechas: gt/lt/gte/lte sobre DateTime/DateOnly/DateTimeOffset.
+        if (value is DateTime dtV)
+            return DateTime.TryParse(compareTo, out var dtT) ? dtV.CompareTo(dtT) : 0;
+        if (value is DateOnly dV)
+            return DateOnly.TryParse(compareTo, out var dT) ? dV.CompareTo(dT) : 0;
+        if (value is DateTimeOffset dtoV)
+            return DateTimeOffset.TryParse(compareTo, out var dtoT) ? dtoV.CompareTo(dtoT) : 0;
+
         if (!decimal.TryParse(compareTo, out var target)) return 0;
         return (value switch
         {

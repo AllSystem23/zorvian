@@ -36,6 +36,8 @@ public sealed class CustomReportService : ICustomReportService
     }
 
     private Guid CompanyId => _tenant.ResolveCompanyId();
+    // Sucursal activa del header (X-Branch-Id); Guid.Empty = todas las sucursales.
+    private Guid BranchId => _tenant.ResolveBranchId() ?? Guid.Empty;
 
     public async Task<List<CustomReportResponse>> GetAllAsync(string? userId = null)
     {
@@ -109,7 +111,7 @@ public sealed class CustomReportService : ICustomReportService
         return await _engine.ExecuteAsync(
             report.Module, fields, filters,
             report.GroupByField, report.SortByField, report.SortOrder,
-            CompanyId);
+            CompanyId, BranchId);
     }
 
     public async Task<ReportResult> ExecuteAdHocAsync(string module, CreateCustomReportRequest request)
@@ -117,7 +119,7 @@ public sealed class CustomReportService : ICustomReportService
         return await _engine.ExecuteAsync(
             module, request.Fields, request.Filters,
             request.GroupByField, request.SortByField, request.SortOrder,
-            CompanyId);
+            CompanyId, BranchId);
     }
 
     private CustomReportResponse ToResponse(CustomReport r)

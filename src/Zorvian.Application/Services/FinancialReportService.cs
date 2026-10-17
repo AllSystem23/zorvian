@@ -34,6 +34,16 @@ public sealed class FinancialReportService
 
     private Guid CompanyId => _tenant.ResolveCompanyId();
 
+    /// <summary>
+    /// Fase B: scope de sucursal de los reportes financieros. Semántica estándar del
+    /// proyecto — filtro explícito ?? contexto del header (X-Branch-Id) ?? todas.
+    /// MATIZ: los saldos de apertura (Account.OpeningBalance) son de COMPAÑÍA — no hay
+    /// apertura por sucursal. Con sucursal activa los movimientos del período se acotan
+    /// y la apertura sigue siendo la de la compañía; el Estado de Resultados (cuentas
+    /// de flujo, apertura ≈ 0) queda exacto por sucursal.
+    /// </summary>
+    private Guid BranchScope(Guid? branchId) => branchId ?? _tenant.ResolveBranchId() ?? Guid.Empty;
+
     private async Task<string> GetCompanyCurrencyAsync()
     {
         if (_companyCurrencyCache != null) return _companyCurrencyCache;
@@ -48,7 +58,7 @@ public sealed class FinancialReportService
     private static decimal ConvertSum(IEnumerable<AccountingEntryDetail> details, IReadOnlyDictionary<Guid, AccountingEntry> entryMap, Func<AccountingEntryDetail, decimal> selector, string cc) =>
         details.Sum(d => Convert(selector(d), entryMap[d.AccountingEntryId], cc));
 
-    public async Task<TrialBalanceResponse?> GetTrialBalanceAsync(Guid periodId)
+    public async Task<TrialBalanceResponse?> GetTrialBalanceAsync(Guid periodId, Guid? branchId = null)
     {
         var cc = await GetCompanyCurrencyAsync();
         var period = await _periodRepo.GetByIdAsync(periodId);
@@ -56,7 +66,8 @@ public sealed class FinancialReportService
         if (period.CompanyId != CompanyId)
             throw new KeyNotFoundException("Period not found for this company");
 
-        var posted = await _entryRepo.GetFilteredAsync(periodId, null, "posted", null, null, CompanyId, 1, int.MaxValue);
+        var branch = BranchScope(branchId);
+        var posted = await _entryRepo.GetFilteredAsync(periodId, null, "posted", null, null, CompanyId, 1, int.MaxValue, branch);
         var allEntries = await _entryRepo.GetListByIdsAsync(posted.Select(e => e.Id));
         var entryMap = allEntries.ToDictionary(e => e.Id);
         var details = allEntries.SelectMany(e => e.Details).ToList();
@@ -86,9 +97,9 @@ public sealed class FinancialReportService
         );
     }
 
-    public async Task<IncomeStatementResponse?> GetIncomeStatementAsync(Guid periodId)
+    public async Task<IncomeStatementResponse?> GetIncomeStatementAsync(Guid periodId, Guid? branchId = null)
     {
-        var trialBalance = await GetTrialBalanceAsync(periodId);
+        var trialBalance = await GetTrialBalanceAsync(periodId, branchId);
         if (trialBalance is null) return null;
         var period = await _periodRepo.GetByIdAsync(periodId);
 
@@ -103,18 +114,22 @@ public sealed class FinancialReportService
         );
     }
 
-    public async Task<BalanceSheetResponse?> GetBalanceSheetAsync(Guid periodId)
+    public async Task<BalanceSheetResponse?> GetBalanceSheetAsync(Guid periodId, Guid? branchId = null)
     {
-        var trialBalance = await GetTrialBalanceAsync(periodId);
+        var trialBalance = await GetTrialBalanceAsync(periodId, branchId);
         if (trialBalance is null) return null;
         var period = await _periodRepo.GetByIdAsync(periodId);
 
+        // OJO: con sucursal activa, los saldos de apertura siguen siendo de compañía
+        // (no existe apertura por sucursal) — el balance por sucursal mezcla apertura
+        // empresa + movimientos de la sucursal. El Estado de Resultados no tiene este
+        // matiz (cuentas de flujo).
         var assets = trialBalance.Items.Where(i => i.AccountType == AccountTypes.Asset).ToList();
         var liabilities = trialBalance.Items.Where(i => i.AccountType == AccountTypes.Liability).ToList();
         var equity = trialBalance.Items.Where(i => i.AccountType == AccountTypes.Equity).ToList();
 
         // Add net income to retained earnings
-        var incomeSt = await GetIncomeStatementAsync(periodId);
+        var incomeSt = await GetIncomeStatementAsync(periodId, branchId);
         var netIncome = incomeSt?.NetIncome ?? 0;
         var retainedEarnings = equity.FirstOrDefault(e => e.AccountCode == "3.1.02");
         if (retainedEarnings != null && netIncome != 0)
@@ -139,18 +154,19 @@ public sealed class FinancialReportService
         );
     }
 
-    public async Task<GeneralLedgerResponse?> GetGeneralLedgerAsync(Guid accountId, DateTime? fromDate, DateTime? toDate)
+    public async Task<GeneralLedgerResponse?> GetGeneralLedgerAsync(Guid accountId, DateTime? fromDate, DateTime? toDate, Guid? branchId = null)
     {
         var cc = await GetCompanyCurrencyAsync();
         var account = await _accountRepo.GetByIdAsync(accountId);
         if (account is null) return null;
 
-        var posted = await _entryRepo.GetFilteredAsync(null, null, "posted", fromDate, toDate, CompanyId, 1, int.MaxValue);
+        var branch = BranchScope(branchId);
+        var posted = await _entryRepo.GetFilteredAsync(null, null, "posted", fromDate, toDate, CompanyId, 1, int.MaxValue, branch);
         var allEntries = (await _entryRepo.GetListByIdsAsync(posted.Select(e => e.Id)))
             .OrderBy(e => e.EntryDate)
             .ToList();
 
-        var openingBalance = account.OpeningBalance;
+        var openingBalance = account.OpeningBalance; // compañía (no hay apertura por sucursal)
         var runningBalance = openingBalance;
         var isDebitNormal = account.NormalSide == "Debit";
 
@@ -177,10 +193,11 @@ public sealed class FinancialReportService
         );
     }
 
-    public async Task<CostCenterExpenseReport> GetCostCenterExpenseReportAsync(Guid costCenterId, DateTime? fromDate, DateTime? toDate)
+    public async Task<CostCenterExpenseReport> GetCostCenterExpenseReportAsync(Guid costCenterId, DateTime? fromDate, DateTime? toDate, Guid? branchId = null)
     {
         var cc = await GetCompanyCurrencyAsync();
-        var posted = await _entryRepo.GetFilteredAsync(null, null, "posted", fromDate, toDate, CompanyId, 1, int.MaxValue);
+        var branch = BranchScope(branchId);
+        var posted = await _entryRepo.GetFilteredAsync(null, null, "posted", fromDate, toDate, CompanyId, 1, int.MaxValue, branch);
         var allEntries = await _entryRepo.GetListByIdsAsync(posted.Select(e => e.Id));
         var entryMap = allEntries.ToDictionary(e => e.Id);
         var relevantDetails = allEntries
@@ -214,6 +231,8 @@ public sealed class FinancialReportService
         );
     }
 
+    // Presupuesto company-wide POR DISEÑO: los Budget son de compañía (sin sucursal);
+    // filtrar solo los reales por sucursal produciría variances engañosos.
     public async Task<BudgetVsActualReport> GetBudgetVsActualAsync(int year, int month)
     {
         var cc = await GetCompanyCurrencyAsync();

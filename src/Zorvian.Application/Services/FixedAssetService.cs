@@ -56,6 +56,9 @@ public sealed class FixedAssetService
 
     private Guid CompanyId => _tenant.RequireCompanyId();
 
+    /// <summary>Fase B: scope de sucursal (filtro explícito ?? header ?? todas).</summary>
+    private Guid BranchScope => _tenant.ResolveBranchId() ?? Guid.Empty;
+
     public async Task<FixedAssetResponse> CreateAsync(CreateFixedAssetRequest request)
     {
         var companyId = CompanyId;
@@ -100,10 +103,12 @@ public sealed class FixedAssetService
         var items = await _assetRepo.GetFilteredAsync(
             filter.CategoryId, filter.Status, filter.LocationId, filter.DepartmentId,
             filter.Search, filter.FromDate, filter.ToDate,
-            companyId, filter.Page ?? 1, filter.PageSize ?? 20);
+            companyId, filter.Page ?? 1, filter.PageSize ?? 20,
+            filter.BranchId ?? BranchScope);
         var total = await _assetRepo.GetFilteredCountAsync(
             filter.CategoryId, filter.Status, filter.LocationId, filter.DepartmentId,
-            filter.Search, filter.FromDate, filter.ToDate, companyId);
+            filter.Search, filter.FromDate, filter.ToDate, companyId,
+            filter.BranchId ?? BranchScope);
 
         return new PagedResult<FixedAssetListResponse>(
             _mapper.Map<List<FixedAssetListResponse>>(items), total, filter.Page ?? 1, filter.PageSize ?? 20);
@@ -336,7 +341,7 @@ public sealed class FixedAssetService
     public async Task<FixedAssetSummaryResponse> GetSummaryAsync()
     {
         var companyId = CompanyId;
-        var allAssets = await _assetRepo.GetFilteredAsync(null, null, null, null, null, null, null, companyId, 1, int.MaxValue);
+        var allAssets = await _assetRepo.GetFilteredAsync(null, null, null, null, null, null, null, companyId, 1, int.MaxValue, BranchScope);
 
         var totalCost = allAssets.Sum(a => a.AcquisitionCost);
 

@@ -14,6 +14,14 @@ public sealed class ReportService : IReportService
     private readonly ZorvianDbContext _db;
     private readonly ITenantContext _tenant;
 
+    /// <summary>
+    /// Fase B: los exportes RRHH se acotan a la sucursal activa del header
+    /// (X-Branch-Id). Guid.Empty = todas las sucursales. Los empleados sin sucursal
+    /// asignada solo aparecen en "todas". La planilla (payroll-cost) es company-wide
+    /// por diseño — su exporte solo agrega la columna Sucursal como referencia.
+    /// </summary>
+    private Guid BranchScope => _tenant.ResolveBranchId() ?? Guid.Empty;
+
     public ReportService(ZorvianDbContext db, ITenantContext tenant)
     {
         _db = db;
@@ -164,6 +172,7 @@ public sealed class ReportService : IReportService
         var run = await _db.PayrollRuns
             .Include(r => r.PayrollPeriod)
             .Include(r => r.Details).ThenInclude(d => d.Employee).ThenInclude(e => e!.Department)
+            .Include(r => r.Details).ThenInclude(d => d.Employee).ThenInclude(e => e!.Branch)
             .FirstOrDefaultAsync(r => r.Id == runId);
 
         if (run is null) throw new KeyNotFoundException("Payroll run not found");
@@ -178,7 +187,9 @@ public sealed class ReportService : IReportService
         ws.Cell(2, 1).Value = $"Periodo: {run.PayrollPeriod?.Name}";
         ws.Cell(3, 1).Value = $"Fecha Proceso: {run.ProcessedAt?.ToString("dd/MM/yyyy HH:mm") ?? "N/A"}";
 
-        var headers = new[] { "Departamento", "Código", "Empleado", "Salario Base", "Gross Pay", "Deducciones", "Net Pay", "Costo Patronal", "Costo Total" };
+        // La planilla es company-wide por diseño: la columna Sucursal es solo
+        // informativa (el filtro por sucursal NO aplica a este reporte).
+        var headers = new[] { "Departamento", "Código", "Empleado", "Sucursal", "Salario Base", "Gross Pay", "Deducciones", "Net Pay", "Costo Patronal", "Costo Total" };
         for (int i = 0; i < headers.Length; i++)
         {
             ws.Cell(5, i + 1).Value = headers[i];
@@ -192,15 +203,16 @@ public sealed class ReportService : IReportService
             ws.Cell(row, 1).Value = d.Employee?.Department?.Name ?? "N/A";
             ws.Cell(row, 2).Value = d.Employee?.EmployeeCode ?? "";
             ws.Cell(row, 3).Value = $"{d.Employee?.FirstName} {d.Employee?.LastName}";
-            ws.Cell(row, 4).Value = d.BaseSalary;
-            ws.Cell(row, 5).Value = d.GrossPay;
-            ws.Cell(row, 6).Value = d.TotalDeductions;
-            ws.Cell(row, 7).Value = d.NetPay;
+            ws.Cell(row, 4).Value = d.Employee?.Branch?.Name ?? "";
+            ws.Cell(row, 5).Value = d.BaseSalary;
+            ws.Cell(row, 6).Value = d.GrossPay;
+            ws.Cell(row, 7).Value = d.TotalDeductions;
+            ws.Cell(row, 8).Value = d.NetPay;
             
             // Note: In a real scenario, I'd sum employer concepts here. Using a simplified calculation for now.
             var employerCost = d.GrossPay * 0.225m; // Approx INSS + Inatec + Provisiones
-            ws.Cell(row, 8).Value = employerCost;
-            ws.Cell(row, 9).Value = d.GrossPay + employerCost;
+            ws.Cell(row, 9).Value = employerCost;
+            ws.Cell(row, 10).Value = d.GrossPay + employerCost;
             row++;
         }
 
@@ -212,16 +224,18 @@ public sealed class ReportService : IReportService
 
     public async Task<byte[]> GenerateVacationReportAsync(int year)
     {
+        var branch = BranchScope;
         var vacations = await _db.VacationRequests
-            .Where(v => v.StartDate.Year == year)
-            .Include(v => v.Employee)
+            .Where(v => v.StartDate.Year == year
+                && (branch == Guid.Empty || (v.Employee != null && v.Employee.BranchId == branch)))
+            .Include(v => v.Employee).ThenInclude(e => e!.Branch)
             .OrderBy(v => v.Employee == null ? "" : v.Employee.LastName)
             .ThenBy(v => v.Employee == null ? "" : v.Employee.FirstName)
             .ToListAsync();
 
         using var workbook = new XLWorkbook();
         var ws = workbook.Worksheets.Add("Vacaciones");
-        var headers = new[] { "Código", "Empleado", "Departamento", "Inicio", "Fin", "Días", "Días Hábiles", "Estado", "Creado" };
+        var headers = new[] { "Código", "Empleado", "Departamento", "Sucursal", "Inicio", "Fin", "Días", "Días Hábiles", "Estado", "Creado" };
 
         for (int i = 0; i < headers.Length; i++)
         {
@@ -236,12 +250,13 @@ public sealed class ReportService : IReportService
             ws.Cell(row, 1).Value = v.Employee?.EmployeeCode ?? "";
             ws.Cell(row, 2).Value = v.Employee is not null ? $"{v.Employee.FirstName} {v.Employee.LastName}" : "";
             ws.Cell(row, 3).Value = v.Employee?.Department?.Name ?? "";
-            ws.Cell(row, 4).Value = v.StartDate.ToString("dd/MM/yyyy");
-            ws.Cell(row, 5).Value = v.EndDate.ToString("dd/MM/yyyy");
-            ws.Cell(row, 6).Value = v.TotalDays;
-            ws.Cell(row, 7).Value = v.BusinessDays;
-            ws.Cell(row, 8).Value = v.Status;
-            ws.Cell(row, 9).Value = v.CreatedAt.ToString("dd/MM/yyyy HH:mm");
+            ws.Cell(row, 4).Value = v.Employee?.Branch?.Name ?? "";
+            ws.Cell(row, 5).Value = v.StartDate.ToString("dd/MM/yyyy");
+            ws.Cell(row, 6).Value = v.EndDate.ToString("dd/MM/yyyy");
+            ws.Cell(row, 7).Value = v.TotalDays;
+            ws.Cell(row, 8).Value = v.BusinessDays;
+            ws.Cell(row, 9).Value = v.Status;
+            ws.Cell(row, 10).Value = v.CreatedAt.ToString("dd/MM/yyyy HH:mm");
             row++;
         }
 
@@ -254,9 +269,11 @@ public sealed class ReportService : IReportService
 
     public async Task<byte[]> GeneratePermissionReportAsync(int year)
     {
+        var branch = BranchScope;
         var permissions = await _db.PermissionRequests
-            .Where(p => p.StartDate.Year == year)
-            .Include(p => p.Employee)
+            .Where(p => p.StartDate.Year == year
+                && (branch == Guid.Empty || (p.Employee != null && p.Employee.BranchId == branch)))
+            .Include(p => p.Employee).ThenInclude(e => e!.Branch)
             .Include(p => p.LeaveType)
             .OrderBy(p => p.Employee == null ? "" : p.Employee.LastName)
             .ThenBy(p => p.Employee == null ? "" : p.Employee.FirstName)
@@ -264,7 +281,7 @@ public sealed class ReportService : IReportService
 
         using var workbook = new XLWorkbook();
         var ws = workbook.Worksheets.Add("Permisos");
-        var headers = new[] { "Código", "Empleado", "Tipo", "Inicio", "Fin", "Días", "Estado", "Creado" };
+        var headers = new[] { "Código", "Empleado", "Tipo", "Sucursal", "Inicio", "Fin", "Días", "Estado", "Creado" };
 
         for (int i = 0; i < headers.Length; i++)
         {
@@ -279,11 +296,12 @@ public sealed class ReportService : IReportService
             ws.Cell(row, 1).Value = p.Employee?.EmployeeCode ?? "";
             ws.Cell(row, 2).Value = p.Employee is not null ? $"{p.Employee.FirstName} {p.Employee.LastName}" : "";
             ws.Cell(row, 3).Value = p.LeaveType?.Name ?? "";
-            ws.Cell(row, 4).Value = p.StartDate.ToString("dd/MM/yyyy");
-            ws.Cell(row, 5).Value = p.EndDate.ToString("dd/MM/yyyy");
-            ws.Cell(row, 6).Value = p.TotalDays;
-            ws.Cell(row, 7).Value = p.Status;
-            ws.Cell(row, 8).Value = p.CreatedAt.ToString("dd/MM/yyyy HH:mm");
+            ws.Cell(row, 4).Value = p.Employee?.Branch?.Name ?? "";
+            ws.Cell(row, 5).Value = p.StartDate.ToString("dd/MM/yyyy");
+            ws.Cell(row, 6).Value = p.EndDate.ToString("dd/MM/yyyy");
+            ws.Cell(row, 7).Value = p.TotalDays;
+            ws.Cell(row, 8).Value = p.Status;
+            ws.Cell(row, 9).Value = p.CreatedAt.ToString("dd/MM/yyyy HH:mm");
             row++;
         }
 
@@ -296,10 +314,12 @@ public sealed class ReportService : IReportService
 
     public async Task<byte[]> GenerateAttendanceReportAsync(int year, int month)
     {
+        var branch = BranchScope;
         var records = await _db.AttendanceRecords
             .Where(a => a.Date.Year == year
-                && a.Date.Month == month)
-            .Include(a => a.Employee)
+                && a.Date.Month == month
+                && (branch == Guid.Empty || (a.Employee != null && a.Employee.BranchId == branch)))
+            .Include(a => a.Employee).ThenInclude(e => e!.Branch)
             .OrderBy(a => a.Employee == null ? "" : a.Employee.LastName)
             .ThenBy(a => a.Employee == null ? "" : a.Employee.FirstName)
             .ThenBy(a => a.Date)
@@ -307,7 +327,7 @@ public sealed class ReportService : IReportService
 
         using var workbook = new XLWorkbook();
         var ws = workbook.Worksheets.Add("Asistencia");
-        var headers = new[] { "Código", "Empleado", "Fecha", "Entrada", "Salida", "Estado", "Horas" };
+        var headers = new[] { "Código", "Empleado", "Sucursal", "Fecha", "Entrada", "Salida", "Estado", "Horas" };
 
         for (int i = 0; i < headers.Length; i++)
         {
@@ -321,11 +341,12 @@ public sealed class ReportService : IReportService
         {
             ws.Cell(row, 1).Value = r.Employee?.EmployeeCode ?? "";
             ws.Cell(row, 2).Value = r.Employee is not null ? $"{r.Employee.FirstName} {r.Employee.LastName}" : "";
-            ws.Cell(row, 3).Value = r.Date.ToString("dd/MM/yyyy");
-            ws.Cell(row, 4).Value = r.CheckInTime?.ToString("HH:mm") ?? "";
-            ws.Cell(row, 5).Value = r.CheckOutTime?.ToString("HH:mm") ?? "";
-            ws.Cell(row, 6).Value = r.Status;
-            ws.Cell(row, 7).Value = r.TotalHours;
+            ws.Cell(row, 3).Value = r.Employee?.Branch?.Name ?? "";
+            ws.Cell(row, 4).Value = r.Date.ToString("dd/MM/yyyy");
+            ws.Cell(row, 5).Value = r.CheckInTime?.ToString("HH:mm") ?? "";
+            ws.Cell(row, 6).Value = r.CheckOutTime?.ToString("HH:mm") ?? "";
+            ws.Cell(row, 7).Value = r.Status;
+            ws.Cell(row, 8).Value = r.TotalHours;
             row++;
         }
 
@@ -338,16 +359,19 @@ public sealed class ReportService : IReportService
 
     public async Task<byte[]> GenerateBalanceReportAsync()
     {
+        var branch = BranchScope;
         var employees = await _db.Employees
-            .Where(e => e.Status == "active")
+            .Where(e => e.Status == "active"
+                && (branch == Guid.Empty || e.BranchId == branch))
             .Include(e => e.Department)
+            .Include(e => e.Branch)
             .OrderBy(e => e.LastName)
             .ThenBy(e => e.FirstName)
             .ToListAsync();
 
         using var workbook = new XLWorkbook();
         var ws = workbook.Worksheets.Add("Saldos");
-        var headers = new[] { "Código", "Empleado", "Departamento", "Fecha Contratación", "Antigüedad (meses)", "Días Acumulados", "Tomados", "Pendientes", "Disponibles" };
+        var headers = new[] { "Código", "Empleado", "Departamento", "Sucursal", "Fecha Contratación", "Antigüedad (meses)", "Días Acumulados", "Tomados", "Pendientes", "Disponibles" };
 
         for (int i = 0; i < headers.Length; i++)
         {
@@ -381,12 +405,13 @@ public sealed class ReportService : IReportService
             ws.Cell(row, 1).Value = emp.EmployeeCode ?? "";
             ws.Cell(row, 2).Value = $"{emp.FirstName} {emp.LastName}";
             ws.Cell(row, 3).Value = emp.Department?.Name ?? "";
-            ws.Cell(row, 4).Value = emp.HireDate.ToString("dd/MM/yyyy");
-            ws.Cell(row, 5).Value = Math.Max(0, monthsEmployed);
-            ws.Cell(row, 6).Value = Math.Round(accruedDays, 2);
-            ws.Cell(row, 7).Value = takenDays;
-            ws.Cell(row, 8).Value = pendingDays;
-            ws.Cell(row, 9).Value = available;
+            ws.Cell(row, 4).Value = emp.Branch?.Name ?? "";
+            ws.Cell(row, 5).Value = emp.HireDate.ToString("dd/MM/yyyy");
+            ws.Cell(row, 6).Value = Math.Max(0, monthsEmployed);
+            ws.Cell(row, 7).Value = Math.Round(accruedDays, 2);
+            ws.Cell(row, 8).Value = takenDays;
+            ws.Cell(row, 9).Value = pendingDays;
+            ws.Cell(row, 10).Value = available;
             row++;
         }
 

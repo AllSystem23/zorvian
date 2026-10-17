@@ -24,43 +24,46 @@ public sealed class FinancialReportsController : ControllerBase
         _assistantService = assistantService;
     }
 
+    // Nota: todos los reportes aceptan ?branchId= opcional — sin parámetro ni header
+    // de sucursal, devuelven datos de TODA la compañía (sucursales = todas).
+
     [RequirePermission(Permissions.ReportRead)]
     [HttpGet("trial-balance/{periodId:guid}")]
-    public async Task<IActionResult> TrialBalance(Guid periodId)
+    public async Task<IActionResult> TrialBalance(Guid periodId, [FromQuery] Guid? branchId = null)
     {
-        var result = await _reportService.GetTrialBalanceAsync(periodId);
+        var result = await _reportService.GetTrialBalanceAsync(periodId, branchId);
         return Ok(result);
     }
 
     [RequirePermission(Permissions.ReportRead)]
     [HttpGet("income-statement/{periodId:guid}")]
-    public async Task<IActionResult> IncomeStatement(Guid periodId)
+    public async Task<IActionResult> IncomeStatement(Guid periodId, [FromQuery] Guid? branchId = null)
     {
-        var result = await _reportService.GetIncomeStatementAsync(periodId);
+        var result = await _reportService.GetIncomeStatementAsync(periodId, branchId);
         return Ok(result);
     }
 
     [RequirePermission(Permissions.ReportRead)]
     [HttpGet("balance-sheet/{periodId:guid}")]
-    public async Task<IActionResult> BalanceSheet(Guid periodId)
+    public async Task<IActionResult> BalanceSheet(Guid periodId, [FromQuery] Guid? branchId = null)
     {
-        var result = await _reportService.GetBalanceSheetAsync(periodId);
+        var result = await _reportService.GetBalanceSheetAsync(periodId, branchId);
         return Ok(result);
     }
 
     [RequirePermission(Permissions.ReportRead)]
     [HttpGet("general-ledger/{accountId:guid}")]
-    public async Task<IActionResult> GeneralLedger(Guid accountId, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
+    public async Task<IActionResult> GeneralLedger(Guid accountId, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [FromQuery] Guid? branchId = null)
     {
-        var result = await _reportService.GetGeneralLedgerAsync(accountId, fromDate, toDate);
+        var result = await _reportService.GetGeneralLedgerAsync(accountId, fromDate, toDate, branchId);
         return Ok(result);
     }
 
     [RequirePermission(Permissions.ReportRead)]
     [HttpGet("cost-center-expense/{costCenterId:guid}")]
-    public async Task<IActionResult> CostCenterExpense(Guid costCenterId, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
+    public async Task<IActionResult> CostCenterExpense(Guid costCenterId, [FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [FromQuery] Guid? branchId = null)
     {
-        var result = await _reportService.GetCostCenterExpenseReportAsync(costCenterId, fromDate, toDate);
+        var result = await _reportService.GetCostCenterExpenseReportAsync(costCenterId, fromDate, toDate, branchId);
         return Ok(result);
     }
 
@@ -74,27 +77,27 @@ public sealed class FinancialReportsController : ControllerBase
 
     [RequirePermission(Permissions.ReportRead)]
     [HttpGet("equity-changes/{periodId:guid}")]
-    public async Task<IActionResult> EquityChanges(Guid periodId)
+    public async Task<IActionResult> EquityChanges(Guid periodId, [FromQuery] Guid? branchId = null)
     {
-        var result = await _enhancedService.GetEquityChangesAsync(periodId);
+        var result = await _enhancedService.GetEquityChangesAsync(periodId, branchId);
         if (result is null) return NotFound();
         return Ok(result);
     }
 
     [RequirePermission(Permissions.ReportRead)]
     [HttpGet("cash-flow/{periodId:guid}")]
-    public async Task<IActionResult> CashFlow(Guid periodId)
+    public async Task<IActionResult> CashFlow(Guid periodId, [FromQuery] Guid? branchId = null)
     {
-        var result = await _enhancedService.GetCashFlowStatementAsync(periodId);
+        var result = await _enhancedService.GetCashFlowStatementAsync(periodId, branchId);
         if (result is null) return NotFound();
         return Ok(result);
     }
 
     [RequirePermission(Permissions.ReportRead)]
     [HttpPost("comparative")]
-    public async Task<IActionResult> Comparative([FromBody] ComparativeReportRequest request)
+    public async Task<IActionResult> Comparative([FromBody] ComparativeReportRequest request, [FromQuery] Guid? branchId = null)
     {
-        var result = await _enhancedService.GetComparativeReportAsync(request.ReportType, request.PeriodIds);
+        var result = await _enhancedService.GetComparativeReportAsync(request.ReportType, request.PeriodIds, branchId);
         if (result is null) return BadRequest(new { error = "At least two periods are required for comparison" });
         return Ok(result);
     }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zorvian/features/accounting/providers/accounting_provider.dart';
 import 'package:zorvian/shared/ds/ds.dart';
 import 'package:zorvian/auth/auth_provider.dart';
+import 'package:zorvian/core/providers/company_branch_provider.dart';
 
 final class TrialBalancePage extends ConsumerStatefulWidget {
   const TrialBalancePage({super.key});
@@ -20,6 +21,11 @@ final class _TrialBalancePageState extends ConsumerState<TrialBalancePage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => ref.read(accountingProvider.notifier).loadPeriods());
+    // Re-consulta al cambiar de compañía/sucursal en el header (el backend acota
+    // el balance de prueba a la sucursal activa del X-Branch-Id).
+    ref.listenManual(branchScopeProvider, (previous, next) {
+      if (previous != next && _selectedPeriodId != null) _loadTrialBalance();
+    });
   }
 
   Future<void> _loadTrialBalance() async {

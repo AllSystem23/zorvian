@@ -32,6 +32,7 @@ const Map<String, List<AvailableField>> moduleFields = {
     AvailableField('currencyCode', 'Moneda', 'string'),
     AvailableField('supplierName', 'Proveedor', 'string'),
     AvailableField('employeeName', 'Trabajador', 'string'),
+    AvailableField('branchName', 'Sucursal', 'string'),
     AvailableField('createdAt', 'Creado', 'date'),
   ],
   'products': [
@@ -45,6 +46,7 @@ const Map<String, List<AvailableField>> moduleFields = {
     AvailableField('isActive', 'Activo', 'boolean'),
     AvailableField('categoryName', 'Categoría', 'string'),
     AvailableField('brandName', 'Marca', 'string'),
+    AvailableField('branchName', 'Sucursal', 'string'),
     AvailableField('createdAt', 'Creado', 'date'),
   ],
   'clients': [
@@ -53,6 +55,7 @@ const Map<String, List<AvailableField>> moduleFields = {
     AvailableField('phone', 'Teléfono', 'string'),
     AvailableField('email', 'Email', 'string'),
     AvailableField('isActive', 'Activo', 'boolean'),
+    AvailableField('branchName', 'Sucursal', 'string'),
     AvailableField('createdAt', 'Creado', 'date'),
   ],
   'suppliers': [
