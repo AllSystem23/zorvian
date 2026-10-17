@@ -9,6 +9,8 @@ import '../../../core/widgets/bi/bi_gauge.dart';
 import '../providers/bi_provider.dart';
 import '../models/bi_models.dart';
 import '../../../shared/ds/ds.dart';
+import '../../../shared/printing/bi_report_actions.dart';
+import '../../../shared/printing/bi_report_pdf.dart';
 
 class ExecutiveDashboardPage extends ConsumerStatefulWidget {
   const ExecutiveDashboardPage({super.key});
@@ -18,6 +20,8 @@ class ExecutiveDashboardPage extends ConsumerStatefulWidget {
 }
 
 class _ExecutiveDashboardPageState extends ConsumerState<ExecutiveDashboardPage> with AutoRefreshMixin<ExecutiveDashboardPage> {
+  bool _exporting = false;
+
   @override
   void initState() {
     super.initState();
@@ -28,6 +32,43 @@ class _ExecutiveDashboardPageState extends ConsumerState<ExecutiveDashboardPage>
       biArAgingProvider,
       biFinancialRatiosProvider,
     ]);
+  }
+
+  /// Genera el reporte BI profesional (PDF vectorial con gráficos, KPIs,
+  /// tablas y branding) a partir de los datos ya cargados y lo comparte.
+  Future<void> _exportReportPdf() async {
+    final executive = ref.read(biProvider).value;
+    final trend = ref.read(biSalesTrendProvider(12)).value;
+    if (executive == null || trend == null) {
+      _snack('Los datos del dashboard aún no cargan. Intente de nuevo en unos segundos.', error: true);
+      return;
+    }
+    setState(() => _exporting = true);
+    try {
+      final meta = await buildReportMeta(ref, title: 'Reporte Ejecutivo');
+      final bytes = await buildExecutiveBiReportPdf(
+        executive: executive,
+        trend: trend,
+        comparison: ref.read(biBranchComparisonProvider).value,
+        aging: ref.read(biArAgingProvider).value,
+        ratios: ref.read(biFinancialRatiosProvider).value,
+        meta: meta,
+      );
+      if (!mounted) return;
+      await shareReportPdf(bytes, reportFileName('reporte_ejecutivo'));
+      if (mounted) _snack('Reporte PDF generado (${(bytes.length / 1024).toStringAsFixed(0)} KB).');
+    } catch (e) {
+      if (mounted) _snack('No se pudo generar el reporte: $e', error: true);
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
+  void _snack(String message, {bool error = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor: error ? Theme.of(context).colorScheme.error : null,
+    ));
   }
 
   @override
@@ -50,6 +91,24 @@ class _ExecutiveDashboardPageState extends ConsumerState<ExecutiveDashboardPage>
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Dashboard Ejecutivo',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                ZButton(
+                  text: 'Reporte PDF',
+                  icon: Icons.picture_as_pdf,
+                  fullWidth: false,
+                  isLoading: _exporting,
+                  onPressed: _exportReportPdf,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             ZAsyncRenderer<BiExecutive>(
               value: executiveAsync,
               builder: (executive) => _buildKpiGrid(context, executive),

@@ -10,6 +10,8 @@ import '../../../core/widgets/bi/purchase_recommendation_section.dart';
 import '../../../core/widgets/bi/expense_classifier_section.dart';
 import '../providers/bi_provider.dart';
 import '../../../shared/ds/ds.dart';
+import '../../../shared/printing/bi_report_actions.dart';
+import '../../../shared/printing/bi_report_pdf.dart';
 
 class CommercialDashboardPage extends ConsumerStatefulWidget {
   const CommercialDashboardPage({super.key});
@@ -19,10 +21,41 @@ class CommercialDashboardPage extends ConsumerStatefulWidget {
 }
 
 class _CommercialDashboardPageState extends ConsumerState<CommercialDashboardPage> with AutoRefreshMixin<CommercialDashboardPage> {
+  bool _exporting = false;
+
   @override
   void initState() {
     super.initState();
     startAutoRefresh(providers: [biSalesTrendProvider(12)]);
+  }
+
+  /// Genera el reporte comercial profesional (PDF vectorial con tendencia,
+  /// transacciones por mes, KPIs, detalle mensual y branding) y lo comparte.
+  Future<void> _exportReportPdf() async {
+    final trend = ref.read(biSalesTrendProvider(12)).value;
+    if (trend == null) {
+      _snack('Los datos del dashboard aún no cargan. Intente de nuevo en unos segundos.', error: true);
+      return;
+    }
+    setState(() => _exporting = true);
+    try {
+      final meta = await buildReportMeta(ref, title: 'Reporte Comercial');
+      final bytes = await buildCommercialBiReportPdf(trend: trend, meta: meta);
+      if (!mounted) return;
+      await shareReportPdf(bytes, reportFileName('reporte_comercial'));
+      if (mounted) _snack('Reporte PDF generado (${(bytes.length / 1024).toStringAsFixed(0)} KB).');
+    } catch (e) {
+      if (mounted) _snack('No se pudo generar el reporte: $e', error: true);
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
+  void _snack(String message, {bool error = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor: error ? Theme.of(context).colorScheme.error : null,
+    ));
   }
 
   @override
@@ -35,6 +68,24 @@ class _CommercialDashboardPageState extends ConsumerState<CommercialDashboardPag
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Dashboard Comercial',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                ZButton(
+                  text: 'Reporte PDF',
+                  icon: Icons.picture_as_pdf,
+                  fullWidth: false,
+                  isLoading: _exporting,
+                  onPressed: _exportReportPdf,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
             Text('Tendencia de Ventas (12 meses)', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             salesTrendAsync.when(
