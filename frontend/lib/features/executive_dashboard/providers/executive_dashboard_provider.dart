@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 
 final class TopProductItem {
   final String productName;
@@ -108,8 +109,20 @@ final class ExecutiveDashboardState {
 
 final class ExecutiveDashboardNotifier
     extends Notifier<ExecutiveDashboardState> {
+  // Patrón de reactividad al cambio de compañía/sucursal del header.
+  // DEBE ser static: Riverpod crea una nueva instancia del notifier en cada
+  // rebuild (ver AGENTS.md — gotcha Riverpod 3).
+  static String? _lastScope;
+
   @override
-  ExecutiveDashboardState build() => const ExecutiveDashboardState();
+  ExecutiveDashboardState build() {
+    final scope = ref.watch(branchScopeProvider);
+    if (_lastScope != null && _lastScope != scope) {
+      Future.microtask(() => load());
+    }
+    _lastScope = scope;
+    return const ExecutiveDashboardState();
+  }
 
   Future<void> load() async {
     state = state.copyWith(loading: true, error: null);

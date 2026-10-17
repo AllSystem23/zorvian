@@ -1,5 +1,6 @@
 using Zorvian.Application.DTOs.Warranty;
 using Zorvian.Application.Interfaces;
+using Zorvian.Core.Interfaces;
 
 namespace Zorvian.Application.Services;
 
@@ -22,8 +23,10 @@ public sealed class WarrantyDashboardService
     {
         var tenantId = _tenant.TenantId.Value.ToString();
         var isSuperAdmin = _tenant.BypassTenantFilter;
+        // Sucursal activa del header (X-Branch-Id); Guid.Empty = todas las sucursales.
+        var branchId = _tenant.ResolveBranchId() ?? Guid.Empty;
 
-        var scalars = await _repo.GetDashboardScalarsRawAsync(tenantId, isSuperAdmin);
+        var scalars = await _repo.GetDashboardScalarsRawAsync(tenantId, isSuperAdmin, branchId);
 
         return new WarrantyDashboardResponse(
             TotalActive: scalars.TotalActive,

@@ -24,10 +24,25 @@ public sealed class GoalService
 
     public async Task<GoalDashboardDto> GetDashboardAsync()
     {
+        // Sucursal activa del header (X-Branch-Id); Guid.Empty = todas las sucursales.
+        // Las metas no tienen columna BranchId — se acotan por la sucursal del EMPLEADO
+        // asignado (misma herencia que los pagos a prestadores). El Employee del assignment
+        // ya viene cargado (GetGoalAssignmentsAsync hace Include(a => a.Employee)).
+        var branchScope = _tenant.ResolveBranchId() ?? Guid.Empty;
+
         var definitions = await _repo.GetGoalDefinitionsAsync();
-        var allAssignments = await _repo.GetGoalAssignmentsAsync();
-        var allProgress = await _repo.GetAllProgressAsync();
-        var allPayments = await _repo.GetAllIncentivePaymentsAsync();
+        var allAssignments = (await _repo.GetGoalAssignmentsAsync())
+            .Where(a => branchScope == Guid.Empty
+                || (a.Employee?.BranchId ?? Guid.Empty) == branchScope)
+            .ToList();
+        var allProgress = (await _repo.GetAllProgressAsync())
+            .Where(p => branchScope == Guid.Empty
+                || (p.GoalAssignment?.Employee?.BranchId ?? Guid.Empty) == branchScope)
+            .ToList();
+        var allPayments = (await _repo.GetAllIncentivePaymentsAsync())
+            .Where(p => branchScope == Guid.Empty
+                || (p.Employee?.BranchId ?? Guid.Empty) == branchScope)
+            .ToList();
 
         var activeGoals = definitions.Count(g => g.Status == "active");
 

@@ -19,6 +19,10 @@ public sealed class TreasuryDashboardService : ITreasuryDashboardService
     public async Task<TreasuryDashboardSummary> GetSummaryAsync()
     {
         var companyId = _tenant.EffectiveCompanyId;
+        // Sucursal activa del header (X-Branch-Id); Guid.Empty = todas las sucursales.
+        // Solo se acota lo que vive en sucursal (reconciliaciones y movimientos de caja);
+        // BankAccounts y Checks son corporativos de la compañía → company-wide por diseño.
+        var branchId = _tenant.ResolveBranchId() ?? Guid.Empty;
 
         // Total bank balance from corporate BankAccounts (has CurrentBalance field)
         var totalBankBalance = await _db.BankAccounts
@@ -27,7 +31,8 @@ public sealed class TreasuryDashboardService : ITreasuryDashboardService
 
         // Pending reconciliations (not completed)
         var pendingReconciliations = await _db.Reconciliations
-            .Where(r => (!companyId.HasValue || r.CompanyId == companyId.Value) && r.Status != "completed")
+            .Where(r => (!companyId.HasValue || r.CompanyId == companyId.Value) && r.Status != "completed"
+                && (branchId == Guid.Empty || r.BranchId == branchId))
             .CountAsync();
 
         // Outstanding checks (not Draft and not completed/cancelled)
@@ -42,7 +47,8 @@ public sealed class TreasuryDashboardService : ITreasuryDashboardService
         var pendingDeposits = await _db.CashMovements
             .Where(cm => (!companyId.HasValue || cm.CompanyId == companyId.Value) &&
                          cm.MovementType == "deposit" &&
-                         cm.ApprovalStatus != "approved")
+                         cm.ApprovalStatus != "approved" &&
+                         (branchId == Guid.Empty || cm.BranchId == branchId))
             .CountAsync();
 
         return new TreasuryDashboardSummary(totalBankBalance, pendingDeposits, outstandingChecks, pendingReconciliations);

@@ -100,10 +100,16 @@ public sealed class CreditRepository : ICreditRepository
             .Where(c => c.BranchId == branchId && c.Status == "active")
             .SumAsync(c => c.Balance);
 
+    /// <summary>
+    /// Escalares del dashboard de mora. branchId: Guid.Empty = todas las sucursales
+    /// (guard parametrizado @emptyBranch — antes la igualdad exacta con Guid.Empty
+    /// devolvía ~ceros cuando los créditos sí tienen BranchId).
+    /// </summary>
     public async Task<OverdueDashboardScalars> GetOverdueDashboardScalarsRawAsync(Guid branchId)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var monthStart = new DateOnly(today.Year, today.Month, 1);
+        var emptyBranch = branchId == Guid.Empty;
         var sql = @"
             WITH overdue_inst AS (
                 SELECT
@@ -115,7 +121,7 @@ public sealed class CreditRepository : ICreditRepository
                     (@today - ci.""DueDate"")::int AS ""DaysOverdue""
                 FROM ""CreditInstallments"" ci
                 JOIN ""Credits"" c ON c.""Id"" = ci.""CreditId""
-                WHERE c.""BranchId"" = @branchId
+                WHERE (@emptyBranch = true OR c.""BranchId"" = @branchId)
                   AND c.""IsDeleted"" = false
                   AND ci.""IsDeleted"" = false
                   AND ci.""Status"" = 'pending'
@@ -142,10 +148,10 @@ public sealed class CreditRepository : ICreditRepository
                 FROM overdue_inst
             )
             SELECT
-                (SELECT COUNT(*) FROM ""Credits"" WHERE ""BranchId"" = @branchId AND ""IsDeleted"" = false AND ""Status"" = 'active')::int AS ""TotalActiveCredits"",
-                (SELECT COUNT(*) FROM ""Credits"" WHERE ""BranchId"" = @branchId AND ""IsDeleted"" = false AND ""Status"" = 'overdue')::int AS ""TotalOverdueCredits"",
-                COALESCE((SELECT SUM(""Balance"") FROM ""Credits"" WHERE ""BranchId"" = @branchId AND ""IsDeleted"" = false AND ""Status"" = 'active'), 0)::decimal AS ""TotalPortfolio"",
-                COALESCE((SELECT SUM(""Amount"") FROM ""CreditPayments"" WHERE ""BranchId"" = @branchId AND ""IsDeleted"" = false AND ""PaymentDate"" >= @monthStart), 0)::decimal AS ""MonthlyRecovery"",
+                (SELECT COUNT(*) FROM ""Credits"" WHERE (@emptyBranch = true OR ""BranchId"" = @branchId) AND ""IsDeleted"" = false AND ""Status"" = 'active')::int AS ""TotalActiveCredits"",
+                (SELECT COUNT(*) FROM ""Credits"" WHERE (@emptyBranch = true OR ""BranchId"" = @branchId) AND ""IsDeleted"" = false AND ""Status"" = 'overdue')::int AS ""TotalOverdueCredits"",
+                COALESCE((SELECT SUM(""Balance"") FROM ""Credits"" WHERE (@emptyBranch = true OR ""BranchId"" = @branchId) AND ""IsDeleted"" = false AND ""Status"" = 'active'), 0)::decimal AS ""TotalPortfolio"",
+                COALESCE((SELECT SUM(""Amount"") FROM ""CreditPayments"" WHERE (@emptyBranch = true OR ""BranchId"" = @branchId) AND ""IsDeleted"" = false AND ""PaymentDate"" >= @monthStart), 0)::decimal AS ""MonthlyRecovery"",
                 COALESCE((SELECT SUM(""Balance"") FROM overdue_inst), 0)::decimal AS ""TotalOverdueBalance"",
                 bs.""Bucket1InstallmentCount"",
                 bs.""Bucket1CreditCount"",
@@ -168,14 +174,16 @@ public sealed class CreditRepository : ICreditRepository
 
         return await _db.Database.SqlQueryRaw<OverdueDashboardScalars>(sql,
                 new Npgsql.NpgsqlParameter("@branchId", branchId),
+                new Npgsql.NpgsqlParameter("@emptyBranch", emptyBranch),
                 new Npgsql.NpgsqlParameter("@today", today),
                 new Npgsql.NpgsqlParameter("@monthStart", monthStart))
             .FirstOrDefaultAsync() ?? new OverdueDashboardScalars();
     }
 
-    public async Task<decimal> GetArAgingTotalPortfolioRawAsync(Guid? companyId, bool isSuperAdmin, string currency)
+    public async Task<decimal> GetArAgingTotalPortfolioRawAsync(Guid? companyId, bool isSuperAdmin, string currency, Guid branchId)
     {
         var tenantId = companyId?.ToString() ?? string.Empty;
+        var emptyBranch = branchId == Guid.Empty;
         var sql = @"
             SELECT
                 COALESCE(SUM(
@@ -190,6 +198,7 @@ public sealed class CreditRepository : ICreditRepository
             FROM ""Credits"" c
             WHERE (@isSuperAdmin = true OR c.""TenantId"" = @tenantId)
               AND c.""IsDeleted"" = false
+              AND (@emptyBranch = true OR c.""BranchId"" = @branchId)
               AND c.""Status"" IN ('active', 'overdue')
         ";
 
@@ -197,16 +206,19 @@ public sealed class CreditRepository : ICreditRepository
             .SqlQueryRaw<CreditAgingTotalPortfolio>(sql,
                 new Npgsql.NpgsqlParameter("@tenantId", tenantId),
                 new Npgsql.NpgsqlParameter("@isSuperAdmin", isSuperAdmin),
+                new Npgsql.NpgsqlParameter("@emptyBranch", emptyBranch),
+                new Npgsql.NpgsqlParameter("@branchId", branchId),
                 new Npgsql.NpgsqlParameter("@currency", currency))
             .FirstOrDefaultAsync() ?? new CreditAgingTotalPortfolio();
 
         return result.TotalPortfolio;
     }
 
-    public async Task<List<CreditAgingClientItem>> GetArAgingClientsRawAsync(Guid? companyId, bool isSuperAdmin, string currency)
+    public async Task<List<CreditAgingClientItem>> GetArAgingClientsRawAsync(Guid? companyId, bool isSuperAdmin, string currency, Guid branchId)
     {
         var tenantId = companyId?.ToString() ?? string.Empty;
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var emptyBranch = branchId == Guid.Empty;
         var sql = @"
             WITH pending_inst AS (
                 SELECT
@@ -226,6 +238,7 @@ public sealed class CreditRepository : ICreditRepository
                 WHERE (@isSuperAdmin = true OR c.""TenantId"" = @tenantId)
                   AND c.""IsDeleted"" = false
                   AND ci.""IsDeleted"" = false
+                  AND (@emptyBranch = true OR c.""BranchId"" = @branchId)
                   AND c.""Status"" IN ('active', 'overdue')
                   AND ci.""Status"" IN ('pending', 'overdue')
             ),
@@ -260,6 +273,8 @@ public sealed class CreditRepository : ICreditRepository
             .SqlQueryRaw<CreditAgingClientItem>(sql,
                 new Npgsql.NpgsqlParameter("@tenantId", tenantId),
                 new Npgsql.NpgsqlParameter("@isSuperAdmin", isSuperAdmin),
+                new Npgsql.NpgsqlParameter("@emptyBranch", emptyBranch),
+                new Npgsql.NpgsqlParameter("@branchId", branchId),
                 new Npgsql.NpgsqlParameter("@today", today),
                 new Npgsql.NpgsqlParameter("@currency", currency))
             .ToListAsync();
@@ -268,11 +283,13 @@ public sealed class CreditRepository : ICreditRepository
     public async Task<List<CreditInstallment>> GetOverdueInstallmentsAsync(Guid branchId)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        return await _db.Set<CreditInstallment>()
+        var query = _db.Set<CreditInstallment>()
             .Include(ci => ci.Credit)
-            .Where(ci => ci.Credit.BranchId == branchId
-                && ci.Status == "pending"
-                && ci.DueDate < today)
+            .Where(ci => ci.Status == "pending"
+                && ci.DueDate < today);
+        if (branchId != Guid.Empty)
+            query = query.Where(ci => ci.Credit.BranchId == branchId);
+        return await query
             .OrderBy(ci => ci.DueDate)
             .ToListAsync();
     }
@@ -280,11 +297,13 @@ public sealed class CreditRepository : ICreditRepository
     public async Task<List<CreditInstallment>> GetCriticalOverdueInstallmentsAsync(Guid branchId, int limit)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        return await _db.Set<CreditInstallment>()
+        var query = _db.Set<CreditInstallment>()
             .Include(ci => ci.Credit)
-            .Where(ci => ci.Credit.BranchId == branchId
-                && ci.Status == "pending"
-                && ci.DueDate < today)
+            .Where(ci => ci.Status == "pending"
+                && ci.DueDate < today);
+        if (branchId != Guid.Empty)
+            query = query.Where(ci => ci.Credit.BranchId == branchId);
+        return await query
             .OrderByDescending(ci => today.DayNumber - ci.DueDate.DayNumber)
             .Take(limit)
             .ToListAsync();

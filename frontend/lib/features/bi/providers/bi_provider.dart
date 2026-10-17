@@ -15,44 +15,65 @@ class BiNotifier extends AsyncNotifier<BiExecutive> {
 
 final biProvider = AsyncNotifierProvider<BiNotifier, BiExecutive>(BiNotifier.new);
 
+// Observan branchScopeProvider: al cambiar de sucursal en el header, el
+// X-Branch-Id del DioClient cambia y estos providers se re-fetchean solos.
 final biSalesTrendProvider = FutureProvider.autoDispose.family<List<BiMonthSales>, int>((ref, months) async {
+  ref.watch(branchScopeProvider);
   final dio = ref.read(dioClientProvider);
   final res = await dio.get('bi/sales-trend', params: {'months': months});
   final data = res.data['monthly'] as List;
   return data.map((e) => BiMonthSales.fromJson(e)).toList();
 });
 
+// Comparativo por sucursal: el backend ignora la sucursal seleccionada (vista
+// "empresa"), pero observa el scope porque la key incluye companyId.
+final biBranchComparisonProvider = FutureProvider.autoDispose<BranchComparison>((ref) async {
+  ref.watch(branchScopeProvider);
+  final dio = ref.read(dioClientProvider);
+  final res = await dio.get('bi/branch-comparison');
+  return BranchComparison.fromJson(res.data as Map<String, dynamic>);
+});
+
 final biArAgingProvider = FutureProvider.autoDispose((ref) async {
+  ref.watch(branchScopeProvider);
   final dio = ref.read(dioClientProvider);
   final res = await dio.get('bi/ar-aging');
   return BiArAging.fromJson(res.data);
 });
 
 final biApAgingProvider = FutureProvider.autoDispose((ref) async {
+  ref.watch(branchScopeProvider);
   final dio = ref.read(dioClientProvider);
   final res = await dio.get('bi/ap-aging');
   return BiApAging.fromJson(res.data);
 });
 
+// Contabilidad es company-wide por diseño (el backend ignora la sucursal), pero
+// observan el scope porque la key incluye companyId: sin esto, cambiar de compañía
+// dejaría en pantalla los datos cacheados de la anterior.
 final biFinancialRatiosProvider = FutureProvider.autoDispose((ref) async {
+  ref.watch(branchScopeProvider);
   final dio = ref.read(dioClientProvider);
   final res = await dio.get('bi/financial-ratios');
   return BiFinancialRatios.fromJson(res.data);
 });
 
 final biComparativeIncomeProvider = FutureProvider.autoDispose((ref) async {
+  ref.watch(branchScopeProvider);
   final dio = ref.read(dioClientProvider);
   final res = await dio.get('bi/comparative-income');
   return BiComparativeIncome.fromJson(res.data);
 });
 
 final biCashFlowProvider = FutureProvider.autoDispose((ref) async {
+  ref.watch(branchScopeProvider);
   final dio = ref.read(dioClientProvider);
   final res = await dio.get('bi/cash-flow');
   return BiCashFlow.fromJson(res.data);
 });
 
 final biInventorySummaryProvider = FutureProvider.autoDispose((ref) async {
+  ref.watch(branchScopeProvider);
   final dio = ref.read(dioClientProvider);
   final res = await dio.get('bi/inventory-summary');
   return BiInventorySummary.fromJson(res.data);

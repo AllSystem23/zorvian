@@ -452,7 +452,10 @@ public sealed class CreditService
 
     public async Task<OverdueDashboardResponse> GetOverdueDashboardAsync()
     {
-        var branchId = Guid.Empty;
+        // Sucursal activa del header (X-Branch-Id); Guid.Empty = todas las sucursales.
+        // Antes estaba hardcodeado a Guid.Empty con igualdad exacta en el SQL →
+        // el dashboard de mora devolvía ~ceros cuando los créditos sí traían BranchId.
+        var branchId = _tenant.ResolveBranchId() ?? Guid.Empty;
         var scalars = await _creditRepo.GetOverdueDashboardScalarsRawAsync(branchId);
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var pastDueInsts = (await _creditRepo.GetCriticalOverdueInstallmentsAsync(branchId, 10))

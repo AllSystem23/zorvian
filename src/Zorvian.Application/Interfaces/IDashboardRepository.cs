@@ -1,3 +1,4 @@
+using Zorvian.Application.DTOs.Bi;
 using Zorvian.Application.DTOs.Dashboard;
 using Zorvian.Core.Entities;
 
@@ -6,8 +7,12 @@ namespace Zorvian.Application.Interfaces;
 public interface IDashboardRepository
 {
     // Ultra-optimized: single raw SQL for ALL scalar KPI values (1 round-trip)
-    Task<DashboardKpiScalars> GetAllKpiScalarsRawAsync(Guid? companyId, bool isSuperAdmin, DateOnly thirtyDaysAgo, int currentMonth, int lastMonth);
-    Task<ExecutiveKpiScalars> GetExecutiveKpiScalarsRawAsync(Guid? companyId, bool isSuperAdmin);
+    // branchId: Guid.Empty = todas las sucursales (guard parametrizado en SQL).
+    Task<DashboardKpiScalars> GetAllKpiScalarsRawAsync(Guid? companyId, bool isSuperAdmin, DateOnly thirtyDaysAgo, int currentMonth, int lastMonth, Guid branchId);
+    Task<ExecutiveKpiScalars> GetExecutiveKpiScalarsRawAsync(Guid? companyId, bool isSuperAdmin, Guid branchId);
+    // Comparativo por sucursal ("nivel empresa"): SIEMPRE company-wide por diseño
+    // (ignora la sucursal del header — su propósito es comparar todas entre sí).
+    Task<List<BranchComparisonScalars>> GetBranchComparisonRawAsync(Guid? companyId, bool isSuperAdmin);
     Task<List<(string Name, int Count)>> GetEmployeesByDepartmentAsync();
     Task<List<VacationRequest>> GetVacationsInRangeAsync(DateOnly start, DateOnly end, int page, int pageSize);
     Task<List<PermissionRequest>> GetRecentPermissionsAsync(int count, int page, int pageSize);

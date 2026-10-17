@@ -1,5 +1,6 @@
 using Zorvian.Application.DTOs.Fleet;
 using Zorvian.Application.Interfaces.Fleet;
+using Zorvian.Core.Interfaces;
 
 namespace Zorvian.Application.Services.Fleet;
 
@@ -25,8 +26,10 @@ public sealed class FleetDashboardService
         {
             var tenantId = _tenant.TenantId?.ToString() ?? Guid.Empty.ToString();
             var isSuperAdmin = _tenant.BypassTenantFilter;
+            // Sucursal activa del header (X-Branch-Id); Guid.Empty = todas las sucursales.
+            var branchId = _tenant.ResolveBranchId() ?? Guid.Empty;
 
-            var scalars = await _vehicleRepo.GetDashboardScalarsRawAsync(tenantId, isSuperAdmin);
+            var scalars = await _vehicleRepo.GetDashboardScalarsRawAsync(tenantId, isSuperAdmin, branchId);
 
             var alerts = new List<AlertItem>();
             if (scalars.ExpiringSoon > 0)

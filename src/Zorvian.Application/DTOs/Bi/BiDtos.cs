@@ -194,3 +194,45 @@ public sealed record BiEmployeeTurnoverResponse(
 public sealed record BiTurnoverByDept(
     string Department, int Hired, int Terminated, double Rate
 );
+
+/// <summary>
+/// Comparativo por sucursal ("nivel empresa"): a diferencia del resto de BI,
+/// este endpoint IGNORA el selector de sucursal del header — su propósito es
+/// comparar TODAS las sucursales entre sí. La ventana temporal es el mes en curso.
+/// </summary>
+public sealed record BiBranchComparisonResponse(
+    List<BiBranchComparisonItem> Branches,
+    decimal TotalMonthSales,
+    int TotalSalesCount,
+    decimal TotalMonthRecovery,
+    decimal TotalPortfolio,
+    int TotalActiveCredits,
+    int TotalOverdueCredits,
+    decimal TotalInventoryValue
+);
+
+public sealed record BiBranchComparisonItem(
+    Guid BranchId,
+    string BranchName,
+    decimal MonthSales,
+    int SalesCount,
+    decimal MonthRecovery,
+    decimal Portfolio,
+    int ActiveCredits,
+    int OverdueCredits,
+    decimal InventoryValue
+);
+
+/// <summary>Fila materializada desde el SQL crudo del comparativo.</summary>
+public sealed class BranchComparisonScalars
+{
+    public Guid BranchId { get; set; }
+    public string BranchName { get; set; } = string.Empty;
+    public decimal MonthSales { get; set; }
+    public int SalesCount { get; set; }
+    public decimal MonthRecovery { get; set; }
+    public decimal Portfolio { get; set; }
+    public int ActiveCredits { get; set; }
+    public int OverdueCredits { get; set; }
+    public decimal InventoryValue { get; set; }
+}

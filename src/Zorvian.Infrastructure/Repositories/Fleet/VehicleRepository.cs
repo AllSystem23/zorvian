@@ -17,36 +17,48 @@ public sealed class VehicleRepository : IVehicleRepository
     /// Replaces 6 GetAllAsync calls that loaded entire tables into memory.
     /// Supports SuperAdmin bypass and specific tenant filtering.
     /// </summary>
-    public async Task<FleetDashboardScalars> GetDashboardScalarsRawAsync(string tenantId, bool isSuperAdmin)
+    /// <summary>
+    /// Escalares del dashboard de flota. branchId: Guid.Empty = todas las sucursales.
+    /// Vehicles/Drivers/Routes filtran por su BranchId propio; Trips/Deliveries se acotan
+    /// por la sucursal de su vehículo (IN-subquery — el VehicleId es nullable en Delivery,
+    /// los sin-vehículo son company-wide). FleetDocuments (polimórfico) se queda company-wide.
+    /// </summary>
+    public async Task<FleetDashboardScalars> GetDashboardScalarsRawAsync(string tenantId, bool isSuperAdmin, Guid branchId)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var thirtyDaysFromNow = today.AddDays(30);
+        var emptyBranch = branchId == Guid.Empty;
 
         var sql = @"
             WITH vehicles AS (
                 SELECT ""Status""
                 FROM ""Vehicles""
                 WHERE (""TenantId"" = @tenantId OR @isSuperAdmin = true) AND ""IsDeleted"" = false
+                  AND (@emptyBranch = true OR ""BranchId"" = @branchId)
             ),
             drivers AS (
                 SELECT ""Status""
                 FROM ""Drivers""
                 WHERE (""TenantId"" = @tenantId OR @isSuperAdmin = true) AND ""IsDeleted"" = false
+                  AND (@emptyBranch = true OR ""BranchId"" = @branchId)
             ),
             routes AS (
                 SELECT ""Status""
                 FROM ""Routes""
                 WHERE (""TenantId"" = @tenantId OR @isSuperAdmin = true) AND ""IsDeleted"" = false
+                  AND (@emptyBranch = true OR ""BranchId"" = @branchId)
             ),
             deliveries AS (
                 SELECT ""Status""
                 FROM ""Deliveries""
                 WHERE (""TenantId"" = @tenantId OR @isSuperAdmin = true) AND ""IsDeleted"" = false
+                  AND (@emptyBranch = true OR ""VehicleId"" IN (SELECT ""Id"" FROM ""Vehicles"" WHERE ""BranchId"" = @branchId))
             ),
             trips AS (
                 SELECT ""StartDateTime""
                 FROM ""Trips""
                 WHERE (""TenantId"" = @tenantId OR @isSuperAdmin = true) AND ""IsDeleted"" = false
+                  AND (@emptyBranch = true OR ""VehicleId"" IN (SELECT ""Id"" FROM ""Vehicles"" WHERE ""BranchId"" = @branchId))
             ),
             documents AS (
                 SELECT ""ExpiryDate"", ""Status""
@@ -69,6 +81,8 @@ public sealed class VehicleRepository : IVehicleRepository
             .SqlQueryRaw<FleetDashboardScalars>(sql,
                 new Npgsql.NpgsqlParameter("@tenantId", tenantId),
                 new Npgsql.NpgsqlParameter("@isSuperAdmin", isSuperAdmin),
+                new Npgsql.NpgsqlParameter("@emptyBranch", emptyBranch),
+                new Npgsql.NpgsqlParameter("@branchId", branchId),
                 new Npgsql.NpgsqlParameter("@today", today),
                 new Npgsql.NpgsqlParameter("@thirtyDaysFromNow", thirtyDaysFromNow))
             .FirstOrDefaultAsync();

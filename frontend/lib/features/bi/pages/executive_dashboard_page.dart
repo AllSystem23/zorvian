@@ -24,6 +24,7 @@ class _ExecutiveDashboardPageState extends ConsumerState<ExecutiveDashboardPage>
     startAutoRefresh(providers: [
       biProvider,
       biSalesTrendProvider(12),
+      biBranchComparisonProvider,
       biArAgingProvider,
       biFinancialRatiosProvider,
     ]);
@@ -33,6 +34,7 @@ class _ExecutiveDashboardPageState extends ConsumerState<ExecutiveDashboardPage>
   Widget build(BuildContext context) {
     final executiveAsync = ref.watch(biProvider);
     final salesTrendAsync = ref.watch(biSalesTrendProvider(12));
+    final branchComparisonAsync = ref.watch(biBranchComparisonProvider);
     final arAgingAsync = ref.watch(biArAgingProvider);
     final ratiosAsync = ref.watch(biFinancialRatiosProvider);
 
@@ -41,6 +43,7 @@ class _ExecutiveDashboardPageState extends ConsumerState<ExecutiveDashboardPage>
         onRefresh: () async {
           ref.invalidate(biProvider);
           ref.invalidate(biSalesTrendProvider(12));
+          ref.invalidate(biBranchComparisonProvider);
           ref.invalidate(biArAgingProvider);
           ref.invalidate(biFinancialRatiosProvider);
         },
@@ -68,6 +71,73 @@ class _ExecutiveDashboardPageState extends ConsumerState<ExecutiveDashboardPage>
                   ],
                 ),
               ),
+            ),
+            const SizedBox(height: 24),
+            Text('Comparativo por Sucursal (Mes en Curso)', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text(
+              'Vista empresa: compara todas las sucursales sin importar la seleccionada en el cabecero.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 8),
+            branchComparisonAsync.when(
+              loading: () => const SizedBox(height: 200, child: Center(child: CircularProgressIndicator())),
+              error: (e, _) => ZCard(padding: const EdgeInsets.all(16), child: Text('Error: $e')),
+              data: (comparison) => comparison.branches.isEmpty
+                  ? ZCard(
+                      padding: const EdgeInsets.all(16),
+                      child: Text('Sin sucursales registradas', style: Theme.of(context).textTheme.bodyMedium),
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        BiBarChart(
+                          title: 'Ventas del Mes por Sucursal',
+                          items: [
+                            for (final b in comparison.branches)
+                              BarChartItem(
+                                b.branchName,
+                                b.monthSales,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        ZCard(
+                          padding: EdgeInsets.zero,
+                          child: ZDataTable<BranchComparisonItem>(
+                            columns: const [
+                              ZColumn(id: 'branch', label: 'Sucursal'),
+                              ZColumn(id: 'sales', label: 'Ventas Mes', numeric: true),
+                              ZColumn(id: 'recovery', label: 'Cobros Mes', numeric: true),
+                              ZColumn(id: 'portfolio', label: 'Cartera', numeric: true),
+                              ZColumn(id: 'overdue', label: 'Vencidos', numeric: true),
+                              ZColumn(id: 'inventory', label: 'Inventario', numeric: true),
+                            ],
+                            rows: comparison.branches,
+                            rowMapper: (b) => DataRow(
+                              cells: [
+                                DataCell(Text(b.branchName)),
+                                DataCell(Text('\$${b.monthSales.toStringAsFixed(2)}')),
+                                DataCell(Text('\$${b.monthRecovery.toStringAsFixed(2)}')),
+                                DataCell(Text('\$${b.portfolio.toStringAsFixed(2)}')),
+                                DataCell(Text('${b.overdueCredits}')),
+                                DataCell(Text('\$${b.inventoryValue.toStringAsFixed(2)}')),
+                              ],
+                            ),
+                            pageSize: comparison.branches.length,
+                            emptyMessage: 'Sin sucursales registradas',
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Total empresa — Ventas: \$${comparison.totalMonthSales.toStringAsFixed(2)} · '
+                          'Cartera: \$${comparison.totalPortfolio.toStringAsFixed(2)} · '
+                          'Inventario: \$${comparison.totalInventoryValue.toStringAsFixed(2)}',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
             ),
             const SizedBox(height: 24),
             Text('Antigüedad de Cartera (AR)', style: Theme.of(context).textTheme.titleMedium),

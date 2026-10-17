@@ -8,6 +8,8 @@ public sealed class DashboardService
 {
     private const string PermissionType = "permiso";
     private const string VacationType = "vacacion";
+    // Sucursal activa del header (X-Branch-Id); Guid.Empty = todas las sucursales.
+    private Guid BranchScope => _tenant.ResolveBranchId() ?? Guid.Empty;
     private readonly IDashboardRepository _repo;
     private readonly ITenantContext _tenant;
     private readonly ISaleRepository _saleRepo;
@@ -63,7 +65,7 @@ public sealed class DashboardService
         var scalars = await _repo.GetAllKpiScalarsRawAsync(
             _tenant.EffectiveCompanyId,
             _tenant.BypassTenantFilter,
-            thirtyDaysAgo, now.Month, lastMonth);
+            thirtyDaysAgo, now.Month, lastMonth, BranchScope);
 
         if (scalars.TotalEmployees == 0
             && scalars.PendingVacationRequests == 0
@@ -164,7 +166,7 @@ public sealed class DashboardService
         var scalars = await _repo.GetAllKpiScalarsRawAsync(
             _tenant.EffectiveCompanyId,
             _tenant.BypassTenantFilter,
-            thirtyDaysAgo, now.Month, lastMonth);
+            thirtyDaysAgo, now.Month, lastMonth, BranchScope);
 
         if (scalars.TotalEmployees == 0
             && scalars.PendingVacationRequests == 0
@@ -213,10 +215,10 @@ public sealed class DashboardService
     public async Task<ExecutiveDashboardResponse> GetExecutiveDashboardAsync()
     {
         // Phase 1: 18 scalars in 1 trip
-        var scalars = await _repo.GetExecutiveKpiScalarsRawAsync(_tenant.EffectiveCompanyId, _tenant.BypassTenantFilter);
+        var scalars = await _repo.GetExecutiveKpiScalarsRawAsync(_tenant.EffectiveCompanyId, _tenant.BypassTenantFilter, BranchScope);
 
         // Phase 2: Top selling products (requires complex join/logic best left to EF or separate SQL)
-        var topSelling = await _productRepo.GetTopSellingAsync(Guid.Empty, 5);
+        var topSelling = await _productRepo.GetTopSellingAsync(BranchScope, 5);
 
         return new ExecutiveDashboardResponse(
             new CommercialKpis(scalars.TodaySales, scalars.MonthSales, scalars.AverageTicket, scalars.TodaySalesCount),

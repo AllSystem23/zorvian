@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Zorvian.Application.DTOs.Bi;
 using Zorvian.Application.DTOs.Dashboard;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
@@ -28,25 +29,33 @@ public sealed class DashboardRepository : IDashboardRepository
     /// <summary>
     /// Optimized: one raw SQL round-trip for all scalar HR KPIs.
     /// CTEs materialize tenant-filtered rows once; FILTER/COUNT aggregates avoid repeated table scans.
+    /// branchId: Guid.Empty = todas las sucursales (guard parametrizado, misma semántica que
+    /// ApplyBranchScope); vacaciones/permisos se acotan vía la sucursal del empleado (join).
     /// </summary>
     public async Task<DashboardKpiScalars> GetAllKpiScalarsRawAsync(
-        Guid? companyId, bool isSuperAdmin, DateOnly thirtyDaysAgo, int currentMonth, int lastMonth)
+        Guid? companyId, bool isSuperAdmin, DateOnly thirtyDaysAgo, int currentMonth, int lastMonth, Guid branchId)
     {
+        var emptyBranch = branchId == Guid.Empty;
         var sql = @"
             WITH employees AS (
                 SELECT ""Status"", ""DateOfBirth"", ""HireDate"", ""TerminationDate""
                 FROM ""Employees""
                 WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId::text) AND ""IsDeleted"" = false
+                  AND (@emptyBranch = true OR ""BranchId"" = @branchId)
             ),
             vacations AS (
-                SELECT ""Status"", ""UpdatedAt""
-                FROM ""VacationRequests""
-                WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId::text) AND ""IsDeleted"" = false
+                SELECT v.""Status"", v.""UpdatedAt""
+                FROM ""VacationRequests"" v
+                JOIN ""Employees"" e ON e.""Id"" = v.""EmployeeId""
+                WHERE (@isSuperAdmin = true OR v.""TenantId"" = @tenantId::text) AND v.""IsDeleted"" = false
+                  AND (@emptyBranch = true OR e.""BranchId"" = @branchId)
             ),
             permissions AS (
-                SELECT ""Status"", ""UpdatedAt""
-                FROM ""PermissionRequests""
-                WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId::text) AND ""IsDeleted"" = false
+                SELECT p.""Status"", p.""UpdatedAt""
+                FROM ""PermissionRequests"" p
+                JOIN ""Employees"" e ON e.""Id"" = p.""EmployeeId""
+                WHERE (@isSuperAdmin = true OR p.""TenantId"" = @tenantId::text) AND p.""IsDeleted"" = false
+                  AND (@emptyBranch = true OR e.""BranchId"" = @branchId)
             )
             SELECT
                 (SELECT COUNT(*) FROM employees)::int AS ""TotalEmployees"",
@@ -69,14 +78,22 @@ public sealed class DashboardRepository : IDashboardRepository
                 new Npgsql.NpgsqlParameter("@sinceDate", thirtyDaysAgo),
                 new Npgsql.NpgsqlParameter("@currentMonth", currentMonth),
                 new Npgsql.NpgsqlParameter("@lastMonth", lastMonth),
-                new Npgsql.NpgsqlParameter("@thirtyDaysAgo", thirtyDaysAgo))
+                new Npgsql.NpgsqlParameter("@thirtyDaysAgo", thirtyDaysAgo),
+                new Npgsql.NpgsqlParameter("@emptyBranch", emptyBranch),
+                new Npgsql.NpgsqlParameter("@branchId", branchId))
             .FirstOrDefaultAsync();
 
         return result ?? new DashboardKpiScalars();
     }
 
-    public async Task<ExecutiveKpiScalars> GetExecutiveKpiScalarsRawAsync(Guid? companyId, bool isSuperAdmin)
+    /// <summary>
+    /// Executive scalars (ventas, cartera, caja, RRHH) con corte opcional por sucursal.
+    /// branchId: Guid.Empty = todas (guard parametrizado). Vacaciones/permisos pendientes
+    /// se acotan por la sucursal del empleado (esas tablas no tienen BranchId).
+    /// </summary>
+    public async Task<ExecutiveKpiScalars> GetExecutiveKpiScalarsRawAsync(Guid? companyId, bool isSuperAdmin, Guid branchId)
     {
+        var emptyBranch = branchId == Guid.Empty;
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var monthStart = new DateOnly(today.Year, today.Month, 1);
         var tenantIdValue = companyId?.ToString() ?? string.Empty;
@@ -89,6 +106,7 @@ public sealed class DashboardRepository : IDashboardRepository
                     COUNT(*) FILTER (WHERE ""SaleDate"" >= @today::date) AS ""TodaySalesCount""
                 FROM ""Sales""
                 WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
+                  AND (@emptyBranch = true OR ""BranchId"" = @branchId)
                   AND ""SaleDate"" >= @monthStart::date
             ),
             credits AS (
@@ -98,11 +116,13 @@ public sealed class DashboardRepository : IDashboardRepository
                     COALESCE(SUM(""Balance"") FILTER (WHERE ""Status"" <> 'paid'), 0) AS ""TotalPortfolio""
                 FROM ""Credits""
                 WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
+                  AND (@emptyBranch = true OR ""BranchId"" = @branchId)
             ),
             payments AS (
                 SELECT COALESCE(SUM(""Amount""), 0) AS ""MonthlyRecovery""
                 FROM ""CreditPayments""
                 WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
+                  AND (@emptyBranch = true OR ""BranchId"" = @branchId)
                   AND ""PaymentDate"" >= @monthStart::date
             ),
             products AS (
@@ -112,6 +132,7 @@ public sealed class DashboardRepository : IDashboardRepository
                     COUNT(*) AS ""TotalProducts""
                 FROM ""Products""
                 WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
+                  AND (@emptyBranch = true OR ""BranchId"" = @branchId)
             ),
             cash AS (
                 SELECT
@@ -119,12 +140,14 @@ public sealed class DashboardRepository : IDashboardRepository
                     COALESCE(SUM(""Amount"") FILTER (WHERE ""MovementType"" = 'expense'), 0) AS ""TodayExpense""
                 FROM ""CashMovements""
                 WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
+                  AND (@emptyBranch = true OR ""BranchId"" = @branchId)
                   AND ""CreatedAt"" >= @today::date
             ),
             registers AS (
                 SELECT COUNT(*) FILTER (WHERE ""Status"" = 'open') AS ""OpenRegisters""
                 FROM ""CashRegisters""
                 WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
+                  AND (@emptyBranch = true OR ""BranchId"" = @branchId)
             ),
             employees AS (
                 SELECT
@@ -132,16 +155,21 @@ public sealed class DashboardRepository : IDashboardRepository
                     COUNT(*) AS ""TotalEmployees""
                 FROM ""Employees""
                 WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
+                  AND (@emptyBranch = true OR ""BranchId"" = @branchId)
             ),
             vacations AS (
-                SELECT COUNT(*) FILTER (WHERE ""Status"" = 'pending') AS ""PendingVacations""
-                FROM ""VacationRequests""
-                WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
+                SELECT COUNT(*) FILTER (WHERE v.""Status"" = 'pending') AS ""PendingVacations""
+                FROM ""VacationRequests"" v
+                JOIN ""Employees"" e ON e.""Id"" = v.""EmployeeId""
+                WHERE (@isSuperAdmin = true OR v.""TenantId"" = @tenantId) AND v.""IsDeleted"" = false
+                  AND (@emptyBranch = true OR e.""BranchId"" = @branchId)
             ),
             permissions AS (
-                SELECT COUNT(*) FILTER (WHERE ""Status"" = 'pending') AS ""PendingPermissions""
-                FROM ""PermissionRequests""
-                WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId) AND ""IsDeleted"" = false
+                SELECT COUNT(*) FILTER (WHERE p.""Status"" = 'pending') AS ""PendingPermissions""
+                FROM ""PermissionRequests"" p
+                JOIN ""Employees"" e ON e.""Id"" = p.""EmployeeId""
+                WHERE (@isSuperAdmin = true OR p.""TenantId"" = @tenantId) AND p.""IsDeleted"" = false
+                  AND (@emptyBranch = true OR e.""BranchId"" = @branchId)
             )
             SELECT
                 COALESCE(s.""TodaySales"", 0)::decimal AS ""TodaySales"",
@@ -178,10 +206,87 @@ public sealed class DashboardRepository : IDashboardRepository
                 new Npgsql.NpgsqlParameter("@tenantId", tenantIdValue),
                 new Npgsql.NpgsqlParameter("@isSuperAdmin", isSuperAdmin),
                 new Npgsql.NpgsqlParameter("@today", today),
-                new Npgsql.NpgsqlParameter("@monthStart", monthStart))
+                new Npgsql.NpgsqlParameter("@monthStart", monthStart),
+                new Npgsql.NpgsqlParameter("@emptyBranch", emptyBranch),
+                new Npgsql.NpgsqlParameter("@branchId", branchId))
             .FirstOrDefaultAsync();
 
         return result ?? new ExecutiveKpiScalars();
+    }
+
+    /// <summary>
+    /// Comparativo por sucursal: agrega ventas del mes, cartera, cobros e inventario
+    /// POR SUCURSAL en un solo round-trip. A propósito NO aplica el filtro de sucursal
+    /// del header (es la vista "empresa" que compara todas las sucursales entre sí).
+    /// Semántica de tenant igual que los otros scalars.
+    /// </summary>
+    public async Task<List<BranchComparisonScalars>> GetBranchComparisonRawAsync(Guid? companyId, bool isSuperAdmin)
+    {
+        var tenantIdValue = companyId?.ToString() ?? string.Empty;
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var monthStart = new DateOnly(today.Year, today.Month, 1);
+        var sql = @"
+            SELECT
+                b.""Id"" AS ""BranchId"",
+                b.""Name"" AS ""BranchName"",
+                COALESCE(s.""MonthSales"", 0)::decimal AS ""MonthSales"",
+                COALESCE(s.""SalesCount"", 0)::int AS ""SalesCount"",
+                COALESCE(r.""MonthRecovery"", 0)::decimal AS ""MonthRecovery"",
+                COALESCE(c.""Portfolio"", 0)::decimal AS ""Portfolio"",
+                COALESCE(c.""ActiveCredits"", 0)::int AS ""ActiveCredits"",
+                COALESCE(c.""OverdueCredits"", 0)::int AS ""OverdueCredits"",
+                COALESCE(i.""InventoryValue"", 0)::decimal AS ""InventoryValue""
+            FROM ""Branches"" b
+            LEFT JOIN (
+                SELECT ""BranchId"",
+                       SUM(""Total"") AS ""MonthSales"",
+                       COUNT(*) AS ""SalesCount""
+                FROM ""Sales""
+                WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId)
+                  AND ""IsDeleted"" = false
+                  AND ""SaleDate"" >= @monthStart
+                GROUP BY ""BranchId""
+            ) s ON s.""BranchId"" = b.""Id""
+            LEFT JOIN (
+                SELECT ""BranchId"",
+                       SUM(""Amount"") AS ""MonthRecovery""
+                FROM ""CreditPayments""
+                WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId)
+                  AND ""IsDeleted"" = false
+                  AND ""PaymentDate"" >= @monthStart
+                GROUP BY ""BranchId""
+            ) r ON r.""BranchId"" = b.""Id""
+            LEFT JOIN (
+                SELECT ""BranchId"",
+                       SUM(""Balance"") FILTER (WHERE ""Status"" <> 'paid') AS ""Portfolio"",
+                       COUNT(*) FILTER (WHERE ""Status"" = 'active') AS ""ActiveCredits"",
+                       COUNT(*) FILTER (WHERE ""Status"" = 'overdue') AS ""OverdueCredits""
+                FROM ""Credits""
+                WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId)
+                  AND ""IsDeleted"" = false
+                GROUP BY ""BranchId""
+            ) c ON c.""BranchId"" = b.""Id""
+            LEFT JOIN (
+                SELECT ""BranchId"",
+                       SUM(""Stock"" * ""CostPrice"") AS ""InventoryValue""
+                FROM ""Products""
+                WHERE (@isSuperAdmin = true OR ""TenantId"" = @tenantId)
+                  AND ""IsDeleted"" = false
+                GROUP BY ""BranchId""
+            ) i ON i.""BranchId"" = b.""Id""
+            WHERE (@isSuperAdmin = true OR b.""TenantId"" = @tenantId)
+              AND b.""IsDeleted"" = false
+            ORDER BY ""MonthSales"" DESC
+        ";
+
+        var result = await _db.Database
+            .SqlQueryRaw<BranchComparisonScalars>(sql,
+                new Npgsql.NpgsqlParameter("@tenantId", tenantIdValue),
+                new Npgsql.NpgsqlParameter("@isSuperAdmin", isSuperAdmin),
+                new Npgsql.NpgsqlParameter("@monthStart", monthStart))
+            .ToListAsync();
+
+        return result;
     }
 
     public async Task<List<(string Name, int Count)>> GetEmployeesByDepartmentAsync()

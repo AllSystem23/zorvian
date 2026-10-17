@@ -47,7 +47,9 @@ public sealed class BiService
 
     private Guid CompanyId =>
         Guid.TryParse(_tenant.TenantId, out var id) ? id : Guid.Empty;
-    private Guid NullBranch => Guid.Empty;
+    // Sucursal activa del header (X-Branch-Id); Guid.Empty = todas las sucursales
+    // (los repos aplican ApplyBranchScope con semántica Empty=todas).
+    private Guid BranchScope => _tenant.ResolveBranchId() ?? Guid.Empty;
 
     private async Task<string> GetCompanyCurrencyAsync()
     {
@@ -64,15 +66,15 @@ public sealed class BiService
         var isSuperAdmin = _tenant.BypassTenantFilter;
 
         // Phase 1: High-performance scalar KPIs (2 round-trips for everything)
-        var scalars = await _dashRepo.GetExecutiveKpiScalarsRawAsync(_tenant.EffectiveCompanyId, _tenant.BypassTenantFilter);
+        var scalars = await _dashRepo.GetExecutiveKpiScalarsRawAsync(_tenant.EffectiveCompanyId, _tenant.BypassTenantFilter, BranchScope);
         
         var thirtyDaysAgo = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
         var now = DateTime.UtcNow;
         var lastMonth = now.Month == 1 ? 12 : now.Month - 1;
-        var hrScalars = await _dashRepo.GetAllKpiScalarsRawAsync(_tenant.EffectiveCompanyId, _tenant.BypassTenantFilter, thirtyDaysAgo, now.Month, lastMonth);
+        var hrScalars = await _dashRepo.GetAllKpiScalarsRawAsync(_tenant.EffectiveCompanyId, _tenant.BypassTenantFilter, thirtyDaysAgo, now.Month, lastMonth, BranchScope);
 
         // Phase 2: Sequential EF queries for lists/complex logic
-        var topSelling = await _productRepo.GetTopSellingAsync(Guid.Empty, 5);
+        var topSelling = await _productRepo.GetTopSellingAsync(BranchScope, 5);
         
         var yesterday = DateTime.UtcNow.Date.AddDays(-1);
         var todayStart = DateTime.UtcNow.Date;
@@ -80,7 +82,7 @@ public sealed class BiService
         var lastMonthStart = monthStart.AddMonths(-1);
         var weekStart = todayStart.AddDays(-6);
         var salesMetrics = await _saleRepo.GetExecutiveSalesMetricsRawAsync(
-            lastMonthStart, monthStart, todayStart, yesterday, weekStart, todayStart.AddDays(1), NullBranch, cc);
+            lastMonthStart, monthStart, todayStart, yesterday, weekStart, todayStart.AddDays(1), BranchScope, cc);
 
         var collectionRate = scalars.TotalPortfolio > 0 ? (double)(scalars.MonthlyRecovery / scalars.TotalPortfolio) * 100 : 0;
         
@@ -115,7 +117,7 @@ public sealed class BiService
         var cc = await GetCompanyCurrencyAsync();
         var toDate = DateTime.UtcNow;
         var fromDate = toDate.AddMonths(-months);
-        var monthly = await _saleRepo.GetSalesTrendRawAsync(fromDate, toDate, NullBranch, cc);
+        var monthly = await _saleRepo.GetSalesTrendRawAsync(fromDate, toDate, BranchScope, cc);
 
         var total = monthly.Sum(m => m.Total);
         var avg = monthly.Any() ? total / monthly.Count : 0;
@@ -132,6 +134,37 @@ public sealed class BiService
         return Task.FromResult(new BiSalesByCategoryResponse(new List<BiCategorySalesItem>()));
     }
 
+    /// <summary>
+    /// Comparativo por sucursal ("nivel empresa"). A propósito NO usa BranchScope:
+    /// su razón de ser es comparar TODAS las sucursales entre sí (ventas del mes,
+    /// cobros, cartera e inventario por branch, más los totales de la compañía).
+    /// </summary>
+    public async Task<BiBranchComparisonResponse> GetBranchComparisonAsync()
+    {
+        var rows = await _dashRepo.GetBranchComparisonRawAsync(_tenant.EffectiveCompanyId, _tenant.BypassTenantFilter);
+
+        var branches = rows.Select(r => new BiBranchComparisonItem(
+            r.BranchId,
+            r.BranchName,
+            r.MonthSales,
+            r.SalesCount,
+            r.MonthRecovery,
+            r.Portfolio,
+            r.ActiveCredits,
+            r.OverdueCredits,
+            r.InventoryValue)).ToList();
+
+        return new BiBranchComparisonResponse(
+            branches,
+            branches.Sum(b => b.MonthSales),
+            branches.Sum(b => b.SalesCount),
+            branches.Sum(b => b.MonthRecovery),
+            branches.Sum(b => b.Portfolio),
+            branches.Sum(b => b.ActiveCredits),
+            branches.Sum(b => b.OverdueCredits),
+            branches.Sum(b => b.InventoryValue));
+    }
+
     public Task<List<BiSalesBySellerItem>> GetSalesBySellerAsync(DateTime? from, DateTime? to)
     {
         return Task.FromResult(new List<BiSalesBySellerItem>());
@@ -141,7 +174,7 @@ public sealed class BiService
     {
         from ??= DateTime.UtcNow.AddMonths(-3);
         to ??= DateTime.UtcNow;
-        var quotes = await _quoteRepo.GetFilteredAsync(null, null, null, from, to, null, NullBranch, 1, int.MaxValue);
+        var quotes = await _quoteRepo.GetFilteredAsync(null, null, null, from, to, null, BranchScope, 1, int.MaxValue);
         var converted = quotes.Where(q => q.Status == QuoteStatus.Accepted).ToList();
         var total = quotes.Count;
         var rate = total > 0 ? (double)converted.Count / total * 100 : 0;
@@ -158,8 +191,8 @@ public sealed class BiService
         var companyId = _tenant.EffectiveCompanyId;
         var isSuperAdmin = _tenant.BypassTenantFilter;
 
-        var byClient = await _creditRepo.GetArAgingClientsRawAsync(companyId, isSuperAdmin, cc);
-        var totalPortfolio = await _creditRepo.GetArAgingTotalPortfolioRawAsync(companyId, isSuperAdmin, cc);
+        var byClient = await _creditRepo.GetArAgingClientsRawAsync(companyId, isSuperAdmin, cc, BranchScope);
+        var totalPortfolio = await _creditRepo.GetArAgingTotalPortfolioRawAsync(companyId, isSuperAdmin, cc, BranchScope);
 
         var current = byClient.Sum(c => c.Current);
         var d30 = byClient.Sum(c => c.Days30);
@@ -180,7 +213,7 @@ public sealed class BiService
     public async Task<BiApAgingResponse> GetApAgingAsync()
     {
         var cc = await GetCompanyCurrencyAsync();
-        var purchases = await _purchaseRepo.GetFilteredAsync(null, null, null, null, null, NullBranch, 1, int.MaxValue);
+        var purchases = await _purchaseRepo.GetFilteredAsync(null, null, null, null, null, BranchScope, 1, int.MaxValue);
         var pending = purchases.Where(p => p.Status == "pending" || p.Status == "completed").ToList();
         var totalPayable = pending.Sum(p => CurrencyConverter.ToReporting(p.Balance, p.CurrencyCode, p.ExchangeRateToReporting, cc));
         var now = DateTime.UtcNow;
@@ -350,7 +383,7 @@ public sealed class BiService
 
     public async Task<BiInventorySummaryResponse> GetInventorySummaryAsync()
     {
-        var summary = await _productRepo.GetInventorySummaryRawAsync(NullBranch, null);
+        var summary = await _productRepo.GetInventorySummaryRawAsync(BranchScope, null);
         var slowMovers = summary.TopSlowMovers
             .Select(p => new BiSlowMoverItem(
                 p.ProductName,

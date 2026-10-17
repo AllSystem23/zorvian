@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zorvian/shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/providers/company_branch_provider.dart';
 import '../../../core/widgets/responsive_layout.dart';
 
 class WarrantyDashboardPage extends ConsumerStatefulWidget {
@@ -20,6 +21,11 @@ class _WarrantyDashboardPageState extends ConsumerState<WarrantyDashboardPage> {
   void initState() {
     super.initState();
     _load();
+    // Re-fetchea al cambiar de compañía/sucursal en el header (fetch local
+    // en initState → se escucha el scope con listenManual).
+    ref.listenManual(branchScopeProvider, (previous, next) {
+      if (previous != next) _load();
+    });
   }
 
   Future<void> _load() async {

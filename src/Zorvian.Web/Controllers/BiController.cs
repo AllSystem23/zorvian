@@ -30,6 +30,18 @@ public sealed class BiController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Comparativo por sucursal (vista "empresa"): ignora el selector de sucursal
+    /// del header a propósito — compara todas las sucursales entre sí.
+    /// </summary>
+    [RequirePermission(Permissions.KpiRead)]
+    [HttpGet("branch-comparison")]
+    public async Task<IActionResult> GetBranchComparison()
+    {
+        var result = await _bi.GetBranchComparisonAsync();
+        return Ok(result);
+    }
+
     [RequirePermission(Permissions.KpiRead)]
     [HttpGet("sales-by-category")]
     public async Task<IActionResult> GetSalesByCategory([FromQuery] DateTime? from, [FromQuery] DateTime? to)

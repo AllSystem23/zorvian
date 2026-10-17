@@ -19,13 +19,19 @@ public sealed class WarrantyRepository : IWarrantyRepository
     /// <summary>
     /// All dashboard counts in a single raw SQL round-trip using one tenant-filtered CTE.
     /// </summary>
-    public async Task<WarrantyDashboardScalars> GetDashboardScalarsRawAsync(string tenantId, bool isSuperAdmin)
+    /// <summary>
+    /// Escalares del dashboard de garantías. branchId: Guid.Empty = todas las sucursales
+    /// (guard parametrizado, misma semántica que ApplyBranchScope).
+    /// </summary>
+    public async Task<WarrantyDashboardScalars> GetDashboardScalarsRawAsync(string tenantId, bool isSuperAdmin, Guid branchId)
     {
+        var emptyBranch = branchId == Guid.Empty;
         var sql = @"
             WITH warranties AS (
                 SELECT ""Status"", ""SlaBreachedAt""
                 FROM ""Warranties""
                 WHERE (""TenantId"" = @tenantId OR @isSuperAdmin = true) AND ""IsDeleted"" = false
+                  AND (@emptyBranch = true OR ""BranchId"" = @branchId)
             )
             SELECT
                 (SELECT COUNT(*) FROM warranties WHERE ""Status"" NOT IN ('Closed', 'Delivered'))::int AS ""TotalActive"",
@@ -39,7 +45,9 @@ public sealed class WarrantyRepository : IWarrantyRepository
         var result = await _db.Database
             .SqlQueryRaw<WarrantyDashboardScalars>(sql,
                 new Npgsql.NpgsqlParameter("@tenantId", tenantId),
-                new Npgsql.NpgsqlParameter("@isSuperAdmin", isSuperAdmin))
+                new Npgsql.NpgsqlParameter("@isSuperAdmin", isSuperAdmin),
+                new Npgsql.NpgsqlParameter("@emptyBranch", emptyBranch),
+                new Npgsql.NpgsqlParameter("@branchId", branchId))
             .FirstOrDefaultAsync();
 
         return result ?? new WarrantyDashboardScalars();

@@ -286,3 +286,71 @@ class AccountingAnomalyReport {
     anomalies: (j['anomalies'] as List?)?.map((e) => AccountingAnomaly.fromJson(e)).toList() ?? [],
   );
 }
+
+/// Comparativo por sucursal (vista "empresa"): el backend IGNORA el selector de
+/// sucursal del header en este endpoint — lista todas las sucursales con sus KPIs
+/// del mes en curso, más los totales de la compañía.
+class BranchComparison {
+  final List<BranchComparisonItem> branches;
+  final double totalMonthSales;
+  final int totalSalesCount;
+  final double totalMonthRecovery;
+  final double totalPortfolio;
+  final int totalActiveCredits;
+  final int totalOverdueCredits;
+  final double totalInventoryValue;
+  BranchComparison({
+    required this.branches,
+    required this.totalMonthSales,
+    required this.totalSalesCount,
+    required this.totalMonthRecovery,
+    required this.totalPortfolio,
+    required this.totalActiveCredits,
+    required this.totalOverdueCredits,
+    required this.totalInventoryValue,
+  });
+  factory BranchComparison.fromJson(Map<String, dynamic> j) => BranchComparison(
+    branches: (j['branches'] as List?)?.map((e) => BranchComparisonItem.fromJson(e as Map<String, dynamic>)).toList() ?? [],
+    totalMonthSales: (j['totalMonthSales'] ?? 0).toDouble(),
+    totalSalesCount: j['totalSalesCount'] ?? 0,
+    totalMonthRecovery: (j['totalMonthRecovery'] ?? 0).toDouble(),
+    totalPortfolio: (j['totalPortfolio'] ?? 0).toDouble(),
+    totalActiveCredits: j['totalActiveCredits'] ?? 0,
+    totalOverdueCredits: j['totalOverdueCredits'] ?? 0,
+    totalInventoryValue: (j['totalInventoryValue'] ?? 0).toDouble(),
+  );
+}
+
+class BranchComparisonItem {
+  final String branchId;
+  final String branchName;
+  final double monthSales;
+  final int salesCount;
+  final double monthRecovery;
+  final double portfolio;
+  final int activeCredits;
+  final int overdueCredits;
+  final double inventoryValue;
+  BranchComparisonItem({
+    required this.branchId,
+    required this.branchName,
+    required this.monthSales,
+    required this.salesCount,
+    required this.monthRecovery,
+    required this.portfolio,
+    required this.activeCredits,
+    required this.overdueCredits,
+    required this.inventoryValue,
+  });
+  factory BranchComparisonItem.fromJson(Map<String, dynamic> j) => BranchComparisonItem(
+    branchId: j['branchId']?.toString() ?? '',
+    branchName: j['branchName'] ?? '',
+    monthSales: (j['monthSales'] ?? 0).toDouble(),
+    salesCount: j['salesCount'] ?? 0,
+    monthRecovery: (j['monthRecovery'] ?? 0).toDouble(),
+    portfolio: (j['portfolio'] ?? 0).toDouble(),
+    activeCredits: j['activeCredits'] ?? 0,
+    overdueCredits: j['overdueCredits'] ?? 0,
+    inventoryValue: (j['inventoryValue'] ?? 0).toDouble(),
+  );
+}

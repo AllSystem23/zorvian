@@ -6,7 +6,7 @@ namespace Zorvian.Application.Interfaces.Fleet;
 public interface IVehicleRepository
 {
     // Ultra-optimized: single raw SQL for ALL fleet dashboard counts (1 round-trip)
-    Task<FleetDashboardScalars> GetDashboardScalarsRawAsync(string tenantId, bool isSuperAdmin);
+    Task<FleetDashboardScalars> GetDashboardScalarsRawAsync(string tenantId, bool isSuperAdmin, Guid branchId);
     Task<FleetKpiScalars> GetFleetKpiReportRawAsync(string tenantId, bool isSuperAdmin);
 
     Task<List<Vehicle>> GetAllAsync(Guid companyId, Guid? branchId = null);
