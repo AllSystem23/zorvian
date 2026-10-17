@@ -222,23 +222,27 @@ class _BranchSelector extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final companyBranch = ref.watch(companyBranchProvider);
     final branchesAsync = ref.watch(headerBranchListProvider);
+    // "Todas las sucursales" elegida explícitamente → chip con ese label
+    // aunque aún no cargue la lista.
+    final scopeLabel = companyBranch.allBranches ? 'Todas las sucursales' : null;
 
     return branchesAsync.when(
       loading: () => _SelectorChip(
         icon: Icons.storefront_outlined,
-        label: companyBranch.branchName ?? 'Sucursal',
+        label: scopeLabel ?? companyBranch.branchName ?? 'Sucursal',
         isDark: isDark,
         isLoading: true,
       ),
       error: (_, _) => _SelectorChip(
         icon: Icons.storefront_outlined,
-        label: companyBranch.branchName ?? 'Sucursal',
+        label: scopeLabel ?? companyBranch.branchName ?? 'Sucursal',
         isDark: isDark,
       ),
       data: (branches) {
         final selectedId = companyBranch.branchId;
         final selectionExists = selectedId != null &&
             branches.any((b) => b['id'] == selectedId);
+        final isAll = companyBranch.allBranches;
 
         // La sucursal seleccionada ya no existe en esta compañía (cambio de
         // compañía o sucursal eliminada): limpiarla para que el selector
@@ -247,8 +251,10 @@ class _BranchSelector extends ConsumerWidget {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             ref.read(companyBranchProvider.notifier).clearBranch();
           });
-        } else if (selectedId == null && branches.isNotEmpty) {
-          // Auto-select first branch if none selected yet
+        } else if (selectedId == null && !isAll && branches.isNotEmpty) {
+          // Auto-select first branch if none selected yet. Si el usuario
+          // eligió "Todas las sucursales" NO se re-selecciona ninguna
+          // (allBranches es el tri-state explícito, ver CompanyBranchState).
           final first = branches.first;
           final firstName = first['name'] as String? ?? 'Sucursal';
           final firstId = first['id'] as String? ?? '';
@@ -260,29 +266,44 @@ class _BranchSelector extends ConsumerWidget {
         if (branches.isEmpty) {
           return _SelectorChip(
             icon: Icons.storefront_outlined,
-            label: companyBranch.branchName ?? 'Sin sucursales',
+            label: scopeLabel ?? companyBranch.branchName ?? 'Sin sucursales',
             isDark: isDark,
           );
         }
-        final displayName = companyBranch.branchName ??
-            (branches.isNotEmpty ? (branches.first['name'] as String? ?? 'Sucursal') : 'Sucursal');
+        final displayName = isAll
+            ? 'Todas las sucursales'
+            : (companyBranch.branchName ??
+                (branches.isNotEmpty ? (branches.first['name'] as String? ?? 'Sucursal') : 'Sucursal'));
         return MenuAnchor(
-          menuChildren: branches.map((b) {
-            final name = b['name'] ?? 'Sin nombre';
-            final id = b['id'] ?? '';
-            final isSelected = companyBranch.branchId == id;
-            return MenuItemButton(
-              leadingIcon: isSelected
+          menuChildren: [
+            MenuItemButton(
+              leadingIcon: isAll
                   ? const Icon(Icons.check, size: 16, color: ZColors.brandPrimary)
-                  : const Icon(Icons.storefront_outlined, size: 16),
-              child: Text(name, style: TextStyle(
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  : const Icon(Icons.all_inclusive_outlined, size: 16),
+              child: Text('Todas las sucursales', style: TextStyle(
+                fontWeight: isAll ? FontWeight.w600 : FontWeight.normal,
               )),
               onPressed: () {
-                ref.read(companyBranchProvider.notifier).selectBranch(id, name);
+                ref.read(companyBranchProvider.notifier).selectAllBranches();
               },
-            );
-          }).toList(),
+            ),
+            ...branches.map((b) {
+              final name = b['name'] ?? 'Sin nombre';
+              final id = b['id'] ?? '';
+              final isSelected = companyBranch.branchId == id;
+              return MenuItemButton(
+                leadingIcon: isSelected
+                    ? const Icon(Icons.check, size: 16, color: ZColors.brandPrimary)
+                    : const Icon(Icons.storefront_outlined, size: 16),
+                child: Text(name, style: TextStyle(
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                )),
+                onPressed: () {
+                  ref.read(companyBranchProvider.notifier).selectBranch(id, name);
+                },
+              );
+            }),
+          ],
           builder: (context, controller, child) {
             return GestureDetector(
               onTap: controller.open,

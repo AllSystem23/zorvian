@@ -306,6 +306,18 @@ Future<void> _openCashRegister(BuildContext context, WidgetRef ref) async {
 
     if (result != true || codeCtrl.text.isEmpty) return;
 
+    // Una caja es siempre de una sucursal concreta: con "Todas las
+    // sucursales" activa no hay contexto de sucursal (mismo criterio que el
+    // form de ventas). Las compañías sin sucursales (branchId null por
+    // ausencia de lista) siguen permitidas — solo bloqueamos la elección
+    // explícita de "Todas".
+    if (ref.read(companyBranchProvider).allBranches) {
+      if (context.mounted) {
+        ZToast.error(context, 'Seleccione una sucursal en el encabezado para abrir caja');
+      }
+      return;
+    }
+
     final dio = ref.read(dioClientProvider);
     await dio.post(
       'cash-registers/open',

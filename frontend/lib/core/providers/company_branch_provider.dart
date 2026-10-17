@@ -7,11 +7,17 @@ final _silentOptions = Options(extra: {'suppressGlobalError': true});
 
 /// Stores the currently selected company, branch and warehouse IDs.
 /// These are used by the header selectors and can be consumed by any module.
+///
+/// Tri-state de sucursal: `branchId != null` = una sucursal concreta;
+/// `allBranches == true` = el usuario eligió EXPLÍCITAMENTE "Todas las
+/// sucursales" (sin X-Branch-Id → backend company-wide); ambos en `false`/
+/// `null` = nada seleccionado todavía (el header auto-selecciona la primera).
 class CompanyBranchState {
   final String? companyId;
   final String? companyName;
   final String? branchId;
   final String? branchName;
+  final bool allBranches;
   final String? warehouseId;
   final String? warehouseName;
 
@@ -20,6 +26,7 @@ class CompanyBranchState {
     this.companyName,
     this.branchId,
     this.branchName,
+    this.allBranches = false,
     this.warehouseId,
     this.warehouseName,
   });
@@ -29,6 +36,7 @@ class CompanyBranchState {
     String? companyName,
     String? branchId,
     String? branchName,
+    bool? allBranches,
     String? warehouseId,
     String? warehouseName,
   }) {
@@ -37,6 +45,7 @@ class CompanyBranchState {
       companyName: companyName ?? this.companyName,
       branchId: branchId ?? this.branchId,
       branchName: branchName ?? this.branchName,
+      allBranches: allBranches ?? this.allBranches,
       warehouseId: warehouseId ?? this.warehouseId,
       warehouseName: warehouseName ?? this.warehouseName,
     );
@@ -48,6 +57,7 @@ class CompanyBranchNotifier extends Notifier<CompanyBranchState> {
   static const _kCompanyName = 'selected_company_name';
   static const _kBranchId = 'selected_branch_id';
   static const _kBranchName = 'selected_branch_name';
+  static const _kBranchAll = 'selected_branch_all';
   static const _kWarehouseId = 'selected_warehouse_id';
   static const _kWarehouseName = 'selected_warehouse_name';
 
@@ -76,6 +86,7 @@ class CompanyBranchNotifier extends Notifier<CompanyBranchState> {
         companyName: prefs.getString(_kCompanyName),
         branchId: prefs.getString(_kBranchId),
         branchName: prefs.getString(_kBranchName),
+        allBranches: prefs.getBool(_kBranchAll) ?? false,
         warehouseId: prefs.getString(_kWarehouseId),
         warehouseName: prefs.getString(_kWarehouseName),
       );
@@ -93,11 +104,13 @@ class CompanyBranchNotifier extends Notifier<CompanyBranchState> {
         await prefs.remove(_kCompanyName);
         await prefs.remove(_kBranchId);
         await prefs.remove(_kBranchName);
+        await prefs.remove(_kBranchAll);
         await prefs.remove(_kWarehouseId);
         await prefs.remove(_kWarehouseName);
         return;
       }
       await prefs.setString(_kCompanyId, s.companyId!);
+      await prefs.setBool(_kBranchAll, s.allBranches);
       if (s.companyName != null) {
         await prefs.setString(_kCompanyName, s.companyName!);
       } else {
@@ -129,7 +142,8 @@ class CompanyBranchNotifier extends Notifier<CompanyBranchState> {
   }
 
   /// Selects a company. When the company actually changes, the selected
-  /// branch and warehouse are reset: they belong to the previous company.
+  /// branch and warehouse are reset: they belong to the previous company
+  /// (la nueva compañía vuelve a auto-seleccionar su primera sucursal).
   void selectCompany(String id, String name) {
     final companyChanged = state.companyId != id;
     state = CompanyBranchState(
@@ -137,6 +151,7 @@ class CompanyBranchNotifier extends Notifier<CompanyBranchState> {
       companyName: name,
       branchId: companyChanged ? null : state.branchId,
       branchName: companyChanged ? null : state.branchName,
+      allBranches: companyChanged ? false : state.allBranches,
       warehouseId: companyChanged ? null : state.warehouseId,
       warehouseName: companyChanged ? null : state.warehouseName,
     );
@@ -151,6 +166,22 @@ class CompanyBranchNotifier extends Notifier<CompanyBranchState> {
       companyName: state.companyName,
       branchId: id,
       branchName: name,
+      allBranches: false,
+    );
+    _persist();
+  }
+
+  /// Selecciona EXPLÍCITAMENTE "Todas las sucursales": sin sucursal activa el
+  /// DioClient omite X-Branch-Id y el backend resuelve Guid.Empty = compañía
+  /// completa (BI, reportes, listados). Diferente de "nada seleccionado": el
+  /// flag impide que el header re-auto-seleccione la primera sucursal. La
+  /// bodega se resetea (las bodegas viven bajo una sucursal concreta).
+  void selectAllBranches() {
+    if (state.allBranches && state.branchId == null) return;
+    state = CompanyBranchState(
+      companyId: state.companyId,
+      companyName: state.companyName,
+      allBranches: true,
     );
     _persist();
   }
@@ -170,7 +201,9 @@ class CompanyBranchNotifier extends Notifier<CompanyBranchState> {
   }
 
   /// Clears the branch selection (e.g. the branch no longer exists in the
-  /// current company). The header re-auto-selects the first branch.
+  /// current company). The header re-auto-selects the first branch. No
+  /// afecta a la selección explícita "Todas las sucursales" (branchId ya es
+  /// null ahí y el guard sale sin tocar el flag).
   void clearBranch() {
     if (state.branchId == null && state.branchName == null) return;
     state = CompanyBranchState(

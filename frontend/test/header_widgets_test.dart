@@ -58,10 +58,13 @@ class _FakeSecureStorage extends SecureStorage {
 }
 
 /// Helper to create a test app with mocked providers.
+/// [branches] alimenta el selector de sucursales del cabecero (vacío por
+/// defecto para no romper los tests existentes).
 Widget buildTestApp({
   AuthState? authState,
   NotificationState? notifState,
   ThemeMode themeMode = ThemeMode.light,
+  List<Map<String, dynamic>> branches = const [],
 }) {
   return ProviderScope(
     overrides: [
@@ -88,7 +91,7 @@ Widget buildTestApp({
       secureStorageProvider.overrideWith((ref) => _FakeSecureStorage()),
       // Override FutureProviders that make HTTP calls to prevent pending timers
       companyListProvider.overrideWith((ref) => Future.value(<Map<String, dynamic>>[])),
-      headerBranchListProvider.overrideWith((ref) => Future.value(<Map<String, dynamic>>[])),
+      headerBranchListProvider.overrideWith((ref) => Future.value(branches)),
       headerWarehouseListProvider.overrideWith((ref) => Future.value(<Map<String, dynamic>>[])),
       tenantsListProvider.overrideWith((ref) => Future.value(<TenantInfo>[])),
     ],
