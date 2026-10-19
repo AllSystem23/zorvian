@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zorvian/features/bi/models/bi_models.dart';
 import 'package:zorvian/shared/printing/bi_report_pdf.dart';
@@ -44,7 +46,7 @@ BiExecutive _executive() => BiExecutive(
         payrollTotal: 180000,
         avgCostPerEmployee: 8000,
       ),
-      alerts: [BiAlert(type: 'stock', message: 'Producto X con stock bajo', severity: 'warning')],
+      alerts: [BiAlert(type: 'stock', message: 'Producto X con stock bajo — revisar “reorden” → urgente (Niño’s)', severity: 'warning')],
     );
 
 List<BiMonthSales> _trend({int months = 12}) => [
@@ -64,7 +66,7 @@ BranchComparison _comparison() => BranchComparison(
       branches: [
         BranchComparisonItem(
           branchId: 'b1',
-          branchName: 'Centro',
+          branchName: 'Centro — “Niño’s”',
           monthSales: 30000,
           salesCount: 90,
           monthRecovery: 12000,
@@ -104,7 +106,7 @@ BiArAging _aging() => BiArAging(
       totalPortfolio: 150000,
       overduePercent: 40,
       byClient: [
-        BiClientAging(clientName: 'Cliente A', balance: 30000, current: 20000, days30: 6000, days60: 2500, days90: 1000, days90Plus: 500),
+        BiClientAging(clientName: 'Cliente A — “VIP”', balance: 30000, current: 20000, days30: 6000, days60: 2500, days90: 1000, days90Plus: 500),
         BiClientAging(clientName: 'Cliente B', balance: 20000, current: 15000, days30: 3000, days60: 1000, days90: 700, days90Plus: 300),
       ],
     );
@@ -237,5 +239,35 @@ void main() {
     );
 
     expect(_header(bytes), '%PDF');
+  });
+
+  test('moneda CRC y tipografia en datos no dejan runes sin dibujar', () async {
+    // Helvetica (Type1) solo cubre Latin-1; sin sanitizar, `₡`/`—`/`’`/`→`/`“`
+    // producen "Unable to find a font to draw ..." y salen incompletos en el PDF.
+    final prints = <String>[];
+    await runZoned(
+      () async {
+        final bytes = await buildExecutiveBiReportPdf(
+          executive: _executive(),
+          trend: _trend(),
+          comparison: _comparison(),
+          aging: _aging(),
+          ratios: _ratios(),
+          omittedSections: const ['Ratios Financieros'],
+          meta: BiReportMeta(
+            title: 'Reporte Ejecutivo — Prueba “CRC”',
+            companyName: 'Compañía Niño’s Café',
+            branchLabel: 'Bodega → 日本',
+            currencyCode: 'CRC',
+          ),
+        );
+        expect(_header(bytes), '%PDF');
+      },
+      zoneSpecification: ZoneSpecification(
+        print: (self, parent, zone, message) => prints.add(message),
+      ),
+    );
+
+    expect(prints.where((p) => p.contains('Unable to find a font')), isEmpty);
   });
 }

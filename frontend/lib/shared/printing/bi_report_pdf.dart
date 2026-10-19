@@ -191,15 +191,15 @@ pw.Widget _pageHeader(BiReportMeta meta) => pw.Container(
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Text(meta.companyName, style: pw.TextStyle(fontSize: 10.5, fontWeight: pw.FontWeight.bold, color: _navy)),
-                pw.Text(meta.branchLabel, style: pw.TextStyle(fontSize: 7.5, color: _greyText)),
+                pw.Text(_pdfText(meta.companyName), style: pw.TextStyle(fontSize: 10.5, fontWeight: pw.FontWeight.bold, color: _navy)),
+                pw.Text(_pdfText(meta.branchLabel), style: pw.TextStyle(fontSize: 7.5, color: _greyText)),
               ],
             ),
           ),
           pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.end,
             children: [
-              pw.Text(meta.title.toUpperCase(), style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: _violet)),
+              pw.Text(_pdfText(meta.title.toUpperCase()), style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: _violet)),
               pw.Text('Generado ${_fmtDateTime(meta.generatedAt)}', style: pw.TextStyle(fontSize: 7, color: _greyText)),
             ],
           ),
@@ -221,9 +221,9 @@ pw.Widget _titleBlock(BiReportMeta meta, String period) => pw.Container(
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Text(meta.title, style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: _navy)),
+          pw.Text(_pdfText(meta.title), style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: _navy)),
           pw.SizedBox(height: 2),
-          pw.Text(period, style: pw.TextStyle(fontSize: 9.5, color: _greyText)),
+          pw.Text(_pdfText(period), style: pw.TextStyle(fontSize: 9.5, color: _greyText)),
         ],
       ),
     );
@@ -234,19 +234,19 @@ pw.Widget _sectionTitle(String text) => pw.Container(
         children: [
           pw.Container(width: 4, height: 13, color: _violet),
           pw.SizedBox(width: 6),
-          pw.Text(text, style: pw.TextStyle(fontSize: 11.5, fontWeight: pw.FontWeight.bold, color: _navy)),
+          pw.Text(_pdfText(text), style: pw.TextStyle(fontSize: 11.5, fontWeight: pw.FontWeight.bold, color: _navy)),
         ],
       ),
     );
 
 pw.Widget _subTitle(String text) => pw.Container(
       margin: const pw.EdgeInsets.only(top: 8, bottom: 4),
-      child: pw.Text(text, style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold, color: _greyText)),
+      child: pw.Text(_pdfText(text), style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold, color: _greyText)),
     );
 
 pw.Widget _note(String text) => pw.Container(
       margin: const pw.EdgeInsets.only(top: 4),
-      child: pw.Text(text, style: pw.TextStyle(fontSize: 7.5, fontStyle: pw.FontStyle.italic, color: _greyText)),
+      child: pw.Text(_pdfText(text), style: pw.TextStyle(fontSize: 7.5, fontStyle: pw.FontStyle.italic, color: _greyText)),
     );
 
 /// Aviso de secciones que no pudieron cargarse: sin esto el reporte se lee
@@ -260,8 +260,8 @@ pw.Widget _omittedNote(List<String> sections) => pw.Container(
         borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
       ),
       child: pw.Text(
-        'Secciones omitidas por falta de datos: ${sections.join(' · ')}. '
-        'Actualice el dashboard y vuelva a generar el reporte.',
+        _pdfText('Secciones omitidas por falta de datos: ${sections.join(' · ')}. '
+            'Actualice el dashboard y vuelva a generar el reporte.'),
         style: pw.TextStyle(fontSize: 8, fontStyle: pw.FontStyle.italic, color: _greyText),
       ),
     );
@@ -295,7 +295,7 @@ pw.Widget _kpiCard(String label, String value, {required PdfColor accent, double
                 pw.FittedBox(
                   fit: pw.BoxFit.scaleDown,
                   alignment: pw.Alignment.centerLeft,
-                  child: pw.Text(value, style: pw.TextStyle(fontSize: 11.5, fontWeight: pw.FontWeight.bold, color: _navy)),
+                  child: pw.Text(_pdfText(value), style: pw.TextStyle(fontSize: 11.5, fontWeight: pw.FontWeight.bold, color: _navy)),
                 ),
                 if (delta != null) ...[
                   pw.SizedBox(height: 1),
@@ -347,7 +347,7 @@ pw.Widget _trendLineChart(List<BiMonthSales> trend, String currencyCode) {
         ),
         yAxis: pw.FixedAxis<double>(
           yTicks,
-          format: (v) => v == 0 ? '0' : ZFormatters.currencyCompact(v, currencyCode: currencyCode),
+          format: (v) => v == 0 ? '0' : _compact(v, currencyCode),
           textStyle: pw.TextStyle(fontSize: 6.5, color: _greyText),
           color: _greyLine,
           divisions: true,
@@ -396,7 +396,7 @@ pw.Widget _agingBarChart(BiArAging aging, String currencyCode) {
         ),
         yAxis: pw.FixedAxis<double>(
           _niceTicks(maxV),
-          format: (v) => v == 0 ? '0' : ZFormatters.currencyCompact(v, currencyCode: currencyCode),
+          format: (v) => v == 0 ? '0' : _compact(v, currencyCode),
           textStyle: pw.TextStyle(fontSize: 6.5, color: _greyText),
           color: _greyLine,
           divisions: true,
@@ -429,7 +429,7 @@ pw.Widget _branchBarChart(BranchComparison comparison, String currencyCode) {
     pw.Chart(
       grid: pw.CartesianGrid(
         xAxis: pw.FixedAxis.fromStrings(
-          [for (final b in branches) b.branchName],
+          [for (final b in branches) _pdfText(b.branchName)],
           textStyle: pw.TextStyle(fontSize: 6.5, color: _greyText),
           color: _greyLine,
           marginStart: 4,
@@ -437,7 +437,7 @@ pw.Widget _branchBarChart(BranchComparison comparison, String currencyCode) {
         ),
         yAxis: pw.FixedAxis<double>(
           yTicks,
-          format: (v) => v == 0 ? '0' : ZFormatters.currencyCompact(v, currencyCode: currencyCode),
+          format: (v) => v == 0 ? '0' : _compact(v, currencyCode),
           textStyle: pw.TextStyle(fontSize: 6.5, color: _greyText),
           color: _greyLine,
           divisions: true,
@@ -572,7 +572,7 @@ pw.Widget _alertRow(BiAlert a) {
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         pw.Container(width: 6, height: 6, margin: const pw.EdgeInsets.only(top: 2, right: 6), decoration: pw.BoxDecoration(color: color, borderRadius: pw.BorderRadius.all(pw.Radius.circular(3)))),
-        pw.Expanded(child: pw.Text(a.message, style: pw.TextStyle(fontSize: 8, color: _navy))),
+        pw.Expanded(child: pw.Text(_pdfText(a.message), style: pw.TextStyle(fontSize: 8, color: _navy))),
       ],
     ),
   );
@@ -596,7 +596,7 @@ pw.Widget _dataTable({
           alignment: right(col) ? pw.Alignment.centerRight : pw.Alignment.centerLeft,
           decoration: bg != null ? pw.BoxDecoration(color: bg) : null,
           child: pw.Text(
-            text,
+            _pdfText(text),
             style: pw.TextStyle(
               fontSize: 7.5,
               fontWeight: header || bold ? pw.FontWeight.bold : pw.FontWeight.normal,
@@ -714,7 +714,63 @@ pw.Widget _monthlyTable(List<BiMonthSales> trend, BiReportMeta meta) {
 // Helpers
 // ═══════════════════════════════════════════════════════════════════════════
 
-String _money(double v, BiReportMeta meta) => ZFormatters.currency(v, currencyCode: meta.currencyCode);
+/// Fallback ASCII/Latin-1 para runes que Helvetica (Type1) NO puede dibujar:
+/// solo cubre `0x00–0xFF`, y `package:pdf` descarta el resto en silencio
+/// (mensaje solo en debug: `Unable to find a font to draw ...`).
+/// Cubre el símbolo de Costa Rica (`₡`) y la tipografía que llega en datos
+/// de usuario (guiones, comillas curvas, flechas, €).
+const Map<int, String> _nonLatin1Fallback = <int, String>{
+  0x20AC: 'EUR ', // €
+  0x20A1: 'CRC ', // ₡ colón costarricense
+  0x2014: ' - ', // —
+  0x2013: '-', // –
+  0x2010: '-', // ‐
+  0x2212: '-', // −
+  0x2018: "'", // ‘
+  0x2019: "'", // ’
+  0x201A: "'", // ‚
+  0x201C: '"', // “
+  0x201D: '"', // ”
+  0x201E: '"', // „
+  0x2026: '...', // …
+  0x2022: '\u00B7', // • → ·
+  0x2192: '->', // →
+  0x2190: '<-', // ←
+  0x2191: '^', // ↑
+  0x2193: 'v', // ↓
+  0x2264: '<=', // ≤
+  0x2265: '>=', // ≥
+  0x2248: '~', // ≈
+};
+
+/// Sanitiza texto para el PDF: lo que tiene equivalente ASCII/Latin-1 se
+/// sustituye (p. ej. `₡` → `CRC `) y lo que no se puede dibujar (CJK, emoji)
+/// se omite en lugar de dejar huecos. Idempotente — se puede aplicar en cascada.
+String _pdfText(String text) {
+  if (text.isEmpty) return text;
+  final buffer = StringBuffer();
+  var changed = false;
+  for (final rune in text.runes) {
+    if (rune < 0x100) {
+      buffer.writeCharCode(rune);
+    } else {
+      final fallback = _nonLatin1Fallback[rune];
+      if (fallback == null) {
+        changed = true; // fuera de Latin-1 sin equivalente → se omite
+      } else {
+        buffer.write(fallback);
+        changed = true;
+      }
+    }
+  }
+  return changed ? buffer.toString() : text;
+}
+
+String _money(double v, BiReportMeta meta) => _pdfText(ZFormatters.currency(v, currencyCode: meta.currencyCode));
+
+/// `ZFormatters.currencyCompact` con el mismo sanitizado (ejes Y de gráficos).
+String _compact(num v, String currencyCode) =>
+    _pdfText(ZFormatters.currencyCompact(v, currencyCode: currencyCode));
 
 String _periodLabel(List<BiMonthSales> trend) {
   if (trend.isEmpty) return 'Sin datos del período';
