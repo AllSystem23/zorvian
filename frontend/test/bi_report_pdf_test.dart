@@ -187,4 +187,55 @@ void main() {
 
     expect(_header(bytes), '%PDF');
   });
+
+  test('reporte ejecutivo con 60 sucursales genera un PDF valido (tabla troceada)', () async {
+    // MultiPage lanza "Widget won't fit into the page" si un hijo supera una
+    // pagina (~41 filas); la tabla de sucursales se trocea para evitarlo.
+    final bytes = await buildExecutiveBiReportPdf(
+      executive: _executive(),
+      trend: _trend(),
+      comparison: BranchComparison(
+        branches: [
+          for (var i = 0; i < 60; i++)
+            BranchComparisonItem(
+              branchId: 'b$i',
+              branchName: 'Sucursal ${i + 1} con nombre largo que envuelve',
+              monthSales: 1000.0 * (i + 1),
+              salesCount: 10 + i,
+              monthRecovery: 500.0 * i,
+              portfolio: 20000.0 + i,
+              activeCredits: i,
+              overdueCredits: i % 3,
+              inventoryValue: 9000.0 + i,
+            ),
+        ],
+        totalMonthSales: 1803000,
+        totalSalesCount: 1000,
+        totalMonthRecovery: 150000,
+        totalPortfolio: 1200000,
+        totalActiveCredits: 100,
+        totalOverdueCredits: 30,
+        totalInventoryValue: 600000,
+      ),
+      meta: _meta(),
+    );
+
+    expect(_header(bytes), '%PDF');
+    // La tabla de sucursales se parte en varias páginas (pw.Column es
+    // SpanningWidget en package:pdf 3.12): con 60 filas largas el documento
+    // ocupa más que el reporte base de 2 páginas → ninguna fila se descarta.
+    final pages = RegExp(r'/Type/Page/').allMatches(String.fromCharCodes(bytes)).length;
+    expect(pages, greaterThanOrEqualTo(3));
+  });
+
+  test('reporte ejecutivo con secciones omitidas sigue siendo un PDF valido', () async {
+    final bytes = await buildExecutiveBiReportPdf(
+      executive: _executive(),
+      trend: _trend(),
+      omittedSections: const ['Antigüedad de Cartera (AR)', 'Ratios Financieros'],
+      meta: _meta(),
+    );
+
+    expect(_header(bytes), '%PDF');
+  });
 }

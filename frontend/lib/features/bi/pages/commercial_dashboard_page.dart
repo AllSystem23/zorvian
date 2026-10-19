@@ -40,6 +40,7 @@ class _CommercialDashboardPageState extends ConsumerState<CommercialDashboardPag
     setState(() => _exporting = true);
     try {
       final meta = await buildReportMeta(ref, title: 'Reporte Comercial');
+      if (!mounted) return;
       final bytes = await buildCommercialBiReportPdf(trend: trend, meta: meta);
       if (!mounted) return;
       await shareReportPdf(bytes, reportFileName('reporte_comercial'));

@@ -46,12 +46,25 @@ class _ExecutiveDashboardPageState extends ConsumerState<ExecutiveDashboardPage>
     setState(() => _exporting = true);
     try {
       final meta = await buildReportMeta(ref, title: 'Reporte Ejecutivo');
+      // `buildReportMeta` puede esperar hasta 6s (timeout de companyList);
+      // si el usuario salió de la página, `ref` ya no es válido.
+      if (!mounted) return;
+      final comparison = ref.read(biBranchComparisonProvider).value;
+      final aging = ref.read(biArAgingProvider).value;
+      final ratios = ref.read(biFinancialRatiosProvider).value;
       final bytes = await buildExecutiveBiReportPdf(
         executive: executive,
         trend: trend,
-        comparison: ref.read(biBranchComparisonProvider).value,
-        aging: ref.read(biArAgingProvider).value,
-        ratios: ref.read(biFinancialRatiosProvider).value,
+        comparison: comparison,
+        aging: aging,
+        ratios: ratios,
+        // Si una sección no cargó, se omite PERO se declara en el PDF para
+        // que el reporte no se lea como completo.
+        omittedSections: [
+          if (comparison == null) 'Comparativo por Sucursal',
+          if (aging == null) 'Antigüedad de Cartera (AR)',
+          if (ratios == null) 'Ratios Financieros',
+        ],
         meta: meta,
       );
       if (!mounted) return;

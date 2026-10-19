@@ -50,6 +50,7 @@ Future<Uint8List> buildExecutiveBiReportPdf({
   BranchComparison? comparison,
   BiArAging? aging,
   BiFinancialRatios? ratios,
+  List<String> omittedSections = const [],
   required BiReportMeta meta,
 }) async {
   final doc = pw.Document();
@@ -109,6 +110,7 @@ Future<Uint8List> buildExecutiveBiReportPdf({
         _sectionTitle('Alertas'),
         _alertsBlock(executive.alerts),
       ],
+      if (omittedSections.isNotEmpty) _omittedNote(omittedSections),
     ],
   ));
 
@@ -245,6 +247,23 @@ pw.Widget _subTitle(String text) => pw.Container(
 pw.Widget _note(String text) => pw.Container(
       margin: const pw.EdgeInsets.only(top: 4),
       child: pw.Text(text, style: pw.TextStyle(fontSize: 7.5, fontStyle: pw.FontStyle.italic, color: _greyText)),
+    );
+
+/// Aviso de secciones que no pudieron cargarse: sin esto el reporte se lee
+/// como completo cuando en realidad faltan datos del dashboard.
+pw.Widget _omittedNote(List<String> sections) => pw.Container(
+      margin: const pw.EdgeInsets.only(top: 14),
+      padding: const pw.EdgeInsets.all(8),
+      decoration: pw.BoxDecoration(
+        color: _greyBg,
+        border: pw.Border.all(color: _greyLine),
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+      ),
+      child: pw.Text(
+        'Secciones omitidas por falta de datos: ${sections.join(' · ')}. '
+        'Actualice el dashboard y vuelva a generar el reporte.',
+        style: pw.TextStyle(fontSize: 8, fontStyle: pw.FontStyle.italic, color: _greyText),
+      ),
     );
 
 // ═══════════════════════════════════════════════════════════════════════════
