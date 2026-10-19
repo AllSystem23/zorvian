@@ -7,6 +7,13 @@ using Zorvian.Application.Interfaces;
 
 namespace Zorvian.Web.Controllers;
 
+/// <summary>
+/// Acciones sobre solicitudes de aprobación (pantalla `/approval-pending`,
+/// visible para SuperAdmin/CompanyAdmin/Supervisor). Queda SIN permiso de
+/// módulo a propósito: el motor está autoscopado al aprobador que resuelve el
+/// flujo y los flujos son transversales (compras, créditos, RRHH...), así que
+/// ningún permiso de módulo aplica a todos; el gate son los roles de la ruta.
+/// </summary>
 [ApiController]
 [Authorize]
 [Route("zorvian/v1/approval-requests")]

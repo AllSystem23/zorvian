@@ -9,7 +9,7 @@ namespace Zorvian.Tests.Services;
 
 /// <summary>
 /// El seeder de plantillas documentales debe: (1) crear las 26 plantillas
-/// (6 multi-país v2.1 + liquidación NIC + 8 de tandas 1-2 + 5 de la tanda 3:
+/// (6 multi-país v2.1 + liquidación final multi-país + 8 de tandas 1-2 + 5 de la tanda 3:
 /// Recibo de Pago Proveedor, Certificado de Garantía, Hoja de Ruta,
 /// Ficha de Activo Fijo y Kardex + Acta de Recepción (Taller) + 2 de la tanda 4:
 /// Solicitud de Cotización y Transferencia entre Bodegas + Guía de Remisión
@@ -58,7 +58,7 @@ public sealed class DocumentTemplateSeederTests : IDisposable
     };
 
     [Fact]
-    public async Task SeedAsync_CreatesAllSeededTemplates_MultiCountryPlusNicaraguaLiquidation()
+    public async Task SeedAsync_CreatesAllSeededTemplates_MultiCountryPlusLiquidation()
     {
         await DocumentTemplateSeeder.SeedAsync(_db, _logger);
 
@@ -71,7 +71,7 @@ public sealed class DocumentTemplateSeederTests : IDisposable
         Assert.Contains(templates, t => t.Name == "Cotización Comercial");
         Assert.Contains(templates, t => t.Name == "Nota de Entrega");
         Assert.Contains(templates, t => t.Name == "Poder Notarial General");
-        Assert.Contains(templates, t => t.Name == "Liquidación Final (Nicaragua)");
+        Assert.Contains(templates, t => t.Name == "Liquidación Final");
         Assert.Contains(templates, t => t.Name == "Factura");
         Assert.Contains(templates, t => t.Name == "Guía de Despacho");
         Assert.Contains(templates, t => t.Name == "Guía de Remisión");
@@ -94,7 +94,7 @@ public sealed class DocumentTemplateSeederTests : IDisposable
         Assert.Contains(templates, t => t.Name == "Colilla de Pago");
         Assert.Contains(templates, t => t.Name == "Pago a Prestador de Servicios");
 
-        var multiCountry = templates.Where(t => t.Name != "Liquidación Final (Nicaragua)").ToList();
+        var multiCountry = templates.ToList();
         Assert.All(multiCountry, t => Assert.Equal("ALL", t.CountryCode));
 
         // Las 7 originales van en v2.1; las nuevas arrancan en v1.0.
@@ -119,12 +119,17 @@ public sealed class DocumentTemplateSeederTests : IDisposable
                  })
             Assert.Equal("1.0", templates.Single(t => t.Name == name).Version);
 
-        var liquidacion = templates.Single(t => t.Name == "Liquidación Final (Nicaragua)");
-        Assert.Equal("NIC", liquidacion.CountryCode);
+        var liquidacion = templates.Single(t => t.Name == "Liquidación Final");
+        Assert.Equal("ALL", liquidacion.CountryCode);
+        Assert.Equal("2.0", liquidacion.Version);
         Assert.Equal("Employee", liquidacion.Module);
         Assert.Equal("HR", liquidacion.Category);
+        // Las citas al Código del Trabajo nicaragüense quedan detrás del condicional
+        // de país y las tasas ya no están fijas en el HTML (salen de CountryTaxConfig).
+        Assert.Contains("Country.Code == 'NIC'", liquidacion.Content);
         Assert.Contains("Art. 93", liquidacion.Content);
-        Assert.Contains("INATEC", liquidacion.Content);
+        Assert.DoesNotContain("7.00%", liquidacion.Content);
+        Assert.DoesNotContain("21.50%", liquidacion.Content);
 
         // Módulos de las plantillas nuevas (los usan los endpoints de venta/compras/caja/fleet).
         Assert.Equal("Sale", templates.Single(t => t.Name == "Factura").Module);
@@ -240,6 +245,29 @@ public sealed class DocumentTemplateSeederTests : IDisposable
         var userTemplate = all.Single(t => t.Name == "Mi Plantilla Personalizada");
         Assert.Equal("1.0", userTemplate.Version);
         Assert.Equal("contenido de usuario", userTemplate.Content);
+    }
+
+    [Fact]
+    public async Task SeedAsync_UpgradesLegacyNicaraguaLiquidation_InPlace_WithoutDuplicating()
+    {
+        // La v1.1 "Liquidación Final (Nicaragua)" era NIC-only. El seeder debe refrescarla
+        // EN SITIO a la v2.0 multi-país (alias en la clave de emparejamiento) y NO insertar
+        // una copia nueva de "Liquidación Final".
+        _db.DocumentTemplates.Add(
+            Legacy("Liquidación Final (Nicaragua)", "1.1", "NIC", "liquidación vieja nicaragüense"));
+        await _db.SaveChangesAsync();
+
+        await DocumentTemplateSeeder.SeedAsync(_db, _logger);
+
+        var all = await AllTemplates();
+        var liquidation = all.Where(t => t.Name.StartsWith("Liquidación Final")).ToList();
+
+        Assert.Single(liquidation);
+        Assert.Equal("Liquidación Final", liquidation[0].Name);
+        Assert.Equal("ALL", liquidation[0].CountryCode);
+        Assert.Equal("2.0", liquidation[0].Version);
+        Assert.DoesNotContain("liquidación vieja nicaragüense", liquidation[0].Content);
+        Assert.Equal(28, all.Count); // 1 preexistente (refrescada) + 27 sembradas faltantes
     }
 
     [Fact]

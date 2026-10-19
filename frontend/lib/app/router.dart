@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../auth/auth_provider.dart';
+import '../core/navigation/nav_config.dart';
+import '../core/navigation/write_permissions.dart';
 import '../core/widgets/app_shell.dart';
 import '../features/dashboard/dashboard_page.dart';
 import '../features/dashboard/pages/absence_calendar_page.dart';
@@ -19,6 +21,7 @@ import '../features/settings/pages/leave_types_page.dart';
 import '../features/settings/pages/leave_type_form_page.dart';
 import '../features/admin/pages/user_list_page.dart';
 import '../features/admin/pages/invite_user_page.dart';
+import '../features/admin/pages/roles_permissions_page.dart';
 import '../features/admin/pages/invitation_history_page.dart';
 import '../features/admin/pages/super_admin_companies_page.dart';
 import '../features/admin/pages/subscription_plans_page.dart';
@@ -235,6 +238,7 @@ final _routeRoles = <String, List<String>>{
   '/admin': ['SuperAdmin', 'CompanyAdmin'],
   '/admin/companies': ['SuperAdmin'],
   '/admin/subscription-plans': ['SuperAdmin'],
+  '/admin/roles': ['SuperAdmin', 'CompanyAdmin'],
   '/settings': ['SuperAdmin', 'CompanyAdmin'],
   '/payroll': ['SuperAdmin', 'CompanyAdmin', 'Rrhh'],
   '/clients': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
@@ -272,7 +276,7 @@ final _routeRoles = <String, List<String>>{
   '/exchange-rates': ['SuperAdmin', 'CompanyAdmin'],
   '/custom-reports': ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'],
   '/webhooks': ['SuperAdmin', 'CompanyAdmin'],
-  '/admin/country-tax-configs': ['SuperAdmin'],
+  '/admin/country-tax-configs': ['SuperAdmin', 'CompanyAdmin'],
   '/admin/regional-tax-configs': ['SuperAdmin', 'CompanyAdmin'],
   '/accounting': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
   '/accounting/reports': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
@@ -301,13 +305,82 @@ final _routeRoles = <String, List<String>>{
   '/purchases/credit-notes': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
 };
 
+/// Permiso granular de lectura requerido por ruta (prefijo, misma resolución
+/// por prefijo más específico que [_routeRoles]). Solo aplica si el backend
+/// envió `permissions` en `auth/me`; sin dato no se gatea (compat SSO).
+/// Alineado con los `RequirePermission` reales de cada controller.
+final _routePermissions = <String, String>{
+  // Ventas y clientes
+  '/sales': 'sale.read',
+  '/quotes': 'sale.read',
+  '/pos': 'sale.read',
+  '/crm': 'sale.read',
+  '/credits': 'credit.read',
+  '/credit-notes': 'credit.read',
+  '/clients': 'client.read',
+  // Inventario
+  '/products': 'inventory.read',
+  '/categories': 'inventory.read',
+  '/brands': 'inventory.read',
+  '/inventory-movements': 'inventory.read',
+  '/stock-transfers': 'inventory.read',
+  '/warehouses': 'inventory.read',
+  '/warranties': 'warranty.read',
+  '/workshops': 'fleet.read',
+  // Compras
+  '/purchases': 'purchase.read',
+  '/purchase-orders': 'purchase.read',
+  '/purchase-requests': 'purchase.read',
+  '/suppliers': 'purchase.read',
+  // Flota
+  '/fleet': 'fleet.read',
+  // Finanzas
+  '/cash-registers': 'cash.read',
+  '/accounting': 'accounting.read',
+  '/budgets': 'accounting.read',
+  '/reconciliations': 'accounting.read',
+  '/treasury': 'accounting.read',
+  '/exchange-rates': 'accounting.read',
+  '/cost-centers': 'accounting.read',
+  // Talento
+  '/employees': 'employee.read',
+  '/departments': 'employee.read',
+  '/attendance': 'employee.read',
+  '/vacations': 'employee.read',
+  '/permissions': 'employee.read',
+  '/certificate-requests': 'employee.read',
+  '/providers': 'provider.read',
+  '/payroll': 'payroll.read',
+  '/service-payments': 'payroll.read',
+  '/goals': 'goal.read',
+  // Inteligencia y documentos
+  '/bi': 'kpi.read',
+  '/custom-reports': 'report.read',
+  '/documents': 'document.read',
+  '/audit-logs': 'audit.read',
+  // Admin
+  '/admin/users': 'user.read',
+  '/admin/roles': 'role.manage',
+  '/admin/invite': 'user.write',
+  '/admin/invitations-history': 'user.write',
+  // Administración de sucursales: el prefijo entero exige `settings.write`
+  // porque la edición vive en `/branches/:id` (sin sufijo `/edit`) y el
+  // BranchesController exige ese permiso para crear/editar/borrar. La LECTURA
+  // del API (`GET /branches`) es de cualquier autenticado: la consume el
+  // selector de sucursales del cabecero.
+  '/branches': 'settings.write',
+};
+
 /// Guard de acceso por rol.
 ///
 /// Resuelve el patrón más ESPECÍFICO de [_routeRoles] (mayor nº de segmentos
 /// que coinciden con la location), no el primero declarado. Con el anterior
 /// `firstWhere(location.startsWith(key))`, rutas como '/admin/companies'
 /// (SuperAdmin) heredaban los roles de '/admin' (SuperAdmin+CompanyAdmin).
-bool _hasAccess(String role, String location) {
+///
+/// Si [permissions] no es null (el backend envió los permisos granulares),
+/// además se exige el permiso de lectura mapeado en [_routePermissions].
+bool _hasAccess(String role, String location, {Set<String>? permissions}) {
   const defaultRoles = ['SuperAdmin', 'CompanyAdmin', 'Rrhh', 'Supervisor', 'Employee'];
   final segments = location.split('/').where((s) => s.isNotEmpty).toList();
 
@@ -328,12 +401,58 @@ bool _hasAccess(String role, String location) {
   }
 
   final allowed = bestKey != null ? _routeRoles[bestKey]! : defaultRoles;
-  return allowed.contains(role);
+
+  // Un rol PERSONALIZADO (`RoleType.Custom`) no figura en las listas de roles
+  // por ruta: su acceso lo deciden sus permisos granulares. Sin permisos
+  // cargados no podemos decidir → fail-closed (los roles del sistema, en
+  // cambio, siguen con la lista de roles de siempre).
+  final isSystemRole = NavConfig.systemRoles.contains(role);
+  if (isSystemRole) {
+    if (!allowed.contains(role)) return false;
+  } else if (permissions == null) {
+    return false;
+  }
+
+  // Gating por permiso granular (skip para SuperAdmin y sin datos).
+  if (permissions != null && role != 'SuperAdmin') {
+    String? bestPermKey;
+    var bestPermLen = -1;
+    for (final key in _routePermissions.keys) {
+      final keySegments = key.split('/').where((s) => s.isNotEmpty).toList();
+      if (keySegments.length > segments.length) continue;
+      if (!location.startsWith(key) ||
+          (location.length > key.length &&
+              location.codeUnitAt(key.length) != 0x2F /* '/' */)) {
+        continue;
+      }
+      if (keySegments.length > bestPermLen) {
+        bestPermKey = key;
+        bestPermLen = keySegments.length;
+      }
+    }
+    if (bestPermKey != null && !permissions.contains(_routePermissions[bestPermKey])) {
+      return false;
+    }
+
+    // Gating de ESCRITURA: las pantallas `/new` y `/:id/edit` exigen el
+    // permiso de escritura del módulo (mapa compartido con el FAB).
+    final writePermission = writePermissionFor(location);
+    if (writePermission != null && !permissions.contains(writePermission)) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 /// Exposed for tests: role guard resolution.
 @visibleForTesting
-bool hasAccessForRole(String role, String location) => _hasAccess(role, location);
+bool hasAccessForRole(String role, String location, {Set<String>? permissions}) =>
+    _hasAccess(role, location, permissions: permissions);
+
+/// Exposed for tests: permiso granular exigido por cada ruta.
+@visibleForTesting
+Map<String, String> get routePermissionsForTest => _routePermissions;
 
 final routerProvider = Provider<GoRouter>((ref) {
   return buildGoRouter(ref.watch(authProvider));
@@ -379,7 +498,8 @@ GoRouter buildGoRouter(AuthState authState) {
       }
 
       if (status == AuthStatus.authenticated && !isLoginRoute && !isOnboardingRoute && !isSplashRoute) {
-        if (!_hasAccess(authState.role ?? 'Employee', location)) {
+        if (!_hasAccess(authState.role ?? 'Employee', location,
+            permissions: authState.permissions?.toSet())) {
           return '/unauthorized';
         }
       }
@@ -558,6 +678,11 @@ GoRouter buildGoRouter(AuthState authState) {
             path: '/admin/users',
             name: 'admin-users',
             builder: (_, _) => const UserListPage(),
+          ),
+          GoRoute(
+            path: '/admin/roles',
+            name: 'admin-roles',
+            builder: (_, _) => const RolesPermissionsPage(),
           ),
           GoRoute(
             path: '/admin/invite',

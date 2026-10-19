@@ -15,5 +15,7 @@ public sealed record UserInfo(
     string TenantId,
     string CurrencyCode = "NIO",
     string? EmployeeId = null,
-    string Plan = "starter"
+    string Plan = "starter",
+    IReadOnlyList<string>? Permissions = null,
+    IReadOnlyList<string>? EnabledModules = null
 );

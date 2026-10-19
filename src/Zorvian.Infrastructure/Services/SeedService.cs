@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Zorvian.Application.Helpers;
 using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
+using Zorvian.Core.Authorization;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Enums;
 using Zorvian.Core.Interfaces;
@@ -308,7 +309,9 @@ public sealed class SeedService : ISeedService
             await SeedPanamaLocalizationAsync(companyId);
 
         var countryCode = FiscalYearHelper.MapCountryToCode(country);
-        var countryConfig = await _db.CountryTaxConfigs.FirstOrDefaultAsync(c => c.CountryCode == countryCode && c.IsActive);
+        var countryConfig = await _db.CountryTaxConfigs.FirstOrDefaultAsync(c =>
+            c.CountryCode == countryCode && c.IsActive &&
+            (c.TenantId == CountryTaxConfig.GlobalTenantId || c.TenantId == string.Empty));
         if (!await _db.CompanySettings.AnyAsync(s => s.CompanyId == companyId))
         {
             var settings = new CompanySettings { CompanyId = companyId, TenantId = targetTenantId, FiscalYearStartMonth = countryConfig?.DefaultFiscalStartMonth ?? 1 };
@@ -340,34 +343,10 @@ public sealed class SeedService : ISeedService
             _db.Roles.AddRange(roles);
             await _db.SaveChangesAsync();
 
-            // Seed role-permission mappings (idempotent)
-            var allPermissions = new[]
-            {
-                "user.read", "user.write", "user.manage",
-                "employee.read", "employee.write", "employee.delete", "employee.import",
-                "payroll.read", "payroll.write", "payroll.process",
-                "credit.read", "credit.write",
-                "sale.read", "sale.write",
-                "accounting.read", "accounting.write",
-                "audit.read",
-                "report.read",
-                "apikey.manage",
-                "company.manage",
-                "role.manage",
-                "inventory.read", "inventory.write",
-                "cash.read", "cash.write",
-                "fixedasset.read", "fixedasset.write",
-                "warranty.read", "warranty.write", "warranty.view_profitability",
-                "purchase.read", "purchase.write",
-                "commission.read", "commission.write", "commission.process",
-                "goal.read", "goal.write", "goal.evaluate",
-                "kpi.read", "kpi.write",
-                "provider.read", "provider.write",
-                "client.read", "client.write",
-                "document.read", "document.write",
-                "settings.read", "settings.write",
-                "fleet.read", "fleet.write", "fleet.delete", "fleet.config",
-            };
+            // Seed role-permission mappings (idempotent). El catálogo maestro
+            // (`PermissionCatalog`) es la ÚNICA fuente de códigos: si se agrega
+            // un permiso, hay que decidir a continuación qué roles lo reciben.
+            var allPermissions = PermissionCatalog.Codes;
 
             var rolePermissions = new List<RolePermission>();
 
@@ -375,8 +354,12 @@ public sealed class SeedService : ISeedService
             foreach (var perm in allPermissions)
                 rolePermissions.Add(new RolePermission { RoleId = roles[0].Id, PermissionCode = perm });
 
-            // CompanyAdmin: everything except SuperAdmin-only (company.manage, role.manage, apikey.manage)
-            foreach (var perm in allPermissions.Where(p => p is not ("company.manage" or "role.manage" or "apikey.manage")))
+            // CompanyAdmin: todo menos `company.manage` (crear/gestionar
+            // compañías es de plataforma). `role.manage` y `apikey.manage` SÍ los
+            // lleva —administra los roles y las API keys de SU compañía—; lo que
+            // no puede es otorgárselos a otros roles (ver
+            // `PermissionCatalog.SuperAdminOnly`, aplicado en RolesController).
+            foreach (var perm in allPermissions.Where(p => p != "company.manage"))
                 rolePermissions.Add(new RolePermission { RoleId = roles[1].Id, PermissionCode = perm });
 
             // Rrhh: HR + read access to operational modules

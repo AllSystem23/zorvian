@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../auth/auth_provider.dart';
 import '../providers/supplier_credit_note_provider.dart';
 
 final class SupplierCreditNoteListPage extends ConsumerStatefulWidget {
@@ -83,12 +84,14 @@ final class _SupplierCreditNoteListPageState extends ConsumerState<SupplierCredi
                         },
                       ),
                     ),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'add-supplier-credit-note',
-        onPressed: () => context.push('/purchases/credit-notes/new', extra: {'purchaseId': widget.purchaseId}),
-        icon: const Icon(Icons.add),
-        label: const Text('Nueva Nota de Crédito'),
-      ),
+      floatingActionButton: ref.canWriteLocation('/purchases/credit-notes/new')
+          ? FloatingActionButton.extended(
+              heroTag: 'add-supplier-credit-note',
+              onPressed: () => context.push('/purchases/credit-notes/new', extra: {'purchaseId': widget.purchaseId}),
+              icon: const Icon(Icons.add),
+              label: const Text('Nueva Nota de Crédito'),
+            )
+          : null,
     );
   }
 }

@@ -77,9 +77,34 @@ public sealed class SubscriptionPlansController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var deleted = await _service.DeletePlanAsync(id);
-        if (!deleted) return NotFound(new { error = "Plan no encontrado" });
-        return NoContent();
+        try
+        {
+            var deleted = await _service.DeletePlanAsync(id);
+            if (!deleted) return NotFound(new { error = "Plan no encontrado" });
+            return NoContent();
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Reemplaza los módulos habilitados de un plan (oferta por módulos).
+    /// </summary>
+    [HttpPut("{id:guid}/modules")]
+    public async Task<IActionResult> UpdateModules(Guid id, [FromBody] UpdatePlanModulesRequest request)
+    {
+        try
+        {
+            var plan = await _service.UpdatePlanModulesAsync(id, request.Modules ?? new List<string>());
+            if (plan is null) return NotFound(new { error = "Plan no encontrado" });
+            return Ok(plan);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
     }
 
     // ── Per-company pricing ──
@@ -167,3 +192,5 @@ public sealed class SubscriptionPlansController : ControllerBase
         return NoContent();
     }
 }
+
+public sealed record UpdatePlanModulesRequest(List<string>? Modules);

@@ -70,12 +70,14 @@ class _DepartmentListPageState extends ConsumerState<DepartmentListPage> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'add-department',
-        onPressed: () => context.push('/departments/new'),
-        icon: const Icon(Icons.add),
-        label: const Text('Nuevo departamento'),
-      ),
+      floatingActionButton: ref.canWriteLocation('/departments/new')
+          ? FloatingActionButton.extended(
+              heroTag: 'add-department',
+              onPressed: () => context.push('/departments/new'),
+              icon: const Icon(Icons.add),
+              label: const Text('Nuevo departamento'),
+            )
+          : null,
       body: Column(
         children: [
           Padding(

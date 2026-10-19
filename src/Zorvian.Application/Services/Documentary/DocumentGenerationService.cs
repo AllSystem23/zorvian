@@ -1,4 +1,5 @@
 using Zorvian.Application.DTOs.Document;
+using Zorvian.Application.Helpers;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
@@ -108,7 +109,8 @@ public sealed class DocumentGenerationService : IDocumentGenerationService
             employee.Salary ?? 0,
             employee.HireDate,
             employee.TerminationDate,
-            employee.TerminationReason);
+            employee.TerminationReason,
+            FiscalYearHelper.MapCountryToCode(company.Country));
 
         foreach (var (key, value) in liquidationVars)
             data[key] = value;

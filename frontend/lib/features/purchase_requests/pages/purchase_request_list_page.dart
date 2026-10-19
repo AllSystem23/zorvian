@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../auth/auth_provider.dart';
 import '../../../shared/ds/ds.dart';
 import '../providers/purchase_request_provider.dart';
 
@@ -54,12 +55,14 @@ final class _PurchaseRequestListPageState extends ConsumerState<PurchaseRequestL
   Widget build(BuildContext context) {
     final requests = ref.watch(purchaseRequestProvider);
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'add-purchase-request',
-        onPressed: () => context.push('/purchase-requests/new'),
-        icon: const Icon(Icons.add),
-        label: const Text('Nueva Solicitud'),
-      ),
+      floatingActionButton: ref.canWriteLocation('/purchase-requests/new')
+          ? FloatingActionButton.extended(
+              heroTag: 'add-purchase-request',
+              onPressed: () => context.push('/purchase-requests/new'),
+              icon: const Icon(Icons.add),
+              label: const Text('Nueva Solicitud'),
+            )
+          : null,
       body: Column(
         children: [
           Padding(

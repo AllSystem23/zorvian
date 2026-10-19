@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/auth_provider.dart';
@@ -139,7 +140,7 @@ class _SubscriptionPlansPageState extends ConsumerState<SubscriptionPlansPage> {
   Widget _buildStatsRow(List<SubscriptionPlanConfig> plans, bool isDark) {
     return ResponsiveGrid(
       mobileColumns: 1,
-      tabletColumns: 3,
+      tabletColumns: 2,
       desktopColumns: 3,
       children: plans.map((plan) => _buildStatCard(
         title: 'Empresas ${plan.name}',
@@ -180,14 +181,16 @@ class _SubscriptionPlansPageState extends ConsumerState<SubscriptionPlansPage> {
             child: Icon(icon, size: 24, color: color),
           ),
           const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(value, style: ZTypography.displaySmall.copyWith(
-                fontWeight: FontWeight.w800, color: color)),
-              Text(title, style: ZTypography.labelMedium.copyWith(
-                color: ZColors.neutral500)),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(value, style: ZTypography.displaySmall.copyWith(
+                  fontWeight: FontWeight.w800, color: color)),
+                Text(title, style: ZTypography.labelMedium.copyWith(
+                  color: ZColors.neutral500)),
+              ],
+            ),
           ),
         ],
       ),
@@ -205,7 +208,7 @@ class _SubscriptionPlansPageState extends ConsumerState<SubscriptionPlansPage> {
         const SizedBox(height: 24),
         ResponsiveGrid(
           mobileColumns: 1,
-          tabletColumns: 3,
+          tabletColumns: 2,
           desktopColumns: 3,
           children: plans.map((plan) => _buildPlanCard(
             config: plan,
@@ -271,13 +274,13 @@ class _SubscriptionPlansPageState extends ConsumerState<SubscriptionPlansPage> {
                 const SizedBox(height: 16),
                 Text(config.name, style: ZTypography.headlineSmall),
                 const SizedBox(height: 4),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.end,
+                  spacing: 4,
                   children: [
                     Text(config.price, style: ZTypography.displaySmall.copyWith(
                       fontWeight: FontWeight.w800, color: config.color)),
-                    const SizedBox(width: 4),
                     Padding(
                       padding: const EdgeInsets.only(bottom: 4),
                       child: Text(config.period, style: ZTypography.bodySmall.copyWith(
@@ -333,9 +336,104 @@ class _SubscriptionPlansPageState extends ConsumerState<SubscriptionPlansPage> {
               ],
             ),
           ),
+          _buildModulesSection(config, isDark),
         ],
       ),
     );
+  }
+
+  /// Lista los módulos licenciables del plan + acceso al editor (SuperAdmin).
+  Widget _buildModulesSection(SubscriptionPlanConfig config, bool isDark) {
+    final labels = config.moduleLabels;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Divider(color: isDark ? ZColors.darkBorder : ZColors.border, height: 1),
+          const SizedBox(height: 16),
+          // Wrap (y no Row) para que en tarjetas angostas el botón baje de
+          // línea en lugar de desbordar la tarjeta.
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 8,
+            children: [
+              Text('MÓDULOS DEL PLAN', style: ZTypography.labelSmall.copyWith(
+                color: ZColors.neutral500, letterSpacing: 1.2)),
+              if (config.isEditable)
+                Tooltip(
+                  message: 'Define qué módulos del ERP incluye este plan',
+                  child: ZButton(
+                    text: 'Editar módulos',
+                    icon: Icons.tune_outlined,
+                    type: ZButtonType.secondary,
+                    fullWidth: false,
+                    onPressed: () => _editModules(config),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (labels.isEmpty)
+            Text('Sin módulos configurados', style: ZTypography.bodySmall.copyWith(
+              color: ZColors.neutral400))
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: labels
+                  .map((label) => ZBadge(text: label, type: ZBadgeType.neutral))
+                  .toList(),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _editModules(SubscriptionPlanConfig config) async {
+    final selected = await showDialog<List<String>>(
+      context: context,
+      builder: (_) => _PlanModulesDialog(config: config),
+    );
+    if (selected == null || !mounted) return;
+    await _saveModules(config, selected);
+  }
+
+  Future<void> _saveModules(
+    SubscriptionPlanConfig config,
+    List<String> modules,
+  ) async {
+    final planGuid = config.planGuid;
+    if (planGuid == null) return;
+    try {
+      final dio = ref.read(dioClientProvider);
+      await dio.put(
+        SubscriptionPlanEndpoints.modulesPath(planGuid),
+        data: SubscriptionPlanEndpoints.modulesBody(modules),
+      );
+      if (!mounted) return;
+      ref.invalidate(subscriptionPlansProvider);
+      ZToast.show(
+        context,
+        'Módulos de "${config.name}" actualizados. Las compañías del plan verán '
+        'el cambio al refrescar su sesión.',
+        type: ZToastType.success,
+      );
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final data = e.response?.data;
+      final message = data is Map && data['error'] != null
+          ? '${data['error']}'
+          : 'No se pudieron guardar los módulos del plan';
+      ZToast.show(context, message, type: ZToastType.error);
+    } catch (_) {
+      if (!mounted) return;
+      ZToast.show(context, 'No se pudieron guardar los módulos del plan',
+          type: ZToastType.error);
+    }
   }
 
   Widget _buildFeatureComparison(List<SubscriptionPlanConfig> plans, bool isDark) {
@@ -517,6 +615,138 @@ class _SubscriptionPlansPageState extends ConsumerState<SubscriptionPlansPage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Editor de módulos licenciables de un plan (SuperAdmin).
+///
+/// Devuelve por `Navigator.pop` la lista de `ModuleType` names seleccionada, o
+/// `null` si se cancela. No llama al API: el guardado lo hace la página.
+class _PlanModulesDialog extends StatefulWidget {
+  const _PlanModulesDialog({required this.config});
+
+  final SubscriptionPlanConfig config;
+
+  @override
+  State<_PlanModulesDialog> createState() => _PlanModulesDialogState();
+}
+
+class _PlanModulesDialogState extends State<_PlanModulesDialog> {
+  late Set<String> _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = widget.config.modules.toSet();
+  }
+
+  void _toggle(String key, bool? value) {
+    if (value == null) return;
+    setState(() {
+      value ? _selected.add(key) : _selected.remove(key);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final empty = _selected.isEmpty;
+    // El orden del catálogo es el orden de guardado que verá el API.
+    final ordered = SubscriptionPlanConfig.availableModules
+        .where((o) => _selected.contains(o.key))
+        .map((o) => o.key)
+        .toList();
+
+    return AlertDialog(
+      backgroundColor: isDark ? ZColors.darkSurface : ZColors.surface,
+      title: Text('Módulos de ${widget.config.name}', style: ZTypography.titleLarge),
+      content: SizedBox(
+        width: 460,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Define qué módulos del ERP incluye este plan. Las compañías '
+                'suscriptas solo verán la navegación de los módulos habilitados.',
+                style: ZTypography.bodySmall.copyWith(color: ZColors.neutral500),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  TextButton(
+                    onPressed: () => setState(() => _selected = {
+                      ...SubscriptionPlanConfig.availableModules.map((o) => o.key)
+                    }),
+                    child: const Text('Seleccionar todos'),
+                  ),
+                  TextButton(
+                    onPressed: () => setState(() => _selected = {}),
+                    child: const Text('Ninguno'),
+                  ),
+                  const Spacer(),
+                  ZBadge(
+                    text: '${_selected.length}/${SubscriptionPlanConfig.availableModules.length}',
+                    type: ZBadgeType.accent,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              for (final option in SubscriptionPlanConfig.availableModules)
+                SwitchListTile(
+                  dense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                  secondary: Icon(option.icon, size: 20, color: ZColors.brandAccent),
+                  title: Text(option.label, style: ZTypography.bodyMedium),
+                  subtitle: Text(option.key, style: ZTypography.labelSmall.copyWith(
+                    color: ZColors.neutral400)),
+                  value: _selected.contains(option.key),
+                  onChanged: (value) => _toggle(option.key, value),
+                ),
+              if (empty) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: ZColors.warning.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: ZColors.warning.withValues(alpha: 0.4)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning_amber_outlined, size: 18, color: ZColors.warning),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Sin módulos seleccionados, las compañías de este plan '
+                          'no verán NINGÚN módulo del ERP.',
+                          style: ZTypography.bodySmall.copyWith(
+                            color: isDark ? ZColors.neutral200 : ZColors.neutral700),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancelar'),
+        ),
+        ZButton(
+          text: empty ? 'Guardar sin módulos' : 'Guardar',
+          icon: Icons.save_outlined,
+          type: empty ? ZButtonType.danger : ZButtonType.primary,
+          fullWidth: false,
+          onPressed: () => Navigator.of(context).pop(List<String>.from(ordered)),
+        ),
+      ],
     );
   }
 }

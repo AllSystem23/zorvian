@@ -25,10 +25,10 @@ public class CompaniesControllerTests
         var mockRegionalTax = new Mock<IRegionalTaxConfigurationRepository>();
         var mockTaxConfig = new Mock<ICountryTaxConfigRepository>();
         var mockSeed = new Mock<ISeedService>();
+        var mockPlanRepo = new Mock<ISubscriptionPlanRepository>();
         mockTenant.Setup(t => t.TenantId).Returns(Guid.NewGuid().ToString());
 
-        var service = new CompanyService(mockRepo.Object, mockTenant.Object, mockFiscal.Object, mockStorage.Object, mockRegionalTax.Object, mockTaxConfig.Object, mockSeed.Object);
-        var mockPlanRepo = new Mock<ISubscriptionPlanRepository>();
+        var service = new CompanyService(mockRepo.Object, mockTenant.Object, mockFiscal.Object, mockStorage.Object, mockRegionalTax.Object, mockTaxConfig.Object, mockSeed.Object, mockPlanRepo.Object);
         var planService = new SubscriptionPlanService(mockPlanRepo.Object);
         _controller = new CompaniesController(service, planService);
         

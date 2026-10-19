@@ -5,9 +5,15 @@ using Zorvian.Application.DTOs.FixedAssets;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
+using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers;
 
+/// <summary>
+/// Catálogo de ubicaciones de la compañía (CRUD de configuración). Se lee con
+/// `settings.read` y se escribe con `settings.write`: es dato de configuración
+/// de la empresa, no de un módulo operativo.
+/// </summary>
 [ApiController]
 [Authorize]
 [Route("zorvian/v1/locations")]
@@ -27,6 +33,7 @@ public sealed class LocationsController : ControllerBase
     private Guid CompanyId => _tenant.ResolveCompanyId();
 
     [HttpPost]
+    [RequirePermission(Permissions.SettingsWrite)]
     public async Task<IActionResult> Create([FromBody] CreateLocationRequest request)
     {
         var location = _mapper.Map<Location>(request);
@@ -37,6 +44,7 @@ public sealed class LocationsController : ControllerBase
     }
 
     [HttpGet]
+    [RequirePermission(Permissions.SettingsRead)]
     public async Task<IActionResult> GetAll()
     {
         var items = await _repo.GetAllAsync(CompanyId);
@@ -44,6 +52,7 @@ public sealed class LocationsController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [RequirePermission(Permissions.SettingsWrite)]
     public async Task<IActionResult> Update(Guid id, [FromBody] CreateLocationRequest request)
     {
         var location = await _repo.GetByIdAsync(id);
@@ -56,6 +65,7 @@ public sealed class LocationsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [RequirePermission(Permissions.SettingsWrite)]
     public async Task<IActionResult> Delete(Guid id)
     {
         var location = await _repo.GetByIdAsync(id);

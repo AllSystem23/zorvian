@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../auth/auth_provider.dart';
 import '../../../shared/ds/ds.dart';
 import '../providers/service_payment_provider.dart';
 
@@ -52,12 +53,14 @@ final class _ServicePaymentListPageState extends ConsumerState<ServicePaymentLis
   Widget build(BuildContext context) {
     final payments = ref.watch(servicePaymentProvider);
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'add-service-payment',
-        onPressed: () => context.push('/service-payments/new'),
-        icon: const Icon(Icons.add),
-        label: const Text('Nuevo Pago'),
-      ),
+      floatingActionButton: ref.canWriteLocation('/service-payments/new')
+          ? FloatingActionButton.extended(
+              heroTag: 'add-service-payment',
+              onPressed: () => context.push('/service-payments/new'),
+              icon: const Icon(Icons.add),
+              label: const Text('Nuevo Pago'),
+            )
+          : null,
       body: Column(
         children: [
           Padding(

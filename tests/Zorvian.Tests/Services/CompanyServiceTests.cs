@@ -16,6 +16,7 @@ public sealed class CompanyServiceTests
     private readonly Mock<IRegionalTaxConfigurationRepository> _regionalTaxRepo = new();
     private readonly Mock<ICountryTaxConfigRepository> _taxConfigRepo = new();
     private readonly Mock<ISeedService> _seed = new();
+    private readonly Mock<ISubscriptionPlanRepository> _plans = new();
     private readonly CompanyService _sut;
     private readonly string _tenantId = Guid.NewGuid().ToString();
 
@@ -24,7 +25,7 @@ public sealed class CompanyServiceTests
         _tenant.Setup(t => t.TenantId).Returns(_tenantId);
         _storage.Setup(s => s.GetSignedUrlAsync(It.IsAny<string?>(), It.IsAny<TimeSpan?>()))
             .ReturnsAsync((string? v, TimeSpan? _) => v);
-        _sut = new CompanyService(_repo.Object, _tenant.Object, _fiscal.Object, _storage.Object, _regionalTaxRepo.Object, _taxConfigRepo.Object, _seed.Object);
+        _sut = new CompanyService(_repo.Object, _tenant.Object, _fiscal.Object, _storage.Object, _regionalTaxRepo.Object, _taxConfigRepo.Object, _seed.Object, _plans.Object);
     }
 
     [Fact]

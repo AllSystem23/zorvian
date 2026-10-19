@@ -32,8 +32,22 @@ public sealed class TerminationController : ControllerBase
         DateOnly terminationDate,
         DateOnly? paidThroughDate = null,
         decimal overtimeHours = 0,
-        decimal overtimePay = 0) =>
-        Ok(await _service.CalculateAsync(employeeId, reason, terminationDate, paidThroughDate, overtimeHours, overtimePay));
+        decimal overtimePay = 0,
+        decimal? inssEmployeeRate = null,
+        decimal? inssEmployerRate = null,
+        decimal? otherEmployerRate = null,
+        string? otherEmployerName = null) =>
+        Ok(await _service.CalculateAsync(
+            employeeId,
+            reason,
+            terminationDate,
+            paidThroughDate,
+            overtimeHours,
+            overtimePay,
+            inssEmployeeRate,
+            inssEmployerRate,
+            otherEmployerRate,
+            otherEmployerName));
 
     /// <summary>
     /// Aplica una liquidación en draft: marca al empleado como terminado,

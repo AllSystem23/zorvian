@@ -135,7 +135,8 @@ final class _SupplierPaymentListPageState extends ConsumerState<SupplierPaymentL
                         },
                       ),
                     ),
-      floatingActionButton: widget.purchaseId == null
+      floatingActionButton: widget.purchaseId == null ||
+              !ref.canWriteLocation('/purchases/payments/new')
           ? null
           : FloatingActionButton.extended(
               heroTag: 'add-payment',

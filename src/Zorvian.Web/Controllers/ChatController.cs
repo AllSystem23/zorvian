@@ -4,9 +4,16 @@ using Zorvian.Application.DTOs.ML;
 using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
 using Zorvian.Core.Interfaces;
+using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers;
 
+/// <summary>
+/// Asistente Z-IA (chat) e ingesta de conocimiento.
+/// `ask` queda SIN permiso de módulo a propósito: el chat es transversal a
+/// todos los roles autenticados (no existe un permiso "chat" en el catálogo).
+/// `seed-knowledge` sí es una operación administrativa → `settings.write`.
+/// </summary>
 [ApiController]
 [Authorize]
 [Route("zorvian/v1/chat")]
@@ -34,6 +41,7 @@ public sealed class ChatController : ControllerBase
     }
 
     [HttpPost("seed-knowledge")]
+    [RequirePermission(Permissions.SettingsWrite)]
     public async Task<IActionResult> SeedKnowledge([FromBody] SeedKnowledgeRequestDto request)
     {
         await _policyService.IngestDocumentAsync(request.Title, request.Content);

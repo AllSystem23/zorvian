@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
+using Zorvian.Core.Enums;
 using Zorvian.Infrastructure.Data;
 
 namespace Zorvian.Infrastructure.Repositories;
@@ -46,6 +47,37 @@ public sealed class SubscriptionPlanRepository : ISubscriptionPlanRepository
     {
         _db.SubscriptionPlans.Remove(plan);
         return Task.CompletedTask;
+    }
+
+    // ── Plan modules ──
+
+    public async Task<List<PlanModule>> GetModulesByPlanIdAsync(string planId) =>
+        await _db.PlanModules
+            .Where(pm => pm.PlanId == planId)
+            .OrderBy(pm => pm.Module)
+            .ToListAsync();
+
+    public async Task ReplaceModulesAsync(string planId, IReadOnlyCollection<ModuleType> modules)
+    {
+        var existing = await _db.PlanModules
+            .Where(pm => pm.PlanId == planId)
+            .ToListAsync();
+
+        var wanted = modules.ToHashSet();
+
+        _db.PlanModules.RemoveRange(existing.Where(pm => !wanted.Contains(pm.Module)));
+
+        var present = existing.Select(pm => pm.Module).ToHashSet();
+        foreach (var module in wanted.Where(m => !present.Contains(m)))
+        {
+            _db.PlanModules.Add(new PlanModule
+            {
+                Id = Guid.NewGuid(),
+                PlanId = planId,
+                Module = module,
+                IsEnabled = true,
+            });
+        }
     }
 
     // ── Per-company pricing ──

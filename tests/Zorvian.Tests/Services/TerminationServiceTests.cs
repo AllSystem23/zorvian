@@ -837,4 +837,157 @@ public class TerminationServiceTests
         Assert.True(result.VacationPay > 0);
         Assert.True(result.SeverancePay > 0);
     }
+
+    // ══════════════════════════════════════════════════════════════
+    //  TASAS EDITABLES DEL FINIQUITO (INSS / aportes patronales)
+    // ══════════════════════════════════════════════════════════════
+
+    [Fact]
+    public async Task CalculateAsync_WithRateOverrides_CalculatesAndPersistsTheAdjustedRates()
+    {
+        // ARRANGE — tasas distintas a las del país (7 % / 21.5 % / 2 %)
+        var empId = Guid.NewGuid();
+        var hireDate = new DateOnly(2023, 6, 1);
+        var terminationDate = new DateOnly(2026, 6, 1);
+
+        _mockEmployeeRepo.Setup(r => r.GetByIdAsync(empId))
+            .ReturnsAsync(new Employee { Id = empId, Salary = 3000m, HireDate = hireDate, CountryCode = "NIC" });
+        _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC"))
+            .ReturnsAsync(CreateNicConfig());
+        _mockVacationRepo.Setup(r => r.GetVacationDaysTakenBeforeAsync(empId, It.IsAny<DateOnly>()))
+            .ReturnsAsync(0m);
+        _mockBenefitRepo.Setup(r => r.GetByEmployeeAsync(empId))
+            .ReturnsAsync(new List<BenefitProvision>());
+
+        // ACT — INSS trabajador 5 %, patronal 25 %, otro aporte 3 % "RAP"
+        var result = await _sut.CalculateAsync(
+            empId,
+            TerminationReason.VoluntaryResignation,
+            terminationDate,
+            inssEmployeeRate: 0.05m,
+            inssEmployerRate: 0.25m,
+            otherEmployerRate: 0.03m,
+            otherEmployerName: "RAP");
+
+        // ASSERT — montos con las tasas ajustadas
+        Assert.NotNull(result);
+        var baseAmounts = result.PendingSalaryPay + result.VacationPay + result.OvertimePay;
+        Assert.Equal(Math.Round(baseAmounts * 0.05m, 2), result.InssLaboralAmount);
+        Assert.Equal(Math.Round(baseAmounts * 0.25m, 2), result.InssPatronalAmount);
+        Assert.Equal(Math.Round(baseAmounts * 0.03m, 2), result.InatecAmount);
+
+        // ASSERT — el registro guarda las tasas EFECTIVAS (es lo que imprime el PDF)
+        Assert.Equal(0.05m, result.InssEmployeeRateDisplay);
+        Assert.Equal(0.25m, result.InssEmployerRateDisplay);
+        Assert.Equal(0.03m, result.OtherEmployerRateDisplay);
+        Assert.Equal("RAP", result.OtherEmployerName);
+    }
+
+    [Fact]
+    public async Task CalculateAsync_WithoutRateOverrides_UsesCountryConfiguredRates()
+    {
+        // ARRANGE
+        var empId = Guid.NewGuid();
+        _mockEmployeeRepo.Setup(r => r.GetByIdAsync(empId))
+            .ReturnsAsync(new Employee
+            {
+                Id = empId, Salary = 3000m,
+                HireDate = new DateOnly(2023, 6, 1), CountryCode = "NIC",
+            });
+        _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC"))
+            .ReturnsAsync(CreateNicConfig());
+        _mockVacationRepo.Setup(r => r.GetVacationDaysTakenBeforeAsync(empId, It.IsAny<DateOnly>()))
+            .ReturnsAsync(0m);
+        _mockBenefitRepo.Setup(r => r.GetByEmployeeAsync(empId))
+            .ReturnsAsync(new List<BenefitProvision>());
+
+        // ACT
+        var result = await _sut.CalculateAsync(
+            empId, TerminationReason.VoluntaryResignation, new DateOnly(2026, 6, 1));
+
+        // ASSERT — sin ajuste se usan las del país (y el nombre de respaldo)
+        Assert.NotNull(result);
+        Assert.Equal(0.07m, result.InssEmployeeRateDisplay);
+        Assert.Equal(0.215m, result.InssEmployerRateDisplay);
+        Assert.Equal(0.02m, result.OtherEmployerRateDisplay);
+        Assert.Equal("Seguro Social", result.OtherEmployerName);
+    }
+
+    [Fact]
+    public async Task CalculateAsync_ZeroOtherEmployerRate_LeavesNoEmployerContribution()
+    {
+        // ARRANGE — país donde el otro aporte no existe (p. ej. Costa Rica: solo CCSS)
+        var empId = Guid.NewGuid();
+        _mockEmployeeRepo.Setup(r => r.GetByIdAsync(empId))
+            .ReturnsAsync(new Employee
+            {
+                Id = empId, Salary = 3000m,
+                HireDate = new DateOnly(2023, 6, 1), CountryCode = "NIC",
+            });
+        _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC"))
+            .ReturnsAsync(CreateNicConfig());
+        _mockVacationRepo.Setup(r => r.GetVacationDaysTakenBeforeAsync(empId, It.IsAny<DateOnly>()))
+            .ReturnsAsync(0m);
+        _mockBenefitRepo.Setup(r => r.GetByEmployeeAsync(empId))
+            .ReturnsAsync(new List<BenefitProvision>());
+
+        // ACT
+        var result = await _sut.CalculateAsync(
+            empId,
+            TerminationReason.VoluntaryResignation,
+            new DateOnly(2026, 6, 1),
+            otherEmployerRate: 0m,
+            otherEmployerName: "");
+
+        // ASSERT — 0 explícito es un ajuste válido (no cae al 2 % del país)
+        Assert.NotNull(result);
+        Assert.Equal(0m, result.InatecAmount);
+        Assert.Equal(0m, result.OtherEmployerRateDisplay);
+        Assert.Equal("Seguro Social", result.OtherEmployerName);
+    }
+
+    [Fact]
+    public async Task CalculateAsync_RateExpressedAsPercent_ThrowsActionableError()
+    {
+        // ARRANGE — "7" en lugar de "0.07" no debe producir un finiquito con 700 %
+        var empId = Guid.NewGuid();
+        _mockEmployeeRepo.Setup(r => r.GetByIdAsync(empId))
+            .ReturnsAsync(new Employee
+            {
+                Id = empId, Salary = 3000m,
+                HireDate = new DateOnly(2023, 6, 1), CountryCode = "NIC",
+            });
+        _mockTaxConfigRepo.Setup(r => r.GetByCountryCodeAsync("NIC"))
+            .ReturnsAsync(CreateNicConfig());
+        _mockVacationRepo.Setup(r => r.GetVacationDaysTakenBeforeAsync(empId, It.IsAny<DateOnly>()))
+            .ReturnsAsync(0m);
+        _mockBenefitRepo.Setup(r => r.GetByEmployeeAsync(empId))
+            .ReturnsAsync(new List<BenefitProvision>());
+
+        // ACT + ASSERT
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            _sut.CalculateAsync(
+                empId,
+                TerminationReason.VoluntaryResignation,
+                new DateOnly(2026, 6, 1),
+                inssEmployeeRate: 7m));
+
+        Assert.Contains("entre 0 y 1", ex.Message);
+        Assert.Contains("INSS del trabajador", ex.Message);
+    }
+
+    [Fact]
+    public void CalculateIrOnMonthlySalary_WithInssOverride_UsesItForTheTaxableBase()
+    {
+        // ARRANGE — un INSS menor deja una base gravable mayor → más IR
+        var config = CreateNicConfig();
+
+        // ACT
+        var withCountryRate = TerminationService.CalculateIrOnMonthlySalary(50000m, config);
+        var withZeroInss = TerminationService.CalculateIrOnMonthlySalary(50000m, config, 0m);
+
+        // ASSERT
+        Assert.True(withZeroInss > withCountryRate,
+            "Sin INSS la base gravable crece, por lo que el IR debe ser mayor.");
+    }
 }

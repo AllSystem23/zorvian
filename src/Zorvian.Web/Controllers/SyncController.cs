@@ -5,6 +5,11 @@ using Zorvian.Core.Interfaces;
 
 namespace Zorvian.Web.Controllers;
 
+/// <summary>
+/// Sincronización offline (pull/push de mutaciones locales). Sin permiso de
+/// módulo a propósito: replica las mutaciones YA autorizadas del propio
+/// usuario/dispositivo; cada push vuelve a validar contra el módulo de origen.
+/// </summary>
 [ApiController]
 [Authorize]
 [Route("zorvian/v1/sync")]

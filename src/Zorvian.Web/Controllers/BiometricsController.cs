@@ -11,6 +11,8 @@ namespace Zorvian.Web.Controllers;
 /// <summary>
 /// Controlador biométrico. Administra el registro de dispositivos para autenticación
 /// biométrica (huella digital, FaceID) en la app móvil.
+/// Sin permiso de módulo a propósito: es autoservicio del propio usuario
+/// (sus dispositivos), no un módulo del ERP.
 /// </summary>
 [ApiController]
 [Authorize]

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/error/error_notifier.dart';
+import '../core/navigation/write_permissions.dart';
 import '../core/network/api_config.dart';
 import '../core/network/dio_client.dart';
 import '../core/offline/app_database.dart';
@@ -63,6 +64,15 @@ class AuthState {
   final String? mfaToken;
   final String plan;
 
+  /// Permisos granulares efectivos (unión de los roles, desde `auth/me`).
+  /// `null` = el backend no envió el dato (p. ej. SSO PalmTrack) → el gating
+  /// por permiso queda desactivado y se conserva el filtrado por rol.
+  final List<String>? permissions;
+
+  /// Módulos habilitados del plan de la compañía (desde `auth/me`).
+  /// `null` = sin dato → el frontend usa el mapa estático por plan.
+  final List<String>? enabledModules;
+
   const AuthState({
     this.status = AuthStatus.unknown,
     this.userId,
@@ -74,6 +84,8 @@ class AuthState {
     this.currencyCode = 'NIO',
     this.mfaToken,
     this.plan = 'starter',
+    this.permissions,
+    this.enabledModules,
   });
 
   AuthState copyWith({
@@ -87,6 +99,8 @@ class AuthState {
     String? currencyCode,
     String? mfaToken,
     String? plan,
+    List<String>? permissions,
+    List<String>? enabledModules,
   }) => AuthState(
     status: status ?? this.status,
     userId: userId ?? this.userId,
@@ -98,12 +112,48 @@ class AuthState {
     currencyCode: currencyCode ?? this.currencyCode,
     mfaToken: mfaToken ?? this.mfaToken,
     plan: plan ?? this.plan,
+    permissions: permissions ?? this.permissions,
+    enabledModules: enabledModules ?? this.enabledModules,
   );
+
+  /// `true` si el usuario tiene el permiso granular (p. ej. 'sale.write').
+  /// SuperAdmin siempre pasa; si el backend no envió la lista (`null`) no se
+  /// restringe (compat con SSO y con datos previos al feature).
+  bool hasPermission(String code) {
+    if (role == 'SuperAdmin') return true;
+    final perms = permissions;
+    if (perms == null) return true;
+    return perms.contains(code);
+  }
+
+  /// Atajo para acciones de escritura de un módulo ('sale' → 'sale.write').
+  bool canWrite(String module) => hasPermission('$module.write');
+
+  /// Módulos efectivos: los del backend si existen, si no el mapa estático.
+  List<String>? get effectiveEnabledModules => enabledModules;
+}
+
+/// Acceso de ESCRITURA por ruta desde un widget: `true` si el usuario puede
+/// abrir una pantalla de creación/edición en [location]. Delega en
+/// `write_permissions.dart`, la MISMA fuente que usan el guard del router y el
+/// FAB global — las páginas con `floatingActionButton` propio lo usan para no
+/// ofrecer acciones que el router va a redirectar a `/unauthorized`.
+extension WriteAccessRef on WidgetRef {
+  bool canWriteLocation(String location) {
+    final auth = read(authProvider);
+    return canWriteRoute(location, auth.permissions, auth.role ?? '');
+  }
 }
 
 class AuthNotifier extends Notifier<AuthState> {
   @override
   AuthState build() => const AuthState();
+
+  /// Extrae `permissions`/`enabledModules` del mapa `user` de `auth/me` y
+  /// respuestas de login. Si el backend no los envía quedan `null` (gating
+  /// por permiso desactivado, comportamiento previo por rol).
+  static List<String>? _stringList(dynamic value) =>
+      value is List ? value.map((e) => '$e').toList() : null;
 
   Future<void> checkAuth() async {
     final storage = ref.read(secureStorageProvider);
@@ -125,6 +175,8 @@ class AuthNotifier extends Notifier<AuthState> {
           employeeId: user['employeeId'],
           currencyCode: currencyCode,
           plan: user['plan'] as String? ?? 'starter',
+          permissions: _stringList(user['permissions']),
+          enabledModules: _stringList(user['enabledModules']),
         );
       } catch (_) {
         await storage.clearTokens();
@@ -178,6 +230,8 @@ class AuthNotifier extends Notifier<AuthState> {
         employeeId: user['employeeId'] as String?,
         currencyCode: currencyCode,
         plan: user['plan'] as String? ?? 'starter',
+        permissions: _stringList(user['permissions']),
+        enabledModules: _stringList(user['enabledModules']),
       );
       return true;
     } catch (_) {
@@ -213,6 +267,8 @@ class AuthNotifier extends Notifier<AuthState> {
         employeeId: user['employeeId'],
         currencyCode: currencyCode,
         plan: user['plan'] as String? ?? 'starter',
+        permissions: _stringList(user['permissions']),
+        enabledModules: _stringList(user['enabledModules']),
       );
       return true;
     } catch (_) {
@@ -255,6 +311,8 @@ class AuthNotifier extends Notifier<AuthState> {
         employeeId: user['employeeId'],
         currencyCode: currencyCode,
         plan: user['plan'] as String? ?? 'starter',
+        permissions: _stringList(user['permissions']),
+        enabledModules: _stringList(user['enabledModules']),
       );
       return true;
     } catch (_) {
@@ -354,6 +412,8 @@ class AuthNotifier extends Notifier<AuthState> {
         employeeId: user['employeeId'],
         currencyCode: currencyCode,
         plan: user['plan'] as String? ?? 'starter',
+        permissions: _stringList(user['permissions']),
+        enabledModules: _stringList(user['enabledModules']),
       );
       // El caché local y los providers keep-alive contienen datos de la
       // empresa anterior: se descartan para no mostrar datos cross-tenant.

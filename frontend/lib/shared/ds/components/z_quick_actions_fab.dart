@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/navigation/write_permissions.dart';
 import '../ds.dart';
 
 /// ZQuickActionsFAB — Floating Action Button with contextual quick actions.
@@ -9,28 +10,66 @@ class ZQuickActionsFAB extends StatelessWidget {
   final String currentRoute;
   final Map<String, VoidCallback> callbacks;
 
+  /// Permisos granulares del usuario. `null` = sin gating (compat/SSO/API Key
+  /// sin permisos). Lo mismo que [AuthState.hasPermission].
+  final List<String>? permissions;
+
+  /// Rol del usuario: `SuperAdmin` ve todas las acciones.
+  final String role;
+
   const ZQuickActionsFAB({
     super.key,
     required this.currentRoute,
     this.callbacks = const {},
+    this.permissions,
+    this.role = '',
   });
 
   /// Returns the appropriate quick actions based on the current route
   List<_QuickAction> _getActions() {
-    return _actionsForRoute(currentRoute, callbacks);
+    return _actionsForRoute(currentRoute, callbacks,
+        permissions: permissions, role: role);
   }
 
-  /// Static helper: returns whether any actions exist for [route].
-  /// Used by [AppShell] to know if extra bottom padding is needed.
-  static bool routeHasActions(String route) {
-    return _actionsForRoute(route, const {}).isNotEmpty;
+  /// Static helper: returns whether any actions exist for [route] once the
+  /// permission gating is applied. Used by [AppShell] to know if extra bottom
+  /// padding is needed.
+  static bool routeHasActions(
+    String route, {
+    List<String>? permissions,
+    String role = '',
+  }) {
+    return _actionsForRoute(route, const {},
+            permissions: permissions, role: role)
+        .isNotEmpty;
   }
 
-  /// Core logic: map route → list of quick actions.
+  /// Core logic: map route → list of quick actions, ya filtradas por permiso.
+  ///
+  /// La acción se oculta cuando su ruta es una pantalla de creación/edición que
+  /// el router bloquearía por falta del permiso de escritura del módulo
+  /// (`write_permissions.dart`, la MISMA fuente que usa el guard del router).
+  /// Sin permisos (SSO/compat) y para SuperAdmin no se filtra nada.
   static List<_QuickAction> _actionsForRoute(
     String currentRoute,
-    Map<String, VoidCallback> callbacks,
-  ) {
+    Map<String, VoidCallback> callbacks, {
+    List<String>? permissions,
+    String role = '',
+  }) {
+    final actions = _rawActionsForRoute(currentRoute, callbacks, role: role);
+
+    if (permissions == null || role == 'SuperAdmin') return actions;
+
+    return actions
+        .where((action) => canWriteRoute(action.route, permissions, role))
+        .toList();
+  }
+
+  static List<_QuickAction> _rawActionsForRoute(
+    String currentRoute,
+    Map<String, VoidCallback> callbacks, {
+    String role = '',
+  }) {
     // Default actions available everywhere
     final defaults = [
       _QuickAction(
@@ -371,15 +410,27 @@ class ZQuickActionsFAB extends StatelessWidget {
     }
 
     // ── Fiscal: Country Tax Configs & Regional Tax Configs ──
-    if (currentRoute.startsWith('/admin/country-tax-configs') ||
-        currentRoute.startsWith('/admin/regional-tax-configs')) {
+    // El catálogo global por país lo administra el SuperAdmin. Una compañía ajusta
+    // SU país desde la tarjeta de la página, así que ahí no hay acción de alta.
+    if (currentRoute.startsWith('/admin/country-tax-configs')) {
+      if (role.isNotEmpty && role != 'SuperAdmin') return const [];
       return [
         _QuickAction(
           icon: Icons.add_card,
           label: 'Nueva Configuración Fiscal',
-          route: currentRoute.contains('regional')
-              ? '/admin/regional-tax-configs'
-              : '/admin/country-tax-configs',
+          route: '/admin/country-tax-configs',
+          color: ZColors.success,
+          actionId: 'new_fiscal_config',
+        ),
+      ];
+    }
+
+    if (currentRoute.startsWith('/admin/regional-tax-configs')) {
+      return [
+        _QuickAction(
+          icon: Icons.add_card,
+          label: 'Nueva Configuración Fiscal',
+          route: '/admin/regional-tax-configs',
           color: ZColors.success,
           actionId: 'new_fiscal_config',
         ),

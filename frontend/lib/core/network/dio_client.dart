@@ -21,6 +21,7 @@ class DioClient {
     this.onError,
     this.onUnauthorized,
     this.dynamicHeaders,
+    HttpClientAdapter? adapter,
   }) {
     _dio = Dio(BaseOptions(
       baseUrl: '${ApiConfig.baseUrl}/',
@@ -28,6 +29,11 @@ class DioClient {
       receiveTimeout: const Duration(seconds: 60),
       headers: {'Content-Type': 'application/json'},
     ));
+
+    // Seam de test: permite inyectar un adapter falso (los tests no tienen red).
+    if (adapter != null) {
+      _dio.httpClientAdapter = adapter;
+    }
 
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {

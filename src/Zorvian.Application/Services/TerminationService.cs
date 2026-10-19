@@ -51,7 +51,24 @@ public sealed class TerminationService
     /// <param name="paidThroughDate">If provided, employee is paid through this date (pending salary = 0).</param>
     /// <param name="overtimeHours">Overtime hours worked.</param>
     /// <param name="overtimePay">Overtime pay amount.</param>
-    public async Task<TerminationRecord?> CalculateAsync(Guid employeeId, TerminationReason reason, DateOnly terminationDate, DateOnly? paidThroughDate = null, decimal overtimeHours = 0, decimal overtimePay = 0)
+    /// <param name="inssEmployeeRate">
+    /// Tasa del INSS del trabajador para ESTA liquidación (fracción: 0.07 = 7 %). Si es null
+    /// se toma de la configuración fiscal del país.
+    /// </param>
+    /// <param name="inssEmployerRate">Tasa del INSS patronal para ESTA liquidación (fracción). Null = configuración del país.</param>
+    /// <param name="otherEmployerRate">Tasa del otro aporte patronal (INATEC, Seguro Educativo, RAP…) (fracción). Null = configuración del país.</param>
+    /// <param name="otherEmployerName">Nombre del otro aporte patronal ("INATEC", "RAP"…). Null/vacío = configuración del país.</param>
+    public async Task<TerminationRecord?> CalculateAsync(
+        Guid employeeId,
+        TerminationReason reason,
+        DateOnly terminationDate,
+        DateOnly? paidThroughDate = null,
+        decimal overtimeHours = 0,
+        decimal overtimePay = 0,
+        decimal? inssEmployeeRate = null,
+        decimal? inssEmployerRate = null,
+        decimal? otherEmployerRate = null,
+        string? otherEmployerName = null)
     {
         var employee = await _employeeRepo.GetByIdAsync(employeeId)
             ?? throw new KeyNotFoundException("Employee not found");
@@ -114,17 +131,7 @@ public sealed class TerminationService
         var aguinaldoPay = 0m;
         if (deductAguinaldo)
         {
-            var aguinaldoStartMonth = taxConfig?.AguinaldoPeriodStartMonth ?? 12;
-            var aguinaldoStartDay = taxConfig?.AguinaldoPeriodStartDay ?? 1;
-            DateOnly aguinaldoStartDate;
-            if (employee.HireDate.Year < terminationDate.Year)
-            {
-                aguinaldoStartDate = new DateOnly(terminationDate.Year - 1, aguinaldoStartMonth, aguinaldoStartDay);
-            }
-            else
-            {
-                aguinaldoStartDate = employee.HireDate;
-            }
+            var aguinaldoStartDate = ResolveAguinaldoStartDate(employee.HireDate, terminationDate, taxConfig);
             var aguinaldoDaysWorked = terminationDate.DayNumber - aguinaldoStartDate.DayNumber + 1;
             var aguinaldoSalary = monthlySalary * prestacionesMultiplier;
             aguinaldoPay = Math.Round((decimal)aguinaldoDaysWorked / 365m * aguinaldoSalary, 2);
@@ -176,7 +183,26 @@ public sealed class TerminationService
         // ── 6. Deducciones: INSS + IR (solo sobre Salario Ordinario) ──
         // Base INSS = SUMAN SALARIOS (pendiente + horas extras) + vacaciones + otros conceptos
         // overtimeHours and overtimePay come from parameters (TODO: wire up overtime input form)
-        var inssRate = taxConfig != null ? taxConfig.InssEmployeeRate : 0.07m;
+        //
+        // Tasas EFECTIVAS de esta liquidación: el ajuste explícito del usuario manda
+        // sobre la configuración fiscal del país (p. ej. régimen INSS de la empresa,
+        // tamaño del empleador o un aporte que el país configurado no tiene). Se
+        // persisten en los campos *Display del registro para que el PDF imprima
+        // exactamente lo que se calculó.
+        var inssRate = ResolveRate(inssEmployeeRate, taxConfig?.InssEmployeeRate, 0.07m, "INSS del trabajador");
+        var employerRate = ResolveRate(
+            inssEmployerRate,
+            taxConfig is null
+                ? null
+                : taxConfig.InssIntegralEmployerRateSmall > 0
+                    ? taxConfig.InssIntegralEmployerRateSmall
+                    : taxConfig.InssEmployerRate,
+            0.215m,
+            "INSS patronal");
+        var inatecRate = ResolveRate(otherEmployerRate, taxConfig?.OtherEmployerRate, 0.02m, "otro aporte patronal");
+        var otherEmployerLabel = string.IsNullOrWhiteSpace(otherEmployerName)
+            ? taxConfig?.OtherEmployerName ?? "Seguro Social"
+            : otherEmployerName!.Trim();
         var inssMax = taxConfig?.InssEmployeeMax > 0 ? taxConfig.InssEmployeeMax : 0m;
 
         // INSS Laboral: solo si DeductInss = true
@@ -195,14 +221,14 @@ public sealed class TerminationService
         if (deductIr)
         {
             // IR sobre Salario Ordinario (método de proyección anual, Art. 23 Ley 822)
-            var irOnSalary = CalculateIrOnMonthlySalary(monthlySalary, taxConfig);
+            var irOnSalary = CalculateIrOnMonthlySalary(monthlySalary, taxConfig, inssRate);
             irPendingSalary = Math.Round(irOnSalary * pendingSalaryDays / 30m, 2);
 
             // IR Incremental sobre Pagos Ocionales (Art. 19.2 Reglamento Ley 822)
             // Base = SUMAN todos los pagos ocasionales (vacaciones + horas extras + otros)
             var totalOccasionalPayments = vacationPay + overtimePay;
             var occasionalNetOfInss = totalOccasionalPayments - Math.Round(totalOccasionalPayments * inssRate, 2);
-            irOnVacation = CalculateIncrementalIr(monthlySalary, occasionalNetOfInss, taxConfig);
+            irOnVacation = CalculateIncrementalIr(monthlySalary, occasionalNetOfInss, taxConfig, inssRate);
 
             // IR sobre Indemnización por Cargo de Confianza (Retención Definitiva Art. 19.3 L822)
             if (trustPositionPay > 0)
@@ -220,13 +246,9 @@ public sealed class TerminationService
 
         // ── 7. Costos patronales (informativo, no se descuenta del empleado) ──
         // Se calculan sobre vacaciones (Art. 93 Reglamento Decreto 06-2019)
-        var employerRate = taxConfig != null ? 
-            (taxConfig.InssIntegralEmployerRateSmall > 0 ? taxConfig.InssIntegralEmployerRateSmall : 
-             taxConfig.InssEmployerRate > 0 ? taxConfig.InssEmployerRate : 0.215m) : 0.215m;
         // Employer costs base = pendingSalary + vacation + overtime (all remunerative income)
         var employerCostBase = pendingSalaryPay + vacationPay + overtimePay;
         var inssPatronal = Math.Round(employerCostBase * employerRate, 2);
-        var inatecRate = taxConfig != null ? taxConfig.OtherEmployerRate : 0.02m;
         var inatec = Math.Round(employerCostBase * inatecRate, 2);
 
         // ── Build settlement record ───────────────────────────────
@@ -269,15 +291,14 @@ public sealed class TerminationService
             GrossSettlement = grossSettlement,
             TotalDeductions = totalDeductions,
             // ── Multi-country info for frontend ──
+            // Tasas EFECTIVAS (ajustadas por el usuario o tomadas del país): el PDF las imprime.
             CountryCode = employee.CountryCode,
             Currency = taxConfig?.Currency ?? "NIO",
             CountryName = taxConfig?.CountryName ?? employee.CountryCode,
-            InssEmployeeRateDisplay = taxConfig?.InssEmployeeRate ?? 0.07m,
-            InssEmployerRateDisplay = taxConfig?.InssIntegralEmployerRateSmall > 0
-                ? taxConfig.InssIntegralEmployerRateSmall
-                : taxConfig?.InssEmployerRate ?? 0.215m,
-            OtherEmployerRateDisplay = taxConfig?.OtherEmployerRate ?? 0.02m,
-            OtherEmployerName = taxConfig?.OtherEmployerName ?? "Seguro Social",
+            InssEmployeeRateDisplay = inssRate,
+            InssEmployerRateDisplay = employerRate,
+            OtherEmployerRateDisplay = inatecRate,
+            OtherEmployerName = otherEmployerLabel,
             Status = "draft"
         };
 
@@ -449,14 +470,35 @@ public sealed class TerminationService
         await _periodRepo.GetByEmployeeAsync(employeeId);
 
     /// <summary>
+    /// Resuelve la tasa efectiva de la liquidación: ajuste explícito del usuario →
+    /// configuración fiscal del país → respaldo. Valida el rango (fracción 0..1) para
+    /// no emitir un finiquito con 700 % porque se tecleó "7" en lugar de "0.07".
+    /// </summary>
+    public static decimal ResolveRate(decimal? overrideRate, decimal? configuredRate, decimal fallback, string label)
+    {
+        var rate = overrideRate ?? configuredRate ?? fallback;
+        if (rate < 0m || rate > 1m)
+            throw new InvalidOperationException(
+                $"La tasa de {label} debe estar entre 0 y 1 (0.07 = 7 %). Valor recibido: {rate}.");
+        return rate;
+    }
+
+    /// <summary>
     /// Calculates monthly IR on ordinary salary using annual projection method (Art. 23 Ley 822).
     /// Formula: ((monthlySalary - INSS) × 12) → apply bracket table → ÷ 12
     /// </summary>
-    public static decimal CalculateIrOnMonthlySalary(decimal monthlySalary, CountryTaxConfig? taxConfig)
+    /// <param name="monthlySalary">Salario mensual ordinario.</param>
+    /// <param name="taxConfig">Configuración fiscal del país (tabla de IR).</param>
+    /// <param name="inssRateOverride">
+    /// Tasa del INSS del trabajador cuando el finiquito la ajusta a mano; si es null se
+    /// usa la del país. La base gravable debe reflejar el INSS realmente deducido.
+    /// </param>
+    public static decimal CalculateIrOnMonthlySalary(
+        decimal monthlySalary, CountryTaxConfig? taxConfig, decimal? inssRateOverride = null)
     {
         if (taxConfig == null || monthlySalary <= 0) return 0m;
 
-        var inssRate = taxConfig.InssEmployeeRate;
+        var inssRate = inssRateOverride ?? taxConfig.InssEmployeeRate;
         var taxableMonthly = monthlySalary - Math.Round(monthlySalary * inssRate, 2);
         var taxableAnnual = taxableMonthly * 12;
 
@@ -468,11 +510,13 @@ public sealed class TerminationService
     /// Calculates the incremental IR that an occasional payment generates (Art. 13.2 Reglamento Ley 822).
     /// Formula: IR(salary + payment) - IR(salary alone)
     /// </summary>
-    public static decimal CalculateIncrementalIr(decimal monthlySalary, decimal occasionalPaymentNet, CountryTaxConfig? taxConfig)
+    public static decimal CalculateIncrementalIr(
+        decimal monthlySalary, decimal occasionalPaymentNet, CountryTaxConfig? taxConfig,
+        decimal? inssRateOverride = null)
     {
         if (taxConfig == null || monthlySalary <= 0 || occasionalPaymentNet <= 0) return 0m;
 
-        var inssRate = taxConfig.InssEmployeeRate;
+        var inssRate = inssRateOverride ?? taxConfig.InssEmployeeRate;
         var taxableMonthly = monthlySalary - Math.Round(monthlySalary * inssRate, 2);
         var taxableAnnual = taxableMonthly * 12;
 
@@ -542,6 +586,24 @@ public sealed class TerminationService
     }
 
     /// <summary>
+    /// Inicio del período de aguinaldo/décimo del país (<c>AguinaldoPeriodStartMonth/Day</c> de
+    /// la configuración fiscal). NIC/GTM/CRI/SLV: 1/dic del año anterior; HND: 1/ene (default).
+    /// Fuente única: la usan la liquidación (TerminationService) y el motor documental
+    /// (CertificateCalculator → plantilla "Liquidación Final").
+    /// </summary>
+    public static DateOnly ResolveAguinaldoStartDate(
+        DateOnly hireDate, DateOnly terminationDate, CountryTaxConfig? taxConfig)
+    {
+        if (hireDate.Year >= terminationDate.Year)
+            return hireDate;
+
+        return new DateOnly(
+            terminationDate.Year - 1,
+            taxConfig?.AguinaldoPeriodStartMonth ?? 12,
+            taxConfig?.AguinaldoPeriodStartDay ?? 1);
+    }
+
+    /// <summary>
     /// Calculates severance days using tiered formula (if configured) or flat formula.
     ///
     /// NIC Art. 45 CT from Excel formula =SI(G36>6;5*30;SI(G36>3;(3*30)+((G36-3)*20);G36*30)):
@@ -549,7 +611,7 @@ public sealed class TerminationService
     ///   IF(years > 3): 90 + (years - 3) * 20
     ///   ELSE: years * 30
     /// </summary>
-    internal static decimal CalculateSeveranceDays(
+    public static decimal CalculateSeveranceDays(
         int yearsOfService, CountryTaxConfig? taxConfig)
     {
         var tiers = ParseTiers(taxConfig?.IndemnityTiersJson);

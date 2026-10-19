@@ -4,15 +4,22 @@ using Zorvian.Application.DTOs.Common;
 using Zorvian.Application.DTOs.Permission;
 using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
 
 /// <summary>
 /// Controlador de permisos laborales. Administra tipos de permiso, solicitudes, aprobación, rechazo y carga de documentos adjuntos.
+/// El módulo es de AUTOSERVICIO: la solicitud la crea el propio trabajador y
+/// un Supervisor la aprueba desde la misma pantalla, así que toda la
+/// superficie exige `employee.read`; gatear la creación o la aprobación con
+/// `employee.write` rompería el autoservicio de los empleados y la aprobación
+/// de los supervisores (ninguno de los dos roles lleva ese permiso).
 /// </summary>
 [ApiController]
 [Authorize]
+[RequirePermission(Permissions.EmployeeRead)]
 [Route("zorvian/v1/leave-permissions")]
 public sealed class LeavePermissionsController : ControllerBase
 {

@@ -5,11 +5,17 @@ using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
 using Zorvian.Infrastructure.Data;
+using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers;
 
+/// <summary>
+/// Invitaciones de usuario de la compañía. El acceso lo decide el permiso
+/// granular `user.write`; la UI (nav + ruta) sigue siendo SuperAdmin-only, pero
+/// el endpoint queda listo para delegar la invitación por permiso.
+/// </summary>
 [ApiController]
-[Authorize(Roles = "SuperAdmin")]
+[Authorize]
 [Route("zorvian/v1/invitations")]
 public sealed class InvitationsController : ControllerBase
 {
@@ -23,9 +29,11 @@ public sealed class InvitationsController : ControllerBase
     }
 
     [HttpGet]
+    [RequirePermission(Permissions.UserWrite)]
     public async Task<IActionResult> List()
     {
         var invitations = await _db.Invitations
+            .Where(i => i.TenantId == _tenant.TenantId || _tenant.BypassTenantFilter)
             .OrderByDescending(i => i.CreatedAt)
             .Select(i => new
             {
@@ -43,6 +51,7 @@ public sealed class InvitationsController : ControllerBase
     }
 
     [HttpPost]
+    [RequirePermission(Permissions.UserWrite)]
     public async Task<IActionResult> Create([FromBody] CreateInvitationRequest request)
     {
         var invitation = new Invitation
@@ -58,6 +67,7 @@ public sealed class InvitationsController : ControllerBase
     }
 
     [HttpPost("{id}/regenerate")]
+    [RequirePermission(Permissions.UserWrite)]
     public async Task<IActionResult> Regenerate(Guid id)
     {
         var invitation = await _db.Invitations.FirstOrDefaultAsync(i => i.Id == id && i.TenantId == _tenant.TenantId);

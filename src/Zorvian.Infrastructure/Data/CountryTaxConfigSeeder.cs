@@ -13,7 +13,10 @@ public static class CountryTaxConfigSeeder
 {
     public static async Task SeedAsync(ZorvianDbContext db, ILogger logger)
     {
-        if (await db.CountryTaxConfigs.AnyAsync())
+        // Sólo el catálogo global: si la tabla tiene únicamente ajustes de compañía
+        // (escenario imposible hoy, pero posible tras un borrado manual) hay que sembrar.
+        if (await db.CountryTaxConfigs.AnyAsync(c =>
+                c.TenantId == CountryTaxConfig.GlobalTenantId || c.TenantId == string.Empty))
         {
             logger.LogInformation("CountryTaxConfig already seeded, skipping");
             return;
@@ -293,6 +296,14 @@ public static class CountryTaxConfigSeeder
                 IsActive = true,
             },
         };
+
+        // Todas las filas del catálogo son GLOBALES: fija el tenant centinela para que
+        // ningún interceptor/estampado las convierta en "propiedad" de una compañía.
+        foreach (var config in configs)
+        {
+            config.TenantId = CountryTaxConfig.GlobalTenantId;
+            config.CompanyId = Guid.Empty;
+        }
 
         db.CountryTaxConfigs.AddRange(configs);
         await db.SaveChangesAsync();

@@ -16,9 +16,10 @@ public sealed class AuthService
     private readonly IMfaService _mfa;
     private readonly ITenantContext _tenant;
     private readonly IEmailService _email;
+    private readonly IModuleEntitlementService _modules;
     private readonly ILogger<AuthService> _logger;
 
-    public AuthService(IAuthRepository authRepo, IFirebaseAuthService firebase, IJwtService jwt, IMfaService mfa, ITenantContext tenant, IEmailService email, ILogger<AuthService> logger)
+    public AuthService(IAuthRepository authRepo, IFirebaseAuthService firebase, IJwtService jwt, IMfaService mfa, ITenantContext tenant, IEmailService email, IModuleEntitlementService modules, ILogger<AuthService> logger)
     {
         _authRepo = authRepo;
         _firebase = firebase;
@@ -26,8 +27,23 @@ public sealed class AuthService
         _mfa = mfa;
         _tenant = tenant;
         _email = email;
+        _modules = modules;
         _logger = logger;
     }
+
+    /// <summary>
+    /// Permisos granulares efectivos del usuario (unión de los permisos de
+    /// todos sus roles, DISTINCT). Los consume el frontend para ocultar
+    /// navegación/botones; la validación autoritativa sigue siendo el JWT.
+    /// </summary>
+    private static List<string> BuildPermissions(User user) =>
+        user.UserRoles
+            .Where(ur => ur.Role is not null)
+            .SelectMany(ur => ur.Role!.RolePermissions ?? new List<RolePermission>())
+            .Select(rp => rp.PermissionCode)
+            .Distinct()
+            .OrderBy(c => c, StringComparer.Ordinal)
+            .ToList();
 
     public async Task<AuthResponse?> LoginAsync(LoginRequest request)
     {
@@ -189,6 +205,7 @@ public sealed class AuthService
 
         var currencyCode = await GetCompanyCurrencyAsync(user.TenantId);
         var company = await _authRepo.GetCompanyByTenantIdAsync(user.TenantId);
+        var plan = company?.SubscriptionPlan ?? "starter";
 
         return new UserInfo(
             user.Id.ToString(),
@@ -198,7 +215,9 @@ public sealed class AuthService
             user.TenantId,
             currencyCode,
             user.EmployeeId?.ToString(),
-            company?.SubscriptionPlan ?? "starter"
+            plan,
+            BuildPermissions(user),
+            (await _modules.GetEnabledModulesAsync(plan)).Select(m => m.ToString()).ToList()
         );
     }
 
@@ -367,7 +386,9 @@ public sealed class AuthService
                 tenantId,
                 await GetCompanyCurrencyAsync(tenantId),
                 user.EmployeeId?.ToString(),
-                company?.SubscriptionPlan ?? "starter"
+                planId,
+                BuildPermissions(user),
+                (await _modules.GetEnabledModulesAsync(planId)).Select(m => m.ToString()).ToList()
             )
         );
     }
@@ -428,7 +449,9 @@ public sealed class AuthService
                 tenantId,
                 await GetCompanyCurrencyAsync(tenantId),
                 user.EmployeeId?.ToString(),
-                company?.SubscriptionPlan ?? "starter"
+                planId,
+                BuildPermissions(user),
+                (await _modules.GetEnabledModulesAsync(planId)).Select(m => m.ToString()).ToList()
             )
         );
     }
@@ -593,7 +616,9 @@ public sealed class AuthService
                 primaryRole.Name.ToString(), newTenantId,
                 await GetCompanyCurrencyAsync(newTenantId),
                 user.EmployeeId?.ToString(),
-                company?.SubscriptionPlan ?? "starter"
+                planId,
+                BuildPermissions(user),
+                (await _modules.GetEnabledModulesAsync(planId)).Select(m => m.ToString()).ToList()
             )
         );
     }

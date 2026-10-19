@@ -158,7 +158,7 @@ public sealed class CertificateRequestService
             "laboral" => "Constancia de Empleo",
             "salarial" => "Constancia de Empleo",
             "contrato" => "Contrato de Trabajo a Término Indefinido",
-            "liquidacion" => "Liquidación Final (Nicaragua)",
+            "liquidacion" => "Liquidación Final",
             "poder" => "Poder Notarial General",
             _ => "Constancia de Empleo"
         };

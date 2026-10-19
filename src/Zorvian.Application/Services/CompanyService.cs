@@ -16,8 +16,9 @@ public sealed class CompanyService
     private readonly IRegionalTaxConfigurationRepository _regionalTaxRepo;
     private readonly ICountryTaxConfigRepository _taxConfigRepo;
     private readonly ISeedService _seedService;
+    private readonly ISubscriptionPlanRepository _plans;
 
-    public CompanyService(ICompanyRepository repo, ITenantContext tenant, IFiscalService fiscalService, IDocumentStorageService storage, IRegionalTaxConfigurationRepository regionalTaxRepo, ICountryTaxConfigRepository taxConfigRepo, ISeedService seedService)
+    public CompanyService(ICompanyRepository repo, ITenantContext tenant, IFiscalService fiscalService, IDocumentStorageService storage, IRegionalTaxConfigurationRepository regionalTaxRepo, ICountryTaxConfigRepository taxConfigRepo, ISeedService seedService, ISubscriptionPlanRepository plans)
     {
         _repo = repo;
         _tenant = tenant;
@@ -26,6 +27,7 @@ public sealed class CompanyService
         _regionalTaxRepo = regionalTaxRepo;
         _taxConfigRepo = taxConfigRepo;
         _seedService = seedService;
+        _plans = plans;
     }
 
     public async Task<List<CompanyListItemResponse>> GetAllAsync()
@@ -262,11 +264,24 @@ public sealed class CompanyService
         if (request.IsActive.HasValue) company.IsActive = request.IsActive.Value;
         if (request.SubscriptionPlan is not null)
         {
-            var plan = SubscriptionPlanConfig.GetPlan(request.SubscriptionPlan);
-            if (plan is not null)
+            // Catálogo de BD primero (permite planes personalizados creados vía
+            // CRUD de SuperAdmin); fallback a la config estática de los 3 planes.
+            var planId = request.SubscriptionPlan.Trim().ToLowerInvariant();
+            var dbPlan = await _plans.GetPlanByPlanIdAsync(planId);
+            if (dbPlan is not null)
             {
-                company.SubscriptionPlan = plan.Id;
-                company.MaxEmployees = SubscriptionPlanConfig.ClampMaxEmployees(plan.Id, company.MaxEmployees);
+                company.SubscriptionPlan = dbPlan.PlanId;
+                if (dbPlan.MaxEmployees > 0)
+                    company.MaxEmployees = Math.Min(company.MaxEmployees, dbPlan.MaxEmployees);
+            }
+            else
+            {
+                var plan = SubscriptionPlanConfig.GetPlan(planId);
+                if (plan is not null)
+                {
+                    company.SubscriptionPlan = plan.Id;
+                    company.MaxEmployees = SubscriptionPlanConfig.ClampMaxEmployees(plan.Id, company.MaxEmployees);
+                }
             }
         }
 

@@ -4,6 +4,11 @@ using Zorvian.Application.Interfaces;
 
 namespace Zorvian.Web.Controllers;
 
+/// <summary>
+/// Contadores de insignias del sidebar. Queda SIN permiso de módulo a
+/// propósito: `nav_provider` lo consulta para TODOS los roles autenticados al
+/// pintar la navegación, y un 403 dejaría el sidebar sin contadores.
+/// </summary>
 [ApiController]
 [Authorize]
 [Route("zorvian/v1/badges")]

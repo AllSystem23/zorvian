@@ -216,6 +216,7 @@ public class DocumentTemplateLiquidTests
         ["Branch.Name"] = "Sucursal Central",
         ["Branch.Address"] = "Av. Central 123",
         ["Country.Name"] = "Nicaragua",
+        ["Country.Code"] = "NIC",
         ["Country.Currency"] = "C$",
         ["Country.CurrencyName"] = "córdobas",
         ["Country.WeeklyHours"] = "48",
@@ -258,6 +259,29 @@ public class DocumentTemplateLiquidTests
         ["attorney_id"] = "001-050100-0003B",
         ["powers"] = "Administrar cuentas bancarias",
         ["scope"] = "Actos de administración",
+        // ── Liquidación Final (salida de CertificateCalculator desde CountryTaxConfig) ──
+        ["seniority"] = "3 años, 2 meses, 5 días",
+        ["salario_mensual"] = "15,000.00",
+        ["sueldo_diario"] = "500.00",
+        ["periodo_aguinaldo"] = "01/12/2025 - 12/10/2026",
+        ["aguinaldo_dias"] = "26",
+        ["aguinaldo_monto"] = "10,684.93",
+        ["vacaciones_dias"] = "15",
+        ["vacaciones_monto"] = "7,500.00",
+        ["indemnizacion_dias"] = "76.67",
+        ["indemnizacion_monto"] = "38,333.33",
+        ["inss_laboral"] = "1,050.00",
+        ["ir_ord"] = "0.00",
+        ["inss_patronal"] = "3,375.00",
+        ["inss_tasa"] = "7.00%",
+        ["inss_patronal_tasa"] = "22.50%",
+        ["other_employer_name"] = "INATEC",
+        ["other_employer_tasa"] = "2.00%",
+        ["other_employer_monto"] = "300.00",
+        ["total_ingresos"] = "71,518.26",
+        ["total_deducciones"] = "1,050.00",
+        ["neto_a_recibir"] = "70,468.26",
+        ["neto_en_letras"] = "Setenta mil cuatrocientos sesenta y ocho córdobas con 26/100",
         // ── Factura / Guía de Despacho / Guía de Remisión ──
         ["invoice_number"] = "FAC-2026-001",
         ["invoice_date"] = "12/10/2026",
@@ -364,6 +388,38 @@ public class DocumentTemplateLiquidTests
         ["total_out_qty"] = "45",
         ["current_cost"] = "250.00",
     };
+
+    /// <summary>
+    /// Mismo modelo que <see cref="RichModel"/> pero con la configuración de Costa Rica:
+    /// sirve para probar que la plantilla de liquidación deja de citar el CT nicaragüense
+    /// y toma etiquetas/tasas del país (CountryTaxConfig / ContractCountries).
+    /// </summary>
+    private static Dictionary<string, string> CostaRicaLiquidationModel()
+    {
+        var model = RichModel();
+
+        model["Country.Code"] = "CRI";
+        model["Country.Name"] = "Costa Rica";
+        model["Country.Currency"] = "₡";
+        model["Country.CurrencyName"] = "colones costarricenses";
+        model["Country.WeeklyHours"] = "48";
+        model["Country.VacationDays"] = "14";
+        model["Country.IdDocument"] = "Cédula de Identidad";
+        model["Country.LaborLaw"] = "Código de Trabajo de la República de Costa Rica";
+        model["Country.TaxAuthority"] = "Ministerio de Hacienda";
+        model["Country.SocialSecurity"] = "Caja Costarricense de Seguro Social (CCSS)";
+        model["Country.ThirteenthMonth"] = "Aguinaldo";
+        model["Country.VatLabel"] = "IVA (13%)";
+
+        model["inss_tasa"] = "10.83%";
+        model["inss_patronal_tasa"] = "26.83%";
+        model["other_employer_name"] = "";
+        model["other_employer_tasa"] = "0.00%";
+        model["other_employer_monto"] = "0.00";
+        model["neto_en_letras"] = "Setenta mil cuatrocientos sesenta y ocho colones costarricenses con 26/100";
+
+        return model;
+    }
 
     private static string InvokeBuilder(string builderName)
     {
@@ -473,17 +529,43 @@ public class DocumentTemplateLiquidTests
         rendered.Should().Contain("Art. 93 Código del Trabajo");
         rendered.Should().Contain("Art. 78 Código del Trabajo");
         rendered.Should().Contain("Art. 45 Código del Trabajo");
-        rendered.Should().Contain("7.00%");
-        rendered.Should().Contain("21.50%");
+        rendered.Should().Contain("7.00% del salario");
+        rendered.Should().Contain("22.50%");
         rendered.Should().Contain("2.00%");
         rendered.Should().Contain("INATEC");
+        rendered.Should().Contain("Aguinaldo (mes adicional en diciembre)");
         rendered.Should().Contain("NETO A RECIBIR");
         rendered.Should().Contain("Cantidad en letras");
         rendered.Should().Contain("finiquito");
         rendered.Should().Contain("María López");
         rendered.Should().Contain("001-050100-0001X");
+        rendered.Should().Contain("Cédula de Identidad", "usa el documento del país, no hardcodeado");
         rendered.Should().Contain("C$");
         rendered.Should().Contain("Av. Central 123, 12/10/2026", "fecha de elaboración cae a Company.Date por defecto");
+    }
+
+    [Fact]
+    public async Task LiquidationFinal_MultiCountry_HidesNicaraguaCitationsAndUsesCountryData()
+    {
+        var rendered = await RenderAsync(InvokeBuilder("BuildLiquidationFinalHtml"), CostaRicaLiquidationModel());
+
+        rendered.Should().Contain("LIQUIDACIÓN FINAL");
+        // Ley laboral y entidades del país (no las nicaragüenses).
+        rendered.Should().Contain("Código de Trabajo de la República de Costa Rica");
+        rendered.Should().Contain("Caja Costarricense de Seguro Social (CCSS)");
+        rendered.Should().Contain("Ministerio de Hacienda");
+        // Sin citas al CT nicaragüense ni a la Ley 822 (irrelevantes fuera del país).
+        rendered.Should().NotContain("Arts. 93, 78 y 45");
+        rendered.Should().NotContain("Ley 822");
+        rendered.Should().NotContain("Art. 93 Código del Trabajo");
+        rendered.Should().NotContain("Art. 45 Código del Trabajo");
+        rendered.Should().NotContain("INATEC");
+        // Tasas desde CountryTaxConfig y otro aporte patronal oculto (CR no lo tiene).
+        rendered.Should().Contain("10.83% del salario");
+        rendered.Should().Contain("26.83%");
+        rendered.Should().NotContain("0.00%");
+        // Moneda del país en el monto en letras.
+        rendered.Should().Contain("colones costarricenses");
     }
 
     [Fact]

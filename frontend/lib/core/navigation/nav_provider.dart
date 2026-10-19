@@ -31,10 +31,17 @@ final recentItemsProvider = NotifierProvider<RecentItemsNotifier, List<String>>(
 final filteredModulesProvider = Provider.autoDispose.family<List<NavModule>, String>((ref, role) {
   final query = ref.watch(searchQueryProvider);
   final plan = ref.watch(authProvider.select((s) => s.plan));
+  final permissions = ref.watch(authProvider.select((s) => s.permissions));
+  final serverModules = ref.watch(authProvider.select((s) => s.enabledModules));
   return NavConfig.getModulesForRole(
     role,
     searchQuery: query.isNotEmpty ? query : null,
-    enabledModules: NavConfig.enabledModulesForPlan(plan),
+    // El backend envía los módulos efectivos del plan (permite planes
+    // personalizados); sin dato se usa el mapa estático por plan.
+    enabledModules: serverModules != null
+        ? serverModules.toSet()
+        : NavConfig.enabledModulesForPlan(plan),
+    permissions: permissions?.toSet(),
   );
 });
 

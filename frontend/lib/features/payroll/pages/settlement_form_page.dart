@@ -23,6 +23,13 @@ class _SettlementFormPageState extends ConsumerState<SettlementFormPage> {
   DateTime? _paidThroughDate;
   final _overtimeHoursController = TextEditingController(text: '0');
   final _overtimePayController = TextEditingController(text: '0');
+
+  // Tasas editables del finiquito (en porcentaje: 7 = 7 %). Vacías = usar la
+  // configuración fiscal del país; se precargan con el resultado del cálculo.
+  final _inssEmployeeRateController = TextEditingController();
+  final _inssEmployerRateController = TextEditingController();
+  final _otherEmployerRateController = TextEditingController();
+  final _otherEmployerNameController = TextEditingController();
   bool _isGeneratingPdf = false;
 
   @override
@@ -37,7 +44,49 @@ class _SettlementFormPageState extends ConsumerState<SettlementFormPage> {
   void dispose() {
     _overtimeHoursController.dispose();
     _overtimePayController.dispose();
+    _inssEmployeeRateController.dispose();
+    _inssEmployerRateController.dispose();
+    _otherEmployerRateController.dispose();
+    _otherEmployerNameController.dispose();
     super.dispose();
+  }
+
+  /// Convierte un porcentaje tecleado ("7" o "7,25") a fracción (0.07). Vacío = null
+  /// para que el backend use la configuración fiscal del país.
+  double? _parsePct(String text) {
+    final trimmed = text.trim().replaceAll(',', '.');
+    if (trimmed.isEmpty) return null;
+    final value = double.tryParse(trimmed);
+    if (value == null) return null;
+    return value / 100;
+  }
+
+  String _toPct(double rate) => (rate * 100).toStringAsFixed(2);
+
+  /// Precarga las tasas del resultado solo en los campos vacíos: lo que el usuario
+  /// escribió a mano nunca se pisa al recalcular.
+  void _fillRates(SettlementResult r) {
+    if (_inssEmployeeRateController.text.trim().isEmpty) {
+      _inssEmployeeRateController.text = _toPct(r.inssEmployeeRate);
+    }
+    if (_inssEmployerRateController.text.trim().isEmpty) {
+      _inssEmployerRateController.text = _toPct(r.inssEmployerRate);
+    }
+    if (_otherEmployerRateController.text.trim().isEmpty) {
+      _otherEmployerRateController.text = _toPct(r.otherEmployerRate);
+    }
+    if (_otherEmployerNameController.text.trim().isEmpty) {
+      _otherEmployerNameController.text = r.otherEmployerName;
+    }
+  }
+
+  void _resetRates() {
+    setState(() {
+      _inssEmployeeRateController.clear();
+      _inssEmployerRateController.clear();
+      _otherEmployerRateController.clear();
+      _otherEmployerNameController.clear();
+    });
   }
 
   Future<void> _calculate() async {
@@ -48,7 +97,17 @@ class _SettlementFormPageState extends ConsumerState<SettlementFormPage> {
           paidThroughDate: _paidThroughDate,
           overtimeHours: double.tryParse(_overtimeHoursController.text) ?? 0,
           overtimePay: double.tryParse(_overtimePayController.text) ?? 0,
+          inssEmployeeRate: _parsePct(_inssEmployeeRateController.text),
+          inssEmployerRate: _parsePct(_inssEmployerRateController.text),
+          otherEmployerRate: _parsePct(_otherEmployerRateController.text),
+          otherEmployerName: _otherEmployerNameController.text.trim().isEmpty
+              ? null
+              : _otherEmployerNameController.text.trim(),
         );
+    final result = ref.read(settlementProvider).value;
+    if (result != null && mounted) {
+      setState(() => _fillRates(result));
+    }
   }
 
   Future<void> _downloadPdf() async {
@@ -398,6 +457,100 @@ class _SettlementFormPageState extends ConsumerState<SettlementFormPage> {
                   ],
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: ZSpacing.lg),
+          _buildRatesCard(isDark, r),
+        ],
+      ),
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  TASAS EDITABLES (INSS / aportes patronales)
+  // ══════════════════════════════════════════════════════════════
+  /// Tasas del finiquito. Se precargan de la configuración fiscal del país tras el
+  /// primer cálculo y se pueden ajustar para ESTA liquidación (se guardan en el
+  /// registro y el PDF imprime exactamente lo calculado).
+  Widget _buildRatesCard(bool isDark, SettlementResult? r) {
+    final country = (r?.countryName.isNotEmpty ?? false) ? r!.countryName : 'el país del trabajador';
+    return Container(
+      padding: const EdgeInsets.all(ZSpacing.lg),
+      decoration: BoxDecoration(
+        color: isDark ? ZColors.neutral800.withAlpha(50) : ZColors.neutral50,
+        borderRadius: BorderRadius.circular(ZRadii.md),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.percent, size: 16, color: ZColors.brandAccent),
+              const SizedBox(width: ZSpacing.sm),
+              Expanded(
+                child: Text('Tasas de la Liquidación (Editables)', style: ZTypography.titleSmall),
+              ),
+              TextButton.icon(
+                onPressed: _resetRates,
+                icon: const Icon(Icons.restart_alt, size: 16),
+                label: const Text('Restablecer'),
+              ),
+            ],
+          ),
+          const SizedBox(height: ZSpacing.xs),
+          Text(
+            'Precargadas de la configuración fiscal de $country. '
+            'Ajuste las que apliquen a este finiquito antes de calcular (7 = 7 %). '
+            'Si se dejan vacías se usan las del país.',
+            style: ZTypography.bodySmall.copyWith(
+              color: isDark ? ZColors.neutral400 : ZColors.neutral600,
+            ),
+          ),
+          const SizedBox(height: ZSpacing.md),
+          Row(
+            children: [
+              Expanded(
+                child: ZTextField(
+                  controller: _inssEmployeeRateController,
+                  label: 'INSS Trabajador (%)',
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                ),
+              ),
+              const SizedBox(width: ZSpacing.lg),
+              Expanded(
+                child: ZTextField(
+                  controller: _inssEmployerRateController,
+                  label: 'INSS Patronal (%)',
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: ZSpacing.md),
+          Row(
+            children: [
+              Expanded(
+                child: ZTextField(
+                  controller: _otherEmployerRateController,
+                  label: 'Otro Aporte Patronal (%)',
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                ),
+              ),
+              const SizedBox(width: ZSpacing.lg),
+              Expanded(
+                child: ZTextField(
+                  controller: _otherEmployerNameController,
+                  label: 'Nombre del otro aporte (INATEC, RAP)',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: ZSpacing.sm),
+          Text(
+            'El IR se calcula con la tabla progresiva del país usando la tasa de INSS indicada.',
+            style: ZTypography.bodySmall.copyWith(
+              color: isDark ? ZColors.neutral400 : ZColors.neutral600,
+              fontStyle: FontStyle.italic,
             ),
           ),
         ],

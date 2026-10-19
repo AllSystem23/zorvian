@@ -1,6 +1,7 @@
 using Zorvian.Application.DTOs.SubscriptionPlan;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
+using Zorvian.Core.Enums;
 
 namespace Zorvian.Application.Services;
 
@@ -15,19 +16,22 @@ public sealed class SubscriptionPlanService
     public async Task<List<SubscriptionPlanResponse>> GetAllPlansAsync()
     {
         var plans = await _repo.GetAllPlansAsync();
-        return plans.Select(MapPlanResponse).ToList();
+        return await MapPlansWithModulesAsync(plans);
     }
 
     public async Task<List<SubscriptionPlanResponse>> GetActivePlansAsync()
     {
         var plans = await _repo.GetActivePlansAsync();
-        return plans.Select(MapPlanResponse).ToList();
+        return await MapPlansWithModulesAsync(plans);
     }
 
     public async Task<SubscriptionPlanResponse?> GetPlanByIdAsync(Guid id)
     {
         var plan = await _repo.GetPlanByIdAsync(id);
-        return plan is null ? null : MapPlanResponse(plan);
+        if (plan is null) return null;
+
+        var modules = await _repo.GetModulesByPlanIdAsync(plan.PlanId);
+        return MapPlanResponse(plan, modules.Select(m => m.Module.ToString()).ToList());
     }
 
     public async Task<SubscriptionPlanResponse> CreatePlanAsync(CreateSubscriptionPlanRequest request)
@@ -57,7 +61,7 @@ public sealed class SubscriptionPlanService
         await _repo.AddPlanAsync(plan);
         await _repo.SaveChangesAsync();
 
-        return MapPlanResponse(plan);
+        return MapPlanResponse(plan, new List<string>());
     }
 
     public async Task<SubscriptionPlanResponse?> UpdatePlanAsync(Guid id, UpdateSubscriptionPlanRequest request)
@@ -77,7 +81,32 @@ public sealed class SubscriptionPlanService
         await _repo.UpdatePlanAsync(plan);
         await _repo.SaveChangesAsync();
 
-        return MapPlanResponse(plan);
+        var modules = await _repo.GetModulesByPlanIdAsync(plan.PlanId);
+        return MapPlanResponse(plan, modules.Select(m => m.Module.ToString()).ToList());
+    }
+
+    /// <summary>
+    /// Reemplaza el conjunto de módulos habilitados para un plan.
+    /// Es lo que define qué "oferta por módulos" recibe cada compañía
+    /// (el `ModuleEnforcementFilter` y el frontend los leen del plan).
+    /// </summary>
+    public async Task<SubscriptionPlanResponse?> UpdatePlanModulesAsync(Guid id, IReadOnlyCollection<string> modules)
+    {
+        var plan = await _repo.GetPlanByIdAsync(id);
+        if (plan is null) return null;
+
+        var parsed = new List<ModuleType>();
+        foreach (var name in modules.Where(m => !string.IsNullOrWhiteSpace(m)).Select(m => m.Trim()))
+        {
+            if (!Enum.TryParse<ModuleType>(name, ignoreCase: true, out var module))
+                throw new InvalidOperationException($"Módulo desconocido: '{name}'. Valores válidos: {string.Join(", ", Enum.GetNames<ModuleType>())}.");
+            if (!parsed.Contains(module)) parsed.Add(module);
+        }
+
+        await _repo.ReplaceModulesAsync(plan.PlanId, parsed);
+        await _repo.SaveChangesAsync();
+
+        return MapPlanResponse(plan, parsed.Select(m => m.ToString()).OrderBy(m => m).ToList());
     }
 
     public async Task<bool> DeletePlanAsync(Guid id)
@@ -203,10 +232,21 @@ public sealed class SubscriptionPlanService
 
     // ── Mapping ──
 
-    private static SubscriptionPlanResponse MapPlanResponse(SubscriptionPlan p) => new(
+    private async Task<List<SubscriptionPlanResponse>> MapPlansWithModulesAsync(List<SubscriptionPlan> plans)
+    {
+        var result = new List<SubscriptionPlanResponse>(plans.Count);
+        foreach (var p in plans)
+        {
+            var modules = await _repo.GetModulesByPlanIdAsync(p.PlanId);
+            result.Add(MapPlanResponse(p, modules.Select(m => m.Module.ToString()).ToList()));
+        }
+        return result;
+    }
+
+    private static SubscriptionPlanResponse MapPlanResponse(SubscriptionPlan p, List<string>? modules = null) => new(
         p.Id, p.PlanId, p.Name, p.Price, p.Period,
         p.MaxEmployees, p.IsPopular, p.ShortDescription,
-        p.IsActive, p.CreatedAt, p.UpdatedAt
+        p.IsActive, p.CreatedAt, p.UpdatedAt, modules
     );
 
     private static CompanyPlanPricingResponse MapPricingResponse(CompanyPlanPricing p) => new(

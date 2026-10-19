@@ -84,7 +84,7 @@ Auditoría de la cadena Zorvian ← PalmTrack (proxy de lectura, webhooks y dash
 - Contrapartida: **1.1.01 Caja General**.
 - Exige **AccountingPeriod abierto** del mes de la fecha del gasto → si no, `422 accounting_period_closed`.
 - Asiento en estado **DRAFT** = la cola de reconciliación contable del doc: visible para revisión/afinación de cuentas antes de postear.
-- `payment_proofs` (imágenes en Firebase Storage) pendiente: requiere diseño de almacenamiento en Zorvian.
+- `payment_proofs` (imágenes en Firebase Storage) **pendiente, con bloqueo explícito**: Zorvian ya tiene el diseño de almacenamiento (`IDocumentStorageService` + bucket privado + URLs firmadas V4), pero implementarlo requiere (a) confirmar contra un payload real de PalmTrack la forma exacta del campo (`payment_proofs`/URLs/expiración) —los DTOs de este webhook siguen sin verificar contra producción— y (b) una decisión de producto sobre dónde cuelga el adjunto (¿`AccountingEntry`? ¿entidad de adjuntos genérica?). Con las imágenes vivas en el Storage de PalmTrack, la descarga + re-carga al bucket de Zorvian sería el paso siguiente. No se implementa a ciegas para no codificar contra un contrato no verificado.
 
 ---
 

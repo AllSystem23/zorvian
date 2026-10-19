@@ -5,11 +5,17 @@ using Zorvian.Infrastructure.Services;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
 using Zorvian.Infrastructure.Data;
+using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers;
 
+/// <summary>
+/// API Keys de la compañía. El acceso lo decide el permiso granular
+/// `apikey.manage` (CompanyAdmin lo trae sembrado por compatibilidad; solo
+/// SuperAdmin puede otorgarlo/revocarlo, ver `PermissionCatalog.SuperAdminOnly`).
+/// </summary>
 [ApiController]
-[Authorize(Roles = "SuperAdmin,CompanyAdmin")]
+[Authorize]
 [Route("zorvian/v1/api-keys")]
 public sealed class ApiKeysController : ControllerBase
 {
@@ -25,6 +31,7 @@ public sealed class ApiKeysController : ControllerBase
     }
 
     [HttpGet]
+    [RequirePermission(Permissions.ApiKeyManage)]
     public async Task<IActionResult> GetKeys()
     {
         var keys = await _db.Set<ApiKey>()
@@ -35,6 +42,7 @@ public sealed class ApiKeysController : ControllerBase
     }
 
     [HttpPost]
+    [RequirePermission(Permissions.ApiKeyManage)]
     public async Task<IActionResult> CreateKey([FromBody] CreateApiKeyRequest request)
     {
         var (key, id) = await _service.CreateApiKeyAsync(request.Name, _tenant.TenantId, request.ExpiresAt);
@@ -42,6 +50,7 @@ public sealed class ApiKeysController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [RequirePermission(Permissions.ApiKeyManage)]
     public async Task<IActionResult> DeleteKey(Guid id)
     {
         var key = await _db.Set<ApiKey>().FindAsync(id);

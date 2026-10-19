@@ -8,8 +8,18 @@ using Zorvian.Web.Filters;
 namespace Zorvian.Web.Controllers;
 
 /// <summary>
-/// Configuración fiscal por país. Catálogo global de configuraciones de INSS, IR, prestaciones.
+/// Configuración fiscal por país. La tabla combina un CATÁLOGO GLOBAL (una fila por
+/// país, compartida por todas las compañías) con AJUSTES POR COMPAÑÍA (cada empresa
+/// puede redefinir las tasas de su país sin afectar a las demás).
 /// </summary>
+/// <remarks>
+/// Catálogo global: la lectura queda abierta a quien ya usa contabilidad/nómina, pero
+/// la ESCRITURA exige <see cref="Permissions.CompanyManage"/> (plataforma = SuperAdmin);
+/// con <see cref="Permissions.AccountingWrite"/> cualquier CompanyAdmin podía reescribir
+/// las tasas de todos los tenants. Los endpoints <c>my-country</c> son el camino para
+/// que la compañía ajuste SU país: escriben una fila con su tenant y exigen
+/// <see cref="Permissions.SettingsWrite"/>.
+/// </remarks>
 [ApiController]
 [Authorize]
 [Route("zorvian/v1/country-tax-configs")]
@@ -54,12 +64,63 @@ public sealed class CountryTaxConfigsController : ControllerBase
         return Ok(item);
     }
 
+    // ── Ajuste de la compañía (CompanyAdmin) ──────────────────────────────────
+
+    /// <summary>
+    /// Configuración fiscal del país de la compañía: valores EFECTIVOS (su ajuste si
+    /// existe, si no el catálogo global) e indicador de si son propios.
+    /// </summary>
+    [HttpGet("my-country")]
+    [RequirePermission(Permissions.SettingsRead)]
+    public async Task<IActionResult> GetMyCountry()
+    {
+        var item = await _service.GetMyCountryAsync();
+        if (item is null)
+            return NotFound(new { error = "El ajuste fiscal por compañía requiere una compañía seleccionada." });
+        return Ok(item);
+    }
+
+    /// <summary>
+    /// Guarda el ajuste fiscal de la compañía para su país. Crea la fila propia a
+    /// partir del catálogo global la primera vez (los campos omitidos se heredan) y
+    /// nunca modifica la fila global ni la de otra compañía.
+    /// </summary>
+    [Audit("CountryTaxConfig", "CompanyUpsert")]
+    [HttpPut("my-country")]
+    [RequirePermission(Permissions.SettingsWrite)]
+    public async Task<IActionResult> UpsertMyCountry([FromBody] UpdateCountryTaxConfigRequest request)
+    {
+        try
+        {
+            var item = await _service.UpsertMyCountryAsync(request);
+            return Ok(item);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Descarta el ajuste propio de la compañía: vuelve a usar el catálogo global.
+    /// </summary>
+    [Audit("CountryTaxConfig", "CompanyReset")]
+    [HttpDelete("my-country")]
+    [RequirePermission(Permissions.SettingsWrite)]
+    public async Task<IActionResult> ResetMyCountry([FromQuery] string? countryCode)
+    {
+        var deleted = await _service.ResetMyCountryAsync(countryCode);
+        if (!deleted)
+            return NotFound(new { error = "La compañía no tiene un ajuste fiscal propio que restablecer." });
+        return NoContent();
+    }
+
     /// <summary>
     /// Crea una nueva configuración fiscal por país.
     /// </summary>
     [Audit("CountryTaxConfig", "Create")]
     [HttpPost]
-    [RequirePermission(Permissions.AccountingWrite)]
+    [RequirePermission(Permissions.CompanyManage)]
     public async Task<IActionResult> Create([FromBody] CreateCountryTaxConfigRequest request)
     {
         try
@@ -78,7 +139,7 @@ public sealed class CountryTaxConfigsController : ControllerBase
     /// </summary>
     [Audit("CountryTaxConfig", "Update")]
     [HttpPut("{id:guid}")]
-    [RequirePermission(Permissions.AccountingWrite)]
+    [RequirePermission(Permissions.CompanyManage)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateCountryTaxConfigRequest request)
     {
         try
@@ -98,7 +159,7 @@ public sealed class CountryTaxConfigsController : ControllerBase
     /// </summary>
     [Audit("CountryTaxConfig", "Delete")]
     [HttpDelete("{id:guid}")]
-    [RequirePermission(Permissions.AccountingWrite)]
+    [RequirePermission(Permissions.CompanyManage)]
     public async Task<IActionResult> Delete(Guid id)
     {
         var deleted = await _service.DeleteAsync(id);

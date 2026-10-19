@@ -17,6 +17,7 @@ public sealed class AuthServiceExtendedTests
     private readonly Mock<IMfaService> _mfa = new();
     private readonly Mock<ITenantContext> _tenant = new();
     private readonly Mock<IEmailService> _email = new();
+    private readonly Mock<IModuleEntitlementService> _modules = new();
     private readonly Mock<ILogger<AuthService>> _logger = new();
     private readonly AuthService _sut;
 
@@ -26,7 +27,9 @@ public sealed class AuthServiceExtendedTests
         _mfa.Setup(m => m.ValidateMfaToken(It.IsAny<string>())).Returns((Guid?)null);
         _tenant.Setup(t => t.TenantId).Returns(TenantId.FromString(Guid.NewGuid().ToString()));
         _tenant.Setup(t => t.IsSuperAdmin).Returns(false);
-        _sut = new AuthService(_authRepo.Object, _firebase.Object, _jwt.Object, _mfa.Object, _tenant.Object, _email.Object, _logger.Object);
+        _modules.Setup(m => m.GetEnabledModulesAsync(It.IsAny<string>()))
+            .ReturnsAsync(new HashSet<ModuleType>());
+        _sut = new AuthService(_authRepo.Object, _firebase.Object, _jwt.Object, _mfa.Object, _tenant.Object, _email.Object, _modules.Object, _logger.Object);
     }
 
     private User MakeUser() => new()

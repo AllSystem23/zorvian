@@ -86,12 +86,14 @@ final class _WarehouseListPageState extends ConsumerState<WarehouseListPage> {
         .toList();
 
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'add-warehouse',
-        onPressed: () => _openForm(),
-        icon: const Icon(Icons.add),
-        label: const Text('Nueva Bodega'),
-      ),
+      floatingActionButton: ref.canWriteLocation('/warehouses/form')
+          ? FloatingActionButton.extended(
+              heroTag: 'add-warehouse',
+              onPressed: () => _openForm(),
+              icon: const Icon(Icons.add),
+              label: const Text('Nueva Bodega'),
+            )
+          : null,
       body: Column(
         children: [
           Padding(

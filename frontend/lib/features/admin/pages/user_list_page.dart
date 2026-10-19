@@ -1,9 +1,11 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:zorvian/shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
 import '../providers/user_provider.dart';
+import '../providers/user_management_provider.dart';
 import '../models/user_model.dart';
 
 class UserListPage extends ConsumerStatefulWidget {
@@ -78,10 +80,79 @@ class _UserListPageState extends ConsumerState<UserListPage> {
     }
   }
 
+  /// Asigna un rol al usuario — incluye los roles PERSONALIZADOS creados en
+  /// `/admin/roles` (`GET users/roles` los devuelve junto a los del sistema).
+  Future<void> _assignRole(UserModel user, List<RoleOption> options) async {
+    if (_isCurrentUser(user)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No puedes cambiar tu propio rol: solicítalo a otro administrador'),
+          backgroundColor: ZColors.danger,
+        ),
+      );
+      return;
+    }
+
+    final isSuperAdmin = ref.read(authProvider).role == 'SuperAdmin';
+    final assignable =
+        options.where((o) => isSuperAdmin || !o.isPlatform).toList();
+    if (assignable.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudieron cargar los roles'),
+          backgroundColor: ZColors.danger,
+        ),
+      );
+      return;
+    }
+
+    RoleOption? current;
+    for (final option in assignable) {
+      if (user.roles.contains(option.displayName)) {
+        current = option;
+        break;
+      }
+    }
+
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (_) => _RolePickerDialog(
+        userName: user.displayName,
+        options: assignable,
+        initialRoleId: current?.id,
+      ),
+    );
+    if (selected == null || selected == current?.id || !mounted) return;
+
+    try {
+      await ref.read(userProvider.notifier).updateUserRole(user.id, selected);
+      if (!mounted) return;
+      final label =
+          assignable.firstWhere((o) => o.id == selected).label;
+      ZToast.show(
+        context,
+        'Rol de "${user.displayName}" actualizado a "$label".',
+        type: ZToastType.success,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      final data = e is DioException ? e.response?.data : null;
+      final message = data is Map && data['error'] != null
+          ? '${data['error']}'
+          : 'No se pudo asignar el rol';
+      ZToast.show(context, message, type: ZToastType.error);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(userProvider);
     final currentUserId = ref.watch(authProvider).userId;
+    final auth = ref.watch(authProvider);
+    final canManageUsers = auth.hasPermission('user.manage');
+    final canInvite = auth.hasPermission('user.write');
+    // Mantiene vivo el provider (autoDispose) que alimenta el diálogo de roles.
+    final rolesAsync = ref.watch(rolesProvider);
 
     return Scaffold(
       body: Padding(
@@ -97,12 +168,13 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                 ),
-                ZButton(
-                  text: 'Invitar Usuario',
-                  icon: Icons.person_add_outlined,
-                  fullWidth: false,
-                  onPressed: () => context.push('/admin/invite'),
-                ),
+                if (canInvite)
+                  ZButton(
+                    text: 'Invitar Usuario',
+                    icon: Icons.person_add_outlined,
+                    fullWidth: false,
+                    onPressed: () => context.push('/admin/invite'),
+                  ),
               ],
             ),
             const SizedBox(height: ZSpacing.md),
@@ -115,8 +187,9 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                     columns: const [
                       ZColumn(id: 'name', label: 'Nombre'),
                       ZColumn(id: 'email', label: 'Email'),
+                      ZColumn(id: 'role', label: 'Rol'),
                       ZColumn(id: 'active', label: 'Estado'),
-                      ZColumn(id: 'actions', label: 'Acciones', width: 120),
+                      ZColumn(id: 'actions', label: 'Acciones', width: 160),
                     ],
                     rows: users,
                     selectionEnabled: true,
@@ -203,21 +276,50 @@ class _UserListPageState extends ConsumerState<UserListPage> {
                           ),
                         ),
                         DataCell(Text(item.email)),
+                        DataCell(
+                          Text(
+                            item.roles.isEmpty ? '—' : item.roles.join(', '),
+                            style: ZTypography.bodySmall,
+                          ),
+                        ),
                         DataCell(ZBadge(
                           text: item.isActive ? 'ACTIVO' : 'INACTIVO',
                           type: item.isActive ? ZBadgeType.success : ZBadgeType.danger,
                         )),
                         DataCell(
-                          IconButton(
-                            icon: Icon(
-                              item.isActive ? Icons.block_outlined : Icons.check_circle_outline,
-                              size: 18,
-                              color: isMe ? ZColors.neutral400 : (item.isActive ? ZColors.danger : ZColors.success),
-                            ),
-                            tooltip: isMe
-                                ? 'No puedes desactivar tu propia cuenta'
-                                : (item.isActive ? 'Desactivar' : 'Activar'),
-                            onPressed: isMe ? null : () => _toggleActive(item),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (canManageUsers)
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.manage_accounts_outlined,
+                                    size: 18,
+                                    color: isMe ? ZColors.neutral400 : ZColors.brandAccent,
+                                  ),
+                                  tooltip: isMe
+                                      ? 'No puedes cambiar tu propio rol'
+                                      : 'Asignar rol',
+                                  onPressed: isMe
+                                      ? null
+                                      : () => _assignRole(
+                                            item,
+                                            rolesAsync.asData?.value ??
+                                                const <RoleOption>[],
+                                          ),
+                                ),
+                              IconButton(
+                                icon: Icon(
+                                  item.isActive ? Icons.block_outlined : Icons.check_circle_outline,
+                                  size: 18,
+                                  color: isMe ? ZColors.neutral400 : (item.isActive ? ZColors.danger : ZColors.success),
+                                ),
+                                tooltip: isMe
+                                    ? 'No puedes desactivar tu propia cuenta'
+                                    : (item.isActive ? 'Desactivar' : 'Activar'),
+                                onPressed: isMe ? null : () => _toggleActive(item),
+                              ),
+                            ],
                           ),
                         ),
                       ]);
@@ -229,6 +331,79 @@ class _UserListPageState extends ConsumerState<UserListPage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Selector de rol de un usuario. Devuelve el `id` del rol elegido, o `null`
+/// si se cancela.
+class _RolePickerDialog extends StatefulWidget {
+  const _RolePickerDialog({
+    required this.userName,
+    required this.options,
+    this.initialRoleId,
+  });
+
+  final String userName;
+  final List<RoleOption> options;
+  final String? initialRoleId;
+
+  @override
+  State<_RolePickerDialog> createState() => _RolePickerDialogState();
+}
+
+class _RolePickerDialogState extends State<_RolePickerDialog> {
+  String? _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = widget.initialRoleId ?? widget.options.first.id;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Asignar rol'),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 380),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Usuario: ${widget.userName}', style: ZTypography.bodySmall),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: _selected,
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: 'Rol'),
+              items: widget.options
+                  .map((o) => DropdownMenuItem<String>(
+                        value: o.id,
+                        child: Text(o.label, overflow: TextOverflow.ellipsis),
+                      ))
+                  .toList(),
+              onChanged: (value) => setState(() => _selected = value),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'El usuario verá el nuevo rol al refrescar su sesión.',
+              style: ZTypography.bodySmall.copyWith(color: ZColors.neutral500),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        ZButton(
+          text: 'Guardar',
+          fullWidth: false,
+          onPressed: () => Navigator.pop(context, _selected),
+        ),
+      ],
     );
   }
 }

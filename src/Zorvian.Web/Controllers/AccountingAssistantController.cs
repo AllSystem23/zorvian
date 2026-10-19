@@ -3,9 +3,15 @@ using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.ML;
 using Zorvian.Core.Interfaces;
 using Zorvian.Infrastructure.Services;
+using Zorvian.Web.Authorization;
 
 namespace Zorvian.Web.Controllers;
 
+/// <summary>
+/// Asistente contable (anomalías de asientos). Superficie de BI: la consume el
+/// dashboard financiero, que ya exige `kpi.read`, así que el endpoint usa el
+/// mismo permiso.
+/// </summary>
 [ApiController]
 [Authorize]
 [Route("zorvian/v1/accounting-assistant")]
@@ -26,6 +32,7 @@ public sealed class AccountingAssistantController : ControllerBase
     }
 
     [HttpGet("anomalies")]
+    [RequirePermission(Permissions.KpiRead)]
     public async Task<IActionResult> GetAnomalies([FromQuery] int daysBack = 30)
     {
         var result = await _service.DetectAnomaliesAsync(daysBack);

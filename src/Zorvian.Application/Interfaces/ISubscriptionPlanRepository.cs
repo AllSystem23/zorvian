@@ -1,5 +1,6 @@
 using Zorvian.Application.DTOs.SubscriptionPlan;
 using Zorvian.Core.Entities;
+using Zorvian.Core.Enums;
 
 namespace Zorvian.Application.Interfaces;
 
@@ -14,6 +15,10 @@ public interface ISubscriptionPlanRepository
     Task AddPlanAsync(SubscriptionPlan plan);
     Task UpdatePlanAsync(SubscriptionPlan plan);
     Task DeletePlanAsync(SubscriptionPlan plan);
+
+    // Plan modules (module entitlement catalog per plan)
+    Task<List<PlanModule>> GetModulesByPlanIdAsync(string planId);
+    Task ReplaceModulesAsync(string planId, IReadOnlyCollection<ModuleType> modules);
 
     // Per-company pricing
     Task<List<CompanyPlanPricing>> GetAllPricingAsync();

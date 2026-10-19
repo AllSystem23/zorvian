@@ -8,6 +8,8 @@ namespace Zorvian.Web.Controllers;
 /// <summary>
 /// Controlador de Kiosko. Permite marcación de asistencia mediante código de empleado
 /// en dispositivos compartidos (tablets en sucursales).
+/// Sin permiso de módulo a propósito: la marcación es autoservicio del
+/// trabajador en el dispositivo de la sucursal.
 /// </summary>
 [ApiController]
 [Authorize]

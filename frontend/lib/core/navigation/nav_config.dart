@@ -283,6 +283,7 @@ final class NavConfig {
         NavItem(id: 'empresas', label: 'Gestión de Empresas', icon: Icons.business_outlined, route: '/admin/companies', roles: ['SuperAdmin']),
         NavItem(id: 'planes', label: 'Planes de Suscripción', icon: Icons.workspace_premium_outlined, route: '/admin/subscription-plans', roles: ['SuperAdmin']),
         NavItem(id: 'usuarios', label: 'Usuarios y Seguridad', icon: Icons.manage_accounts_outlined, route: '/admin/users'),
+        NavItem(id: 'roles-permisos', label: 'Roles y Permisos', icon: Icons.security_outlined, route: '/admin/roles', roles: ['SuperAdmin', 'CompanyAdmin']),
         NavItem(id: 'invitar', label: 'Invitar Usuario', icon: Icons.person_add_outlined, route: '/admin/invite', roles: ['SuperAdmin']),
         NavItem(id: 'invitaciones-historial', label: 'Historial Invitaciones', icon: Icons.history_outlined, route: '/admin/invitations-history', roles: ['SuperAdmin']),
         NavItem(id: 'sucursales', label: 'Sucursales', icon: Icons.store_outlined, route: '/branches'),
@@ -304,14 +305,115 @@ final class NavConfig {
       group: 'admin',
       roles: ['SuperAdmin', 'CompanyAdmin'],
       children: [
-        NavItem(id: 'country-tax', label: 'Config Fiscal por País', icon: Icons.policy_outlined, route: '/admin/country-tax-configs', roles: ['SuperAdmin']),
+        NavItem(id: 'country-tax', label: 'Config Fiscal por País', icon: Icons.policy_outlined, route: '/admin/country-tax-configs', roles: ['SuperAdmin', 'CompanyAdmin']),
         NavItem(id: 'regional-tax', label: 'Tasas Fiscales Regionales', icon: Icons.receipt_long_outlined, route: '/admin/regional-tax-configs', roles: ['SuperAdmin', 'CompanyAdmin']),
       ],
     ),
   ];
 
+  /// Permiso granular de lectura requerido por ítem de navegación (id → código
+  /// del catálogo `PermissionCatalog`). Los ítems no listados NO se filtran por
+  /// permiso (solo rol + plan), lo que permite migrar incrementalmente.
+  /// Mapeo derivado de los `RequirePermission` reales de cada controller.
+  static const Map<String, String> itemPermissions = {
+    // Ventas
+    'cotizaciones': 'sale.read',
+    'comercial': 'sale.read',
+    'creditos': 'credit.read',
+    'creditos-vencidos': 'credit.read',
+    'clientes': 'client.read',
+    'notas-credito': 'credit.read',
+    'pos': 'sale.read',
+    'crm': 'sale.read',
+    // Inventario
+    'productos': 'inventory.read',
+    'categorias': 'inventory.read',
+    'marcas': 'inventory.read',
+    'movimientos-inv': 'inventory.read',
+    'transferencias-inv': 'inventory.read',
+    'bodegas-inv': 'inventory.read',
+    'ajustes-inv': 'inventory.read',
+    'garantias': 'warranty.read',
+    'talleres': 'fleet.read',
+    // Compras
+    'facturas-compra': 'purchase.read',
+    'compras-ordenes': 'purchase.read',
+    'compras-solicitudes': 'purchase.read',
+    'proveedores': 'purchase.read', // /suppliers → SuppliersController (PurchaseRead)
+    'pagos-proveedores': 'purchase.read',
+    'notas-credito-proveedores': 'purchase.read',
+    // Flota
+    'flota-dashboard': 'fleet.read',
+    'flota-vehiculos': 'fleet.read',
+    'flota-conductores': 'fleet.read',
+    'flota-rutas': 'fleet.read',
+    'flota-entregas': 'fleet.read',
+    'flota-viajes': 'fleet.read',
+    'flota-combustible': 'fleet.read',
+    'flota-mantenimientos': 'fleet.read',
+    'flota-taller': 'fleet.read',
+    'flota-documentos': 'fleet.read',
+    'flota-gastos': 'fleet.read',
+    'flota-gps': 'fleet.read',
+    'flota-alertas': 'fleet.read',
+    'flota-tracking': 'fleet.read',
+    'flota-predictive': 'fleet.read',
+    'flota-catalogos': 'fleet.config',
+    'flota-reportes': 'fleet.read',
+    // Finanzas
+    'caja': 'cash.read',
+    'tesoreria': 'accounting.read',
+    'contabilidad': 'accounting.read',
+    'catalogo-cuentas': 'accounting.read',
+    'tipo-cambio': 'accounting.read',
+    'presupuestos': 'accounting.read',
+    'presupuesto-vs-real': 'accounting.read',
+    'conciliaciones': 'accounting.read',
+    'centros-costo': 'accounting.read',
+    // Talento
+    'empleados': 'employee.read',
+    'departamentos': 'employee.read',
+    'asistencia': 'employee.read',
+    'nomina': 'payroll.read',
+    'prestadores': 'provider.read',
+    'prestadores-dashboard': 'provider.read',
+    'vacaciones': 'employee.read',
+    'recibos-vacaciones': 'employee.read',
+    'pagos-prestadores': 'payroll.read',
+    'constancias': 'employee.read',
+    'metas': 'goal.read',
+    // BI
+    'bi-financiero': 'kpi.read',
+    'bi-comercial': 'kpi.read',
+    'bi-operacional': 'kpi.read',
+    'reportes-custom': 'report.read',
+    // Administración
+    'empresas': 'company.manage',
+    'usuarios': 'user.read',
+    'roles-permisos': 'role.manage',
+    'invitar': 'user.write',
+    'invitaciones-historial': 'user.write',
+    'documental': 'document.read',
+    'auditoria': 'audit.read',
+    // Fiscal
+    'country-tax': 'accounting.read',
+    'regional-tax': 'accounting.read',
+  };
+
   /// Módulos habilitados por plan (espejo del catálogo `PlanModule` del backend).
   /// `enterprise` habilita todos los módulos del catálogo.
+  /// Roles del SISTEMA (los 7 sembrados por el backend). Un rol personalizado
+  /// (`RoleType.Custom`) NO está aquí: su acceso lo deciden sus permisos.
+  static const Set<String> systemRoles = {
+    'SuperAdmin',
+    'CompanyAdmin',
+    'Rrhh',
+    'Supervisor',
+    'Employee',
+    'Accountant',
+    'Dispatcher',
+  };
+
   static const Map<String, List<String>> modulesByPlan = {
     'starter': ['Sales', 'Inventory', 'Hr', 'Administration'],
     'professional': [
@@ -335,8 +437,19 @@ final class NavConfig {
     String role, {
     String? searchQuery,
     Set<String>? enabledModules,
+    Set<String>? permissions,
   }) {
     final bypass = role == 'SuperAdmin';
+    // Un rol PERSONALIZADO (RoleType.Custom en el backend) no aparece en las
+    // listas `roles` de módulos/ítems: su visibilidad la deciden sus permisos
+    // granulares, así que para él se omite el filtro por rol.
+    final isSystemRole = systemRoles.contains(role);
+
+    bool roleAllowedOnModule(NavModule m) =>
+        bypass || !isSystemRole || m.roles.isEmpty || m.roles.contains(role);
+
+    bool roleAllowedOnItem(NavItem item) =>
+        bypass || !isSystemRole || item.roles.isEmpty || item.roles.contains(role);
 
     bool moduleEnabled(NavModule m) {
       if (bypass || enabledModules == null) return true;
@@ -344,28 +457,43 @@ final class NavConfig {
       return enabledModules.contains(m.module);
     }
 
+    /// Gating por permiso granular: solo aplica si el backend envió la lista
+    /// (`permissions != null`) y el ítem declara permiso requerido. Un rol
+    /// personalizado SIN permisos cargados no ve nada (fail-closed, igual que
+    /// el guard del router).
+    bool itemAllowed(NavItem item) {
+      if (bypass) return true;
+      if (permissions == null) return isSystemRole;
+      final required = itemPermissions[item.id];
+      if (required == null) return true;
+      return permissions.contains(required);
+    }
+
     final filtered = allModules.where((module) {
       if (!moduleEnabled(module)) return false;
-      if (!bypass && module.roles.isNotEmpty && !module.roles.contains(role)) return false;
+      if (!roleAllowedOnModule(module)) return false;
       if (searchQuery != null && searchQuery.isNotEmpty) {
         final q = searchQuery.toLowerCase();
         final matchesModule = module.label.toLowerCase().contains(q);
         final matchesChild = module.children.any((item) =>
             item.label.toLowerCase().contains(q) &&
-            (bypass || item.roles.isEmpty || item.roles.contains(role)));
+            itemAllowed(item) &&
+            roleAllowedOnItem(item));
         return matchesModule || matchesChild;
       }
-      return true;
+      return module.children.any(itemAllowed);
     }).map((module) {
+      final allowedChildren = module.children.where(itemAllowed).toList();
       if (searchQuery != null && searchQuery.isNotEmpty) {
-        final filteredItems = module.children.where((item) {
-          final roleOk = bypass || item.roles.isEmpty || item.roles.contains(role);
+        final filteredItems = allowedChildren.where((item) {
+          final roleOk = roleAllowedOnItem(item);
           final searchOk = item.label.toLowerCase().contains(searchQuery.toLowerCase());
           return roleOk && searchOk;
         }).toList();
         return NavModule(id: module.id, label: module.label, icon: module.icon, color: module.color, textColor: module.textColor, group: module.group, children: filteredItems, roles: module.roles, module: module.module);
       }
-      return module;
+      if (identical(allowedChildren, module.children)) return module;
+      return NavModule(id: module.id, label: module.label, icon: module.icon, color: module.color, textColor: module.textColor, group: module.group, children: allowedChildren, roles: module.roles, module: module.module);
     }).where((m) => m.children.isNotEmpty).toList();
 
     return filtered;

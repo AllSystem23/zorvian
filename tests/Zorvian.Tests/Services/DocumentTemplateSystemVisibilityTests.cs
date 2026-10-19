@@ -131,7 +131,7 @@ public sealed class DocumentTemplateSystemVisibilityTests : IDisposable
         Assert.Equal(28, total);
         Assert.All(items, t => Assert.Equal(DocumentTemplate.SystemTenantId, t.TenantId));
         Assert.Equal(6, items.Count(t => t.Version == "2.1"));
-        Assert.Contains(items, t => t.Name == "Liquidación Final (Nicaragua)" && t.CountryCode == "NIC");
+        Assert.Contains(items, t => t.Name == "Liquidación Final" && t.CountryCode == "ALL" && t.Version == "2.0");
         Assert.Contains(items, t => t.Name == "Factura" && t.Version == "1.0");
         Assert.Contains(items, t => t.Name == "Guía de Despacho" && t.Version == "1.0");
         Assert.Contains(items, t => t.Name == "Guía de Remisión" && t.Version == "1.0");

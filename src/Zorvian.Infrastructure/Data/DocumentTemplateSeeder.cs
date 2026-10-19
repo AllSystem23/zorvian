@@ -156,20 +156,22 @@ public static class DocumentTemplateSeeder
             Content = BuildPowerOfAttorneyHtml()
         });
 
-        // ── HR: Liquidación Final (específica de Nicaragua: CT art. 93/78/45, Ley 822, INSS, INATEC) ──
+        // ── HR: Liquidación Final (multi-país: tasas/topes/tablas de IR/prestaciones
+        //    salen de CountryTaxConfig; las citas al CT nicaragüense quedan tras el
+        //    condicional `Country.Code == 'NIC'`) ──
         templates.Add(new DocumentTemplate
         {
             Id = Guid.NewGuid(),
             TenantId = tenantId,
             CreatedAt = now,
             CreatedBy = "system",
-            Name = "Liquidación Final (Nicaragua)",
+            Name = "Liquidación Final",
             Category = "HR",
             Module = "Employee",
-            CountryCode = "NIC",
+            CountryCode = "ALL",
             IsActive = true,
-            Version = "1.1",
-            Variables = "[{\"key\":\"employee_name\",\"label\":\"Nombre del Trabajador\",\"type\":\"text\",\"required\":true},{\"key\":\"employee_id\",\"label\":\"Cédula de Identidad\",\"type\":\"text\",\"required\":true},{\"key\":\"retiro_reason\",\"label\":\"Motivo de Retiro\",\"type\":\"text\",\"required\":false},{\"key\":\"contract_type\",\"label\":\"Tipo de Contrato\",\"type\":\"text\",\"required\":false},{\"key\":\"seniority\",\"label\":\"Antigüedad\",\"type\":\"text\",\"required\":false},{\"key\":\"position\",\"label\":\"Cargo Desempeñado\",\"type\":\"text\",\"required\":false},{\"key\":\"fecha_elaboracion\",\"label\":\"Fecha de Elaboración\",\"type\":\"date\",\"required\":false},{\"key\":\"fecha_ingreso\",\"label\":\"Fecha de Ingreso\",\"type\":\"date\",\"required\":true},{\"key\":\"fecha_salida\",\"label\":\"Fecha de Salida\",\"type\":\"date\",\"required\":true},{\"key\":\"salario_mensual\",\"label\":\"Salario Ordinario Mensual\",\"type\":\"number\",\"required\":true},{\"key\":\"salario_promedio\",\"label\":\"Salario Promedio (6 meses)\",\"type\":\"number\",\"required\":false},{\"key\":\"salario_mas_alto\",\"label\":\"Salario Más Alto (6 meses)\",\"type\":\"number\",\"required\":false},{\"key\":\"sueldo_diario\",\"label\":\"Sueldo Diario\",\"type\":\"number\",\"required\":false},{\"key\":\"sueldo_por_hora\",\"label\":\"Sueldo por Hora\",\"type\":\"number\",\"required\":false},{\"key\":\"hora_extra_valor\",\"label\":\"Valor de una Hora Extra\",\"type\":\"number\",\"required\":false},{\"key\":\"sueldo_pendiente\",\"label\":\"Sueldo Pendiente de Pago\",\"type\":\"number\",\"required\":false},{\"key\":\"horas_extras\",\"label\":\"Monto de Horas Extras\",\"type\":\"number\",\"required\":false},{\"key\":\"otros_conceptos\",\"label\":\"Otros Conceptos\",\"type\":\"text\",\"required\":false},{\"key\":\"otros_monto\",\"label\":\"Monto Otros Conceptos\",\"type\":\"number\",\"required\":false},{\"key\":\"periodo_aguinaldo\",\"label\":\"Periodo Aguinaldo (DEL - AL)\",\"type\":\"text\",\"required\":false},{\"key\":\"aguinaldo_dias\",\"label\":\"Días de Aguinaldo\",\"type\":\"number\",\"required\":false},{\"key\":\"aguinaldo_monto\",\"label\":\"Monto Aguinaldo\",\"type\":\"number\",\"required\":false},{\"key\":\"periodo_vacaciones\",\"label\":\"Periodo Vacaciones (DEL - AL)\",\"type\":\"text\",\"required\":false},{\"key\":\"vacaciones_dias\",\"label\":\"Días de Vacaciones a Pagar\",\"type\":\"number\",\"required\":false},{\"key\":\"vac_deducciones\",\"label\":\"Deducción de Vacaciones (días)\",\"type\":\"number\",\"required\":false},{\"key\":\"vacaciones_monto\",\"label\":\"Monto Vacaciones\",\"type\":\"number\",\"required\":false},{\"key\":\"periodo_indem\",\"label\":\"Periodo Indemnización (DEL - AL)\",\"type\":\"text\",\"required\":false},{\"key\":\"indemnizacion_monto\",\"label\":\"Monto Indemnización por Antigüedad\",\"type\":\"number\",\"required\":false},{\"key\":\"inss_laboral\",\"label\":\"INSS Laboral (7%)\",\"type\":\"number\",\"required\":false},{\"key\":\"ir_ord\",\"label\":\"IR - Salario Ordinario\",\"type\":\"number\",\"required\":false},{\"key\":\"ir_ocasional\",\"label\":\"IR - Pagos Ocasionales\",\"type\":\"number\",\"required\":false},{\"key\":\"ir_indemnizacion\",\"label\":\"IR - Retención Indemnización\",\"type\":\"number\",\"required\":false},{\"key\":\"prestamo\",\"label\":\"Saldo de Préstamo\",\"type\":\"number\",\"required\":false},{\"key\":\"aguinaldo_pagado\",\"label\":\"Aguinaldo Pagado\",\"type\":\"number\",\"required\":false},{\"key\":\"inss_patronal\",\"label\":\"INSS Patronal (21.5%)\",\"type\":\"number\",\"required\":false},{\"key\":\"inatec\",\"label\":\"INATEC (2%)\",\"type\":\"number\",\"required\":false},{\"key\":\"total_ingresos\",\"label\":\"Total Ingresos\",\"type\":\"number\",\"required\":false},{\"key\":\"total_deducciones\",\"label\":\"Total Deducciones\",\"type\":\"number\",\"required\":false},{\"key\":\"neto_a_recibir\",\"label\":\"Neto a Recibir\",\"type\":\"number\",\"required\":true},{\"key\":\"neto_en_letras\",\"label\":\"Cantidad en Letras\",\"type\":\"textarea\",\"required\":true},{\"key\":\"elaborado_por\",\"label\":\"Elaborado Por\",\"type\":\"text\",\"required\":false},{\"key\":\"revisado_por\",\"label\":\"Revisado Por\",\"type\":\"text\",\"required\":false},{\"key\":\"autorizado_por\",\"label\":\"Autorizado Por\",\"type\":\"text\",\"required\":false}]",
+            Version = "2.0",
+            Variables = "[{\"key\":\"employee_name\",\"label\":\"Nombre del Trabajador\",\"type\":\"text\",\"required\":true},{\"key\":\"employee_id\",\"label\":\"Documento de Identidad\",\"type\":\"text\",\"required\":true},{\"key\":\"retiro_reason\",\"label\":\"Motivo de Retiro\",\"type\":\"text\",\"required\":false},{\"key\":\"contract_type\",\"label\":\"Tipo de Contrato\",\"type\":\"text\",\"required\":false},{\"key\":\"seniority\",\"label\":\"Antigüedad\",\"type\":\"text\",\"required\":false},{\"key\":\"position\",\"label\":\"Cargo Desempeñado\",\"type\":\"text\",\"required\":false},{\"key\":\"fecha_elaboracion\",\"label\":\"Fecha de Elaboración\",\"type\":\"date\",\"required\":false},{\"key\":\"fecha_ingreso\",\"label\":\"Fecha de Ingreso\",\"type\":\"date\",\"required\":true},{\"key\":\"fecha_salida\",\"label\":\"Fecha de Salida\",\"type\":\"date\",\"required\":true},{\"key\":\"salario_mensual\",\"label\":\"Salario Ordinario Mensual\",\"type\":\"number\",\"required\":true},{\"key\":\"salario_promedio\",\"label\":\"Salario Promedio (6 meses)\",\"type\":\"number\",\"required\":false},{\"key\":\"salario_mas_alto\",\"label\":\"Salario Más Alto (6 meses)\",\"type\":\"number\",\"required\":false},{\"key\":\"sueldo_diario\",\"label\":\"Sueldo Diario\",\"type\":\"number\",\"required\":false},{\"key\":\"sueldo_por_hora\",\"label\":\"Sueldo por Hora\",\"type\":\"number\",\"required\":false},{\"key\":\"hora_extra_valor\",\"label\":\"Valor de una Hora Extra\",\"type\":\"number\",\"required\":false},{\"key\":\"sueldo_pendiente\",\"label\":\"Sueldo Pendiente de Pago\",\"type\":\"number\",\"required\":false},{\"key\":\"horas_extras\",\"label\":\"Monto de Horas Extras\",\"type\":\"number\",\"required\":false},{\"key\":\"otros_conceptos\",\"label\":\"Otros Conceptos\",\"type\":\"text\",\"required\":false},{\"key\":\"otros_monto\",\"label\":\"Monto Otros Conceptos\",\"type\":\"number\",\"required\":false},{\"key\":\"periodo_aguinaldo\",\"label\":\"Periodo Aguinaldo (DEL - AL)\",\"type\":\"text\",\"required\":false},{\"key\":\"aguinaldo_dias\",\"label\":\"Días de Aguinaldo\",\"type\":\"number\",\"required\":false},{\"key\":\"aguinaldo_monto\",\"label\":\"Monto Aguinaldo\",\"type\":\"number\",\"required\":false},{\"key\":\"periodo_vacaciones\",\"label\":\"Periodo Vacaciones (DEL - AL)\",\"type\":\"text\",\"required\":false},{\"key\":\"vacaciones_dias\",\"label\":\"Días de Vacaciones a Pagar\",\"type\":\"number\",\"required\":false},{\"key\":\"vac_deducciones\",\"label\":\"Deducción de Vacaciones (días)\",\"type\":\"number\",\"required\":false},{\"key\":\"vacaciones_monto\",\"label\":\"Monto Vacaciones\",\"type\":\"number\",\"required\":false},{\"key\":\"periodo_indem\",\"label\":\"Periodo Indemnización (DEL - AL)\",\"type\":\"text\",\"required\":false},{\"key\":\"indemnizacion_monto\",\"label\":\"Monto Indemnización por Antigüedad\",\"type\":\"number\",\"required\":false},{\"key\":\"indemnizacion_dias\",\"label\":\"Días de Indemnización\",\"type\":\"number\",\"required\":false},{\"key\":\"inss_tasa\",\"label\":\"Tasa Seguridad Social\",\"type\":\"text\",\"required\":false},{\"key\":\"inss_patronal_tasa\",\"label\":\"Tasa Seguridad Social Patronal\",\"type\":\"text\",\"required\":false},{\"key\":\"other_employer_name\",\"label\":\"Otro Aporte Patronal (nombre)\",\"type\":\"text\",\"required\":false},{\"key\":\"other_employer_tasa\",\"label\":\"Otro Aporte Patronal (tasa)\",\"type\":\"text\",\"required\":false},{\"key\":\"other_employer_monto\",\"label\":\"Otro Aporte Patronal (monto)\",\"type\":\"number\",\"required\":false},{\"key\":\"inss_laboral\",\"label\":\"Seguridad Social Laboral\",\"type\":\"number\",\"required\":false},{\"key\":\"ir_ord\",\"label\":\"IR - Salario Ordinario\",\"type\":\"number\",\"required\":false},{\"key\":\"ir_ocasional\",\"label\":\"IR - Pagos Ocasionales\",\"type\":\"number\",\"required\":false},{\"key\":\"ir_indemnizacion\",\"label\":\"IR - Retención Indemnización\",\"type\":\"number\",\"required\":false},{\"key\":\"prestamo\",\"label\":\"Saldo de Préstamo\",\"type\":\"number\",\"required\":false},{\"key\":\"aguinaldo_pagado\",\"label\":\"Aguinaldo Pagado\",\"type\":\"number\",\"required\":false},{\"key\":\"inss_patronal\",\"label\":\"INSS Patronal (21.5%)\",\"type\":\"number\",\"required\":false},{\"key\":\"inatec\",\"label\":\"INATEC (2%)\",\"type\":\"number\",\"required\":false},{\"key\":\"total_ingresos\",\"label\":\"Total Ingresos\",\"type\":\"number\",\"required\":false},{\"key\":\"total_deducciones\",\"label\":\"Total Deducciones\",\"type\":\"number\",\"required\":false},{\"key\":\"neto_a_recibir\",\"label\":\"Neto a Recibir\",\"type\":\"number\",\"required\":true},{\"key\":\"neto_en_letras\",\"label\":\"Cantidad en Letras\",\"type\":\"textarea\",\"required\":true},{\"key\":\"elaborado_por\",\"label\":\"Elaborado Por\",\"type\":\"text\",\"required\":false},{\"key\":\"revisado_por\",\"label\":\"Revisado Por\",\"type\":\"text\",\"required\":false},{\"key\":\"autorizado_por\",\"label\":\"Autorizado Por\",\"type\":\"text\",\"required\":false}]",
             Content = BuildLiquidationFinalHtml()
         });
 
@@ -535,11 +537,11 @@ public static class DocumentTemplateSeeder
 
     /// <summary>
     /// Upgrade idempotente: refresca las plantillas sembradas con versiones anteriores
-    /// (1.0 hardcodeadas a Nicaragua / 2.0 sin jornada multi-país) al contenido actual.
-    /// La "Liquidación Final (Nicaragua)" se siembra en 1.1 → queda fuera del filtro
-    /// para no pisar ediciones de usuario en cada arranque.
-    /// Se empareja por nombre normalizado (sin acentos, minúsculas) para que renombres
-    /// como "Cotización Comercial" sigan matcheando "Cotizacion Comercial".
+    /// (1.0 hardcodeadas a Nicaragua / 2.0 sin jornada multi-país / 1.1 = Liquidación
+    /// Final NIC-only) al contenido actual. Se empareja por nombre normalizado
+    /// (sin acentos, minúsculas) para que renombres como "Cotización Comercial" sigan
+    /// matcheando "Cotizacion Comercial"; ver <see cref="NormalizeTemplateName"/> para
+    /// el alias "Liquidación Final (Nicaragua)" → "Liquidación Final".
     /// </summary>
     private static async Task UpgradeSeededTemplatesAsync(ZorvianDbContext db, ILogger logger)
     {
@@ -547,7 +549,7 @@ public static class DocumentTemplateSeeder
             .ToDictionary(t => NormalizeTemplateName(t.Name), t => t);
 
         var outdated = await db.DocumentTemplates.IgnoreQueryFilters()
-            .Where(t => t.Version == "1.0" || t.Version == "2.0")
+            .Where(t => t.Version == "1.0" || t.Version == "1.1" || t.Version == "2.0")
             .ToListAsync();
 
         var updated = 0;
@@ -577,12 +579,20 @@ public static class DocumentTemplateSeeder
             updated);
     }
 
+    /// <summary>
+    /// Clave de emparejamiento por nombre: sin acentos y en minúsculas. El alias
+    /// "(nicaragua)" se descarta para que la "Liquidación Final (Nicaragua)" v1.1
+    /// (NIC-only) se refresque en sitio a la "Liquidación Final" multi-país v2.0
+    /// en vez de quedar huérfana y duplicada al insertar la faltante.
+    /// </summary>
     private static string NormalizeTemplateName(string name) =>
         string.Concat(name
                 .Normalize(System.Text.NormalizationForm.FormD)
                 .Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c)
                     != System.Globalization.UnicodeCategory.NonSpacingMark))
-            .ToLowerInvariant();
+            .ToLowerInvariant()
+            .Replace("(nicaragua)", "")
+            .Trim();
 
     // ═══════════════════════════════════════════════
     // HTML builders for each template
@@ -909,10 +919,12 @@ public static class DocumentTemplateSeeder
 </body></html>";
 
     /// <summary>
-    /// Liquidación final específica de Nicaragua (Código del Trabajo arts. 93/78/45,
-    /// Ley 822 -IR-, INSS 7%/21.5%, INATEC 2%). Los montos los calcula quien
-    /// elabora el documento (nómina) y se pasan como variables; la plantilla
-    /// presenta y estructura profesionalmente el finiquito.
+    /// Liquidación final multi-país. Los montos los calcula
+    /// <c>CertificateCalculator</c> desde <c>CountryTaxConfig</c> (tasas/topes de
+    /// seguridad social, tabla de IR, vacaciones e indemnización escalonada) y las
+    /// etiquetas desde <c>ContractCountries</c>; las citas al Código del Trabajo
+    /// nicaragüense (arts. 93/78/45, Ley 822, INSS, INATEC) quedan detrás de
+    /// <c>Country.Code == 'NIC'</c> para no atribuir leyes de un país a otro.
     /// </summary>
     private static string BuildLiquidationFinalHtml() => $@"<!DOCTYPE html>
 <html><head><meta charset='UTF-8'>
@@ -937,7 +949,7 @@ public static class DocumentTemplateSeeder
   <div class='header'>
     <div class='company-name'>{{{{ Company.LegalName }}}}</div>
     <div class='doc-title'>LIQUIDACIÓN FINAL</div>
-    <div style='font-size:11px; color:#666;'>{{{{ Contract.City }}}}, {{{{ Company.Date }}}} · Código del Trabajo de {{{{ Country.Name }}}} (Arts. 93, 78 y 45) · Ley 822 (IR) · INSS · INATEC</div>
+    <div style='font-size:11px; color:#666;'>{{{{ Contract.City }}}}, {{{{ Company.Date }}}} · {{{{ Country.LaborLaw }}}}{{% if Country.Code == 'NIC' %}} (Arts. 93, 78 y 45) · Ley 822 (IR) · INSS · INATEC{{% endif %}}</div>
   </div>
 
   <table class='liq-grid'>
@@ -954,7 +966,7 @@ public static class DocumentTemplateSeeder
       <td class='liq-value'>{{{{ fecha_salida }}}}</td>
     </tr>
     <tr>
-      <td class='liq-label'>Cédula de Identidad</td>
+      <td class='liq-label'>{{{{ Country.IdDocument | default: 'Documento de Identidad' }}}}</td>
       <td class='liq-value'>{{{{ employee_id }}}}</td>
       <td class='liq-label'>Motivo de Retiro</td>
       <td class='liq-value'>{{{{ retiro_reason | default: '____________' }}}}</td>
@@ -1009,21 +1021,21 @@ public static class DocumentTemplateSeeder
     <thead><tr><th>Concepto</th><th>Periodo (DEL - AL)</th><th style='text-align:center;'>Días</th><th style='text-align:right;'>Monto</th></tr></thead>
     <tbody>
       <tr>
-        <td><strong>Aguinaldo</strong><br /><small>Art. 93 Código del Trabajo</small></td>
+        <td><strong>{{{{ Country.ThirteenthMonth | default: 'Aguinaldo' }}}}</strong>{{% if Country.Code == 'NIC' %}}<br /><small>Art. 93 Código del Trabajo</small>{{% endif %}}</td>
         <td>{{{{ periodo_aguinaldo | default: '-' }}}}</td>
         <td style='text-align:center;'>{{{{ aguinaldo_dias | default: '-' }}}}</td>
         <td style='text-align:right;'>{{{{ aguinaldo_monto | default: '-' }}}}</td>
       </tr>
       <tr>
-        <td><strong>Vacaciones</strong><br /><small>Art. 78 Código del Trabajo</small></td>
+        <td><strong>Vacaciones</strong>{{% if Country.Code == 'NIC' %}}<br /><small>Art. 78 Código del Trabajo</small>{{% endif %}}</td>
         <td>{{{{ periodo_vacaciones | default: '-' }}}}</td>
         <td style='text-align:center;'>{{{{ vacaciones_dias | default: '-' }}}} <small>(deducción: {{{{ vac_deducciones | default: '0' }}}})</small></td>
         <td style='text-align:right;'>{{{{ vacaciones_monto | default: '-' }}}}</td>
       </tr>
       <tr>
-        <td><strong>Indemnización por Antigüedad</strong><br /><small>Art. 45 Código del Trabajo</small></td>
+        <td><strong>Indemnización por Antigüedad</strong>{{% if Country.Code == 'NIC' %}}<br /><small>Art. 45 Código del Trabajo</small>{{% endif %}}</td>
         <td>{{{{ periodo_indem | default: '-' }}}}</td>
-        <td style='text-align:center;'>-</td>
+        <td style='text-align:center;'>{{{{ indemnizacion_dias | default: '-' }}}}</td>
         <td style='text-align:right;'>{{{{ indemnizacion_monto | default: '-' }}}}</td>
       </tr>
     </tbody>
@@ -1032,14 +1044,14 @@ public static class DocumentTemplateSeeder
 
   <div class='section-title'>Deducciones - Trabajador</div>
   <table class='items'>
-    <thead><tr><th>Concepto</th><th>Referencia legal</th><th style='text-align:right;'>Monto</th></tr></thead>
+    <thead><tr><th>Concepto</th><th>Referencia</th><th style='text-align:right;'>Monto</th></tr></thead>
     <tbody>
-      <tr><td>INSS Laboral</td><td>7.00% sobre el salario</td><td style='text-align:right;'>{{{{ inss_laboral | default: '-' }}}}</td></tr>
-      <tr><td>Impuesto sobre la Renta (IR)</td><td>Salario ordinario - Ley 822</td><td style='text-align:right;'>{{{{ ir_ord | default: '-' }}}}</td></tr>
-      <tr><td>Impuesto sobre la Renta (IR)</td><td>Pagos ocasionales: vacaciones, bonos o incentivos (Art. 19.2 del Reglamento de la Ley 822)</td><td style='text-align:right;'>{{{{ ir_ocasional | default: '-' }}}}</td></tr>
-      <tr><td>Impuesto sobre la Renta (IR)</td><td>Retención definitiva por indemnización (Arts. 19.3 y 24.1 de la Ley 822 y 15.3 de su Reglamento)</td><td style='text-align:right;'>{{{{ ir_indemnizacion | default: '-' }}}}</td></tr>
+      <tr><td>Seguridad Social (Laboral)<br /><small>{{{{ Country.SocialSecurity }}}}</small></td><td>{{{{ inss_tasa }}}} del salario</td><td style='text-align:right;'>{{{{ inss_laboral | default: '-' }}}}</td></tr>
+      <tr><td>Impuesto sobre la Renta (IR)</td><td>Salario ordinario{{% if Country.Code == 'NIC' %}} - Ley 822{{% endif %}}</td><td style='text-align:right;'>{{{{ ir_ord | default: '-' }}}}</td></tr>
+      <tr><td>Impuesto sobre la Renta (IR)</td><td>{{% if Country.Code == 'NIC' %}}Pagos ocasionales: vacaciones, bonos o incentivos (Art. 19.2 del Reglamento de la Ley 822){{% else %}}Pagos ocasionales: vacaciones, bonos o incentivos - {{{{ Country.TaxAuthority }}}}{{% endif %}}</td><td style='text-align:right;'>{{{{ ir_ocasional | default: '-' }}}}</td></tr>
+      <tr><td>Impuesto sobre la Renta (IR)</td><td>{{% if Country.Code == 'NIC' %}}Retención definitiva por indemnización (Arts. 19.3 y 24.1 de la Ley 822 y 15.3 de su Reglamento){{% else %}}Retención definitiva por indemnización - {{{{ Country.TaxAuthority }}}}{{% endif %}}</td><td style='text-align:right;'>{{{{ ir_indemnizacion | default: '-' }}}}</td></tr>
       <tr><td>Saldo de préstamo</td><td>-</td><td style='text-align:right;'>{{{{ prestamo | default: '-' }}}}</td></tr>
-      <tr><td>Aguinaldo pagado</td><td>Anticipo del Art. 93 CT</td><td style='text-align:right;'>{{{{ aguinaldo_pagado | default: '-' }}}}</td></tr>
+      <tr><td>Anticipo pagado</td><td>{{{{ Country.ThirteenthMonth | default: 'Aguinaldo' }}}}{{% if Country.Code == 'NIC' %}} (Art. 93 CT){{% endif %}}</td><td style='text-align:right;'>{{{{ aguinaldo_pagado | default: '-' }}}}</td></tr>
     </tbody>
   </table>
   <div class='totals-row'>TOTAL DEDUCCIONES: {{{{ Country.Currency }}}} {{{{ total_deducciones | default: '0.00' }}}}</div>
@@ -1048,8 +1060,8 @@ public static class DocumentTemplateSeeder
   <table class='items'>
     <thead><tr><th>Aporte</th><th>Tasa</th><th style='text-align:right;'>Monto</th></tr></thead>
     <tbody>
-      <tr><td>INSS Patronal</td><td>21.50%</td><td style='text-align:right;'>{{{{ inss_patronal | default: '-' }}}}</td></tr>
-      <tr><td>INATEC</td><td>2.00%</td><td style='text-align:right;'>{{{{ inatec | default: '-' }}}}</td></tr>
+      <tr><td>Seguridad Social (Patronal)<br /><small>{{{{ Country.SocialSecurity }}}}</small></td><td>{{{{ inss_patronal_tasa | default: '-' }}}}</td><td style='text-align:right;'>{{{{ inss_patronal | default: '-' }}}}</td></tr>
+      {{% if other_employer_name != blank %}}<tr><td>{{{{ other_employer_name }}}}</td><td>{{{{ other_employer_tasa }}}}</td><td style='text-align:right;'>{{{{ other_employer_monto | default: '-' }}}}</td></tr>{{% endif %}}
     </tbody>
   </table>
 

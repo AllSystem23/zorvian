@@ -145,6 +145,7 @@ public sealed class ModuleEnforcementFilter : IAsyncAuthorizationFilter
         ["Companies"] = ModuleType.Administration,
         ["Branches"] = ModuleType.Administration,
         ["Users"] = ModuleType.Administration,
+        ["Roles"] = ModuleType.Administration,
         ["Invitations"] = ModuleType.Administration,
         ["Documents"] = ModuleType.Administration,
         ["Webhooks"] = ModuleType.Administration,

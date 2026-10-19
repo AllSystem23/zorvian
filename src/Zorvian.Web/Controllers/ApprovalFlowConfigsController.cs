@@ -2,10 +2,16 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Zorvian.Application.DTOs.Approval;
 using Zorvian.Application.Services;
+using Zorvian.Web.Authorization;
 using Zorvian.Web.Filters;
 
 namespace Zorvian.Web.Controllers;
 
+/// <summary>
+/// Configuración de flujos de aprobación (pantalla `/approval-flows`, visible
+/// para SuperAdmin y CompanyAdmin). Las lecturas exigen `settings.read` y la
+/// configuración `settings.write` — ambos en el set del CompanyAdmin.
+/// </summary>
 [ApiController]
 [Authorize]
 [Route("zorvian/v1/approval-flows")]
@@ -15,6 +21,7 @@ public sealed class ApprovalFlowConfigsController : ControllerBase
     public ApprovalFlowConfigsController(ApprovalFlowConfigService service) => _service = service;
 
     [HttpGet]
+    [RequirePermission(Permissions.SettingsRead)]
     public async Task<IActionResult> GetAll()
     {
         var items = await _service.GetAllAsync();
@@ -22,6 +29,7 @@ public sealed class ApprovalFlowConfigsController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [RequirePermission(Permissions.SettingsRead)]
     public async Task<IActionResult> GetById(Guid id)
     {
         var item = await _service.GetByIdAsync(id);
@@ -31,6 +39,7 @@ public sealed class ApprovalFlowConfigsController : ControllerBase
 
     [Audit("ApprovalFlowConfig", "Create")]
     [HttpPost]
+    [RequirePermission(Permissions.SettingsWrite)]
     public async Task<IActionResult> Create([FromBody] CreateApprovalFlowConfigRequest request)
     {
         var item = await _service.CreateAsync(request);
@@ -39,6 +48,7 @@ public sealed class ApprovalFlowConfigsController : ControllerBase
 
     [Audit("ApprovalFlowConfig", "Update")]
     [HttpPut("{id:guid}")]
+    [RequirePermission(Permissions.SettingsWrite)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateApprovalFlowConfigRequest request)
     {
         var item = await _service.UpdateAsync(id, request);
@@ -48,6 +58,7 @@ public sealed class ApprovalFlowConfigsController : ControllerBase
 
     [Audit("ApprovalFlowConfig", "Delete")]
     [HttpDelete("{id:guid}")]
+    [RequirePermission(Permissions.SettingsWrite)]
     public async Task<IActionResult> Delete(Guid id)
     {
         var deleted = await _service.DeleteAsync(id);

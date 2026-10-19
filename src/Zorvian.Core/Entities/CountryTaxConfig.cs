@@ -4,6 +4,24 @@ namespace Zorvian.Core.Entities;
 
 public sealed class CountryTaxConfig : BaseEntity
 {
+    /// <summary>
+    /// Tenant de las filas del CATÁLOGO GLOBAL (una por país, compartida por todas
+    /// las compañías). Es el GUID-cero en texto a propósito: es un valor no vacío,
+    /// así el <c>TenantAuditInterceptor</c> no sella el tenant del request (un
+    /// SuperAdmin con compañía seleccionada convertía la fila global en "propia"
+    /// de esa compañía) y a la vez <c>Guid.TryParse</c> da el GUID-cero, por lo que
+    /// tampoco estampa <c>CompanyId</c>.
+    ///
+    /// Una fila de compañía (ajuste por país) lleva en cambio el tenant real de la
+    /// compañía: es la que gana en la resolución de
+    /// <c>ICountryTaxConfigRepository.GetByCountryCodeAsync</c>.
+    /// </summary>
+    public const string GlobalTenantId = "00000000-0000-0000-0000-000000000000";
+
+    /// <summary>¿La fila pertenece al catálogo global (no a una compañía)?</summary>
+    public static bool IsGlobalTenant(string? tenantId) =>
+        string.IsNullOrWhiteSpace(tenantId) || tenantId == GlobalTenantId;
+
     public string CountryCode { get; set; } = string.Empty; // e.g., 'NIC'
     public string CountryName { get; set; } = string.Empty;
     public string Currency { get; set; } = "NIO";

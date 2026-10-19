@@ -90,8 +90,10 @@ public sealed class UsersController : ControllerBase
             .Select(c => c.Value)
             .FirstOrDefault();
 
-        if (currentUserRole != RoleType.SuperAdmin.ToString() && currentUserRole != RoleType.CompanyAdmin.ToString())
-            return Forbid();
+        // Nota: NO se re-verifica el rol aquí. El acceso lo da `user.manage`
+        // (atributo de la acción): un rol PERSONALIZADO con ese permiso debe
+        // poder asignar roles igual que CompanyAdmin — el chequeo hardcodeado
+        // lo bloqueaba. Los guards que sí importan van abajo.
 
         var user = await _db.Users
             .Where(u => u.TenantId == _tenant.TenantId || _tenant.BypassTenantFilter)
@@ -106,6 +108,11 @@ public sealed class UsersController : ControllerBase
 
         if (role is null)
             return NotFound(new { error = "Role not found" });
+
+        // Los roles de PLATAFORMA solo los asigna un SuperAdmin (si no, un
+        // CompanyAdmin con `user.manage` podría escalar a SuperAdmin).
+        if (role.Name == RoleType.SuperAdmin && currentUserRole != RoleType.SuperAdmin.ToString())
+            return Forbid();
 
         var targetRoles = await _db.UserRoles
             .Where(ur => ur.UserId == id)
@@ -132,6 +139,10 @@ public sealed class UsersController : ControllerBase
             .Select(c => c.Value)
             .FirstOrDefault();
 
+        // A diferencia de `AssignRole`, aquí SÍ se exige un rol del sistema: los
+        // guards de abajo (no desactivarse a sí mismo, no dejar la compañía sin
+        // CompanyAdmin activo) están atados a esos roles y un rol personalizado
+        // con `user.manage` los saltaría por completo.
         if (currentUserRole != RoleType.SuperAdmin.ToString() && currentUserRole != RoleType.CompanyAdmin.ToString())
             return Forbid();
 
@@ -177,15 +188,20 @@ public sealed class UsersController : ControllerBase
     {
         var roles = await _db.Roles
             .Where(r => r.TenantId == _tenant.TenantId || _tenant.BypassTenantFilter || r.IsSystem)
-            .OrderBy(r => r.DisplayName)
+            .OrderByDescending(r => r.IsSystem)
+            .ThenBy(r => r.DisplayName)
             .ToListAsync();
 
         return Ok(roles.Select(r => new
         {
             r.Id,
             r.DisplayName,
-            r.Name,
+            // `Name` es un enum (`RoleType`) sin `JsonStringEnumConverter`: hay
+            // que serializarlo como STRING o el JSON llega numérico y el
+            // frontend no puede comparar contra 'SuperAdmin'.
+            Name = r.Name.ToString(),
             r.Description,
+            r.IsSystem,
         }));
     }
 }

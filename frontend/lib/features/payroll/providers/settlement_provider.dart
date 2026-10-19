@@ -195,6 +195,10 @@ class SettlementNotifier extends AsyncNotifier<SettlementResult?> {
     DateTime? paidThroughDate,
     double overtimeHours = 0,
     double overtimePay = 0,
+    double? inssEmployeeRate,
+    double? inssEmployerRate,
+    double? otherEmployerRate,
+    String? otherEmployerName,
   }) async {
     state = const AsyncValue.loading();
     try {
@@ -208,6 +212,15 @@ class SettlementNotifier extends AsyncNotifier<SettlementResult?> {
       };
       if (paidThroughDate != null) {
         queryParams['paidThroughDate'] = paidThroughDate.toIso8601String().substring(0, 10);
+      }
+      // Tasas ajustadas para ESTA liquidación (fracción: 0.07 = 7 %). Si no se
+      // envían, el backend usa la configuración fiscal del país del trabajador.
+      if (inssEmployeeRate != null) queryParams['inssEmployeeRate'] = inssEmployeeRate;
+      if (inssEmployerRate != null) queryParams['inssEmployerRate'] = inssEmployerRate;
+      if (otherEmployerRate != null) queryParams['otherEmployerRate'] = otherEmployerRate;
+      final otherName = otherEmployerName?.trim();
+      if (otherName != null && otherName.isNotEmpty) {
+        queryParams['otherEmployerName'] = otherName;
       }
       final response = await dio.post('termination/calculate', queryParameters: queryParams);
       state = AsyncData(SettlementResult.fromJson(response.data));

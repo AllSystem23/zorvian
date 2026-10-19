@@ -33,7 +33,8 @@ public sealed record SubscriptionPlanResponse(
     string ShortDescription,
     bool IsActive,
     DateTime CreatedAt,
-    DateTime? UpdatedAt
+    DateTime? UpdatedAt,
+    List<string>? Modules = null
 );
 
 // ── Per-Company Pricing DTOs ──

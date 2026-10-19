@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../auth/auth_provider.dart';
 import '../../../shared/ds/ds.dart';
 import '../providers/stock_transfer_provider.dart';
 
@@ -60,12 +61,14 @@ final class _StockTransferListPageState extends ConsumerState<StockTransferListP
   Widget build(BuildContext context) {
     final transfers = ref.watch(stockTransferProvider);
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'add-stock-transfer',
-        onPressed: () => context.push('/stock-transfers/new'),
-        icon: const Icon(Icons.add),
-        label: const Text('Nueva Transferencia'),
-      ),
+      floatingActionButton: ref.canWriteLocation('/stock-transfers/new')
+          ? FloatingActionButton.extended(
+              heroTag: 'add-stock-transfer',
+              onPressed: () => context.push('/stock-transfers/new'),
+              icon: const Icon(Icons.add),
+              label: const Text('Nueva Transferencia'),
+            )
+          : null,
       body: Column(
         children: [
           Padding(

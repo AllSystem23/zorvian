@@ -370,7 +370,9 @@ final class _DesktopLayoutState extends ConsumerState<_DesktopLayout> {
     final width = MediaQuery.of(context).size.width;
     final isNarrow = width < 1200;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final hasFab = ZQuickActionsFAB.routeHasActions(widget.location);
+    final permissions = ref.watch(authProvider).permissions;
+    final hasFab = ZQuickActionsFAB.routeHasActions(widget.location,
+        permissions: permissions, role: widget.role);
     final callbacks = _buildFabCallbacks(context, ref, widget.location);
     final bottomPadding = hasFab ? 72.0 : ZSpacing.lg;
     final userCollapsed = ref.watch(sidebarCollapsedProvider);
@@ -438,6 +440,8 @@ final class _DesktopLayoutState extends ConsumerState<_DesktopLayout> {
                   child: ZQuickActionsFAB(
                     currentRoute: widget.location,
                     callbacks: callbacks,
+                    permissions: permissions,
+                    role: widget.role,
                   ),
                 ),
               ],
@@ -499,7 +503,9 @@ final class _TabletLayoutState extends ConsumerState<_TabletLayout> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final hasFab = ZQuickActionsFAB.routeHasActions(widget.location);
+    final permissions = ref.watch(authProvider).permissions;
+    final hasFab = ZQuickActionsFAB.routeHasActions(widget.location,
+        permissions: permissions, role: widget.role);
     final callbacks = _buildFabCallbacks(context, ref, widget.location);
     final bottomPadding = hasFab ? 72.0 : ZSpacing.lg;
 
@@ -566,6 +572,8 @@ final class _TabletLayoutState extends ConsumerState<_TabletLayout> {
               child: ZQuickActionsFAB(
                 currentRoute: widget.location,
                 callbacks: callbacks,
+                permissions: permissions,
+                role: widget.role,
               ),
             ),
           ],
@@ -736,7 +744,9 @@ final class _MobileLayout extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final pageTitle = _getPageTitle(location);
-    final hasFab = ZQuickActionsFAB.routeHasActions(location);
+    final permissions = ref.watch(authProvider).permissions;
+    final hasFab = ZQuickActionsFAB.routeHasActions(location,
+        permissions: permissions, role: role);
     final callbacks = _buildFabCallbacks(context, ref, location);
     final bottomPadding = hasFab ? 72.0 : ZSpacing.lg;
 
@@ -792,6 +802,8 @@ final class _MobileLayout extends ConsumerWidget {
       floatingActionButton: ZQuickActionsFAB(
         currentRoute: location,
         callbacks: callbacks,
+        permissions: permissions,
+        role: role,
       ),
       body: Padding(
         padding: EdgeInsets.only(bottom: bottomPadding),
