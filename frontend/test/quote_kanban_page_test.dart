@@ -15,8 +15,9 @@ void main() {
       ),
     );
 
-    // Verify Kanban columns are present
-    expect(find.text('PENDING (0)'), findsOneWidget);
-    expect(find.text('SENT (0)'), findsOneWidget);
+    // Verify Kanban columns are present (etiquetas en español desde la
+    // adaptación móvil; el escritorio conserva las columnas).
+    expect(find.text('PENDIENTE (0)'), findsOneWidget);
+    expect(find.text('ENVIADA (0)'), findsOneWidget);
   });
 }

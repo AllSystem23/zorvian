@@ -21,6 +21,23 @@ class KanbanBoard extends ConsumerWidget {
       return Center(child: Text(state.error!));
     }
 
+    // Teléfono: columnas de 280 px con drag & drop son inusables. Se muestra
+    // una lista vertical agrupada por etapa y la etapa se cambia desde el menú
+    // de cada tarjeta.
+    if (MediaQuery.sizeOf(context).width < ZBreakpoints.phone) {
+      return ListView(
+        padding: const EdgeInsets.all(ZSpacing.lg),
+        children: [
+          for (final stage in state.stages)
+            _MobileStageSection(
+              stage: stage,
+              opportunities: state.getOpportunitiesByStage(stage.id),
+              allStages: state.stages,
+            ),
+        ],
+      );
+    }
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.all(16),
@@ -117,10 +134,28 @@ class _KanbanColumn extends ConsumerWidget {
 class _OpportunityCard extends StatelessWidget {
   final Opportunity opportunity;
 
-  const _OpportunityCard({required this.opportunity});
+  /// En teléfono no hay drag & drop: la etapa se cambia desde el menú.
+  final bool draggable;
+
+  /// Etapas a las que se puede mover la oportunidad (vacío = sin menú).
+  final List<PipelineStage> moveTargets;
+  final void Function(String stageId)? onMoveTo;
+
+  const _OpportunityCard({
+    required this.opportunity,
+    this.draggable = true,
+    this.moveTargets = const [],
+    this.onMoveTo,
+  });
 
   @override
   Widget build(BuildContext context) {
+    if (!draggable) {
+      return InkWell(
+        onTap: () => context.push('/crm/opportunities/${opportunity.id}'),
+        child: _buildCardContent(),
+      );
+    }
     return InkWell(
       onTap: () => context.push('/crm/opportunities/${opportunity.id}'),
       child: LongPressDraggable<Opportunity>(
@@ -155,14 +190,19 @@ class _OpportunityCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '${opportunity.currencyCode} ${opportunity.expectedValue.toStringAsFixed(0)}',
-                style: ZTypography.labelMedium.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: ZColors.brandPrimary,
+              Expanded(
+                child: Text(
+                  '${opportunity.currencyCode} ${opportunity.expectedValue.toStringAsFixed(0)}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: ZTypography.labelMedium.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: ZColors.brandPrimary,
+                  ),
                 ),
               ),
               _buildPriorityBadge(opportunity.priority),
+              if (onMoveTo != null) _buildMoveMenu(),
             ],
           ),
           const SizedBox(height: 8),
@@ -221,6 +261,47 @@ class _OpportunityCard extends StatelessWidget {
     );
   }
 
+  Widget _buildMoveMenu() {
+    final targets =
+        moveTargets.where((s) => s.id != opportunity.stageId).toList();
+    if (targets.isEmpty || onMoveTo == null) return const SizedBox.shrink();
+    return PopupMenuButton<String>(
+      tooltip: 'Mover a otra etapa',
+      padding: EdgeInsets.zero,
+      iconSize: 18,
+      icon: const Icon(Icons.more_vert, size: 18, color: ZColors.neutral500),
+      onSelected: onMoveTo,
+      itemBuilder: (_) => [
+        for (final target in targets)
+          PopupMenuItem<String>(
+            value: target.id,
+            child: Row(
+              children: [
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: Color(
+                      int.parse(target.color.replaceAll('#', '0xFF')),
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: ZSpacing.sm),
+                Flexible(
+                  child: Text(
+                    target.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _buildPriorityBadge(String priority) {
     final color = switch (priority.toLowerCase()) {
       'high' => ZColors.danger,
@@ -245,6 +326,69 @@ class _OpportunityCard extends StatelessWidget {
       child: Text(
         '$prob%',
         style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: ZColors.brandPrimary),
+      ),
+    );
+  }
+}
+
+/// Sección vertical por etapa para teléfono (reemplaza la columna de 280 px).
+class _MobileStageSection extends ConsumerWidget {
+  final PipelineStage stage;
+  final List<Opportunity> opportunities;
+  final List<PipelineStage> allStages;
+
+  const _MobileStageSection({
+    required this.stage,
+    required this.opportunities,
+    required this.allStages,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final color = Color(int.parse(stage.color.replaceAll('#', '0xFF')));
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: ZSpacing.xl),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: ZSpacing.sm),
+              Expanded(
+                child: Text(
+                  stage.name,
+                  style: ZTypography.titleSmall.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+              ZBadge(
+                text: '${opportunities.length}',
+                type: ZBadgeType.neutral,
+              ),
+            ],
+          ),
+          const SizedBox(height: ZSpacing.sm),
+          if (opportunities.isEmpty)
+            Text(
+              'Sin oportunidades',
+              style: ZTypography.bodySmall.copyWith(color: ZColors.neutral500),
+            )
+          else
+            for (final opportunity in opportunities)
+              _OpportunityCard(
+                opportunity: opportunity,
+                draggable: false,
+                moveTargets: allStages,
+                onMoveTo: (stageId) => ref
+                    .read(opportunitiesProvider.notifier)
+                    .updateOpportunityStage(opportunity.id, stageId),
+              ),
+        ],
       ),
     );
   }

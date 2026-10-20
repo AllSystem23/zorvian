@@ -137,13 +137,25 @@ paginación).
       las confirmaciones de la app pasan a hoja en teléfono sin tocar cada página.
 - [x] Tests: `test/z_responsive_dialog_test.dart` (5).
 
+**Hecho (kanban)**:
+
+- [x] **Kanban móvil**: `features/crm/widgets/kanban_board.dart` y
+      `features/quotes/pages/quote_kanban_page.dart` detectan `< 600` y renderizan una
+      **lista vertical agrupada por etapa/estado** (encabezado con color + contador, tarjetas
+      a ancho completo, "Sin oportunidades"/"Sin cotizaciones" en las vacías). El drag & drop
+      (inusable con columnas de 280–300 px) se reemplaza por un menú `⋮` **"Mover a otra
+      etapa/estado"** que llama al mismo `updateOpportunityStage`/`updateStatus`.
+      Las cotizaciones además pasan de `PENDING/SENT` a etiquetas en español
+      (PENDIENTE/ENVIADA/…) también en escritorio.
+- [x] Tests: `test/kanban_mobile_test.dart` (3: secciones verticales sin `Draggable`, menú que
+      mueve de etapa, y escritorio con columnas y drag intactos).
+
 **Pendiente**:
 
 - [ ] Migrar los 28 `AlertDialog` directos de páginas a `ZResponsiveDialog`/`showZAdaptiveDialog`.
 - [ ] Formularios de 2–3 columnas → una columna con secciones colapsables.
 - [ ] Inputs móviles: teclados numéricos, `textInputAction`, autofoco ordenado.
 - [ ] POS en teléfono: carrito como sheet persistente, scanner como FAB.
-- [ ] Kanban (columnas de 280) → lista vertical agrupada por etapa en teléfono.
 
 **Aceptación**: ningún diálogo excede el ancho; formularios usables con teclado abierto;
 acción primaria siempre alcanzable.
