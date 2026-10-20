@@ -18,11 +18,12 @@
 | `1a46a1b` | `ZDataTable` con altura no acotada (crash del comparativo por sucursal) |
 | `08090fc` | Fase 2 (diálogos) — 28 `AlertDialog` de páginas → `showZAdaptiveDialog`/`ZResponsiveDialog` + `ZConfirmDialog` |
 | `1ac638e` | Fase 2 (formularios) — `ResponsiveFormRow` y campos en una columna en teléfono |
+| `3d928e9` | Fase 2/5.5 — `ZPageHeader` adaptativo + `test/helpers/viewport.dart` (`pumpAt`) |
 
 **Próximos pasos sugeridos** (en orden de valor):
 
-1. Barrido de rutas a 360 px con un helper de test (`pumpAt(360/390/430)`) y corregir los
-   overflows que aparezcan (encabezados `Row(spaceBetween)` con título largo + botón).
+1. Barrido de ~30 rutas top a 360/390/430 px con `pumpAcrossPhones` y corregir los overflows
+   que aparezcan (quedan los carritos de venta/cotización y las listas de flota).
 2. Dashboards (gráficos con `AspectRatio`/`LayoutBuilder`) y POS con carrito en hoja inferior.
 
 ---
@@ -209,7 +210,14 @@ paginación).
 
 - [ ] Inputs móviles: teclados numéricos, `textInputAction`, autofoco ordenado.
 - [ ] POS en teléfono: carrito como sheet persistente, scanner como FAB.
-- [ ] Encabezados `Row(spaceBetween)` con título largo + botón (compras/OC/transferencias).
+- [x] **`ZPageHeader`** (encabezado de página adaptativo): en teléfono el título ocupa todo el
+      ancho (parte en dos líneas) y las acciones bajan a una segunda fila en `Wrap`; desde
+      600 px comparten fila con el título expandido. A 360 px "Nueva Transferencia entre
+      Bodegas" + "Guardar" desbordaba. Migrado en orden de compra, solicitud de cotización y
+      transferencia entre bodegas; los totales de esas pantallas pasan a `Expanded` con
+      alineación al final (un monto largo ya no empuja el `Row`).
+- [x] Chips de saldo de vacaciones (`Acumulados/Tomados/Pendientes/Disponibles`) en `Wrap`
+      con `spaceEvenly`: bajan a 2×2 si no caben en una línea.
 
 **Aceptación**: ningún diálogo excede el ancho; formularios usables con teclado abierto;
 acción primaria siempre alcanzable.
@@ -292,7 +300,10 @@ acción primaria siempre alcanzable.
 
 ### 7.5 Tests
 
-- [ ] `test/helpers/viewport.dart` con `pumpAt(360/390/430)`.
+- [x] `test/helpers/viewport.dart` con `pumpAt(360/390/430)`: `pumpAt` fija `devicePixelRatio`
+      en 1 (para que `physicalSize` sea el tamaño lógico), restaura la vista con
+      `addTearDown(tester.view.reset)` y `pumpAcrossPhones` recorre los tres anchos fallando con
+      el ancho en el mensaje. Un `RenderFlex overflow` ya hace fallar el test automáticamente.
 - [ ] Golden/overflow de 5 pantallas × 3 anchos.
 - [ ] Barrido de ~30 rutas top a 360 px que falla ante cualquier `RenderFlex overflow`.
 - [ ] Regresiones: "Más" activo fuera de hubs; selectores operativos en móvil.
