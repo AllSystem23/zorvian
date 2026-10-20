@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/widgets/responsive_layout.dart';
 import '../../../shared/ds/ds.dart';
 import '../providers/service_payment_provider.dart';
 
@@ -424,55 +425,50 @@ final class _ServicePaymentFormPageState extends ConsumerState<ServicePaymentFor
                         ),
                         const SizedBox(height: 16),
                       ],
-                      Row(
+                      // `ResponsiveFormRow`: en teléfono año, mes y quincena se
+                      // apilan; el `SegmentedButton` de dos etiquetas no cabe
+                      // en el tercio de ancho que le tocaba a 360 px.
+                      ResponsiveFormRow(
                         children: [
-                          Expanded(
-                            child: DropdownButtonFormField<int>(
-                              isExpanded: true,
-                              initialValue: _year,
-                              decoration: const InputDecoration(
-                                labelText: 'Año *',
-                                border: OutlineInputBorder(),
-                                isDense: true,
-                              ),
-                              items: [
-                                for (final y in [
-                                  DateTime.now().year - 1,
-                                  DateTime.now().year,
-                                  DateTime.now().year + 1,
-                                ])
-                                  DropdownMenuItem(value: y, child: Text('$y')),
-                              ],
-                              onChanged: (v) => setState(() => _year = v ?? _year),
+                          DropdownButtonFormField<int>(
+                            isExpanded: true,
+                            initialValue: _year,
+                            decoration: const InputDecoration(
+                              labelText: 'Año *',
+                              border: OutlineInputBorder(),
+                              isDense: true,
                             ),
+                            items: [
+                              for (final y in [
+                                DateTime.now().year - 1,
+                                DateTime.now().year,
+                                DateTime.now().year + 1,
+                              ])
+                                DropdownMenuItem(value: y, child: Text('$y')),
+                            ],
+                            onChanged: (v) => setState(() => _year = v ?? _year),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: DropdownButtonFormField<int>(
-                              isExpanded: true,
-                              initialValue: _month,
-                              decoration: const InputDecoration(
-                                labelText: 'Mes *',
-                                border: OutlineInputBorder(),
-                                isDense: true,
-                              ),
-                              items: [
-                                for (var i = 1; i <= 12; i++)
-                                  DropdownMenuItem(value: i, child: Text(_monthNames[i - 1])),
-                              ],
-                              onChanged: (v) => setState(() => _month = v ?? _month),
+                          DropdownButtonFormField<int>(
+                            isExpanded: true,
+                            initialValue: _month,
+                            decoration: const InputDecoration(
+                              labelText: 'Mes *',
+                              border: OutlineInputBorder(),
+                              isDense: true,
                             ),
+                            items: [
+                              for (var i = 1; i <= 12; i++)
+                                DropdownMenuItem(value: i, child: Text(_monthNames[i - 1])),
+                            ],
+                            onChanged: (v) => setState(() => _month = v ?? _month),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: SegmentedButton<int>(
-                              segments: const [
-                                ButtonSegment(value: 1, label: Text('1ª quincena')),
-                                ButtonSegment(value: 2, label: Text('2ª quincena')),
-                              ],
-                              selected: {_half},
-                              onSelectionChanged: (s) => setState(() => _half = s.first),
-                            ),
+                          SegmentedButton<int>(
+                            segments: const [
+                              ButtonSegment(value: 1, label: Text('1ª quincena')),
+                              ButtonSegment(value: 2, label: Text('2ª quincena')),
+                            ],
+                            selected: {_half},
+                            onSelectionChanged: (s) => setState(() => _half = s.first),
                           ),
                         ],
                       ),
@@ -723,103 +719,127 @@ final class _ServicePaymentFormPageState extends ConsumerState<ServicePaymentFor
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label),
+            // `Expanded`: las etiquetas largas ("Total acumulado (bono +
+            // comisiones)") desbordaban la fila a 360 px.
+            Expanded(child: Text(label)),
+            const SizedBox(width: 12),
             Text(value.toStringAsFixed(2), style: const TextStyle(fontWeight: FontWeight.w600)),
           ],
         ),
       );
 
   Widget _lineRow(ThemeData theme, _LineRow row, int index, bool readonly) {
+    final nameField = TextFormField(
+      controller: row.nameCtrl,
+      enabled: !readonly,
+      decoration: const InputDecoration(
+        labelText: 'Línea',
+        hintText: 'OTROS / TELÉFONO',
+        border: OutlineInputBorder(),
+        isDense: true,
+      ),
+      onChanged: (_) => setState(() {}),
+    );
+    final collectedField = TextFormField(
+      controller: row.collectedCtrl,
+      enabled: !readonly,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      decoration: const InputDecoration(
+        labelText: 'Recaudo en efectivo',
+        border: OutlineInputBorder(),
+        isDense: true,
+      ),
+      onChanged: (_) => setState(() {}),
+    );
+    final contractedField = TextFormField(
+      controller: row.contractedCtrl,
+      enabled: !readonly,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      decoration: const InputDecoration(
+        labelText: 'Monto en contrato',
+        border: OutlineInputBorder(),
+        isDense: true,
+      ),
+      onChanged: (_) => setState(() {}),
+    );
+    final rateField = TextFormField(
+      controller: row.rateCtrl,
+      enabled: !readonly,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      decoration: const InputDecoration(
+        labelText: 'Comisión %',
+        border: OutlineInputBorder(),
+        isDense: true,
+      ),
+      onChanged: (_) => setState(() {}),
+    );
+    final estimate = Padding(
+      padding: const EdgeInsets.only(top: 20),
+      child: Text(
+        '= ${((_num(row.collectedCtrl.text) ?? 0) * (_num(row.rateCtrl.text) ?? 0) / 100).toStringAsFixed(2)}',
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+        textAlign: TextAlign.end,
+      ),
+    );
+    final removeButton = SizedBox(
+      width: 36,
+      child: IconButton(
+        visualDensity: VisualDensity.compact,
+        icon: const Icon(Icons.close, size: 18, color: Colors.red),
+        tooltip: 'Quitar línea',
+        onPressed: _lines.length <= 1
+            ? null
+            : () => setState(() {
+                  row.dispose();
+                  _lines.removeAt(index);
+                }),
+      ),
+    );
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 130,
-            child: TextFormField(
-              controller: row.nameCtrl,
-              enabled: !readonly,
-              decoration: const InputDecoration(
-                labelText: 'Línea',
-                hintText: 'OTROS / TELÉFONO',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              onChanged: (_) => setState(() {}),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: TextFormField(
-              controller: row.collectedCtrl,
-              enabled: !readonly,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: 'Recaudo en efectivo',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              onChanged: (_) => setState(() {}),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: TextFormField(
-              controller: row.contractedCtrl,
-              enabled: !readonly,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: 'Monto en contrato',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              onChanged: (_) => setState(() {}),
-            ),
-          ),
-          const SizedBox(width: 8),
-          SizedBox(
-            width: 90,
-            child: TextFormField(
-              controller: row.rateCtrl,
-              enabled: !readonly,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: 'Comisión %',
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              onChanged: (_) => setState(() {}),
-            ),
-          ),
-          const SizedBox(width: 8),
-          SizedBox(
-            width: 110,
-            child: Padding(
-              padding: const EdgeInsets.only(top: 20),
-              child: Text(
-                '= ${((_num(row.collectedCtrl.text) ?? 0) * (_num(row.rateCtrl.text) ?? 0) / 100).toStringAsFixed(2)}',
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-                textAlign: TextAlign.end,
-              ),
-            ),
-          ),
-          if (!readonly)
-            SizedBox(
-              width: 36,
-              child: IconButton(
-                visualDensity: VisualDensity.compact,
-                icon: const Icon(Icons.close, size: 18, color: Colors.red),
-                tooltip: 'Quitar línea',
-                onPressed: _lines.length <= 1
-                    ? null
-                    : () => setState(() {
-                          row.dispose();
-                          _lines.removeAt(index);
-                        }),
-              ),
-            ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Teléfono: los 4 campos + el cálculo + el botón de borrar no caben
+          // en una fila (desbordaban 104 px a 360 px), así que se reparten en
+          // una columna; la comisión calculada y el botón comparten la última.
+          if (constraints.maxWidth < 600) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                nameField,
+                const SizedBox(height: 8),
+                collectedField,
+                const SizedBox(height: 8),
+                contractedField,
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(child: rateField),
+                    const SizedBox(width: 8),
+                    Expanded(child: estimate),
+                    if (!readonly) removeButton,
+                  ],
+                ),
+              ],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(width: 130, child: nameField),
+              const SizedBox(width: 8),
+              Expanded(child: collectedField),
+              const SizedBox(width: 8),
+              Expanded(child: contractedField),
+              const SizedBox(width: 8),
+              SizedBox(width: 90, child: rateField),
+              const SizedBox(width: 8),
+              SizedBox(width: 110, child: estimate),
+              if (!readonly) removeButton,
+            ],
+          );
+        },
       ),
     );
   }

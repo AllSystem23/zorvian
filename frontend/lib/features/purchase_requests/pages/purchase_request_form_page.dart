@@ -219,8 +219,13 @@ final class _PurchaseRequestFormPageState extends ConsumerState<PurchaseRequestF
               ),
             ),
             const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // `Wrap`: a 360 px el botón no cabe al lado del título y baja a
+            // la línea siguiente en vez de desbordar.
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 12,
+              runSpacing: 8,
               children: [
                 Text('Productos (${_cart.length})', style: theme.textTheme.titleSmall),
                 ZButton(text: 'Agregar producto', icon: Icons.add, onPressed: _addProduct, fullWidth: false),

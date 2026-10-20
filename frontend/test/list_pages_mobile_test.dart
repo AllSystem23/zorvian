@@ -2,17 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zorvian/auth/auth_provider.dart' show dioClientProvider;
+import 'package:zorvian/core/offline/sync_engine.dart' show appDatabaseProvider;
 import 'package:zorvian/features/accounting/pages/accounting_entries_page.dart';
 import 'package:zorvian/features/cash_registers/pages/cash_register_list_page.dart';
 import 'package:zorvian/features/clients/pages/client_list_page.dart';
 import 'package:zorvian/features/credits/pages/credit_list_page.dart';
 import 'package:zorvian/features/employees/pages/employee_list_page.dart';
+import 'package:zorvian/features/products/pages/product_list_page.dart';
 import 'package:zorvian/features/purchases/pages/purchase_list_page.dart';
 import 'package:zorvian/features/quotes/pages/quote_list_page.dart';
 import 'package:zorvian/features/sales/pages/sale_list_page.dart';
 import 'package:zorvian/features/suppliers/pages/supplier_list_page.dart';
 
 import 'helpers/fake_api.dart';
+import 'helpers/offline_db.dart';
 import 'helpers/viewport.dart';
 
 /// Barrido de los listados principales a 360/390/430 px.
@@ -24,9 +27,7 @@ import 'helpers/viewport.dart';
 void main() {
   final pages = <String, Widget Function()>{
     'ventas': () => const SaleListPage(),
-    // 'productos' queda fuera: su repositorio es offline-first (Drift) y en
-    // widget tests `AppDatabase` no abre, asi que la pagina se queda en el
-    // spinner para siempre. Necesita un fake a nivel de repositorio.
+    'productos': () => const ProductListPage(),
     'clientes': () => const ClientListPage(),
     'proveedores': () => const SupplierListPage(),
     'empleados': () => const EmployeeListPage(),
@@ -49,11 +50,18 @@ void main() {
           'totalPages': 0,
         },
       );
+      // Para las pantallas offline-first (ventas, productos): el
+      // `AppDatabase` real no abre en tests y la página se queda cargando.
+      final db = memoryDb();
+      addTearDown(db.close);
 
       await pumpAcrossPhones(
         tester,
         (_) => ProviderScope(
-          overrides: [dioClientProvider.overrideWithValue(api.client)],
+          overrides: [
+            dioClientProvider.overrideWithValue(api.client),
+            appDatabaseProvider.overrideWithValue(db),
+          ],
           child: MaterialApp(home: entry.value()),
         ),
         height: 1200,
