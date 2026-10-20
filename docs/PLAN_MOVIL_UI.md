@@ -1,6 +1,6 @@
 # Plan de UI móvil (teléfonos) — Zorvian ERP
 
-> **Estado**: Fase 0 ✅ · Fase 1 ✅ · Fase 2 (fundaciones + kanban + diálogos) ✅ · Fase 3 en curso · Fase 5.1 ✅ · **Fecha**: 2026-10-20
+> **Estado**: Fase 0 ✅ · Fase 1 ✅ · Fase 2 (fundaciones + kanban + diálogos + formularios) ✅ · Fase 3 en curso · Fase 5.1 ✅ · **Fecha**: 2026-10-20
 > **Alcance**: capa de presentación Flutter (`frontend/`). Sin cambios de negocio ni de backend.
 > **Objetivo**: que un usuario pueda operar el ERP completo desde un teléfono de 360–430 px,
 > sin scroll horizontal, sin overflows y con acciones primarias alcanzables con una mano.
@@ -17,13 +17,13 @@
 | `adfc46f` | Fase 3 (parcial) — `ZStatCard` compacto + `FittedBox` en KPIs |
 | `1a46a1b` | `ZDataTable` con altura no acotada (crash del comparativo por sucursal) |
 | `08090fc` | Fase 2 (diálogos) — 28 `AlertDialog` de páginas → `showZAdaptiveDialog`/`ZResponsiveDialog` + `ZConfirmDialog` |
+| `1ac638e` | Fase 2 (formularios) — `ResponsiveFormRow` y campos en una columna en teléfono |
 
 **Próximos pasos sugeridos** (en orden de valor):
 
-1. Formularios de 2–3 columnas → una columna (empezar por `client_form`, `product_form`,
-   `sale_form`, `purchase_form`).
-2. Barrido de rutas a 360 px con un helper de test (`pumpAt(360/390/430)`) y corregir los
-   overflows que aparezcan; luego dashboards (gráficos con `AspectRatio`) y POS.
+1. Barrido de rutas a 360 px con un helper de test (`pumpAt(360/390/430)`) y corregir los
+   overflows que aparezcan (encabezados `Row(spaceBetween)` con título largo + botón).
+2. Dashboards (gráficos con `AspectRatio`/`LayoutBuilder`) y POS con carrito en hoja inferior.
 
 ---
 
@@ -190,11 +190,26 @@ paginación).
       `sort_child_properties_last` porque estos diálogos reciben el cuerpo antes del pie.
 - [x] Tests ajustados a `ZResponsiveDialog`: `roles_permissions_crud_test.dart` (3).
 
+**Hecho (formularios)**:
+
+- [x] **`ResponsiveFormRow`** (`core/widgets/responsive_layout.dart`): fila de campos que en
+      teléfono se **apila en una columna** (`Column(stretch)`, mismo `spacing` vertical) y desde
+      600 px reparte el ancho en `Row` con `Expanded` por hijo. A 360–430 px dos campos
+      compartiendo fila quedan por debajo de ~170 px y el label con icono se recorta.
+- [x] Migradas las filas de campos que **no tenían fallback móvil**: cliente (municipio/
+      departamento), producto (precio/costo, stock/mínimo), venta (cuotas/interés), presupuesto
+      (año/mes), contrato (país/moneda), lead (nombre/apellido), webhook (reintentos/intervalo),
+      incapacidad (fechas), flujo de aprobación (monto mín/máx), líneas de compra, orden de
+      compra y solicitud de cotización (cantidad/costo/dto), y `workshop_form` (5 bloques
+      `if (isWide) Row(...) else [...]` duplicados → una sola declaración; `isWide` eliminado).
+- [x] Test: `test/responsive_form_row_test.dart` (3: apilado a 360, fila con `Expanded` a 900,
+      espaciado configurable).
+
 **Pendiente**:
 
-- [ ] Formularios de 2–3 columnas → una columna con secciones colapsables.
 - [ ] Inputs móviles: teclados numéricos, `textInputAction`, autofoco ordenado.
 - [ ] POS en teléfono: carrito como sheet persistente, scanner como FAB.
+- [ ] Encabezados `Row(spaceBetween)` con título largo + botón (compras/OC/transferencias).
 
 **Aceptación**: ningún diálogo excede el ancho; formularios usables con teclado abierto;
 acción primaria siempre alcanzable.
