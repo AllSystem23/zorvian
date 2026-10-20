@@ -378,7 +378,11 @@ class _SettlementFormPageState extends ConsumerState<SettlementFormPage> {
                 child: const Icon(Icons.tune, size: 20, color: ZColors.brandAccent),
               ),
               const SizedBox(width: ZSpacing.md),
-              Text('Configuración de Liquidación', style: ZTypography.titleLarge),
+              // `Expanded`: el título en `titleLarge` no cabe a 360 px
+              // (desbordaba 241 px) y parte en dos líneas.
+              Expanded(
+                child: Text('Configuración de Liquidación', style: ZTypography.titleLarge),
+              ),
             ],
           ),
           const SizedBox(height: ZSpacing.xl),
@@ -421,7 +425,9 @@ class _SettlementFormPageState extends ConsumerState<SettlementFormPage> {
                   children: [
                     const Icon(Icons.access_time, size: 16, color: ZColors.warning),
                     const SizedBox(width: ZSpacing.sm),
-                    Text('Horas Extras (Opcional)', style: ZTypography.titleSmall),
+                    Expanded(
+                      child: Text('Horas Extras (Opcional)', style: ZTypography.titleSmall),
+                    ),
                   ],
                 ),
                 const SizedBox(height: ZSpacing.md),
@@ -479,6 +485,11 @@ class _SettlementFormPageState extends ConsumerState<SettlementFormPage> {
                 child: Text('Tasas de la Liquidación (Editables)', style: ZTypography.titleSmall),
               ),
               TextButton.icon(
+                // Padding horizontal reducido: a 360 px el botón dejaba 0.7 px
+                // de desborde con el de fábrica (el área táctil se conserva).
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
                 onPressed: _resetRates,
                 icon: const Icon(Icons.restart_alt, size: 16),
                 label: const Text('Restablecer'),

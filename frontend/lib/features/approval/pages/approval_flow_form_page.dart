@@ -127,11 +127,18 @@ final class _ApprovalFlowFormPageState extends ConsumerState<ApprovalFlowFormPag
               const SizedBox(height: 12),
               TextFormField(controller: _descCtrl, decoration: const InputDecoration(labelText: 'Descripción', prefixIcon: Icon(Icons.description)), maxLines: 2),
               const SizedBox(height: 16),
-              Row(children: [
-                Text('Pasos de Aprobación', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-                const Spacer(),
-                TextButton.icon(icon: const Icon(Icons.add, size: 18), label: const Text('Agregar paso'), onPressed: _addStep),
-              ]),
+              // `Wrap`: a 360 px el título y "Agregar paso" no caben en la
+              // misma línea (desbordaban 194 px); el botón baja de línea.
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 12,
+                runSpacing: 4,
+                children: [
+                  Text('Pasos de Aprobación', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                  TextButton.icon(icon: const Icon(Icons.add, size: 18), label: const Text('Agregar paso'), onPressed: _addStep),
+                ],
+              ),
               const SizedBox(height: 8),
               ..._steps.asMap().entries.map((entry) {
                 final i = entry.key;
