@@ -1,4 +1,5 @@
 export 'tokens/colors.dart';
+export 'tokens/breakpoints.dart';
 export 'tokens/spacing.dart';
 export 'tokens/typography.dart';
 export 'tokens/radii.dart';

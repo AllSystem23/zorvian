@@ -65,7 +65,7 @@ final class SidebarItem extends ConsumerWidget {
               duration: const Duration(milliseconds: 200),
               padding: EdgeInsets.symmetric(
                 horizontal: collapsed ? ZSpacing.sm : ZSpacing.md,
-                vertical: collapsed ? ZSpacing.md : 10,
+                vertical: collapsed ? ZSpacing.md : 12,
               ),
               decoration: BoxDecoration(
                 color: bgColor,

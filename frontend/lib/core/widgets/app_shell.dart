@@ -21,6 +21,7 @@ import 'sidebar/sidebar.dart';
 import 'header/global_header.dart';
 import 'header/breadcrumbs_bar.dart';
 import 'header/mobile_bottom_nav.dart';
+import 'header/mobile_scope_bar.dart';
 
 final class AppShell extends ConsumerStatefulWidget {
   final Widget child;
@@ -752,7 +753,13 @@ final class _MobileLayout extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(pageTitle),
+        title: Text(pageTitle, overflow: TextOverflow.ellipsis),
+        // Contexto multi-tenant visible en teléfono: compañía · sucursal ·
+        // bodega (el GlobalHeader no se monta en este layout).
+        bottom: const PreferredSize(
+          preferredSize: Size.fromHeight(ZTouchTarget.compact),
+          child: MobileScopeBar(),
+        ),
         leading: Builder(
           builder: (ctx) {
             final router = GoRouter.of(ctx);

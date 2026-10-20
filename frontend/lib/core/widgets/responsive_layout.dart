@@ -1,34 +1,35 @@
 import 'package:flutter/material.dart';
 
+import '../../shared/ds/tokens/breakpoints.dart';
+
 /// Screen size breakpoints for responsive design
 enum ScreenSize { mobile, tablet, desktop }
 
-/// Helper widget for responsive layouts
+/// Helper widget for responsive layouts.
+///
+/// Los cortes viven en [ZBreakpoints] (fuente única). No volver a comparar
+/// anchos con literales en widgets nuevos.
 class ResponsiveBuilder extends StatelessWidget {
   final Widget Function(BuildContext context, ScreenSize size) builder;
 
   const ResponsiveBuilder({super.key, required this.builder});
 
-  static ScreenSize getScreenSize(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    if (width < 576) return ScreenSize.mobile;
-    if (width < 992) return ScreenSize.tablet;
+  /// Resuelve el [ScreenSize] a partir de un ancho lógico.
+  static ScreenSize fromWidth(double width) {
+    if (width < ZBreakpoints.phone) return ScreenSize.mobile;
+    if (width < ZBreakpoints.tablet) return ScreenSize.tablet;
     return ScreenSize.desktop;
+  }
+
+  static ScreenSize getScreenSize(BuildContext context) {
+    return fromWidth(MediaQuery.of(context).size.width);
   }
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        ScreenSize size;
-        if (constraints.maxWidth < 576) {
-          size = ScreenSize.mobile;
-        } else if (constraints.maxWidth < 992) {
-          size = ScreenSize.tablet;
-        } else {
-          size = ScreenSize.desktop;
-        }
-        return builder(context, size);
+        return builder(context, fromWidth(constraints.maxWidth));
       },
     );
   }
@@ -53,18 +54,12 @@ class ResponsivePadding extends StatelessWidget {
   Widget build(BuildContext context) {
     return ResponsiveBuilder(
       builder: (_, size) {
-        EdgeInsetsGeometry padding;
-        switch (size) {
-          case ScreenSize.mobile:
-            padding = mobilePadding ?? const EdgeInsets.all(12);
-            break;
-          case ScreenSize.tablet:
-            padding = tabletPadding ?? const EdgeInsets.all(16);
-            break;
-          case ScreenSize.desktop:
-            padding = desktopPadding ?? const EdgeInsets.all(24);
-            break;
-        }
+        final padding = switch (size) {
+          ScreenSize.mobile => mobilePadding ??
+              const EdgeInsets.all(ZBreakpoints.phonePagePadding),
+          ScreenSize.tablet => tabletPadding ?? const EdgeInsets.all(16),
+          ScreenSize.desktop => desktopPadding ?? const EdgeInsets.all(24),
+        };
         return Padding(padding: padding, child: child);
       },
     );
@@ -95,10 +90,10 @@ class ResponsiveGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        int columns;
-        if (width < 576) {
+        final int columns;
+        if (width < ZBreakpoints.phone) {
           columns = mobileColumns;
-        } else if (width < 992) {
+        } else if (width < ZBreakpoints.tablet) {
           columns = tabletColumns;
         } else {
           columns = desktopColumns;

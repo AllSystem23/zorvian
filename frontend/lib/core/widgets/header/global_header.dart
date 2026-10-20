@@ -42,8 +42,8 @@ final class GlobalHeader extends ConsumerWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final w = constraints.maxWidth;
-          final showAll = w >= 900;
-          final showExtra = w >= 700;
+          final showAll = w >= ZBreakpoints.headerFullControls;
+          final showExtra = w >= ZBreakpoints.headerExtraControls;
 
           return Row(
             children: [
@@ -53,7 +53,10 @@ final class GlobalHeader extends ConsumerWidget {
                   icon: const Icon(Icons.menu, size: 20),
                   onPressed: onMenuTap,
                   tooltip: 'Menú principal',
-                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                  constraints: const BoxConstraints(
+                    minWidth: ZTouchTarget.compact,
+                    minHeight: ZTouchTarget.compact,
+                  ),
                   padding: EdgeInsets.zero,
                   splashRadius: 18,
                 ),
@@ -596,7 +599,10 @@ class _QuickActions extends ConsumerWidget {
               themeMode == ThemeMode.dark ? 'Modo claro' : 'Modo oscuro',
           onPressed: () =>
               ref.read(themeModeProvider.notifier).toggle(),
-          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          constraints: const BoxConstraints(
+            minWidth: ZTouchTarget.compact,
+            minHeight: ZTouchTarget.compact,
+          ),
           padding: EdgeInsets.zero,
           splashRadius: 16,
         ),
@@ -639,7 +645,10 @@ class _HeaderIconButton extends StatelessWidget {
           ),
           tooltip: tooltip,
           onPressed: onPressed,
-          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+          constraints: const BoxConstraints(
+            minWidth: ZTouchTarget.compact,
+            minHeight: ZTouchTarget.compact,
+          ),
           padding: EdgeInsets.zero,
           splashRadius: 16,
         ),

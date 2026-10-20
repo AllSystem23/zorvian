@@ -1,0 +1,229 @@
+# Plan de UI móvil (teléfonos) — Zorvian ERP
+
+> **Estado**: Fase 0 en ejecución · **Fecha**: 2026-10-20
+> **Alcance**: capa de presentación Flutter (`frontend/`). Sin cambios de negocio ni de backend.
+> **Objetivo**: que un usuario pueda operar el ERP completo desde un teléfono de 360–430 px,
+> sin scroll horizontal, sin overflows y con acciones primarias alcanzables con una mano.
+
+---
+
+## 0. Contexto y diagnóstico
+
+Base medida al iniciar el plan: **481 archivos `.dart`**, **217 páginas** (`*_page.dart`),
+**254 rutas** `GoRoute`, **90 `NavItem`** en **11 módulos**, **42 archivos de test**.
+
+La app ya tiene `_MobileLayout` y una barra inferior, pero el 95 % de las páginas se diseñó
+para escritorio y **ningún test corre por debajo de 900 px**.
+
+| # | Problema | Evidencia |
+|---|---|---|
+| 1 | Breakpoints como literales duplicados (`<576`, `<992`, `>=900`) | `responsive_layout.dart`, `global_header.dart`, `app_shell.dart` |
+| 2 | El tab "Más" nunca se marcaba activo (`clamp(0,3)` sobre 5 tabs) | `mobile_bottom_nav.dart:158` |
+| 3 | Sin selectores de compañía/sucursal/bodega en móvil | `GlobalHeader` solo en tablet/desktop |
+| 4 | `ZDataTable` sin modo móvil (filas con anchos fijos, sin scroll horizontal) | `z_data_table.dart` |
+| 5 | 20 listados usan `ZDataTable` | grep `ZDataTable<` |
+| 6 | Diálogos con ancho fijo (560/460/420/400/360/320) | `z_command_palette.dart`, `subscription_plans_page.dart`, `pos_page.dart`, … |
+| 7 | Gráficos con tamaño fijo (`BiPieChart` 160, `BiGauge` 72) y dashboards 1/2/4 columnas | `shared/ds/components/bi/*` |
+| 8 | Sin tests por debajo de 900 px | `test/*_test.dart` |
+| 9 | Permisos de plataforma ausentes (cámara, notificaciones, `INTERNET` en release, FaceID) | `AndroidManifest.xml`, `Info.plist` |
+| 10 | Código muerto: `MobileDashboardPage` (sin ruta), `ResponsivePadding` (sin consumidores) | `features/dashboard/`, `responsive_layout.dart` |
+| 11 | Touch targets de 36 px (header) y 28 px (sidebar) | `global_header.dart`, `sidebar_item.dart` |
+| 12 | `applicationId` legacy `com.nexora.nexora` | `android/app/build.gradle.kts` |
+
+---
+
+## 1. Principios
+
+1. **Un solo código, tres layouts.** Nada de forks por pantalla (`MobileDashboardPage` es el
+   contraejemplo: quedó sin ruta).
+2. **La adaptación vive en el Design System**, no en cada página: si hay que decidir
+   "tarjeta vs tabla" en 20 sitios, se decide una vez en `ZDataTable`.
+3. **Teléfono = una columna, una acción primaria, cero scroll horizontal.**
+4. **Contexto visible siempre**: compañía, sucursal y bodega no pueden quedar escondidos
+   (una escritura en la sucursal equivocada es un error de negocio).
+5. **48 dp de área táctil** (44 mínimo), cuerpo ≥ 12 sp, contraste AA, `textScale` hasta 1.3.
+6. **Sin features nuevas**: solo representación y ergonomía.
+
+---
+
+## 2. Fase 0 — Fundaciones (P0)
+
+**Meta**: que la app deje de ser "un escritorio encogido": breakpoints centralizados,
+navegación inferior correcta y contexto multi-tenant visible en el teléfono.
+
+### Checklist
+
+- [x] `ZBreakpoints` + `ZTouchTarget` en `shared/ds/tokens/breakpoints.dart` (fuente única).
+- [x] `ResponsiveBuilder`/`ResponsiveGrid`/`ResponsivePadding` usan los tokens (sin literales).
+- [x] `MobileBottomNav` migrado a **`NavigationBar` (M3)**; el tab activo ya no usa `clamp`.
+- [x] Tabs **derivados de rol + permisos + plan** (módulos accesibles) + tab **"Más"**.
+- [x] "Más" abre hoja a pantalla completa con **buscador** y todos los módulos agrupados.
+- [x] **`MobileScopeBar`**: franja bajo el AppBar con compañía · sucursal · bodega, tappable.
+- [x] Hoja de contexto con las 3 secciones (empresa / sucursal / bodega), incluida
+      "Todas las sucursales" y "Todas las bodegas", y auto-selección de la primera sucursal.
+- [x] Touch targets: acciones del header 44 dp, ítems del sidebar 44 dp.
+- [x] Tests: `mobile_navigation_test.dart`, `mobile_scope_bar_test.dart`.
+- [x] `flutter analyze lib test` en 0 issues y suites verdes.
+
+### Decisiones de diseño
+
+- **Breakpoints**: `< 600` teléfono, `600–991` tablet, `≥ 992` escritorio.
+  Se mantienen los cortes históricos de tablet/escritorio para no regresar layouts existentes;
+  el único cambio real es el umbral de teléfono (576 → 600).
+- **Tabs**: 4 hubs + "Más". Los hubs se eligen de una lista preferente
+  (`ventas`, `inventario`, `talento`, `finanzas`, `compras`, `flota`) filtrando por los módulos
+  que el usuario realmente puede ver (`NavConfig.getModulesForRole`). Si no tiene ninguno,
+  ve "Inicio" + "Más". El hub navega al **primer ítem permitido** del módulo.
+- **"Más"**: hoja `isScrollControlled` con buscador local, grupos del sidebar
+  (`NavConfig.groupLabels`) y un `ListTile` de 48 dp por ítem. Siempre es el destino
+  seleccionado cuando la ruta no pertenece a ningún hub.
+- **Contexto**: la franja es parte del `AppBar` (`bottom`), así hereda el `SafeArea` superior
+  y el color de la superficie. La selección replica exactamente la semántica del header de
+  escritorio (reset de sucursal al cambiar de compañía, reset de bodega al cambiar de sucursal,
+  `switchTenant` para SuperAdmin, invalidación de listas).
+
+### Criterios de aceptación
+
+- A 360, 390 y 430 px: compañía/sucursal/bodega visibles; tab activo correcto en todas las rutas;
+  "Más" lista solo lo permitido; ningún target < 44 dp.
+
+---
+
+## 3. Fase 1 — Listados: tabla → tarjeta (P0)
+
+**Meta**: los 20 listados con `ZDataTable` legibles en teléfono sin scroll horizontal.
+
+- [ ] `ZDataTable` gana `mobileCardBuilder` (opcional) y un renderer automático
+      (`título = 1ª columna`, `subtítulo = 2ª`, `numeric` a la derecha, resto en chips).
+- [ ] Acciones de fila (`tableActions`, `bulkActions`) a un menú `⋮` de 44 dp.
+- [ ] Paginación compacta ("1–20 de 340" + flechas) y filtros en bottom sheet.
+- [ ] `expandedRowBuilder` → sección expandible de la tarjeta.
+- [ ] **Bug**: el toggle de columnas desalinea `row.cells[i]`; mapear por `column.id`.
+- [ ] `ZColumn.width` solo aplica en `≥ 600`; en teléfono se ignora.
+- [ ] Migrar: `user_list_page`, `super_admin_companies_page`, `invitation_history_page`,
+      `document_center_page`, `provider_list/invoices/contracts`, `kardex_page`,
+      `cash_register_list/detail`, `payroll_run_detail_page`, `trial_balance_page`,
+      `comparative_reports_page`, `equity_changes_page`, `goals_dashboard_screen`,
+      `inventory_valuation_page`, `executive_dashboard_page`.
+
+**Aceptación**: los 20 listados a 360 px sin overflow ni scroll horizontal; a 1280 px idénticos a hoy.
+
+---
+
+## 4. Fase 2 — Formularios y modales (P0)
+
+- [ ] `ZResponsiveDialog` / `showZSheet`: en `< 600` bottom sheet a pantalla completa con
+      acción primaria fija al pie. Sustituye los 38 `AlertDialog` y 19 `showModalBottomSheet`
+      con anchos fijos (560/460/420/400/360/320).
+- [ ] `ZStickyActionBar` (acción primaria + resumen, respeta `viewInsets` del teclado).
+- [ ] Formularios de 2–3 columnas → una columna con secciones colapsables.
+- [ ] Inputs móviles: teclados numéricos, `textInputAction`, autofoco ordenado, date pickers.
+- [ ] POS en teléfono: carrito como sheet persistente, scanner como FAB.
+- [ ] Kanban (columnas de 280) → lista vertical agrupada por etapa en teléfono.
+
+**Aceptación**: ningún diálogo excede el ancho; formularios usables con teclado abierto;
+acción primaria siempre alcanzable.
+
+---
+
+## 5. Fase 3 — Dashboards y BI (P1)
+
+- [ ] KPIs en **2 columnas** en teléfono, valor con `FittedBox`, padding de página 16.
+- [ ] Gráficos con `LayoutBuilder` + `AspectRatio` (sin alto fijo), donut con leyenda debajo,
+      gauge escalado, `RepaintBoundary` y lectura de valores por tap.
+- [ ] Secciones de dashboard como tarjetas full width con "Ver todo".
+- [ ] Tabla "Comparativo por Sucursal" → tarjetas + barra comparativa.
+- [ ] Botón "Reporte PDF" a `PopupMenu` si no cabe en el `Row`.
+
+**Aceptación**: dashboard ejecutivo y comercial legibles a 360 px, 2 KPIs por fila, 0 overflows.
+
+---
+
+## 6. Fase 4 — Pantallas operativas (P1)
+
+1. Ventas y cobros: lista, detalle con resumen pegajoso, pago de crédito en 3 pasos.
+2. Inventario: transferencias, kardex, escaneo (permiso de cámara).
+3. Asistencia / kiosco / QR check-in: permisos + fallback sin cámara.
+4. Aprobaciones: bandeja con Aprobar/Rechazar de 48 dp.
+5. Formularios que exigen sucursal: el aviso debe **abrir el selector**.
+6. Flota: GPS a pantalla completa con bottom sheet de parada, entregas y hoja de ruta.
+
+**Aceptación**: cada flujo completo en 390 px con una sola mano.
+
+---
+
+## 7. Fase 5 — Calidad móvil (P1/P2)
+
+### 7.1 Plataforma
+
+- [ ] `AndroidManifest.xml` (main): `INTERNET`, `CAMERA`, `POST_NOTIFICATIONS`;
+      `ACCESS_FINE_LOCATION` si el GPS es en primer plano. **`INTERNET` es bloqueante para release**
+      (hoy solo existe en `debug/` y `profile/`).
+- [ ] `Info.plist`: `NSCameraUsageDescription`, `NSPhotoLibraryUsageDescription`,
+      `NSPhotoLibraryAddUsageDescription`, `NSLocationWhenInUseUsageDescription`,
+      `NSFaceIDUsageDescription`.
+- [ ] Orientación: portrait en captura (asistencia, QR, firma).
+- [ ] `applicationId` → `com.zorvian.erp` **antes** de publicar.
+- [ ] `PopScope` en formularios con cambios sin guardar.
+- [ ] Deep links de recuperación de contraseña e invitaciones.
+
+### 7.2 Offline y estados
+
+- [ ] Banner "Sin conexión — N cambios pendientes" + reintento manual (Drift ya existe).
+- [ ] Estados vacío/error/cargando unificados y accionables.
+- [ ] Cola de sincronización visible y pantalla de conflictos (P2).
+
+### 7.3 Rendimiento percibido
+
+- [ ] `ListView.builder` en todas las listas; quitar `shrinkWrap` + `NeverScrollableScrollPhysics`
+      dentro de `SingleChildScrollView`.
+- [ ] Imágenes redimensionadas; `RepaintBoundary` en gráficos; `const` en widgets estáticos.
+
+### 7.4 Accesibilidad
+
+- [ ] `tooltip`/semántica en iconos, `textScale` 1.3 sin overflow, contraste AA.
+
+### 7.5 Tests
+
+- [ ] `test/helpers/viewport.dart` con `pumpAt(360/390/430)`.
+- [ ] Golden/overflow de 5 pantallas × 3 anchos.
+- [ ] Barrido de ~30 rutas top a 360 px que falla ante cualquier `RenderFlex overflow`.
+- [ ] Regresiones: "Más" activo fuera de hubs; selectores operativos en móvil.
+
+**Aceptación**: 0 overflows en la matriz 360/390/430 × `textScale` 1.0/1.3; cámara y
+notificaciones funcionando en dispositivo real.
+
+---
+
+## 8. Priorización y cronograma
+
+| Fase | Alcance | Prioridad | Días | Valor |
+|---|---|---|---|---|
+| 0 | Tokens, `NavigationBar`, "Más", contexto visible, touch targets | **P0** | 4 | Deja de ser un escritorio encogido |
+| 1 | `ZDataTable` → tarjetas (20 listados) | **P0** | 6 | Desbloquea la mayoría de pantallas |
+| 2 | Diálogos/sheets + formularios + POS + kanban | **P0** | 5 | Permite crear y editar desde el teléfono |
+| 3 | Dashboards/BI adaptativos | P1 | 5 | Vista de supervisor/ejecutivo |
+| 4 | Flujos operativos | P1 | 7 | Trabajo diario de campo |
+| 5 | Permisos, offline, a11y, tests de ancho | P1-P2 | 5 | Confiabilidad y release |
+
+**Hito "móvil usable" = Fases 0+1+2 (≈3 semanas).**
+
+---
+
+## 9. Fuera de alcance
+
+- Rediseño de negocio, nuevos reportes o endpoints.
+- Layout específico de tablet (hereda tokens, no se rediseña).
+- Reescritura del Design System o migración de tema.
+- Notificaciones push (solo se deja preparado el permiso).
+- Offline completo (extender Drift a todas las entidades es un proyecto aparte).
+
+---
+
+## 10. Decisiones abiertas
+
+1. Tabs inferiores: fijos por rol (implementado) o configurables por usuario.
+2. Contexto de compañía/sucursal: en el AppBar (implementado) o dentro de "Más".
+3. POS en teléfono: flujo completo de venta o solo consulta + cobro.
+4. Orientación: ¿bloquear portrait en teléfono?
+5. Publicación en stores: define el momento de cambiar `applicationId`.
