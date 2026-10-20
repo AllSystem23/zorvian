@@ -5,6 +5,26 @@
 > **Objetivo**: que un usuario pueda operar el ERP completo desde un teléfono de 360–430 px,
 > sin scroll horizontal, sin overflows y con acciones primarias alcanzables con una mano.
 
+## Progreso (commits de esta tanda)
+
+| Commit | Alcance |
+|---|---|
+| `70abe9e` | Fase 0 — tokens (`ZBreakpoints`/`ZTouchTarget`), `NavigationBar` M3 con hubs, `MobileScopeBar`, touch targets |
+| `1cc57be` | Fase 1 — `ZDataTable` en tarjetas (<600 px), fix de desalineación al ocultar columnas |
+| `4f04e5c` | Fase 2 (fundaciones) — `showZAdaptiveDialog`, `ZResponsiveDialog`, `ZStickyActionBar`, `ZConfirmDialog`/`ZModal` |
+| `a799402` | Fase 5.1 — permisos Android/iOS + `FlutterFragmentActivity` (biometría) |
+| `74978fa` | Fase 2 (kanban) — CRM y cotizaciones en lista vertical por etapa |
+| `adfc46f` | Fase 3 (parcial) — `ZStatCard` compacto + `FittedBox` en KPIs |
+| `1a46a1b` | `ZDataTable` con altura no acotada (crash del comparativo por sucursal) |
+
+**Próximos pasos sugeridos** (en orden de valor):
+
+1. Migrar los 28 `AlertDialog` directos de páginas a `showZAdaptiveDialog` + `ZResponsiveDialog`.
+2. Formularios de 2–3 columnas → una columna (empezar por `client_form`, `product_form`,
+   `sale_form`, `purchase_form`).
+3. Barrido de rutas a 360 px con un helper de test (`pumpAt(360/390/430)`) y corregir los
+   overflows que aparezcan; luego dashboards (gráficos con `AspectRatio`) y POS.
+
 ---
 
 ## 0. Contexto y diagnóstico
