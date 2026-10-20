@@ -181,22 +181,32 @@ class _ExportBar extends StatelessWidget {
                 color: Theme.of(context).colorScheme.onSurface,
               )),
               const SizedBox(width: ZSpacing.md),
-              ZButton(
-                text: 'PDF',
-                icon: Icons.picture_as_pdf_outlined,
-                onPressed: () => ref.read(fleetReportProvider.notifier).exportReport('pdf'),
-                type: ZButtonType.secondary,
-                fullWidth: false,
-                isLoading: state.exporting,
-              ),
-              const SizedBox(width: ZSpacing.sm),
-              ZButton(
-                text: 'Excel',
-                icon: Icons.table_chart_outlined,
-                onPressed: () => ref.read(fleetReportProvider.notifier).exportReport('xlsx'),
-                type: ZButtonType.secondary,
-                fullWidth: false,
-                isLoading: state.exporting,
+              // Los 2 botones se apilan cuando no caben (a 360 px el par
+              // desbordaba 105 px a la derecha).
+              Expanded(
+                child: Wrap(
+                  spacing: ZSpacing.sm,
+                  runSpacing: ZSpacing.xs,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    ZButton(
+                      text: 'PDF',
+                      icon: Icons.picture_as_pdf_outlined,
+                      onPressed: () => ref.read(fleetReportProvider.notifier).exportReport('pdf'),
+                      type: ZButtonType.secondary,
+                      fullWidth: false,
+                      isLoading: state.exporting,
+                    ),
+                    ZButton(
+                      text: 'Excel',
+                      icon: Icons.table_chart_outlined,
+                      onPressed: () => ref.read(fleetReportProvider.notifier).exportReport('xlsx'),
+                      type: ZButtonType.secondary,
+                      fullWidth: false,
+                      isLoading: state.exporting,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -306,30 +316,23 @@ class _KpiDashboard extends StatelessWidget {
         children: [
           Text('KPIs de Flota', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(height: ZSpacing.lg),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final crossCount = constraints.maxWidth > 900 ? 5
-                  : constraints.maxWidth > 600 ? 4
-                  : constraints.maxWidth > 400 ? 3 : 2;
-              return GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossCount,
-                  mainAxisSpacing: ZSpacing.md,
-                  crossAxisSpacing: ZSpacing.md,
-                  childAspectRatio: 1.4,
+          // `ZStatGrid`: en teléfono (2 columnas, ~158 px) un `childAspectRatio`
+          // de 1.4 deja 113 px de alto y la tarjeta compacta desborda.
+          ZStatGrid(
+            phoneColumns: 2,
+            tabletColumns: 4,
+            desktopColumns: 5,
+            aspectRatio: 1.4,
+            children: [
+              for (final kpi in kpis)
+                ZStatCard(
+                  title: kpi.label,
+                  value: kpi.value,
+                  icon: kpi.icon,
+                  variant: kpi.variant,
+                  moduleColor: kpi.moduleColor,
                 ),
-                itemCount: kpis.length,
-                itemBuilder: (_, i) => ZStatCard(
-                  title: kpis[i].label,
-                  value: kpis[i].value,
-                  icon: kpis[i].icon,
-                  variant: kpis[i].variant,
-                  moduleColor: kpis[i].moduleColor,
-                ),
-              );
-            },
+            ],
           ),
         ],
       ),
@@ -503,8 +506,12 @@ class _FuelTrendView extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('Tendencia de Combustible', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-              const Spacer(),
+              // `Expanded` en el título: en teléfono el título se parte en vez
+              // de empujar las 2 estadísticas fuera de la fila (el `Spacer`
+              // anterior desbordaba con traducciones más largas).
+              Expanded(
+                child: Text('Tendencia de Combustible', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+              ),
               ZStatInline(label: 'Total Litros', value: '${(data['grandTotalLiters'] as num?)?.toStringAsFixed(0) ?? '0'} L', icon: Icons.local_gas_station_outlined, color: ZColors.moduleFleet),
               const SizedBox(width: ZSpacing.md),
               ZStatInline(label: 'Total Costo', value: 'C\$${(data['grandTotalCost'] as num?)?.toStringAsFixed(0) ?? '0'}', icon: Icons.attach_money_outlined, color: ZColors.danger),
@@ -566,14 +573,18 @@ class _ExpenseByAccountView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // KPIs
-          Row(
+          // KPIs — `ZStatGrid`: con 3 `Expanded` a 360 px cada tarjeta quedaba
+          // en ~101 px (valor escalado a la mínima expresión); en teléfono se
+          // reparten a 2 columnas con alto intrínseco.
+          ZStatGrid(
+            phoneColumns: 2,
+            tabletColumns: 3,
+            desktopColumns: 3,
+            aspectRatio: 2.6,
             children: [
-              Expanded(child: ZStatCard(title: 'Total Gastos', value: 'C\$ ${grandTotal.toStringAsFixed(2)}', icon: Icons.attach_money_outlined, variant: ZStatVariant.module, moduleColor: ZColors.moduleFleet)),
-              const SizedBox(width: ZSpacing.md),
-              Expanded(child: ZStatCard(title: 'Aprobados', value: '$totalApproved', icon: Icons.check_circle_outlined, variant: ZStatVariant.success)),
-              const SizedBox(width: ZSpacing.md),
-              Expanded(child: ZStatCard(title: 'Pendientes', value: '$totalPending', icon: Icons.schedule_outlined, variant: ZStatVariant.warning)),
+              ZStatCard(title: 'Total Gastos', value: 'C\$ ${grandTotal.toStringAsFixed(2)}', icon: Icons.attach_money_outlined, variant: ZStatVariant.module, moduleColor: ZColors.moduleFleet),
+              ZStatCard(title: 'Aprobados', value: '$totalApproved', icon: Icons.check_circle_outlined, variant: ZStatVariant.success),
+              ZStatCard(title: 'Pendientes', value: '$totalPending', icon: Icons.schedule_outlined, variant: ZStatVariant.warning),
             ],
           ),
           const SizedBox(height: ZSpacing.xl),

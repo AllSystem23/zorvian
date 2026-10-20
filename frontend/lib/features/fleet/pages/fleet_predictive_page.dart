@@ -108,45 +108,38 @@ class _FleetPredictivePageState extends ConsumerState<FleetPredictivePage>
         children: [
           // ── Summary KPI Cards ──
           if (summary != null) ...[
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final crossCount = constraints.maxWidth > 800 ? 4 : 2;
-                return GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: crossCount,
-                  mainAxisSpacing: ZSpacing.md,
-                  crossAxisSpacing: ZSpacing.md,
-                  childAspectRatio: 2.2,
-                  children: [
-                    ZStatCard(
-                      title: 'Total Vehículos',
-                      value: '${summary['totalVehicles'] ?? 0}',
-                      icon: Icons.local_shipping_outlined,
-                      variant: ZStatVariant.module,
-                      moduleColor: ZColors.moduleFleet,
-                    ),
-                    ZStatCard(
-                      title: 'Vencidos',
-                      value: '${summary['vehiclesOverdue'] ?? 0}',
-                      icon: Icons.warning_amber_outlined,
-                      variant: ZStatVariant.danger,
-                    ),
-                    ZStatCard(
-                      title: 'Por Vencer',
-                      value: '${summary['vehiclesDueSoon'] ?? 0}',
-                      icon: Icons.schedule_outlined,
-                      variant: ZStatVariant.warning,
-                    ),
-                    ZStatCard(
-                      title: 'Riesgo Promedio',
-                      value: '${summary['avgRiskScore'] ?? 0}',
-                      icon: Icons.speed_outlined,
-                      variant: ZStatVariant.info,
-                    ),
-                  ],
-                );
-              },
+            ZStatGrid(
+              phoneColumns: 2,
+              tabletColumns: 2,
+              desktopColumns: 4,
+              aspectRatio: 2.2,
+              children: [
+                ZStatCard(
+                  title: 'Total Vehículos',
+                  value: '${summary['totalVehicles'] ?? 0}',
+                  icon: Icons.local_shipping_outlined,
+                  variant: ZStatVariant.module,
+                  moduleColor: ZColors.moduleFleet,
+                ),
+                ZStatCard(
+                  title: 'Vencidos',
+                  value: '${summary['vehiclesOverdue'] ?? 0}',
+                  icon: Icons.warning_amber_outlined,
+                  variant: ZStatVariant.danger,
+                ),
+                ZStatCard(
+                  title: 'Por Vencer',
+                  value: '${summary['vehiclesDueSoon'] ?? 0}',
+                  icon: Icons.schedule_outlined,
+                  variant: ZStatVariant.warning,
+                ),
+                ZStatCard(
+                  title: 'Riesgo Promedio',
+                  value: '${summary['avgRiskScore'] ?? 0}',
+                  icon: Icons.speed_outlined,
+                  variant: ZStatVariant.info,
+                ),
+              ],
             ),
             const SizedBox(height: ZSpacing.xl),
           ],
@@ -265,45 +258,38 @@ class _FleetPredictivePageState extends ConsumerState<FleetPredictivePage>
         children: [
           // ── Summary KPI Cards ──
           if (fuelSummary != null) ...[
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final crossCount = constraints.maxWidth > 800 ? 4 : 2;
-                return GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: crossCount,
-                  mainAxisSpacing: ZSpacing.md,
-                  crossAxisSpacing: ZSpacing.md,
-                  childAspectRatio: 2.2,
-                  children: [
-                    ZStatCard(
-                      title: 'Abastecimientos Analizados',
-                      value: '${fuelSummary['totalRefillsAnalyzed'] ?? 0}',
-                      icon: Icons.analytics_outlined,
-                      variant: ZStatVariant.module,
-                      moduleColor: ZColors.moduleFleet,
-                    ),
-                    ZStatCard(
-                      title: 'Anomalías Detectadas',
-                      value: '${fuelSummary['anomaliesDetected'] ?? 0}',
-                      icon: Icons.bug_report_outlined,
-                      variant: ZStatVariant.danger,
-                    ),
-                    ZStatCard(
-                      title: 'Alta Severidad',
-                      value: '${fuelSummary['highSeverity'] ?? 0}',
-                      icon: Icons.error_outline,
-                      variant: ZStatVariant.danger,
-                    ),
-                    ZStatCard(
-                      title: 'Pérdida Estimada',
-                      value: '\$${fuelSummary['estimatedMonthlyWaste'] ?? 0}',
-                      icon: Icons.attach_money_outlined,
-                      variant: ZStatVariant.warning,
-                    ),
-                  ],
-                );
-              },
+            ZStatGrid(
+              phoneColumns: 2,
+              tabletColumns: 2,
+              desktopColumns: 4,
+              aspectRatio: 2.2,
+              children: [
+                ZStatCard(
+                  title: 'Abastecimientos Analizados',
+                  value: '${fuelSummary['totalRefillsAnalyzed'] ?? 0}',
+                  icon: Icons.analytics_outlined,
+                  variant: ZStatVariant.module,
+                  moduleColor: ZColors.moduleFleet,
+                ),
+                ZStatCard(
+                  title: 'Anomalías Detectadas',
+                  value: '${fuelSummary['anomaliesDetected'] ?? 0}',
+                  icon: Icons.bug_report_outlined,
+                  variant: ZStatVariant.danger,
+                ),
+                ZStatCard(
+                  title: 'Alta Severidad',
+                  value: '${fuelSummary['highSeverity'] ?? 0}',
+                  icon: Icons.error_outline,
+                  variant: ZStatVariant.danger,
+                ),
+                ZStatCard(
+                  title: 'Pérdida Estimada',
+                  value: '\$${fuelSummary['estimatedMonthlyWaste'] ?? 0}',
+                  icon: Icons.attach_money_outlined,
+                  variant: ZStatVariant.warning,
+                ),
+              ],
             ),
             const SizedBox(height: ZSpacing.xl),
           ],
@@ -356,12 +342,13 @@ class _FleetPredictivePageState extends ConsumerState<FleetPredictivePage>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  // `Wrap`: los 3 badges no caben en una fila a 360 px.
+                  Wrap(
+                    spacing: ZSpacing.sm,
+                    runSpacing: ZSpacing.xs,
                     children: [
                       ZBadge(text: plate, type: ZBadgeType.neutral),
-                      const SizedBox(width: ZSpacing.sm),
                       ZBadge(text: _anomalyTypeLabel(anomalyType), type: _anomalySeverityBadgeType(severity)),
-                      const SizedBox(width: ZSpacing.sm),
                       ZBadge(text: severity, type: _anomalySeverityBadgeType(severity)),
                     ],
                   ),
@@ -430,29 +417,37 @@ class _FleetPredictivePageState extends ConsumerState<FleetPredictivePage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            // El importe de la derecha se va a la línea siguiente si no cabe
+            // (a 360 px la matrícula + la tendencia desbordaban ~90 px).
+            Wrap(
+              spacing: ZSpacing.sm,
+              runSpacing: ZSpacing.xs,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Icon(Icons.local_gas_station_outlined, color: ZColors.moduleFleet, size: 20),
-                const SizedBox(width: ZSpacing.sm),
                 Text(plate, style: const TextStyle(fontWeight: FontWeight.w700)),
-                const Spacer(),
-                Icon(trendIcon, color: trendColor, size: 20),
-                const SizedBox(width: ZSpacing.xs),
-                Text('${currentTrend > 0 ? '+' : ''}${currentTrend.toStringAsFixed(1)} L/100km',
-                  style: TextStyle(color: trendColor, fontWeight: FontWeight.w600, fontSize: 13)),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(trendIcon, color: trendColor, size: 20),
+                    const SizedBox(width: ZSpacing.xs),
+                    Text('${currentTrend > 0 ? '+' : ''}${currentTrend.toStringAsFixed(1)} L/100km',
+                      style: TextStyle(color: trendColor, fontWeight: FontWeight.w600, fontSize: 13)),
+                  ],
+                ),
               ],
             ),
             const SizedBox(height: ZSpacing.sm),
-            Row(
+            // 5 columnas de estadísticas no caben en una fila de teléfono:
+            // `Wrap` las reparte en 2–3 líneas.
+            Wrap(
+              spacing: ZSpacing.lg,
+              runSpacing: ZSpacing.sm,
               children: [
                 _trendStat('Promedio', '${avg.toStringAsFixed(1)} L/100km', theme),
-                const SizedBox(width: ZSpacing.lg),
                 _trendStat('Mín', min.toStringAsFixed(1), theme),
-                const SizedBox(width: ZSpacing.lg),
                 _trendStat('Máx', max.toStringAsFixed(1), theme),
-                const SizedBox(width: ZSpacing.lg),
                 _trendStat('Std Dev', stdDev.toStringAsFixed(1), theme),
-                const SizedBox(width: ZSpacing.lg),
                 _trendStat('Muestras', '$sampleCount', theme),
               ],
             ),

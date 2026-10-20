@@ -81,54 +81,48 @@ class _FleetAlertsPageState extends ConsumerState<FleetAlertsPage> {
           // ── KPI Cards ──
           Text('Resumen de Alertas', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(height: ZSpacing.md),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final crossCount = constraints.maxWidth > 900 ? 5
-                  : constraints.maxWidth > 600 ? 4
-                  : constraints.maxWidth > 400 ? 3 : 2;
-              return GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: crossCount,
-                mainAxisSpacing: ZSpacing.md,
-                crossAxisSpacing: ZSpacing.md,
-                childAspectRatio: 1.4,
-                children: [
-                  ZStatCard(
-                    title: 'Total Alertas',
-                    value: '${summary['activeAlerts'] ?? 0}',
-                    icon: Icons.warning_amber_outlined,
-                    variant: ZStatVariant.module,
-                    moduleColor: ZColors.moduleFleet,
-                  ),
-                  ZStatCard(
-                    title: 'Críticas',
-                    value: '${summary['criticalAlerts'] ?? 0}',
-                    icon: Icons.error_outline,
-                    variant: ZStatVariant.danger,
-                  ),
-                  ZStatCard(
-                    title: 'Advertencias',
-                    value: '${summary['warningAlerts'] ?? 0}',
-                    icon: Icons.info_outline,
-                    variant: ZStatVariant.warning,
-                  ),
-                  ZStatCard(
-                    title: 'Informativas',
-                    value: '${summary['infoAlerts'] ?? 0}',
-                    icon: Icons.help_outline,
-                    variant: ZStatVariant.info,
-                  ),
-                  ZStatCard(
-                    title: 'Sin Aceptar',
-                    value: '${summary['unacknowledgedAlerts'] ?? 0}',
-                    icon: Icons.mail_outline,
-                    variant: ZStatVariant.module,
-                    moduleColor: ZColors.danger,
-                  ),
-                ],
-              );
-            },
+          // `ZStatGrid` evita el alto fijo por `childAspectRatio`: a 360 px las
+          // 5 tarjetas quedaban de 158×113 y la compacta necesita ~92 px de
+          // contenido (desbordaban 20 px).
+          ZStatGrid(
+            phoneColumns: 2,
+            tabletColumns: 4,
+            desktopColumns: 5,
+            aspectRatio: 1.4,
+            children: [
+              ZStatCard(
+                title: 'Total Alertas',
+                value: '${summary['activeAlerts'] ?? 0}',
+                icon: Icons.warning_amber_outlined,
+                variant: ZStatVariant.module,
+                moduleColor: ZColors.moduleFleet,
+              ),
+              ZStatCard(
+                title: 'Críticas',
+                value: '${summary['criticalAlerts'] ?? 0}',
+                icon: Icons.error_outline,
+                variant: ZStatVariant.danger,
+              ),
+              ZStatCard(
+                title: 'Advertencias',
+                value: '${summary['warningAlerts'] ?? 0}',
+                icon: Icons.info_outline,
+                variant: ZStatVariant.warning,
+              ),
+              ZStatCard(
+                title: 'Informativas',
+                value: '${summary['infoAlerts'] ?? 0}',
+                icon: Icons.help_outline,
+                variant: ZStatVariant.info,
+              ),
+              ZStatCard(
+                title: 'Sin Aceptar',
+                value: '${summary['unacknowledgedAlerts'] ?? 0}',
+                icon: Icons.mail_outline,
+                variant: ZStatVariant.module,
+                moduleColor: ZColors.danger,
+              ),
+            ],
           ),
           const SizedBox(height: ZSpacing.xl),
 
@@ -197,10 +191,14 @@ class _FleetAlertsPageState extends ConsumerState<FleetAlertsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                // `Wrap`: el título + 2 badges no caben en una fila de teléfono
+                // (el título se pintaba a ancho intrínseco y desbordaba).
+                Wrap(
+                  spacing: ZSpacing.sm,
+                  runSpacing: ZSpacing.xs,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface)),
-                    const SizedBox(width: ZSpacing.sm),
                     ZBadge(text: category, type: _badgeTypeForSeverity(severity)),
                     ZBadge(text: severity.toUpperCase(), type: _badgeTypeForSeverity(severity)),
                   ],

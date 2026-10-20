@@ -31,7 +31,17 @@ class ZProgress extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: theme.textTheme.bodyMedium?.copyWith(color: ZColors.neutral700)),
+            // `Flexible` + ellipsis: en un contenedor angosto (p. ej. dentro de
+            // un `Expanded` en un teléfono) la etiqueta se recorta en vez de
+            // desbordar la fila.
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(color: ZColors.neutral700),
+              ),
+            ),
             if (showValue)
               Text(displayValue, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600, color: progressColor)),
           ],

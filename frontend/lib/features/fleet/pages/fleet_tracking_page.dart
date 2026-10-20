@@ -90,7 +90,12 @@ class _FleetTrackingPageState extends ConsumerState<FleetTrackingPage> {
 
                 return ZCard(
                   margin: const EdgeInsets.only(bottom: ZSpacing.sm),
-                  child: ListTile(
+                  // `ZCard` pinta su fondo con un `DecoratedBox`; sin un
+                  // `Material` intermedio `ListTile` avisa (assert en debug) de
+                  // que sus ink splashes quedarían ocultos.
+                  child: Material(
+                    type: MaterialType.transparency,
+                    child: ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: ZSpacing.md, vertical: ZSpacing.xs),
                     leading: Container(
                       width: 6,
@@ -100,10 +105,13 @@ class _FleetTrackingPageState extends ConsumerState<FleetTrackingPage> {
                         borderRadius: BorderRadius.circular(3),
                       ),
                     ),
-                    title: Row(
+                    // `Wrap`: el código + badge no siempre caben en una fila.
+                    title: Wrap(
+                      spacing: ZSpacing.sm,
+                      runSpacing: ZSpacing.xs,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         Text(code, style: const TextStyle(fontWeight: FontWeight.w600)),
-                        const SizedBox(width: ZSpacing.sm),
                         ZBadge(text: status, type: _statusBadgeType(status)),
                       ],
                     ),
@@ -124,6 +132,7 @@ class _FleetTrackingPageState extends ConsumerState<FleetTrackingPage> {
                       final did = d['id']?.toString();
                       if (did != null) ref.read(fleetTrackingProvider.notifier).loadTrackingTimeline(did);
                     },
+                    ),
                   ),
                 );
               },
@@ -163,10 +172,12 @@ class _FleetTrackingPageState extends ConsumerState<FleetTrackingPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    Wrap(
+                      spacing: ZSpacing.sm,
+                      runSpacing: ZSpacing.xs,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         Text(code, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
-                        const SizedBox(width: ZSpacing.sm),
                         ZBadge(text: status, type: _statusBadgeType(status)),
                       ],
                     ),
@@ -181,40 +192,33 @@ class _FleetTrackingPageState extends ConsumerState<FleetTrackingPage> {
           const SizedBox(height: ZSpacing.lg),
 
           // ── Info Cards ──
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final crossCount = constraints.maxWidth > 600 ? 3 : 2;
-              return GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: crossCount,
-                mainAxisSpacing: ZSpacing.md,
-                crossAxisSpacing: ZSpacing.md,
-                childAspectRatio: 2.0,
-                children: [
-                  ZStatCard(
-                    title: 'Dirección',
-                    value: address,
-                    icon: Icons.location_on_outlined,
-                    variant: ZStatVariant.module,
-                    moduleColor: ZColors.moduleFleet,
-                  ),
-                  ZStatCard(
-                    title: 'Fecha Programada',
-                    value: detail['scheduledDate']?.toString() ?? 'N/A',
-                    icon: Icons.calendar_today_outlined,
-                    variant: ZStatVariant.info,
-                  ),
-                  if (deliveredAt != null)
-                    ZStatCard(
-                      title: 'Entregado',
-                      value: '${deliveredAt.day}/${deliveredAt.month}/${deliveredAt.year} ${deliveredAt.hour}:${deliveredAt.minute.toString().padLeft(2, '0')}',
-                      icon: Icons.check_circle_outline,
-                      variant: ZStatVariant.success,
-                    ),
-                ],
-              );
-            },
+          ZStatGrid(
+            phoneColumns: 2,
+            tabletColumns: 3,
+            desktopColumns: 3,
+            aspectRatio: 2.0,
+            children: [
+              ZStatCard(
+                title: 'Dirección',
+                value: address,
+                icon: Icons.location_on_outlined,
+                variant: ZStatVariant.module,
+                moduleColor: ZColors.moduleFleet,
+              ),
+              ZStatCard(
+                title: 'Fecha Programada',
+                value: detail['scheduledDate']?.toString() ?? 'N/A',
+                icon: Icons.calendar_today_outlined,
+                variant: ZStatVariant.info,
+              ),
+              if (deliveredAt != null)
+                ZStatCard(
+                  title: 'Entregado',
+                  value: '${deliveredAt.day}/${deliveredAt.month}/${deliveredAt.year} ${deliveredAt.hour}:${deliveredAt.minute.toString().padLeft(2, '0')}',
+                  icon: Icons.check_circle_outline,
+                  variant: ZStatVariant.success,
+                ),
+            ],
           ),
           const SizedBox(height: ZSpacing.xl),
 
@@ -245,7 +249,11 @@ class _FleetTrackingPageState extends ConsumerState<FleetTrackingPage> {
 
           // ── Actions ──
           if (status != 'Delivered' && status != 'Cancelled')
-            Row(
+            // `Wrap`: a 360 px los 2 botones (~130 + 180 px) no caben en una
+            // fila con el padding de la página; el segundo baja de línea.
+            Wrap(
+              spacing: ZSpacing.md,
+              runSpacing: ZSpacing.sm,
               children: [
                 ZButton(
                   text: 'Enviar ETA',
@@ -254,7 +262,6 @@ class _FleetTrackingPageState extends ConsumerState<FleetTrackingPage> {
                   type: ZButtonType.secondary,
                   fullWidth: false,
                 ),
-                const SizedBox(width: ZSpacing.md),
                 ZButton(
                   text: 'Confirmar Entrega',
                   icon: Icons.check_circle_outline,
@@ -293,18 +300,19 @@ class _FleetTrackingPageState extends ConsumerState<FleetTrackingPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                Wrap(
+                  spacing: ZSpacing.sm,
+                  runSpacing: ZSpacing.xs,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     ZBadge(text: status, type: _statusBadgeType(status)),
-                    if (timestamp != null) ...[
-                      const SizedBox(width: ZSpacing.sm),
+                    if (timestamp != null)
                       Text(
                         '${timestamp.day}/${timestamp.month}/${timestamp.year} ${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
                         ),
                       ),
-                    ],
                   ],
                 ),
                 if (notes != null && notes.isNotEmpty) ...[

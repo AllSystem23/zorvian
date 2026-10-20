@@ -38,6 +38,7 @@ export 'components/z_document_viewer.dart';
 export 'components/z_activity_feed.dart';
 export 'components/z_search_field.dart';
 export 'components/z_stat_card.dart';
+export 'components/z_stat_grid.dart';
 export 'components/z_filter_bar.dart';
 export 'components/z_avatar_group.dart';
 export 'components/z_tag_input.dart';
