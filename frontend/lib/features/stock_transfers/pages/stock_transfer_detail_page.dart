@@ -256,7 +256,12 @@ final class _StockTransferDetailPageState extends ConsumerState<StockTransferDet
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(d.transferNumber, style: theme.textTheme.titleLarge),
+                      // `Expanded`: el número + el chip de estado no caben a
+                      // 360 px (desbordaba 27 px).
+                      Expanded(
+                        child: Text(d.transferNumber, style: theme.textTheme.titleLarge),
+                      ),
+                      const SizedBox(width: 8),
                       Chip(label: Text(_statusLabel(d.status), style: TextStyle(color: _statusColor(d.status), fontSize: 12))),
                     ],
                   ),
@@ -317,8 +322,10 @@ final class _StockTransferDetailPageState extends ConsumerState<StockTransferDet
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 6),
                     child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
+                          flex: 3,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -327,24 +334,35 @@ final class _StockTransferDetailPageState extends ConsumerState<StockTransferDet
                             ],
                           ),
                         ),
-                        if (showReceived) ...[
-                          Text(
-                            '${item.quantityReceived}/${item.quantity} rec.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: pending > 0 && d.status != 'completed'
-                                  ? Colors.amber.shade800
-                                  : Colors.green,
-                              fontWeight: FontWeight.w600,
-                            ),
+                        const SizedBox(width: 8),
+                        // Las marcas de recibido/cantidad/costo no caben junto
+                        // al nombre a 360 px (desbordaban 39 px): toman el 40 %
+                        // y se parten en varias líneas.
+                        Expanded(
+                          flex: 2,
+                          child: Wrap(
+                            alignment: WrapAlignment.end,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 8,
+                            runSpacing: 2,
+                            children: [
+                              if (showReceived)
+                                Text(
+                                  '${item.quantityReceived}/${item.quantity} rec.',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: pending > 0 && d.status != 'completed'
+                                        ? Colors.amber.shade800
+                                        : Colors.green,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              Text('${item.quantity} uds.', style: const TextStyle(fontWeight: FontWeight.w600)),
+                              if (item.unitCost > 0)
+                                Text('@ ${item.unitCost.toStringAsFixed(2)}', style: theme.textTheme.bodySmall),
+                            ],
                           ),
-                          const SizedBox(width: 12),
-                        ],
-                        Text('${item.quantity} uds.', style: const TextStyle(fontWeight: FontWeight.w600)),
-                        if (item.unitCost > 0) ...[
-                          const SizedBox(width: 12),
-                          Text('@ ${item.unitCost.toStringAsFixed(2)}', style: theme.textTheme.bodySmall),
-                        ],
+                        ),
                       ],
                     ),
                   );

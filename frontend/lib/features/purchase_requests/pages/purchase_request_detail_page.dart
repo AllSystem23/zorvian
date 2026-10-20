@@ -241,7 +241,12 @@ final class _PurchaseRequestDetailPageState extends ConsumerState<PurchaseReques
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Total estimado', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  // `Expanded`: "Total estimado" + el monto no caben a 360 px
+                  // (desbordaba 89 px).
+                  const Expanded(
+                    child: Text('Total estimado', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(width: 12),
                   Text(d.estimatedTotal.toStringAsFixed(2), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ],
               ),

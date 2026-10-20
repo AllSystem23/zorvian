@@ -556,10 +556,23 @@ final class _CreditDetailPageState extends ConsumerState<CreditDetailPage> with 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
-          Text(value, style: TextStyle(fontWeight: bold ? FontWeight.bold : FontWeight.normal, color: color, fontSize: 13)),
+          // 40/60: las etiquetas y montos largos (cuotas, refinanciamientos)
+          // desbordaban hasta 201 px a 360 px.
+          Expanded(
+            flex: 4,
+            child: Text(label, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 6,
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: TextStyle(fontWeight: bold ? FontWeight.bold : FontWeight.normal, color: color, fontSize: 13),
+            ),
+          ),
         ],
       ),
     );

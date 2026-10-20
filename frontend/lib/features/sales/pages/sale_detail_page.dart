@@ -341,10 +341,23 @@ final class _SaleDetailPageState extends ConsumerState<SaleDetailPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: Colors.grey)),
-          Text(value, style: TextStyle(fontWeight: bold ? FontWeight.bold : FontWeight.normal, color: color)),
+          // 40/60: etiqueta y valor se parten en dos líneas antes que desbordar
+          // (a 360 px "IVA (15%)" + "$150.00" se salía 19 px).
+          Expanded(
+            flex: 4,
+            child: Text(label, style: const TextStyle(color: Colors.grey)),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 6,
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: TextStyle(fontWeight: bold ? FontWeight.bold : FontWeight.normal, color: color),
+            ),
+          ),
         ],
       ),
     );

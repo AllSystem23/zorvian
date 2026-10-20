@@ -112,14 +112,18 @@ final class _PurchaseDetailPageState extends ConsumerState<PurchaseDetailPage> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            // `Wrap`: la etiqueta "Generar Acta de Recepción (PDF)" no cabe en
+            // una fila a 360 px (desbordaba con el botón de anular); el ícono
+            // baja de línea cuando hace falta.
+            child: Wrap(
+              alignment: WrapAlignment.end,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
               children: [
                 ZButton(text: 'Generar Acta de Recepción (PDF)', onPressed: _generatePdf, type: ZButtonType.secondary),
-                if (d.status != 'cancelled') ...[
-                  const SizedBox(width: 8),
+                if (d.status != 'cancelled')
                   IconButton(icon: const Icon(Icons.cancel_outlined, size: 20), tooltip: 'Anular', onPressed: _cancel),
-                ],
               ],
             ),
           ),
@@ -184,10 +188,23 @@ final class _PurchaseDetailPageState extends ConsumerState<PurchaseDetailPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: TextStyle(fontWeight: bold ? FontWeight.bold : FontWeight.normal, color: Colors.grey[600])),
-          Text(value, style: TextStyle(fontWeight: bold ? FontWeight.bold : FontWeight.normal)),
+          // 40/60: la referencia de factura y las notas largas desbordaban la
+          // fila a 360 px.
+          Expanded(
+            flex: 4,
+            child: Text(label, style: TextStyle(fontWeight: bold ? FontWeight.bold : FontWeight.normal, color: Colors.grey[600])),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 6,
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: TextStyle(fontWeight: bold ? FontWeight.bold : FontWeight.normal),
+            ),
+          ),
         ],
       ),
     );

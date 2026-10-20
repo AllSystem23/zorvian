@@ -193,17 +193,20 @@ final class _ServicePaymentDetailPageState extends ConsumerState<ServicePaymentD
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      // `Wrap`: el número, el estado y la meta no caben en una
+                      // fila a 360 px (desbordaba 169 px); los chips bajan.
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           Text(d.paymentNumber,
                               style: theme.textTheme.titleLarge
                                   ?.copyWith(fontWeight: FontWeight.bold)),
-                          const SizedBox(width: 8),
                           Chip(
                             label: Text(_statusLabel(d.status),
                                 style: TextStyle(color: _statusColor(d.status))),
                           ),
-                          const SizedBox(width: 8),
                           Chip(
                             label: Text(d.goalMet ? 'Meta: SÍ' : 'Meta: NO'),
                             backgroundColor:
@@ -341,8 +344,13 @@ final class _ServicePaymentDetailPageState extends ConsumerState<ServicePaymentD
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('NETO A RECIBIR',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                          // `Expanded`: "NETO A RECIBIR" en 18 px no cabe junto
+                          // al monto a 360 px (desbordaba 89 px).
+                          const Expanded(
+                            child: Text('NETO A RECIBIR',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                          ),
+                          const SizedBox(width: 12),
                           Text(d.netAmount.toStringAsFixed(2),
                               style: const TextStyle(
                                   fontWeight: FontWeight.bold,
@@ -355,7 +363,12 @@ final class _ServicePaymentDetailPageState extends ConsumerState<ServicePaymentD
                 ),
                 const SizedBox(height: 20),
                 // Acciones por estado
-                Row(
+                // `Wrap`: las cuatro acciones (Aprobar, Editar, Anular y
+                // Comprobante PDF) no caben en una fila a 360 px.
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     if (d.status == 'draft') ...[
                       FilledButton.icon(
@@ -363,29 +376,24 @@ final class _ServicePaymentDetailPageState extends ConsumerState<ServicePaymentD
                         label: const Text('Aprobar'),
                         onPressed: () => _action('approve'),
                       ),
-                      const SizedBox(width: 8),
                       OutlinedButton.icon(
                         icon: const Icon(Icons.edit),
                         label: const Text('Editar'),
                         onPressed: () => context.push('/service-payments/edit/${d.id}'),
                       ),
-                      const SizedBox(width: 8),
                     ],
-                    if (d.status == 'approved') ...[
+                    if (d.status == 'approved')
                       FilledButton.icon(
                         icon: const Icon(Icons.paid),
                         label: const Text('Marcar Pagado'),
                         onPressed: () => _action('pay', data: const {}),
                       ),
-                      const SizedBox(width: 8),
-                    ],
                     if (d.status == 'draft' || d.status == 'approved')
                       OutlinedButton.icon(
                         icon: const Icon(Icons.cancel_outlined, color: Colors.red),
                         label: const Text('Anular'),
                         onPressed: () => _action('cancel'),
                       ),
-                    const SizedBox(width: 8),
                     FilledButton.tonalIcon(
                       icon: const Icon(Icons.picture_as_pdf_outlined),
                       label: const Text('Comprobante PDF'),
@@ -407,7 +415,10 @@ final class _ServicePaymentDetailPageState extends ConsumerState<ServicePaymentD
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label),
+            // `Expanded`: la etiqueta larga ("Total acumulado (bono +
+            // comisiones + otros)") desbordaba hasta 432 px a 360 px.
+            Expanded(child: Text(label)),
+            const SizedBox(width: 12),
             Text(value.toStringAsFixed(2),
                 style: const TextStyle(fontWeight: FontWeight.w600)),
           ],
