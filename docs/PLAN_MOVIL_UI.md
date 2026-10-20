@@ -25,13 +25,13 @@
 | `03f7c8c` | Docs del carrito de línea |
 | `93621ff` | Fase 3 — dashboards BI financiero y operacional a 360 px (`BiGauge` adaptativo, charts sin alto fijo, anomalías) |
 | `4d664d2` | Fase 3 — pantallas de flota a 360 px (`ZStatGrid`, badges/tendencias/acciones en `Wrap`, barra de exportación) |
+| `4832929` | Fase 3/4 — POS y GPS de flota a 360 px (grilla de 2 columnas con más alto, badge "en carrito" inline, banner del período con ellipsis, marcador 64×68, `Material` del `ListTile`) |
 
 **Próximos pasos sugeridos** (en orden de valor):
 
-1. Flota restante: GPS a pantalla completa con hoja de parada (`fleet_gps_page`, usa `flutter_map`)
-   y los formularios de gasto/combustible.
-2. POS con carrito en hoja inferior.
-3. Listados y catálogos que aún no se montaron a 360 px.
+1. Flota restante: formularios de gasto/combustible a 360 px.
+2. Listados y catálogos que aún no se montaron a 360 px.
+3. Fase 5.3/5.4: rendimiento percibido (skeletons/paginación) y accesibilidad móvil.
 
 ---
 
@@ -216,7 +216,9 @@ paginación).
 **Pendiente**:
 
 - [ ] Inputs móviles: teclados numéricos, `textInputAction`, autofoco ordenado.
-- [ ] POS en teléfono: carrito como sheet persistente, scanner como FAB.
+- [x] POS en teléfono: carrito en hoja inferior (el layout móvil ya existía; ver el barrido
+      a 360 px en Fase 3 — grilla de 2 columnas, badge "en carrito" y banner del período).
+      El escáner como FAB queda fuera de alcance (no hay lector implementado).
 - [x] **`ZPageHeader`** (encabezado de página adaptativo): en teléfono el título ocupa todo el
       ancho (parte en dos líneas) y las acciones bajan a una segunda fila en `Wrap`; desde
       600 px comparten fila con el título expandido. A 360 px "Nueva Transferencia entre
@@ -300,6 +302,40 @@ acción primaria siempre alcanzable.
 - [x] Tests: `test/fleet_pages_mobile_test.dart` (7) y `test/z_stat_grid_test.dart` (4: alto
       intrínseco en teléfono, `GridView` con `aspectRatio` y 5 columnas en escritorio, vuelta al
       `Wrap` cuando la columna es angosta, y rejilla vacía).
+- [x] **GPS de flota a 360 px** (grupo `FleetGpsPage` de `test/fleet_pages_mobile_test.dart`):
+      el layout ya apilaba mapa (300 px) + lista en teléfono, así que solo hubo dos correcciones
+      de tamaño y una de plataforma.
+      - **Marcador del vehículo**: `Marker(width: 44, height: 56)` dejaba al `Column` (icono 36 +
+        etiqueta de matrícula) **6 px corto** → pasa a **64×68**, que además evita que la
+        matrícula de 8 px se recorte. Sigue anclado por el centro del punto (`Alignment.center`),
+        así que el icono solo sube ~6 px.
+      - **`ListTile` dentro de `ZCard`**: el `ZCard` pinta el fondo con `DecoratedBox`, y el
+        `ListTile` de la lista de vehículos disparaba el assert de debug *"ListTile background
+        color or ink splashes may be invisible"* (no es un overflow, pero rompía cualquier test
+        que montara la página) → se envuelve en `Material(type: MaterialType.transparency)`,
+        igual que en `fleet_tracking_page.dart`.
+      - **`flutter_map` en tests**: los tiles de OSM piden red y el binding devuelve 400, pero el
+        `TileLayer` consume el error por su cuenta (solo aparecen los avisos de uso de OSM) → la
+        página se puede montar sin mocks de imagen.
+      - La matrícula aparece 2 veces (marcador + lista): el test assertea `findsNWidgets(2)`, lo
+        que de paso prueba que el marcador se dibujó.
+- [x] **POS a 360 px** (`test/pos_mobile_test.dart`, 4 casos): grilla de productos, alta de un
+      producto, hoja del carrito y método Crédito. Tres defectos reales encontrados:
+      - **`_ProductTile` desbordaba 20 px**: con 2 columnas a 360 px la tarjeta queda en 164 px y
+        el `childAspectRatio: 1.7` dejaba **75 px** de alto útil para ~92 px de contenido (nombre
+        a 2 líneas + código + precio + stock). El ratio de 2 columnas pasa a **1.3** (unos 126 px);
+        3 y 4 columnas conservan 1.5, así que tablet/escritorio no cambian.
+      - **Badge "en carrito" reventaba en debug**: era un `Positioned` **dentro de un `Column`**
+        (no un `Stack`) → `Incorrect use of ParentDataWidget` en cuanto el producto entraba al
+        carrito. Ahora es un `Icons.check_circle` inline al lado del nombre (`Row` + `Expanded`),
+        que además no tapa el texto en una tarjeta tan baja.
+      - **Banner del período abierto desbordaba 24 px**: el `Text` "Período … abierto" va en
+        `Expanded` + `maxLines: 1` + ellipsis.
+      - De paso, los **skeletons** de carga usaban 4 columnas fijas (tarjetas de ~76 px a 360 px):
+        ahora replican el reparto de la grilla real (2 columnas, ratio 1.3 en teléfono) para que
+        el esqueleto se parezca al contenido que reemplaza.
+      - La hoja del carrito (`_CartSummary`, `_PaymentMethodSelector` de 4 `Expanded` y los
+        campos de crédito) ya cabía; el test lo fija como contrato.
 
 **Aceptación**: dashboard ejecutivo y comercial legibles a 360 px, 2 KPIs por fila, 0 overflows.
 
@@ -313,7 +349,7 @@ acción primaria siempre alcanzable.
 4. Aprobaciones: bandeja con Aprobar/Rechazar de 48 dp.
 5. Formularios que exigen sucursal: el aviso debe **abrir el selector**.
 6. Flota: GPS a pantalla completa con bottom sheet de parada, entregas y hoja de ruta
-   (alertas, predictivo, seguimiento y reportes ya barridos a 360 px — ver Fase 3).
+   (alertas, predictivo, seguimiento, reportes y GPS ya barridos a 360 px — ver Fase 3).
 
 **Aceptación**: cada flujo completo en 390 px con una sola mano.
 
@@ -388,8 +424,10 @@ acción primaria siempre alcanzable.
       `Column`/`Expanded`/`ListView`/`SizedBox`), así que `isExpanded` no puede recibir ancho
       infinito.
 - [ ] Golden de 5 pantallas × 3 anchos.
-- [ ] Barrido del resto de rutas top a 360 px (GPS de flota con `flutter_map`, POS y catálogos que
-      aún no se montaron).
+- [x] **GPS de flota y POS montados a 360/390/430 px** (`fleet_pages_mobile_test.dart` y
+      `pos_mobile_test.dart`) — ver el barrido de Fase 3.
+- [ ] Barrido del resto de rutas top a 360 px (formularios de flota y catálogos que aún no se
+      montaron).
 - [ ] Regresiones: "Más" activo fuera de hubs; selectores operativos en móvil.
 
 **Aceptación**: 0 overflows en la matriz 360/390/430 × `textScale` 1.0/1.3; cámara y
