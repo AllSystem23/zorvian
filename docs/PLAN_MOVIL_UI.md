@@ -111,6 +111,10 @@ paginación).
       se resuelve por `column.id`/posición original, no por la posición filtrada.
 - [x] `ZColumn.width` se ignora por debajo de 600 px (sin `SizedBox` que desborde).
 - [x] Celdas faltantes devuelven vacío en vez de lanzar `RangeError`.
+- [x] **Altura no acotada soportada**: si la tabla vive dentro de un `ListView`/`Column`
+      (comparativo por sucursal del dashboard ejecutivo), se renderiza con `shrinkWrap` y sin
+      scroll propio en vez de `Expanded`. Antes ese caso lanzaba
+      "RenderFlex children have non-zero flex but incoming height constraints are unbounded".
 - [x] Los **17 listados** que usan `ZDataTable` quedan cubiertos sin tocar sus páginas
       (`user_list`, `super_admin_companies`, `invitation_history`, `document_center`,
       `provider_list/invoices/contracts`, `kardex`, `inventory_valuation`,
@@ -174,8 +178,13 @@ acción primaria siempre alcanzable.
 - [ ] Gráficos con `LayoutBuilder` + `AspectRatio` (sin alto fijo), donut con leyenda debajo,
       gauge escalado, `RepaintBoundary` y lectura de valores por tap.
 - [ ] Secciones de dashboard como tarjetas full width con "Ver todo".
-- [ ] Tabla "Comparativo por Sucursal" → tarjetas + barra comparativa.
-- [ ] Botón "Reporte PDF" a `PopupMenu` si no cabe en el `Row`.
+- [x] Tabla "Comparativo por Sucursal" → tarjetas en teléfono. Se resolvió en el componente:
+      `ZDataTable` detecta **altura no acotada** (cuando vive dentro de un `ListView`/`Column`,
+      como en el dashboard ejecutivo) y pasa a `shrinkWrap` + `NeverScrollableScrollPhysics`
+      en vez de `Expanded`. **Era un bug real**: ese caso lanzaba
+      "RenderFlex children have non-zero flex but incoming height constraints are unbounded".
+- [ ] Botón "Reporte PDF" a `PopupMenu` si no cabe en el `Row` (medido a 360 px: el botón cabe
+      y el título del dashboard hace wrap, así que no hace falta).
 
 **Aceptación**: dashboard ejecutivo y comercial legibles a 360 px, 2 KPIs por fila, 0 overflows.
 

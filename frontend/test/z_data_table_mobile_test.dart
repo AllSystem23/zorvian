@@ -164,4 +164,45 @@ void main() {
       expect(find.text('120.00'), findsOneWidget);
     });
   });
+
+  group('ZDataTable sin altura acotada', () {
+    testWidgets('dentro de un ListView se dibuja completo y sin scroll propio',
+        (tester) async {
+      await _setSize(tester, const Size(390, 844));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                // Caso real: comparativo por sucursal del dashboard ejecutivo.
+                ZDataTable<_Item>(
+                  columns: _columns,
+                  rows: _rows,
+                  rowMapper: _map,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      // Antes lanzaba "RenderFlex children have non-zero flex but incoming
+      // height constraints are unbounded".
+      expect(tester.takeException(), isNull);
+      expect(find.text('Ana Pérez'), findsOneWidget);
+      expect(find.text('Luis Gómez'), findsOneWidget);
+
+      // La lista interna no scrollea por su cuenta (el scroll lo lleva el
+      // ListView de la página).
+      final innerList = tester.widget<ListView>(
+        find.descendant(
+          of: find.byType(ZDataTable<_Item>),
+          matching: find.byType(ListView),
+        ),
+      );
+      expect(innerList.shrinkWrap, isTrue);
+      expect(innerList.physics, isA<NeverScrollableScrollPhysics>());
+    });
+  });
 }

@@ -160,8 +160,22 @@ class _ZDataTableState<T> extends State<ZDataTable<T>> {
       builder: (context, constraints) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         final isPhone = constraints.maxWidth < ZBreakpoints.phone;
+        // Altura no acotada = la tabla vive dentro de un ListView/Column
+        // (p. ej. el comparativo por sucursal del dashboard ejecutivo). En ese
+        // caso no se puede usar `Expanded`: la lista se dibuja completa
+        // (`shrinkWrap`) y sin scroll propio.
+        final bounded = constraints.hasBoundedHeight;
+
+        final body = widget.isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : widget.rows.isEmpty
+                ? _buildEmptyState()
+                : isPhone
+                    ? _buildCards(isDark, shrinkWrap: !bounded)
+                    : _buildRows(isDark, shrinkWrap: !bounded);
 
         return Column(
+          mainAxisSize: bounded ? MainAxisSize.max : MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── Selection / Bulk Actions Bar ──
@@ -175,15 +189,7 @@ class _ZDataTableState<T> extends State<ZDataTable<T>> {
               _buildHeaderRow(isDark),
 
             // ── Body: tarjetas en teléfono, filas en el resto ──
-            Expanded(
-              child: widget.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : widget.rows.isEmpty
-                      ? _buildEmptyState()
-                      : isPhone
-                          ? _buildCards(isDark)
-                          : _buildRows(isDark),
-            ),
+            if (bounded) Expanded(child: body) else body,
 
             // ── Pagination ──
             if (widget.totalCount != null &&
@@ -410,9 +416,11 @@ class _ZDataTableState<T> extends State<ZDataTable<T>> {
     );
   }
 
-  Widget _buildRows(bool isDark) {
+  Widget _buildRows(bool isDark, {bool shrinkWrap = false}) {
     return ListView.builder(
       itemCount: widget.rows.length,
+      shrinkWrap: shrinkWrap,
+      physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
       itemBuilder: (context, index) {
         final item = widget.rows[index];
         final isSelected = _selectedItems.contains(item);
@@ -516,9 +524,11 @@ class _ZDataTableState<T> extends State<ZDataTable<T>> {
 
   // ── Teléfono ────────────────────────────────────────────────────────────
 
-  Widget _buildCards(bool isDark) {
+  Widget _buildCards(bool isDark, {bool shrinkWrap = false}) {
     return ListView.builder(
       itemCount: widget.rows.length,
+      shrinkWrap: shrinkWrap,
+      physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
       padding: const EdgeInsets.only(bottom: ZSpacing.lg),
       itemBuilder: (context, index) {
         final item = widget.rows[index];
