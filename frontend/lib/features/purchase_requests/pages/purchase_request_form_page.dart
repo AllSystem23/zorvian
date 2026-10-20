@@ -126,10 +126,9 @@ final class _PurchaseRequestFormPageState extends ConsumerState<PurchaseRequestF
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Nueva Solicitud de Cotización', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ZPageHeader(
+              title: 'Nueva Solicitud de Cotización',
+              actions: [
                 TextButton(
                   onPressed: _saving ? null : _save,
                   child: _saving
@@ -244,7 +243,13 @@ final class _PurchaseRequestFormPageState extends ConsumerState<PurchaseRequestF
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('Total estimado', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  Text(_total.toStringAsFixed(2), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Expanded(
+                    child: Text(
+                      _total.toStringAsFixed(2),
+                      textAlign: TextAlign.end,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ),
                 ],
               ),
             ),

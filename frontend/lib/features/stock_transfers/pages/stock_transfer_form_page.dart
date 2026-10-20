@@ -113,10 +113,9 @@ final class _StockTransferFormPageState extends ConsumerState<StockTransferFormP
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Nueva Transferencia entre Bodegas', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ZPageHeader(
+              title: 'Nueva Transferencia entre Bodegas',
+              actions: [
                 TextButton(
                   onPressed: _saving ? null : _save,
                   child: _saving

@@ -119,8 +119,10 @@ class _VacationFormPageState extends ConsumerState<VacationFormPage> {
                     children: [
                       Text('Saldo disponible', style: theme.textTheme.titleMedium),
                       const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      Wrap(
+                        alignment: WrapAlignment.spaceEvenly,
+                        spacing: 16,
+                        runSpacing: 12,
                         children: [
                           _balanceChip('Acumulados', balance.accruedDays, Colors.blue),
                           _balanceChip('Tomados', balance.takenDays, Colors.red),

@@ -142,10 +142,9 @@ final class _PurchaseOrderFormPageState extends ConsumerState<PurchaseOrderFormP
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Nueva Orden de Compra', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ZPageHeader(
+              title: 'Nueva Orden de Compra',
+              actions: [
                 TextButton(
                   onPressed: _saving ? null : _save,
                   child: _saving
@@ -209,7 +208,13 @@ final class _PurchaseOrderFormPageState extends ConsumerState<PurchaseOrderFormP
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('Total', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  Text('$_currencyCode ${_total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Expanded(
+                    child: Text(
+                      '$_currencyCode ${_total.toStringAsFixed(2)}',
+                      textAlign: TextAlign.end,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ),
                 ],
               ),
             ),
