@@ -20,11 +20,13 @@
 | `1ac638e` | Fase 2 (formularios) — `ResponsiveFormRow` y campos en una columna en teléfono |
 | `3d928e9` | Fase 2/5.5 — `ZPageHeader` adaptativo + `test/helpers/viewport.dart` (`pumpAt`) |
 | `46e6e9c` | Fase 3/5.5 — barrido a 360 px: `isExpanded` en 65 dropdowns, `BiPieChart` con leyenda debajo, tarjetas de plan flexibles |
+| `661d091` | Docs del barrido a 360 px |
+| `46323ba` | Fase 4 — `ZCartLine` adaptativo en carritos de venta y cotización |
 
 **Próximos pasos sugeridos** (en orden de valor):
 
-1. Seguir el barrido con los carritos de venta/cotización (nombre + cantidad + total + borrar en
-   una fila) y las pantallas de flota.
+1. Seguir el barrido con las pantallas de flota (listas, GPS a pantalla completa con hoja de
+   parada) y los listados que aún no se montaron a 360 px.
 2. Dashboards financiero y operacional, y POS con carrito en hoja inferior.
 
 ---
@@ -267,6 +269,22 @@ acción primaria siempre alcanzable.
 
 **Aceptación**: cada flujo completo en 390 px con una sola mano.
 
+### 6.1 Carrito de línea adaptativo ✅
+
+- [x] `ZCartLine` en el DS (`shared/ds/components/z_cart_line.dart`): `title`, `quantity`,
+      `extra?`, `total`, `onRemove`. En teléfono el título y el borrar van en la primera fila y
+      cantidad/descuento/total en la segunda; desde 600 px comparten una sola fila.
+- [x] Migrados **venta (POS)** y **cotización**. En ventas los cuatro elementos en una fila dejaban
+      el nombre del producto en ~100 px (3 líneas); en cotización la fila completa medía ~324 px
+      fijos y desbordaba a 360 px.
+- [x] **`IntrinsicHeight` interno**: un `TextField` en la línea (cantidad, descuento) se estiraba a
+      todo el alto disponible cuando la tarjeta vive en un contenedor de alto acotado y el campo
+      aparecía centrado a media pantalla.
+- [x] **Compras se deja como está**: su línea ya apila tres campos con `ResponsiveFormRow` y no
+      desborda.
+- [x] Tests: `test/z_cart_line_test.dart` (6: dos filas en teléfono, una en escritorio, sin
+      desborde en 360/390/430, con control extra, `onRemove` y nombre muy largo).
+
 ---
 
 ## 7. Fase 5 — Calidad móvil (P1/P2)
@@ -322,7 +340,7 @@ acción primaria siempre alcanzable.
       `Column`/`Expanded`/`ListView`/`SizedBox`), así que `isExpanded` no puede recibir ancho
       infinito.
 - [ ] Golden de 5 pantallas × 3 anchos.
-- [ ] Barrido del resto de rutas top a 360 px (carritos de venta/cotización, flota, BI completo).
+- [ ] Barrido del resto de rutas top a 360 px (flota, BI completo, dashboards financiero y operacional).
 - [ ] Regresiones: "Más" activo fuera de hubs; selectores operativos en móvil.
 
 **Aceptación**: 0 overflows en la matriz 360/390/430 × `textScale` 1.0/1.3; cámara y
