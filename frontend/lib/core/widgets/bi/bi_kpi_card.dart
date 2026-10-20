@@ -48,7 +48,13 @@ class BiKpiCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 6),
-              Text(value, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+              // FittedBox: a 360 px la tarjeta mide ~158 px y un monto largo se
+              // partía en dos líneas (o desbordaba en negrita).
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(value, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+              ),
               if (changePercent != null)
                 Row(
                   children: [

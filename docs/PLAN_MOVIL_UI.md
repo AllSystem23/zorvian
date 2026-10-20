@@ -1,6 +1,6 @@
 # Plan de UI móvil (teléfonos) — Zorvian ERP
 
-> **Estado**: Fase 0 ✅ · Fase 1 ✅ · Fase 2 (fundaciones) ✅ · **Fecha**: 2026-10-20
+> **Estado**: Fase 0 ✅ · Fase 1 ✅ · Fase 2 (fundaciones + kanban) ✅ · Fase 3 en curso · Fase 5.1 ✅ · **Fecha**: 2026-10-20
 > **Alcance**: capa de presentación Flutter (`frontend/`). Sin cambios de negocio ni de backend.
 > **Objetivo**: que un usuario pueda operar el ERP completo desde un teléfono de 360–430 px,
 > sin scroll horizontal, sin overflows y con acciones primarias alcanzables con una mano.
@@ -162,9 +162,15 @@ acción primaria siempre alcanzable.
 
 ---
 
-## 5. Fase 3 — Dashboards y BI (P1)
+## 5. Fase 3 — Dashboards y BI (P1) — en curso
 
-- [ ] KPIs en **2 columnas** en teléfono, valor con `FittedBox`, padding de página 16.
+- [x] **KPIs a 2 columnas con valor que se encoge**: `ZStatCard` gana un modo compacto
+      (`< 220 px`, que es el ancho real de una tarjeta a 360 px) con icono de 32, padding
+      reducido y la tendencia movida a la fila del valor; el valor va en `FittedBox`
+      (`scaleDown`). `BiKpiCard` también. Antes, a 360 px, la tarjeta desbordaba 16 px
+      (icono 40 + padding 24 + chip de tendencia no caben en 158 px) y el monto se partía
+      en dos líneas.
+- [x] Tests: `test/mobile_stat_cards_test.dart` (2, a 158 px con montos de 7 cifras).
 - [ ] Gráficos con `LayoutBuilder` + `AspectRatio` (sin alto fijo), donut con leyenda debajo,
       gauge escalado, `RepaintBoundary` y lectura de valores por tap.
 - [ ] Secciones de dashboard como tarjetas full width con "Ver todo".

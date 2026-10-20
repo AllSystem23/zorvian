@@ -35,6 +35,13 @@ class ZStatCard extends StatelessWidget {
     this.sparklineColor,
   });
 
+  /// Debajo de este ancho la tarjeta entra en **modo compacto**: en un teléfono
+  /// de 360 px con 2 columnas cada tarjeta mide ~158 px y el icono de 40 px, el
+  /// padding de 24 px y el chip de tendencia no caben en la misma fila
+  /// (desbordaba 16 px). En compacto se reduce el icono/padding, la tendencia
+  /// pasa a la fila del valor y el sparkline se omite.
+  static const compactBreakpoint = 220.0;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -64,110 +71,138 @@ class ZStatCard extends StatelessWidget {
               end: Alignment.bottomRight,
             ),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(ZSpacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Top row: icon + title + trend ──
-                Row(
-                  children: [
-                    if (icon != null) ...[
-                      Container(
-                        width: 40, height: 40,
-                        decoration: BoxDecoration(
-                          color: accentColor.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(ZRadii.md),
-                        ),
-                        child: Icon(icon, size: 20, color: accentColor),
-                      ),
-                      const SizedBox(width: ZSpacing.md),
-                    ],
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(title, style: theme.textTheme.bodySmall?.copyWith(
-                            color: isDark ? ZColors.neutral400 : ZColors.neutral500,
-                            fontWeight: FontWeight.w500,
-                          )),
-                          if (subtitle != null)
-                            Text(subtitle!, style: theme.textTheme.bodySmall?.copyWith(
-                              color: ZColors.neutral400, fontSize: 11,
-                            )),
-                        ],
-                      ),
-                    ),
-                    if (trend != null)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: (trendUp ? ZColors.success : ZColors.danger).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(trendUp ? Icons.trending_up : Icons.trending_down, size: 12,
-                                color: trendUp ? ZColors.success : ZColors.danger),
-                            const SizedBox(width: 2),
-                            Text('${trend!.toStringAsFixed(1)}%',
-                              style: TextStyle(fontSize: 11,
-                                color: trendUp ? ZColors.success : ZColors.danger,
-                                fontWeight: FontWeight.w600,
-                              )),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: ZSpacing.md),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < compactBreakpoint;
+              final iconSize = compact ? 32.0 : 40.0;
+              final hasSparkline =
+                  sparklineData != null && sparklineData!.length > 1;
 
-                // ── Value + Sparkline ──
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+              return Padding(
+                padding: EdgeInsets.all(compact ? ZSpacing.md : ZSpacing.lg),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Text(
-                        value ?? '-',
-                        style: theme.textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? ZColors.neutral100 : ZColors.neutral800,
-                          height: 1.1,
-                        ),
-                      ),
-                    ),
-                    if (sparklineData != null && sparklineData!.length > 1)
-                      SizedBox(
-                        width: 72, height: 32,
-                        child: CustomPaint(
-                          painter: _SparklinePainter(
-                            data: sparklineData!,
-                            color: sparklineColor ?? accentColor,
-                            trendUp: trendUp,
+                    // ── Top row: icon + title + trend ──
+                    Row(
+                      children: [
+                        if (icon != null) ...[
+                          Container(
+                            width: iconSize,
+                            height: iconSize,
+                            decoration: BoxDecoration(
+                              color: accentColor.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(ZRadii.md),
+                            ),
+                            child: Icon(
+                              icon,
+                              size: compact ? 18 : 20,
+                              color: accentColor,
+                            ),
+                          ),
+                          SizedBox(
+                            width: compact ? ZSpacing.sm : ZSpacing.md,
+                          ),
+                        ],
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(title, style: theme.textTheme.bodySmall?.copyWith(
+                                color: isDark ? ZColors.neutral400 : ZColors.neutral500,
+                                fontWeight: FontWeight.w500,
+                              )),
+                              if (subtitle != null)
+                                Text(subtitle!, style: theme.textTheme.bodySmall?.copyWith(
+                                  color: ZColors.neutral400, fontSize: 11,
+                                )),
+                            ],
                           ),
                         ),
-                      ),
+                        if (!compact && trend != null) _buildTrend(),
+                      ],
+                    ),
+                    SizedBox(height: compact ? ZSpacing.sm : ZSpacing.md),
+
+                    // ── Value + Sparkline (y tendencia en compacto) ──
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          // FittedBox: un monto largo se encoge en vez de
+                          // partirse en dos líneas o desbordar.
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              value ?? '-',
+                              maxLines: 1,
+                              style: theme.textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? ZColors.neutral100 : ZColors.neutral800,
+                                height: 1.1,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (compact && trend != null) _buildTrend(),
+                        if (hasSparkline && !compact)
+                          SizedBox(
+                            width: 72,
+                            height: 32,
+                            child: CustomPaint(
+                              painter: _SparklinePainter(
+                                data: sparklineData!,
+                                color: sparklineColor ?? accentColor,
+                                trendUp: trendUp,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+
+                    if (label != null) ...[
+                      const SizedBox(height: ZSpacing.xs),
+                      Text(label!, style: theme.textTheme.bodySmall?.copyWith(
+                        color: isDark ? ZColors.neutral400 : ZColors.neutral500,
+                      )),
+                    ],
+
+                    if (footer != null) ...[
+                      const SizedBox(height: ZSpacing.md),
+                      const Divider(height: 1),
+                      const SizedBox(height: ZSpacing.md),
+                      footer!,
+                    ],
                   ],
                 ),
-
-                if (label != null) ...[
-                  const SizedBox(height: ZSpacing.xs),
-                  Text(label!, style: theme.textTheme.bodySmall?.copyWith(
-                    color: isDark ? ZColors.neutral400 : ZColors.neutral500,
-                  )),
-                ],
-
-                if (footer != null) ...[
-                  const SizedBox(height: ZSpacing.md),
-                  const Divider(height: 1),
-                  const SizedBox(height: ZSpacing.md),
-                  footer!,
-                ],
-              ],
-            ),
+              );
+            },
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildTrend() {
+    final color = trendUp ? ZColors.success : ZColors.danger;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(trendUp ? Icons.trending_up : Icons.trending_down, size: 12,
+              color: color),
+          const SizedBox(width: 2),
+          Text('${trend!.toStringAsFixed(1)}%',
+            style: TextStyle(fontSize: 11, color: color,
+              fontWeight: FontWeight.w600,
+            )),
+        ],
       ),
     );
   }
