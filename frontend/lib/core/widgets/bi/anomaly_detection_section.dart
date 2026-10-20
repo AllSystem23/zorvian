@@ -27,7 +27,11 @@ class AnomalyDetectionSection extends ConsumerWidget {
                   children: [
                     Icon(Icons.check_circle, color: palette.primary),
                     const SizedBox(width: 12),
-                    Text('No se detectaron anomalías en los últimos ${report.totalEntriesAnalyzed} asientos contables.'),
+                    // Sin `Expanded` la frase completa se pintaba a su ancho
+                    // intrínseco y desbordaba ~670 px en teléfono.
+                    Expanded(
+                      child: Text('No se detectaron anomalías en los últimos ${report.totalEntriesAnalyzed} asientos contables.'),
+                    ),
                   ],
                 ),
               );
@@ -66,9 +70,16 @@ class AnomalyDetectionSection extends ConsumerWidget {
                           children: [
                             Icon(isCritical ? Icons.error : Icons.warning, size: 18, color: isCritical ? palette.error : palette.tertiary),
                             const SizedBox(width: 8),
-                            Text(a.entryNumber, style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
-                            const Spacer(),
-                            Text(a.entryDate.substring(0, 10), style: Theme.of(context).textTheme.bodySmall),
+                            Expanded(
+                              child: Text(
+                                a.entryNumber,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(a.entryDate.length >= 10 ? a.entryDate.substring(0, 10) : a.entryDate, style: Theme.of(context).textTheme.bodySmall),
                           ],
                         ),
                         const SizedBox(height: 4),

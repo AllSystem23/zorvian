@@ -60,18 +60,17 @@ class _OperationalDashboardPageState extends ConsumerState<OperationalDashboardP
                   ),
                   const SizedBox(height: 16),
                   if (inv.byCategory.isNotEmpty)
-                    SizedBox(
-                      height: 200,
-                      child: BiPieChart(
-                        items: [
-                          for (int i = 0; i < inv.byCategory.length; i++)
-                            PieChartItem(
-                              inv.byCategory[i].categoryName,
-                              inv.byCategory[i].totalValue.toDouble(),
-                              color: [Colors.blue, Colors.red, Colors.green, Colors.orange, Colors.purple, Colors.teal][i % 6],
-                            ),
-                        ],
-                      ),
+                    // Sin `SizedBox`: en teléfono la leyenda baja debajo de la
+                    // dona y la tarjeta crece más de 200 px.
+                    BiPieChart(
+                      items: [
+                        for (int i = 0; i < inv.byCategory.length; i++)
+                          PieChartItem(
+                            inv.byCategory[i].categoryName,
+                            inv.byCategory[i].totalValue.toDouble(),
+                            color: [Colors.blue, Colors.red, Colors.green, Colors.orange, Colors.purple, Colors.teal][i % 6],
+                          ),
+                      ],
                     ),
                 ],
               ),
@@ -97,11 +96,10 @@ class _OperationalDashboardPageState extends ConsumerState<OperationalDashboardP
                   ),
                   const SizedBox(height: 16),
                   if (pr.byDepartment.isNotEmpty)
-                    SizedBox(
-                      height: 200,
-                      child: BiBarChart(
-                        items: pr.byDepartment.map((d) => BarChartItem(d.department, d.amount, color: Theme.of(context).colorScheme.primary)).toList(),
-                      ),
+                    // El gráfico ya trae su propio alto (200); envolverlo en
+                    // otro `SizedBox` de 200 desbordaba 40 px por el padding.
+                    BiBarChart(
+                      items: pr.byDepartment.map((d) => BarChartItem(d.department, d.amount, color: Theme.of(context).colorScheme.primary)).toList(),
                     ),
                 ],
               ),

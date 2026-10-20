@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 class BiGauge extends StatelessWidget {
@@ -18,32 +20,59 @@ class BiGauge extends StatelessWidget {
       margin: const EdgeInsets.all(4),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600], fontSize: 11),
-            ),
-            const SizedBox(height: 4),
-            Expanded(
-              child: Center(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // El círculo se dibujaba fijo a 72×72: en una tarjeta de 80 px (el
+            // caso de un dashboard a 4 columnas en teléfono) el alto disponible
+            // es ~37 px y el contenido desbordaba 9 px. Ahora el diámetro se
+            // adapta al espacio real y el texto central escala con FittedBox.
+            final maxHeight = constraints.hasBoundedHeight ? constraints.maxHeight : 96.0;
+            final availableH = maxHeight - 19; // etiqueta + separación
+            final diameter = math.max(
+              24.0,
+              math.min(72.0, math.min(constraints.maxWidth, availableH)),
+            );
+            final circle = Center(
+              child: SizedBox(
+                width: diameter,
+                height: diameter,
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    SizedBox(width: 72, height: 72, child: CustomPaint(painter: _GaugePainter(pct, c))),
-                    Column(mainAxisSize: MainAxisSize.min, children: [
-                      Text(value.toStringAsFixed(2), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: c)),
-                      if (unit != null) Text(unit!, style: TextStyle(fontSize: 9, color: Colors.grey[600])),
-                    ]),
+                    CustomPaint(painter: _GaugePainter(pct, c), size: Size.square(diameter)),
+                    SizedBox(
+                      width: diameter * 0.66,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(value.toStringAsFixed(2), style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: c)),
+                            if (unit != null) Text(unit!, style: TextStyle(fontSize: 9, color: Colors.grey[600])),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
-            ),
-          ],
+            );
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Colors.grey[600], fontSize: 11),
+                ),
+                const SizedBox(height: 4),
+                if (constraints.hasBoundedHeight) Expanded(child: circle) else circle,
+              ],
+            );
+          },
         ),
       ),
     );

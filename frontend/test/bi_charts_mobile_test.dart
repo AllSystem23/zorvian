@@ -102,5 +102,40 @@ void main() {
       );
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets('BiGauge entra en la tarjeta de 80×80 del dashboard a 4 columnas',
+        (tester) async {
+      // El dashboard financiero calcula el ancho de cada gauge como
+      // `(ancho - 48) / 4` y lo limita a un mínimo de 80 px: a 360 px de
+      // teléfono la tarjeta queda en 80×80 y la dona fija de 72 px desbordaba
+      // 9 px por abajo en las 7 tarjetas.
+      await pumpAt(
+        tester,
+        360,
+        _host(
+          BiGauge(value: 1.8, max: 3, label: 'Liquidez'),
+          width: 80,
+          height: 80,
+        ),
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('BiGauge sin alto acotado tampoco desborda', (tester) async {
+      await pumpAt(
+        tester,
+        360,
+        MaterialApp(
+          home: Scaffold(
+            body: ListView(
+              children: [
+                BiGauge(value: 0.4, max: 1, label: 'Endeudamiento', unit: '%'),
+              ],
+            ),
+          ),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+    });
   });
 }

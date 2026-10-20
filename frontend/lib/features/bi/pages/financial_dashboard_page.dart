@@ -138,15 +138,14 @@ class _FinancialDashboardPageState extends ConsumerState<FinancialDashboardPage>
             cashFlowAsync.when(
               loading: () => const SizedBox(height: 200, child: Center(child: CircularProgressIndicator())),
               error: (e, _) => ZCard(padding: const EdgeInsets.all(16), child: Text('Error: $e')),
-              data: (cf) => SizedBox(
-                height: 200,
-                child: BiPieChart(
-                  items: [
-                    PieChartItem('Operación', cf.operating.fold(0.0, (sum, i) => sum + i.amount.abs()), color: Colors.blue),
-                    PieChartItem('Inversión', cf.investing.fold(0.0, (sum, i) => sum + i.amount.abs()), color: Colors.orange),
-                    PieChartItem('Financiación', cf.financing.fold(0.0, (sum, i) => sum + i.amount.abs()), color: Colors.purple),
-                  ],
-                ),
+              // Sin `SizedBox`: en teléfono la leyenda baja debajo de la dona y
+              // la tarjeta necesita crecer más de 200 px.
+              data: (cf) => BiPieChart(
+                items: [
+                  PieChartItem('Operación', cf.operating.fold(0.0, (sum, i) => sum + i.amount.abs()), color: Colors.blue),
+                  PieChartItem('Inversión', cf.investing.fold(0.0, (sum, i) => sum + i.amount.abs()), color: Colors.orange),
+                  PieChartItem('Financiación', cf.financing.fold(0.0, (sum, i) => sum + i.amount.abs()), color: Colors.purple),
+                ],
               ),
             ),
             const SizedBox(height: 24),
@@ -161,17 +160,15 @@ class _FinancialDashboardPageState extends ConsumerState<FinancialDashboardPage>
                     data: (ar) => Column(
                       children: [
                         const Text('Cuentas por Cobrar', style: TextStyle(fontWeight: FontWeight.w600)),
-                        SizedBox(
+                        BiBarChart(
                           height: 150,
-                          child: BiBarChart(
-                            items: [
-                              BarChartItem('C', ar.current, color: Colors.green),
-                              BarChartItem('30', ar.days30, color: Colors.lightGreen),
-                              BarChartItem('60', ar.days60, color: Colors.orange),
-                              BarChartItem('90', ar.days90, color: Colors.deepOrange),
-                              BarChartItem('+90', ar.days90Plus, color: Colors.red),
-                            ],
-                          ),
+                          items: [
+                            BarChartItem('C', ar.current, color: Colors.green),
+                            BarChartItem('30', ar.days30, color: Colors.lightGreen),
+                            BarChartItem('60', ar.days60, color: Colors.orange),
+                            BarChartItem('90', ar.days90, color: Colors.deepOrange),
+                            BarChartItem('+90', ar.days90Plus, color: Colors.red),
+                          ],
                         ),
                       ],
                     ),
@@ -185,17 +182,15 @@ class _FinancialDashboardPageState extends ConsumerState<FinancialDashboardPage>
                     data: (ap) => Column(
                       children: [
                         const Text('Cuentas por Pagar', style: TextStyle(fontWeight: FontWeight.w600)),
-                        SizedBox(
+                        BiBarChart(
                           height: 150,
-                          child: BiBarChart(
-                            items: [
-                              BarChartItem('C', ap.current, color: Colors.green),
-                              BarChartItem('30', ap.days30, color: Colors.lightGreen),
-                              BarChartItem('60', ap.days60, color: Colors.orange),
-                              BarChartItem('90', ap.days90, color: Colors.deepOrange),
-                              BarChartItem('+90', ap.days90Plus, color: Colors.red),
-                            ],
-                          ),
+                          items: [
+                            BarChartItem('C', ap.current, color: Colors.green),
+                            BarChartItem('30', ap.days30, color: Colors.lightGreen),
+                            BarChartItem('60', ap.days60, color: Colors.orange),
+                            BarChartItem('90', ap.days90, color: Colors.deepOrange),
+                            BarChartItem('+90', ap.days90Plus, color: Colors.red),
+                          ],
                         ),
                       ],
                     ),
