@@ -41,8 +41,12 @@ class FakeApi {
     return _handle(options);
   });
 
-  /// Respuestas por ruta (prefijo más largo primero); lo no listado → `[]`.
-  factory FakeApi.routes(Map<String, Object?> routes) {
+  /// Respuestas por ruta (prefijo más largo primero); lo no listado → [fallback]
+  /// (`[]` por defecto, útil para catálogos).
+  factory FakeApi.routes(
+    Map<String, Object?> routes, {
+    Object? fallback = const [],
+  }) {
     final sorted = routes.keys.toList()
       ..sort((a, b) => b.length.compareTo(a.length));
     return FakeApi((options) {
@@ -50,7 +54,7 @@ class FakeApi {
       for (final key in sorted) {
         if (path.contains(key)) return jsonResponse(routes[key]);
       }
-      return jsonResponse(const []);
+      return jsonResponse(fallback);
     });
   }
 
