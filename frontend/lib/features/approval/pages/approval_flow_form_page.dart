@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/widgets/responsive_layout.dart';
 import '../../../shared/ds/ds.dart';
 
 final class _StepEntry {
@@ -143,11 +144,13 @@ final class _ApprovalFlowFormPageState extends ConsumerState<ApprovalFlowFormPag
                         const SizedBox(height: 8),
                         TextFormField(controller: s.roleCtrl, decoration: const InputDecoration(labelText: 'Rol aprobador', isDense: true), validator: (v) => v == null || v.isEmpty ? 'Requerido' : null),
                         const SizedBox(height: 8),
-                        Row(children: [
-                          Expanded(child: TextFormField(controller: s.minCtrl, decoration: const InputDecoration(labelText: 'Monto mínimo', isDense: true), keyboardType: TextInputType.number)),
-                          const SizedBox(width: 8),
-                          Expanded(child: TextFormField(controller: s.maxCtrl, decoration: const InputDecoration(labelText: 'Monto máximo', isDense: true), keyboardType: TextInputType.number)),
-                        ]),
+                        ResponsiveFormRow(
+                          spacing: 8,
+                          children: [
+                            TextFormField(controller: s.minCtrl, decoration: const InputDecoration(labelText: 'Monto mínimo', isDense: true), keyboardType: TextInputType.number),
+                            TextFormField(controller: s.maxCtrl, decoration: const InputDecoration(labelText: 'Monto máximo', isDense: true), keyboardType: TextInputType.number),
+                          ],
+                        ),
                       ],
                     ),
                 );

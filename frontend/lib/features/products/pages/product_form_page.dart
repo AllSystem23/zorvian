@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/widgets/responsive_layout.dart';
 import '../../../shared/ds/ds.dart';
 import '../../../shared/printing/qr_code_dialog.dart';
 import '../providers/product_provider.dart';
@@ -148,16 +149,14 @@ final class _ProductFormPageState extends ConsumerState<ProductFormPage> {
                 ),
               ]),
               const SizedBox(height: 12),
-              Row(children: [
-                Expanded(child: TextFormField(controller: _priceCtrl, decoration: const InputDecoration(labelText: 'Precio', prefixIcon: Icon(Icons.attach_money)), keyboardType: TextInputType.number, validator: (v) => v == null || v.isEmpty ? 'Requerido' : null)),
-                const SizedBox(width: 12),
-                Expanded(child: TextFormField(controller: _costCtrl, decoration: const InputDecoration(labelText: 'Costo', prefixIcon: Icon(Icons.money_off)), keyboardType: TextInputType.number)),
+              ResponsiveFormRow(children: [
+                TextFormField(controller: _priceCtrl, decoration: const InputDecoration(labelText: 'Precio', prefixIcon: Icon(Icons.attach_money)), keyboardType: TextInputType.number, validator: (v) => v == null || v.isEmpty ? 'Requerido' : null),
+                TextFormField(controller: _costCtrl, decoration: const InputDecoration(labelText: 'Costo', prefixIcon: Icon(Icons.money_off)), keyboardType: TextInputType.number),
               ]),
               const SizedBox(height: 12),
-              Row(children: [
-                Expanded(child: TextFormField(controller: _stockCtrl, decoration: const InputDecoration(labelText: 'Stock inicial', prefixIcon: Icon(Icons.inventory)), keyboardType: TextInputType.number)),
-                const SizedBox(width: 12),
-                Expanded(child: TextFormField(controller: _minStockCtrl, decoration: const InputDecoration(labelText: 'Stock mínimo', prefixIcon: Icon(Icons.warning)), keyboardType: TextInputType.number)),
+              ResponsiveFormRow(children: [
+                TextFormField(controller: _stockCtrl, decoration: const InputDecoration(labelText: 'Stock inicial', prefixIcon: Icon(Icons.inventory)), keyboardType: TextInputType.number),
+                TextFormField(controller: _minStockCtrl, decoration: const InputDecoration(labelText: 'Stock mínimo', prefixIcon: Icon(Icons.warning)), keyboardType: TextInputType.number),
               ]),
               const SizedBox(height: 12),
               TextFormField(controller: _maxStockCtrl, decoration: const InputDecoration(labelText: 'Stock máximo', prefixIcon: Icon(Icons.trending_up)), keyboardType: TextInputType.number),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/widgets/responsive_layout.dart';
 import '../../../shared/ds/ds.dart';
 import '../providers/webhook_provider.dart';
 
@@ -162,32 +163,28 @@ class _WebhookFormPageState extends ConsumerState<WebhookFormPage> {
                 ),
               ),
               const SizedBox(height: 16),
-              Row(
+              ResponsiveFormRow(
+                spacing: 16,
                 children: [
-                  Expanded(
-                    child: TextFormField(
-                      initialValue: _maxRetries.toString(),
-                      decoration: const InputDecoration(
-                        labelText: 'Reintentos máx.',
-                        prefixIcon: Icon(Icons.replay),
-                      ),
-                      keyboardType: TextInputType.number,
-                      onChanged: (v) =>
-                          _maxRetries = int.tryParse(v) ?? 3,
+                  TextFormField(
+                    initialValue: _maxRetries.toString(),
+                    decoration: const InputDecoration(
+                      labelText: 'Reintentos máx.',
+                      prefixIcon: Icon(Icons.replay),
                     ),
+                    keyboardType: TextInputType.number,
+                    onChanged: (v) =>
+                        _maxRetries = int.tryParse(v) ?? 3,
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      initialValue: _retryInterval.toString(),
-                      decoration: const InputDecoration(
-                        labelText: 'Intervalo (seg)',
-                        prefixIcon: Icon(Icons.timer),
-                      ),
-                      keyboardType: TextInputType.number,
-                      onChanged: (v) =>
-                          _retryInterval = int.tryParse(v) ?? 60,
+                  TextFormField(
+                    initialValue: _retryInterval.toString(),
+                    decoration: const InputDecoration(
+                      labelText: 'Intervalo (seg)',
+                      prefixIcon: Icon(Icons.timer),
                     ),
+                    keyboardType: TextInputType.number,
+                    onChanged: (v) =>
+                        _retryInterval = int.tryParse(v) ?? 60,
                   ),
                 ],
               ),

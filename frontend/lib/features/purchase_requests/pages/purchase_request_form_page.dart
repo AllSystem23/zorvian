@@ -5,6 +5,7 @@ import '../../products/providers/product_provider.dart';
 import '../../../shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../core/providers/company_branch_provider.dart';
+import '../../../core/widgets/responsive_layout.dart';
 import '../providers/purchase_request_provider.dart';
 
 final class _CartLine {
@@ -267,24 +268,20 @@ final class _PurchaseRequestFormPageState extends ConsumerState<PurchaseRequestF
             ],
           ),
           const SizedBox(height: 4),
-          Row(
+          ResponsiveFormRow(
+            spacing: 8,
             children: [
-              Expanded(
-                child: TextField(
-                  decoration: const InputDecoration(labelText: 'Cantidad', isDense: true),
-                  controller: TextEditingController(text: line.quantity),
-                  keyboardType: TextInputType.number,
-                  onChanged: (v) => line.quantity = v,
-                ),
+              TextField(
+                decoration: const InputDecoration(labelText: 'Cantidad', isDense: true),
+                controller: TextEditingController(text: line.quantity),
+                keyboardType: TextInputType.number,
+                onChanged: (v) => line.quantity = v,
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  decoration: const InputDecoration(labelText: 'Precio U. estimado', isDense: true),
-                  controller: TextEditingController(text: line.unitPrice.toString()),
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  onChanged: (v) => line.unitPrice = double.tryParse(v) ?? 0,
-                ),
+              TextField(
+                decoration: const InputDecoration(labelText: 'Precio U. estimado', isDense: true),
+                controller: TextEditingController(text: line.unitPrice.toString()),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                onChanged: (v) => line.unitPrice = double.tryParse(v) ?? 0,
               ),
             ],
           ),

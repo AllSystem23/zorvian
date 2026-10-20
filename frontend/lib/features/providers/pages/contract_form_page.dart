@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../core/utils/country_config.dart';
+import '../../../core/widgets/responsive_layout.dart';
 import '../../../shared/ds/ds.dart';
 import '../providers/provider_state.dart';
 
@@ -163,45 +164,41 @@ final class _ContractFormPageState extends ConsumerState<ContractFormPage> {
                 maxLines: 3,
               ),
               const SizedBox(height: ZSpacing.md),
-              Row(
+              ResponsiveFormRow(
+                spacing: ZSpacing.md,
                 children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _countryCode,
-                      decoration: const InputDecoration(
-                        labelText: 'País',
-                        prefixIcon: Icon(Icons.flag),
-                      ),
-                      items: const [
-                        DropdownMenuItem(value: 'NI', child: Text('Nicaragua')),
-                        DropdownMenuItem(value: 'HN', child: Text('Honduras')),
-                        DropdownMenuItem(value: 'SV', child: Text('El Salvador')),
-                        DropdownMenuItem(value: 'CR', child: Text('Costa Rica')),
-                        DropdownMenuItem(value: 'GT', child: Text('Guatemala')),
-                        DropdownMenuItem(value: 'PA', child: Text('Panamá')),
-                      ],
-                      onChanged: (v) {
-                        final cc = v ?? 'NI';
-                        setState(() {
-                          _countryCode = cc;
-                          _currency = CountryConfig.currencyForCountry(cc);
-                        });
-                      },
+                  DropdownButtonFormField<String>(
+                    initialValue: _countryCode,
+                    decoration: const InputDecoration(
+                      labelText: 'País',
+                      prefixIcon: Icon(Icons.flag),
                     ),
+                    items: const [
+                      DropdownMenuItem(value: 'NI', child: Text('Nicaragua')),
+                      DropdownMenuItem(value: 'HN', child: Text('Honduras')),
+                      DropdownMenuItem(value: 'SV', child: Text('El Salvador')),
+                      DropdownMenuItem(value: 'CR', child: Text('Costa Rica')),
+                      DropdownMenuItem(value: 'GT', child: Text('Guatemala')),
+                      DropdownMenuItem(value: 'PA', child: Text('Panamá')),
+                    ],
+                    onChanged: (v) {
+                      final cc = v ?? 'NI';
+                      setState(() {
+                        _countryCode = cc;
+                        _currency = CountryConfig.currencyForCountry(cc);
+                      });
+                    },
                   ),
-                  const SizedBox(width: ZSpacing.md),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _currency,
-                      decoration: const InputDecoration(
-                        labelText: 'Moneda',
-                        prefixIcon: Icon(Icons.monetization_on),
-                      ),
-                      items: CountryConfig.countries.values.map((c) =>
-                        DropdownMenuItem(value: c.currency, child: Text('${c.currencySymbol} ${c.currency}')),
-                      ).toList(),
-                      onChanged: (v) => setState(() => _currency = v ?? 'NIO'),
+                  DropdownButtonFormField<String>(
+                    initialValue: _currency,
+                    decoration: const InputDecoration(
+                      labelText: 'Moneda',
+                      prefixIcon: Icon(Icons.monetization_on),
                     ),
+                    items: CountryConfig.countries.values.map((c) =>
+                      DropdownMenuItem(value: c.currency, child: Text('${c.currencySymbol} ${c.currency}')),
+                    ).toList(),
+                    onChanged: (v) => setState(() => _currency = v ?? 'NIO'),
                   ),
                 ],
               ),

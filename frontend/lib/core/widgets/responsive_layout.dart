@@ -112,6 +112,51 @@ class ResponsiveGrid extends StatelessWidget {
   }
 }
 
+/// Fila de campos de formulario que se **apila en teléfono**.
+///
+/// A partir de 600 px reparte el ancho en partes iguales; por debajo deja una
+/// sola columna con el mismo espaciado vertical. A 360–430 px dos campos
+/// compartiendo fila quedan por debajo de ~170 px y el label con icono se
+/// recorta, así que en teléfono nunca deben ir lado a lado.
+class ResponsiveFormRow extends StatelessWidget {
+  final List<Widget> children;
+  final double spacing;
+
+  const ResponsiveFormRow({
+    super.key,
+    required this.children,
+    this.spacing = 12,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ResponsiveBuilder(
+      builder: (_, size) {
+        if (size == ScreenSize.mobile) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < children.length; i++) ...[
+                if (i > 0) SizedBox(height: spacing),
+                children[i],
+              ],
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (var i = 0; i < children.length; i++) ...[
+              if (i > 0) SizedBox(width: spacing),
+              Expanded(child: children[i]),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
 /// Hide on screen size
 class HideOn extends StatelessWidget {
   final ScreenSize screenSize;

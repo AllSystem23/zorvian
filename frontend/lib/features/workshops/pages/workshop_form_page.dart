@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../core/providers/company_branch_provider.dart';
+import '../../../core/widgets/responsive_layout.dart';
 import '../providers/workshop_provider.dart';
 
 class WorkshopFormPage extends ConsumerStatefulWidget {
@@ -121,8 +122,6 @@ class _WorkshopFormPageState extends ConsumerState<WorkshopFormPage> {
       );
     }
 
-    final isWide = MediaQuery.of(context).size.width > 700;
-
     return Scaffold(
       body: _error != null
           ? Center(child: ZAlertCard(message: _error!, severity: 'high'))
@@ -136,78 +135,58 @@ class _WorkshopFormPageState extends ConsumerState<WorkshopFormPage> {
                     // Identity
                     _SectionTitle(title: 'Identificación'),
                     const SizedBox(height: ZSpacing.md),
-                    if (isWide)
-                      Row(children: [
-                        Expanded(child: ZTextField(controller: _codeCtrl, label: 'Código *', validator: (v) => v == null || v.trim().isEmpty ? 'Requerido' : null)),
-                        const SizedBox(width: ZSpacing.md),
-                        Expanded(child: ZTextField(controller: _nameCtrl, label: 'Nombre *', validator: (v) => v == null || v.trim().isEmpty ? 'Requerido' : null)),
-                      ])
-                    else ...[
-                      ZTextField(controller: _codeCtrl, label: 'Código *', validator: (v) => v == null || v.trim().isEmpty ? 'Requerido' : null),
-                      const SizedBox(height: ZSpacing.md),
-                      ZTextField(controller: _nameCtrl, label: 'Nombre *', validator: (v) => v == null || v.trim().isEmpty ? 'Requerido' : null),
-                    ],
+                    ResponsiveFormRow(
+                      spacing: ZSpacing.md,
+                      children: [
+                        ZTextField(controller: _codeCtrl, label: 'Código *', validator: (v) => v == null || v.trim().isEmpty ? 'Requerido' : null),
+                        ZTextField(controller: _nameCtrl, label: 'Nombre *', validator: (v) => v == null || v.trim().isEmpty ? 'Requerido' : null),
+                      ],
+                    ),
                     const SizedBox(height: ZSpacing.md),
-                    if (isWide)
-                      Row(children: [
-                        Expanded(child: ZTextField(controller: _legalNameCtrl, label: 'Razón social')),
-                        const SizedBox(width: ZSpacing.md),
-                        Expanded(child: ZTextField(controller: _taxIdCtrl, label: 'NIT / RIF')),
-                      ])
-                    else ...[
-                      ZTextField(controller: _legalNameCtrl, label: 'Razón social'),
-                      const SizedBox(height: ZSpacing.md),
-                      ZTextField(controller: _taxIdCtrl, label: 'NIT / RIF'),
-                    ],
+                    ResponsiveFormRow(
+                      spacing: ZSpacing.md,
+                      children: [
+                        ZTextField(controller: _legalNameCtrl, label: 'Razón social'),
+                        ZTextField(controller: _taxIdCtrl, label: 'NIT / RIF'),
+                      ],
+                    ),
 
                     const SizedBox(height: ZSpacing.xl),
                     _SectionTitle(title: 'Contacto'),
                     const SizedBox(height: ZSpacing.md),
                     ZTextField(controller: _contactCtrl, label: 'Persona de contacto'),
                     const SizedBox(height: ZSpacing.md),
-                    if (isWide)
-                      Row(children: [
-                        Expanded(child: ZTextField(controller: _phoneCtrl, label: 'Teléfono', keyboardType: TextInputType.phone)),
-                        const SizedBox(width: ZSpacing.md),
-                        Expanded(child: ZTextField(controller: _emailCtrl, label: 'Email', keyboardType: TextInputType.emailAddress)),
-                      ])
-                    else ...[
-                      ZTextField(controller: _phoneCtrl, label: 'Teléfono', keyboardType: TextInputType.phone),
-                      const SizedBox(height: ZSpacing.md),
-                      ZTextField(controller: _emailCtrl, label: 'Email', keyboardType: TextInputType.emailAddress),
-                    ],
+                    ResponsiveFormRow(
+                      spacing: ZSpacing.md,
+                      children: [
+                        ZTextField(controller: _phoneCtrl, label: 'Teléfono', keyboardType: TextInputType.phone),
+                        ZTextField(controller: _emailCtrl, label: 'Email', keyboardType: TextInputType.emailAddress),
+                      ],
+                    ),
 
                     const SizedBox(height: ZSpacing.xl),
                     _SectionTitle(title: 'Ubicación'),
                     const SizedBox(height: ZSpacing.md),
                     ZTextField(controller: _addressCtrl, label: 'Dirección'),
                     const SizedBox(height: ZSpacing.md),
-                    if (isWide)
-                      Row(children: [
-                        Expanded(child: ZTextField(controller: _cityCtrl, label: 'Ciudad')),
-                        const SizedBox(width: ZSpacing.md),
-                        Expanded(child: ZTextField(controller: _countryCtrl, label: 'País')),
-                      ])
-                    else ...[
-                      ZTextField(controller: _cityCtrl, label: 'Ciudad'),
-                      const SizedBox(height: ZSpacing.md),
-                      ZTextField(controller: _countryCtrl, label: 'País'),
-                    ],
+                    ResponsiveFormRow(
+                      spacing: ZSpacing.md,
+                      children: [
+                        ZTextField(controller: _cityCtrl, label: 'Ciudad'),
+                        ZTextField(controller: _countryCtrl, label: 'País'),
+                      ],
+                    ),
 
                     const SizedBox(height: ZSpacing.xl),
                     _SectionTitle(title: 'Métricas de SLA'),
                     const SizedBox(height: ZSpacing.md),
-                    if (isWide)
-                      Row(children: [
-                        Expanded(child: ZTextField(controller: _responseHoursCtrl, label: 'Tiempo respuesta (horas)', keyboardType: TextInputType.number)),
-                        const SizedBox(width: ZSpacing.md),
-                        Expanded(child: ZTextField(controller: _repairHoursCtrl, label: 'Tiempo reparación (horas)', keyboardType: TextInputType.number)),
-                      ])
-                    else ...[
-                      ZTextField(controller: _responseHoursCtrl, label: 'Tiempo respuesta (horas)', keyboardType: TextInputType.number),
-                      const SizedBox(height: ZSpacing.md),
-                      ZTextField(controller: _repairHoursCtrl, label: 'Tiempo reparación (horas)', keyboardType: TextInputType.number),
-                    ],
+                    ResponsiveFormRow(
+                      spacing: ZSpacing.md,
+                      children: [
+                        ZTextField(controller: _responseHoursCtrl, label: 'Tiempo respuesta (horas)', keyboardType: TextInputType.number),
+                        ZTextField(controller: _repairHoursCtrl, label: 'Tiempo reparación (horas)', keyboardType: TextInputType.number),
+                      ],
+                    ),
 
                     const SizedBox(height: ZSpacing.xl),
                     _SectionTitle(title: 'Notas'),

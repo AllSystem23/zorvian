@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../shared/ds/ds.dart';
+import '../../../core/widgets/responsive_layout.dart';
 import '../models/crm_models.dart';
 import '../providers/leads_provider.dart';
 
@@ -83,13 +84,10 @@ class _LeadFormPageState extends ConsumerState<LeadFormPage> {
             children: [
               Text('Información personal', style: ZTypography.titleSmall),
               const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(child: ZTextField(label: 'Nombre', controller: _firstNameController, validator: _required)),
-                  const SizedBox(width: 12),
-                  Expanded(child: ZTextField(label: 'Apellido', controller: _lastNameController, validator: _required)),
-                ],
-              ),
+              ResponsiveFormRow(children: [
+                ZTextField(label: 'Nombre', controller: _firstNameController, validator: _required),
+                ZTextField(label: 'Apellido', controller: _lastNameController, validator: _required),
+              ]),
               const SizedBox(height: 12),
               ZTextField(label: 'Empresa', controller: _companyController),
               const SizedBox(height: 12),

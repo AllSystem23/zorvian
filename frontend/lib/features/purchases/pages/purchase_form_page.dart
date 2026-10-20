@@ -10,6 +10,7 @@ import '../../../shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../core/providers/company_branch_provider.dart';
 import '../../../core/utils/country_config.dart';
+import '../../../core/widgets/responsive_layout.dart';
 import '../../settings/providers/company_settings_provider.dart';
 import '../providers/purchase_provider.dart';
 
@@ -294,33 +295,26 @@ final class _PurchaseFormPageState extends ConsumerState<PurchaseFormPage> {
                               ],
                             ),
                             const SizedBox(height: 8),
-                            Row(
+                            ResponsiveFormRow(
+                              spacing: 8,
                               children: [
-                                Expanded(
-                                  child: TextField(
-                                    decoration: const InputDecoration(labelText: 'Cantidad', border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4)),
-                                    keyboardType: TextInputType.number,
-                                    controller: TextEditingController(text: i.quantity),
-                                    onChanged: (v) => setState(() => i.quantity = v),
-                                  ),
+                                TextField(
+                                  decoration: const InputDecoration(labelText: 'Cantidad', border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4)),
+                                  keyboardType: TextInputType.number,
+                                  controller: TextEditingController(text: i.quantity),
+                                  onChanged: (v) => setState(() => i.quantity = v),
                                 ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: TextField(
-                                    decoration: const InputDecoration(labelText: 'Costo', border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4)),
-                                    keyboardType: TextInputType.number,
-                                    controller: TextEditingController(text: i.unitCost.toStringAsFixed(2)),
-                                    onChanged: (v) => setState(() => i.unitCost = double.tryParse(v) ?? 0),
-                                  ),
+                                TextField(
+                                  decoration: const InputDecoration(labelText: 'Costo', border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4)),
+                                  keyboardType: TextInputType.number,
+                                  controller: TextEditingController(text: i.unitCost.toStringAsFixed(2)),
+                                  onChanged: (v) => setState(() => i.unitCost = double.tryParse(v) ?? 0),
                                 ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: TextField(
-                                    decoration: const InputDecoration(labelText: 'Dto', border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4)),
-                                    keyboardType: TextInputType.number,
-                                    controller: TextEditingController(text: i.discount),
-                                    onChanged: (v) => setState(() => i.discount = v),
-                                  ),
+                                TextField(
+                                  decoration: const InputDecoration(labelText: 'Dto', border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4)),
+                                  keyboardType: TextInputType.number,
+                                  controller: TextEditingController(text: i.discount),
+                                  onChanged: (v) => setState(() => i.discount = v),
                                 ),
                               ],
                             ),

@@ -5,6 +5,7 @@ import '../../suppliers/providers/supplier_provider.dart';
 import '../../products/providers/product_provider.dart';
 import '../../settings/providers/company_settings_provider.dart';
 import '../../../core/utils/country_config.dart';
+import '../../../core/widgets/responsive_layout.dart';
 import '../../../shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../core/providers/company_branch_provider.dart';
@@ -231,33 +232,26 @@ final class _PurchaseOrderFormPageState extends ConsumerState<PurchaseOrderFormP
             ],
           ),
           const SizedBox(height: 4),
-          Row(
+          ResponsiveFormRow(
+            spacing: 8,
             children: [
-              Expanded(
-                child: TextField(
-                  decoration: const InputDecoration(labelText: 'Cantidad', isDense: true),
-                  controller: TextEditingController(text: line.quantity),
-                  keyboardType: TextInputType.number,
-                  onChanged: (v) => line.quantity = v,
-                ),
+              TextField(
+                decoration: const InputDecoration(labelText: 'Cantidad', isDense: true),
+                controller: TextEditingController(text: line.quantity),
+                keyboardType: TextInputType.number,
+                onChanged: (v) => line.quantity = v,
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  decoration: const InputDecoration(labelText: 'Costo U.', isDense: true),
-                  controller: TextEditingController(text: line.unitCost.toString()),
-                  keyboardType: TextInputType.number,
-                  onChanged: (v) => line.unitCost = double.tryParse(v) ?? 0,
-                ),
+              TextField(
+                decoration: const InputDecoration(labelText: 'Costo U.', isDense: true),
+                controller: TextEditingController(text: line.unitCost.toString()),
+                keyboardType: TextInputType.number,
+                onChanged: (v) => line.unitCost = double.tryParse(v) ?? 0,
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  decoration: const InputDecoration(labelText: 'Dscto', isDense: true),
-                  controller: TextEditingController(text: line.discount),
-                  keyboardType: TextInputType.number,
-                  onChanged: (v) => line.discount = v,
-                ),
+              TextField(
+                decoration: const InputDecoration(labelText: 'Dscto', isDense: true),
+                controller: TextEditingController(text: line.discount),
+                keyboardType: TextInputType.number,
+                onChanged: (v) => line.discount = v,
               ),
             ],
           ),

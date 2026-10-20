@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../shared/ds/ds.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/widgets/responsive_layout.dart';
 import '../../cost_centers/providers/cost_center_provider.dart';
 import '../providers/budget_provider.dart';
 
@@ -107,13 +108,10 @@ final class _BudgetFormPageState extends ConsumerState<BudgetFormPage> {
                 decoration: BoxDecoration(color: theme.colorScheme.errorContainer, borderRadius: BorderRadius.circular(8)),
                 child: Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
               ),
-              Row(
-                children: [
-                  Expanded(child: TextFormField(controller: _yearCtrl, decoration: const InputDecoration(labelText: 'Año', prefixIcon: Icon(Icons.calendar_today)), keyboardType: TextInputType.number, validator: (v) => v == null || int.tryParse(v) == null ? 'Inválido' : null)),
-                  const SizedBox(width: 12),
-                  Expanded(child: TextFormField(controller: _monthCtrl, decoration: const InputDecoration(labelText: 'Mes (1-12)', prefixIcon: Icon(Icons.date_range)), keyboardType: TextInputType.number, validator: (v) => v == null || int.tryParse(v) == null ? 'Inválido' : null)),
-                ],
-              ),
+              ResponsiveFormRow(children: [
+                TextFormField(controller: _yearCtrl, decoration: const InputDecoration(labelText: 'Año', prefixIcon: Icon(Icons.calendar_today)), keyboardType: TextInputType.number, validator: (v) => v == null || int.tryParse(v) == null ? 'Inválido' : null),
+                TextFormField(controller: _monthCtrl, decoration: const InputDecoration(labelText: 'Mes (1-12)', prefixIcon: Icon(Icons.date_range)), keyboardType: TextInputType.number, validator: (v) => v == null || int.tryParse(v) == null ? 'Inválido' : null),
+              ]),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 decoration: const InputDecoration(labelText: 'Cuenta', prefixIcon: Icon(Icons.account_balance)),

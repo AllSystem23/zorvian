@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../core/widgets/responsive_layout.dart';
 import '../../../shared/ds/ds.dart';
 import '../providers/client_provider.dart';
 
@@ -127,10 +128,9 @@ final class _ClientFormPageState extends ConsumerState<ClientFormPage> {
               const SizedBox(height: 12),
               TextFormField(controller: _addressCtrl, decoration: const InputDecoration(labelText: 'Dirección', prefixIcon: Icon(Icons.location_on)), maxLines: 2),
               const SizedBox(height: 12),
-              Row(children: [
-                Expanded(child: TextFormField(controller: _cityCtrl, decoration: const InputDecoration(labelText: 'Municipio', prefixIcon: Icon(Icons.location_city)))),
-                const SizedBox(width: 12),
-                Expanded(child: TextFormField(controller: _stateCtrl, decoration: const InputDecoration(labelText: 'Departamento', prefixIcon: Icon(Icons.map)))),
+              ResponsiveFormRow(children: [
+                TextFormField(controller: _cityCtrl, decoration: const InputDecoration(labelText: 'Municipio', prefixIcon: Icon(Icons.location_city))),
+                TextFormField(controller: _stateCtrl, decoration: const InputDecoration(labelText: 'Departamento', prefixIcon: Icon(Icons.map))),
               ]),
               const SizedBox(height: 12),
               TextFormField(controller: _referencesCtrl, decoration: const InputDecoration(labelText: 'Referencias', prefixIcon: Icon(Icons.notes)), maxLines: 2),

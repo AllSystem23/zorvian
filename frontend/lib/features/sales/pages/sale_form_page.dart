@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../core/providers/company_branch_provider.dart';
 import '../../../core/utils/country_config.dart';
+import '../../../core/widgets/responsive_layout.dart';
 import '../../../shared/ds/ds.dart';
 import '../../../shared/printing/qr_code_dialog.dart';
 import '../../clients/providers/client_provider.dart';
@@ -205,10 +206,9 @@ final class _NewSalePageState extends ConsumerState<NewSalePage> {
           if (_isCredit) ...[
             TextField(controller: _downPaymentCtrl, decoration: const InputDecoration(labelText: 'Enganche', border: OutlineInputBorder(), prefixText: '\$ '), keyboardType: TextInputType.number),
             const SizedBox(height: 8),
-            Row(children: [
-              Expanded(child: ZTextField(controller: _installmentCtrl, label: 'Cuotas', keyboardType: TextInputType.number)),
-              const SizedBox(width: 12),
-              Expanded(child: ZTextField(controller: _interestCtrl, label: 'Interés %', keyboardType: TextInputType.number)),
+            ResponsiveFormRow(children: [
+              ZTextField(controller: _installmentCtrl, label: 'Cuotas', keyboardType: TextInputType.number),
+              ZTextField(controller: _interestCtrl, label: 'Interés %', keyboardType: TextInputType.number),
             ]),
           ],
           const SizedBox(height: 16),

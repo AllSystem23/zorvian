@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/widgets/responsive_layout.dart';
 import '../../../shared/ds/ds.dart';
 import '../providers/sick_leave_provider.dart';
 
@@ -53,41 +54,37 @@ class _SickLeaveFormPageState extends ConsumerState<SickLeaveFormPage> {
                 const SizedBox(height: 24),
                 ZTextField(controller: _diagnosisCtrl, label: 'Código de Diagnóstico'),
                 const SizedBox(height: 16),
-                Row(
+                ResponsiveFormRow(
+                  spacing: 16,
                   children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: () async {
-                          final date = await showDatePicker(
-                            context: context,
-                            initialDate: _startDate,
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime.now().add(const Duration(days: 365)),
-                          );
-                          if (date != null) setState(() => _startDate = date);
-                        },
-                        child: InputDecorator(
-                          decoration: const InputDecoration(labelText: 'Fecha de Inicio'),
-                          child: Text('${_startDate.day}/${_startDate.month}/${_startDate.year}'),
-                        ),
+                    InkWell(
+                      onTap: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate: _startDate,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                        );
+                        if (date != null) setState(() => _startDate = date);
+                      },
+                      child: InputDecorator(
+                        decoration: const InputDecoration(labelText: 'Fecha de Inicio'),
+                        child: Text('${_startDate.day}/${_startDate.month}/${_startDate.year}'),
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: InkWell(
-                        onTap: () async {
-                          final date = await showDatePicker(
-                            context: context,
-                            initialDate: _endDate,
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime.now().add(const Duration(days: 365)),
-                          );
-                          if (date != null) setState(() => _endDate = date);
-                        },
-                        child: InputDecorator(
-                          decoration: const InputDecoration(labelText: 'Fecha de Fin'),
-                          child: Text('${_endDate.day}/${_endDate.month}/${_endDate.year}'),
-                        ),
+                    InkWell(
+                      onTap: () async {
+                        final date = await showDatePicker(
+                          context: context,
+                          initialDate: _endDate,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now().add(const Duration(days: 365)),
+                        );
+                        if (date != null) setState(() => _endDate = date);
+                      },
+                      child: InputDecorator(
+                        decoration: const InputDecoration(labelText: 'Fecha de Fin'),
+                        child: Text('${_endDate.day}/${_endDate.month}/${_endDate.year}'),
                       ),
                     ),
                   ],
