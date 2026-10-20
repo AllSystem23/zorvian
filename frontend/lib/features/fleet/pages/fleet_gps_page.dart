@@ -271,8 +271,10 @@ class _FleetGpsPageState extends ConsumerState<FleetGpsPage> {
 
     return Marker(
       point: LatLng(lat, lng),
-      width: 44,
-      height: 56,
+      // El contenedor necesita caber el icono (36) + la etiqueta de la
+      // matrícula; con 44×56 el `Column` desbordaba 6 px en vertical.
+      width: 64,
+      height: 68,
       child: GestureDetector(
         onTap: () {
           ref.read(fleetGpsProvider.notifier).selectVehicle(vehicle['vehicleId']?.toString() ?? '');
@@ -473,56 +475,62 @@ class _FleetGpsPageState extends ConsumerState<FleetGpsPage> {
                 final brandModel = v['vehicleBrandModel'] ?? '';
                 final fuelLevel = (v['fuelLevel'] as num?)?.toDouble();
 
-                return ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: ZSpacing.sm, vertical: ZSpacing.xs),
-                  leading: Container(
-                    width: 8,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: speed != null && speed > 0 ? ZColors.success : ZColors.warning,
-                      borderRadius: BorderRadius.circular(4),
+                // `ZCard` pinta el fondo con un `DecoratedBox`: el `ListTile`
+                // necesita un `Material` intermedio para no perder sus ink
+                // splashes (assert en debug).
+                return Material(
+                  type: MaterialType.transparency,
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: ZSpacing.sm, vertical: ZSpacing.xs),
+                    leading: Container(
+                      width: 8,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: speed != null && speed > 0 ? ZColors.success : ZColors.warning,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
                     ),
-                  ),
-                  title: Text(plate, style: const TextStyle(fontWeight: FontWeight.w600)),
-                  subtitle: Text(brandModel, style: theme.textTheme.bodySmall),
-                  trailing: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      if (speed != null)
-                        ZBadge(
-                          text: '${speed.toStringAsFixed(0)} km/h',
-                          type: speed > 0 ? ZBadgeType.success : ZBadgeType.neutral,
-                        ),
-                      if (fuelLevel != null) ...[
-                        const SizedBox(height: 2),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.local_gas_station_outlined,
-                              size: 12,
-                              color: fuelLevel < 20 ? ZColors.danger : ZColors.neutral500,
-                            ),
-                            const SizedBox(width: 2),
-                            Text('${fuelLevel.toStringAsFixed(0)}%', style: theme.textTheme.bodySmall),
-                          ],
-                        ),
+                    title: Text(plate, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: Text(brandModel, style: theme.textTheme.bodySmall),
+                    trailing: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        if (speed != null)
+                          ZBadge(
+                            text: '${speed.toStringAsFixed(0)} km/h',
+                            type: speed > 0 ? ZBadgeType.success : ZBadgeType.neutral,
+                          ),
+                        if (fuelLevel != null) ...[
+                          const SizedBox(height: 2),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.local_gas_station_outlined,
+                                size: 12,
+                                color: fuelLevel < 20 ? ZColors.danger : ZColors.neutral500,
+                              ),
+                              const SizedBox(width: 2),
+                              Text('${fuelLevel.toStringAsFixed(0)}%', style: theme.textTheme.bodySmall),
+                            ],
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
-                  onTap: () {
-                    final vid = v['vehicleId']?.toString();
-                    if (vid != null) {
-                      ref.read(fleetGpsProvider.notifier).selectVehicle(vid);
-                      // Fly map to vehicle position
-                      final lat = (v['latitude'] as num?)?.toDouble();
-                      final lng = (v['longitude'] as num?)?.toDouble();
-                      if (lat != null && lng != null && lat != 0 && lng != 0) {
-                        _mapController.move(LatLng(lat, lng), 15.0);
+                    ),
+                    onTap: () {
+                      final vid = v['vehicleId']?.toString();
+                      if (vid != null) {
+                        ref.read(fleetGpsProvider.notifier).selectVehicle(vid);
+                        // Fly map to vehicle position
+                        final lat = (v['latitude'] as num?)?.toDouble();
+                        final lng = (v['longitude'] as num?)?.toDouble();
+                        if (lat != null && lng != null && lat != 0 && lng != 0) {
+                          _mapController.move(LatLng(lat, lng), 15.0);
+                        }
                       }
-                    }
-                  },
+                    },
+                  ),
                 );
               },
             ),

@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zorvian/features/fleet/pages/fleet_alerts_page.dart';
+import 'package:zorvian/features/fleet/pages/fleet_gps_page.dart';
 import 'package:zorvian/features/fleet/pages/fleet_predictive_page.dart';
 import 'package:zorvian/features/fleet/pages/fleet_reports_page.dart';
 import 'package:zorvian/features/fleet/pages/fleet_tracking_page.dart';
 import 'package:zorvian/features/fleet/providers/fleet_alerts_provider.dart';
+import 'package:zorvian/features/fleet/providers/fleet_gps_provider.dart';
 import 'package:zorvian/features/fleet/providers/fleet_predictive_provider.dart';
 import 'package:zorvian/features/fleet/providers/fleet_reports_provider.dart';
 import 'package:zorvian/features/fleet/providers/fleet_tracking_provider.dart';
@@ -294,7 +296,71 @@ const _vehicleUsageData = {
   ],
 };
 
+const _gpsPositions = [
+  {
+    'vehicleId': 'v1',
+    'vehiclePlate': 'ABC-123',
+    'vehicleBrandModel': 'Isuzu NPR 2021',
+    'latitude': 12.1364,
+    'longitude': -86.2514,
+    'speed': 62.4,
+    'fuelLevel': 48.0,
+    'heading': 90.0,
+    'lastUpdate': '2026-10-20T09:41:00',
+  },
+  {
+    'vehicleId': 'v2',
+    'vehiclePlate': 'XYZ-987',
+    'vehicleBrandModel': 'Toyota Hilux 2022',
+    'latitude': 12.1201,
+    'longitude': -86.2301,
+    'speed': 0.0,
+    'fuelLevel': 12.0,
+    'heading': 0.0,
+    'lastUpdate': '2026-10-20T09:38:00',
+  },
+  {
+    'vehicleId': 'v3',
+    'vehiclePlate': 'MNO-456',
+    'vehicleBrandModel': 'Hino 500 serie 2020',
+    'latitude': 12.1502,
+    'longitude': -86.2702,
+    'speed': 34.0,
+    'fuelLevel': 78.0,
+    'heading': 180.0,
+    'lastUpdate': '2026-10-20T09:40:00',
+  },
+];
+
 // ── Notifiers de prueba (build() poblado, loads sin red) ──
+
+class _GpsNotifier extends FleetGpsNotifier {
+  _GpsNotifier(this.initial);
+
+  final FleetGpsState initial;
+
+  @override
+  FleetGpsState build() => initial;
+
+  @override
+  Future<void> loadFleetPositions() async {}
+
+  @override
+  Future<void> loadGeofences() async {}
+
+  @override
+  Future<void> selectVehicle(String vehicleId) async {}
+
+  @override
+  Future<void> loadRouteHistory(
+    String vehicleId,
+    DateTime from,
+    DateTime to,
+  ) async {}
+
+  @override
+  void clearSelected() {}
+}
 class _AlertsNotifier extends FleetAlertNotifier {
   @override
   FleetAlertState build() => _alertsState();
@@ -348,8 +414,7 @@ class _TrackingNotifier extends FleetTrackingNotifier {
   Future<void> sendEtaNotification(String deliveryId) async {}
 }
 
-class _ReportsNotifier extends FleetReportNotifier {
-  _ReportsNotifier(this.initial);
+class _ReportsNotifier extends FleetReportNotifier {  _ReportsNotifier(this.initial);
 
   final FleetReportState initial;
 
@@ -406,6 +471,13 @@ Widget _reportsApp(FleetReportState state) => ProviderScope(
         fleetReportProvider.overrideWith(() => _ReportsNotifier(state)),
       ],
       child: const MaterialApp(home: FleetReportsPage()),
+    );
+
+Widget _gpsApp(FleetGpsState state) => ProviderScope(
+      overrides: [
+        fleetGpsProvider.overrideWith(() => _GpsNotifier(state)),
+      ],
+      child: const MaterialApp(home: FleetGpsPage()),
     );
 
 /// Recorre las 3 pestañas de una página con `TabBar` y verifica que ninguna
@@ -477,8 +549,7 @@ void main() {
     });
   });
 
-  group('FleetReportsPage', () {
-    testWidgets('KPIs de flota y barra de exportación caben en teléfono',
+  group('FleetReportsPage', () {    testWidgets('KPIs de flota y barra de exportación caben en teléfono',
         (tester) async {
       await pumpAcrossPhones(
         tester,
@@ -536,6 +607,40 @@ void main() {
       }
 
       expect(find.text('Selecciona un reporte'), findsOneWidget);
+    });
+  });
+
+  group('FleetGpsPage', () {
+    testWidgets('mapa + lista de vehículos caben en teléfono', (tester) async {
+      await pumpAcrossPhones(
+        tester,
+        (_) => _gpsApp(const FleetGpsState(vehiclePositions: _gpsPositions)),
+        height: 1200,
+      );
+
+      expect(find.text('Vehículos en Flota'), findsOneWidget);
+      // La matrícula aparece 2 veces: en el marcador del mapa y en la lista.
+      expect(find.text('ABC-123'), findsNWidgets(2));
+      expect(find.text('62 km/h'), findsOneWidget);
+    });
+
+    testWidgets('panel del vehículo seleccionado cabe en teléfono',
+        (tester) async {
+      await pumpAcrossPhones(
+        tester,
+        (_) => _gpsApp(FleetGpsState(
+          vehiclePositions: _gpsPositions,
+          selectedVehicle: _gpsPositions[0],
+          routeHistory: [
+            {'latitude': 12.1364, 'longitude': -86.2514},
+            {'latitude': 12.1320, 'longitude': -86.2450},
+            {'latitude': 12.1280, 'longitude': -86.2400},
+          ],
+        )),
+        height: 1200,
+      );
+
+      expect(find.text('ABC-123'), findsWidgets);
     });
   });
 }

@@ -263,7 +263,11 @@ Widget _buildDesktopLayout(PosState posState, AsyncValue<List<Map<String, dynami
                                   crossAxisCount: crossCount,
                                   mainAxisSpacing: 8,
                                   crossAxisSpacing: 8,
-                                  childAspectRatio: crossCount <= 2 ? 1.7 : 1.5,
+                                  // En teléfono (2 columnas, ~164 px) un ratio de
+                                  // 1.7 dejaba 75 px de alto para ~92 px de
+                                  // contenido (nombre a 2 líneas + código +
+                                  // precio + stock): desbordaba 20 px.
+                                  childAspectRatio: crossCount <= 2 ? 1.3 : 1.5,
                                 ),
                                 itemCount: filtered.length,
                                 itemBuilder: (_, i) {
@@ -309,16 +313,24 @@ Widget _buildDesktopLayout(PosState posState, AsyncValue<List<Map<String, dynami
   }
 
   Widget _buildProductSkeletons(bool isDark) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(12),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        mainAxisSpacing: 8,
-        crossAxisSpacing: 8,
-        childAspectRatio: 1.5,
-      ),
-      itemCount: 12,
-      itemBuilder: (_, _) => ZSkeleton.card(height: 120),
+    // Mismo reparto de columnas que la grilla real: en teléfono 2 (antes eran
+    // 4 columnas de ~76 px, que no se parecían al contenido que reemplazan).
+    return LayoutBuilder(
+      builder: (_, constraints) {
+        final crossCount = constraints.maxWidth < 576 ? 2
+            : constraints.maxWidth < 992 ? 3 : 4;
+        return GridView.builder(
+          padding: const EdgeInsets.all(12),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossCount,
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            childAspectRatio: crossCount <= 2 ? 1.3 : 1.5,
+          ),
+          itemCount: 12,
+          itemBuilder: (_, _) => ZSkeleton.card(height: 120),
+        );
+      },
     );
   }
 
@@ -845,9 +857,15 @@ class _PeriodBannerState extends ConsumerState<_PeriodBanner> {
               children: [
                 Icon(Icons.check_circle_outline, size: 12, color: ZColors.success),
                 const SizedBox(width: 6),
-                Text(
-                  'Período ${period['name'] ?? '${period['month']}/${period['year']}'} abierto',
-                  style: ZTypography.labelSmall.copyWith(color: ZColors.success, fontWeight: FontWeight.w500, fontSize: 11),
+                // `Expanded` + ellipsis: un nombre de período largo desbordaba
+                // 24 px a 360 px.
+                Expanded(
+                  child: Text(
+                    'Período ${period['name'] ?? '${period['month']}/${period['year']}'} abierto',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: ZTypography.labelSmall.copyWith(color: ZColors.success, fontWeight: FontWeight.w500, fontSize: 11),
+                  ),
                 ),
               ],
             ),
@@ -899,15 +917,28 @@ class _ProductTile extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Name
-            Text(
-              name,
-              style: ZTypography.bodySmall.copyWith(
-                fontWeight: FontWeight.w600,
-                color: isDark ? ZColors.neutral100 : ZColors.neutral900,
-              ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+            // Name (+ marca de "ya está en el carrito": un `Positioned`
+            // directo dentro de este `Column` no es válido y reventaba en
+            // debug en cuanto el producto entraba al carrito).
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    name,
+                    style: ZTypography.bodySmall.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? ZColors.neutral100 : ZColors.neutral900,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (inCart) ...[
+                  const SizedBox(width: 2),
+                  const Icon(Icons.check_circle, size: 12, color: ZColors.success),
+                ],
+              ],
             ),
             const SizedBox(height: 2),
             // Code
@@ -959,17 +990,6 @@ class _ProductTile extends StatelessWidget {
                     ),
                   ),
                 ],
-              ),
-            // In-cart badge
-            if (inCart)
-              Positioned(
-                top: 4,
-                right: 4,
-                child: Container(
-                  padding: const EdgeInsets.all(3),
-                  decoration: const BoxDecoration(color: ZColors.success, shape: BoxShape.circle),
-                  child: const Icon(Icons.check, size: 10, color: Colors.white),
-                ),
               ),
           ],
         ),
