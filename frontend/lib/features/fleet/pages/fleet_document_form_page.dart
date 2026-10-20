@@ -241,7 +241,10 @@ final class _FleetDocumentFormPageState extends ConsumerState<FleetDocumentFormP
             children: [
               Icon(icon, size: 20, color: ZColors.moduleFleet),
               const SizedBox(width: 8),
-              Text(title, style: Theme.of(context).textTheme.titleMedium),
+              // `Expanded`: a 360 px un título largo desbordaba la fila.
+              Expanded(
+                child: Text(title, style: Theme.of(context).textTheme.titleMedium),
+              ),
             ],
           ),
           const SizedBox(height: 16),

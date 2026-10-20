@@ -110,12 +110,18 @@ final class _FleetWorkshopFormPageState extends ConsumerState<FleetWorkshopFormP
                 const SizedBox(height: 12),
                 ZTextField(controller: _addressCtrl, label: 'Dirección', prefix: const Icon(Icons.location_on_outlined)),
                 const SizedBox(height: 12),
-                SwitchListTile(
-                  title: const Text('Taller interno'),
-                  subtitle: const Text('Pertenece a la empresa'),
-                  value: _isInternal,
-                  onChanged: (v) => setState(() => _isInternal = v),
-                  activeThumbColor: ZColors.moduleFleet,
+                // `ZCard` pinta el fondo con un `DecoratedBox`: el `ListTile`
+                // necesita un `Material` intermedio o sus ink splashes quedan
+                // invisibles (assert en debug).
+                Material(
+                  type: MaterialType.transparency,
+                  child: SwitchListTile(
+                    title: const Text('Taller interno'),
+                    subtitle: const Text('Pertenece a la empresa'),
+                    value: _isInternal,
+                    onChanged: (v) => setState(() => _isInternal = v),
+                    activeThumbColor: ZColors.moduleFleet,
+                  ),
                 ),
               ]),
               const SizedBox(height: 24),
@@ -142,7 +148,10 @@ final class _FleetWorkshopFormPageState extends ConsumerState<FleetWorkshopFormP
             children: [
               Icon(icon, size: 20, color: ZColors.moduleFleet),
               const SizedBox(width: 8),
-              Text(title, style: Theme.of(context).textTheme.titleMedium),
+              // `Expanded`: a 360 px un título largo desbordaba la fila.
+              Expanded(
+                child: Text(title, style: Theme.of(context).textTheme.titleMedium),
+              ),
             ],
           ),
           const SizedBox(height: 16),

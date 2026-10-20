@@ -203,11 +203,17 @@ final class _FleetExpenseFormPageState extends ConsumerState<FleetExpenseFormPag
                   onChanged: (v) { if (v != null) setState(() => _paymentMethod = v); },
                 ),
                 const SizedBox(height: 12),
-                SwitchListTile(
-                  title: const Text('Reembolsable'),
-                  value: _reimbursable,
-                  onChanged: (v) => setState(() => _reimbursable = v),
-                  secondary: const Icon(Icons.money_off_outlined),
+                // `ZCard` pinta el fondo con un `DecoratedBox`: el `ListTile`
+                // necesita un `Material` intermedio o sus ink splashes quedan
+                // invisibles (assert en debug).
+                Material(
+                  type: MaterialType.transparency,
+                  child: SwitchListTile(
+                    title: const Text('Reembolsable'),
+                    value: _reimbursable,
+                    onChanged: (v) => setState(() => _reimbursable = v),
+                    secondary: const Icon(Icons.money_off_outlined),
+                  ),
                 ),
               ]),
               const SizedBox(height: 24),
@@ -234,7 +240,11 @@ final class _FleetExpenseFormPageState extends ConsumerState<FleetExpenseFormPag
             children: [
               Icon(icon, size: 20, color: ZColors.moduleFleet),
               const SizedBox(width: 8),
-              Text(title, style: Theme.of(context).textTheme.titleMedium),
+              // `Expanded`: a 360 px un título largo ("Información del Gasto")
+              // desbordaba la fila.
+              Expanded(
+                child: Text(title, style: Theme.of(context).textTheme.titleMedium),
+              ),
             ],
           ),
           const SizedBox(height: 16),
