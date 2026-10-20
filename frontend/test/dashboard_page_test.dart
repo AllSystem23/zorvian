@@ -84,6 +84,36 @@ Widget buildTestApp({
 
 const _emptyDashboard = DashboardState(kpis: null, recentRequests: []);
 
+const _populatedDashboard = DashboardState(
+  kpis: DashboardKpis(
+    totalEmployees: 12,
+    activeEmployees: 10,
+    inactiveEmployees: 2,
+    activeEmployeesTrend: 4.2,
+    pendingRequestsTrend: -1.5,
+    birthdaysTrend: 0.0,
+    anniversariesTrend: 2.0,
+    employeesByDepartment: [
+      DepartmentCount(departmentName: 'Ventas', count: 5),
+      DepartmentCount(departmentName: 'Bodega', count: 4),
+      DepartmentCount(departmentName: 'Administración y Finanzas', count: 3),
+    ],
+    pendingVacationRequests: 3,
+    pendingPermissionRequests: 1,
+    birthdaysThisMonth: 2,
+    workAnniversariesThisMonth: 1,
+  ),
+  recentRequests: [
+    RecentRequestItem(
+      id: 'r1',
+      requestType: 'vacacion',
+      employeeName: 'Juan Pérez',
+      status: 'pending',
+      createdAt: '2026-10-01',
+    ),
+  ],
+);
+
 void main() {
   final superAdmin = AuthState(
     status: AuthStatus.authenticated,
@@ -195,6 +225,28 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
+      expect(find.text('Bienvenido de nuevo,'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Dashboard a 360 px no desborda con KPIs y tendencias',
+    (tester) async {
+      tester.view.physicalSize = const Size(360, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(buildTestApp(
+        authState: superAdmin,
+        tenants: const [
+          {'tenantId': 'tenant-1', 'name': 'Tienda Brizuela Romero'},
+        ],
+        dashboardState: _populatedDashboard,
+      ));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      // El saludo sigue visible y el nombre largo del usuario no empuja el Row.
       expect(find.text('Bienvenido de nuevo,'), findsOneWidget);
     },
   );

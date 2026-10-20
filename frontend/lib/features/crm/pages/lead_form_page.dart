@@ -108,6 +108,7 @@ class _LeadFormPageState extends ConsumerState<LeadFormPage> {
               Text('Clasificación', style: ZTypography.titleSmall),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Origen'),
                 initialValue: _source,
                 items: ['Web', 'Referido', 'Red social', 'Llamada entrante', 'Evento', 'Otro']
@@ -117,6 +118,7 @@ class _LeadFormPageState extends ConsumerState<LeadFormPage> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Nivel de interés'),
                 initialValue: _interestLevel,
                 items: const [
@@ -128,6 +130,7 @@ class _LeadFormPageState extends ConsumerState<LeadFormPage> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Estado'),
                 initialValue: _status,
                 items: const [

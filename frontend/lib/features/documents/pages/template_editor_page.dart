@@ -668,6 +668,7 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
+                    isExpanded: true,
                     initialValue: v.type,
                     isDense: true,
                     items: const [

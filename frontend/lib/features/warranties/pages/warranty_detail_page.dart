@@ -517,6 +517,7 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
               ZTextField(controller: descCtrl, label: 'Descripción del problema'),
                 const SizedBox(height: ZSpacing.md),
                 DropdownButtonFormField<String>(
+                  isExpanded: true,
                   initialValue: failureType,
                   decoration: const InputDecoration(labelText: 'Tipo de falla', border: OutlineInputBorder()),
                   items: const [
@@ -529,6 +530,7 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
                 ),
                 const SizedBox(height: ZSpacing.md),
                 DropdownButtonFormField<String>(
+                  isExpanded: true,
                   initialValue: priority,
                   decoration: const InputDecoration(labelText: 'Prioridad', border: OutlineInputBorder()),
                   items: const [
@@ -1058,6 +1060,7 @@ class _CostsTabBodyState extends ConsumerState<_CostsTabBody> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<String>(
+                  isExpanded: true,
                   initialValue: category,
                   decoration: const InputDecoration(labelText: 'Categoría', border: OutlineInputBorder()),
                   items: const [
@@ -1084,6 +1087,7 @@ class _CostsTabBodyState extends ConsumerState<_CostsTabBody> {
                 ),
                 const SizedBox(height: ZSpacing.md),
                 DropdownButtonFormField<String>(
+                  isExpanded: true,
                   initialValue: paidBy,
                   decoration: const InputDecoration(labelText: 'Pagado por', border: OutlineInputBorder()),
                   items: const [

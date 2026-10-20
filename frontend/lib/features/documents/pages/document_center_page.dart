@@ -466,6 +466,7 @@ class _SelectVariableField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
+      isExpanded: true,
       initialValue: selectedValue,
       isDense: true,
       decoration: InputDecoration(

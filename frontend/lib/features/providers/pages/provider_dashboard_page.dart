@@ -86,6 +86,7 @@ class ProviderDashboardPage extends ConsumerWidget {
                 SizedBox(
                   width: 140,
                   child: DropdownButtonFormField<String?>(
+                    isExpanded: true,
                     initialValue: currentCountry,
                     isDense: true,
                     decoration: InputDecoration(

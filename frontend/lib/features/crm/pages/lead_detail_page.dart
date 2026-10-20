@@ -344,6 +344,7 @@ class _LeadDetailPageState extends ConsumerState<LeadDetailPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Tipo'),
                 initialValue: selectedType,
                 items: const [

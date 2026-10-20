@@ -121,6 +121,7 @@ class _ZCurrencyConverterState extends State<ZCurrencyConverter> {
 
   Widget _buildCurrencyDropdown(List<String> currencies, String current, ValueChanged<String?> onChanged) {
     return DropdownButtonFormField<String>(
+      isExpanded: true,
       initialValue: current,
       decoration: InputDecoration(
         labelText: 'Moneda',

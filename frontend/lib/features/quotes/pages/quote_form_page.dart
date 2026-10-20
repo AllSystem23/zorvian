@@ -163,6 +163,7 @@ class _QuoteFormPageState extends ConsumerState<QuoteFormPage> {
         padding: EdgeInsets.all(MediaQuery.of(context).size.width < 576 ? 12 : MediaQuery.of(context).size.width < 992 ? 16 : 24),
         children: [
           DropdownButtonFormField<ClientItem>(
+            isExpanded: true,
             decoration: const InputDecoration(labelText: 'Cliente'),
             initialValue: _selectedClient,
             items: clientsAsync.items.map((c) => DropdownMenuItem(value: c, child: Text(c.fullName))).toList(),

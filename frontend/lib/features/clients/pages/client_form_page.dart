@@ -138,6 +138,7 @@ final class _ClientFormPageState extends ConsumerState<ClientFormPage> {
               TextFormField(controller: _docCtrl, decoration: const InputDecoration(labelText: 'Documento', prefixIcon: Icon(Icons.badge))),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 initialValue: _type,
                 decoration: const InputDecoration(labelText: 'Tipo', prefixIcon: Icon(Icons.category)),
                 items: const [

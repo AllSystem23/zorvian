@@ -57,6 +57,7 @@ class _AuditLogsPageState extends ConsumerState<AuditLogsPage> {
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
+                    isExpanded: true,
                     initialValue: _entityFilter,
                     decoration: const InputDecoration(
                       labelText: 'Entidad',
@@ -75,6 +76,7 @@ class _AuditLogsPageState extends ConsumerState<AuditLogsPage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: DropdownButtonFormField<String>(
+                    isExpanded: true,
                     initialValue: _actionFilter,
                     decoration: const InputDecoration(
                       labelText: 'Acción',

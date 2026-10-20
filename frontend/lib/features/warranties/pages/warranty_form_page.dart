@@ -342,6 +342,7 @@ final class _WarrantyFormPageState extends ConsumerState<WarrantyFormPage> {
         Text('Duración', style: ZTypography.titleSmall.copyWith(color: ZColors.neutral700)),
         const SizedBox(height: ZSpacing.xs),
         DropdownButtonFormField<int>(
+          isExpanded: true,
           initialValue: _durationMonths,
           decoration: InputDecoration(
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(ZRadii.md)),

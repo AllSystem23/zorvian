@@ -197,6 +197,7 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
             style: const TextStyle(fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
+          isExpanded: true,
           initialValue: _retentionBase,
           decoration: const InputDecoration(
               labelText: 'Base de retenciones de ley (INSS/IR)'),

@@ -125,6 +125,7 @@ class _WebhookFormPageState extends ConsumerState<WebhookFormPage> {
                       style: TextStyle(color: theme.colorScheme.error)),
                 ),
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 initialValue: _eventType,
                 decoration: const InputDecoration(
                   labelText: 'Evento',

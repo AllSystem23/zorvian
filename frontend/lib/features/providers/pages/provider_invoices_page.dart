@@ -242,6 +242,7 @@ final class _RegisterInvoiceDialogState
               const SizedBox(height: 12),
               if (_milestones != null)
                 DropdownButtonFormField<String>(
+                  isExpanded: true,
                   initialValue: _selectedMilestoneId,
                   decoration: const InputDecoration(labelText: 'Hito'),
                   items: _milestones!
@@ -342,6 +343,7 @@ final class _ContractDropdown extends ConsumerWidget {
     final contractsAsync = ref.watch(allContractsProvider);
     return contractsAsync.when(
       data: (contracts) => DropdownButtonFormField<String>(
+        isExpanded: true,
         initialValue: value,
         decoration: const InputDecoration(labelText: 'Contrato'),
         items: contracts

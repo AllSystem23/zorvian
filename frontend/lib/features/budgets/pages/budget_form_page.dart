@@ -114,6 +114,7 @@ final class _BudgetFormPageState extends ConsumerState<BudgetFormPage> {
               ]),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Cuenta', prefixIcon: Icon(Icons.account_balance)),
                 initialValue: _accountId,
                 items: accounts.map((a) => DropdownMenuItem(value: a.id, child: Text('${a.code} - ${a.name}'))).toList(),
@@ -122,6 +123,7 @@ final class _BudgetFormPageState extends ConsumerState<BudgetFormPage> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Centro de costo (opcional)', prefixIcon: Icon(Icons.account_tree)),
                 initialValue: _costCenterId,
                 items: [

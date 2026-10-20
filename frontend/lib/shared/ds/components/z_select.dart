@@ -32,6 +32,7 @@ class ZSelect<T> extends StatelessWidget {
             )),
           ),
         DropdownButtonFormField<T>(
+          isExpanded: true,
           initialValue: value,
           hint: hint != null ? Text(hint!) : null,
           items: items,

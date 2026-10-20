@@ -13,6 +13,9 @@ import '../tokens/typography.dart';
 class ZPageHeader extends StatelessWidget {
   final String title;
   final String? subtitle;
+
+  /// Adorno a la izquierda del título (icono en un recuadro con gradiente).
+  final Widget? leading;
   final List<Widget> actions;
   final EdgeInsetsGeometry padding;
 
@@ -20,6 +23,7 @@ class ZPageHeader extends StatelessWidget {
     super.key,
     required this.title,
     this.subtitle,
+    this.leading,
     this.actions = const [],
     this.padding = EdgeInsets.zero,
   });
@@ -46,15 +50,26 @@ class ZPageHeader extends StatelessWidget {
       ],
     );
 
+    final Widget titleBlock = leading == null
+        ? titles
+        : Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              leading!,
+              const SizedBox(width: ZSpacing.md),
+              Expanded(child: titles),
+            ],
+          );
+
     final Widget body;
     if (actions.isEmpty) {
-      body = titles;
+      body = titleBlock;
     } else if (_isPhone(context)) {
       body = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          titles,
+          titleBlock,
           const SizedBox(height: ZSpacing.sm),
           Wrap(spacing: ZSpacing.sm, runSpacing: ZSpacing.sm, children: actions),
         ],
@@ -62,7 +77,7 @@ class ZPageHeader extends StatelessWidget {
     } else {
       body = Row(
         children: [
-          Expanded(child: titles),
+          Expanded(child: titleBlock),
           for (final action in actions) ...[
             const SizedBox(width: ZSpacing.sm),
             action,

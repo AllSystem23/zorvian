@@ -51,6 +51,7 @@ class _DeductionTypesPageState extends ConsumerState<DeductionTypesPage> {
             ValueListenableBuilder(
               valueListenable: method,
               builder: (_, v, _) => DropdownButtonFormField<String>(
+                isExpanded: true,
                 initialValue: v,
                 decoration: const InputDecoration(labelText: 'Método', isDense: true),
                 items: const [

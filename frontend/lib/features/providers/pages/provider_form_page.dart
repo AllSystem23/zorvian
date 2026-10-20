@@ -137,6 +137,7 @@ final class _ProviderFormPageState extends ConsumerState<ProviderFormPage> {
               ),
               const SizedBox(height: ZSpacing.md),
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 initialValue: _countryCode,
                 decoration: const InputDecoration(
                   labelText: 'País',
@@ -154,6 +155,7 @@ final class _ProviderFormPageState extends ConsumerState<ProviderFormPage> {
               ),
               const SizedBox(height: ZSpacing.md),
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 initialValue: _serviceCategory,
                 decoration: const InputDecoration(
                   labelText: 'Categoría de Servicio',

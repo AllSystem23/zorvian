@@ -205,6 +205,7 @@ class _CustomReportBuilderPageState extends ConsumerState<CustomReportBuilderPag
             const SizedBox(height: 16),
 
             DropdownButtonFormField<String>(
+              isExpanded: true,
               initialValue: _module,
               decoration: const InputDecoration(labelText: 'Módulo', border: OutlineInputBorder()),
               items: const [
@@ -273,6 +274,7 @@ class _CustomReportBuilderPageState extends ConsumerState<CustomReportBuilderPag
                           SizedBox(
                             width: 90,
                             child: DropdownButtonFormField<String?>(
+                              isExpanded: true,
                               initialValue: f.aggregate,
                               decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 6), border: OutlineInputBorder(), isDense: true),
                               items: aggregateOptions.map((a) => DropdownMenuItem(value: a, child: Text(a ?? '---', style: const TextStyle(fontSize: 11)))).toList(),
@@ -305,6 +307,7 @@ class _CustomReportBuilderPageState extends ConsumerState<CustomReportBuilderPag
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
+                          isExpanded: true,
                           initialValue: ft.field,
                           decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 6), border: OutlineInputBorder(), labelText: 'Campo'),
                           items: _availableFields.map((af) => DropdownMenuItem(value: af.field, child: Text(af.label, style: const TextStyle(fontSize: 11)))).toList(),
@@ -315,6 +318,7 @@ class _CustomReportBuilderPageState extends ConsumerState<CustomReportBuilderPag
                       SizedBox(
                         width: 80,
                         child: DropdownButtonFormField<String>(
+                          isExpanded: true,
                           initialValue: ft.operator,
                           decoration: const InputDecoration(isDense: true, contentPadding: EdgeInsets.symmetric(horizontal: 4), border: OutlineInputBorder()),
                           items: operatorOptions.map((o) => DropdownMenuItem(value: o, child: Text(operatorLabel(o), style: const TextStyle(fontSize: 11)))).toList(),
@@ -349,6 +353,7 @@ class _CustomReportBuilderPageState extends ConsumerState<CustomReportBuilderPag
             _sectionTitle('Agrupación y Orden'),
             const SizedBox(height: 8),
             DropdownButtonFormField<String?>(
+              isExpanded: true,
               initialValue: _groupByField,
               decoration: const InputDecoration(labelText: 'Agrupar por', border: OutlineInputBorder()),
               items: [
@@ -361,6 +366,7 @@ class _CustomReportBuilderPageState extends ConsumerState<CustomReportBuilderPag
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String?>(
+              isExpanded: true,
               initialValue: _sortByField,
               decoration: const InputDecoration(labelText: 'Ordenar por', border: OutlineInputBorder()),
               items: [
@@ -373,6 +379,7 @@ class _CustomReportBuilderPageState extends ConsumerState<CustomReportBuilderPag
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
+              isExpanded: true,
               initialValue: _sortOrder,
               decoration: const InputDecoration(labelText: 'Orden', border: OutlineInputBorder()),
               items: const [

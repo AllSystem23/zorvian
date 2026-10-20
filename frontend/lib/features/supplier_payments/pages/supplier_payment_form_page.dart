@@ -127,6 +127,7 @@ final class _SupplierPaymentFormPageState extends ConsumerState<SupplierPaymentF
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 initialValue: _paymentMethod,
                 decoration: const InputDecoration(
                   labelText: 'Método de Pago',

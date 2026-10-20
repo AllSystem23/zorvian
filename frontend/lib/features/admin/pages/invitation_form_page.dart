@@ -53,7 +53,10 @@ class _InvitationFormPageState extends ConsumerState<InvitationFormPage> {
               const SizedBox(height: ZSpacing.md),
               DropdownButtonFormField<String>(
                 initialValue: _role,
-                items: _roleLabels.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value))).toList(),
+                // Sin `isExpanded` el texto del rol seleccionado se pinta a su
+                // ancho intrínseco y desborda el campo en teléfono.
+                isExpanded: true,
+                items: _roleLabels.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value, overflow: TextOverflow.ellipsis))).toList(),
                 onChanged: (v) => setState(() => _role = v!),
                 decoration: const InputDecoration(labelText: 'Rol', border: OutlineInputBorder()),
               ),

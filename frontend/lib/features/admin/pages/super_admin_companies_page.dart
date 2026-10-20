@@ -753,6 +753,7 @@ class _CompanyCreateDialogState extends ConsumerState<CompanyCreateDialog> {
               ),
               const SizedBox(height: ZSpacing.md),
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 initialValue: _selectedCountry,
                 decoration: const InputDecoration(
                   labelText: 'País',
@@ -1013,6 +1014,7 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
             ZTextField(controller: _taxIdCtrl, label: 'RUC / NIT', prefix: const Icon(Icons.numbers)),
             const SizedBox(height: ZSpacing.md),
             DropdownButtonFormField<String>(
+              isExpanded: true,
               initialValue: _selectedCountry,
               decoration: const InputDecoration(labelText: 'País', prefixIcon: Icon(Icons.public)),
               items: _countries.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
@@ -1020,6 +1022,7 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
             ),
             const SizedBox(height: ZSpacing.md),
             DropdownButtonFormField<String>(
+              isExpanded: true,
               initialValue: _selectedCurrency,
               decoration: const InputDecoration(labelText: 'Moneda', prefixIcon: Icon(Icons.monetization_on)),
               items: _currencies.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
@@ -1027,6 +1030,7 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
             ),
             const SizedBox(height: ZSpacing.md),
             DropdownButtonFormField<String>(
+              isExpanded: true,
               initialValue: _selectedTimezone,
               decoration: const InputDecoration(labelText: 'Zona Horaria', prefixIcon: Icon(Icons.access_time)),
               items: _timezones.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),

@@ -208,39 +208,26 @@ class _RolesPermissionsPageState extends ConsumerState<RolesPermissionsPage> {
   }
 
   Widget _buildHeader() {
-    return Row(
-      children: [
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: ZColors.accentGradient),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Icon(Icons.security_outlined,
-              color: Colors.white, size: 24),
+    return ZPageHeader(
+      title: 'Roles y Permisos',
+      subtitle: 'Define qué puede hacer cada rol en esta compañía',
+      leading: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(colors: ZColors.accentGradient),
+          borderRadius: BorderRadius.circular(12),
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Roles y Permisos', style: ZTypography.headlineLarge),
-              Text(
-                'Define qué puede hacer cada rol en esta compañía',
-                style:
-                    ZTypography.bodyMedium.copyWith(color: ZColors.neutral500),
-              ),
-            ],
-          ),
-        ),
+        child: const Icon(Icons.security_outlined,
+            color: Colors.white, size: 24),
+      ),
+      actions: [
         ZButton(
           text: 'Nuevo rol',
           icon: Icons.add,
           fullWidth: false,
           onPressed: _createRole,
         ),
-        const SizedBox(width: 8),
         IconButton(
           icon: const Icon(Icons.refresh),
           tooltip: 'Actualizar',
@@ -292,67 +279,7 @@ class _RolesPermissionsPageState extends ConsumerState<RolesPermissionsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(
-                isSuperAdminRole
-                    ? Icons.workspace_premium_outlined
-                    : Icons.security_outlined,
-                size: 22,
-                color: isSuperAdminRole ? ZColors.warning : ZColors.brandAccent,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(role.displayName, style: ZTypography.titleMedium),
-                    if (role.description != null &&
-                        role.description!.isNotEmpty)
-                      Text(role.description!,
-                          style: ZTypography.bodySmall
-                              .copyWith(color: ZColors.neutral500)),
-                  ],
-                ),
-              ),
-              if (isSuperAdminRole)
-                const ZBadge(text: 'Siempre activo', type: ZBadgeType.warning)
-              else ...[
-                if (dirty)
-                  const ZBadge(
-                      text: 'Sin guardar', type: ZBadgeType.warning),
-                const SizedBox(width: 8),
-                ZButton(
-                  text: 'Guardar',
-                  icon: Icons.save_outlined,
-                  fullWidth: false,
-                  isLoading: saving,
-                  onPressed: saving ? () {} : () => _save(role),
-                ),
-                if (role.isCustom) ...[
-                  const SizedBox(width: 4),
-                  PopupMenuButton<String>(
-                    tooltip: 'Acciones del rol',
-                    icon: const Icon(Icons.more_vert, size: 20),
-                    onSelected: (value) {
-                      if (value == 'rename') _renameRole(role);
-                      if (value == 'delete') _deleteRole(role);
-                    },
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(
-                        value: 'rename',
-                        child: Text('Renombrar / editar'),
-                      ),
-                      PopupMenuItem(
-                        value: 'delete',
-                        child: Text('Eliminar rol'),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
-            ],
-          ),
+          _buildRoleHeader(role, isSuperAdminRole, dirty, saving),
           const SizedBox(height: 16),
           if (isSuperAdminRole)
             Text(
@@ -372,6 +299,109 @@ class _RolesPermissionsPageState extends ConsumerState<RolesPermissionsPage> {
             ),
         ],
       ),
+    );
+  }
+
+  /// ENCABEZADO DE LA TARJETA DE ROL
+  ///
+  /// En teléfono las acciones ("Guardar" + menú) bajan a su propia fila: junto
+  /// al nombre no caben en ~262 px de tarjeta.
+  Widget _buildRoleHeader(
+    RolePermissionModel role,
+    bool isSuperAdminRole,
+    bool dirty,
+    bool saving,
+  ) {
+    final icon = Icon(
+      isSuperAdminRole
+          ? Icons.workspace_premium_outlined
+          : Icons.security_outlined,
+      size: 22,
+      color: isSuperAdminRole ? ZColors.warning : ZColors.brandAccent,
+    );
+    final names = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(role.displayName, style: ZTypography.titleMedium),
+        if (role.description != null && role.description!.isNotEmpty)
+          Text(role.description!,
+              style: ZTypography.bodySmall.copyWith(color: ZColors.neutral500)),
+      ],
+    );
+    final actions = <Widget>[
+      if (!isSuperAdminRole) ...[
+        ZButton(
+          text: 'Guardar',
+          icon: Icons.save_outlined,
+          fullWidth: false,
+          isLoading: saving,
+          onPressed: saving ? () {} : () => _save(role),
+        ),
+        if (role.isCustom)
+          PopupMenuButton<String>(
+            tooltip: 'Acciones del rol',
+            icon: const Icon(Icons.more_vert, size: 20),
+            onSelected: (value) {
+              if (value == 'rename') _renameRole(role);
+              if (value == 'delete') _deleteRole(role);
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'rename',
+                child: Text('Renombrar / editar'),
+              ),
+              PopupMenuItem(
+                value: 'delete',
+                child: Text('Eliminar rol'),
+              ),
+            ],
+          ),
+      ],
+    ];
+
+    if (MediaQuery.sizeOf(context).width < ZBreakpoints.phone) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              icon,
+              const SizedBox(width: 10),
+              Expanded(child: names),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              if (isSuperAdminRole)
+                const ZBadge(
+                    text: 'Siempre activo', type: ZBadgeType.warning)
+              else if (dirty)
+                const ZBadge(text: 'Sin guardar', type: ZBadgeType.warning),
+              ...actions,
+            ],
+          ),
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        icon,
+        const SizedBox(width: 10),
+        Expanded(child: names),
+        if (isSuperAdminRole)
+          const ZBadge(text: 'Siempre activo', type: ZBadgeType.warning)
+        else if (dirty)
+          const ZBadge(text: 'Sin guardar', type: ZBadgeType.warning),
+        for (final action in actions) ...[
+          const SizedBox(width: 8),
+          action,
+        ],
+      ],
     );
   }
 

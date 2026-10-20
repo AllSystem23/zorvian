@@ -174,6 +174,7 @@ final class _CreditDetailPageState extends ConsumerState<CreditDetailPage> with 
           ZTextField(controller: amountCtrl, label: 'Monto', keyboardType: TextInputType.number, prefix: const Text('\$ ')),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
+            isExpanded: true,
             initialValue: method.value,
             items: const [
               DropdownMenuItem(value: 'cash', child: Text('Efectivo')),
@@ -218,6 +219,7 @@ final class _CreditDetailPageState extends ConsumerState<CreditDetailPage> with 
           mainAxisSize: MainAxisSize.min,
           children: [
             DropdownButtonFormField<String>(
+              isExpanded: true,
               items: const [
                 DropdownMenuItem(value: 'call', child: Text('Llamada')),
                 DropdownMenuItem(value: 'visit', child: Text('Visita')),

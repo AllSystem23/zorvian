@@ -56,6 +56,7 @@ final class _ReconciliationListPageState extends ConsumerState<ReconciliationLis
                 ),
                 Expanded(
                   child: DropdownButtonFormField<String?>(
+                    isExpanded: true,
                     decoration: const InputDecoration(
                       labelText: 'Estado',
                       prefixIcon: Icon(Icons.filter_list),

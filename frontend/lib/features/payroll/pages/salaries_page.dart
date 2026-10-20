@@ -52,6 +52,7 @@ class _SalariesPageState extends ConsumerState<SalariesPage> {
             ValueListenableBuilder(
               valueListenable: selectedEmployee,
               builder: (_, v, _) => DropdownButtonFormField<String>(
+                isExpanded: true,
                 initialValue: v,
                 decoration: const InputDecoration(labelText: 'Trabajador', isDense: true),
                 items: _employees.map<DropdownMenuItem<String>>((e) => DropdownMenuItem(value: e['id'] as String?, child: Text(e['fullName'] ?? e['firstName'] ?? ''))).toList(),
@@ -64,6 +65,7 @@ class _SalariesPageState extends ConsumerState<SalariesPage> {
             ValueListenableBuilder(
               valueListenable: type,
               builder: (_, v, _) => DropdownButtonFormField<String>(
+                isExpanded: true,
                 initialValue: v,
                 decoration: const InputDecoration(labelText: 'Tipo', isDense: true),
                 items: const [

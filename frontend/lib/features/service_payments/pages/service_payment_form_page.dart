@@ -428,6 +428,7 @@ final class _ServicePaymentFormPageState extends ConsumerState<ServicePaymentFor
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<int>(
+                              isExpanded: true,
                               initialValue: _year,
                               decoration: const InputDecoration(
                                 labelText: 'Año *',
@@ -448,6 +449,7 @@ final class _ServicePaymentFormPageState extends ConsumerState<ServicePaymentFor
                           const SizedBox(width: 12),
                           Expanded(
                             child: DropdownButtonFormField<int>(
+                              isExpanded: true,
                               initialValue: _month,
                               decoration: const InputDecoration(
                                 labelText: 'Mes *',

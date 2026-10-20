@@ -79,6 +79,7 @@ final class _ReconciliationFormPageState extends ConsumerState<ReconciliationFor
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Cuenta Bancaria', prefixIcon: Icon(Icons.account_balance)),
                 items: _bankAccounts.map((b) => DropdownMenuItem(value: b['id'], child: Text(b['name']!))).toList(),
                 onChanged: (v) => setState(() => _bankAccountId = v),

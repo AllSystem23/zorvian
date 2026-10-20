@@ -20,6 +20,7 @@ class ZCountrySelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
+      isExpanded: true,
       initialValue: selectedCountry,
       decoration: InputDecoration(
         labelText: label,

@@ -299,6 +299,7 @@ final class _AccountFormDialogState extends ConsumerState<_AccountFormDialog> {
                 maxLines: 2,
               ),
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 initialValue: _type,
                 decoration: const InputDecoration(labelText: 'Tipo'),
                 items: types.map((t) => DropdownMenuItem(value: t, child: Text(_typeLabels[t] ?? t))).toList(),
@@ -307,6 +308,7 @@ final class _AccountFormDialogState extends ConsumerState<_AccountFormDialog> {
                 },
               ),
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 initialValue: _normalSide,
                 decoration: const InputDecoration(labelText: 'Naturaleza'),
                 items: sides.map((s) => DropdownMenuItem(value: s, child: Text(_sideLabels[s] ?? s))).toList(),

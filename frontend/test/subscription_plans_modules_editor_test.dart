@@ -119,10 +119,10 @@ Object? _decoded(Object? data) => data is String ? jsonDecode(data) : data;
 
 Future<_FakeApi> _pumpPage(
   WidgetTester tester,
-  List<Map<String, dynamic>> plans,
-) async {
-  // Desktop angosto: el caso más ajustado para las tarjetas de plan.
-  tester.view.physicalSize = const Size(1024, 1000);
+  List<Map<String, dynamic>> plans, {
+  Size size = const Size(1024, 1000),
+}) async {
+  tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
 
@@ -208,5 +208,16 @@ void main() {
     expect(find.text('Ventas'), findsOneWidget);
     expect(find.widgetWithText(ZButton, 'Editar módulos'), findsNothing);
     expect(api.requests.where((r) => r.method == 'PUT'), isEmpty);
+  });
+
+  testWidgets('a 360 px las tarjetas de plan no desbordan', (tester) async {
+    await _pumpPage(
+      tester,
+      [_dbPlan()],
+      size: const Size(360, 900),
+    );
+
+    expect(find.text('MÓDULOS DEL PLAN'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

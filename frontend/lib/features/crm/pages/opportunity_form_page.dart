@@ -82,6 +82,7 @@ class _OpportunityFormPageState extends ConsumerState<OpportunityFormPage> {
               Text('Clasificación', style: ZTypography.titleSmall),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Etapa del pipeline'),
                 initialValue: _selectedStageId,
                 items: pipeline.stages.map((s) => DropdownMenuItem(
@@ -92,6 +93,7 @@ class _OpportunityFormPageState extends ConsumerState<OpportunityFormPage> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Prioridad'),
                 initialValue: _priority,
                 items: const [
@@ -103,6 +105,7 @@ class _OpportunityFormPageState extends ConsumerState<OpportunityFormPage> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Estado'),
                 initialValue: _status,
                 items: const [
@@ -126,6 +129,7 @@ class _OpportunityFormPageState extends ConsumerState<OpportunityFormPage> {
               Text('Vinculación', style: ZTypography.titleSmall),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Vincular a Lead'),
                 initialValue: _selectedLeadId,
                 items: leads.leads.map((l) => DropdownMenuItem(

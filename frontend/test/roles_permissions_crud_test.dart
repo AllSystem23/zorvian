@@ -119,9 +119,10 @@ Object? _decoded(Object? data) => data is String ? jsonDecode(data) : data;
 
 Future<_FakeApi> _pumpPage(
   WidgetTester tester,
-  List<Map<String, dynamic>> roles,
-) async {
-  tester.view.physicalSize = const Size(900, 1600);
+  List<Map<String, dynamic>> roles, {
+  Size size = const Size(900, 1600),
+}) async {
+  tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
 
@@ -223,5 +224,17 @@ void main() {
       api.requests.where((r) => r.method == 'PUT' || r.method == 'DELETE'),
       isEmpty,
     );
+  });
+
+  testWidgets('a 360 px la matriz de roles se apila sin desbordar',
+      (tester) async {
+    await _pumpPage(
+      tester,
+      [_systemRole, _customRole],
+      size: const Size(360, 900),
+    );
+
+    expect(find.byType(RolesPermissionsPage), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

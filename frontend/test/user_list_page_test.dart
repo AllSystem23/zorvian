@@ -87,8 +87,9 @@ Future<_MockUserNotifier> _pump(
   WidgetTester tester,
   List<String>? permissions, {
   String role = 'CompanyAdmin',
+  Size size = const Size(1600, 1200),
 }) async {
-  tester.view.physicalSize = const Size(1600, 1200);
+  tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
@@ -165,5 +166,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Super Admin (sistema)'), findsNothing);
     expect(find.text('Super Admin'), findsNothing);
+  });
+
+  testWidgets('a 360 px el listado pasa a tarjetas sin desbordar',
+      (tester) async {
+    await _pump(
+      tester,
+      ['user.read', 'user.manage', 'user.write'],
+      size: const Size(360, 900),
+    );
+
+    expect(find.byType(UserListPage), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

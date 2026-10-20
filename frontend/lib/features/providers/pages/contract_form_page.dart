@@ -168,6 +168,7 @@ final class _ContractFormPageState extends ConsumerState<ContractFormPage> {
                 spacing: ZSpacing.md,
                 children: [
                   DropdownButtonFormField<String>(
+                    isExpanded: true,
                     initialValue: _countryCode,
                     decoration: const InputDecoration(
                       labelText: 'País',
@@ -190,6 +191,7 @@ final class _ContractFormPageState extends ConsumerState<ContractFormPage> {
                     },
                   ),
                   DropdownButtonFormField<String>(
+                    isExpanded: true,
                     initialValue: _currency,
                     decoration: const InputDecoration(
                       labelText: 'Moneda',
@@ -287,6 +289,7 @@ final class _ProviderDropdown extends ConsumerWidget {
     final providersAsync = ref.watch(serviceProvidersProvider);
     return providersAsync.when(
       data: (providers) => DropdownButtonFormField<String>(
+        isExpanded: true,
         initialValue: value,
         decoration: const InputDecoration(
           labelText: 'Prestador',

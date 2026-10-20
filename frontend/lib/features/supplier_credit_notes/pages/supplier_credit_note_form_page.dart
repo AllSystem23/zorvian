@@ -236,6 +236,7 @@ final class _SupplierSelectorState extends ConsumerState<_SupplierSelector> {
     if (_loading) return const SizedBox(height: 80, child: Center(child: CircularProgressIndicator()));
 
     return DropdownButtonFormField<String>(
+      isExpanded: true,
       initialValue: widget.selectedId,
       decoration: const InputDecoration(
         labelText: 'Proveedor',

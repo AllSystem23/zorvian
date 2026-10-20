@@ -127,6 +127,7 @@ final class _CashRegisterDetailPageState extends ConsumerState<CashRegisterDetai
         mainAxisSize: MainAxisSize.min,
         children: [
           DropdownButtonFormField<String>(
+            isExpanded: true,
             initialValue: 'income',
             items: const [
               DropdownMenuItem(value: 'income', child: Text('Ingreso')),

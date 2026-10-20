@@ -170,6 +170,7 @@ class _AddOpportunitySheetState extends ConsumerState<AddOpportunitySheet> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
+              isExpanded: true,
               decoration: const InputDecoration(labelText: 'Vincular a Lead'),
               items: leads.map((l) => DropdownMenuItem(
                 value: l.id,

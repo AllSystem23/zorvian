@@ -548,10 +548,16 @@ class _SubscriptionPlansPageState extends ConsumerState<SubscriptionPlansPage> {
                   child: Icon(config.icon, size: 18, color: color),
                 ),
                 const SizedBox(width: 12),
-                Text(config.name, style: ZTypography.titleMedium),
+                Expanded(
+                  child: Text(
+                    config.name,
+                    style: ZTypography.titleMedium,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
                 const SizedBox(width: 8),
                 ZBadge(text: '${companies.length}', type: ZBadgeType.neutral),
-                const Spacer(),
+                const SizedBox(width: 8),
                 Text('${companies.length} empresas', style: ZTypography.labelSmall.copyWith(
                   color: ZColors.neutral400)),
               ],
