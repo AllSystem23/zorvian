@@ -1,6 +1,6 @@
 # Plan de UI móvil (teléfonos) — Zorvian ERP
 
-> **Estado**: Fase 0 ✅ · Fase 1 ✅ · Fase 2 (fundaciones + kanban) ✅ · Fase 3 en curso · Fase 5.1 ✅ · **Fecha**: 2026-10-20
+> **Estado**: Fase 0 ✅ · Fase 1 ✅ · Fase 2 (fundaciones + kanban + diálogos) ✅ · Fase 3 en curso · Fase 5.1 ✅ · **Fecha**: 2026-10-20
 > **Alcance**: capa de presentación Flutter (`frontend/`). Sin cambios de negocio ni de backend.
 > **Objetivo**: que un usuario pueda operar el ERP completo desde un teléfono de 360–430 px,
 > sin scroll horizontal, sin overflows y con acciones primarias alcanzables con una mano.
@@ -16,13 +16,13 @@
 | `74978fa` | Fase 2 (kanban) — CRM y cotizaciones en lista vertical por etapa |
 | `adfc46f` | Fase 3 (parcial) — `ZStatCard` compacto + `FittedBox` en KPIs |
 | `1a46a1b` | `ZDataTable` con altura no acotada (crash del comparativo por sucursal) |
+| `08090fc` | Fase 2 (diálogos) — 28 `AlertDialog` de páginas → `showZAdaptiveDialog`/`ZResponsiveDialog` + `ZConfirmDialog` |
 
 **Próximos pasos sugeridos** (en orden de valor):
 
-1. Migrar los 28 `AlertDialog` directos de páginas a `showZAdaptiveDialog` + `ZResponsiveDialog`.
-2. Formularios de 2–3 columnas → una columna (empezar por `client_form`, `product_form`,
+1. Formularios de 2–3 columnas → una columna (empezar por `client_form`, `product_form`,
    `sale_form`, `purchase_form`).
-3. Barrido de rutas a 360 px con un helper de test (`pumpAt(360/390/430)`) y corregir los
+2. Barrido de rutas a 360 px con un helper de test (`pumpAt(360/390/430)`) y corregir los
    overflows que aparezcan; luego dashboards (gráficos con `AspectRatio`) y POS.
 
 ---
@@ -174,9 +174,24 @@ paginación).
 - [x] Tests: `test/kanban_mobile_test.dart` (3: secciones verticales sin `Draggable`, menú que
       mueve de etapa, y escritorio con columnas y drag intactos).
 
+**Hecho (diálogos de páginas)**:
+
+- [x] **28 `AlertDialog` directos migrados** a `showZAdaptiveDialog` + `ZResponsiveDialog`
+      (ventas, compras/OC, solicitudes de cotización, transferencias, vacaciones, permisos,
+      nómina/liquidación, servicios/prestadores, garantías, talleres, CRM, flota/PalmTrack,
+      perfil, administración: usuarios, roles, invitaciones, certificados, planes,
+      empresas SuperAdmin, reportes personalizados, catálogo de cuentas, QR/etiquetas).
+      Patrón: `content:` → `child:`, se elimina el `SingleChildScrollView`/`SizedBox(width:)`
+      interno (el diálogo ya scrollea) y se conserva `maxWidth` explícito solo donde el
+      contenido lo pide.
+- [x] Confirmaciones simples (borrar cuenta/rol/reporte, desactivar empresa, acciones
+      destructivas) → `ZConfirmDialog.show(..., isDestructive: true)`.
+- [x] **Cero `AlertDialog` en `lib/`** (verificado por grep). `analysis_options` desactiva
+      `sort_child_properties_last` porque estos diálogos reciben el cuerpo antes del pie.
+- [x] Tests ajustados a `ZResponsiveDialog`: `roles_permissions_crud_test.dart` (3).
+
 **Pendiente**:
 
-- [ ] Migrar los 28 `AlertDialog` directos de páginas a `ZResponsiveDialog`/`showZAdaptiveDialog`.
 - [ ] Formularios de 2–3 columnas → una columna con secciones colapsables.
 - [ ] Inputs móviles: teclados numéricos, `textInputAction`, autofoco ordenado.
 - [ ] POS en teléfono: carrito como sheet persistente, scanner como FAB.
