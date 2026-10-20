@@ -26,12 +26,16 @@
 | `93621ff` | Fase 3 — dashboards BI financiero y operacional a 360 px (`BiGauge` adaptativo, charts sin alto fijo, anomalías) |
 | `4d664d2` | Fase 3 — pantallas de flota a 360 px (`ZStatGrid`, badges/tendencias/acciones en `Wrap`, barra de exportación) |
 | `4832929` | Fase 3/4 — POS y GPS de flota a 360 px (grilla de 2 columnas con más alto, badge "en carrito" inline, banner del período con ellipsis, marcador 64×68, `Material` del `ListTile`) |
+| `2685c70` | Docs del barrido de POS y GPS de flota |
+| `1e6230a` | Fase 3 — los 10 formularios de flota a 360 px (`Expanded` en el título de `_buildSection`, `SwitchListTile` en `Material`), `test/helpers/fake_api.dart` |
+| `3fb7aca` | Fase 3 — 6 formularios de catálogo y 9 listados a 360 px (sin cambios de código) |
+| `2c1fe71` | Fase 3 — formularios transaccionales a 360 px (`Wrap` en "Productos (n) + Agregar producto", `ResponsiveFormRow` en el período de pagos a prestadores, línea y estimados en columna) |
 
 **Próximos pasos sugeridos** (en orden de valor):
 
-1. Flota restante: formularios de gasto/combustible a 360 px.
-2. Listados y catálogos que aún no se montaron a 360 px.
-3. Fase 5.3/5.4: rendimiento percibido (skeletons/paginación) y accesibilidad móvil.
+1. Resto de formularios y detalles que aún no se montaron (nómina/liquidación, conciliaciones,
+   presupuestos, webhooks, CRM lead/oportunidad, contratos de proveedor y las pantallas de detalle).
+2. Fase 5.3/5.4: rendimiento percibido (skeletons/paginación) y accesibilidad móvil.
 
 ---
 
@@ -336,6 +340,51 @@ acción primaria siempre alcanzable.
         el esqueleto se parezca al contenido que reemplaza.
       - La hoja del carrito (`_CartSummary`, `_PaymentMethodSelector` de 4 `Expanded` y los
         campos de crédito) ya cabía; el test lo fija como contrato.
+- [x] **Formularios de flota a 360 px** (`test/fleet_forms_mobile_test.dart`, 11 casos): los 10
+      formularios (entrega, documento, conductor, gasto, combustible, mantenimiento, ruta, viaje,
+      vehículo y taller) a 360/390/430 px, más alta y edición del gasto.
+      - **`_buildSection` desbordaba hasta 73 px**: los 10 archivos comparten el helper, que pinta
+        `Row(Icon + Text(title))` **sin `Expanded`**. En los tests la fuente dibuja cada carácter
+        del ancho del `fontSize`, así que "Información del Gasto" (21 caracteres a 16 px) no cabe en
+        los ~294 px útiles a 360 px; en un dispositivo real aguanta, pero con `textScale` o un
+        título más largo también rompería. El título pasa a `Expanded` (parte en dos líneas).
+      - **`SwitchListTile` dentro de `ZCard`** (gasto "Reembolsable" y taller "Taller interno"):
+        el `ZCard` pinta el fondo con un `DecoratedBox`, y el `ListTile` dispara el assert de debug
+        *"ListTile background color or ink splashes may be invisible"* → se envuelve en
+        `Material(type: MaterialType.transparency)` (mismo patrón que el GPS y el seguimiento).
+- [x] **Formularios de catálogo y listados a 360 px** (`test/catalog_forms_mobile_test.dart` y
+      `test/list_pages_mobile_test.dart`): producto, cliente, proveedor, bodega, sucursal y empleado
+      (6) más ventas, productos, clientes, proveedores, empleados, compras, cotizaciones, créditos,
+      asientos contables y cajas (10) **pasan sin tocar código** — el trabajo de las fases 1/2/3
+      (tarjetas de `ZDataTable`, `ZPageHeader`, `ResponsiveFormRow`, `isExpanded` en los dropdowns)
+      ya cubría esas pantallas. El test assertea además que el cuerpo se montó (≥3 campos), para no
+      dar por bueno un estado de carga vacío.
+- [x] **Formularios transaccionales a 360 px** (`test/commercial_forms_mobile_test.dart`, 10 casos):
+      venta, cotización, compra, orden de compra, solicitud de cotización, transferencia entre
+      bodegas, garantía, permiso, vacación y pago a prestador. Cuatro defectos reales:
+      - **"Productos (n)" + "Agregar producto"** en orden de compra, solicitud de cotización y
+        transferencia: `Row(spaceBetween)` → **47 px** de desborde. Pasa a `Wrap` con
+        `alignment: spaceBetween`, así en teléfono el botón baja a la línea siguiente (en
+        escritorio se ve igual, una sola línea).
+      - **Período del pago a prestador** (año + mes + quincena): los tres `Expanded` dejaban al
+        `SegmentedButton` de "1ª/2ª quincena" ~92 px y desbordaba **8.9 px**. Se reemplaza el `Row`
+        por `ResponsiveFormRow` (apila en teléfono, misma fila desde 600 px).
+      - **`_lineRow`** (línea / recaudo / contrato / comisión % / cálculo / borrar) tenía tres
+        `SizedBox` fijos de 130/90/110 px: **104 px** de desborde. Con `LayoutBuilder` por debajo de
+        600 px los campos van en columna y la comisión calculada comparte la última fila con el
+        botón de borrar; desde 600 px se mantiene la fila original.
+      - **`_estRow`** (etiqueta + monto): la etiqueta no era flexible y "Total acumulado (bono +
+        comisiones)" desbordaba 33/19/4.9 px según el ancho → `Expanded` + separación de 12 px.
+- [x] **Helpers de test nuevos**:
+      - `test/helpers/fake_api.dart`: `FakeApi` (adapter de Dio falso que registra los requests,
+        `FakeApi.routes(routes, {fallback})`) + `FakeApiStorage` (token en memoria) + `jsonResponse`.
+        Necesario porque el interceptor de `DioClient` pide el token a `flutter_secure_storage`, que
+        no existe en widget tests: el request se queda esperando y `pumpAndSettle` expira.
+      - `test/helpers/offline_db.dart`: `memoryDb()` = `AppDatabase.forTesting(NativeDatabase.memory())`.
+        Las pantallas offline-first (ventas, productos, cotizaciones, garantías…) cuelgan del
+        `AppDatabase` real, que abre un archivo con sqflite y nunca completa en tests → la página se
+        queda en el spinner. Con la DB en memoria se montan de verdad (el listado de productos se
+        reincorporó al barrido gracias a esto).
 
 **Aceptación**: dashboard ejecutivo y comercial legibles a 360 px, 2 KPIs por fila, 0 overflows.
 
@@ -426,8 +475,11 @@ acción primaria siempre alcanzable.
 - [ ] Golden de 5 pantallas × 3 anchos.
 - [x] **GPS de flota y POS montados a 360/390/430 px** (`fleet_pages_mobile_test.dart` y
       `pos_mobile_test.dart`) — ver el barrido de Fase 3.
-- [ ] Barrido del resto de rutas top a 360 px (formularios de flota y catálogos que aún no se
-      montaron).
+- [x] **Formularios y listados montados a 360/390/430 px** (`fleet_forms_mobile_test.dart`,
+      `catalog_forms_mobile_test.dart`, `commercial_forms_mobile_test.dart` y
+      `list_pages_mobile_test.dart`): 10 + 6 + 10 + 10 pantallas — ver el barrido de Fase 3.
+- [ ] Barrido del resto de rutas top a 360 px (formularios de nómina/liquidación, conciliaciones,
+      presupuestos, webhooks, CRM y las pantallas de detalle).
 - [ ] Regresiones: "Más" activo fuera de hubs; selectores operativos en móvil.
 
 **Aceptación**: 0 overflows en la matriz 360/390/430 × `textScale` 1.0/1.3; cámara y
