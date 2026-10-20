@@ -24,12 +24,14 @@
 | `46323ba` | Fase 4 — `ZCartLine` adaptativo en carritos de venta y cotización |
 | `03f7c8c` | Docs del carrito de línea |
 | `93621ff` | Fase 3 — dashboards BI financiero y operacional a 360 px (`BiGauge` adaptativo, charts sin alto fijo, anomalías) |
+| `4d664d2` | Fase 3 — pantallas de flota a 360 px (`ZStatGrid`, badges/tendencias/acciones en `Wrap`, barra de exportación) |
 
 **Próximos pasos sugeridos** (en orden de valor):
 
-1. Seguir el barrido con las pantallas de flota (listas, GPS a pantalla completa con hoja de
-   parada) y los listados que aún no se montaron a 360 px.
+1. Flota restante: GPS a pantalla completa con hoja de parada (`fleet_gps_page`, usa `flutter_map`)
+   y los formularios de gasto/combustible.
 2. POS con carrito en hoja inferior.
+3. Listados y catálogos que aún no se montaron a 360 px.
 
 ---
 
@@ -275,6 +277,29 @@ acción primaria siempre alcanzable.
       **alto 4000** para que el `ListView` construya todas las secciones: con el alto real de un
       teléfono solo se montan las primeras y los overflows del final pasan desapercibidos.
       El `Timer.periodic` del `AutoRefreshMixin` se cancela desmontando el árbol al final.
+- [x] **Pantallas de flota a 360 px** (`test/fleet_pages_mobile_test.dart`): alertas, predictivo
+      (3 pestañas), seguimiento de entregas y reportes.
+      - **`ZStatGrid` (nuevo, en el DS)**: las 4 pantallas usaban `GridView.count(childAspectRatio:
+        1.4–2.2)`; a 360 px con 2 columnas la tarjeta mide ~158 px y el alto derivado queda en
+        72–113 px cuando la tarjeta compacta necesita ~92 px → **desbordaba 20–40 px en todas las
+        tarjetas**. Debajo de 600 px (o cuando la columna queda < `compactWidth = 200` px) la
+        rejilla usa `Wrap` con **alto intrínseco**; desde 600 px conserva el `GridView` con el
+        `aspectRatio` recibido, así que el escritorio no cambia.
+      - **Filas → `Wrap`**: título + 2 badges de la tarjeta de alerta, los 3 badges de la anomalía
+        de combustible, las **5 estadísticas** de la tarjeta de tendencia (y su matrícula +
+        variación), código + badge del listado y del encabezado del timeline, y los botones
+        "Enviar ETA" / "Confirmar Entrega" (no caben juntos a 360 px).
+      - **Barra de exportación de reportes**: los botones PDF + Excel en un `Row` desbordaban
+        **105 px**; ahora van en un `Wrap` dentro de un `Expanded` (se apilan). El encabezado de
+        "Tendencia de Combustible" cambia el `Spacer` por un `Expanded` en el título.
+      - **`ZProgress`**: el `Row` de etiqueta + valor (`spaceBetween`) desbordaba **18 px** cuando
+        el widget vive dentro de un `Expanded` angosto; la etiqueta pasa a `Flexible` + ellipsis
+        (mismo aspecto a ancho normal).
+      - **KPIs por cuenta contable**: 3 `Expanded` dejaban cada tarjeta en ~101 px en teléfono;
+        ahora `ZStatGrid` a 2 columnas.
+- [x] Tests: `test/fleet_pages_mobile_test.dart` (7) y `test/z_stat_grid_test.dart` (4: alto
+      intrínseco en teléfono, `GridView` con `aspectRatio` y 5 columnas en escritorio, vuelta al
+      `Wrap` cuando la columna es angosta, y rejilla vacía).
 
 **Aceptación**: dashboard ejecutivo y comercial legibles a 360 px, 2 KPIs por fila, 0 overflows.
 
@@ -287,7 +312,8 @@ acción primaria siempre alcanzable.
 3. Asistencia / kiosco / QR check-in: permisos + fallback sin cámara.
 4. Aprobaciones: bandeja con Aprobar/Rechazar de 48 dp.
 5. Formularios que exigen sucursal: el aviso debe **abrir el selector**.
-6. Flota: GPS a pantalla completa con bottom sheet de parada, entregas y hoja de ruta.
+6. Flota: GPS a pantalla completa con bottom sheet de parada, entregas y hoja de ruta
+   (alertas, predictivo, seguimiento y reportes ya barridos a 360 px — ver Fase 3).
 
 **Aceptación**: cada flujo completo en 390 px con una sola mano.
 
@@ -362,7 +388,8 @@ acción primaria siempre alcanzable.
       `Column`/`Expanded`/`ListView`/`SizedBox`), así que `isExpanded` no puede recibir ancho
       infinito.
 - [ ] Golden de 5 pantallas × 3 anchos.
-- [ ] Barrido del resto de rutas top a 360 px (flota, reportes y catálogos que aún no se montaron).
+- [ ] Barrido del resto de rutas top a 360 px (GPS de flota con `flutter_map`, POS y catálogos que
+      aún no se montaron).
 - [ ] Regresiones: "Más" activo fuera de hubs; selectores operativos en móvil.
 
 **Aceptación**: 0 overflows en la matriz 360/390/430 × `textScale` 1.0/1.3; cámara y
