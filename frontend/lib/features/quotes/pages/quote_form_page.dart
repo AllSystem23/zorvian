@@ -220,46 +220,7 @@ class _QuoteFormPageState extends ConsumerState<QuoteFormPage> {
             const Center(child: Text('No hay productos agregados'))
           else
             ..._cart.asMap().entries.map((entry) {
-              final i = entry.key;
-              final c = entry.value;
-              return ZCard(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: Row(children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(c.productName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                        Text('\$${c.unitPrice.toStringAsFixed(2)} c/u', style: const TextStyle(fontSize: 11)),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.remove_circle_outline, size: 18),
-                    onPressed: c.quantity > 1 ? () => setState(() => c.quantity--) : null,
-                  ),
-                  Text('${c.quantity}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                  IconButton(
-                    icon: const Icon(Icons.add_circle_outline, size: 18),
-                    onPressed: () => setState(() => c.quantity++),
-                  ),
-                  SizedBox(
-                    width: 80,
-                    child: TextField(
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Desc', isDense: true, contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 4)),
-                      controller: TextEditingController(text: c.discount.toStringAsFixed(0)),
-                      style: const TextStyle(fontSize: 12),
-                      onChanged: (v) => setState(() => c.discount = double.tryParse(v) ?? 0),
-                    ),
-                  ),
-                  SizedBox(width: 80, child: Text('\$${c.subtotal.toStringAsFixed(0)}', textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w600))),
-                  IconButton(
-                    icon: const Icon(Icons.close, size: 18, color: Colors.red),
-                    onPressed: () => setState(() => _cart.removeAt(i)),
-                  ),
-                ]),
-              );
+              return _buildCartLine(entry.key, entry.value);
             }),
           const SizedBox(height: 16),
           TextFormField(
@@ -289,6 +250,57 @@ class _QuoteFormPageState extends ConsumerState<QuoteFormPage> {
           ),
         ],
       ),
+    );
+  }
+
+  /// Línea del carrito de cotización.
+  ///
+  /// `ZCartLine` resuelve el layout: en teléfono la fila completa (nombre + 4
+  /// botones + descuento + subtotal) ocupa ~324 px fijos y desborda, así que el
+  /// nombre y el borrar van arriba y el resto en una segunda fila.
+  Widget _buildCartLine(int index, _CartItem c) {
+    final stepper = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          visualDensity: VisualDensity.compact,
+          icon: const Icon(Icons.remove_circle_outline, size: 18),
+          tooltip: 'Quitar una unidad',
+          onPressed: c.quantity > 1 ? () => setState(() => c.quantity--) : null,
+        ),
+        Text('${c.quantity}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+        IconButton(
+          visualDensity: VisualDensity.compact,
+          icon: const Icon(Icons.add_circle_outline, size: 18),
+          tooltip: 'Agregar una unidad',
+          onPressed: () => setState(() => c.quantity++),
+        ),
+      ],
+    );
+
+    return ZCartLine(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(c.productName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+          Text('\$${c.unitPrice.toStringAsFixed(2)} c/u', style: const TextStyle(fontSize: 11)),
+        ],
+      ),
+      quantity: stepper,
+      extra: SizedBox(
+        width: 80,
+        child: TextField(
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(labelText: 'Desc', isDense: true, contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 4)),
+          controller: TextEditingController(text: c.discount.toStringAsFixed(0)),
+          style: const TextStyle(fontSize: 12),
+          onChanged: (v) => setState(() => c.discount = double.tryParse(v) ?? 0),
+        ),
+      ),
+      total: Text('\$${c.subtotal.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w600)),
+      onRemove: () => setState(() => _cart.removeAt(index)),
+      removeTooltip: 'Quitar ${c.productName}',
     );
   }
 

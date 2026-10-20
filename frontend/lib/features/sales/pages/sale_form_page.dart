@@ -215,26 +215,7 @@ final class _NewSalePageState extends ConsumerState<NewSalePage> {
           Text('Productos', style: theme.textTheme.titleSmall),
           const SizedBox(height: 4),
           ..._cart.asMap().entries.map((entry) {
-            final i = entry.key;
-            final item = entry.value;
-            return ZCard(
-              padding: const EdgeInsets.all(8),
-              child: Row(children: [
-                Expanded(child: Text(item.productName, style: const TextStyle(fontWeight: FontWeight.w600))),
-                SizedBox(
-                  width: 60,
-                  child: TextField(
-                    controller: TextEditingController(text: item.quantity.toString()),
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Cant', border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 8), isDense: true),
-                    onChanged: (v) => setState(() => item.quantity = int.tryParse(v) ?? 1),
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Text('\$${item.subtotal.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                IconButton(icon: const Icon(Icons.remove_circle, color: Colors.red, size: 20), onPressed: () => setState(() => _cart.removeAt(i))),
-              ]),
-            );
+            return _buildCartLine(entry.key, entry.value);
           }),
           const SizedBox(height: 8),
           Row(
@@ -343,6 +324,36 @@ final class _NewSalePageState extends ConsumerState<NewSalePage> {
           ),
         ],
       ),
+    );
+  }
+
+  /// Línea del carrito del POS.
+  ///
+  /// `ZCartLine` resuelve el layout: en teléfono el nombre y el borrar van en
+  /// la primera fila y la cantidad + subtotal en la segunda (los cuatro
+  /// elementos en una sola fila dejan el nombre del producto en ~100 px).
+  Widget _buildCartLine(int index, _CartItem item) {
+    return ZCartLine(
+      padding: const EdgeInsets.all(8),
+      title: Text(item.productName, style: const TextStyle(fontWeight: FontWeight.w600)),
+      quantity: SizedBox(
+        width: 84,
+        child: TextField(
+          controller: TextEditingController(text: item.quantity.toString()),
+          keyboardType: TextInputType.number,
+          textAlign: TextAlign.center,
+          decoration: const InputDecoration(
+            labelText: 'Cant',
+            border: OutlineInputBorder(),
+            contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            isDense: true,
+          ),
+          onChanged: (v) => setState(() => item.quantity = int.tryParse(v) ?? 1),
+        ),
+      ),
+      total: Text('\$${item.subtotal.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+      onRemove: () => setState(() => _cart.removeAt(index)),
+      removeTooltip: 'Quitar ${item.productName}',
     );
   }
 }

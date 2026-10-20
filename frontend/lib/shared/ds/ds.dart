@@ -27,6 +27,7 @@ export 'components/z_empty_state.dart';
 export 'components/z_confirm_dialog.dart';
 export 'components/z_responsive_dialog.dart';
 export 'components/z_page_header.dart';
+export 'components/z_cart_line.dart';
 export 'components/z_pagination.dart';
 export 'components/z_country_selector.dart';
 export 'components/z_country_info_card.dart';
