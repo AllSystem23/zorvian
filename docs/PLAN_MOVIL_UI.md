@@ -1,6 +1,6 @@
 # Plan de UI móvil (teléfonos) — Zorvian ERP
 
-> **Estado**: Fase 0 en ejecución · **Fecha**: 2026-10-20
+> **Estado**: Fase 0 ✅ · Fase 1 ✅ · **Fecha**: 2026-10-20
 > **Alcance**: capa de presentación Flutter (`frontend/`). Sin cambios de negocio ni de backend.
 > **Objetivo**: que un usuario pueda operar el ERP completo desde un teléfono de 360–430 px,
 > sin scroll horizontal, sin overflows y con acciones primarias alcanzables con una mano.
@@ -89,24 +89,37 @@ navegación inferior correcta y contexto multi-tenant visible en el teléfono.
 
 ---
 
-## 3. Fase 1 — Listados: tabla → tarjeta (P0)
+## 3. Fase 1 — Listados: tabla → tarjeta (P0) ✅
 
-**Meta**: los 20 listados con `ZDataTable` legibles en teléfono sin scroll horizontal.
+**Meta**: los listados con `ZDataTable` legibles en teléfono sin scroll horizontal.
 
-- [ ] `ZDataTable` gana `mobileCardBuilder` (opcional) y un renderer automático
-      (`título = 1ª columna`, `subtítulo = 2ª`, `numeric` a la derecha, resto en chips).
-- [ ] Acciones de fila (`tableActions`, `bulkActions`) a un menú `⋮` de 44 dp.
-- [ ] Paginación compacta ("1–20 de 340" + flechas) y filtros en bottom sheet.
-- [ ] `expandedRowBuilder` → sección expandible de la tarjeta.
-- [ ] **Bug**: el toggle de columnas desalinea `row.cells[i]`; mapear por `column.id`.
-- [ ] `ZColumn.width` solo aplica en `≥ 600`; en teléfono se ignora.
-- [ ] Migrar: `user_list_page`, `super_admin_companies_page`, `invitation_history_page`,
-      `document_center_page`, `provider_list/invoices/contracts`, `kardex_page`,
-      `cash_register_list/detail`, `payroll_run_detail_page`, `trial_balance_page`,
-      `comparative_reports_page`, `equity_changes_page`, `goals_dashboard_screen`,
-      `inventory_valuation_page`, `executive_dashboard_page`.
+**Resultado**: la adaptación se hizo **una sola vez en el componente**, no en 17 páginas.
+Cualquier `ZDataTable` con ancho menor a `ZBreakpoints.phone` renderiza tarjetas; a partir
+de 600 px se comporta exactamente igual que antes (misma cabecera, mismos anchos, misma
+paginación).
 
-**Aceptación**: los 20 listados a 360 px sin overflow ni scroll horizontal; a 1280 px idénticos a hoy.
+- [x] `ZDataTable.mobileCardBuilder` (tarjeta a medida, opcional) + **renderer automático**:
+      `título = primera columna visible`, resto como `ETIQUETA → valor` (numéricos a la derecha).
+- [x] Selección (checkbox), `expandedRowBuilder` (panel bajo la tarjeta) y `onTap` por fila
+      conservados en el modo tarjeta.
+- [x] `bulkActions` en un `Wrap` de 48 dp dentro de la barra de selección (antes desbordaba).
+      No se movieron a un menú `⋮` porque **no existe una API de acciones por fila**: cada
+      página pone su `PopupMenuButton` dentro de la celda y eso ya es vertical.
+- [x] Paginación compacta: `1–20 de 340` + flechas de 48 dp en teléfono; `1 / 17` en escritorio.
+- [x] Toolbar de dos líneas en teléfono (buscador arriba, acciones a la derecha).
+- [x] **Bug corregido**: ocultar una columna desalineaba las celdas. Ahora el índice de celda
+      se resuelve por `column.id`/posición original, no por la posición filtrada.
+- [x] `ZColumn.width` se ignora por debajo de 600 px (sin `SizedBox` que desborde).
+- [x] Celdas faltantes devuelven vacío en vez de lanzar `RangeError`.
+- [x] Los **17 listados** que usan `ZDataTable` quedan cubiertos sin tocar sus páginas
+      (`user_list`, `super_admin_companies`, `invitation_history`, `document_center`,
+      `provider_list/invoices/contracts`, `kardex`, `inventory_valuation`,
+      `cash_register_list/detail`, `payroll_run_detail`, `trial_balance`,
+      `comparative_reports`, `equity_changes`, `goals_dashboard`, `executive_dashboard`).
+- [x] Tests: `test/z_data_table_mobile_test.dart` (6: tarjetas, desalineación al ocultar
+      columna, `mobileCardBuilder`, `width` ignorado, paginación compacta y escritorio intacto).
+
+**Aceptación**: listados a 360 px sin overflow ni scroll horizontal; a 1280 px idénticos a hoy.
 
 ---
 
