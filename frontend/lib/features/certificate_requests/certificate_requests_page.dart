@@ -173,26 +173,16 @@ class CertificateRequestsPage extends ConsumerWidget {
 
   static Future<void> _approveRequest(
       BuildContext context, WidgetRef ref, PendingCertificateRequest req) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Aprobar y Emitir'),
-        content: Text(
-            '¿Aprueba el documento (${req.typeLabel}) de ${req.employeeName}?\n\nSe generará el PDF y se notificará al trabajador.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Aprobar'),
-          ),
-        ],
-      ),
+    final confirmed = await ZConfirmDialog.show(
+      context,
+      title: 'Aprobar y Emitir',
+      message: '¿Aprueba el documento (${req.typeLabel}) de ${req.employeeName}?'
+          '\n\nSe generará el PDF y se notificará al trabajador.',
+      confirmLabel: 'Aprobar',
+      icon: Icons.verified_outlined,
     );
 
-    if (confirmed != true) return;
+    if (!confirmed) return;
 
     try {
       final dio = ref.read(dioClientProvider);
@@ -213,11 +203,14 @@ class CertificateRequestsPage extends ConsumerWidget {
   static Future<void> _rejectRequest(
       BuildContext context, WidgetRef ref, PendingCertificateRequest req) async {
     final reasonCtrl = TextEditingController();
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Rechazar Solicitud'),
-        content: TextField(
+    final confirmed = await showZAdaptiveDialog<bool>(
+      context,
+      builder: (ctx) => ZResponsiveDialog(
+        title: 'Rechazar Solicitud',
+        icon: Icons.block_outlined,
+        iconColor: ZColors.danger,
+        maxWidth: 460,
+        child: TextField(
           controller: reasonCtrl,
           maxLines: 3,
           decoration: const InputDecoration(
@@ -231,7 +224,7 @@ class CertificateRequestsPage extends ConsumerWidget {
             child: const Text('Cancelar'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(backgroundColor: ZColors.danger),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Rechazar', style: TextStyle(color: Colors.white)),
           ),

@@ -280,29 +280,19 @@ class _PalmTrackConflictsPageState
   }
 
   Future<void> _resolve(String referenceId, bool acceptExternal) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(acceptExternal
-            ? 'Aceptar datos de PalmTrack'
-            : 'Mantener datos locales'),
-        content: Text(acceptExternal
-            ? 'Se sobrescribirán los datos locales con los datos de PalmTrack. ¿Continuar?'
-            : 'Se descartarán los cambios de PalmTrack y se mantendrán los datos locales. ¿Continuar?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Confirmar'),
-          ),
-        ],
-      ),
+    final confirmed = await ZConfirmDialog.show(
+      context,
+      title: acceptExternal
+          ? 'Aceptar datos de PalmTrack'
+          : 'Mantener datos locales',
+      message: acceptExternal
+          ? 'Se sobrescribirán los datos locales con los datos de PalmTrack. ¿Continuar?'
+          : 'Se descartarán los cambios de PalmTrack y se mantendrán los datos locales. ¿Continuar?',
+      confirmLabel: 'Confirmar',
+      icon: acceptExternal ? Icons.sync_outlined : Icons.lock_outline,
     );
 
-    if (confirmed == true && mounted) {
+    if (confirmed && mounted) {
       final success = await ref
           .read(palmTrackConflictsProvider.notifier)
           .resolveConflict(

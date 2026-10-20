@@ -140,7 +140,7 @@ Future<_FakeApi> _pumpPage(
 
 /// Botón del diálogo abierto (no confundir con los "Guardar" de las tarjetas).
 Finder _dialogButton(String label) => find.descendant(
-      of: find.byType(AlertDialog),
+      of: find.byType(ZResponsiveDialog),
       matching: find.widgetWithText(ZButton, label),
     );
 
@@ -203,7 +203,7 @@ void main() {
 
     expect(find.textContaining('¿Eliminar el rol "Auditor"?'), findsOneWidget);
     await tester.tap(find.descendant(
-      of: find.byType(AlertDialog),
+      of: find.byType(ZResponsiveDialog),
       matching: find.text('Eliminar'),
     ));
     await tester.pumpAndSettle();

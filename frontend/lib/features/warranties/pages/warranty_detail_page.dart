@@ -504,16 +504,17 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
     String priority = 'medium';
     bool saving = false;
 
-    showDialog(
-      context: context,
+    showZAdaptiveDialog(
+      context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Nuevo reclamo'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ZTextField(controller: descCtrl, label: 'Descripción del problema'),
+        builder: (ctx, setDialogState) => ZResponsiveDialog(
+          title: 'Nuevo reclamo',
+          icon: Icons.report_problem_outlined,
+          maxWidth: 520,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ZTextField(controller: descCtrl, label: 'Descripción del problema'),
                 const SizedBox(height: ZSpacing.md),
                 DropdownButtonFormField<String>(
                   initialValue: failureType,
@@ -540,7 +541,6 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
                 ),
               ],
             ),
-          ),
           actions: [
             TextButton(
               onPressed: saving ? null : () => Navigator.pop(ctx),
@@ -594,28 +594,46 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
 
     if (!mounted) return;
 
-    showDialog(
-      context: context,
+    showZAdaptiveDialog(
+      context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
           if (loading) {
-            return const AlertDialog(
-              content: SizedBox(height: 100, child: Center(child: CircularProgressIndicator())),
+            return const ZResponsiveDialog(
+              showCloseButton: false,
+              scrollable: false,
+              child: SizedBox(
+                height: 100,
+                child: Center(child: CircularProgressIndicator()),
+              ),
             );
           }
           if (error != null) {
-            return AlertDialog(
-              title: const Text('Error'),
-              content: Text(error),
-              actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cerrar'))],
+            return ZResponsiveDialog(
+              title: 'Error',
+              icon: Icons.error_outline,
+              iconColor: ZColors.danger,
+              maxWidth: 460,
+              child: Text(error),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cerrar'),
+                ),
+              ],
             );
           }
           if (workshops.isEmpty) {
-            return AlertDialog(
-              title: const Text('Sin talleres'),
-              content: const Text('No hay talleres registrados. Cree uno primero.'),
+            return ZResponsiveDialog(
+              title: 'Sin talleres',
+              icon: Icons.build_outlined,
+              maxWidth: 460,
+              child: const Text('No hay talleres registrados. Cree uno primero.'),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cerrar')),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cerrar'),
+                ),
                 ZButton(
                   text: 'Crear taller',
                   type: ZButtonType.primary,
@@ -627,13 +645,14 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
               ],
             );
           }
-          return AlertDialog(
-            title: const Text('Asignar taller'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+          return ZResponsiveDialog(
+            title: 'Asignar taller',
+            icon: Icons.build_circle_outlined,
+            maxWidth: 520,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
                   Text('Seleccione el taller para este reclamo:', style: ZTypography.bodyMedium),
                   const SizedBox(height: ZSpacing.md),
                   ...workshops.map((w) {
@@ -660,7 +679,6 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
                   }),
                 ],
               ),
-            ),
             actions: [
               TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
               ZButton(
@@ -703,13 +721,14 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
     String strategy = 'intermediary';
     bool saving = false;
 
-    showDialog(
-      context: context,
+    showZAdaptiveDialog(
+      context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Procesar Reemplazo'),
-          content: SingleChildScrollView(
-            child: Column(
+        builder: (ctx, setDialogState) => ZResponsiveDialog(
+          title: 'Procesar Reemplazo',
+          icon: Icons.swap_horiz_outlined,
+          maxWidth: 560,
+          child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -779,7 +798,6 @@ class _WarrantyDetailPageState extends ConsumerState<WarrantyDetailPage>
                 ZTextField(controller: notesCtrl, label: 'Notas (Opcional)', maxLines: 2),
               ],
             ),
-          ),
           actions: [
             TextButton(
               onPressed: saving ? null : () => Navigator.pop(ctx),
@@ -1029,13 +1047,14 @@ class _CostsTabBodyState extends ConsumerState<_CostsTabBody> {
     String paidBy = 'Company';
     bool saving = false;
 
-    showDialog(
-      context: context,
+    showZAdaptiveDialog(
+      context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Agregar costo'),
-          content: SingleChildScrollView(
-            child: Column(
+        builder: (ctx, setDialogState) => ZResponsiveDialog(
+          title: 'Agregar costo',
+          icon: Icons.attach_money_outlined,
+          maxWidth: 520,
+          child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<String>(
@@ -1079,7 +1098,6 @@ class _CostsTabBodyState extends ConsumerState<_CostsTabBody> {
                 ZTextField(controller: invoiceCtrl, label: 'N° Factura (opcional)'),
               ],
             ),
-          ),
           actions: [
             TextButton(onPressed: saving ? null : () => Navigator.pop(ctx), child: const Text('Cancelar')),
             ZButton(

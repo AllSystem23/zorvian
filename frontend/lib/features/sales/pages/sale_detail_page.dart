@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../shared/ds/components/z_badge.dart';
 import '../../../shared/ds/components/z_card.dart';
+import '../../../shared/ds/components/z_confirm_dialog.dart';
 import '../../../shared/ds/components/z_error_boundary.dart';
 import '../../../shared/ds/components/z_skeleton.dart';
 import '../../../shared/ds/components/z_toast.dart';
@@ -48,18 +49,15 @@ final class _SaleDetailPageState extends ConsumerState<SaleDetailPage> {
   }
 
   Future<void> _cancelSale() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Anular Venta'),
-        content: Text('¿Está seguro de anular la factura ${_data!.invoiceNumber}?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Anular', style: TextStyle(color: Colors.white))),
-        ],
-      ),
+    final confirm = await ZConfirmDialog.show(
+      context,
+      title: 'Anular Venta',
+      message: '¿Está seguro de anular la factura ${_data!.invoiceNumber}?',
+      confirmLabel: 'Anular',
+      icon: Icons.cancel_outlined,
+      isDestructive: true,
     );
-    if (confirm != true) return;
+    if (!confirm) return;
     try {
       final dio = ref.read(dioClientProvider);
       await dio.post('sales/${widget.saleId}/cancel');

@@ -143,8 +143,8 @@ class _SuperAdminCompaniesPageState extends ConsumerState<SuperAdminCompaniesPag
   }
 
   void _showEditDialog(Map<String, dynamic> company) {
-    showDialog(
-      context: context,
+    showZAdaptiveDialog(
+      context,
       builder: (_) => _CompanyEditDialog(
         company: company,
         onSaved: _loadCompanies,
@@ -153,39 +153,26 @@ class _SuperAdminCompaniesPageState extends ConsumerState<SuperAdminCompaniesPag
   }
 
   Future<bool> _confirmAction(String title, String message) async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        icon: Icon(Icons.help_outline, color: ZColors.brandAccent, size: 36),
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Confirmar')),
-        ],
-      ),
+    final result = await ZConfirmDialog.show(
+      context,
+      title: title,
+      message: message,
+      confirmLabel: 'Confirmar',
+      icon: Icons.help_outline,
     );
-    return result ?? false;
+    return result;
   }
 
   Future<bool> _confirmDestructive(String title, String message) async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        icon: const Icon(Icons.warning_amber_rounded, color: ZColors.danger, size: 36),
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: ZColors.danger),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Desactivar'),
-          ),
-        ],
-      ),
+    final result = await ZConfirmDialog.show(
+      context,
+      title: title,
+      message: message,
+      confirmLabel: 'Desactivar',
+      icon: Icons.warning_amber_rounded,
+      isDestructive: true,
     );
-    return result ?? false;
+    return result;
   }
 
   void _showError(String msg) {
@@ -736,14 +723,15 @@ class _CompanyCreateDialogState extends ConsumerState<CompanyCreateDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Nueva Empresa'),
-      content: Form(
+    return ZResponsiveDialog(
+      title: 'Nueva Empresa',
+      icon: Icons.add_business_outlined,
+      maxWidth: 560,
+      child: Form(
         key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
               if (_error != null)
                 ZAlertCard(message: _error!, severity: 'high'),
               ZTextField(
@@ -803,7 +791,6 @@ class _CompanyCreateDialogState extends ConsumerState<CompanyCreateDialog> {
             ],
           ),
         ),
-      ),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
         FilledButton(
@@ -1005,10 +992,11 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text('Editar: ${widget.company['name'] ?? ''}'),
-      content: SingleChildScrollView(
-        child: Column(
+    return ZResponsiveDialog(
+      title: 'Editar: ${widget.company['name'] ?? ''}',
+      icon: Icons.edit_outlined,
+      maxWidth: 560,
+      child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (_error != null)
@@ -1087,7 +1075,6 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
             _buildPlanSelector(ref.watch(subscriptionPlansProvider).value ?? SubscriptionPlanConfig.fallbackAll),
           ],
         ),
-      ),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
         FilledButton(

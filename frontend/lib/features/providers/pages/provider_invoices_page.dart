@@ -219,14 +219,15 @@ final class _RegisterInvoiceDialogState
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Registrar Factura'),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+    return ZResponsiveDialog(
+      title: 'Registrar Factura',
+      icon: Icons.receipt_long_outlined,
+      maxWidth: 520,
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
               _ContractDropdown(
                 value: _selectedContractId,
                 onChanged: (v) {
@@ -320,7 +321,6 @@ final class _RegisterInvoiceDialogState
             ],
           ),
         ),
-      ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),

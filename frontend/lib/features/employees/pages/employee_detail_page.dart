@@ -58,11 +58,13 @@ class _EmployeeDetailPageState extends ConsumerState<EmployeeDetailPage> {
     if (hireDate == null || !mounted) return;
 
     final salaryController = TextEditingController();
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Recontratar trabajador'),
-        content: Column(
+    final confirmed = await showZAdaptiveDialog<bool>(
+      context,
+      builder: (ctx) => ZResponsiveDialog(
+        title: 'Recontratar trabajador',
+        icon: Icons.person_add_alt_outlined,
+        maxWidth: 500,
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

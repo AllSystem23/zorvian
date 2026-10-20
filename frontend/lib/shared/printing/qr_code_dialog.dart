@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../features/settings/providers/company_settings_provider.dart';
+import '../ds/ds.dart';
 
 void showQrCodeDialog(BuildContext context, WidgetRef ref, {
   required String title,
@@ -24,17 +25,13 @@ void showQrCodeDialog(BuildContext context, WidgetRef ref, {
     if (extraData != null) extraData,
   ].join('\n');
 
-  showDialog(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: Row(
-        children: [
-          const Icon(Icons.qr_code, size: 22),
-          const SizedBox(width: 8),
-          Expanded(child: Text(title, style: const TextStyle(fontSize: 16))),
-        ],
-      ),
-      content: Column(
+  showZAdaptiveDialog(
+    context,
+    builder: (ctx) => ZResponsiveDialog(
+      title: title,
+      icon: Icons.qr_code,
+      maxWidth: 460,
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           QrImageView(
@@ -74,17 +71,14 @@ void showQrCodeDialog(BuildContext context, WidgetRef ref, {
 void showScannerDialog(BuildContext context, {
   required void Function(String code) onScan,
 }) {
-  showDialog(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: const Row(
-        children: [
-          Icon(Icons.qr_code_scanner, size: 22),
-          SizedBox(width: 8),
-          Text('Escanear código'),
-        ],
-      ),
-      content: SizedBox(
+  showZAdaptiveDialog(
+    context,
+    builder: (ctx) => ZResponsiveDialog(
+      title: 'Escanear código',
+      icon: Icons.qr_code_scanner,
+      maxWidth: 460,
+      scrollable: false,
+      child: SizedBox(
         width: 300,
         height: 300,
         child: ClipRRect(
@@ -140,17 +134,13 @@ void showProductLabelDialog(BuildContext context, {
     if (category != null && category.isNotEmpty) 'Categoría: $category',
   ].join('\n');
 
-  showDialog(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: const Row(
-        children: [
-          Icon(Icons.label, size: 22),
-          SizedBox(width: 8),
-          Text('Etiqueta de producto', style: TextStyle(fontSize: 16)),
-        ],
-      ),
-      content: Column(
+  showZAdaptiveDialog(
+    context,
+    builder: (ctx) => ZResponsiveDialog(
+      title: 'Etiqueta de producto',
+      icon: Icons.label_outline,
+      maxWidth: 420,
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           QrImageView(

@@ -133,32 +133,20 @@ class _SettlementFormPageState extends ConsumerState<SettlementFormPage> {
   /// Confirma la aplicación de la liquidación (acción irreversible): termina
   /// al trabajador, cierra su período de contrato y desactiva el salario.
   Future<void> _confirmApply(SettlementResult result) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Aplicar liquidación'),
-        content: Text(
-          'Se marcará al trabajador como DADO DE BAJA, se cerrará su período '
-          'de contrato en el historial y se desactivará su salario.\n\n'
+    final confirmed = await ZConfirmDialog.show(
+      context,
+      title: 'Aplicar liquidación',
+      message: 'Se marcará al trabajador como DADO DE BAJA, se cerrará su '
+          'período de contrato en el historial y se desactivará su salario.\n\n'
           'Neto a pagar: ${result.currencySymbol} '
           '${NumberFormat('#,##0.00').format(result.netSettlement)}.\n\n'
           'Esta acción inicia la baja definitiva del período actual. ¿Desea '
           'continuar?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: ZColors.danger),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Aplicar'),
-          ),
-        ],
-      ),
+      confirmLabel: 'Aplicar',
+      icon: Icons.person_off_outlined,
+      isDestructive: true,
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
 
     await ref.read(settlementProvider.notifier).apply();
     if (!mounted) return;

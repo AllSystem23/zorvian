@@ -24,6 +24,10 @@ linter:
     avoid_print: false
     use_null_aware_elements: false
     prefer_single_quotes: true
+    # Los diálogos del Design System (`ZResponsiveDialog`) reciben el cuerpo
+    # antes del pie (`actions`) para conservar el orden de lectura
+    # título → contenido → acciones, así que no aplicamos la regla general.
+    sort_child_properties_last: false
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

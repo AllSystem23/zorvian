@@ -108,49 +108,48 @@ final class _StockTransferDetailPageState extends ConsumerState<StockTransferDet
       return;
     }
 
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Recepción parcial'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Indique cuántas unidades recibe de cada línea (puede dejar 0). '
-                'Lo no recibido queda pendiente en la transferencia.',
-                style: Theme.of(ctx).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 12),
-              ...d.details.where((i) => pending.containsKey(i.id)).map((i) {
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          i.productName.isNotEmpty ? i.productName : i.productCode,
-                          style: Theme.of(ctx).textTheme.bodyMedium,
-                        ),
+    final ok = await showZAdaptiveDialog<bool>(
+      context,
+      builder: (ctx) => ZResponsiveDialog(
+        title: 'Recepción parcial',
+        icon: Icons.inventory_2_outlined,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Indique cuántas unidades recibe de cada línea (puede dejar 0). '
+              'Lo no recibido queda pendiente en la transferencia.',
+              style: Theme.of(ctx).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            ...d.details.where((i) => pending.containsKey(i.id)).map((i) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        i.productName.isNotEmpty ? i.productName : i.productCode,
+                        style: Theme.of(ctx).textTheme.bodyMedium,
                       ),
-                      Text('pend. ${pending[i.id]}', style: Theme.of(ctx).textTheme.bodySmall),
-                      const SizedBox(width: 8),
-                      SizedBox(
-                        width: 72,
-                        child: TextField(
-                          controller: received[i.id],
-                          keyboardType: TextInputType.number,
-                          textAlign: TextAlign.center,
-                          decoration: const InputDecoration(isDense: true, hintText: '0'),
-                        ),
+                    ),
+                    Text('pend. ${pending[i.id]}', style: Theme.of(ctx).textTheme.bodySmall),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 72,
+                      child: TextField(
+                        controller: received[i.id],
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        decoration: const InputDecoration(isDense: true, hintText: '0'),
                       ),
-                    ],
-                  ),
-                );
-              }),
-            ],
-          ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),

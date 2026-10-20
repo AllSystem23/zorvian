@@ -200,8 +200,8 @@ Map<String, VoidCallback> _buildFabCallbacks(
 
   if (location.startsWith('/providers/payments')) {
     callbacks['provider_invoice_register'] = () => _showModalOnce('provider_invoice', context, () =>
-      showDialog(
-        context: context,
+      showZAdaptiveDialog(
+        context,
         builder: (_) => RegisterInvoiceDialog(
           onSaved: () => ref.invalidate(allInvoicesProvider),
         ),
@@ -265,8 +265,8 @@ Map<String, VoidCallback> _buildFabCallbacks(
   if (location.startsWith('/admin/companies') ||
       location.startsWith('/admin/subscription-plans')) {
     callbacks['new_company'] = () => _showModalOnce('new_company', context, () =>
-      showDialog(
-        context: context,
+      showZAdaptiveDialog(
+        context,
         builder: (_) => CompanyCreateDialog(
           onCreated: () {
             ref.invalidate(companyListProvider);

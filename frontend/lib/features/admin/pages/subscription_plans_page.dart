@@ -394,8 +394,8 @@ class _SubscriptionPlansPageState extends ConsumerState<SubscriptionPlansPage> {
   }
 
   Future<void> _editModules(SubscriptionPlanConfig config) async {
-    final selected = await showDialog<List<String>>(
-      context: context,
+    final selected = await showZAdaptiveDialog<List<String>>(
+      context,
       builder: (_) => _PlanModulesDialog(config: config),
     );
     if (selected == null || !mounted) return;
@@ -658,16 +658,14 @@ class _PlanModulesDialogState extends State<_PlanModulesDialog> {
         .map((o) => o.key)
         .toList();
 
-    return AlertDialog(
-      backgroundColor: isDark ? ZColors.darkSurface : ZColors.surface,
-      title: Text('Módulos de ${widget.config.name}', style: ZTypography.titleLarge),
-      content: SizedBox(
-        width: 460,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+    return ZResponsiveDialog(
+      title: 'Módulos de ${widget.config.name}',
+      icon: Icons.extension_outlined,
+      maxWidth: 520,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
               Text(
                 'Define qué módulos del ERP incluye este plan. Las compañías '
                 'suscriptas solo verán la navegación de los módulos habilitados.',
@@ -732,8 +730,6 @@ class _PlanModulesDialogState extends State<_PlanModulesDialog> {
               ],
             ],
           ),
-        ),
-      ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),

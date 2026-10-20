@@ -93,42 +93,41 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       ('poder', 'Poder Notarial'),
     ];
 
-    showDialog(
-      context: context,
+    showZAdaptiveDialog(
+      context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setLocal) => AlertDialog(
-          title: const Text('Solicitar Documento'),
-          content: SizedBox(
-            width: 320,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Tipo de documento:', style: TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: typeOptions.map((opt) {
-                    return ChoiceChip(
-                      label: Text(opt.$2),
-                      selected: selectedType == opt.$1,
-                      onSelected: (_) => setLocal(() => selectedType = opt.$1),
-                    );
-                  }).toList(),
+        builder: (ctx, setLocal) => ZResponsiveDialog(
+          title: 'Solicitar Documento',
+          icon: Icons.description_outlined,
+          maxWidth: 460,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Tipo de documento:', style: TextStyle(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: typeOptions.map((opt) {
+                  return ChoiceChip(
+                    label: Text(opt.$2),
+                    selected: selectedType == opt.$1,
+                    onSelected: (_) => setLocal(() => selectedType = opt.$1),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: reasonCtrl,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Motivo / Propósito (opcional)',
+                  hintText: 'Ej: Trámite bancario, visado...',
+                  border: OutlineInputBorder(),
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: reasonCtrl,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Motivo / Propósito (opcional)',
-                    hintText: 'Ej: Trámite bancario, visado...',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
           actions: [
             TextButton(

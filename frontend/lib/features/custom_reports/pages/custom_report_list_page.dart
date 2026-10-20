@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
+import '../../../shared/ds/ds.dart';
 import '../providers/custom_report_provider.dart';
 
 class CustomReportListPage extends ConsumerWidget {
@@ -70,18 +71,15 @@ class CustomReportListPage extends ConsumerWidget {
                               } else if (v == 'edit') {
                                 context.push('/custom-reports/${item.id}/edit');
                               } else if (v == 'delete') {
-                                final ok = await showDialog<bool>(
-                                  context: context,
-                                  builder: (_) => AlertDialog(
-                                    title: const Text('Eliminar reporte'),
-                                    content: Text('¿Eliminar "${item.name}"?'),
-                                    actions: [
-                                      TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
-                                      TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Eliminar')),
-                                    ],
-                                  ),
+                                final ok = await ZConfirmDialog.show(
+                                  context,
+                                  title: 'Eliminar reporte',
+                                  message: '¿Eliminar "${item.name}"?',
+                                  confirmLabel: 'Eliminar',
+                                  icon: Icons.delete_outline,
+                                  isDestructive: true,
                                 );
-                                if (ok == true) {
+                                if (ok) {
                                   final err = await notifier.delete(item.id);
                                   if (err != null && context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(

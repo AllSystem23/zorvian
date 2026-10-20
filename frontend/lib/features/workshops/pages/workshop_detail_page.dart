@@ -36,18 +36,15 @@ class _WorkshopDetailPageState extends ConsumerState<WorkshopDetailPage> {
   }
 
   Future<void> _delete() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Eliminar taller'),
-        content: const Text('¿Está seguro de eliminar este taller? Esta acción no se puede deshacer.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          ZButton(text: 'Eliminar', type: ZButtonType.danger, onPressed: () => Navigator.pop(ctx, true)),
-        ],
-      ),
+    final confirm = await ZConfirmDialog.show(
+      context,
+      title: 'Eliminar taller',
+      message: '¿Está seguro de eliminar este taller? Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+      icon: Icons.delete_outline,
+      isDestructive: true,
     );
-    if (confirm != true) return;
+    if (!confirm) return;
     try {
       final dio = ref.read(dioClientProvider);
       await dio.delete('service-workshops/${widget.workshopId}');

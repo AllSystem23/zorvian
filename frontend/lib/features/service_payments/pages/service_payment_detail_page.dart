@@ -47,18 +47,21 @@ final class _ServicePaymentDetailPageState extends ConsumerState<ServicePaymentD
 
   Future<void> _action(String path, {Map<String, dynamic>? data}) async {
     final dio = ref.read(dioClientProvider);
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Confirmar acción'),
-        content: Text('¿Desea ejecutar "$path" sobre este pago?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Aceptar')),
-        ],
-      ),
+    final label = switch (path) {
+      'approve' => 'aprobar este pago',
+      'pay' => 'marcar este pago como pagado',
+      'cancel' => 'anular este pago',
+      _ => 'ejecutar esta acción',
+    };
+    final ok = await ZConfirmDialog.show(
+      context,
+      title: 'Confirmar acción',
+      message: '¿Desea $label?',
+      confirmLabel: 'Aceptar',
+      icon: Icons.help_outline,
+      isDestructive: path == 'cancel',
     );
-    if (ok != true || !mounted) return;
+    if (!ok || !mounted) return;
     try {
       await dio.post(
         'service-provider-payments/${widget.servicePaymentId}/$path',

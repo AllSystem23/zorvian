@@ -62,35 +62,27 @@ class ZHelpButton extends StatelessWidget {
   }
 
   void _showHelpDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Row(
+    showZAdaptiveDialog(
+      context,
+      builder: (_) => ZResponsiveDialog(
+        title: title,
+        icon: icon,
+        iconColor: Theme.of(context).colorScheme.primary,
+        maxWidth: 560,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(width: 8),
-            Expanded(child: Text(title)),
-          ],
-        ),
-        content: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 500, maxHeight: 500),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(content, style: Theme.of(context).textTheme.bodyMedium),
-                if (sections != null) ...[
-                  const SizedBox(height: ZSpacing.lg),
-                  for (final section in sections!) ...[
-                    Text(section.label, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 4),
-                    Text(section.description, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: ZColors.neutral500)),
-                    const SizedBox(height: ZSpacing.md),
-                  ],
-                ],
+            Text(content, style: Theme.of(context).textTheme.bodyMedium),
+            if (sections != null) ...[
+              const SizedBox(height: ZSpacing.lg),
+              for (final section in sections!) ...[
+                Text(section.label, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 4),
+                Text(section.description, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: ZColors.neutral500)),
+                const SizedBox(height: ZSpacing.md),
               ],
-            ),
-          ),
+            ],
+          ],
         ),
         actions: [
           if (docsUrl != null)

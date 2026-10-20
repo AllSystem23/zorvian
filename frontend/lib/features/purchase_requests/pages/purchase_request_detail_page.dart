@@ -90,8 +90,8 @@ final class _PurchaseRequestDetailPageState extends ConsumerState<PurchaseReques
   }
 
   Future<void> _reject() async {
-    final reason = await showDialog<String>(
-      context: context,
+    final reason = await showZAdaptiveDialog<String>(
+      context,
       builder: (_) => const _RejectDialog(),
     );
     if (reason == null) return;
@@ -295,34 +295,35 @@ final class _RejectDialogState extends State<_RejectDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Rechazar Solicitud'),
-      content: Form(
-        key: _formKey,
-        child: SizedBox(
-          width: 400,
-          child: TextFormField(
-            controller: _reasonCtrl,
-            maxLines: 3,
-            decoration: const InputDecoration(
-              labelText: 'Motivo del rechazo',
-              hintText: 'Ej: Presupuesto no disponible este mes',
-              border: OutlineInputBorder(),
-            ),
-            validator: (v) => (v == null || v.trim().isEmpty) ? 'Indique el motivo' : null,
-          ),
-        ),
-      ),
+    return ZResponsiveDialog(
+      title: 'Rechazar Solicitud',
+      icon: Icons.block_outlined,
+      iconColor: ZColors.danger,
+      maxWidth: 460,
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
         ZButton(
           text: 'Rechazar',
+          type: ZButtonType.danger,
           onPressed: () {
             if (!_formKey.currentState!.validate()) return;
             Navigator.pop(context, _reasonCtrl.text.trim());
           },
         ),
       ],
+      child: Form(
+        key: _formKey,
+        child: TextFormField(
+          controller: _reasonCtrl,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            labelText: 'Motivo del rechazo',
+            hintText: 'Ej: Presupuesto no disponible este mes',
+            border: OutlineInputBorder(),
+          ),
+          validator: (v) => (v == null || v.trim().isEmpty) ? 'Indique el motivo' : null,
+        ),
+      ),
     );
   }
 }

@@ -333,11 +333,13 @@ class _LeadDetailPageState extends ConsumerState<LeadDetailPage> {
     final descController = TextEditingController();
     String selectedType = 'note';
 
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Nueva actividad'),
-        content: StatefulBuilder(
+    showZAdaptiveDialog(
+      context,
+      builder: (ctx) => ZResponsiveDialog(
+        title: 'Nueva actividad',
+        icon: Icons.add_task_outlined,
+        maxWidth: 460,
+        child: StatefulBuilder(
           builder: (ctx, setDialogState) => Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -350,7 +352,7 @@ class _LeadDetailPageState extends ConsumerState<LeadDetailPage> {
                   DropdownMenuItem(value: 'email', child: Text('Email')),
                   DropdownMenuItem(value: 'meeting', child: Text('Reunión')),
                 ],
-                onChanged: (v) => selectedType = v!,
+                onChanged: (v) => setDialogState(() => selectedType = v!),
               ),
               const SizedBox(height: 12),
               TextField(

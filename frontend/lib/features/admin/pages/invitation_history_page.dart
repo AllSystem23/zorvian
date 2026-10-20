@@ -318,19 +318,14 @@ class _InvitationHistoryPageState
 
   Future<void> _regenerate(String? id) async {
     if (id == null) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        icon: const Icon(Icons.warning_amber_rounded, color: ZColors.warning, size: 36),
-        title: const Text('Regenerar código'),
-        content: const Text('Se generará un nuevo código. El anterior dejará de funcionar.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Regenerar')),
-        ],
-      ),
+    final confirmed = await ZConfirmDialog.show(
+      context,
+      title: 'Regenerar código',
+      message: 'Se generará un nuevo código. El anterior dejará de funcionar.',
+      confirmLabel: 'Regenerar',
+      icon: Icons.warning_amber_rounded,
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
 
     try {
       final dio = ref.read(dioClientProvider);

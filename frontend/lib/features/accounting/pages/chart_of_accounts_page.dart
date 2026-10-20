@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../shared/ds/ds.dart';
 import '../providers/accounting_provider.dart';
 
 const _typeLabels = {
@@ -30,18 +31,15 @@ final class _ChartOfAccountsPageState extends ConsumerState<ChartOfAccountsPage>
   }
 
   Future<void> _deleteAccount(AccountItem account) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Eliminar cuenta'),
-        content: Text('¿Eliminar "${account.code} - ${account.name}"?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Eliminar', style: TextStyle(color: Colors.white))),
-        ],
-      ),
+    final confirmed = await ZConfirmDialog.show(
+      context,
+      title: 'Eliminar cuenta',
+      message: '¿Eliminar "${account.code} - ${account.name}"?',
+      confirmLabel: 'Eliminar',
+      icon: Icons.delete_outline,
+      isDestructive: true,
     );
-    if (confirmed == true) {
+    if (confirmed) {
       try {
         await ref.read(accountingProvider.notifier).deleteAccount(account.id);
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Cuenta "${account.code}" eliminada')));
@@ -52,8 +50,8 @@ final class _ChartOfAccountsPageState extends ConsumerState<ChartOfAccountsPage>
   }
 
   void _showAccountDialog({AccountItem? account, AccountItem? parent}) {
-    showDialog(
-      context: context,
+    showZAdaptiveDialog(
+      context,
       builder: (ctx) => _AccountFormDialog(
         account: account,
         parent: parent,
@@ -276,14 +274,15 @@ final class _AccountFormDialogState extends ConsumerState<_AccountFormDialog> {
     final types = ['Asset', 'Liability', 'Equity', 'Income', 'Cost', 'Expense'];
     final sides = ['Debit', 'Credit'];
 
-    return AlertDialog(
-      title: Text(_isEditing ? 'Editar cuenta' : 'Nueva cuenta'),
-      content: Form(
+    return ZResponsiveDialog(
+      title: _isEditing ? 'Editar cuenta' : 'Nueva cuenta',
+      icon: Icons.account_tree_outlined,
+      maxWidth: 520,
+      child: Form(
         key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
               TextFormField(
                 controller: _codeCtrl,
                 decoration: const InputDecoration(labelText: 'Código', hintText: '1.1.01'),
@@ -335,7 +334,6 @@ final class _AccountFormDialogState extends ConsumerState<_AccountFormDialog> {
             ],
           ),
         ),
-      ),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
         FilledButton(

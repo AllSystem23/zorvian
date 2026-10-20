@@ -323,11 +323,13 @@ class _FleetTrackingPageState extends ConsumerState<FleetTrackingPage> {
     final nameController = TextEditingController();
     final idController = TextEditingController();
 
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Confirmar Entrega'),
-        content: Column(
+    showZAdaptiveDialog(
+      context,
+      builder: (ctx) => ZResponsiveDialog(
+        title: 'Confirmar Entrega',
+        icon: Icons.local_shipping_outlined,
+        maxWidth: 460,
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ZTextField(

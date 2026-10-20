@@ -58,12 +58,14 @@ class _InviteUserPageState extends ConsumerState<InviteUserPage> {
   }
 
   void _showCodeDialog(String code) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        icon: const Icon(Icons.check_circle_outline, color: ZColors.success, size: 48),
-        title: const Text('Invitación creada'),
-        content: Column(
+    showZAdaptiveDialog(
+      context,
+      builder: (ctx) => ZResponsiveDialog(
+        icon: Icons.check_circle_outline,
+        iconColor: ZColors.success,
+        title: 'Invitación creada',
+        maxWidth: 460,
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text('Comparte este código con el usuario:'),

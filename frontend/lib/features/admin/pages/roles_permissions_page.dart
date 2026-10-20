@@ -74,8 +74,8 @@ class _RolesPermissionsPageState extends ConsumerState<RolesPermissionsPage> {
   }
 
   Future<void> _createRole() async {
-    final created = await showDialog<bool>(
-      context: context,
+    final created = await showZAdaptiveDialog<bool>(
+      context,
       builder: (_) => _RoleFormDialog(
         title: 'Nuevo rol',
         onSubmit: (name, description) async {
@@ -103,8 +103,8 @@ class _RolesPermissionsPageState extends ConsumerState<RolesPermissionsPage> {
   }
 
   Future<void> _renameRole(RolePermissionModel role) async {
-    final saved = await showDialog<bool>(
-      context: context,
+    final saved = await showZAdaptiveDialog<bool>(
+      context,
       builder: (_) => _RoleFormDialog(
         title: 'Editar rol',
         initialName: role.displayName,
@@ -131,28 +131,16 @@ class _RolesPermissionsPageState extends ConsumerState<RolesPermissionsPage> {
   }
 
   Future<void> _deleteRole(RolePermissionModel role) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Eliminar rol'),
-        content: Text(
-          '¿Eliminar el rol "${role.displayName}"? Esta acción no se puede '
-          'deshacer.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: ZColors.danger),
-            child: const Text('Eliminar'),
-          ),
-        ],
-      ),
+    final confirmed = await ZConfirmDialog.show(
+      context,
+      title: 'Eliminar rol',
+      message: '¿Eliminar el rol "${role.displayName}"? '
+          'Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+      icon: Icons.delete_outline,
+      isDestructive: true,
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
 
     try {
       await ref.read(rolesAdminProvider.notifier).deleteRole(role.id);
@@ -516,46 +504,45 @@ class _RoleFormDialogState extends State<_RoleFormDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.title),
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 380),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: _name,
-              autofocus: true,
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                labelText: 'Nombre del rol',
-                hintText: 'p. ej. Auditor de Ventas',
-              ),
+    return ZResponsiveDialog(
+      title: widget.title,
+      icon: Icons.admin_panel_settings_outlined,
+      maxWidth: 460,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _name,
+            autofocus: true,
+            textInputAction: TextInputAction.next,
+            decoration: const InputDecoration(
+              labelText: 'Nombre del rol',
+              hintText: 'p. ej. Auditor de Ventas',
             ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _description,
+            maxLines: 2,
+            decoration: const InputDecoration(
+              labelText: 'Descripción (opcional)',
+            ),
+          ),
+          if (_error != null) ...[
             const SizedBox(height: 12),
-            TextField(
-              controller: _description,
-              maxLines: 2,
-              decoration: const InputDecoration(
-                labelText: 'Descripción (opcional)',
-              ),
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                _error!,
-                style: ZTypography.bodySmall.copyWith(color: ZColors.danger),
-              ),
-            ],
-            const SizedBox(height: 10),
             Text(
-              'Los permisos se asignan después con los chips de la tarjeta '
-              'del rol. Los roles se distinguen por su nombre.',
-              style: ZTypography.bodySmall.copyWith(color: ZColors.neutral500),
+              _error!,
+              style: ZTypography.bodySmall.copyWith(color: ZColors.danger),
             ),
           ],
-        ),
+          const SizedBox(height: 10),
+          Text(
+            'Los permisos se asignan después con los chips de la tarjeta '
+            'del rol. Los roles se distinguen por su nombre.',
+            style: ZTypography.bodySmall.copyWith(color: ZColors.neutral500),
+          ),
+        ],
       ),
       actions: [
         TextButton(

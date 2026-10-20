@@ -108,18 +108,15 @@ class _VacationDetailPageState extends ConsumerState<VacationDetailPage> {
   }
 
   Future<void> _pay() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Procesar Pago'),
-        content: const Text('Se generará el recibo de vacaciones y se descontarán los días del saldo. Continuar?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Pagar')),
-        ],
-      ),
+    final confirmed = await ZConfirmDialog.show(
+      context,
+      title: 'Procesar Pago',
+      message: 'Se generará el recibo de vacaciones y se descontarán los días '
+          'del saldo. ¿Continuar?',
+      confirmLabel: 'Pagar',
+      icon: Icons.payments_outlined,
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
 
     setState(() => _actionLoading = true);
     try {
@@ -185,19 +182,15 @@ class _VacationDetailPageState extends ConsumerState<VacationDetailPage> {
   bool _hasReceiptPath() => _isTaken() && !_paidByPayroll() && _receiptFound;
 
   Future<void> _markTaken() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Marcar como Tomada'),
-        content: const Text(
-            'Registra la vacación como disfrutada SIN generar recibo de pago y descuenta los días del saldo. Continuar?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Confirmar')),
-        ],
-      ),
+    final confirmed = await ZConfirmDialog.show(
+      context,
+      title: 'Marcar como Tomada',
+      message: 'Registra la vacación como disfrutada SIN generar recibo de '
+          'pago y descuenta los días del saldo. ¿Continuar?',
+      confirmLabel: 'Confirmar',
+      icon: Icons.event_available_outlined,
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
 
     setState(() => _actionLoading = true);
     try {

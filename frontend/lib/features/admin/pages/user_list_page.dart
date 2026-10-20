@@ -28,23 +28,15 @@ class _UserListPageState extends ConsumerState<UserListPage> {
   }
 
   Future<bool> _confirmDestructive(String title, String message) async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        icon: const Icon(Icons.warning_amber_rounded, color: ZColors.danger, size: 36),
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: ZColors.danger),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Confirmar'),
-          ),
-        ],
-      ),
+    final result = await ZConfirmDialog.show(
+      context,
+      title: title,
+      message: message,
+      confirmLabel: 'Confirmar',
+      icon: Icons.warning_amber_rounded,
+      isDestructive: true,
     );
-    return result ?? false;
+    return result;
   }
 
   void _toggleActive(UserModel user) async {
@@ -114,8 +106,8 @@ class _UserListPageState extends ConsumerState<UserListPage> {
       }
     }
 
-    final selected = await showDialog<String>(
-      context: context,
+    final selected = await showZAdaptiveDialog<String>(
+      context,
       builder: (_) => _RolePickerDialog(
         userName: user.displayName,
         options: assignable,
@@ -363,35 +355,34 @@ class _RolePickerDialogState extends State<_RolePickerDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Asignar rol'),
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 380),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Usuario: ${widget.userName}', style: ZTypography.bodySmall),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: _selected,
-              isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Rol'),
-              items: widget.options
-                  .map((o) => DropdownMenuItem<String>(
-                        value: o.id,
-                        child: Text(o.label, overflow: TextOverflow.ellipsis),
-                      ))
-                  .toList(),
-              onChanged: (value) => setState(() => _selected = value),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'El usuario verá el nuevo rol al refrescar su sesión.',
-              style: ZTypography.bodySmall.copyWith(color: ZColors.neutral500),
-            ),
-          ],
-        ),
+    return ZResponsiveDialog(
+      title: 'Asignar rol',
+      icon: Icons.manage_accounts_outlined,
+      maxWidth: 460,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Usuario: ${widget.userName}', style: ZTypography.bodySmall),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            initialValue: _selected,
+            isExpanded: true,
+            decoration: const InputDecoration(labelText: 'Rol'),
+            items: widget.options
+                .map((o) => DropdownMenuItem<String>(
+                      value: o.id,
+                      child: Text(o.label, overflow: TextOverflow.ellipsis),
+                    ))
+                .toList(),
+            onChanged: (value) => setState(() => _selected = value),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'El usuario verá el nuevo rol al refrescar su sesión.',
+            style: ZTypography.bodySmall.copyWith(color: ZColors.neutral500),
+          ),
+        ],
       ),
       actions: [
         TextButton(

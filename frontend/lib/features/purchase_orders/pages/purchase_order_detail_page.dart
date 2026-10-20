@@ -82,8 +82,8 @@ final class _PurchaseOrderDetailPageState extends ConsumerState<PurchaseOrderDet
   }
 
   Future<void> _receive() async {
-    final result = await showDialog<ReceivePurchaseOrderRequest>(
-      context: context,
+    final result = await showZAdaptiveDialog<ReceivePurchaseOrderRequest>(
+      context,
       builder: (_) => _ReceiveDialog(detail: _data!),
     );
     if (result == null) return;
@@ -259,47 +259,46 @@ final class _ReceiveDialogState extends State<_ReceiveDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return AlertDialog(
-      title: const Text('Recibir Orden de Compra'),
-      content: SizedBox(
-        width: 400,
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            shrinkWrap: true,
-            children: _lines.map((l) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(l.productName, style: const TextStyle(fontWeight: FontWeight.w500)),
-                  Text('Pendiente: ${l.pending}', style: theme.textTheme.bodySmall),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          initialValue: l.quantity,
-                          decoration: const InputDecoration(labelText: 'Cantidad', isDense: true),
-                          keyboardType: TextInputType.number,
-                          validator: (v) => (v == null || v.isEmpty) ? 'Requerido' : null,
-                          onChanged: (v) => l.quantity = v,
-                        ),
+    return ZResponsiveDialog(
+      title: 'Recibir Orden de Compra',
+      icon: Icons.inventory_outlined,
+      maxWidth: 520,
+      child: Form(
+        key: _formKey,
+        child: ListView(
+          shrinkWrap: true,
+          children: _lines.map((l) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(l.productName, style: const TextStyle(fontWeight: FontWeight.w500)),
+                Text('Pendiente: ${l.pending}', style: theme.textTheme.bodySmall),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: l.quantity,
+                        decoration: const InputDecoration(labelText: 'Cantidad', isDense: true),
+                        keyboardType: TextInputType.number,
+                        validator: (v) => (v == null || v.isEmpty) ? 'Requerido' : null,
+                        onChanged: (v) => l.quantity = v,
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextFormField(
-                          initialValue: l.unitCost,
-                          decoration: const InputDecoration(labelText: 'Costo U.', isDense: true),
-                          keyboardType: TextInputType.number,
-                          onChanged: (v) => l.unitCost = v,
-                        ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: l.unitCost,
+                        decoration: const InputDecoration(labelText: 'Costo U.', isDense: true),
+                        keyboardType: TextInputType.number,
+                        onChanged: (v) => l.unitCost = v,
                       ),
-                    ],
-                  ),
-                ],
-              ),
-            )).toList(),
-          ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          )).toList(),
         ),
       ),
       actions: [
