@@ -1,6 +1,6 @@
 # Plan de UI móvil (teléfonos) — Zorvian ERP
 
-> **Estado**: Fase 0 ✅ · Fase 1 ✅ · **Fecha**: 2026-10-20
+> **Estado**: Fase 0 ✅ · Fase 1 ✅ · Fase 2 (fundaciones) ✅ · **Fecha**: 2026-10-20
 > **Alcance**: capa de presentación Flutter (`frontend/`). Sin cambios de negocio ni de backend.
 > **Objetivo**: que un usuario pueda operar el ERP completo desde un teléfono de 360–430 px,
 > sin scroll horizontal, sin overflows y con acciones primarias alcanzables con una mano.
@@ -123,14 +123,25 @@ paginación).
 
 ---
 
-## 4. Fase 2 — Formularios y modales (P0)
+## 4. Fase 2 — Formularios y modales (P0) — en curso
 
-- [ ] `ZResponsiveDialog` / `showZSheet`: en `< 600` bottom sheet a pantalla completa con
-      acción primaria fija al pie. Sustituye los 38 `AlertDialog` y 19 `showModalBottomSheet`
-      con anchos fijos (560/460/420/400/360/320).
-- [ ] `ZStickyActionBar` (acción primaria + resumen, respeta `viewInsets` del teclado).
+**Hecho (fundaciones del DS)**:
+
+- [x] `showZAdaptiveDialog` + `ZResponsiveDialog`: en `< 600` se abre como **hoja inferior**
+      a pantalla completa (handle, scroll propio, acciones fijas al pie); en `≥ 600` es un
+      `Dialog` centrado con `maxWidth` (560 por defecto). Sustituye los anchos fijos.
+- [x] `ZStickyActionBar`: acciones apiladas a ancho completo con la **primaria arriba** en
+      teléfono, `leading` para un resumen, y `includeViewInsets` para que el pie suba con el
+      teclado (la hoja inferior no lo hace sola).
+- [x] **`ZConfirmDialog` 100 % adaptativo** (lo usan ~45 pantallas) y `ZModal` migrados: todas
+      las confirmaciones de la app pasan a hoja en teléfono sin tocar cada página.
+- [x] Tests: `test/z_responsive_dialog_test.dart` (5).
+
+**Pendiente**:
+
+- [ ] Migrar los 28 `AlertDialog` directos de páginas a `ZResponsiveDialog`/`showZAdaptiveDialog`.
 - [ ] Formularios de 2–3 columnas → una columna con secciones colapsables.
-- [ ] Inputs móviles: teclados numéricos, `textInputAction`, autofoco ordenado, date pickers.
+- [ ] Inputs móviles: teclados numéricos, `textInputAction`, autofoco ordenado.
 - [ ] POS en teléfono: carrito como sheet persistente, scanner como FAB.
 - [ ] Kanban (columnas de 280) → lista vertical agrupada por etapa en teléfono.
 

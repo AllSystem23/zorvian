@@ -10,8 +10,8 @@ class ZModal {
     Future<bool> Function()? onConfirm,
     Color? confirmColor,
   }) {
-    return showDialog<T>(
-      context: context,
+    return showZAdaptiveDialog<T>(
+      context,
       barrierDismissible: false,
       builder: (ctx) => _ZModalContent(
         title: title,
@@ -88,10 +88,10 @@ final class _ZModalContentState extends State<_ZModalContent> {
   Widget build(BuildContext context) {
     final hasConfirm = widget.confirmText != null;
     final hasCancel = widget.cancelText != null;
-    return AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ZRadii.xl)),
-      title: Text(widget.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-      content: widget.child,
+    return ZResponsiveDialog(
+      title: widget.title,
+      maxWidth: 560,
+      showCloseButton: false,
       actions: [
         if (hasCancel)
           TextButton(
@@ -109,6 +109,7 @@ final class _ZModalContentState extends State<_ZModalContent> {
                 : Text(widget.confirmText!),
           ),
       ],
+      child: widget.child,
     );
   }
 

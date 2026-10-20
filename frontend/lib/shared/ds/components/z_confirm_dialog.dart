@@ -23,6 +23,9 @@ class ZConfirmDialog extends StatelessWidget {
   });
 
   /// Shows a confirm dialog and returns true if confirmed.
+  ///
+  /// En teléfono se presenta como hoja inferior a pantalla completa
+  /// (`showZAdaptiveDialog`), no como `AlertDialog` angosto.
   static Future<bool> show(
     BuildContext context, {
     required String title,
@@ -33,8 +36,8 @@ class ZConfirmDialog extends StatelessWidget {
     Color? confirmColor,
     bool isDestructive = false,
   }) async {
-    final result = await showDialog<bool>(
-      context: context,
+    final result = await showZAdaptiveDialog<bool>(
+      context,
       builder: (_) => ZConfirmDialog(
         title: title,
         message: message,
@@ -53,10 +56,11 @@ class ZConfirmDialog extends StatelessWidget {
     final theme = Theme.of(context);
     final effectiveConfirmColor = confirmColor ?? (isDestructive ? ZColors.danger : theme.colorScheme.primary);
 
-    return AlertDialog(
-      icon: icon != null ? Icon(icon, size: 32, color: effectiveConfirmColor) : null,
-      title: Text(title),
-      content: Text(message),
+    return ZResponsiveDialog(
+      icon: icon,
+      iconColor: effectiveConfirmColor,
+      title: title,
+      maxWidth: 460,
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
@@ -70,6 +74,14 @@ class ZConfirmDialog extends StatelessWidget {
           child: Text(confirmLabel),
         ),
       ],
+      child: Text(
+        message,
+        style: ZTypography.bodyMedium.copyWith(
+          color: theme.brightness == Brightness.dark
+              ? ZColors.neutral300
+              : ZColors.neutral600,
+        ),
+      ),
     );
   }
 }
