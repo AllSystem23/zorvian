@@ -19,12 +19,13 @@
 | `08090fc` | Fase 2 (diálogos) — 28 `AlertDialog` de páginas → `showZAdaptiveDialog`/`ZResponsiveDialog` + `ZConfirmDialog` |
 | `1ac638e` | Fase 2 (formularios) — `ResponsiveFormRow` y campos en una columna en teléfono |
 | `3d928e9` | Fase 2/5.5 — `ZPageHeader` adaptativo + `test/helpers/viewport.dart` (`pumpAt`) |
+| `46e6e9c` | Fase 3/5.5 — barrido a 360 px: `isExpanded` en 65 dropdowns, `BiPieChart` con leyenda debajo, tarjetas de plan flexibles |
 
 **Próximos pasos sugeridos** (en orden de valor):
 
-1. Barrido de ~30 rutas top a 360/390/430 px con `pumpAcrossPhones` y corregir los overflows
-   que aparezcan (quedan los carritos de venta/cotización y las listas de flota).
-2. Dashboards (gráficos con `AspectRatio`/`LayoutBuilder`) y POS con carrito en hoja inferior.
+1. Seguir el barrido con los carritos de venta/cotización (nombre + cantidad + total + borrar en
+   una fila) y las pantallas de flota.
+2. Dashboards financiero y operacional, y POS con carrito en hoja inferior.
 
 ---
 
@@ -233,8 +234,15 @@ acción primaria siempre alcanzable.
       (icono 40 + padding 24 + chip de tendencia no caben en 158 px) y el monto se partía
       en dos líneas.
 - [x] Tests: `test/mobile_stat_cards_test.dart` (2, a 158 px con montos de 7 cifras).
-- [ ] Gráficos con `LayoutBuilder` + `AspectRatio` (sin alto fijo), donut con leyenda debajo,
-      gauge escalado, `RepaintBoundary` y lectura de valores por tap.
+- [x] **`BiPieChart` adaptativo**: en tarjetas angostas (`< size + 140`, el caso de un dashboard a
+      2 columnas en teléfono) la **leyenda baja debajo de la dona** y la dona se limita al ancho
+      disponible (`math.min(size, maxWidth)`). Antes la leyenda quedaba con ~30 px de ancho y
+      desbordaba 42 px. Probado a 202 px (teléfono) y 520 px (escritorio).
+- [x] **`BiBarChart` (horizontal y vertical), `BiLineChart` y `BiGauge`** verificados a 202 px:
+      no desbordan (los ejes con `reservedSize` y el gauge en una tarjeta de 160×140).
+- [x] Tests: `test/bi_charts_mobile_test.dart` (5) y el dashboard poblado a 360 px en
+      `test/dashboard_page_test.dart`.
+- [ ] Gráficos con `AspectRatio` (sin alto fijo), `RepaintBoundary` y lectura de valores por tap.
 - [ ] Secciones de dashboard como tarjetas full width con "Ver todo".
 - [x] Tabla "Comparativo por Sucursal" → tarjetas en teléfono. Se resolvió en el componente:
       `ZDataTable` detecta **altura no acotada** (cuando vive dentro de un `ListView`/`Column`,
@@ -304,8 +312,17 @@ acción primaria siempre alcanzable.
       en 1 (para que `physicalSize` sea el tamaño lógico), restaura la vista con
       `addTearDown(tester.view.reset)` y `pumpAcrossPhones` recorre los tres anchos fallando con
       el ancho en el mensaje. Un `RenderFlex overflow` ya hace fallar el test automáticamente.
-- [ ] Golden/overflow de 5 pantallas × 3 anchos.
-- [ ] Barrido de ~30 rutas top a 360 px que falla ante cualquier `RenderFlex overflow`.
+- [x] Paginas completas a 360/390/430 px: `test/mobile_pages_smoke_test.dart` (invitación,
+      reportes personalizados, garantías y asistente IA) y casos de 360 px en roles, usuarios,
+      planes de suscripción y dashboard.
+- [x] **Dropdowns**: los 65 `DropdownButtonFormField` que no tenían `isExpanded: true` lo ganaron
+      (`z_select` incluido). Sin él, el texto del valor seleccionado ("Administrador de Empresa")
+      se pintaba a ancho intrínseco y **desbordaba 108 px** en un campo de 280 px en teléfono.
+      Verificado antes del cambio que ninguno es hijo directo de un `Row`/`Wrap` (todos viven en
+      `Column`/`Expanded`/`ListView`/`SizedBox`), así que `isExpanded` no puede recibir ancho
+      infinito.
+- [ ] Golden de 5 pantallas × 3 anchos.
+- [ ] Barrido del resto de rutas top a 360 px (carritos de venta/cotización, flota, BI completo).
 - [ ] Regresiones: "Más" activo fuera de hubs; selectores operativos en móvil.
 
 **Aceptación**: 0 overflows en la matriz 360/390/430 × `textScale` 1.0/1.3; cámara y
