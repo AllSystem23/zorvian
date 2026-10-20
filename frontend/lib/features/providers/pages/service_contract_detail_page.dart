@@ -65,15 +65,25 @@ class ServiceContractDetailPage extends ConsumerWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(milestone.name, style: ZTypography.labelLarge.copyWith(fontWeight: FontWeight.bold)),
+                              // `Expanded`: el nombre del hito + el chip no
+                              // caben a 360 px (desbordaban 75 px).
+                              Expanded(
+                                child: Text(milestone.name, style: ZTypography.labelLarge.copyWith(fontWeight: FontWeight.bold)),
+                              ),
+                              const SizedBox(width: 8),
                               ZBadge(text: milestone.status),
                             ],
                           ),
                           const SizedBox(height: ZSpacing.sm),
                           Text(milestone.description ?? '', style: ZTypography.bodySmall),
                           const Divider(height: ZSpacing.lg),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          // `Wrap`: el monto + "Aprobar Hito" desbordaban
+                          // 164 px a 360 px.
+                          Wrap(
+                            alignment: WrapAlignment.spaceBetween,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            spacing: 12,
+                            runSpacing: 8,
                             children: [
                               Text('Monto: ${milestone.amount} ${contract.currency}'),
                               if (milestone.status == 'pending')

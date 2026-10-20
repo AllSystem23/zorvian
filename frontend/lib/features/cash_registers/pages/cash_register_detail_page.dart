@@ -178,33 +178,36 @@ final class _CashRegisterDetailPageState extends ConsumerState<CashRegisterDetai
             padding: const EdgeInsets.all(24),
             child: Column(
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(d['code'] ?? '', style: ZTypography.headlineMedium.copyWith(fontWeight: FontWeight.bold)),
-                              const SizedBox(width: 12),
-                              ZBadge(
-                                text: d['status']?.toString().toUpperCase() ?? '',
-                                type: isOpen ? ZBadgeType.success : ZBadgeType.neutral,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Abierta el ${(d['openedAt'] as String?)?.substring(0, 16).replaceFirst('T', ' ') ?? ''}',
-                            style: ZTypography.bodySmall.copyWith(color: ZColors.neutral500),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
+                // A 360 px el bloque de identidad (código + chip) y el saldo
+                // esperado no caben lado a lado (desbordaban 108 px): se
+                // apilan. Por encima de 600 px se conserva la fila original.
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final compact = constraints.maxWidth < 600;
+                    final identity = Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text(d['code'] ?? '', style: ZTypography.headlineMedium.copyWith(fontWeight: FontWeight.bold)),
+                            ZBadge(
+                              text: d['status']?.toString().toUpperCase() ?? '',
+                              type: isOpen ? ZBadgeType.success : ZBadgeType.neutral,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Abierta el ${(d['openedAt'] as String?)?.substring(0, 16).replaceFirst('T', ' ') ?? ''}',
+                          style: ZTypography.bodySmall.copyWith(color: ZColors.neutral500),
+                        ),
+                      ],
+                    );
+                    final balance = Column(
+                      crossAxisAlignment: compact ? CrossAxisAlignment.start : CrossAxisAlignment.end,
                       children: [
                         Text('SALDO ESPERADO', style: ZTypography.labelSmall.copyWith(color: ZColors.neutral500)),
                         Text(
@@ -212,8 +215,25 @@ final class _CashRegisterDetailPageState extends ConsumerState<CashRegisterDetai
                           style: ZTypography.headlineSmall.copyWith(fontWeight: FontWeight.bold, color: ZColors.brandPrimary),
                         ),
                       ],
-                    ),
-                  ],
+                    );
+                    if (compact) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          identity,
+                          const SizedBox(height: 12),
+                          balance,
+                        ],
+                      );
+                    }
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: identity),
+                        balance,
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 24),
                 ResponsiveGrid(
@@ -267,8 +287,13 @@ final class _CashRegisterDetailPageState extends ConsumerState<CashRegisterDetai
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // `Wrap`: "Libro de Movimientos" (titleLarge) + "Nuevo Movimiento"
+          // no caben en una fila a 360 px (desbordaba 13 px).
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 8,
             children: [
               Text('Libro de Movimientos', style: ZTypography.titleLarge),
               if (_data?['status'] == 'open')
@@ -409,7 +434,12 @@ final class _CashRegisterDetailPageState extends ConsumerState<CashRegisterDetai
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Resultado del Arqueo', style: ZTypography.titleLarge),
+                    // `Expanded`: el título + el chip no caben en una fila a
+                    // 360 px (desbordaban 124 px).
+                    Expanded(
+                      child: Text('Resultado del Arqueo', style: ZTypography.titleLarge),
+                    ),
+                    const SizedBox(width: 8),
                     ZBadge(text: 'COMPLETADO', type: ZBadgeType.success),
                   ],
                 ),
@@ -430,13 +460,18 @@ final class _CashRegisterDetailPageState extends ConsumerState<CashRegisterDetai
                       children: [
                         Icon(d['denominationType'] == 'bill' ? Icons.money : Icons.copyright, size: 16, color: ZColors.neutral400),
                         const SizedBox(width: 12),
-                        Text(
-                          d['denominationType'] == 'bill' ? 'Billete C\$ ${(d['denominationValue'] as num).toStringAsFixed(2)}' : 'Moneda C\$ ${(d['denominationValue'] as num).toStringAsFixed(2)}',
-                          style: ZTypography.bodyMedium,
+                        // `Expanded` en vez de `Spacer`: la etiqueta
+                        // "Billete C$ 1000.00" + cantidad + total no caben a
+                        // 360 px (desbordaban 126 px).
+                        Expanded(
+                          child: Text(
+                            d['denominationType'] == 'bill' ? 'Billete C\$ ${(d['denominationValue'] as num).toStringAsFixed(2)}' : 'Moneda C\$ ${(d['denominationValue'] as num).toStringAsFixed(2)}',
+                            style: ZTypography.bodyMedium,
+                          ),
                         ),
-                        const Spacer(),
+                        const SizedBox(width: 8),
                         Text('x${d['quantity']}', style: ZTypography.monoMedium),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 12),
                         Text('C\$ ${(d['total'] as num).toStringAsFixed(2)}', style: ZTypography.titleSmall),
                       ],
                     ),
@@ -452,14 +487,27 @@ final class _CashRegisterDetailPageState extends ConsumerState<CashRegisterDetai
   Widget _row(String label, String value, {bool bold = false, Color? color}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
+      // Etiqueta + valor en `Expanded`: con `spaceBetween` los montos
+      // desbordaban en teléfono (hasta 139 px).
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: ZTypography.bodyMedium.copyWith(color: ZColors.neutral500)),
-          Text(value, style: ZTypography.bodyLarge.copyWith(
-            fontWeight: bold ? FontWeight.bold : FontWeight.normal,
-            color: color,
-          )),
+          Expanded(
+            flex: 4,
+            child: Text(label, style: ZTypography.bodyMedium.copyWith(color: ZColors.neutral500)),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 6,
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: ZTypography.bodyLarge.copyWith(
+                fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+                color: color,
+              ),
+            ),
+          ),
         ],
       ),
     );

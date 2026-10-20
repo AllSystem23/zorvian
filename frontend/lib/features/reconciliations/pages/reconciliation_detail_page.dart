@@ -31,14 +31,17 @@ final class _ReconciliationDetailPageState extends ConsumerState<ReconciliationD
                     style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
                   ),
                   const SizedBox(height: 12),
-                  Row(
+                  // `Wrap`: los dos botones de importación no caben en una
+                  // fila a 360 px (desbordaban 176 px).
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
                     children: [
                       OutlinedButton.icon(
                         onPressed: _importFile,
                         icon: const Icon(Icons.upload_file),
                         label: const Text('Subir CSV'),
                       ),
-                      const SizedBox(width: 12),
                       OutlinedButton.icon(
                         onPressed: _runAutoMatch,
                         icon: const Icon(Icons.auto_fix_high),

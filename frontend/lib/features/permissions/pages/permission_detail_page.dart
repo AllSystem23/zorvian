@@ -157,7 +157,12 @@ class _PermissionDetailPageState extends ConsumerState<PermissionDetailPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(p['leaveTypeName'] as String? ?? '', style: theme.textTheme.titleLarge),
+                    // `Expanded`: el nombre del tipo de permiso + el chip de
+                    // estado no caben en una fila a 360 px.
+                    Expanded(
+                      child: Text(p['leaveTypeName'] as String? ?? '', style: theme.textTheme.titleLarge),
+                    ),
+                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(

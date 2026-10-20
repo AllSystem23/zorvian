@@ -118,10 +118,13 @@ class _DocumentDetailPageState extends ConsumerState<DocumentDetailPage> {
                   children: [
                     Text(d.name, style: ZTypography.titleMedium),
                     const SizedBox(height: 4),
-                    Row(
+                    // `Wrap`: los dos chips (entidad + estado) no caben en
+                    // una fila a 360 px en documentos con entidad larga.
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
                       children: [
                         ZBadge(text: d.entityType.toUpperCase(), type: ZBadgeType.info),
-                        const SizedBox(width: 8),
                         ZBadge(text: d.status.statusLabel, type: _badgeType(d.status)),
                       ],
                     ),
@@ -135,7 +138,9 @@ class _DocumentDetailPageState extends ConsumerState<DocumentDetailPage> {
           const SizedBox(height: 16),
           _infoRow('Plantilla', d.templateName ?? '—'),
           _infoRow('Creado', '${d.createdAt.day}/${d.createdAt.month}/${d.createdAt.year}'),
-          _infoRow('ID', d.id.substring(0, 8).toUpperCase()),
+          // Ids reales son GUID (36 caracteres); el `substring(0, 8)` lanzaba
+          // `RangeError` con ids cortos (fixtures, datos importados).
+          _infoRow('ID', (d.id.length > 8 ? d.id.substring(0, 8) : d.id).toUpperCase()),
         ],
       ),
     );

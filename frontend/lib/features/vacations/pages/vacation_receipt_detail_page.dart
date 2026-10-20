@@ -112,7 +112,12 @@ class _VacationReceiptDetailPageState extends ConsumerState<VacationReceiptDetai
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Neto a Pagar:', style: theme.textTheme.titleMedium),
+                        // `Expanded`: "Neto a Pagar:" + el monto no caben a
+                        // 360 px (desbordaba 53 px).
+                        Expanded(
+                          child: Text('Neto a Pagar:', style: theme.textTheme.titleMedium),
+                        ),
+                        const SizedBox(width: 12),
                         Text(
                           ZFormatters.currency(r.netPay, currencyCode: r.currency),
                           style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),

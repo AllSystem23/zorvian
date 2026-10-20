@@ -33,7 +33,12 @@ class OpportunityDetailPage extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(opp.title, style: Theme.of(context).textTheme.titleLarge),
+                // `Expanded`: el título + las acciones de editar y eliminar
+                // no caben en una fila a 360 px.
+                Expanded(
+                  child: Text(opp.title, style: Theme.of(context).textTheme.titleLarge),
+                ),
+                const SizedBox(width: 8),
                 Row(
                   children: [
                     IconButton(

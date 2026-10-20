@@ -45,7 +45,12 @@ class _LeadDetailPageState extends ConsumerState<LeadDetailPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(lead.fullName, style: Theme.of(context).textTheme.titleLarge),
+                // `Expanded`: el nombre completo + las acciones de editar y
+                // eliminar no caben en una fila a 360 px.
+                Expanded(
+                  child: Text(lead.fullName, style: Theme.of(context).textTheme.titleLarge),
+                ),
+                const SizedBox(width: 8),
                 Row(
                   children: [
                     IconButton(

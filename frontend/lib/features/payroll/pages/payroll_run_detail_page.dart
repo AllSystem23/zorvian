@@ -81,12 +81,19 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
                         ),
                       ],
                       const SizedBox(height: 32),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      // `Wrap`: "Detalle por Trabajador" + los botones de
+                      // exportación no caben en una fila a 360 px (desbordaba
+                      // 246 px); el grupo de botones baja de línea.
+                      Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 12,
+                        runSpacing: 8,
                         children: [
                           Text('Detalle por Trabajador', style: ZTypography.titleLarge),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
                             children: [
                               ZButton(
                                 text: 'Planilla de Pago (PDF)',
@@ -96,7 +103,6 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
                                 fullWidth: false,
                               ),
                               if (_run!['status'] == 'approved') ...[
-                                const SizedBox(width: 8),
                                 ZButton(
                                   text: 'Exportar ACH',
                                   onPressed: _exportAch,
@@ -129,7 +135,11 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
                                 DataCell(Text('C\$ ${(d['baseSalary'] as num?)?.toStringAsFixed(2) ?? '0.00'}')),
                                 DataCell(Text('C\$ ${(d['inssDeduction'] as num?)?.toStringAsFixed(2) ?? '0.00'}')),
                                 DataCell(Text('C\$ ${(d['irDeduction'] as num?)?.toStringAsFixed(2) ?? '0.00'}')),
-                                DataCell(Row(
+                                // `Wrap`: el neto + el botón de colilla (y el
+                                // de editar en borrador) no caben en la celda
+                                // a 360 px (desbordaban 29 px).
+                                DataCell(Wrap(
+                                  crossAxisAlignment: WrapCrossAlignment.center,
                                   children: [
                                     Text('C\$ ${(d['netPay'] as num?)?.toStringAsFixed(2) ?? '0.00'}', style: const TextStyle(fontWeight: FontWeight.bold, color: ZColors.brandPrimary)),
                                     IconButton(
@@ -177,7 +187,12 @@ class _PayrollRunDetailPageState extends ConsumerState<PayrollRunDetailPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Resumen de Nómina', style: ZTypography.titleLarge),
+            // `Expanded`: el título en `titleLarge` + el badge no caben a
+            // 360 px (desbordaba 73 px).
+            Expanded(
+              child: Text('Resumen de Nómina', style: ZTypography.titleLarge),
+            ),
+            const SizedBox(width: 8),
             ZBadge(text: label.toUpperCase(), type: ZBadgeType.neutral),
           ],
         ),

@@ -64,8 +64,13 @@ class ProviderDetailPage extends ConsumerWidget {
               const SizedBox(height: ZSpacing.xl),
               
               // Contratos
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              // `Wrap`: el título + "Nuevo Contrato" no caben en una fila a
+              // 360 px (desbordaban 186 px); el botón baja de línea.
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 12,
+                runSpacing: 8,
                 children: [
                   Text('Contratos de Servicios', style: ZTypography.titleMedium),
                   ZButton(
@@ -88,12 +93,18 @@ class ProviderDetailPage extends ConsumerWidget {
                         itemBuilder: (context, index) {
                           final contract = contracts[index];
                           return ZCard(
-                            child: ListTile(
-                              leading: const Icon(Icons.description_outlined),
-                              title: Text(contract.contractName),
-                              subtitle: Text('Monto: ${contract.totalContractAmount} ${contract.currency}'),
-                              trailing: ZBadge(text: contract.status),
-                              onTap: () => context.push('/providers/contracts/${contract.id}'),
+                            // `Material` transparente: `ListTile` dentro de
+                            // `ZCard` (DecoratedBox) dispara el assert de ink
+                            // splashes en debug.
+                            child: Material(
+                              type: MaterialType.transparency,
+                              child: ListTile(
+                                leading: const Icon(Icons.description_outlined),
+                                title: Text(contract.contractName),
+                                subtitle: Text('Monto: ${contract.totalContractAmount} ${contract.currency}'),
+                                trailing: ZBadge(text: contract.status),
+                                onTap: () => context.push('/providers/contracts/${contract.id}'),
+                              ),
                             ),
                           );
                         },
