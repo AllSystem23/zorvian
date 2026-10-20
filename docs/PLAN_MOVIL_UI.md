@@ -1,6 +1,6 @@
 # Plan de UI móvil (teléfonos) — Zorvian ERP
 
-> **Estado**: Fase 0 ✅ · Fase 1 ✅ · Fase 2 (fundaciones + kanban + diálogos + formularios) ✅ · Fase 3 en curso · Fase 5.1 ✅ · **Fecha**: 2026-10-20
+> **Estado**: Fase 0 ✅ · Fase 1 ✅ · Fase 2 (fundaciones + kanban + diálogos + formularios) ✅ · Fase 3 ✅ · Fase 5.1 ✅ · **Fecha**: 2026-10-20
 > **Alcance**: capa de presentación Flutter (`frontend/`). Sin cambios de negocio ni de backend.
 > **Objetivo**: que un usuario pueda operar el ERP completo desde un teléfono de 360–430 px,
 > sin scroll horizontal, sin overflows y con acciones primarias alcanzables con una mano.
@@ -22,12 +22,14 @@
 | `46e6e9c` | Fase 3/5.5 — barrido a 360 px: `isExpanded` en 65 dropdowns, `BiPieChart` con leyenda debajo, tarjetas de plan flexibles |
 | `661d091` | Docs del barrido a 360 px |
 | `46323ba` | Fase 4 — `ZCartLine` adaptativo en carritos de venta y cotización |
+| `03f7c8c` | Docs del carrito de línea |
+| `93621ff` | Fase 3 — dashboards BI financiero y operacional a 360 px (`BiGauge` adaptativo, charts sin alto fijo, anomalías) |
 
 **Próximos pasos sugeridos** (en orden de valor):
 
 1. Seguir el barrido con las pantallas de flota (listas, GPS a pantalla completa con hoja de
    parada) y los listados que aún no se montaron a 360 px.
-2. Dashboards financiero y operacional, y POS con carrito en hoja inferior.
+2. POS con carrito en hoja inferior.
 
 ---
 
@@ -242,7 +244,8 @@ acción primaria siempre alcanzable.
       desbordaba 42 px. Probado a 202 px (teléfono) y 520 px (escritorio).
 - [x] **`BiBarChart` (horizontal y vertical), `BiLineChart` y `BiGauge`** verificados a 202 px:
       no desbordan (los ejes con `reservedSize` y el gauge en una tarjeta de 160×140).
-- [x] Tests: `test/bi_charts_mobile_test.dart` (5) y el dashboard poblado a 360 px en
+- [x] Tests: `test/bi_charts_mobile_test.dart` (7: los 5 del barrido anterior + gauge en la
+      tarjeta de 80×80 y sin alto acotado) y el dashboard poblado a 360 px en
       `test/dashboard_page_test.dart`.
 - [ ] Gráficos con `AspectRatio` (sin alto fijo), `RepaintBoundary` y lectura de valores por tap.
 - [ ] Secciones de dashboard como tarjetas full width con "Ver todo".
@@ -253,6 +256,25 @@ acción primaria siempre alcanzable.
       "RenderFlex children have non-zero flex but incoming height constraints are unbounded".
 - [ ] Botón "Reporte PDF" a `PopupMenu` si no cabe en el `Row` (medido a 360 px: el botón cabe
       y el título del dashboard hace wrap, así que no hace falta).
+- [x] **Dashboards financiero y operacional a 360 px** (`test/bi_dashboards_mobile_test.dart`):
+      - **`BiGauge`**: la dona era fija de 72×72 y en la tarjeta de **80×80** que calcula el
+        dashboard a 4 columnas (`(ancho − 48) / 4`, mínimo 80) el alto disponible es ~37 px, así
+        que **desbordaba 9 px en las 7 tarjetas**. Ahora usa `LayoutBuilder`: el diámetro se
+        calcula del ancho y del alto reales (mínimo 24) y el valor central escala con `FittedBox`.
+        Funciona con alto acotado y sin acotar (dentro de un `ListView`).
+      - **Barra de "Cuentas por Cobrar"/"por Pagar"**: `SizedBox(height: 150)` alrededor de un
+        `BiBarChart` que ya trae su propio alto + padding → **40 px de desborde**. Se usa el
+        parámetro `height:` del chart y se elimina el `SizedBox`.
+      - **Pie de flujo de caja / inventario por categoría**: `SizedBox(height: 200)` con la leyenda
+        ya debajo de la dona → **52 px de desborde**. Se elimina el `SizedBox` y la tarjeta crece
+        lo que necesite.
+      - **`AnomalyDetectionSection`**: la frase del estado vacío iba en un `Row` sin `Expanded` y
+        **desbordaba 668 px**; el número de asiento pasa a `Expanded` + ellipsis.
+- [x] Tests del barrido de dashboards: `test/bi_dashboards_mobile_test.dart` (4: financiero,
+      operacional y la sección de anomalías vacía y con anomalías). Los dashboards se montan con
+      **alto 4000** para que el `ListView` construya todas las secciones: con el alto real de un
+      teléfono solo se montan las primeras y los overflows del final pasan desapercibidos.
+      El `Timer.periodic` del `AutoRefreshMixin` se cancela desmontando el árbol al final.
 
 **Aceptación**: dashboard ejecutivo y comercial legibles a 360 px, 2 KPIs por fila, 0 overflows.
 
@@ -340,7 +362,7 @@ acción primaria siempre alcanzable.
       `Column`/`Expanded`/`ListView`/`SizedBox`), así que `isExpanded` no puede recibir ancho
       infinito.
 - [ ] Golden de 5 pantallas × 3 anchos.
-- [ ] Barrido del resto de rutas top a 360 px (flota, BI completo, dashboards financiero y operacional).
+- [ ] Barrido del resto de rutas top a 360 px (flota, reportes y catálogos que aún no se montaron).
 - [ ] Regresiones: "Más" activo fuera de hubs; selectores operativos en móvil.
 
 **Aceptación**: 0 overflows en la matriz 360/390/430 × `textScale` 1.0/1.3; cámara y
