@@ -26,6 +26,18 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- Permisos de iOS. Sin estas claves el sistema cierra la app en cuanto se
+	     pide el recurso (cámara, fotos, ubicación o Face ID). -->
+	<key>NSCameraUsageDescription</key>
+	<string>Zorvian ERP usa la cámara para escanear el código QR de asistencia y tomar la foto de marcación.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Zorvian ERP accede a tus fotos para adjuntar documentos y comprobantes.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Zorvian ERP guarda comprobantes y reportes en tu galería cuando lo solicitas.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Zorvian ERP usa tu ubicación mientras la app está abierta para validar que la marcación de asistencia se realiza en la sucursal.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Zorvian ERP usa Face ID para confirmar tu identidad al marcar asistencia o iniciar sesión.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

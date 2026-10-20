@@ -178,16 +178,22 @@ acción primaria siempre alcanzable.
 
 ## 7. Fase 5 — Calidad móvil (P1/P2)
 
-### 7.1 Plataforma
+### 7.1 Plataforma ✅ (parcial)
 
-- [ ] `AndroidManifest.xml` (main): `INTERNET`, `CAMERA`, `POST_NOTIFICATIONS`;
-      `ACCESS_FINE_LOCATION` si el GPS es en primer plano. **`INTERNET` es bloqueante para release**
-      (hoy solo existe en `debug/` y `profile/`).
-- [ ] `Info.plist`: `NSCameraUsageDescription`, `NSPhotoLibraryUsageDescription`,
+- [x] `AndroidManifest.xml` (main): `INTERNET` + `ACCESS_NETWORK_STATE` (**bloqueante de release**:
+      solo existían en `debug/` y `profile/`), `CAMERA` + `<uses-feature camera required="false">`,
+      `ACCESS_FINE/COARSE_LOCATION` (GPS solo en primer plano), `POST_NOTIFICATIONS` y
+      `USE_BIOMETRIC`. No se declara el micrófono: la cámara se abre con `enableAudio: false`.
+- [x] `Info.plist`: `NSCameraUsageDescription`, `NSPhotoLibraryUsageDescription`,
       `NSPhotoLibraryAddUsageDescription`, `NSLocationWhenInUseUsageDescription`,
-      `NSFaceIDUsageDescription`.
+      `NSFaceIDUsageDescription` (textos en español, con el motivo real de cada permiso).
+- [x] **Bloqueante corregido**: `MainActivity` pasó de `FlutterActivity` a
+      `FlutterFragmentActivity`. `local_auth` usa `BiometricPrompt`, que exige una
+      `FragmentActivity`; con `FlutterActivity` la biometría fallaba con
+      `PlatformException(no_fragment_activity)` en Android.
 - [ ] Orientación: portrait en captura (asistencia, QR, firma).
-- [ ] `applicationId` → `com.zorvian.erp` **antes** de publicar.
+- [ ] `applicationId` → `com.zorvian.erp` **antes** de publicar (hoy `com.nexora.nexora`;
+      cambiarlo exige coordinar `build.gradle`, Firebase y las tiendas).
 - [ ] `PopScope` en formularios con cambios sin guardar.
 - [ ] Deep links de recuperación de contraseña e invitaciones.
 

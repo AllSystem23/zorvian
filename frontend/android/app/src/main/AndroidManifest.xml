@@ -1,4 +1,26 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Red. Solo venía en los manifests de debug/profile: sin esto el build de
+         release no puede llamar a la API. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+
+    <!-- Cámara: escaneo del QR de asistencia (mobile_scanner) y foto de marcación
+         (camera con enableAudio: false, por eso no se declara el micrófono). -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
+
+    <!-- Ubicación en primer plano para validar el check-in en la sucursal
+         (la app nunca pide permiso en segundo plano). -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+
+    <!-- Notificaciones (obligatorio desde Android 13 / API 33). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
+    <!-- Biometría para el marcaje y el desbloqueo (local_auth). -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
+
     <application
         android:label="Zorvian ERP"
         android:name="${applicationName}"
