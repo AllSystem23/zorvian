@@ -39,14 +39,24 @@ class ProviderListPage extends ConsumerWidget {
             ),
             const SizedBox(height: ZSpacing.xl),
             
+            // `Expanded` en el título (con `spaceBetween` el texto no es
+            // flexible y desbordaba a 360 px) y `fullWidth: false` en el botón:
+            // `ZButton` ocupa todo el ancho disponible y dentro de un `Row`
+            // recibe una restricción de ancho infinita.
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Lista de Prestadores Externos', style: ZTypography.titleLarge),
+                Expanded(
+                  child: Text(
+                    'Lista de Prestadores Externos',
+                    style: ZTypography.titleLarge,
+                  ),
+                ),
+                const SizedBox(width: ZSpacing.sm),
                 ZButton(
                   text: 'Nuevo Prestador',
                   onPressed: () => context.push('/providers/new'),
                   icon: Icons.add,
+                  fullWidth: false,
                 ),
               ],
             ),

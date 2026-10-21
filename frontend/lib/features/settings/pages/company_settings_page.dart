@@ -161,11 +161,16 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
         Text('Facturación / IVA',
             style: const TextStyle(fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
-        SwitchListTile(
-          title: const Text('Aplicar IVA'),
-          value: _taxEnabled,
-          onChanged: (v) => setState(() => _taxEnabled = v),
-          contentPadding: EdgeInsets.zero,
+        // `Material` transparente: `SwitchListTile` dentro de `ZCard`
+        // (DecoratedBox) dispara el assert de ink splashes en debug.
+        Material(
+          type: MaterialType.transparency,
+          child: SwitchListTile(
+            title: const Text('Aplicar IVA'),
+            value: _taxEnabled,
+            onChanged: (v) => setState(() => _taxEnabled = v),
+            contentPadding: EdgeInsets.zero,
+          ),
         ),
         if (_taxEnabled)
           ZTextField(

@@ -40,6 +40,7 @@
 | `58899e4` | Fase 3 - aprobaciones, reportes personalizados, perfil, onboarding, chat, predicciones, garantías, años fiscales, kiosco y QR a 360 px |
 | `5fe6d86` | Fase 3 - listados de catálogo, operativos y de flota a 360 px (7 + 8 + 10 casos, 6 overflows) |
 | `34cc8ff` | Fase 3 - dashboards y paneles a 360 px (9 casos, 1 bug y 4 overflows) |
+| (este lote) | Fase 3 - prestadores de servicios y ajustes a 360 px (7 casos, 1 excepción, 5 overflows) |
 
 **Próximos pasos sugeridos** (en orden de valor):
 
@@ -577,6 +578,27 @@ acción primaria siempre alcanzable.
       - **Inventario es offline-first**: `InventoryDashboardPage` solo `ref.watch(productProvider)`, así
         que se siembra el `AppDatabase` en memoria (`upsertProduct`) con conectividad fija en `offline`
         y un bootstrap que dispara `productProvider.notifier.load()`.
+- [x] **Prestadores de servicios y ajustes a 360 px** (`test/providers_settings_pages_mobile_test.dart`,
+      7 casos): lista, dashboard, contratos y facturas de prestadores + `CompanySettingsPage`,
+      `LeaveTypesPage` y `LeaveTypeFormPage`. Todo se sirve por `FakeApi.routes(...)` (el feature entero
+      pasa por `ProviderRepository`/`dioClientProvider`). Hallazgos:
+      - **`ProviderListPage` — `BoxConstraints forces an infinite width`** (excepción de layout, no
+        overflow): el `Row(spaceBetween)` metía un `ZButton` con su `fullWidth: true` por defecto, que
+        pide `width: Infinity` dentro de un `Row`. Ahora el título va en `Expanded` y el botón con
+        `fullWidth: false` (invariante ya documentada del design system).
+      - **`ProviderDashboardPage` — `Trailing widget consumes the entire tile width`**: la fila
+        `Row(flex: 2 / flex: 1)` de "Hitos por Estado" + "Top prestadores" dejaba la segunda columna con
+        ~57 px a 360 px. En teléfono los dos paneles se apilan (`if (width < ZBreakpoints.phone)`), en
+        escritorio se conserva la fila.
+      - **`ProviderDashboardPage` — 4 `Row` sin flexibles** (148 / 244 / 166 / 194 px): el encabezado
+        de "Contratos Recientes" (`spaceBetween` + `TextButton`), el de "Ranking de Prestadores"
+        (`Spacer` + `ZBadge`) y el de "Evolución de Scores" pasan a título `Expanded`; la leyenda del
+        gráfico (que vive en un `Wrap`, con ancho infinito) usa `ConstrainedBox(maxWidth: 220)` +
+        `Flexible` + ellipsis.
+      - **`CompanySettingsPage` — `ListTile background color or ink splashes may be invisible`**: el
+        `SwitchListTile` de "Aplicar IVA" dentro de `ZCard` no estaba envuelto en
+        `Material(type: MaterialType.transparency)` (la invariante aplica también a `SwitchListTile`,
+        no solo a `ListTile`).
 
 **Aceptación**: dashboard ejecutivo y comercial legibles a 360 px, 2 KPIs por fila, 0 overflows.
 

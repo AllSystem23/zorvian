@@ -138,14 +138,23 @@ class ProviderDashboardPage extends ConsumerWidget {
                     children: [
                       _buildKPIRow(data, fmt),
                       const SizedBox(height: 24),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(flex: 2, child: _buildMilestonesChart(data)),
-                          const SizedBox(width: 16),
-                          Expanded(flex: 1, child: _buildTopProviders(data, fmt)),
-                        ],
-                      ),
+                      // En teléfono los dos paneles van apilados: con el
+                      // `Row(flex: 2 / flex: 1)` la columna de "Top
+                      // prestadores" quedaba con ~57 px y el `trailing` del
+                      // `ListTile` consumía todo el ancho del tile.
+                      if (MediaQuery.sizeOf(context).width < ZBreakpoints.phone) ...[
+                        _buildMilestonesChart(data),
+                        const SizedBox(height: 16),
+                        _buildTopProviders(data, fmt),
+                      ] else
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(flex: 2, child: _buildMilestonesChart(data)),
+                            const SizedBox(width: 16),
+                            Expanded(flex: 1, child: _buildTopProviders(data, fmt)),
+                          ],
+                        ),
                       const SizedBox(height: 24),
                       _buildRecentContracts(data, fmt),
                       const SizedBox(height: 24),
@@ -351,9 +360,10 @@ class ProviderDashboardPage extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Contratos Recientes', style: ZTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+              Expanded(
+                child: Text('Contratos Recientes', style: ZTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+              ),
               TextButton(
                 onPressed: () {},
                 child: const Text('Ver todos'),
@@ -460,8 +470,10 @@ class ProviderDashboardPage extends ConsumerWidget {
                 children: [
                   const Icon(Icons.leaderboard_outlined, size: 20, color: ZColors.brandAccent),
                   const SizedBox(width: 8),
-                  Text('Ranking de Prestadores', style: ZTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
-                  const Spacer(),
+                  Expanded(
+                    child: Text('Ranking de Prestadores', style: ZTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(width: 8),
                   ZBadge(text: 'Promedio: $avgScore', type: ZBadgeType.info),
                 ],
               ),
@@ -508,7 +520,9 @@ class ProviderDashboardPage extends ConsumerWidget {
                 children: [
                   const Icon(Icons.show_chart, size: 20, color: ZColors.brandPrimary),
                   const SizedBox(width: 8),
-                  Text('Evolución de Scores (6 meses)', style: ZTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+                  Expanded(
+                    child: Text('Evolución de Scores (6 meses)', style: ZTypography.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -523,13 +537,25 @@ class ProviderDashboardPage extends ConsumerWidget {
                 children: seriesList.asMap().entries.map((entry) {
                   final idx = entry.key;
                   final s = entry.value;
-                  return Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(width: 12, height: 12, decoration: BoxDecoration(color: colors[idx % colors.length], borderRadius: BorderRadius.circular(2))),
-                      const SizedBox(width: 4),
-                      Text(s['businessName'] as String? ?? '', style: ZTypography.labelSmall),
-                    ],
+                  // `ConstrainedBox`: dentro de un `Wrap` el ítem recibe ancho
+                  // infinito, así que el nombre del prestador no podía ser
+                  // flexible y desbordaba la leyenda.
+                  return ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 220),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(width: 12, height: 12, decoration: BoxDecoration(color: colors[idx % colors.length], borderRadius: BorderRadius.circular(2))),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            s['businessName'] as String? ?? '',
+                            overflow: TextOverflow.ellipsis,
+                            style: ZTypography.labelSmall,
+                          ),
+                        ),
+                      ],
+                    ),
                   );
                 }).toList(),
               ),
