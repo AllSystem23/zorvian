@@ -91,37 +91,44 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                   Text('Generar Reporte', style: Theme.of(context).textTheme.titleMedium),
                   const SizedBox(height: 12),
                   Expanded(
-                    child: GridView.count(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: 1.5,
-                      children: [
-                        _ReportCard(
-                          icon: Icons.beach_access,
-                          label: 'Vacaciones',
-                          color: Colors.blue,
-                          onTap: () => _downloadReport('vacation'),
-                        ),
-                        _ReportCard(
-                          icon: Icons.event_note,
-                          label: 'Permisos',
-                          color: Colors.green,
-                          onTap: () => _downloadReport('permission'),
-                        ),
-                        _ReportCard(
-                          icon: Icons.access_time,
-                          label: 'Asistencia',
-                          color: Colors.orange,
-                          onTap: () => _downloadReport('attendance'),
-                        ),
-                        _ReportCard(
-                          icon: Icons.account_balance,
-                          label: 'Saldos',
-                          color: Colors.purple,
-                          onTap: () => _downloadReport('balance'),
-                        ),
-                      ],
+                    // `ZStatGrid`: en teléfono la rejilla usa `Wrap` con alto
+                    // intrínseco (con `childAspectRatio` cada tarjeta mide
+                    // ~105 px y el icono + etiqueta desbordan 70–93 px); desde
+                    // 600 px conserva el `GridView` con la relación 1.5.
+                    child: SingleChildScrollView(
+                      child: ZStatGrid(
+                        phoneColumns: 2,
+                        tabletColumns: 2,
+                        desktopColumns: 2,
+                        aspectRatio: 1.5,
+                        spacing: 12,
+                        children: [
+                          _ReportCard(
+                            icon: Icons.beach_access,
+                            label: 'Vacaciones',
+                            color: Colors.blue,
+                            onTap: () => _downloadReport('vacation'),
+                          ),
+                          _ReportCard(
+                            icon: Icons.event_note,
+                            label: 'Permisos',
+                            color: Colors.green,
+                            onTap: () => _downloadReport('permission'),
+                          ),
+                          _ReportCard(
+                            icon: Icons.access_time,
+                            label: 'Asistencia',
+                            color: Colors.orange,
+                            onTap: () => _downloadReport('attendance'),
+                          ),
+                          _ReportCard(
+                            icon: Icons.account_balance,
+                            label: 'Saldos',
+                            color: Colors.purple,
+                            onTap: () => _downloadReport('balance'),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],

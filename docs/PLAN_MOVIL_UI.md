@@ -34,11 +34,12 @@
 | `4667989` | Fase 3 — flujo de aprobación y liquidación final a 360 px |
 | `5794fcb` | Fase 3 — 23 detalles más (caja, nómina, CRM, documentos) a 360 px |
 | `5b23609` | Fase 3 — nómina, presupuestos y webhooks a 360 px: `ListTile` en `Material`, tarjetas de resumen apiladas, `_summaryRow` con `Expanded` y el drift test que vigila el `ZCard` |
+| (este lote) | Fase 3 — contabilidad, tesorería y reportes a 360 px: `ZButton` `fullWidth: false` dentro de `Row`, `_row` del estado de resultados con `Expanded` y `ZStatGrid` en el centro de reportes |
 
 **Próximos pasos sugeridos** (en orden de valor):
 
-1. Resto de formularios y detalles que aún no se montaron (liquidación, conciliaciones,
-   CRM lead/oportunidad, contratos de proveedor y las pantallas de detalle restantes).
+1. Resto de formularios y detalles que aún no se montaron (conciliaciones, CRM
+   lead/oportunidad, contratos de proveedor, PalmTrack y nómina de liquidación).
 2. Fase 5.3/5.4: rendimiento percibido (skeletons/paginación) y accesibilidad móvil.
 
 ---
@@ -413,6 +414,29 @@ acción primaria siempre alcanzable.
       estado de cuenta del cliente ×2, dashboard, detalle de permiso, ajustes de compañía,
       inventario y talleres). El segundo test del archivo monta un `ZCard` con `ListTile` y
       comprueba en runtime que no salta la excepción.
+- [x] **Contabilidad, tesorería y reportes a 360 px**
+      (`test/accounting_treasury_pages_mobile_test.dart`, 16 casos): catálogo de cuentas,
+      vínculos, períodos contables, años fiscales, balance de prueba, estado de resultados,
+      cambios en el patrimonio, comparativos, dashboard de tesorería, depósito / comisión /
+      transferencia / cobranza bancaria, emisión de cheques, centro de reportes y bitácora de
+      auditoría. Tres defectos, **uno de ellos rompía la pantalla en cualquier ancho**:
+      - **`ZButton` dentro de `Row` reventaba el layout**: `trial_balance_page` y
+        `income_statement_page` ponen el botón "Consultar" en la fila de filtros. `ZButton` es
+        `fullWidth: true` por defecto → `SizedBox(width: double.infinity)`, y en un `Row` el ancho
+        es ilimitado → *"RenderBox was not laid out"* / `hasSize` en cuanto se elegía un período
+        (no era un problema de móvil: pasaba también en escritorio). Ahora llevan
+        `fullWidth: false`.
+      - **`_row` del estado de resultados desbordaba 33 px**: `Row(spaceBetween)` con la etiqueta y
+        el monto; la etiqueta pasa a `Expanded` + ellipsis (mismo patrón que `_summaryRow` del
+        presupuesto vs real).
+      - **Centro de reportes con `GridView.count(childAspectRatio: 1.5)` desbordaba 70–93 px**:
+        a 360 px cada tarjeta mide ~158 × 105 px y el contenido (icono 40 + etiqueta, más el
+        padding 24 del `ZCard` y el 16 interno) necesita ~147 px. Se sustituye por `ZStatGrid`
+        (`Wrap` con alto intrínseco en teléfono, `GridView` con la relación 1.5 desde 600 px)
+        dentro de un `SingleChildScrollView`.
+      - **Los reportes contables se montan con datos**: el test selecciona el período en el
+        `ZSelect` y pulsa "Consultar" para que la tabla (`ZDataTable` → tarjetas en teléfono) y las
+        filas de totales se midan de verdad.
 
 **Aceptación**: dashboard ejecutivo y comercial legibles a 360 px, 2 KPIs por fila, 0 overflows.
 
@@ -512,8 +536,11 @@ acción primaria siempre alcanzable.
 - [x] **Drift del patrón `ZCard` + `ListTile`** (`zcard_list_tile_drift_test.dart`): escanea
       `lib/**/*.dart` y falla si un `ListTile` con `onTap` queda sin `Material` dentro de un `ZCard`
       (el `DecoratedBox` del `ZCard` escondería el ink splash y Flutter lanzaría el assert).
-- [ ] Barrido del resto de rutas top a 360 px (formularios de liquidación, conciliaciones,
-      CRM y las pantallas de detalle restantes).
+- [x] **Contabilidad, tesorería y reportes montados a 360/390/430 px**
+      (`accounting_treasury_pages_mobile_test.dart`, 16 casos, con los reportes consultados con
+      datos) — ver el barrido de Fase 3.
+- [ ] Barrido del resto de rutas top a 360 px (liquidación, conciliaciones, CRM, PalmTrack,
+      garantías y asistencia).
 - [ ] Regresiones: "Más" activo fuera de hubs; selectores operativos en móvil.
 
 **Aceptación**: 0 overflows en la matriz 360/390/430 × `textScale` 1.0/1.3; cámara y

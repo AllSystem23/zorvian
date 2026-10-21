@@ -69,10 +69,14 @@ final class _TrialBalancePageState extends ConsumerState<TrialBalancePage> {
                 ),
                 const SizedBox(width: ZSpacing.sm),
                 if (_selectedPeriodId != null)
+                  // `fullWidth: false`: dentro de un `Row` el ancho es
+                  // ilimitado y el `SizedBox(width: infinity)` del modo ancho
+                  // completo reventaba el layout (RenderBox sin tamaño).
                   ZButton(
                     text: 'Consultar',
                     onPressed: () => _loadTrialBalance(),
                     icon: Icons.search,
+                    fullWidth: false,
                   ),
               ],
             ),

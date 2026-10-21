@@ -69,10 +69,14 @@ final class _IncomeStatementPageState extends ConsumerState<IncomeStatementPage>
                 ),
                 const SizedBox(width: ZSpacing.sm),
                 if (_selectedPeriodId != null)
+                  // `fullWidth: false`: dentro de un `Row` el ancho es
+                  // ilimitado y el `SizedBox(width: infinity)` del modo ancho
+                  // completo reventaba el layout (RenderBox sin tamaño).
                   ZButton(
                     text: 'Consultar',
                     onPressed: () => _loadIncomeStatement(),
                     icon: Icons.search,
+                    fullWidth: false,
                   ),
               ],
             ),
@@ -117,12 +121,21 @@ final class _IncomeStatementPageState extends ConsumerState<IncomeStatementPage>
   }
 
   Widget _row(String label, double amount, Color color, {bool bold = false, bool large = false}) {
+    // `Expanded` en la etiqueta: con `spaceBetween` la etiqueta y el monto
+    // sumaban más que el ancho de la tarjeta a 360 px (33 px de desborde).
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(fontWeight: bold ? FontWeight.bold : FontWeight.normal, fontSize: large ? 16 : 14)),
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontWeight: bold ? FontWeight.bold : FontWeight.normal, fontSize: large ? 16 : 14),
+            ),
+          ),
+          const SizedBox(width: 8),
           Text('\$${amount.toStringAsFixed(2)}',
             style: TextStyle(
               fontWeight: bold ? FontWeight.bold : FontWeight.w600,
