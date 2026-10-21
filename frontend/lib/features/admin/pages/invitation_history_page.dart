@@ -78,6 +78,24 @@ class _InvitationHistoryPageState
     return expiresAt != null && expiresAt.isBefore(DateTime.now());
   }
 
+  Widget _buildSearchField() {
+    return ZTextField(
+      label: 'Buscar por email',
+      prefix: const Icon(Icons.search, size: 18),
+      controller: _searchCtrl,
+      onChanged: (value) => setState(() {}),
+    );
+  }
+
+  List<Widget> _buildFilterChips() {
+    return [
+      _buildFilterChip('Todos', 'all'),
+      _buildFilterChip('Pendientes', 'pending'),
+      _buildFilterChip('Usadas', 'used'),
+      _buildFilterChip('Expiradas', 'expired'),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -105,26 +123,28 @@ class _InvitationHistoryPageState
             ),
             const SizedBox(height: ZSpacing.md),
             // Filters
-            Row(
-              children: [
-                Expanded(
-                  child: ZTextField(
-                    label: 'Buscar por email',
-                    prefix: const Icon(Icons.search, size: 18),
-                    controller: _searchCtrl,
-                    onChanged: (value) => setState(() {}),
-                  ),
-                ),
-                const SizedBox(width: ZSpacing.md),
-                _buildFilterChip('Todos', 'all'),
-                const SizedBox(width: 8),
-                _buildFilterChip('Pendientes', 'pending'),
-                const SizedBox(width: 8),
-                _buildFilterChip('Usadas', 'used'),
-                const SizedBox(width: 8),
-                _buildFilterChip('Expiradas', 'expired'),
-              ],
-            ),
+            // En teléfono el buscador y los 4 chips no caben en una fila (216
+            // px de desborde): el buscador ocupa la fila y los chips fluyen en
+            // un `Wrap`. En escritorio se conserva la fila única.
+            if (MediaQuery.sizeOf(context).width < ZBreakpoints.phone) ...[
+              _buildSearchField(),
+              const SizedBox(height: ZSpacing.sm),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _buildFilterChips(),
+              ),
+            ] else
+              Row(
+                children: [
+                  Expanded(child: _buildSearchField()),
+                  const SizedBox(width: ZSpacing.md),
+                  for (final chip in _buildFilterChips()) ...[
+                    chip,
+                    const SizedBox(width: 8),
+                  ],
+                ],
+              ),
             const SizedBox(height: ZSpacing.md),
             // Content
             Expanded(

@@ -41,6 +41,7 @@
 | `5fe6d86` | Fase 3 - listados de catálogo, operativos y de flota a 360 px (7 + 8 + 10 casos, 6 overflows) |
 | `34cc8ff` | Fase 3 - dashboards y paneles a 360 px (9 casos, 1 bug y 4 overflows) |
 | `7159838` | Fase 3 - prestadores de servicios y ajustes a 360 px (7 casos, 1 excepción, 5 overflows) |
+| (este lote) | Fase 3 - administración a 360 px (3 casos, 2 overflows) |
 
 **Próximos pasos sugeridos** (en orden de valor):
 
@@ -599,6 +600,16 @@ acción primaria siempre alcanzable.
         `SwitchListTile` de "Aplicar IVA" dentro de `ZCard` no estaba envuelto en
         `Material(type: MaterialType.transparency)` (la invariante aplica también a `SwitchListTile`,
         no solo a `ListTile`).
+- [x] **Administración a 360 px** (`test/admin_pages_mobile_test.dart`, 3 casos): `InviteUserPage`,
+      `InvitationHistoryPage` y `SuperAdminCompaniesPage`. Dos overflows:
+      - **`InvitationHistoryPage` — 216 px**: la fila de filtros (`Expanded` del buscador + 4
+        `FilterChip` "Todos/Pendientes/Usadas/Expiradas") no cabía. En teléfono el buscador ocupa la
+        fila y los chips fluyen en un `Wrap`; en escritorio se conserva la fila única. Los helpers
+        `_buildSearchField()`/`_buildFilterChips()` evitan duplicar los widgets (el `Row` de escritorio
+        intercala separadores con un `for`).
+      - **`SuperAdminCompaniesPage` — 430 px**: el encabezado del panel de siembra usaba
+        `Row(spaceBetween)` con título y la etiqueta "Solo SuperAdmin" (que aparece cuando el rol no es
+        SuperAdmin, el caso de los tests); el título no encogía. Pasa a `Expanded`.
 
 **Aceptación**: dashboard ejecutivo y comercial legibles a 360 px, 2 KPIs por fila, 0 overflows.
 

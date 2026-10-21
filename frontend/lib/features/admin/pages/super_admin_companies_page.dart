@@ -463,11 +463,14 @@ class _SuperAdminCompaniesPageState extends ConsumerState<SuperAdminCompaniesPag
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Siembra de Tienda Brizuela Romero',
-                  style: ZTypography.titleMedium,
+                // El título necesita ser flexible: con `spaceBetween` el texto
+                // no encogía y la fila desbordaba 430 px a 360 px.
+                Expanded(
+                  child: Text(
+                    'Siembra de Tienda Brizuela Romero',
+                    style: ZTypography.titleMedium,
+                  ),
                 ),
                 if (!isSuperAdmin)
                   const Padding(
