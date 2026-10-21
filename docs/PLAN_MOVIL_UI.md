@@ -41,7 +41,7 @@
 | `5fe6d86` | Fase 3 - listados de catálogo, operativos y de flota a 360 px (7 + 8 + 10 casos, 6 overflows) |
 | `34cc8ff` | Fase 3 - dashboards y paneles a 360 px (9 casos, 1 bug y 4 overflows) |
 | `7159838` | Fase 3 - prestadores de servicios y ajustes a 360 px (7 casos, 1 excepción, 5 overflows) |
-| (este lote) | Fase 3 - administración a 360 px (3 casos, 2 overflows) |
+| `102ae1b` | Fase 3 - administración a 360 px (3 casos, 2 overflows) |
 
 **Próximos pasos sugeridos** (en orden de valor):
 
