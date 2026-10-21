@@ -38,7 +38,7 @@
 | `3258bc9` | Fase 3 - RRHH, CRM, conciliaciones, documentos y asistencia a 360 px (encabezado y acciones del centro documental en columna) |
 | `08ee68c` | Fase 3 - PalmTrack, objetivos, garantías y motor documental a 360 px (+3 bugs: "Mis Objetivos", perfil SSO y asserts de ink splashes) |
 | `58899e4` | Fase 3 - aprobaciones, reportes personalizados, perfil, onboarding, chat, predicciones, garantías, años fiscales, kiosco y QR a 360 px |
-| (este lote) | Fase 3 - listados de catálogo, operativos y de flota a 360 px (7 + 8 + 10 casos, 6 overflows) |
+| `5fe6d86` | Fase 3 - listados de catálogo, operativos y de flota a 360 px (7 + 8 + 10 casos, 6 overflows) |
 
 **Próximos pasos sugeridos** (en orden de valor):
 
