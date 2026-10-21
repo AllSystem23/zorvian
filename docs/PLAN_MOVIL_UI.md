@@ -34,7 +34,8 @@
 | `4667989` | Fase 3 — flujo de aprobación y liquidación final a 360 px |
 | `5794fcb` | Fase 3 — 23 detalles más (caja, nómina, CRM, documentos) a 360 px |
 | `5b23609` | Fase 3 — nómina, presupuestos y webhooks a 360 px: `ListTile` en `Material`, tarjetas de resumen apiladas, `_summaryRow` con `Expanded` y el drift test que vigila el `ZCard` |
-| (este lote) | Fase 3 — contabilidad, tesorería y reportes a 360 px: `ZButton` `fullWidth: false` dentro de `Row`, `_row` del estado de resultados con `Expanded` y `ZStatGrid` en el centro de reportes |
+| `c375470` | Fase 3 — contabilidad, tesorería y reportes a 360 px: `ZButton` `fullWidth: false` dentro de `Row`, `_row` del estado de resultados con `Expanded` y `ZStatGrid` en el centro de reportes |
+| (este lote) | Fase 3 — RRHH, CRM, conciliaciones, documentos y asistencia a 360 px (encabezado y acciones del centro documental en columna) |
 
 **Próximos pasos sugeridos** (en orden de valor):
 
@@ -437,6 +438,22 @@ acción primaria siempre alcanzable.
       - **Los reportes contables se montan con datos**: el test selecciona el período en el
         `ZSelect` y pulsa "Consultar" para que la tabla (`ZDataTable` → tarjetas en teléfono) y las
         filas de totales se midan de verdad.
+- [x] **RRHH, CRM, conciliaciones, documentos y asistencia a 360 px**
+      (`test/hr_crm_pages_mobile_test.dart`, 13 casos): listados y formularios de vacaciones,
+      recibos de vacaciones, permisos, incapacidades, pipeline de CRM (Kanban = lista vertical
+      por etapa en teléfono), conciliaciones, centro documental, historial y marcación de
+      asistencia. Dos defectos reales, ambos en el centro documental:
+      - **Encabezado del centro documental desbordaba 330 px**: un solo `Row` con el título
+        (`titleLarge`), el `Spacer`, 2 `IconButton` y el `FilledButton.icon` "Nueva Plantilla".
+        En teléfono el título va en `Expanded` + ellipsis junto a los iconos y el botón baja a su
+        propia línea a todo lo ancho (`LayoutBuilder` + `ZBreakpoints.phone`).
+      - **Tarjeta de plantilla desbordaba 112 px**: `Row` con icono 48 + textos + `Wrap` de
+        acciones ("Generar" + 2 iconos). Las acciones son contenido no flexible, así que la
+        `Expanded` de los textos quedaba sin ancho y el `Row` desbordaba; en teléfono las acciones
+        bajan a su propia línea (`Column`).
+      - **Fixtures que respetan los modelos**: `Opportunity.fromJson` exige `createdAt`
+        (`DateTime.parse` sin fallback) y `loadTemplates` lee `total` (no `totalCount`) — sin esas
+        claves la pantalla caía en su estado de error y el test solo habría medido el mensaje.
 
 **Aceptación**: dashboard ejecutivo y comercial legibles a 360 px, 2 KPIs por fila, 0 overflows.
 
@@ -539,8 +556,9 @@ acción primaria siempre alcanzable.
 - [x] **Contabilidad, tesorería y reportes montados a 360/390/430 px**
       (`accounting_treasury_pages_mobile_test.dart`, 16 casos, con los reportes consultados con
       datos) — ver el barrido de Fase 3.
-- [ ] Barrido del resto de rutas top a 360 px (liquidación, conciliaciones, CRM, PalmTrack,
-      garantías y asistencia).
+- [x] **RRHH, CRM, conciliaciones, documentos y asistencia montados a 360/390/430 px**
+      (`hr_crm_pages_mobile_test.dart`, 13 casos) — ver el barrido de Fase 3.
+- [ ] Barrido del resto de rutas top a 360 px (liquidación, objetivos, PalmTrack, garantías).
 - [ ] Regresiones: "Más" activo fuera de hubs; selectores operativos en móvil.
 
 **Aceptación**: 0 overflows en la matriz 360/390/430 × `textScale` 1.0/1.3; cámara y

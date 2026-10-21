@@ -46,23 +46,54 @@ class _DocumentCenterPageState extends ConsumerState<DocumentCenterPage>
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                  child: Row(
-                    children: [
-                      Text('Centro Documental', style: ZTypography.titleLarge),
-                      const Spacer(),
-                      IconButton(
-                        icon: const Icon(Icons.bolt_outlined, color: ZColors.warning),
-                        tooltip: 'Generación Rápida (3 clics)',
-                        onPressed: () => context.push('/documents/quick-generate'),
-                      ),
-                      IconButton(icon: const Icon(Icons.search), onPressed: () => ZCommandPalette.show(context)),
-                      const SizedBox(width: 8),
-                      FilledButton.icon(
+                  // En teléfono el título + los 2 iconos + "Nueva Plantilla"
+                  // sumaban 330 px más que el ancho: el título se recorta y el
+                  // botón baja a su propia línea a todo lo ancho.
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final compact = constraints.maxWidth < ZBreakpoints.phone;
+                      final actions = <Widget>[
+                        IconButton(
+                          icon: const Icon(Icons.bolt_outlined, color: ZColors.warning),
+                          tooltip: 'Generación Rápida (3 clics)',
+                          onPressed: () => context.push('/documents/quick-generate'),
+                        ),
+                        IconButton(icon: const Icon(Icons.search), onPressed: () => ZCommandPalette.show(context)),
+                      ];
+                      final newTemplate = FilledButton.icon(
                         icon: const Icon(Icons.add, size: 18),
                         label: const Text('Nueva Plantilla'),
                         onPressed: () => context.push('/documents/templates/new'),
-                      ),
-                    ],
+                      );
+                      final title = Expanded(
+                        child: Text(
+                          'Centro Documental',
+                          style: ZTypography.titleLarge,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      );
+
+                      if (!compact) {
+                        return Row(
+                          children: [
+                            title,
+                            ...actions,
+                            const SizedBox(width: 8),
+                            newTemplate,
+                          ],
+                        );
+                      }
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(children: [title, ...actions]),
+                          const SizedBox(height: ZSpacing.sm),
+                          newTemplate,
+                        ],
+                      );
+                    },
                   ),
                 ),
                 TabBar(
@@ -114,66 +145,93 @@ class _TemplateTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // En teléfono la fila (icono + textos + "Generar" + 2 iconos) sumaba
+    // 112 px más que el ancho disponible: las acciones bajan a su propia
+    // línea en vez de recortar el nombre de la plantilla.
+    final leading = Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: ZColors.brandPrimary.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(Icons.description_outlined, color: ZColors.brandPrimary),
+    );
+    final info = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(template.name, style: ZTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 4),
+        Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            ZBadge(text: template.category.categoryLabel, type: ZBadgeType.neutral),
+            Text(template.countryCode, style: ZTypography.labelSmall),
+          ],
+        ),
+      ],
+    );
+    final actions = Wrap(
+      spacing: 4,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        FilledButton.tonalIcon(
+          icon: const Icon(Icons.bolt, size: 16),
+          label: const Text('Generar'),
+          onPressed: () => context.push('/documents/quick-generate', extra: {
+            'preselectedTemplateId': template.id,
+          }),
+        ),
+        IconButton(
+          icon: const Icon(Icons.play_circle_outline, color: ZColors.brandAccent),
+          tooltip: 'Generación avanzada',
+          onPressed: () => _generateDialog(context, ref),
+        ),
+        IconButton(
+          icon: const Icon(Icons.edit_outlined),
+          tooltip: 'Editar plantilla',
+          onPressed: () => context.push('/documents/templates/${template.id}/edit'),
+        ),
+      ],
+    );
+
     return ZCard(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: ZColors.brandPrimary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(Icons.description_outlined, color: ZColors.brandPrimary),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            if (constraints.maxWidth < ZBreakpoints.phone) {
+              return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(template.name, style: ZTypography.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 4,
+                  Row(
                     children: [
-                      ZBadge(text: template.category.categoryLabel, type: ZBadgeType.neutral),
-                      Text(template.countryCode, style: ZTypography.labelSmall),
+                      leading,
+                      const SizedBox(width: 16),
+                      Expanded(child: info),
                     ],
                   ),
+                  const SizedBox(height: ZSpacing.sm),
+                  actions,
                 ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Wrap(
-              spacing: 4,
-              runSpacing: 4,
-              crossAxisAlignment: WrapCrossAlignment.center,
+              );
+            }
+
+            return Row(
               children: [
-                FilledButton.tonalIcon(
-                  icon: const Icon(Icons.bolt, size: 16),
-                  label: const Text('Generar'),
-                  onPressed: () => context.push('/documents/quick-generate', extra: {
-                    'preselectedTemplateId': template.id,
-                  }),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.play_circle_outline, color: ZColors.brandAccent),
-                  tooltip: 'Generación avanzada',
-                  onPressed: () => _generateDialog(context, ref),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined),
-                  tooltip: 'Editar plantilla',
-                  onPressed: () => context.push('/documents/templates/${template.id}/edit'),
-                ),
+                leading,
+                const SizedBox(width: 16),
+                Expanded(child: info),
+                const SizedBox(width: 12),
+                actions,
               ],
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
