@@ -199,43 +199,50 @@ class _KioskPageState extends ConsumerState<KioskPage> {
   }
 
   Widget _buildActionButtons(ThemeData theme, KioskState kioskState) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        SizedBox(
-          width: 160,
-          height: 56,
-          child: FilledButton.icon(
-            onPressed: kioskState.loading || kioskState.employeeCode.isEmpty ? null : () => ref.read(kioskProvider.notifier).checkIn(),
-            icon: kioskState.loading
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.login, size: 24),
-            label: const Text('Entrada', style: TextStyle(fontSize: 18)),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    // `Expanded` (no `SizedBox(width: 160)`): dos botones fijos de 160 px más
+    // los 24 de padding de cada lado desbordaban 24 px a 360 px. El tope de
+    // 360 mantiene los botones a un tamaño razonable en kiosco horizontal.
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 360),
+      child: Row(
+        children: [
+          Expanded(
+            child: SizedBox(
+              height: 56,
+              child: FilledButton.icon(
+                onPressed: kioskState.loading || kioskState.employeeCode.isEmpty ? null : () => ref.read(kioskProvider.notifier).checkIn(),
+                icon: kioskState.loading
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.login, size: 24),
+                label: const Text('Entrada', style: TextStyle(fontSize: 18), maxLines: 1, overflow: TextOverflow.ellipsis),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+              ),
             ),
           ),
-        ),
-        const SizedBox(width: 16),
-        SizedBox(
-          width: 160,
-          height: 56,
-          child: FilledButton.icon(
-            onPressed: kioskState.loading || kioskState.employeeCode.isEmpty ? null : () => ref.read(kioskProvider.notifier).checkOut(),
-            icon: kioskState.loading
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.logout, size: 24),
-            label: const Text('Salida', style: TextStyle(fontSize: 18)),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          const SizedBox(width: 16),
+          Expanded(
+            child: SizedBox(
+              height: 56,
+              child: FilledButton.icon(
+                onPressed: kioskState.loading || kioskState.employeeCode.isEmpty ? null : () => ref.read(kioskProvider.notifier).checkOut(),
+                icon: kioskState.loading
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.logout, size: 24),
+                label: const Text('Salida', style: TextStyle(fontSize: 18), maxLines: 1, overflow: TextOverflow.ellipsis),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

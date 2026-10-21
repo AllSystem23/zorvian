@@ -37,6 +37,7 @@
 | `c375470` | Fase 3 — contabilidad, tesorería y reportes a 360 px: `ZButton` `fullWidth: false` dentro de `Row`, `_row` del estado de resultados con `Expanded` y `ZStatGrid` en el centro de reportes |
 | `3258bc9` | Fase 3 - RRHH, CRM, conciliaciones, documentos y asistencia a 360 px (encabezado y acciones del centro documental en columna) |
 | `08ee68c` | Fase 3 - PalmTrack, objetivos, garantías y motor documental a 360 px (+3 bugs: "Mis Objetivos", perfil SSO y asserts de ink splashes) |
+| (este lote) | Fase 3 - aprobaciones, reportes personalizados, perfil, onboarding, chat, predicciones, garantías, años fiscales, kiosco y QR a 360 px |
 
 **Próximos pasos sugeridos** (en orden de valor):
 
@@ -493,6 +494,28 @@ acción primaria siempre alcanzable.
       - **Harness**: las páginas de catálogo (garantías) necesitan `appDatabaseProvider` con
         `memoryDb()` (Drift) o `pumpAndSettle` expira esperando el repositorio offline-first, y el
         perfil SSO necesita un `GoRouter` real (`MaterialApp.router`) porque lee `GoRouterState`.
+- [x] **Aprobaciones, reportes personalizados, perfil, onboarding, chat, predicciones, garantías,
+      años fiscales, kiosco y QR a 360 px** (`test/misc_pages_mobile_test.dart`, 13 casos):
+      bandeja y flujos de aprobación, lista / constructor / resultado de reportes personalizados,
+      "Mi Perfil", onboarding de compañía, chat, predicción de ventas, seguimiento de garantía,
+      años fiscales, escáner QR de asistencia y kiosco. Dos overflows reales:
+      - **Predicción de ventas desbordaba 125 px**: `Row(título 20 px, Spacer, IconButton)`. El
+        título pasa a `Expanded` con `maxLines: 1` + ellipsis.
+      - **Botones del kiosco desbordaban 24 px**: dos `SizedBox(width: 160)` + separador dentro de
+        un padding de 24 por lado (336 > 312 útiles a 360 px). Pasan a `Expanded` dentro de un
+        `ConstrainedBox(maxWidth: 360)`, así en kiosco horizontal no crecen sin límite.
+      - **Hallazgo — el escáner QR sí se puede montar en tests**: `mobile_scanner` degrada a un
+        hueco (sin `MissingPluginException` que tumbe el caso), así que el overlay de 250 px y las
+        guías se miden a 360/390/430 px sin necesidad de scope-out por cámara.
+      - **Harness**: `ApprovalFlowListPage` no dispara `loadFlows()` (lo hace el shell) → se monta
+        con un bootstrap `ConsumerStatefulWidget` que lo llama en `initState`. `CustomReportListPage`
+        igual, pero ahí el notifier **sí es subclasificable**, así que se siembra con
+        `customReportProvider.overrideWith(...)`. `ApprovalNotifier` es `final class` (no se puede
+        subclasear) → se usa el notifier real contra `FakeApi`. El kiosco tiene un
+        `Timer.periodic` de 1 s: se bombea a mano (`settle: false`) y se desmonta al final para no
+        dejar el timer pendiente.
+      - **`Override` no lo exporta `flutter_riverpod.dart`** (solo `riverpod`): el helper de montaje
+        tipa la lista de overrides como `List<dynamic>` y la esparce.
 
 **Aceptación**: dashboard ejecutivo y comercial legibles a 360 px, 2 KPIs por fila, 0 overflows.
 

@@ -39,10 +39,18 @@ class _SalesPredictionsPageState extends ConsumerState<SalesPredictionsPage> {
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  // Título en `Expanded` + ellipsis: a 360 px el texto a
+                  // 20 px más el icono de refresco desbordaba 125 px.
                   child: Row(
                     children: [
-                      const Text('Predicción de Ventas', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                      const Spacer(),
+                      const Expanded(
+                        child: Text(
+                          'Predicción de Ventas',
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                       IconButton(icon: const Icon(Icons.refresh), onPressed: _load),
                     ],
                   ),
