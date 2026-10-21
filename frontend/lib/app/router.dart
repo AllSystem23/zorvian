@@ -22,6 +22,7 @@ import '../features/settings/pages/leave_type_form_page.dart';
 import '../features/admin/pages/user_list_page.dart';
 import '../features/admin/pages/invite_user_page.dart';
 import '../features/admin/pages/roles_permissions_page.dart';
+import '../features/admin/pages/access_requests_page.dart';
 import '../features/admin/pages/invitation_history_page.dart';
 import '../features/admin/pages/super_admin_companies_page.dart';
 import '../features/admin/pages/subscription_plans_page.dart';
@@ -35,6 +36,7 @@ import '../features/employees/pages/employee_list_page.dart';
 import '../features/login/register_page.dart';
 import '../features/login/login_page.dart';
 import '../features/login/forgot_password_page.dart';
+import '../features/login/reset_password_page.dart';
 import '../features/mfa/mfa_page.dart';
 import '../features/vacations/pages/vacation_detail_page.dart';
 import '../features/vacations/pages/vacation_form_page.dart';
@@ -238,6 +240,7 @@ final _routeRoles = <String, List<String>>{
   '/admin': ['SuperAdmin', 'CompanyAdmin'],
   '/admin/companies': ['SuperAdmin'],
   '/admin/subscription-plans': ['SuperAdmin'],
+  '/admin/access-requests': ['SuperAdmin'],
   '/admin/roles': ['SuperAdmin', 'CompanyAdmin'],
   '/settings': ['SuperAdmin', 'CompanyAdmin'],
   '/payroll': ['SuperAdmin', 'CompanyAdmin', 'Rrhh'],
@@ -305,6 +308,17 @@ final _routeRoles = <String, List<String>>{
   '/purchases/credit-notes': ['SuperAdmin', 'CompanyAdmin', 'Accountant'],
 };
 
+/// Rutas de autenticación accesibles SIN sesión: registro con invitación,
+/// "solicitar acceso", recuperación y restablecimiento de contraseña.
+/// El guard de redirección las deja pasar cuando el usuario no ha iniciado
+/// sesión (si no, el usuario que olvidó su contraseña no podría abrir la
+/// pantalla que lo resuelve).
+const Set<String> publicAuthRoutes = {
+  '/register',
+  '/forgot-password',
+  '/reset-password',
+};
+
 /// Permiso granular de lectura requerido por ruta (prefijo, misma resolución
 /// por prefijo más específico que [_routeRoles]). Solo aplica si el backend
 /// envió `permissions` en `auth/me`; sin dato no se gatea (compat SSO).
@@ -363,6 +377,8 @@ final _routePermissions = <String, String>{
   '/admin/roles': 'role.manage',
   '/admin/invite': 'user.write',
   '/admin/invitations-history': 'user.write',
+  // Cola de solicitudes de acceso (plataforma): permiso de plataforma.
+  '/admin/access-requests': 'company.manage',
   // Administración de sucursales: el prefijo entero exige `settings.write`
   // porque la edición vive en `/branches/:id` (sin sufijo `/edit`) y el
   // BranchesController exige ese permiso para crear/editar/borrar. La LECTURA
@@ -479,11 +495,18 @@ GoRouter buildGoRouter(AuthState authState) {
 
       final isPublicRoute = location == '/warranties/track';
 
+      // Rutas públicas de autenticación: accesibles SIN sesión (registro,
+      // recuperación y restablecimiento de contraseña). Antes estas rutas no
+      // estaban en el conjunto público y el guard de abajo las rebotaba a
+      // /login, dejando inalcanzables "Olvidé mi contraseña" y "Solicitar
+      // Acceso" para el usuario que las necesita.
+      final isPublicAuthRoute = publicAuthRoutes.contains(location);
+
       if (status == AuthStatus.mfaRequired && !location.startsWith('/mfa')) {
         return '/mfa-login';
       }
 
-      if (status == AuthStatus.unauthenticated && !isLoginRoute && !isPublicRoute) {
+      if (status == AuthStatus.unauthenticated && !isLoginRoute && !isPublicRoute && !isPublicAuthRoute) {
         return '/login';
       }
 
@@ -497,7 +520,7 @@ GoRouter buildGoRouter(AuthState authState) {
         return hasCompany ? '/dashboard' : '/onboarding';
       }
 
-      if (status == AuthStatus.authenticated && !isLoginRoute && !isOnboardingRoute && !isSplashRoute) {
+      if (status == AuthStatus.authenticated && !isLoginRoute && !isOnboardingRoute && !isSplashRoute && !isPublicAuthRoute) {
         if (!_hasAccess(authState.role ?? 'Employee', location,
             permissions: authState.permissions?.toSet())) {
           return '/unauthorized';
@@ -526,6 +549,13 @@ GoRouter buildGoRouter(AuthState authState) {
         path: '/forgot-password',
         name: 'forgot-password',
         builder: (_, _) => const ForgotPasswordPage(),
+      ),
+      GoRoute(
+        path: '/reset-password',
+        name: 'reset-password',
+        builder: (_, state) => ResetPasswordPage(
+          token: state.uri.queryParameters['token'],
+        ),
       ),
       GoRoute(
         path: '/mfa-login',
@@ -693,6 +723,11 @@ GoRouter buildGoRouter(AuthState authState) {
             path: '/admin/invitations-history',
             name: 'admin-invitations-history',
             builder: (_, _) => const InvitationHistoryPage(),
+          ),
+          GoRoute(
+            path: '/admin/access-requests',
+            name: 'admin-access-requests',
+            builder: (_, _) => const AccessRequestsPage(),
           ),
           GoRoute(
             path: '/admin/companies',

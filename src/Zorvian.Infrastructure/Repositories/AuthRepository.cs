@@ -55,6 +55,20 @@ public sealed class AuthRepository : IAuthRepository
             : query.FirstOrDefaultAsync(u => u.Email == email));
     }
 
+    public async Task<User?> GetUserByEmailIgnoreCaseAsync(string email)
+    {
+        var query = _db.Users
+            .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                .ThenInclude(r => r.RolePermissions);
+
+        var normalized = email.Trim().ToLower();
+
+        return await (NeedsBypass
+            ? query.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Email != null && u.Email.ToLower() == normalized)
+            : query.FirstOrDefaultAsync(u => u.Email != null && u.Email.ToLower() == normalized));
+    }
+
     public async Task AddUserAsync(User user)
     {
         await _db.Users.AddAsync(user);

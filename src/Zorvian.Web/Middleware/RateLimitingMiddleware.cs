@@ -48,6 +48,7 @@ public sealed class RateLimitingMiddleware
         "/auth/register",
         "/auth/forgot-password",
         "/auth/reset-password",
+        "/auth/request-access",
         "/auth/mfa/login",
         "/auth/mfa/verify",
         "/auth/sso/",

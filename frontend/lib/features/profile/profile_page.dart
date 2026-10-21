@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../auth/auth_provider.dart';
+import '../../core/utils/validators.dart';
 import '../../shared/ds/ds.dart';
 import '../biometrics/providers/biometric_provider.dart';
 import 'providers/certificate_requests_provider.dart';
@@ -653,9 +654,10 @@ class _PasswordChangeSectionState extends ConsumerState<_PasswordChangeSection> 
       );
       return;
     }
-    if (_newPasswordCtrl.text.length < 6) {
+    final policyError = ZValidators.password(_newPasswordCtrl.text);
+    if (policyError != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('La nueva contraseña debe tener al menos 6 caracteres'), backgroundColor: ZColors.danger),
+        SnackBar(content: Text(policyError), backgroundColor: ZColors.danger),
       );
       return;
     }

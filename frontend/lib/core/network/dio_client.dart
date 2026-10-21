@@ -65,6 +65,8 @@ class DioClient {
         final isAuthEndpoint = error.requestOptions.path.contains('auth/login')
             || error.requestOptions.path.contains('auth/register')
             || error.requestOptions.path.contains('auth/forgot-password')
+            || error.requestOptions.path.contains('auth/reset-password')
+            || error.requestOptions.path.contains('auth/request-access')
             || error.requestOptions.path.contains('auth/refresh');
         final suppressGlobal = error.requestOptions.extra['suppressGlobalError'] == true;
         if (error.response?.statusCode == 401 && !isAuthEndpoint) {
@@ -80,11 +82,12 @@ class DioClient {
         if (!suppressGlobal) {
           final data = error.response?.data;
           final msg = data is Map
-              ? (data['detail'] as String? ??
-                  data['message'] as String? ??
-                  data['title'] as String? ??
-                  error.message ??
-                  'Error de conexión')
+              ? ((data['error'] is String ? data['error'] as String : null) ??
+                  (data['detail'] as String? ??
+                      data['message'] as String? ??
+                      data['title'] as String? ??
+                      error.message ??
+                      'Error de conexión'))
               : data?.toString() ?? error.message ?? 'Error de conexión';
           onError?.call(error.response?.statusCode, msg);
         }

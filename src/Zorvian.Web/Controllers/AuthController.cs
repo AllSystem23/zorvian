@@ -14,11 +14,13 @@ public sealed class AuthController : ControllerBase
 {
     private readonly AuthService _authService;
     private readonly IMfaService _mfaService;
+    private readonly PasswordResetService _passwordReset;
 
-    public AuthController(AuthService authService, IMfaService mfaService)
+    public AuthController(AuthService authService, IMfaService mfaService, PasswordResetService passwordReset)
     {
         _authService = authService;
         _mfaService = mfaService;
+        _passwordReset = passwordReset;
     }
 
     [HttpPost("login")]
@@ -135,8 +137,36 @@ public sealed class AuthController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
     {
-        await _authService.ForgotPasswordAsync(request.Email);
-        return Ok(new { message = "Si el correo está registrado, recibirás instrucciones para restablecer tu contraseña." });
+        await _passwordReset.RequestResetAsync(request.Email);
+        return Ok(new { message = "Si el correo está registrado, recibirás un enlace para restablecer tu contraseña." });
+    }
+
+    /// <summary>
+    /// Consume el token del enlace de recuperación y fija la contraseña nueva.
+    /// Anónimo: el token (de un solo uso) es la credencial.
+    /// </summary>
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Token))
+            return BadRequest(new { error = "El enlace de restablecimiento no es válido." });
+
+        if (string.IsNullOrWhiteSpace(request.NewPassword))
+            return BadRequest(new { error = "La nueva contraseña es requerida" });
+
+        if (request.NewPassword != request.ConfirmPassword)
+            return BadRequest(new { error = "Las contraseñas no coinciden" });
+
+        var policyError = PasswordPolicy.Validate(request.NewPassword);
+        if (policyError is not null)
+            return BadRequest(new { error = policyError });
+
+        var (success, error) = await _passwordReset.ResetAsync(request.Token, request.NewPassword);
+        if (!success)
+            return BadRequest(new { error = error });
+
+        return Ok(new { message = "Contraseña actualizada correctamente" });
     }
 
     [HttpPost("revoke-all")]
@@ -196,8 +226,9 @@ public sealed class AuthController : ControllerBase
         if (request.NewPassword != request.ConfirmPassword)
             return BadRequest(new { error = "Las contraseñas nuevas no coinciden" });
 
-        if (request.NewPassword.Length < 6)
-            return BadRequest(new { error = "La nueva contraseña debe tener al menos 6 caracteres" });
+        var policyError = PasswordPolicy.Validate(request.NewPassword);
+        if (policyError is not null)
+            return BadRequest(new { error = policyError });
 
         var result = await _authService.ChangePasswordAsync(userId.Value, request.CurrentPassword, request.NewPassword);
         if (!result.Success)

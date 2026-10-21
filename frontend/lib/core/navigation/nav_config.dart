@@ -286,6 +286,7 @@ final class NavConfig {
         NavItem(id: 'roles-permisos', label: 'Roles y Permisos', icon: Icons.security_outlined, route: '/admin/roles', roles: ['SuperAdmin', 'CompanyAdmin']),
         NavItem(id: 'invitar', label: 'Invitar Usuario', icon: Icons.person_add_outlined, route: '/admin/invite', roles: ['SuperAdmin']),
         NavItem(id: 'invitaciones-historial', label: 'Historial Invitaciones', icon: Icons.history_outlined, route: '/admin/invitations-history', roles: ['SuperAdmin']),
+        NavItem(id: 'solicitudes-acceso', label: 'Solicitudes de Acceso', icon: Icons.how_to_reg_outlined, route: '/admin/access-requests', roles: ['SuperAdmin']),
         NavItem(id: 'sucursales', label: 'Sucursales', icon: Icons.store_outlined, route: '/branches'),
         NavItem(id: 'documental', label: 'Motor Documental', icon: Icons.auto_stories_outlined, route: '/documents'),
         NavItem(id: 'aprobaciones', label: 'Flujos de Aprobación', icon: Icons.fact_check_outlined, route: '/approval-pending'),

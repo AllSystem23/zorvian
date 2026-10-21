@@ -67,6 +67,7 @@ public static class DependencyInjectionExtensions
 
         services.AddScoped<QuestPdfService>();
         services.AddScoped<IEmailService, EmailService>();
+        services.AddSingleton<IAppLinks, AppLinks>();
 
         // File Cleanup
         services.AddScoped<IOrphanFileCleanupService, OrphanFileCleanupService>();
@@ -86,6 +87,9 @@ public static class DependencyInjectionExtensions
 
         // Auth
         services.AddScoped<IAuthRepository, AuthRepository>();
+        services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
+        services.AddScoped<IAccessRequestRepository, AccessRequestRepository>();
+        services.AddScoped<IInvitationRepository, InvitationRepository>();
 
         // Core
         services.AddScoped<ICompanyRepository, CompanyRepository>();
@@ -260,6 +264,8 @@ public static class DependencyInjectionExtensions
         // Core Services
         services.AddScoped<IBadgeService, BadgeService>();
         services.AddScoped<AuthService>();
+        services.AddScoped<PasswordResetService>();
+        services.AddScoped<AccessRequestService>();
         services.AddScoped<SeedService>(sp => new SeedService(
             sp.GetRequiredService<ZorvianDbContext>(),
             sp.GetRequiredService<IFirebaseAuthService>(),

@@ -1,8 +1,10 @@
 import 'dart:ui';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../auth/auth_provider.dart';
+import '../../core/utils/validators.dart';
 import '../../shared/ds/ds.dart';
 
 enum RegisterMode { invite, request }
@@ -20,9 +22,12 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   final _inviteCodeCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+  final _confirmPasswordCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
   final _companyCtrl = TextEditingController();
-  
+  final _phoneCtrl = TextEditingController();
+  final _messageCtrl = TextEditingController();
+
   RegisterMode _mode = RegisterMode.invite;
   bool _loading = false;
   String? _error;
@@ -40,8 +45,11 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     _inviteCodeCtrl.dispose();
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
+    _confirmPasswordCtrl.dispose();
     _nameCtrl.dispose();
     _companyCtrl.dispose();
+    _phoneCtrl.dispose();
+    _messageCtrl.dispose();
     super.dispose();
   }
 
@@ -64,8 +72,16 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
           context.go('/login');
         }
       } else {
-        // REQUEST ACCESS LOGIC (Mocked for now)
-        await Future.delayed(const Duration(seconds: 2));
+        // SOLICITAR ACCESO: cola de la plataforma. Un administrador revisa la
+        // solicitud y emite el código de invitación por correo.
+        final dio = ref.read(dioClientProvider);
+        await dio.post('auth/request-access', data: {
+          'fullName': _nameCtrl.text.trim(),
+          'email': _emailCtrl.text.trim(),
+          'company': _companyCtrl.text.trim(),
+          'phone': _phoneCtrl.text.trim(),
+          'message': _messageCtrl.text.trim(),
+        });
         if (mounted) {
           ZModal.show(context,
             title: 'Solicitud Enviada',
@@ -91,11 +107,27 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
           );
         }
       }
-    } catch (e) {
+    } on DioException catch (e) {
+      setState(() => _error = _extractError(e) ?? 'Ocurrió un error inesperado. Por favor, intenta de nuevo.');
+    } catch (_) {
       setState(() => _error = 'Ocurrió un error inesperado. Por favor, intenta de nuevo.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  /// El backend responde `{ "error": "..." }` en los 400 del controller.
+  String? _extractError(DioException e) {
+    final data = e.response?.data;
+    if (data is Map) {
+      final error = data['error'];
+      if (error is String && error.isNotEmpty) return error;
+      final detail = data['detail'];
+      if (detail is String && detail.isNotEmpty) return detail;
+      final message = data['message'];
+      if (message is String && message.isNotEmpty) return message;
+    }
+    return null;
   }
 
   @override
@@ -235,6 +267,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
             controller: _emailCtrl,
             label: 'Correo Electrónico',
             icon: Icons.alternate_email_rounded,
+            validator: ZValidators.email,
           ),
           const SizedBox(height: 20),
 
@@ -245,19 +278,49 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
               icon: Icons.business_rounded,
             ),
             const SizedBox(height: 20),
+            _buildTextField(
+              controller: _phoneCtrl,
+              label: 'Teléfono (opcional)',
+              icon: Icons.phone_rounded,
+              required: false,
+              keyboardType: TextInputType.phone,
+            ),
+            const SizedBox(height: 20),
+            _buildTextField(
+              controller: _messageCtrl,
+              label: 'Mensaje (opcional)',
+              icon: Icons.chat_bubble_outline_rounded,
+              required: false,
+              maxLines: 3,
+            ),
+            const SizedBox(height: 20),
           ],
 
-          if (_mode == RegisterMode.invite)
+          if (_mode == RegisterMode.invite) ...[
             _buildTextField(
               controller: _passwordCtrl,
               label: 'Contraseña del Sistema',
               icon: Icons.lock_person_outlined,
               isPassword: true,
+              validator: ZValidators.password,
             ),
-          
+            const SizedBox(height: 20),
+            _buildTextField(
+              controller: _confirmPasswordCtrl,
+              label: 'Confirmar Contraseña',
+              icon: Icons.lock_reset_rounded,
+              isPassword: true,
+              validator: (v) {
+                if (v == null || v.isEmpty) return 'Confirma tu contraseña';
+                if (v != _passwordCtrl.text) return 'Las contraseñas no coinciden';
+                return null;
+              },
+            ),
+          ],
+
           const SizedBox(height: 40),
           ZButton(
-            text: _mode == RegisterMode.invite ? 'CREAR CUENTA SOLIDEZ' : 'ENVIAR SOLICITUD',
+            text: _mode == RegisterMode.invite ? 'CREAR CUENTA' : 'ENVIAR SOLICITUD',
             onPressed: _submit,
             isLoading: _loading,
             gradient: ZColors.accentGradient,
@@ -296,13 +359,20 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     required String label,
     required IconData icon,
     bool isPassword = false,
+    bool required = true,
+    TextInputType keyboardType = TextInputType.text,
+    int maxLines = 1,
+    FormFieldValidator<String>? validator,
   }) {
     return ZTextField(
       controller: controller,
       label: label,
       obscureText: isPassword,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
       prefix: Icon(icon),
-      validator: (v) => v == null || v.isEmpty ? 'Este campo es requerido' : null,
+      validator: validator ??
+          ((v) => required && (v == null || v.isEmpty) ? 'Este campo es requerido' : null),
     );
   }
 

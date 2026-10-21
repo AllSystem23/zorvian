@@ -27,6 +27,9 @@ public sealed class CompanyRepository : ICompanyRepository
             ? await _db.Companies.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == id)
             : await _db.Companies.FindAsync(id);
 
+    public async Task<Company?> GetByIdForPlatformAsync(Guid id) =>
+        await _db.Companies.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == id);
+
     public async Task<Company?> GetByTenantIdAsync(string tenantId) =>
         await _db.Companies.FirstOrDefaultAsync(c => c.TenantId == tenantId);
 

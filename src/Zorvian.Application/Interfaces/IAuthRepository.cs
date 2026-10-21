@@ -6,6 +6,8 @@ public interface IAuthRepository
 {
     Task<User?> GetUserByFirebaseUidAsync(string firebaseUid);
     Task<User?> GetUserByEmailAsync(string email);
+    /// <summary>Busca por correo ignorando mayúsculas/espacios (login y recuperación de contraseña).</summary>
+    Task<User?> GetUserByEmailIgnoreCaseAsync(string email);
     Task<User?> GetUserWithRolesAsync(Guid userId);
     Task AddUserAsync(User user);
     Task AddRefreshTokenAsync(RefreshToken refreshToken);

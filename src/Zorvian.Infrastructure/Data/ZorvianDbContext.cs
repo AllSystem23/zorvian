@@ -71,6 +71,12 @@ public sealed class ZorvianDbContext : DbContext
     public DbSet<BenefitProvision> BenefitProvisions => Set<BenefitProvision>();
     public DbSet<EmployeeBankAccount> EmployeeBankAccounts => Set<EmployeeBankAccount>();
     public DbSet<Invitation> Invitations => Set<Invitation>();
+    // Autenticación: tokens de restablecimiento y cola global de "Solicitar Acceso".
+    // Ambas tablas son GLOBALES (sin TenantId) a propósito: el flujo es anónimo y el
+    // token/la solicitud son la credencial. Sin columna TenantId => la RLS de arranque
+    // (que itera tablas con esa columna) no las toca.
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+    public DbSet<AccessRequest> AccessRequests => Set<AccessRequest>();
     public DbSet<Collaborator> Collaborators => Set<Collaborator>();
     public DbSet<UserTenant> UserTenants => Set<UserTenant>();
 
@@ -369,7 +375,43 @@ public sealed class ZorvianDbContext : DbContext
             e.HasKey(i => i.Id);
             e.HasIndex(i => i.Code).IsUnique();
             e.Property(i => i.Email).HasMaxLength(255).IsRequired();
-            e.HasQueryFilter(i => (i.TenantId == _tenantContext.TenantId.ToString() || _tenantContext.BypassTenantFilter) && !i.IsDeleted);
+            // Sin filtro por compañía: la invitación se consume desde el REGISTRO
+            // PÚBLICO, donde el solicitante es anónimo y no tiene compañía
+            // resuelta (el `TenantId` del contexto está vacío). Con el filtro
+            // anterior la fila quedaba fuera del alcance del lookup por código
+            // y el registro con invitación fallaba siempre con "Código de
+            // invitación inválido". El código es la credencial (único) y las
+            // lecturas administrativas filtran por `TenantId` en la query.
+            // Regresión cubierta por `InvitationPublicLookupTests`.
+        });
+
+        // Token de restablecimiento de contraseña: tabla global SIN filtro por compañía
+        // (el flujo es anónimo; el token en sí es la credencial). Solo el hash SHA-256.
+        builder.Entity<PasswordResetToken>(e =>
+        {
+            e.HasKey(t => t.Id);
+            e.HasIndex(t => t.TokenHash).IsUnique();
+            e.HasIndex(t => new { t.UserId, t.IsUsed });
+            e.Property(t => t.Email).HasMaxLength(255).IsRequired();
+            e.Property(t => t.TokenHash).HasMaxLength(64).IsRequired();
+            e.Ignore(t => t.IsExpired);
+        });
+
+        // Solicitud de acceso: cola global de la plataforma (sin compañía asignada).
+        builder.Entity<AccessRequest>(e =>
+        {
+            e.HasKey(r => r.Id);
+            e.HasIndex(r => r.Email);
+            e.HasIndex(r => r.Status);
+            e.Property(r => r.FullName).HasMaxLength(150).IsRequired();
+            e.Property(r => r.Email).HasMaxLength(255).IsRequired();
+            e.Property(r => r.Company).HasMaxLength(150).IsRequired();
+            e.Property(r => r.Phone).HasMaxLength(30);
+            e.Property(r => r.Message).HasMaxLength(1000);
+            e.Property(r => r.Status).HasMaxLength(20).IsRequired();
+            e.Property(r => r.ReviewedBy).HasMaxLength(100);
+            e.Property(r => r.RejectionReason).HasMaxLength(500);
+            e.Property(r => r.InvitationCode).HasMaxLength(20);
         });
 
         builder.Entity<Collaborator>(e =>

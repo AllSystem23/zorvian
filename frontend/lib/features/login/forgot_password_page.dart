@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../auth/auth_provider.dart';
+import '../../core/utils/validators.dart';
 import '../../shared/ds/ds.dart';
 
 class ForgotPasswordPage extends ConsumerStatefulWidget {
@@ -124,7 +125,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                 Text('¿Olvidaste tu\nContraseña?', style: ZTypography.displaySmall.copyWith(color: Colors.white, fontSize: 32)),
                 const SizedBox(height: 12),
                 Text(
-                  'Ingresa tu correo electrónico registrado. Te enviaremos instrucciones para recuperar el acceso.',
+                  'Ingresa tu correo electrónico registrado. Te enviaremos un enlace para que elijas una contraseña nueva.',
                   style: ZTypography.bodyMedium.copyWith(color: ZColors.neutral400),
                 ),
                 const SizedBox(height: 40),
@@ -150,15 +151,11 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                   label: 'Correo Electrónico',
                   prefix: const Icon(Icons.alternate_email_rounded),
                   keyboardType: TextInputType.emailAddress,
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return 'Ingresa tu correo';
-                    if (!v.contains('@')) return 'Correo inválido';
-                    return null;
-                  },
+                  validator: ZValidators.email,
                 ),
                 const SizedBox(height: 32),
                 ZButton(
-                  text: 'ENVIAR INSTRUCCIONES',
+                  text: 'ENVIAR ENLACE DE RECUPERACIÓN',
                   onPressed: _submit,
                   isLoading: _loading,
                   gradient: ZColors.accentGradient,
@@ -207,7 +204,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
               Text('Correo Enviado', style: ZTypography.displaySmall.copyWith(color: Colors.white, fontSize: 28)),
               const SizedBox(height: 12),
               Text(
-                'Si el correo ${_emailCtrl.text.trim()} está registrado en nuestro sistema, recibirás instrucciones en unos minutos.',
+                'Si el correo ${_emailCtrl.text.trim()} está registrado en nuestro sistema, recibirás un enlace para restablecer tu contraseña en unos minutos.',
                 textAlign: TextAlign.center,
                 style: ZTypography.bodyMedium.copyWith(color: ZColors.neutral400),
               ),

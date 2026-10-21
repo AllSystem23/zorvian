@@ -11,6 +11,12 @@ public sealed class CsrfMiddleware
         "/zorvian/v1/auth/login",
         "/zorvian/v1/auth/mfa/login",
         "/zorvian/v1/auth/refresh",
+        // Flujos anónimos de credenciales: el cliente no tiene token, así que no
+        // puede enviar Authorization ni un header anti-CSRF.
+        "/zorvian/v1/auth/forgot-password",
+        "/zorvian/v1/auth/reset-password",
+        "/zorvian/v1/auth/register",
+        "/zorvian/v1/auth/request-access",
         "/zorvian/v1/antiforgery",
         "/zorvian/v1/health",
         "/health",
@@ -31,9 +37,15 @@ public sealed class CsrfMiddleware
 
             if (!PublicPrefixes.Any(p => path.StartsWith(p, StringComparison.Ordinal)))
             {
+                // Las API Keys viajan en `X-API-Key`, NO en `Authorization`: sin
+                // esta excepcion, toda llamada por API Key con verbo no seguro
+                // (POST/PUT/DELETE) devolvia 403. Es aceptable porque la key no
+                // vive en cookies: un sitio tercero no puede leerla ni forzar al
+                // navegador a enviarla (no es un header CORS-simple).
                 var hasCustomHeader = context.Request.Headers["X-Requested-With"].Any()
                     || context.Request.Headers["X-CSRF-Protected"].Any()
                     || context.Request.Headers["X-CSRF-Token"].Any()
+                    || context.Request.Headers["X-API-Key"].Any()
                     || context.Request.Headers.Authorization.Any();
 
                 if (!hasCustomHeader)
