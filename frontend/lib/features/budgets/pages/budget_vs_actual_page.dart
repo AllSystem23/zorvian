@@ -16,7 +16,9 @@ final class _BudgetVsActualPageState extends ConsumerState<BudgetVsActualPage> {
   @override
   void initState() {
     super.initState();
-    _loadReport();
+    // `addPostFrameCallback`: cargar en `initState` modifica el provider
+    // mientras el árbol se construye (Riverpod lo prohíbe).
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadReport());
   }
 
   Future<void> _loadReport() async => ref.read(budgetProvider.notifier).loadReport(_year, _month);
@@ -110,11 +112,23 @@ final class _BudgetVsActualPageState extends ConsumerState<BudgetVsActualPage> {
     );
   }
 
+  // `Expanded` en la etiqueta: con `spaceBetween` la etiqueta y el monto
+  // sumaban más que el ancho de la tarjeta a 360 px (36 px de desborde).
   Widget _summaryRow(String label, double amount, Color color) => Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-      Text('\$${amount.toStringAsFixed(2)}', style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16)),
-    ],
-  );
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '\$${amount.toStringAsFixed(2)}',
+            style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+        ],
+      );
 }

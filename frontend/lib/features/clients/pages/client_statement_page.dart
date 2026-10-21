@@ -76,19 +76,24 @@ final class _ClientStatementPageState extends ConsumerState<ClientStatementPage>
             const Text('Sin ventas registradas', style: TextStyle(color: Colors.grey))
           else
             ...sales.take(5).map((s) => ZCard(
-              child: ListTile(
-                dense: true,
-                title: Text('Factura ${s['invoiceNumber'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: Text('${(s['saleDate'] as String?)?.substring(0, 10) ?? ''} · ${s['saleType'] ?? ''}'),
-                trailing: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text('\$${(s['total'] as num?)?.toStringAsFixed(0) ?? '0'}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    Text(s['status'] as String? ?? '', style: const TextStyle(fontSize: 11)),
-                  ],
+              // `Material` transparente: `ListTile` dentro de `ZCard`
+              // (DecoratedBox) dispara el assert de ink splashes en debug.
+              child: Material(
+                type: MaterialType.transparency,
+                child: ListTile(
+                  dense: true,
+                  title: Text('Factura ${s['invoiceNumber'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text('${(s['saleDate'] as String?)?.substring(0, 10) ?? ''} · ${s['saleType'] ?? ''}'),
+                  trailing: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text('\$${(s['total'] as num?)?.toStringAsFixed(0) ?? '0'}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      Text(s['status'] as String? ?? '', style: const TextStyle(fontSize: 11)),
+                    ],
+                  ),
+                  onTap: () => context.push('/sales/${s['id']}'),
                 ),
-                onTap: () => context.push('/sales/${s['id']}'),
               ),
             )),
           const SizedBox(height: 16),
@@ -98,16 +103,21 @@ final class _ClientStatementPageState extends ConsumerState<ClientStatementPage>
             const Text('Sin créditos activos', style: TextStyle(color: Colors.grey))
           else
             ...credits.map((c) => ZCard(
-              child: ListTile(
-                dense: true,
-                title: Text(c['creditNumber'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600)),
-                subtitle: Text('Saldo: \$${(c['balance'] as num?)?.toStringAsFixed(0) ?? '0'} · Vence: ${(c['nextDueDate'] as String?)?.substring(0, 10) ?? ''}'),
-                trailing: Chip(
-                  label: Text(c['status'] as String? ?? '', style: const TextStyle(fontSize: 10)),
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  padding: EdgeInsets.zero,
+              // `Material` transparente: `ListTile` dentro de `ZCard`
+              // (DecoratedBox) dispara el assert de ink splashes en debug.
+              child: Material(
+                type: MaterialType.transparency,
+                child: ListTile(
+                  dense: true,
+                  title: Text(c['creditNumber'] ?? '', style: const TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text('Saldo: \$${(c['balance'] as num?)?.toStringAsFixed(0) ?? '0'} · Vence: ${(c['nextDueDate'] as String?)?.substring(0, 10) ?? ''}'),
+                  trailing: Chip(
+                    label: Text(c['status'] as String? ?? '', style: const TextStyle(fontSize: 10)),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    padding: EdgeInsets.zero,
+                  ),
+                  onTap: () => context.push('/credits/${c['id']}'),
                 ),
-                onTap: () => context.push('/credits/${c['id']}'),
               ),
             )),
         ],

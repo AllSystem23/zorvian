@@ -328,25 +328,30 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     final color = item.requestType == 'vacacion' ? ZColors.warning : ZColors.danger;
     
     return ZCard(
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
+      // `Material` transparente: `ListTile` dentro de `ZCard` (DecoratedBox)
+      // dispara el assert de ink splashes en debug.
+      child: Material(
+        type: MaterialType.transparency,
+        child: ListTile(
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 20),
           ),
-          child: Icon(icon, color: color, size: 20),
+          title: Text(item.employeeName, style: const TextStyle(fontWeight: FontWeight.w600)),
+          subtitle: Text(item.description ?? item.requestType.toUpperCase(), style: const TextStyle(fontSize: 12)),
+          trailing: _statusBadge(item.status),
+          onTap: () {
+            if (item.requestType == 'vacacion') {
+              context.push('/vacations/${item.id}');
+            } else {
+              context.push('/permissions/${item.id}');
+            }
+          },
         ),
-        title: Text(item.employeeName, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(item.description ?? item.requestType.toUpperCase(), style: const TextStyle(fontSize: 12)),
-        trailing: _statusBadge(item.status),
-        onTap: () {
-          if (item.requestType == 'vacacion') {
-            context.push('/vacations/${item.id}');
-          } else {
-            context.push('/permissions/${item.id}');
-          }
-        },
       ),
     );
   }

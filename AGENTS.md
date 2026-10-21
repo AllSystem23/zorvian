@@ -108,6 +108,7 @@
 - **State**: Riverpod `NotifierProvider` with immutable state + `copyWith`
 - **Pages**: `ConsumerStatefulWidget` with `ConsumerState`, loading in `initState` via `addPostFrameCallback`
 - **Widgets**: Design System (`ZCard`, `ZButton`, `ZStatCard`, `ZDataTable`, etc.) from `shared/ds/ds.dart`
+- **ListTile dentro de ZCard**: `ZCard` pinta su fondo con un `DecoratedBox`; un `ListTile` con `onTap`/`onLongPress` (o `tileColor`) pinta sus ink splashes sobre el `Material` ancestro más cercano → sin un `Material` intermedio el splash queda oculto y Flutter lanza el assert *"ListTile background color or ink splashes may be invisible"* en debug. **Todo `ListTile` dentro de un `ZCard` va envuelto en `Material(type: MaterialType.transparency)`** (igual que `SwitchListTile`). Lo vigila `frontend/test/zcard_list_tile_drift_test.dart` (escanea `lib/**/*.dart` y falla si falta el `Material`).
 - **API**: Dio client injected via `ref.read(dioClientProvider)`
 - **Sidebar**: 9 modules in 5 groups (Operations, Financial, Talent, Intelligence, Admin)
 - **Responsive**: `ResponsiveBuilder`, `ResponsiveGrid`, `ResponsivePadding` (mobile <576px, tablet <992px, desktop 992px+)

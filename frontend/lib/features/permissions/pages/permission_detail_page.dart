@@ -192,19 +192,24 @@ class _PermissionDetailPageState extends ConsumerState<PermissionDetailPage> {
           ),
           if (p['supportingDocumentUrl'] != null && (p['supportingDocumentUrl'] as String).isNotEmpty)
             ZCard(
-              child: ListTile(
-                leading: const Icon(Icons.attach_file),
-                title: Text(p['supportingDocumentFileName'] as String? ?? 'Documento'),
-                trailing: const Icon(Icons.open_in_new),
-                onTap: () async {
-                  final url = p['supportingDocumentUrl'] as String?;
-                  if (url != null && url.isNotEmpty) {
-                    final uri = Uri.tryParse(url);
-                    if (uri != null && await canLaunchUrl(uri)) {
-                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+              // `Material` transparente: `ListTile` dentro de `ZCard`
+              // (DecoratedBox) dispara el assert de ink splashes en debug.
+              child: Material(
+                type: MaterialType.transparency,
+                child: ListTile(
+                  leading: const Icon(Icons.attach_file),
+                  title: Text(p['supportingDocumentFileName'] as String? ?? 'Documento'),
+                  trailing: const Icon(Icons.open_in_new),
+                  onTap: () async {
+                    final url = p['supportingDocumentUrl'] as String?;
+                    if (url != null && url.isNotEmpty) {
+                      final uri = Uri.tryParse(url);
+                      if (uri != null && await canLaunchUrl(uri)) {
+                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      }
                     }
-                  }
-                },
+                  },
+                ),
               ),
             ),
           if (status == 'pending' && _actionLoading)

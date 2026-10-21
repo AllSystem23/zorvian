@@ -30,11 +30,15 @@
 | `1e6230a` | Fase 3 — los 10 formularios de flota a 360 px (`Expanded` en el título de `_buildSection`, `SwitchListTile` en `Material`), `test/helpers/fake_api.dart` |
 | `3fb7aca` | Fase 3 — 6 formularios de catálogo y 9 listados a 360 px (sin cambios de código) |
 | `2c1fe71` | Fase 3 — formularios transaccionales a 360 px (`Wrap` en "Productos (n) + Agregar producto", `ResponsiveFormRow` en el período de pagos a prestadores, línea y estimados en columna) |
+| `082b92f` | Fase 3 — 11 pantallas de detalle a 360 px (filas etiqueta/valor con `Expanded`, acciones en `Wrap`) |
+| `4667989` | Fase 3 — flujo de aprobación y liquidación final a 360 px |
+| `5794fcb` | Fase 3 — 23 detalles más (caja, nómina, CRM, documentos) a 360 px |
+| `5b23609` | Fase 3 — nómina, presupuestos y webhooks a 360 px: `ListTile` en `Material`, tarjetas de resumen apiladas, `_summaryRow` con `Expanded` y el drift test que vigila el `ZCard` |
 
 **Próximos pasos sugeridos** (en orden de valor):
 
-1. Resto de formularios y detalles que aún no se montaron (nómina/liquidación, conciliaciones,
-   presupuestos, webhooks, CRM lead/oportunidad, contratos de proveedor y las pantallas de detalle).
+1. Resto de formularios y detalles que aún no se montaron (liquidación, conciliaciones,
+   CRM lead/oportunidad, contratos de proveedor y las pantallas de detalle restantes).
 2. Fase 5.3/5.4: rendimiento percibido (skeletons/paginación) y accesibilidad móvil.
 
 ---
@@ -385,6 +389,30 @@ acción primaria siempre alcanzable.
         `AppDatabase` real, que abre un archivo con sqflite y nunca completa en tests → la página se
         queda en el spinner. Con la DB en memoria se montan de verdad (el listado de productos se
         reincorporó al barrido gracias a esto).
+- [x] **Nómina, presupuestos y webhooks a 360 px** (`test/payroll_budget_pages_mobile_test.dart`,
+      10 casos): tres defectos reales y un bug de Riverpod:
+      - **`ListTile` dentro de `ZCard` (assert de ink splashes)**: la página de nómina y la de
+        sucursales pintaban su `ListTile` con `onTap` sobre un `ZCard` (que pinta el fondo con un
+        `DecoratedBox`) → assert de debug *"ListTile background color or ink splashes may be
+        invisible"* y, en release, un splash invisible. Se envuelve en
+        `Material(type: MaterialType.transparency)` (patrón ya usado en flota, POS y proveedor).
+      - **Tarjetas de resumen de la nómina desbordaban 92 px y 43 px**: `_SummaryCard` pintaba
+        `Row(Avatar + Column(texto))` **sin `Expanded`**; la columna tomaba el ancho natural del
+        texto y la fila no cabía en los ~108 px útiles de media pantalla. Ahora la columna va en
+        `Expanded` con `maxLines: 1` + ellipsis, y en teléfono las **dos tarjetas se apilan**
+        (`ResponsiveBuilder`), porque a 360 px una `ZCard` con padding 24 deja ~108 px de texto.
+      - **`_summaryRow` de "Presupuesto vs real" desbordaba 36 px**: etiqueta y monto iban en un
+        `Row(spaceBetween)`; la etiqueta pasa a `Expanded` + ellipsis y el monto conserva su ancho.
+      - **Bug de Riverpod (no era de layout)**: `BudgetVsActualPage.initState` llamaba
+        `loadReport()` directo → *"Tried to modify a provider while the widget tree was building"*.
+        La carga va en `WidgetsBinding.instance.addPostFrameCallback` (convención del proyecto).
+- [x] **Drift test del patrón `ZCard` + `ListTile`** (`test/zcard_list_tile_drift_test.dart`): escanea
+      `lib/**/*.dart` y falla si un `ListTile` con `onTap` cuelga de un `ZCard` sin un `Material`
+      intermedio (mismo espíritu que `permissions_catalog_drift_test.dart`, que lee el catálogo C#).
+      Sale del barrido anterior: **8 páginas** tenían el assert latente (nómina, sucursales,
+      estado de cuenta del cliente ×2, dashboard, detalle de permiso, ajustes de compañía,
+      inventario y talleres). El segundo test del archivo monta un `ZCard` con `ListTile` y
+      comprueba en runtime que no salta la excepción.
 
 **Aceptación**: dashboard ejecutivo y comercial legibles a 360 px, 2 KPIs por fila, 0 overflows.
 
@@ -478,8 +506,14 @@ acción primaria siempre alcanzable.
 - [x] **Formularios y listados montados a 360/390/430 px** (`fleet_forms_mobile_test.dart`,
       `catalog_forms_mobile_test.dart`, `commercial_forms_mobile_test.dart` y
       `list_pages_mobile_test.dart`): 10 + 6 + 10 + 10 pantallas — ver el barrido de Fase 3.
-- [ ] Barrido del resto de rutas top a 360 px (formularios de nómina/liquidación, conciliaciones,
-      presupuestos, webhooks, CRM y las pantallas de detalle).
+- [x] **Nómina, presupuestos y webhooks montados a 360/390/430 px**
+      (`payroll_budget_pages_mobile_test.dart`, 10 casos) y **detalle de 23+ pantallas**
+      (`detail_pages_mobile_test.dart`) — ver el barrido de Fase 3.
+- [x] **Drift del patrón `ZCard` + `ListTile`** (`zcard_list_tile_drift_test.dart`): escanea
+      `lib/**/*.dart` y falla si un `ListTile` con `onTap` queda sin `Material` dentro de un `ZCard`
+      (el `DecoratedBox` del `ZCard` escondería el ink splash y Flutter lanzaría el assert).
+- [ ] Barrido del resto de rutas top a 360 px (formularios de liquidación, conciliaciones,
+      CRM y las pantallas de detalle restantes).
 - [ ] Regresiones: "Más" activo fuera de hubs; selectores operativos en móvil.
 
 **Aceptación**: 0 overflows en la matriz 360/390/430 × `textScale` 1.0/1.3; cámara y

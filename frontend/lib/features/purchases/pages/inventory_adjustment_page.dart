@@ -129,17 +129,22 @@ final class _InventoryAdjustmentPageState extends ConsumerState<InventoryAdjustm
                   onChanged: (v) => setState(() => _searchQuery = v),
                 ),
                   if (_searchQuery.isNotEmpty && _product == null)
-                    ...filtered.map((p) => ListTile(
-                      dense: true,
-                      title: Text('${p.name} (${p.code})'),
-                      subtitle: Text('Stock: ${p.stock.toStringAsFixed(0)} · Costo: \$${p.cost?.toStringAsFixed(2) ?? "N/A"}'),
-                      onTap: () {
-                        setState(() {
-                          _product = _SelectedProduct(id: p.id, name: p.name, code: p.code, stock: p.stock);
-                          _searchCtrl.clear();
-                          _searchQuery = '';
-                        });
-                      },
+                    ...filtered.map((p) => Material(
+                      // `Material` transparente: `ListTile` dentro de `ZCard`
+                      // (DecoratedBox) dispara el assert de ink splashes.
+                      type: MaterialType.transparency,
+                      child: ListTile(
+                        dense: true,
+                        title: Text('${p.name} (${p.code})'),
+                        subtitle: Text('Stock: ${p.stock.toStringAsFixed(0)} · Costo: \$${p.cost?.toStringAsFixed(2) ?? "N/A"}'),
+                        onTap: () {
+                          setState(() {
+                            _product = _SelectedProduct(id: p.id, name: p.name, code: p.code, stock: p.stock);
+                            _searchCtrl.clear();
+                            _searchQuery = '';
+                          });
+                        },
+                      ),
                     )),
                   if (_product != null)
                     Container(

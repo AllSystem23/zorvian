@@ -94,41 +94,47 @@ class _WorkshopListPageState extends ConsumerState<WorkshopListPage> {
                                 final w = filtered[i];
                                 return ZCard(
                                   padding: const EdgeInsets.all(ZSpacing.md),
-                                  child: ListTile(
-                                    contentPadding: EdgeInsets.zero,
-                                    leading: CircleAvatar(
-                                      backgroundColor: w.isActive
-                                          ? ZColors.brandPrimary.withAlpha(25)
-                                          : ZColors.neutral200,
-                                      child: Icon(Icons.build, color: w.isActive ? ZColors.brandPrimary : ZColors.neutral400),
-                                    ),
-                                    title: Text(w.name, style: ZTypography.titleMedium),
-                                    subtitle: Text(
-                                      '${w.code} · ${w.city ?? '—'} · ${w.technicianCount} técnicos',
-                                      style: ZTypography.bodySmall,
-                                    ),
-                                    trailing: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        if (w.rating > 0)
-                                          Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const Icon(Icons.star, size: 16, color: ZColors.warning),
-                                              const SizedBox(width: 2),
-                                              Text(w.rating.toStringAsFixed(1), style: ZTypography.bodySmall),
-                                            ],
+                                  // `Material` transparente: `ListTile` dentro
+                                  // de `ZCard` (DecoratedBox) dispara el assert
+                                  // de ink splashes en debug.
+                                  child: Material(
+                                    type: MaterialType.transparency,
+                                    child: ListTile(
+                                      contentPadding: EdgeInsets.zero,
+                                      leading: CircleAvatar(
+                                        backgroundColor: w.isActive
+                                            ? ZColors.brandPrimary.withAlpha(25)
+                                            : ZColors.neutral200,
+                                        child: Icon(Icons.build, color: w.isActive ? ZColors.brandPrimary : ZColors.neutral400),
+                                      ),
+                                      title: Text(w.name, style: ZTypography.titleMedium),
+                                      subtitle: Text(
+                                        '${w.code} · ${w.city ?? '—'} · ${w.technicianCount} técnicos',
+                                        style: ZTypography.bodySmall,
+                                      ),
+                                      trailing: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          if (w.rating > 0)
+                                            Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.star, size: 16, color: ZColors.warning),
+                                                const SizedBox(width: 2),
+                                                Text(w.rating.toStringAsFixed(1), style: ZTypography.bodySmall),
+                                              ],
+                                            ),
+                                          const SizedBox(width: ZSpacing.sm),
+                                          ZBadge(
+                                            text: w.isActive ? 'Activo' : 'Inactivo',
+                                            type: w.isActive ? ZBadgeType.success : ZBadgeType.neutral,
                                           ),
-                                        const SizedBox(width: ZSpacing.sm),
-                                        ZBadge(
-                                          text: w.isActive ? 'Activo' : 'Inactivo',
-                                          type: w.isActive ? ZBadgeType.success : ZBadgeType.neutral,
-                                        ),
-                                        const SizedBox(width: ZSpacing.sm),
-                                        const Icon(Icons.chevron_right),
-                                      ],
+                                          const SizedBox(width: ZSpacing.sm),
+                                          const Icon(Icons.chevron_right),
+                                        ],
+                                      ),
+                                      onTap: () => context.push('/workshops/${w.id}'),
                                     ),
-                                    onTap: () => context.push('/workshops/${w.id}'),
                                   ),
                                 );
                               },

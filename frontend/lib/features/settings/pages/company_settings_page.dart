@@ -104,12 +104,17 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
           ),
           const SizedBox(height: 16),
           ZCard(
-            child: ListTile(
-              leading: const Icon(Icons.event_note),
-              title: const Text('Tipos de Permiso'),
-              subtitle: const Text('Gestionar tipos de permiso disponibles'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push('/leave-types'),
+            // `Material` transparente: `ListTile` dentro de `ZCard`
+            // (DecoratedBox) dispara el assert de ink splashes en debug.
+            child: Material(
+              type: MaterialType.transparency,
+              child: ListTile(
+                leading: const Icon(Icons.event_note),
+                title: const Text('Tipos de Permiso'),
+                subtitle: const Text('Gestionar tipos de permiso disponibles'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push('/leave-types'),
+              ),
             ),
           ),
         ],

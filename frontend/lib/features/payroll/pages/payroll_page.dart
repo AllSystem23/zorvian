@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/responsive_layout.dart';
 import '../providers/payroll_provider.dart';
 import '../../../shared/ds/ds.dart';
 
@@ -80,54 +81,106 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
   }
 
   Widget _buildSummaryCards(ThemeData theme) {
-    return Row(
-      children: [
-        Expanded(child: _SummaryCard(
-          icon: Icons.people,
-          label: 'Trabajadores',
-          value: _employeeCount.toString(),
-          color: const Color(0xFF4F46E5),
-        )),
-        const SizedBox(width: 12),
-        Expanded(child: _SummaryCard(
-          icon: Icons.calendar_month,
-          label: 'Períodos',
-          value: '${_periods.length}',
-          color: const Color(0xFF059669),
-        )),
-      ],
+    final workers = _SummaryCard(
+      icon: Icons.people,
+      label: 'Trabajadores',
+      value: _employeeCount.toString(),
+      color: const Color(0xFF4F46E5),
+    );
+    final periods = _SummaryCard(
+      icon: Icons.calendar_month,
+      label: 'Períodos',
+      value: '${_periods.length}',
+      color: const Color(0xFF059669),
+    );
+
+    // En teléfono las dos tarjetas en fila quedan de ~158 px y el texto
+    // desborda (92 px / 43 px); apiladas cada una usa el ancho completo.
+    return ResponsiveBuilder(
+      builder: (_, size) {
+        if (size == ScreenSize.mobile) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              workers,
+              const SizedBox(height: 12),
+              periods,
+            ],
+          );
+        }
+        return Row(
+          children: [
+            Expanded(child: workers),
+            const SizedBox(width: 12),
+            Expanded(child: periods),
+          ],
+        );
+      },
     );
   }
 
   Widget _buildAdminLinks(ThemeData theme) {
-    return Row(
-      children: [
-        Expanded(
-          child: ZCard(
-            padding: EdgeInsets.zero,
-            child: ListTile(
-              leading: Icon(Icons.attach_money, color: Colors.green.shade600),
-              title: const Text('Tipos de Deducción'),
-              subtitle: const Text('Configurar deducciones de nómina'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push('/payroll/deduction-types'),
-            ),
+    Widget link({
+      required IconData icon,
+      required Color color,
+      required String title,
+      required String subtitle,
+      required String route,
+    }) {
+      return ZCard(
+        padding: EdgeInsets.zero,
+        // `Material` transparente: `ListTile` dentro de `ZCard` (DecoratedBox)
+        // dispara el assert de ink splashes en debug.
+        child: Material(
+          type: MaterialType.transparency,
+          child: ListTile(
+            leading: Icon(icon, color: color),
+            title: Text(title),
+            subtitle: Text(subtitle),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push(route),
           ),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: ZCard(
-            padding: EdgeInsets.zero,
-            child: ListTile(
-              leading: Icon(Icons.calendar_month, color: Colors.blue.shade600),
-              title: const Text('Períodos'),
-              subtitle: const Text('Gestionar períodos de nómina'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push('/payroll/periods'),
-            ),
-          ),
-        ),
-      ],
+      );
+    }
+
+    final deductions = link(
+      icon: Icons.attach_money,
+      color: Colors.green.shade600,
+      title: 'Tipos de Deducción',
+      subtitle: 'Configurar deducciones de nómina',
+      route: '/payroll/deduction-types',
+    );
+    final periods = link(
+      icon: Icons.calendar_month,
+      color: Colors.blue.shade600,
+      title: 'Períodos',
+      subtitle: 'Gestionar períodos de nómina',
+      route: '/payroll/periods',
+    );
+
+    // A 360 px el `ListTile` de cada tarjeta se queda sin ancho para el texto
+    // (leading + trailing se comen ~112 px): en teléfono van apilados.
+    return ResponsiveBuilder(
+      builder: (_, size) {
+        if (size == ScreenSize.mobile) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              deductions,
+              const SizedBox(height: 12),
+              periods,
+            ],
+          );
+        }
+        return Row(
+          children: [
+            Expanded(child: deductions),
+            const SizedBox(width: 12),
+            Expanded(child: periods),
+          ],
+        );
+      },
     );
   }
 
@@ -150,18 +203,23 @@ class _PayrollPageState extends ConsumerState<PayrollPage> {
 
     return ZCard(
       margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: statusColor.withValues(alpha: 0.1),
-          child: Icon(Icons.receipt_long, color: statusColor, size: 20),
+      // `Material` transparente: `ListTile` dentro de `ZCard` (DecoratedBox)
+      // dispara el assert de ink splashes en debug.
+      child: Material(
+        type: MaterialType.transparency,
+        child: ListTile(
+          leading: CircleAvatar(
+            backgroundColor: statusColor.withValues(alpha: 0.1),
+            child: Icon(Icons.receipt_long, color: statusColor, size: 20),
+          ),
+          title: Text(run['periodName']?.toString() ?? 'Corrida'),
+          subtitle: Text(
+            'Neta: \$${run['totalNetPay']?.toString() ?? '0.00'} · $statusLabel',
+            style: TextStyle(color: statusColor, fontWeight: FontWeight.w500),
+          ),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => context.push('/payroll/runs/${run['id']}'),
         ),
-        title: Text(run['periodName']?.toString() ?? 'Corrida'),
-        subtitle: Text(
-          'Neta: \$${run['totalNetPay']?.toString() ?? '0.00'} · $statusLabel',
-          style: TextStyle(color: statusColor, fontWeight: FontWeight.w500),
-        ),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: () => context.push('/payroll/runs/${run['id']}'),
       ),
     );
   }
@@ -190,12 +248,27 @@ class _SummaryCard extends StatelessWidget {
             child: Icon(icon, color: color, size: 20),
           ),
           const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(value, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-              Text(label, style: Theme.of(context).textTheme.bodySmall),
-            ],
+          // `Expanded`: sin él la columna toma el ancho natural del texto y
+          // la fila desborda (92 px / 43 px a 360 px).
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
           ),
         ],
       ),
