@@ -67,15 +67,15 @@ class SalesPredictionSection extends ConsumerWidget {
 
             return Column(
               children: [
-                SizedBox(
-                  height: 200,
-                  child: BiLineChart(
-                    series: [
-                      LineChartSeries(spots, color: primary, showArea: true),
-                      LineChartSeries(upperSpots, color: primary.withAlpha(80)),
-                      LineChartSeries(lowerSpots, color: primary.withAlpha(80)),
-                    ],
-                  ),
+                // Sin `SizedBox` externo: el `BiLineChart` trae su propia altura
+                // (200) + título/padding, así que el recorte superior
+                // desbordaba 40 px por abajo.
+                BiLineChart(
+                  series: [
+                    LineChartSeries(spots, color: primary, showArea: true),
+                    LineChartSeries(upperSpots, color: primary.withAlpha(80)),
+                    LineChartSeries(lowerSpots, color: primary.withAlpha(80)),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Text('Pronóstico mensual: \$${month.totalPredicted.toStringAsFixed(0)}  •  Promedio diario: \$${month.dailyAverage.toStringAsFixed(0)}',
@@ -99,13 +99,20 @@ class SalesPredictionSection extends ConsumerWidget {
                   const SizedBox(height: 8),
                   ...days.map((d) => Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),
+                    // `Expanded` en el monto y `Flexible` en el rango: en
+                    // teléfono el rango ($inferior – $superior) no cabía en la
+                    // misma línea y desbordaba 69 px.
                     child: Row(
                       children: [
                         SizedBox(width: 100, child: Text(d.dayOfWeek, style: Theme.of(context).textTheme.bodySmall)),
-                        Text('\$${d.predictedSales.toStringAsFixed(0)}', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-                        const Spacer(),
-                        Text('\$${d.lowerBound.toStringAsFixed(0)} – \$${d.upperBound.toStringAsFixed(0)}',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: palette.onSurfaceVariant)),
+                        Expanded(
+                          child: Text('\$${d.predictedSales.toStringAsFixed(0)}', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                        ),
+                        Flexible(
+                          child: Text('\$${d.lowerBound.toStringAsFixed(0)} – \$${d.upperBound.toStringAsFixed(0)}',
+                            textAlign: TextAlign.end,
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: palette.onSurfaceVariant)),
+                        ),
                       ],
                     ),
                   )),

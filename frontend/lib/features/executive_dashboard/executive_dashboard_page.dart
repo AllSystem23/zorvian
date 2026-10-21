@@ -46,7 +46,7 @@ final class _ExecutiveDashboardPageState extends ConsumerState<ExecutiveDashboar
           Expanded(
             child: ZMainContent(
               focusNode: _mainContentFocus,
-              child: state.loading
+              child: state.loading || state.kpis == null
                   ? const ZLiveRegion(
                       label: 'Cargando panel ejecutivo...',
                       child: Center(child: CircularProgressIndicator()),

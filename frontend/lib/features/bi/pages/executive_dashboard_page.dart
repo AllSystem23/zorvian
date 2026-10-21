@@ -132,16 +132,13 @@ class _ExecutiveDashboardPageState extends ConsumerState<ExecutiveDashboardPage>
             salesTrendAsync.when(
               loading: () => const SizedBox(height: 200, child: Center(child: CircularProgressIndicator())),
               error: (e, _) => ZCard(padding: const EdgeInsets.all(16), child: Text('Error: $e')),
-              data: (months) => SizedBox(
-                height: 200,
-                child: BiLineChart(
-                  series: [
-                    LineChartSeries(
-                      months.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value.total)).toList(),
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ],
-                ),
+              data: (months) => BiLineChart(
+                series: [
+                  LineChartSeries(
+                    months.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value.total)).toList(),
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 24),
@@ -217,17 +214,14 @@ class _ExecutiveDashboardPageState extends ConsumerState<ExecutiveDashboardPage>
             arAgingAsync.when(
               loading: () => const SizedBox(height: 200, child: Center(child: CircularProgressIndicator())),
               error: (e, _) => ZCard(padding: const EdgeInsets.all(16), child: Text('Error: $e')),
-              data: (aging) => SizedBox(
-                height: 200,
-                child: BiBarChart(
-                  items: [
-                    BarChartItem('Corriente', aging.current, color: Colors.green),
-                    BarChartItem('1-30d', aging.days30, color: Colors.lightGreen),
-                    BarChartItem('31-60d', aging.days60, color: Colors.orange),
-                    BarChartItem('61-90d', aging.days90, color: Colors.deepOrange),
-                    BarChartItem('+90d', aging.days90Plus, color: Colors.red),
-                  ],
-                ),
+              data: (aging) => BiBarChart(
+                items: [
+                  BarChartItem('Corriente', aging.current, color: Colors.green),
+                  BarChartItem('1-30d', aging.days30, color: Colors.lightGreen),
+                  BarChartItem('31-60d', aging.days60, color: Colors.orange),
+                  BarChartItem('61-90d', aging.days90, color: Colors.deepOrange),
+                  BarChartItem('+90d', aging.days90Plus, color: Colors.red),
+                ],
               ),
             ),
             const SizedBox(height: 24),

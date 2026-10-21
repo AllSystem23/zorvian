@@ -127,7 +127,9 @@ class _MobileDashboardPageState extends ConsumerState<MobileDashboardPage> {
         crossAxisCount: 2,
         mainAxisSpacing: 12,
         crossAxisSpacing: 12,
-        childAspectRatio: 1.6,
+        // Alto fijo en vez de `childAspectRatio`: con 1.6 la tarjeta medía
+        // ~99 px y su contenido (icono + valor + etiqueta) desbordaba 5 px.
+        mainAxisExtent: 116,
       ),
       itemCount: metrics.length,
       itemBuilder: (_, i) {
@@ -162,32 +164,37 @@ class _MobileDashboardPageState extends ConsumerState<MobileDashboardPage> {
           ),
         ),
         const SizedBox(height: 12),
+        // Cada acción ocupa un `Expanded`: con `Row(spaceAround)` las
+        // etiquetas son contenido no flexible y la fila desbordaba a 360 px.
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: actions.map((a) {
-            return GestureDetector(
-              onTap: () => context.push(a.route),
-              child: Column(
-                children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: a.color.withValues(alpha: isDark ? 0.2 : 0.1),
-                      borderRadius: BorderRadius.circular(ZRadii.lg),
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => context.push(a.route),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: a.color.withValues(alpha: isDark ? 0.2 : 0.1),
+                        borderRadius: BorderRadius.circular(ZRadii.lg),
+                      ),
+                      child: Icon(a.icon, color: a.color, size: 24),
                     ),
-                    child: Icon(a.icon, color: a.color, size: 24),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    a.label,
-                    style: ZTypography.labelSmall.copyWith(
-                      color: isDark ? ZColors.neutral300 : ZColors.neutral600,
-                      fontSize: 11,
+                    const SizedBox(height: 6),
+                    Text(
+                      a.label,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: ZTypography.labelSmall.copyWith(
+                        color: isDark ? ZColors.neutral300 : ZColors.neutral600,
+                        fontSize: 11,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
+                  ],
+                ),
               ),
             );
           }).toList(),

@@ -104,23 +104,17 @@ class _CommercialDashboardPageState extends ConsumerState<CommercialDashboardPag
 
                 return Column(
                   children: [
-                    SizedBox(
-                      height: 200,
-                      child: BiLineChart(
-                        series: [
-                          LineChartSeries(
-                            totals.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value)).toList(),
-                            color: primary,
-                          ),
-                        ],
-                      ),
+                    BiLineChart(
+                      series: [
+                        LineChartSeries(
+                          totals.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value)).toList(),
+                          color: primary,
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
-                    SizedBox(
-                      height: 200,
-                      child: BiBarChart(
-                        items: labels.asMap().entries.map((e) => BarChartItem(e.value, counts[e.key], color: tertiary)).toList(),
-                      ),
+                    BiBarChart(
+                      items: labels.asMap().entries.map((e) => BarChartItem(e.value, counts[e.key], color: tertiary)).toList(),
                     ),
                     const SizedBox(height: 16),
                     if (months.isNotEmpty)

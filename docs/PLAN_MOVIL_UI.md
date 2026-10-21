@@ -39,6 +39,7 @@
 | `08ee68c` | Fase 3 - PalmTrack, objetivos, garantías y motor documental a 360 px (+3 bugs: "Mis Objetivos", perfil SSO y asserts de ink splashes) |
 | `58899e4` | Fase 3 - aprobaciones, reportes personalizados, perfil, onboarding, chat, predicciones, garantías, años fiscales, kiosco y QR a 360 px |
 | `5fe6d86` | Fase 3 - listados de catálogo, operativos y de flota a 360 px (7 + 8 + 10 casos, 6 overflows) |
+| (este lote) | Fase 3 - dashboards y paneles a 360 px (9 casos, 1 bug y 4 overflows) |
 
 **Próximos pasos sugeridos** (en orden de valor):
 
@@ -546,6 +547,36 @@ acción primaria siempre alcanzable.
       - **Harness**: los tres archivos montan la página real contra `FakeApi.routes(...)` a 360/390/430
         px; `find.text` falla cuando el `ListTile` concatena campos en el `subtitle`
         (`'$title · $branchName'`) → se usa `find.textContaining`.
+- [x] **Dashboards y paneles a 360 px** (`test/dashboards_mobile_test.dart`, 9 casos):
+      `MobileDashboardPage`, `DashboardV2Page`, panel ejecutivo (`dashboard/executive`), dashboard
+      ejecutivo y comercial de BI, cartera vencida, inventario, flota y calendario de ausencias. Cuatro
+      páginas con defectos reales:
+      - **Panel ejecutivo — BUG, no layout (`Null check operator used on a null value`)**: el primer
+        frame se construía con `state.loading == false` y `state.kpis == null` (la carga arranca en una
+        microtask) y el `ListView` hacía `state.kpis!`. Ahora la rama de carga es
+        `state.loading || state.kpis == null`. Nunca se había montado en un test.
+      - **Dashboard BI (ejecutivo y comercial) — 40 px por abajo**: la página envolvía los gráficos en
+        `SizedBox(height: 200)`, pero `BiLineChart`/`BiBarChart` ya miden 200 + título + 8 + padding
+        (24) por dentro → el `Column` del gráfico desbordaba. Se quitan los `SizedBox` externos y el
+        gráfico toma su altura natural. Mismo defecto en `SalesPredictionSection`.
+      - **Sección de predicción — 69 px a la derecha**: `Row(caja del día 100 px + monto + Spacer +
+        rango "$inferior – $superior")`; el rango pasa a `Flexible` con `textAlign: end` y el monto a
+        `Expanded` (en escritorio se ve igual, el rango sigue a la derecha).
+      - **`MobileDashboardPage` — 111 px a la derecha**: "Acciones Rápidas" era
+        `Row(spaceAround, 4 × Column(icono 52 + etiqueta))`; las etiquetas no son flexibles. Cada acción
+        pasa a `Expanded` con la etiqueta a 2 líneas + ellipsis.
+      - **`MobileDashboardPage` — 5.3 px por abajo**: el `GridView` de KPIs usaba
+        `childAspectRatio: 1.6` (celda de ~99 px) y el contenido pedía ~104; ahora `mainAxisExtent: 116`.
+      - **Harness**: las páginas con `AutoRefreshMixin` se montan con `height: 4000` (con el alto real
+        solo se construirían las primeras secciones) y se desmontan al final para cancelar el
+        `Timer.periodic`. El dashboard comercial arrastra tres secciones de IA
+        (`SalesPredictionSection`, `PurchaseRecommendationSection`, `ExpenseClassifierSection`) que
+        piden por red: si no se les da respuesta quedan en el `CircularProgressIndicator` de carga y
+        `pumpAndSettle` no termina nunca (animación infinita) → se sirven por `FakeApi` con payloads
+        mínimos.
+      - **Inventario es offline-first**: `InventoryDashboardPage` solo `ref.watch(productProvider)`, así
+        que se siembra el `AppDatabase` en memoria (`upsertProduct`) con conectividad fija en `offline`
+        y un bootstrap que dispara `productProvider.notifier.load()`.
 
 **Aceptación**: dashboard ejecutivo y comercial legibles a 360 px, 2 KPIs por fila, 0 overflows.
 
