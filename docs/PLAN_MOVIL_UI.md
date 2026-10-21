@@ -36,7 +36,7 @@
 | `5b23609` | Fase 3 — nómina, presupuestos y webhooks a 360 px: `ListTile` en `Material`, tarjetas de resumen apiladas, `_summaryRow` con `Expanded` y el drift test que vigila el `ZCard` |
 | `c375470` | Fase 3 — contabilidad, tesorería y reportes a 360 px: `ZButton` `fullWidth: false` dentro de `Row`, `_row` del estado de resultados con `Expanded` y `ZStatGrid` en el centro de reportes |
 | `3258bc9` | Fase 3 - RRHH, CRM, conciliaciones, documentos y asistencia a 360 px (encabezado y acciones del centro documental en columna) |
-| `4b091ea` | Fase 3 - PalmTrack, objetivos, garantías y motor documental a 360 px (+3 bugs: "Mis Objetivos", perfil SSO y asserts de ink splashes) |
+| `08ee68c` | Fase 3 - PalmTrack, objetivos, garantías y motor documental a 360 px (+3 bugs: "Mis Objetivos", perfil SSO y asserts de ink splashes) |
 
 **Próximos pasos sugeridos** (en orden de valor):
 
