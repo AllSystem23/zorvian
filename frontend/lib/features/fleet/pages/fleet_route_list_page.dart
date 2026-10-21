@@ -63,44 +63,70 @@ final class _FleetRouteListPageState extends ConsumerState<FleetRouteListPage> {
                         separatorBuilder: (_, _) => const Divider(height: 1),
                         itemBuilder: (_, i) {
                           final r = state.items[i];
+                          // En teléfono la fecha y el estado bajan al subtítulo:
+                          // como `trailing` son contenido no flexible y la fila
+                          // desbordaba 60 px a 360.
+                          final isPhone =
+                              MediaQuery.sizeOf(context).width < ZBreakpoints.phone;
+                          final statusPill = Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: _statusColor(r.status).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              _statusLabel(r.status),
+                              style: TextStyle(fontSize: 11, color: _statusColor(r.status), fontWeight: FontWeight.w600),
+                            ),
+                          );
+                          final menu = PopupMenuButton<String>(
+                            onSelected: (action) async {
+                              if (action == 'edit') {
+                                final r2 = await context.push<bool>('/fleet/routes/${r.id}/edit');
+                                if (r2 == true) ref.read(fleetRouteProvider.notifier).load();
+                              }
+                              if (action == 'delete') _confirmDelete(r.id, r.code);
+                            },
+                            itemBuilder: (_) => [
+                              const PopupMenuItem(value: 'edit', child: Text('Editar')),
+                              const PopupMenuItem(value: 'delete', child: Text('Eliminar', style: TextStyle(color: Colors.red))),
+                            ],
+                          );
                           return ListTile(
                             leading: CircleAvatar(
                               backgroundColor: _statusColor(r.status).withValues(alpha: 0.2),
                               child: Icon(Icons.route_outlined, color: _statusColor(r.status), size: 20),
                             ),
                             title: Text('${r.code} · ${r.name}', style: const TextStyle(fontWeight: FontWeight.w600)),
-                            subtitle: Text('${r.originAddress} → ${r.destinationAddress ?? "—"}'),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(r.scheduledDate, style: const TextStyle(fontSize: 12)),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: _statusColor(r.status).withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(12),
+                            subtitle: isPhone
+                                ? Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('${r.originAddress} → ${r.destinationAddress ?? "—"}'),
+                                      const SizedBox(height: 4),
+                                      Wrap(
+                                        crossAxisAlignment: WrapCrossAlignment.center,
+                                        spacing: 8,
+                                        runSpacing: 4,
+                                        children: [
+                                          Text(r.scheduledDate, style: const TextStyle(fontSize: 12)),
+                                          statusPill,
+                                        ],
+                                      ),
+                                    ],
+                                  )
+                                : Text('${r.originAddress} → ${r.destinationAddress ?? "—"}'),
+                            trailing: isPhone
+                                ? menu
+                                : Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(r.scheduledDate, style: const TextStyle(fontSize: 12)),
+                                      const SizedBox(width: 8),
+                                      statusPill,
+                                      menu,
+                                    ],
                                   ),
-                                  child: Text(
-                                    _statusLabel(r.status),
-                                    style: TextStyle(fontSize: 11, color: _statusColor(r.status), fontWeight: FontWeight.w600),
-                                  ),
-                                ),
-                                PopupMenuButton<String>(
-                                  onSelected: (action) async {
-                                    if (action == 'edit') {
-                                      final r2 = await context.push<bool>('/fleet/routes/${r.id}/edit');
-                                      if (r2 == true) ref.read(fleetRouteProvider.notifier).load();
-                                    }
-                                    if (action == 'delete') _confirmDelete(r.id, r.code);
-                                  },
-                                  itemBuilder: (_) => [
-                                    const PopupMenuItem(value: 'edit', child: Text('Editar')),
-                                    const PopupMenuItem(value: 'delete', child: Text('Eliminar', style: TextStyle(color: Colors.red))),
-                                  ],
-                                ),
-                              ],
-                            ),
                           );
                         },
                       ),

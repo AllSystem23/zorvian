@@ -38,6 +38,7 @@
 | `3258bc9` | Fase 3 - RRHH, CRM, conciliaciones, documentos y asistencia a 360 px (encabezado y acciones del centro documental en columna) |
 | `08ee68c` | Fase 3 - PalmTrack, objetivos, garantías y motor documental a 360 px (+3 bugs: "Mis Objetivos", perfil SSO y asserts de ink splashes) |
 | `58899e4` | Fase 3 - aprobaciones, reportes personalizados, perfil, onboarding, chat, predicciones, garantías, años fiscales, kiosco y QR a 360 px |
+| (este lote) | Fase 3 - listados de catálogo, operativos y de flota a 360 px (7 + 8 + 10 casos, 6 overflows) |
 
 **Próximos pasos sugeridos** (en orden de valor):
 
@@ -516,6 +517,35 @@ acción primaria siempre alcanzable.
         dejar el timer pendiente.
       - **`Override` no lo exporta `flutter_riverpod.dart`** (solo `riverpod`): el helper de montaje
         tipa la lista de overrides como `List<dynamic>` y la esparce.
+- [x] **Listados de catálogo, operativos y de flota a 360 px** (`test/catalog_list_pages_mobile_test.dart`
+      7 casos + `test/ops_list_pages_mobile_test.dart` 8 + `test/fleet_lists_mobile_test.dart` 10):
+      marcas, categorías, centros de costo, tipos de cambio, sucursales, bodegas, talleres; órdenes de
+      compra, solicitudes de cotización, transferencias, notas de crédito (cliente y proveedor), pagos a
+      proveedores y a prestadores, movimientos de inventario; los 10 listados de flota. Seis overflows
+      reales y un caso de legibilidad:
+      - **Tipos de cambio (27 px)**: el `subtitle` era `Row(tasa + icono + fecha)`; pasa a `Wrap` con el
+        bloque icono+fecha agrupado (la fecha ISO no cabe junto a la tasa a 360 px).
+      - **Bodegas**: el `title` era `Row(Flexible(nombre) + 2 Chip)`. No desbordaba, pero con dos chips
+        el nombre se encogía a **0 px** (el `Flexible` cede todo el ancho). Pasa a `Wrap`.
+      - **Pagos a prestadores (259 px)**: `title: Row(Flexible(nº) + Chip(período) + Chip(meta))`. Los
+        chips no son flexibles y el del período ("Quincena 1 · Octubre 2026") no cabe; pasa a `Wrap`.
+      - **Rutas y entregas de flota (~60 px)**: el `trailing` era
+        `Row(fecha ISO + pill de estado + PopupMenu)`. En teléfono la fecha y el estado bajan a un
+        `Wrap` del `subtitle` y el menú queda solo como `trailing`.
+      - **Documentos de flota (48 px)**: dos pills + menú en el `trailing`; en teléfono los pills pasan
+        al `subtitle` (que ya era `Column`) y el menú queda solo.
+      - **Gastos de flota (60 / 251 / 51-82 px, cuatro filas distintas)**: (a) el título de la página
+        competía con 3 `IconButton` → `Expanded` + ellipsis y `Spacer` fuera; (b) los 3 `ChoiceChip` de
+        filtro iban en `Row` → `Wrap`; (c) el pill de forma de pago salía del `trailing` al `subtitle`
+        en teléfono; (d) `_KpiItem` metía `Row(icono + Column(3 textos))` → la columna a `Expanded` +
+        ellipsis y la barra de KPIs pasa a **2 + 1 con `Wrap`** en teléfono (cada tarjeta quedaba con
+        ~82 px). En escritorio conserva la fila de 3 con `Expanded`.
+      - **Patrón para no tocar escritorio**: `final isPhone = MediaQuery.sizeOf(context).width <
+        ZBreakpoints.phone;` dentro del `itemBuilder`; los widgets compartidos (`pill`, `menu`) se
+        extraen a variables locales y cada uno se inserta en **una sola** rama del ternario.
+      - **Harness**: los tres archivos montan la página real contra `FakeApi.routes(...)` a 360/390/430
+        px; `find.text` falla cuando el `ListTile` concatena campos en el `subtitle`
+        (`'$title · $branchName'`) → se usa `find.textContaining`.
 
 **Aceptación**: dashboard ejecutivo y comercial legibles a 360 px, 2 KPIs por fila, 0 overflows.
 

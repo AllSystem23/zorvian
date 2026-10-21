@@ -144,25 +144,27 @@ final class _WarehouseListPageState extends ConsumerState<WarehouseListPage> {
                                         ? (w.isDefault ? Theme.of(context).colorScheme.primary : null)
                                         : Colors.grey,
                                   ),
-                                  title: Row(
+                                  // `Wrap`: con dos chips (`Principal` + `Inactiva`)
+                                  // el `Flexible` del nombre se encogía a 0 px y el
+                                  // nombre de la bodega desaparecía en teléfono.
+                                  title: Wrap(
+                                    crossAxisAlignment: WrapCrossAlignment.center,
+                                    spacing: 8,
+                                    runSpacing: 2,
                                     children: [
-                                      Flexible(child: Text(w.name, style: const TextStyle(fontWeight: FontWeight.w600))),
-                                      if (w.isDefault) ...[
-                                        const SizedBox(width: 8),
+                                      Text(w.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                      if (w.isDefault)
                                         const Chip(
                                           label: Text('Principal', style: TextStyle(fontSize: 10)),
                                           visualDensity: VisualDensity.compact,
                                           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                         ),
-                                      ],
-                                      if (!w.isActive) ...[
-                                        const SizedBox(width: 8),
+                                      if (!w.isActive)
                                         const Chip(
                                           label: Text('Inactiva', style: TextStyle(fontSize: 10)),
                                           visualDensity: VisualDensity.compact,
                                           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                         ),
-                                      ],
                                     ],
                                   ),
                                   subtitle: subtitleParts.isEmpty ? null : Text(subtitleParts.join(' · ')),

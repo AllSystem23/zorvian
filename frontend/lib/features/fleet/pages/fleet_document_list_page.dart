@@ -125,6 +125,49 @@ final class _FleetDocumentListPageState extends ConsumerState<FleetDocumentListP
                                   final d = filtered[i];
                                   final days = d.daysToExpiry;
 
+                                  // En teléfono los dos pills bajan al subtítulo:
+                                  // como `trailing` son contenido no flexible y
+                                  // la fila desbordaba a 360 px.
+                                  final isPhone =
+                                      MediaQuery.sizeOf(context).width < ZBreakpoints.phone;
+                                  final expiryPill = d.documentTypeHasExpiry
+                                      ? Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                          decoration: BoxDecoration(
+                                            color: _expiryColor(days).withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            days < 0 ? 'Vencido' : '${days}d',
+                                            style: TextStyle(fontSize: 11, color: _expiryColor(days), fontWeight: FontWeight.w600),
+                                          ),
+                                        )
+                                      : null;
+                                  final statusPill = Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: _statusColor(d.status).withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      d.status,
+                                      style: TextStyle(fontSize: 11, color: _statusColor(d.status), fontWeight: FontWeight.w600),
+                                    ),
+                                  );
+                                  final menu = PopupMenuButton<String>(
+                                    onSelected: (action) async {
+                                      if (action == 'edit') {
+                                        final r = await context.push<bool>('/fleet/documents/${d.id}/edit', extra: d);
+                                        if (r == true) ref.read(fleetDocumentProvider.notifier).load();
+                                      }
+                                      if (action == 'delete') _confirmDelete(d.id, d.documentNumber);
+                                    },
+                                    itemBuilder: (_) => [
+                                      const PopupMenuItem(value: 'edit', child: Text('Editar')),
+                                      const PopupMenuItem(value: 'delete', child: Text('Eliminar', style: TextStyle(color: Colors.red))),
+                                    ],
+                                  );
+
                                   return ListTile(
                                     leading: _docTypeIcon(d.documentTypeName),
                                     title: Text('${d.documentTypeName} · ${d.documentNumber}',
@@ -141,50 +184,31 @@ final class _FleetDocumentListPageState extends ConsumerState<FleetDocumentListP
                                               Text(_entityLabel(d.entityType), style: const TextStyle(fontSize: 12)),
                                             ],
                                           ),
+                                        if (isPhone) ...[
+                                          const SizedBox(height: 4),
+                                          Wrap(
+                                            crossAxisAlignment: WrapCrossAlignment.center,
+                                            spacing: 8,
+                                            runSpacing: 4,
+                                            children: [
+                                              if (expiryPill != null) expiryPill,
+                                              statusPill,
+                                            ],
+                                          ),
+                                        ],
                                       ],
                                     ),
-                                    trailing: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        if (d.documentTypeHasExpiry)
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                            decoration: BoxDecoration(
-                                              color: _expiryColor(days).withValues(alpha: 0.15),
-                                              borderRadius: BorderRadius.circular(12),
-                                            ),
-                                            child: Text(
-                                              days < 0 ? 'Vencido' : '${days}d',
-                                              style: TextStyle(fontSize: 11, color: _expiryColor(days), fontWeight: FontWeight.w600),
-                                            ),
+                                    trailing: isPhone
+                                        ? menu
+                                        : Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              if (expiryPill != null) expiryPill,
+                                              const SizedBox(width: 8),
+                                              statusPill,
+                                              menu,
+                                            ],
                                           ),
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                          decoration: BoxDecoration(
-                                            color: _statusColor(d.status).withValues(alpha: 0.15),
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          child: Text(
-                                              d.status,
-                                              style: TextStyle(fontSize: 11, color: _statusColor(d.status), fontWeight: FontWeight.w600),
-                                            ),
-                                        ),
-                                        PopupMenuButton<String>(
-                                          onSelected: (action) async {
-                                            if (action == 'edit') {
-                                              final r = await context.push<bool>('/fleet/documents/${d.id}/edit', extra: d);
-                                              if (r == true) ref.read(fleetDocumentProvider.notifier).load();
-                                            }
-                                            if (action == 'delete') _confirmDelete(d.id, d.documentNumber);
-                                          },
-                                          itemBuilder: (_) => [
-                                            const PopupMenuItem(value: 'edit', child: Text('Editar')),
-                                            const PopupMenuItem(value: 'delete', child: Text('Eliminar', style: TextStyle(color: Colors.red))),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
                                   );
                                 },
                               ),

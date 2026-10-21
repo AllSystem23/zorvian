@@ -70,48 +70,74 @@ final class _FleetDeliveryListPageState extends ConsumerState<FleetDeliveryListP
                         separatorBuilder: (_, _) => const Divider(height: 1),
                         itemBuilder: (_, i) {
                           final d = state.items[i];
+                          // En teléfono la fecha y el estado bajan al subtítulo:
+                          // como `trailing` son contenido no flexible y la fila
+                          // desbordaba a 360 px.
+                          final isPhone =
+                              MediaQuery.sizeOf(context).width < ZBreakpoints.phone;
+                          final statusPill = Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: _statusColor(d.status).withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              _statusLabel(d.status),
+                              style: TextStyle(fontSize: 11, color: _statusColor(d.status), fontWeight: FontWeight.w600),
+                            ),
+                          );
+                          final menu = PopupMenuButton<String>(
+                            onSelected: (action) async {
+                              if (action == 'edit') {
+                                final r2 = await context.push<bool>('/fleet/deliveries/${d.id}/edit');
+                                if (r2 == true) ref.read(fleetDeliveryProvider.notifier).load();
+                              }
+                              if (action == 'pdf') _generatePdf(d.id);
+                              if (action == 'packing') _generatePackingList(d.id);
+                              if (action == 'delete') _confirmDelete(d.id, d.code);
+                            },
+                            itemBuilder: (_) => [
+                              const PopupMenuItem(value: 'pdf', child: Text('Generar Hoja de Ruta PDF')),
+                              const PopupMenuItem(value: 'packing', child: Text('Generar Lista de Empaque PDF')),
+                              const PopupMenuItem(value: 'edit', child: Text('Editar')),
+                              const PopupMenuItem(value: 'delete', child: Text('Eliminar', style: TextStyle(color: Colors.red))),
+                            ],
+                          );
                           return ListTile(
                             leading: CircleAvatar(
                               backgroundColor: _statusColor(d.status).withValues(alpha: 0.2),
                               child: Icon(Icons.inventory_2_outlined, color: _statusColor(d.status), size: 20),
                             ),
                             title: Text('${d.code} · ${d.clientName ?? "—"}', style: const TextStyle(fontWeight: FontWeight.w600)),
-                            subtitle: Text(d.deliveryAddress),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(d.scheduledDate, style: const TextStyle(fontSize: 12)),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: _statusColor(d.status).withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(12),
+                            subtitle: isPhone
+                                ? Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(d.deliveryAddress),
+                                      const SizedBox(height: 4),
+                                      Wrap(
+                                        crossAxisAlignment: WrapCrossAlignment.center,
+                                        spacing: 8,
+                                        runSpacing: 4,
+                                        children: [
+                                          Text(d.scheduledDate, style: const TextStyle(fontSize: 12)),
+                                          statusPill,
+                                        ],
+                                      ),
+                                    ],
+                                  )
+                                : Text(d.deliveryAddress),
+                            trailing: isPhone
+                                ? menu
+                                : Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(d.scheduledDate, style: const TextStyle(fontSize: 12)),
+                                      const SizedBox(width: 8),
+                                      statusPill,
+                                      menu,
+                                    ],
                                   ),
-                                  child: Text(
-                                    _statusLabel(d.status),
-                                    style: TextStyle(fontSize: 11, color: _statusColor(d.status), fontWeight: FontWeight.w600),
-                                  ),
-                                ),
-                                PopupMenuButton<String>(
-                                  onSelected: (action) async {
-                                    if (action == 'edit') {
-                                      final r2 = await context.push<bool>('/fleet/deliveries/${d.id}/edit');
-                                      if (r2 == true) ref.read(fleetDeliveryProvider.notifier).load();
-                                    }
-                                    if (action == 'pdf') _generatePdf(d.id);
-                                    if (action == 'packing') _generatePackingList(d.id);
-                                    if (action == 'delete') _confirmDelete(d.id, d.code);
-                                  },
-                                  itemBuilder: (_) => [
-                                    const PopupMenuItem(value: 'pdf', child: Text('Generar Hoja de Ruta PDF')),
-                                    const PopupMenuItem(value: 'packing', child: Text('Generar Lista de Empaque PDF')),
-                                    const PopupMenuItem(value: 'edit', child: Text('Editar')),
-                                    const PopupMenuItem(value: 'delete', child: Text('Eliminar', style: TextStyle(color: Colors.red))),
-                                  ],
-                                ),
-                              ],
-                            ),
                           );
                         },
                       ),

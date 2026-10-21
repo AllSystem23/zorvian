@@ -58,11 +58,16 @@ final class _FleetExpenseListPageState extends ConsumerState<FleetExpenseListPag
                     icon: const Icon(Icons.close),
                     onPressed: () => setState(() { _multiSelectMode = false; _selectedIds.clear(); }),
                   ),
-                if (_multiSelectMode)
-                  Text('${_selectedIds.length} seleccionados', style: const TextStyle(fontWeight: FontWeight.w600)),
-                if (!_multiSelectMode)
-                  const Text('Gastos de Flota', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
-                const Spacer(),
+                // El título va en `Expanded` con ellipsis: a 360 px competía
+                // con los 3 IconButtons de exportar/seleccionar y desbordaba.
+                Expanded(
+                  child: Text(
+                    _multiSelectMode ? '${_selectedIds.length} seleccionados' : 'Gastos de Flota',
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
                 if (_multiSelectMode && _selectedIds.isNotEmpty)
                   IconButton(
                     icon: const Icon(Icons.check_circle),
@@ -93,7 +98,9 @@ final class _FleetExpenseListPageState extends ConsumerState<FleetExpenseListPag
           if (!_multiSelectMode)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 4,
                 children: [ ..._ExpenseFilter.values.map((f) {
                   final label = switch (f) {
                     _ExpenseFilter.all => 'Todos',
@@ -106,18 +113,15 @@ final class _FleetExpenseListPageState extends ConsumerState<FleetExpenseListPag
                     _ExpenseFilter.approved => state.items.where((e) => e.approved).length,
                   };
                   final selected = _filter == f;
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text('$label ($count)'),
-                      selected: selected,
-                      onSelected: (_) => setState(() => _filter = f),
-                      selectedColor: ZColors.brandAccent.withValues(alpha: 0.15),
-                      labelStyle: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: selected ? ZColors.brandAccent : ZColors.neutral600,
-                      ),
+                  return ChoiceChip(
+                    label: Text('$label ($count)'),
+                    selected: selected,
+                    onSelected: (_) => setState(() => _filter = f),
+                    selectedColor: ZColors.brandAccent.withValues(alpha: 0.15),
+                    labelStyle: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: selected ? ZColors.brandAccent : ZColors.neutral600,
                     ),
                   );
                 }),],
@@ -151,6 +155,8 @@ final class _FleetExpenseListPageState extends ConsumerState<FleetExpenseListPag
                                       separatorBuilder: (_, _) => const Divider(height: 1),
                                       itemBuilder: (_, i) {
                                         final e = items[i];
+                                        final isPhone =
+                                            MediaQuery.sizeOf(context).width < ZBreakpoints.phone;
                                         return ListTile(
                                           leading: _multiSelectMode
                                               ? Checkbox(
@@ -194,37 +200,42 @@ final class _FleetExpenseListPageState extends ConsumerState<FleetExpenseListPag
                                             ],
                                           ),
                                           subtitle: Text(
-                                            '${fmt.currency(e.amount)} · ${e.categoryName}${e.vehiclePlate != null ? ' · ${e.vehiclePlate}' : ''}',
+                                            '${fmt.currency(e.amount)} · ${e.categoryName}${e.vehiclePlate != null ? ' · ${e.vehiclePlate}' : ''}'
+                                            // En teléfono la forma de pago baja al
+                                            // subtítulo: como `trailing` no es
+                                            // flexible y desbordaba a 360 px.
+                                            '${isPhone ? ' · ${_paymentLabel(e.paymentMethod)}' : ''}',
                                           ),
                                           trailing: _multiSelectMode
                                               ? null
                                               : Row(
                                                   mainAxisSize: MainAxisSize.min,
                                                   children: [
-                                                    Column(
-                                                      mainAxisAlignment: MainAxisAlignment.center,
-                                                      crossAxisAlignment: CrossAxisAlignment.end,
-                                                      children: [
-                                                        Container(
-                                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                                          decoration: BoxDecoration(
-                                                            color: _paymentLabel(e.paymentMethod) == e.paymentMethod
-                                                                ? ZColors.moduleFleet.withValues(alpha: 0.15)
-                                                                : ZColors.success.withValues(alpha: 0.15),
-                                                            borderRadius: BorderRadius.circular(10),
+                                                    if (!isPhone)
+                                                      Column(
+                                                        mainAxisAlignment: MainAxisAlignment.center,
+                                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                                        children: [
+                                                          Container(
+                                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                                            decoration: BoxDecoration(
+                                                              color: _paymentLabel(e.paymentMethod) == e.paymentMethod
+                                                                  ? ZColors.moduleFleet.withValues(alpha: 0.15)
+                                                                  : ZColors.success.withValues(alpha: 0.15),
+                                                              borderRadius: BorderRadius.circular(10),
+                                                            ),
+                                                            child: Text(
+                                                              _paymentLabel(e.paymentMethod),
+                                                              style: TextStyle(fontSize: 10, color: ZColors.moduleFleet, fontWeight: FontWeight.w600),
+                                                            ),
                                                           ),
-                                                          child: Text(
-                                                            _paymentLabel(e.paymentMethod),
-                                                            style: TextStyle(fontSize: 10, color: ZColors.moduleFleet, fontWeight: FontWeight.w600),
-                                                          ),
-                                                        ),
-                                                        if (e.approved)
-                                                          Padding(
-                                                            padding: const EdgeInsets.only(top: 2),
-                                                            child: Icon(Icons.check_circle, size: 14, color: ZColors.success),
-                                                          ),
-                                                      ],
-                                                    ),
+                                                          if (e.approved)
+                                                            Padding(
+                                                              padding: const EdgeInsets.only(top: 2),
+                                                              child: Icon(Icons.check_circle, size: 14, color: ZColors.success),
+                                                            ),
+                                                        ],
+                                                      ),
                                                     if (!e.approved && !_approving)
                                                       IconButton(
                                                         icon: const Icon(Icons.check_circle_outline, size: 20),
@@ -425,38 +436,61 @@ class _ExpenseKpiBar extends StatelessWidget {
         color: Theme.of(context).colorScheme.surfaceContainerLow,
         border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.2))),
       ),
-      child: Row(
-        children: [
-          _KpiItem(
-            icon: Icons.receipt_outlined,
-            label: 'Total',
-            value: '$total',
-            subValue: fmt.currency(totalAmount),
-            color: ZColors.moduleFleet,
-            highlighted: activeFilter == _ExpenseFilter.all,
-            progress: 1.0,
-          ),
-          const SizedBox(width: 16),
-          _KpiItem(
-            icon: Icons.schedule_outlined,
-            label: 'Pendientes',
-            value: '$pending',
-            subValue: fmt.currency(pendingAmount),
-            color: ZColors.warning,
-            highlighted: activeFilter == _ExpenseFilter.pending,
-            progress: total > 0 ? pending / total : 0.0,
-          ),
-          const SizedBox(width: 16),
-          _KpiItem(
-            icon: Icons.check_circle_outlined,
-            label: 'Aprobados',
-            value: '$approved',
-            subValue: fmt.currency(approvedAmount),
-            color: ZColors.success,
-            highlighted: activeFilter == _ExpenseFilter.approved,
-            progress: total > 0 ? approved / total : 0.0,
-          ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // En teléfono los 3 KPIs van 2 + 1 en `Wrap`: en una sola fila
+          // cada tarjeta quedaba con ~82 px y la etiqueta/monto desbordaban.
+          final isPhone = MediaQuery.sizeOf(context).width < ZBreakpoints.phone;
+          final cards = <Widget>[
+            _KpiItem(
+              icon: Icons.receipt_outlined,
+              label: 'Total',
+              value: '$total',
+              subValue: fmt.currency(totalAmount),
+              color: ZColors.moduleFleet,
+              highlighted: activeFilter == _ExpenseFilter.all,
+              progress: 1.0,
+            ),
+            _KpiItem(
+              icon: Icons.schedule_outlined,
+              label: 'Pendientes',
+              value: '$pending',
+              subValue: fmt.currency(pendingAmount),
+              color: ZColors.warning,
+              highlighted: activeFilter == _ExpenseFilter.pending,
+              progress: total > 0 ? pending / total : 0.0,
+            ),
+            _KpiItem(
+              icon: Icons.check_circle_outlined,
+              label: 'Aprobados',
+              value: '$approved',
+              subValue: fmt.currency(approvedAmount),
+              color: ZColors.success,
+              highlighted: activeFilter == _ExpenseFilter.approved,
+              progress: total > 0 ? approved / total : 0.0,
+            ),
+          ];
+
+          if (isPhone) {
+            final cardWidth = (constraints.maxWidth - 16) / 2;
+            return Wrap(
+              spacing: 16,
+              runSpacing: 12,
+              children: [
+                for (final card in cards) SizedBox(width: cardWidth, child: card),
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              for (var i = 0; i < cards.length; i++) ...[
+                if (i > 0) const SizedBox(width: 16),
+                Expanded(child: cards[i]),
+              ],
+            ],
+          );
+        },
       ),
     );
   }
@@ -474,56 +508,67 @@ class _KpiItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: highlighted ? color.withValues(alpha: 0.08) : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: highlighted ? color.withValues(alpha: 0.3) : Colors.transparent,
-            width: 1.5,
-          ),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: highlighted ? color.withValues(alpha: 0.08) : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: highlighted ? color.withValues(alpha: 0.3) : Colors.transparent,
+          width: 1.5,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(icon, size: 18, color: color),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                const SizedBox(width: 8),
-                Column(
+                child: Icon(icon, size: 18, color: color),
+              ),
+              const SizedBox(width: 8),
+              // `Expanded` + ellipsis: la columna era contenido no flexible
+              // dentro del `Row` y desbordaba en tarjetas angostas.
+              Expanded(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: highlighted ? color : ZColors.neutral500)),
-                    Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
-                    Text(subValue, style: const TextStyle(fontSize: 11, color: ZColors.neutral600)),
+                    Text(label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: highlighted ? color : ZColors.neutral500)),
+                    Text(value,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
+                    Text(subValue,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 11, color: ZColors.neutral600)),
                   ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(3),
-              child: LinearProgressIndicator(
-                value: progress.clamp(0.0, 1.0),
-                minHeight: 4,
-                backgroundColor: color.withValues(alpha: 0.1),
-                valueColor: AlwaysStoppedAnimation<Color>(color.withValues(alpha: highlighted ? 0.9 : 0.5)),
               ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: LinearProgressIndicator(
+              value: progress.clamp(0.0, 1.0),
+              minHeight: 4,
+              backgroundColor: color.withValues(alpha: 0.1),
+              valueColor: AlwaysStoppedAnimation<Color>(color.withValues(alpha: highlighted ? 0.9 : 0.5)),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

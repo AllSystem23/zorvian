@@ -146,28 +146,29 @@ final class _ServicePaymentListPageState extends ConsumerState<ServicePaymentLis
                         itemBuilder: (_, i) {
                           final p = items[i];
                           return ListTile(
-                            title: Row(
+                            // `Wrap`: el chip del período ("Quincena 1 ·
+                            // Octubre 2026") no es flexible y desbordaba la
+                            // fila del título 259 px a 360.
+                            title: Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 8,
+                              runSpacing: 4,
                               children: [
-                                Flexible(
-                                  child: Text(p.paymentNumber,
-                                      style: const TextStyle(fontWeight: FontWeight.w600)),
-                                ),
-                                const SizedBox(width: 8),
+                                Text(p.paymentNumber,
+                                    style: const TextStyle(fontWeight: FontWeight.w600)),
                                 Chip(
                                   label: Text(p.periodLabel,
                                       style: const TextStyle(fontSize: 11)),
                                   visualDensity: VisualDensity.compact,
                                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                 ),
-                                if (p.goalMet) ...[
-                                  const SizedBox(width: 4),
+                                if (p.goalMet)
                                   const Chip(
                                     label: Text('Meta ✓',
                                         style: TextStyle(fontSize: 11, color: Colors.green)),
                                     visualDensity: VisualDensity.compact,
                                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                   ),
-                                ],
                               ],
                             ),
                             subtitle: Text(

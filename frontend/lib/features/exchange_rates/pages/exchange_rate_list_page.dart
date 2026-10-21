@@ -109,7 +109,10 @@ class _ExchangeRateTile extends StatelessWidget {
         '${item.fromCurrency} → ${item.toCurrency}',
         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
       ),
-      subtitle: Row(
+      subtitle: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 8,
+        runSpacing: 2,
         children: [
           Text(
             item.displayRate,
@@ -119,16 +122,20 @@ class _ExchangeRateTile extends StatelessWidget {
               color: isDark ? ZColors.brandAccent : ZColors.brandPrimary,
             ),
           ),
-          const SizedBox(width: 8),
-          Icon(Icons.calendar_today, size: 11,
-              color: isDark ? ZColors.neutral500 : ZColors.neutral400),
-          const SizedBox(width: 3),
-          Text(
-            item.formattedDate,
-            style: TextStyle(
-              fontSize: 11,
-              color: isDark ? ZColors.neutral500 : ZColors.neutral400,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.calendar_today, size: 11,
+                  color: isDark ? ZColors.neutral500 : ZColors.neutral400),
+              const SizedBox(width: 3),
+              Text(
+                item.formattedDate,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: isDark ? ZColors.neutral500 : ZColors.neutral400,
+                ),
+              ),
+            ],
           ),
         ],
       ),
