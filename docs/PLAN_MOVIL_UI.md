@@ -35,7 +35,8 @@
 | `5794fcb` | Fase 3 — 23 detalles más (caja, nómina, CRM, documentos) a 360 px |
 | `5b23609` | Fase 3 — nómina, presupuestos y webhooks a 360 px: `ListTile` en `Material`, tarjetas de resumen apiladas, `_summaryRow` con `Expanded` y el drift test que vigila el `ZCard` |
 | `c375470` | Fase 3 — contabilidad, tesorería y reportes a 360 px: `ZButton` `fullWidth: false` dentro de `Row`, `_row` del estado de resultados con `Expanded` y `ZStatGrid` en el centro de reportes |
-| (este lote) | Fase 3 — RRHH, CRM, conciliaciones, documentos y asistencia a 360 px (encabezado y acciones del centro documental en columna) |
+| `3258bc9` | Fase 3 - RRHH, CRM, conciliaciones, documentos y asistencia a 360 px (encabezado y acciones del centro documental en columna) |
+| `4b091ea` | Fase 3 - PalmTrack, objetivos, garantías y motor documental a 360 px (+3 bugs: "Mis Objetivos", perfil SSO y asserts de ink splashes) |
 
 **Próximos pasos sugeridos** (en orden de valor):
 
@@ -454,6 +455,44 @@ acción primaria siempre alcanzable.
       - **Fixtures que respetan los modelos**: `Opportunity.fromJson` exige `createdAt`
         (`DateTime.parse` sin fallback) y `loadTemplates` lee `total` (no `totalCount`) — sin esas
         claves la pantalla caía en su estado de error y el test solo habría medido el mensaje.
+- [x] **PalmTrack, objetivos, garantías y motor documental a 360 px**
+      (`test/palmtrack_goals_pages_mobile_test.dart`, 17 casos): las 10 pantallas de PalmTrack
+      (fincas, lotes, productores, inventario, producción, ventas, conflictos, sincronización,
+      ajustes y perfil SSO), los 3 de objetivos (dashboard, "mis objetivos" y configurador),
+      el dashboard y el formulario de garantías, el asistente de generación rápida y el editor de
+      plantillas. Tres defectos de layout y **tres bugs reales**:
+      - **Chips en `Row` (fincas 41 px, sincronización 198/118 px)**: los chips son contenido no
+        flexible; pasan a `Wrap(spacing: 8, runSpacing: 4)`. El encabezado de sincronización pone
+        el título en `Expanded` y la fecha en `Flexible` con `textAlign: end`.
+      - **`DataTable` nativa en producción (56/84 px)**: migrada a `ZDataTable` con `ZColumn`, así
+        que en teléfono se pinta como tarjetas (la nativa no cabe a 360 px).
+      - **Paso a paso del asistente (104/78/26 px)**: las tres etiquetas ("Seleccionar",
+        "Confirmar", "Listo") en línea no caben; en teléfono se muestran solo los círculos con sus
+        conectores y debajo "Paso N de 3 · <etiqueta>".
+      - **Editor de plantillas (136 px en el encabezado y 460 px en la barra de herramientas)**: el
+        título va en `Expanded` + ellipsis y "Guardar" baja a su propia línea; los 4 botones de
+        formato pasan a un `Wrap` bajo la etiqueta.
+      - **BUG — "Mis Objetivos" reventaba al abrirla**: leía `stats['percentage'] as double`, pero
+        `goalStatsProvider` expone `globalCompliance`/`total`/`active`/`incentiveBudget` → el
+        null-cast lanzaba `type 'Null' is not a subtype of type 'double'`. Ahora lee
+        `globalCompliance` (num-safe) y la tarjeta se llama "Cumplimiento Global", que es lo que
+        realmente muestra.
+      - **BUG — perfil SSO de PalmTrack**: `GoRouterState.of(context)` se llamaba en `initState`,
+        cuando la dependencia de `ModalRoute` todavía no se puede registrar ("dependOnInheritedWidget
+        ofExactType was called before initState completed"). La lectura pasa a
+        `didChangeDependencies` con guard (`_claimsLoaded`).
+      - **BUG — assert de ink splashes en ajustes de PalmTrack y en el asistente**: los
+        `SwitchListTile` de feature flags y el `ExpansionTile` ("O ingresa el UUID manualmente")
+        cuelgan de un `ZCard` sin `Material` intermedio. Se envuelven en
+        `Material(type: MaterialType.transparency)`.
+      - **`zcard_list_tile_drift_test.dart` endurecido**: el escáner solo miraba `ListTile` +
+        `onTap`/`onLongPress` en las líneas siguientes, así que se le escapaban `SwitchListTile`
+        (`onChanged`) y `ExpansionTile` (construye su propio `ListTile`), igual que un `onTap` en la
+        misma línea del constructor. Ahora cubre los tres casos (la subcadena `ListTile(` ya incluye
+        `Switch`/`Checkbox`/`Radio`) y el trigger también se busca en la línea del constructor.
+      - **Harness**: las páginas de catálogo (garantías) necesitan `appDatabaseProvider` con
+        `memoryDb()` (Drift) o `pumpAndSettle` expira esperando el repositorio offline-first, y el
+        perfil SSO necesita un `GoRouter` real (`MaterialApp.router`) porque lee `GoRouterState`.
 
 **Aceptación**: dashboard ejecutivo y comercial legibles a 360 px, 2 KPIs por fila, 0 overflows.
 
@@ -552,13 +591,19 @@ acción primaria siempre alcanzable.
       (`detail_pages_mobile_test.dart`) — ver el barrido de Fase 3.
 - [x] **Drift del patrón `ZCard` + `ListTile`** (`zcard_list_tile_drift_test.dart`): escanea
       `lib/**/*.dart` y falla si un `ListTile` con `onTap` queda sin `Material` dentro de un `ZCard`
-      (el `DecoratedBox` del `ZCard` escondería el ink splash y Flutter lanzaría el assert).
+      (el `DecoratedBox` del `ZCard` escondería el ink splash y Flutter lanzaría el assert). Cubre
+      también `SwitchListTile`/`CheckboxListTile`/`RadioListTile` (`onChanged`) y `ExpansionTile`
+      (construye su propio `ListTile` con `onTap`), y detecta el trigger en la misma línea del
+      constructor.
 - [x] **Contabilidad, tesorería y reportes montados a 360/390/430 px**
       (`accounting_treasury_pages_mobile_test.dart`, 16 casos, con los reportes consultados con
       datos) — ver el barrido de Fase 3.
 - [x] **RRHH, CRM, conciliaciones, documentos y asistencia montados a 360/390/430 px**
       (`hr_crm_pages_mobile_test.dart`, 13 casos) — ver el barrido de Fase 3.
-- [ ] Barrido del resto de rutas top a 360 px (liquidación, objetivos, PalmTrack, garantías).
+- [x] **PalmTrack, objetivos, garantías y motor documental montados a 360/390/430 px**
+      (`palmtrack_goals_pages_mobile_test.dart`, 17 casos) — ver el barrido de Fase 3.
+- [ ] Barrido del resto de rutas top a 360 px (liquidación, aprobaciones, kiosco/QR, asistencia
+      restante, reportes personalizados, fiscal, predicciones, perfil, onboarding, chat).
 - [ ] Regresiones: "Más" activo fuera de hubs; selectores operativos en móvil.
 
 **Aceptación**: 0 overflows en la matriz 360/390/430 × `textScale` 1.0/1.3; cámara y

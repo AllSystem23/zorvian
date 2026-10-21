@@ -58,20 +58,30 @@ class _PalmTrackSyncPageState extends ConsumerState<PalmTrackSyncPage> {
         padding: const EdgeInsets.all(16),
         children: [
           // ── Header ──
+          // Título en `Expanded` y fecha en `Flexible`: a 360 px el `Row`
+          // desbordaba 198 px (ambos textos eran contenido no flexible).
           Row(
             children: [
               Icon(Icons.sync, color: moduleColor, size: 28),
               const SizedBox(width: 12),
-              const Text(
-                'Estado de Sincronización',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const Spacer(),
-              if (stats.lastSyncAt != null)
-                Text(
-                  'Última sync: ${_formatDate(stats.lastSyncAt!)}',
-                  style: Theme.of(context).textTheme.bodySmall,
+              const Expanded(
+                child: Text(
+                  'Estado de Sincronización',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  maxLines: 2,
                 ),
+              ),
+              if (stats.lastSyncAt != null) ...[
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    'Última sync: ${_formatDate(stats.lastSyncAt!)}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                    textAlign: TextAlign.end,
+                    maxLines: 2,
+                  ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 16),
@@ -314,13 +324,15 @@ class _PalmTrackSyncPageState extends ConsumerState<PalmTrackSyncPage> {
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             const SizedBox(height: 2),
-            Row(
+            // Wrap (no Row): 3 chips no flexibles desbordaban 118 px a 360 px.
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
               children: [
                 _buildChip(
                   'Intento ${delivery.attempt}/${delivery.maxRetries}',
                   Colors.blue,
                 ),
-                const SizedBox(width: 8),
                 if (delivery.httpStatusCode != null)
                   _buildChip(
                     'HTTP ${delivery.httpStatusCode}',
@@ -329,7 +341,6 @@ class _PalmTrackSyncPageState extends ConsumerState<PalmTrackSyncPage> {
                         ? Colors.green
                         : Colors.red,
                   ),
-                const SizedBox(width: 8),
                 if (delivery.durationMs != null)
                   _buildChip('${delivery.durationMs}ms', Colors.grey),
               ],

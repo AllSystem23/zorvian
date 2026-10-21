@@ -185,10 +185,13 @@ class _PalmTrackFarmsPageState extends ConsumerState<PalmTrackFarmsPage> {
             if (farm.location != null)
               Text(farm.location!, style: const TextStyle(fontSize: 12)),
             const SizedBox(height: 4),
-            Row(
+            // Wrap (no Row): los chips son contenido no flexible y a 360 px
+            // la fila desbordaba 41 px.
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
               children: [
                 _buildChip('${farm.totalLots} lotes', Colors.blue),
-                const SizedBox(width: 8),
                 _buildChip('${farm.activeLots} activos', Colors.green),
               ],
             ),

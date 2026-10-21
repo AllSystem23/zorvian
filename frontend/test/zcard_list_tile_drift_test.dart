@@ -44,18 +44,32 @@ List<_Violation> _scanSource() {
 
     final lines = entity.readAsLinesSync();
     for (var i = 0; i < lines.length; i++) {
-      if (!lines[i].contains('ListTile(')) continue;
+      // `SwitchListTile`/`CheckboxListTile`/`RadioListTile` heredan de
+      // `ListTile` (contienen la subcadena) y usan `onChanged` en vez de
+      // `onTap`; `ExpansionTile` construye un `ListTile` con `onTap` interno.
+      if (!lines[i].contains('ListTile(') && !lines[i].contains('ExpansionTile(')) {
+        continue;
+      }
 
       final tileIndent = _indentOf(lines[i]);
 
-      // ¿El `ListTile` tiene `onTap` (o `onLongPress`)?
-      var tappable = false;
-      for (var j = i + 1; j < lines.length; j++) {
-        final indent = _indentOf(lines[j]);
-        if (indent <= tileIndent && lines[j].trim().isNotEmpty) break;
-        if (lines[j].contains('onTap:') || lines[j].contains('onLongPress:')) {
-          tappable = true;
-          break;
+      // ¿Es interactivo? (`onTap`/`onLongPress` de `ListTile`, `onChanged` de
+      // los `SwitchListTile`/`CheckboxListTile`, o un `ExpansionTile`).
+      // Ojo: el trigger puede estar en la MISMA línea que el constructor.
+      var tappable = lines[i].contains('onTap:') ||
+          lines[i].contains('onLongPress:') ||
+          lines[i].contains('onChanged:') ||
+          lines[i].contains('ExpansionTile(');
+      if (!tappable) {
+        for (var j = i + 1; j < lines.length; j++) {
+          final indent = _indentOf(lines[j]);
+          if (indent <= tileIndent && lines[j].trim().isNotEmpty) break;
+          if (lines[j].contains('onTap:') ||
+              lines[j].contains('onLongPress:') ||
+              lines[j].contains('onChanged:')) {
+            tappable = true;
+            break;
+          }
         }
       }
       if (!tappable) continue;

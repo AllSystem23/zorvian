@@ -67,27 +67,33 @@ class _PalmTrackSettingsPageState extends ConsumerState<PalmTrackSettingsPage> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                SwitchListTile(
-                  title: const Text(
-                    'Módulo habilitado',
-                    style: TextStyle(fontWeight: FontWeight.w500),
-                  ),
-                  subtitle: Text(
-                    flags.moduleEnabled ? 'Activo — visible en el menú' : 'Inactivo — oculto del menú',
-                    style: TextStyle(
-                      color: flags.moduleEnabled ? Colors.green : Colors.grey,
-                      fontSize: 12,
+                // `ZCard` no es un `Material`: sin este envoltorio el splash
+                // del `SwitchListTile` queda oculto y Flutter lanza el assert
+                // de ink splashes en debug.
+                Material(
+                  type: MaterialType.transparency,
+                  child: SwitchListTile(
+                    title: const Text(
+                      'Módulo habilitado',
+                      style: TextStyle(fontWeight: FontWeight.w500),
                     ),
-                  ),
-                  value: flags.moduleEnabled,
-                  onChanged: (v) => ref
-                      .read(palmTrackFeatureFlagsProvider.notifier)
-                      .updateFlag('moduleEnabled', v),
-                  secondary: Icon(
-                    flags.moduleEnabled
-                        ? Icons.toggle_on
-                        : Icons.toggle_off,
-                    color: flags.moduleEnabled ? Colors.green : Colors.grey,
+                    subtitle: Text(
+                      flags.moduleEnabled ? 'Activo — visible en el menú' : 'Inactivo — oculto del menú',
+                      style: TextStyle(
+                        color: flags.moduleEnabled ? Colors.green : Colors.grey,
+                        fontSize: 12,
+                      ),
+                    ),
+                    value: flags.moduleEnabled,
+                    onChanged: (v) => ref
+                        .read(palmTrackFeatureFlagsProvider.notifier)
+                        .updateFlag('moduleEnabled', v),
+                    secondary: Icon(
+                      flags.moduleEnabled
+                          ? Icons.toggle_on
+                          : Icons.toggle_off,
+                      color: flags.moduleEnabled ? Colors.green : Colors.grey,
+                    ),
                   ),
                 ),
               ],
@@ -112,62 +118,69 @@ class _PalmTrackSettingsPageState extends ConsumerState<PalmTrackSettingsPage> {
                 ),
                 const SizedBox(height: 16),
 
-                SwitchListTile(
-                  title: const Text('SSO habilitado'),
-                  subtitle: const Text(
-                    'Permitir inicio de sesión compartido desde PalmTrack',
-                    style: TextStyle(fontSize: 12),
+                // `ZCard` no es un `Material`: sin este envoltorio el splash de
+                // los `SwitchListTile` queda oculto y Flutter lanza el assert
+                // de ink splashes en debug.
+                Material(
+                  type: MaterialType.transparency,
+                  child: Column(
+                    children: [
+                      SwitchListTile(
+                        title: const Text('SSO habilitado'),
+                        subtitle: const Text(
+                          'Permitir inicio de sesión compartido desde PalmTrack',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        value: flags.ssoEnabled,
+                        onChanged: (v) => ref
+                            .read(palmTrackFeatureFlagsProvider.notifier)
+                            .updateFlag('ssoEnabled', v),
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      SwitchListTile(
+                        title: const Text('Auto-crear usuarios'),
+                        subtitle: const Text(
+                          'Crear usuarios en Zorvian automáticamente al primer SSO',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        value: flags.ssoAutoCreateUsers,
+                        onChanged: flags.ssoEnabled
+                            ? (v) => ref
+                                .read(palmTrackFeatureFlagsProvider.notifier)
+                                .updateFlag('ssoAutoCreateUsers', v)
+                            : null,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      SwitchListTile(
+                        title: const Text('Propagar roles'),
+                        subtitle: const Text(
+                          'Sincronizar cambios de rol desde PalmTrack vía webhook',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        value: flags.ssoPropagateRoles,
+                        onChanged: flags.ssoEnabled
+                            ? (v) => ref
+                                .read(palmTrackFeatureFlagsProvider.notifier)
+                                .updateFlag('ssoPropagateRoles', v)
+                            : null,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      SwitchListTile(
+                        title: const Text('Proyecto Firebase compartido'),
+                        subtitle: const Text(
+                          'Validar que ambos usen el mismo proyecto Firebase',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        value: flags.ssoSharedProject,
+                        onChanged: flags.ssoEnabled
+                            ? (v) => ref
+                                .read(palmTrackFeatureFlagsProvider.notifier)
+                                .updateFlag('ssoSharedProject', v)
+                            : null,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ],
                   ),
-                  value: flags.ssoEnabled,
-                  onChanged: (v) => ref
-                      .read(palmTrackFeatureFlagsProvider.notifier)
-                      .updateFlag('ssoEnabled', v),
-                  contentPadding: EdgeInsets.zero,
-                ),
-
-                SwitchListTile(
-                  title: const Text('Auto-crear usuarios'),
-                  subtitle: const Text(
-                    'Crear usuarios en Zorvian automáticamente al primer SSO',
-                    style: TextStyle(fontSize: 12),
-                  ),
-                  value: flags.ssoAutoCreateUsers,
-                  onChanged: flags.ssoEnabled
-                      ? (v) => ref
-                          .read(palmTrackFeatureFlagsProvider.notifier)
-                          .updateFlag('ssoAutoCreateUsers', v)
-                      : null,
-                  contentPadding: EdgeInsets.zero,
-                ),
-
-                SwitchListTile(
-                  title: const Text('Propagar roles'),
-                  subtitle: const Text(
-                    'Sincronizar cambios de rol desde PalmTrack vía webhook',
-                    style: TextStyle(fontSize: 12),
-                  ),
-                  value: flags.ssoPropagateRoles,
-                  onChanged: flags.ssoEnabled
-                      ? (v) => ref
-                          .read(palmTrackFeatureFlagsProvider.notifier)
-                          .updateFlag('ssoPropagateRoles', v)
-                      : null,
-                  contentPadding: EdgeInsets.zero,
-                ),
-
-                SwitchListTile(
-                  title: const Text('Proyecto Firebase compartido'),
-                  subtitle: const Text(
-                    'Validar que ambos usen el mismo proyecto Firebase',
-                    style: TextStyle(fontSize: 12),
-                  ),
-                  value: flags.ssoSharedProject,
-                  onChanged: flags.ssoEnabled
-                      ? (v) => ref
-                          .read(palmTrackFeatureFlagsProvider.notifier)
-                          .updateFlag('ssoSharedProject', v)
-                      : null,
-                  contentPadding: EdgeInsets.zero,
                 ),
               ],
             ),

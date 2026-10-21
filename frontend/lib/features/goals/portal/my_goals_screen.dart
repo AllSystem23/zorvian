@@ -10,6 +10,11 @@ class MyGoalsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final goalsAsync = ref.watch(employeeGoalsProvider);
     final stats = ref.watch(goalStatsProvider);
+    // `goalStatsProvider` expone globalCompliance/total/active/incentiveBudget.
+    // Antes se leía `stats['percentage'] as double` — clave inexistente → el
+    // null-cast reventaba la pantalla al abrirla.
+    final compliance = (stats['globalCompliance'] as num?)?.toDouble() ?? 0.0;
+    final totalGoals = stats['total'] ?? 0;
 
     return Scaffold(
       body: goalsAsync.when(
@@ -23,15 +28,15 @@ class MyGoalsScreen extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: ZStatCard(
-                      title: 'Progreso Total',
-                      value: '${(stats['percentage'] as double) * 100}%',
+                      title: 'Cumplimiento Global',
+                      value: '${compliance.toStringAsFixed(1)}%',
                     ),
                   ),
                   const SizedBox(width: ZSpacing.md),
                   Expanded(
                     child: ZStatCard(
                       title: 'Metas Activas',
-                      value: stats['total'].toString(),
+                      value: '$totalGoals',
                     ),
                   ),
                 ],

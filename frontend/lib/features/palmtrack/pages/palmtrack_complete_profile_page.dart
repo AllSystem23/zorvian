@@ -33,10 +33,17 @@ class _PalmTrackCompleteProfilePageState
   String? _palmTrackRole;
   String? _palmTrackOrgId;
   String? _palmTrackProducerCode;
+  bool _claimsLoaded = false;
 
+  /// `GoRouterState.of(context)` resuelve el estado vía `ModalRoute.of` — una
+  /// dependencia de inherited widget, así que NO se puede leer en `initState`
+  /// (Flutter lanza "dependOnInheritedWidgetOfExactType was called before
+  /// initState completed"). Se lee aquí, que además corre una sola vez.
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_claimsLoaded) return;
+    _claimsLoaded = true;
     _loadSsoClaims();
   }
 

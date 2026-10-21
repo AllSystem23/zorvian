@@ -245,15 +245,19 @@ class _PalmTrackProductionPageState
 
   Widget _buildFarmTable(
       BuildContext context, List<ProductionByFarm> farms, Color color) {
-    return DataTable(
+    final totalWeight = farms.fold(0.0, (sum, f) => sum + f.weight);
+
+    // `ZDataTable` (no `DataTable`): a 360 px la tabla nativa desbordaba
+    // 56/84 px y el design system ya pinta tarjetas por fila en teléfono.
+    return ZDataTable<ProductionByFarm>(
       columns: const [
-        DataColumn(label: Text('Finca')),
-        DataColumn(label: Text('Racimos'), numeric: true),
-        DataColumn(label: Text('Peso (kg)'), numeric: true),
-        DataColumn(label: Text('% del Total'), numeric: true),
+        ZColumn(id: 'farm', label: 'Finca'),
+        ZColumn(id: 'bunches', label: 'Racimos', numeric: true),
+        ZColumn(id: 'weight', label: 'Peso (kg)', numeric: true),
+        ZColumn(id: 'pct', label: '% del Total', numeric: true),
       ],
-      rows: farms.map((f) {
-        final totalWeight = farms.fold(0.0, (sum, f) => sum + f.weight);
+      rows: farms,
+      rowMapper: (f) {
         final pct = totalWeight > 0 ? (f.weight / totalWeight * 100) : 0.0;
         return DataRow(cells: [
           DataCell(Text(f.farmName)),
@@ -261,7 +265,7 @@ class _PalmTrackProductionPageState
           DataCell(Text(_formatWeight(f.weight))),
           DataCell(Text('${pct.toStringAsFixed(1)}%')),
         ]);
-      }).toList(),
+      },
     );
   }
 

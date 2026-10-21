@@ -206,64 +206,106 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
     final icons = [Icons.description_outlined, Icons.visibility_outlined, Icons.check_circle_outline];
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final inactiveColor = isDark ? ZColors.darkBorder : ZColors.neutral200;
+    // En teléfono las tres etiquetas en línea desbordaban 104 px.
+    final compact = MediaQuery.sizeOf(context).width < ZBreakpoints.phone;
+
+    Widget dot(int i) {
+      final isActive = i + 1 == currentStep;
+      final isDone = i + 1 < currentStep;
+      return AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isDone
+              ? ZColors.success
+              : isActive
+                  ? ZColors.brandAccent
+                  : inactiveColor,
+        ),
+        child: Icon(
+          isDone ? Icons.check : icons[i],
+          size: 18,
+          color: isDone || isActive ? Colors.white : ZColors.neutral500,
+        ),
+      );
+    }
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 32),
+      padding: EdgeInsets.symmetric(
+        vertical: compact ? 16 : 24,
+        horizontal: compact ? 16 : 32,
+      ),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         border: Border(bottom: BorderSide(color: inactiveColor, width: 1)),
       ),
-      child: Row(
-        children: List.generate(steps.length, (i) {
-          final isActive = i + 1 == currentStep;
-          final isDone = i + 1 < currentStep;
-          return Expanded(
-            child: Row(
+      child: compact
+          // Teléfono: los círculos con sus conectores y el paso actual debajo,
+          // en vez de tres etiquetas que no caben en 360 px.
+          ? Column(
               children: [
-                if (i > 0)
-                  Expanded(
-                    child: Container(
-                      height: 2,
-                      color: isDone ? ZColors.brandAccent : inactiveColor,
-                    ),
-                  ),
-                const SizedBox(width: 8),
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isDone
-                        ? ZColors.success
-                        : isActive
-                            ? ZColors.brandAccent
-                            : inactiveColor,
-                  ),
-                  child: Icon(
-                    isDone ? Icons.check : icons[i],
-                    size: 18,
-                    color: isDone || isActive ? Colors.white : ZColors.neutral500,
-                  ),
+                Row(
+                  children: [
+                    for (var i = 0; i < steps.length; i++) ...[
+                      if (i > 0)
+                        Expanded(
+                          child: Container(
+                            height: 2,
+                            color: i + 1 < currentStep
+                                ? ZColors.brandAccent
+                                : inactiveColor,
+                          ),
+                        ),
+                      dot(i),
+                    ],
+                  ],
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(height: 8),
                 Text(
-                  steps[i],
+                  'Paso $currentStep de ${steps.length} · ${steps[currentStep - 1]}',
                   style: ZTypography.labelMedium.copyWith(
-                    fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                    color: isActive
-                        ? ZColors.brandAccent
-                        : isDone
-                            ? ZColors.success
-                            : ZColors.neutral500,
+                    color: ZColors.neutral500,
                   ),
+                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(width: 8),
               ],
+            )
+          : Row(
+              children: List.generate(steps.length, (i) {
+                final isActive = i + 1 == currentStep;
+                final isDone = i + 1 < currentStep;
+                return Expanded(
+                  child: Row(
+                    children: [
+                      if (i > 0)
+                        Expanded(
+                          child: Container(
+                            height: 2,
+                            color: isDone ? ZColors.brandAccent : inactiveColor,
+                          ),
+                        ),
+                      const SizedBox(width: 8),
+                      dot(i),
+                      const SizedBox(width: 8),
+                      Text(
+                        steps[i],
+                        style: ZTypography.labelMedium.copyWith(
+                          fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                          color: isActive
+                              ? ZColors.brandAccent
+                              : isDone
+                                  ? ZColors.success
+                                  : ZColors.neutral500,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                  ),
+                );
+              }),
             ),
-          );
-        }),
-      ),
     );
   }
 
@@ -386,16 +428,21 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
                 label: Text('Buscar ${_entityTypeLabel()}'),
               ),
               const SizedBox(height: 4),
-              Theme(
-                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                child: ExpansionTile(
-                  tilePadding: EdgeInsets.zero,
-                  childrenPadding: const EdgeInsets.only(bottom: 8),
-                  title: Text(
-                    'O ingresa el UUID manualmente',
-                    style: ZTypography.labelSmall.copyWith(color: ZColors.neutral400),
-                  ),
-                  children: [
+              // `ExpansionTile` pinta su `ListTile` interno sobre el `Material`
+              // ancestro: dentro de un `ZCard` hace falta un `Material`
+              // transparente o salta el assert de ink splashes.
+              Material(
+                type: MaterialType.transparency,
+                child: Theme(
+                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                  child: ExpansionTile(
+                    tilePadding: EdgeInsets.zero,
+                    childrenPadding: const EdgeInsets.only(bottom: 8),
+                    title: Text(
+                      'O ingresa el UUID manualmente',
+                      style: ZTypography.labelSmall.copyWith(color: ZColors.neutral400),
+                    ),
+                    children: [
                     Row(
                       children: [
                         Expanded(
@@ -423,6 +470,7 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
                       ],
                     ),
                   ],
+                ),
                 ),
               ),
             ] else

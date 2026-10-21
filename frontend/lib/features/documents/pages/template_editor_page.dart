@@ -159,35 +159,65 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: Row(
-              children: [
-                Text(widget.templateId != null ? 'Editar Plantilla' : 'Nueva Plantilla', style: ZTypography.titleLarge),
-                const Spacer(),
-                IconButton(
-                  icon: Icon(_previewMode ? Icons.edit_outlined : Icons.preview_outlined),
-                  tooltip: _previewMode ? 'Modo Edición' : 'Vista Previa',
-                  onPressed: () => setState(() {
-                    _previewMode = !_previewMode;
-                    _renderedHtml = null;
-                  }),
-                ),
-                if (_previewMode)
+            // El título + iconos + "Guardar" en un solo `Row` desbordaba
+            // 136 px a 360 px: en teléfono el botón baja a su propia línea.
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final compact = constraints.maxWidth < ZBreakpoints.phone;
+                final iconButtons = <Widget>[
                   IconButton(
-                    icon: _renderedHtml != null
-                        ? const Icon(Icons.code_outlined, size: 20)
-                        : const Icon(Icons.play_circle_outline, size: 20),
-                    tooltip: _renderedHtml != null ? 'Ver HTML crudo' : 'Renderizar con datos',
-                    onPressed: () => _toggleRenderedPreview(),
+                    icon: Icon(_previewMode ? Icons.edit_outlined : Icons.preview_outlined),
+                    tooltip: _previewMode ? 'Modo Edición' : 'Vista Previa',
+                    onPressed: () => setState(() {
+                      _previewMode = !_previewMode;
+                      _renderedHtml = null;
+                    }),
                   ),
-                const SizedBox(width: 8),
-                FilledButton.icon(
+                  if (_previewMode)
+                    IconButton(
+                      icon: _renderedHtml != null
+                          ? const Icon(Icons.code_outlined, size: 20)
+                          : const Icon(Icons.play_circle_outline, size: 20),
+                      tooltip: _renderedHtml != null ? 'Ver HTML crudo' : 'Renderizar con datos',
+                      onPressed: () => _toggleRenderedPreview(),
+                    ),
+                ];
+                final saveButton = FilledButton.icon(
                   icon: _loading
                       ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                       : const Icon(Icons.save_outlined, size: 18),
                   label: const Text('Guardar'),
                   onPressed: _loading ? null : _save,
-                ),
-              ],
+                );
+                final title = Expanded(
+                  child: Text(
+                    widget.templateId != null ? 'Editar Plantilla' : 'Nueva Plantilla',
+                    style: ZTypography.titleLarge,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                );
+
+                if (!compact) {
+                  return Row(
+                    children: [
+                      title,
+                      ...iconButtons,
+                      const SizedBox(width: 8),
+                      saveButton,
+                    ],
+                  );
+                }
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(children: [title, ...iconButtons]),
+                    const SizedBox(height: ZSpacing.sm),
+                    saveButton,
+                  ],
+                );
+              },
             ),
           ),
           const SizedBox(height: 8),
@@ -392,36 +422,60 @@ class _TemplateEditorPageState extends ConsumerState<TemplateEditorPage> {
   }
 
   Widget _buildEditorToolbar() {
+    final compact = MediaQuery.sizeOf(context).width < ZBreakpoints.phone;
+    final label = Text('EDITOR HTML + LIQUID', style: ZTypography.labelSmall.copyWith(color: ZColors.neutral500, letterSpacing: 1.2));
+    final buttons = <Widget>[
+      OutlinedButton.icon(
+        icon: const Icon(Icons.format_bold, size: 16),
+        label: const Text('<b>'),
+        onPressed: () => _wrapSelection('<b>', '</b>'),
+      ),
+      OutlinedButton.icon(
+        icon: const Icon(Icons.format_italic, size: 16),
+        label: const Text('<i>'),
+        onPressed: () => _wrapSelection('<i>', '</i>'),
+      ),
+      OutlinedButton.icon(
+        icon: const Icon(Icons.table_chart_outlined, size: 16),
+        label: const Text('Tabla'),
+        onPressed: _insertTable,
+      ),
+      Tooltip(
+        message: 'Escanear contenido y detectar variables',
+        child: OutlinedButton.icon(
+          icon: const Icon(Icons.auto_fix_high, size: 16),
+          label: const Text('Detectar'),
+          onPressed: _manualScanVariables,
+        ),
+      ),
+    ];
+
+    // En teléfono la barra de herramientas desbordaba 460 px: los botones
+    // pasan a un `Wrap` bajo la etiqueta.
+    if (compact) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          label,
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: buttons,
+          ),
+        ],
+      );
+    }
+
     return Row(
       children: [
-        Text('EDITOR HTML + LIQUID', style: ZTypography.labelSmall.copyWith(color: ZColors.neutral500, letterSpacing: 1.2)),
+        label,
         const Spacer(),
-        OutlinedButton.icon(
-          icon: const Icon(Icons.format_bold, size: 16),
-          label: const Text('<b>'),
-          onPressed: () => _wrapSelection('<b>', '</b>'),
-        ),
-        const SizedBox(width: 8),
-        OutlinedButton.icon(
-          icon: const Icon(Icons.format_italic, size: 16),
-          label: const Text('<i>'),
-          onPressed: () => _wrapSelection('<i>', '</i>'),
-        ),
-        const SizedBox(width: 8),
-        OutlinedButton.icon(
-          icon: const Icon(Icons.table_chart_outlined, size: 16),
-          label: const Text('Tabla'),
-          onPressed: _insertTable,
-        ),
-        const SizedBox(width: 8),
-        Tooltip(
-          message: 'Escanear contenido y detectar variables',
-          child: OutlinedButton.icon(
-            icon: const Icon(Icons.auto_fix_high, size: 16),
-            label: const Text('Detectar'),
-            onPressed: _manualScanVariables,
-          ),
-        ),
+        for (final button in buttons) ...[
+          button,
+          const SizedBox(width: 8),
+        ],
       ],
     );
   }
