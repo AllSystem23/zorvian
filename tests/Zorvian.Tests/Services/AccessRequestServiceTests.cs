@@ -15,6 +15,7 @@ public sealed class AccessRequestServiceTests
     private readonly Mock<IInvitationRepository> _invitations = new();
     private readonly Mock<ICompanyRepository> _companies = new();
     private readonly Mock<IEmailService> _email = new();
+    private readonly Mock<IAppLinks> _links = new();
     private readonly Mock<ITenantContext> _tenant = new();
     private readonly Mock<ILogger<AccessRequestService>> _logger = new();
     private readonly AccessRequestService _sut;
@@ -30,6 +31,7 @@ public sealed class AccessRequestServiceTests
             _invitations.Object,
             _companies.Object,
             _email.Object,
+            _links.Object,
             _tenant.Object,
             _logger.Object);
     }

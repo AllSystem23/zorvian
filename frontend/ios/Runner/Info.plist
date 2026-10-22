@@ -26,6 +26,27 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- Deep linking: la app gestiona sus propios enlaces con `app_links`
+	     (esquema propio `zorvian://` y Universal Links https). Se desactiva
+	     el deep linking por defecto de Flutter para que no compita con el
+	     router de go_router. -->
+	<key>FlutterDeepLinkingEnabled</key>
+	<false/>
+	<!-- Esquema propio: zorvian://reset-password?token=... y
+	     zorvian://register?code=... -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.zorvian.erp</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>zorvian</string>
+			</array>
+		</dict>
+	</array>
 	<!-- Permisos de iOS. Sin estas claves el sistema cierra la app en cuanto se
 	     pide el recurso (cámara, fotos, ubicación o Face ID). -->
 	<key>NSCameraUsageDescription</key>
@@ -38,6 +59,14 @@
 	<string>Zorvian ERP usa tu ubicación mientras la app está abierta para validar que la marcación de asistencia se realiza en la sucursal.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Zorvian ERP usa Face ID para confirmar tu identidad al marcar asistencia o iniciar sesión.</string>
+	<!-- Background fetch + FCM (firebase_messaging): necesario para recibir
+	     notificaciones push en background/data y que el sistema despierte la
+	     app para procesar el token. -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+		<string>fetch</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

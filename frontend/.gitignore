@@ -39,8 +39,10 @@ app.*.symbols
 # Obfuscation related
 app.*.map.json
 
-# Firebase configuration (contains real API keys)
+# Firebase configuration (contains real API keys) — secrets, NEVER commit
 lib/core/firebase_options.dart
+/ios/Runner/GoogleService-Info.plist
+/android/app/google-services.json
 
 # Android Studio will place build artifacts here
 /android/app/debug

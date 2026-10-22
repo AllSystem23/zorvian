@@ -546,3 +546,52 @@ Cierra el flujo de acceso público de punta a punta: registro con invitación, "
 - **Correcciones de UI**: el diálogo de aprobación tenía un campo **"Motivo (opcional)" que NUNCA se enviaba** (la API de approve no lo acepta) → **eliminado**; el motivo de **rechazo** sí lo soporta el backend (`RejectionReason`) pero la UI no lo capturaba → **añadido** con `ZButtonType.danger`.
 - **Tests nuevos**: backend `PasswordResetServiceTests` (12), `AccessRequestServiceTests` (11), `CsrfMiddlewareTests` (14), `InvitationPublicLookupTests` (2) = 39; frontend `reset_password_page_test.dart` (4), `auth_public_routes_test.dart` (6) = 10. Total backend 1451, frontend 777.
 - **Gotchas de esta tanda**: (1) `TenantId` es un **record class**: `Mock<ITenantContext>.Setup(t => t.TenantId)` necesita `TenantId.FromGuid(...)`/`FromString(...)`, NO un `Guid` (error CS1503). (2) `flutter test` en Windows se cuelga si quedan procesos `flutter_tester` huérfanos: bloquean `build/native_assets/windows/sqlite3.dll` y la herramienta CRASHEA con `FileSystemException: Deletion failed, OS Error: Acceso denegado`. **Antes de `flutter test`: matar `flutter_tester`/`dart` y borrar `frontend/build/native_assets`.** (3) `flutter test` en background con `Start-Process` **no vacía el buffer** del log hasta terminar: para ver el avance hay que releer el archivo. (4) En `AccessRequestService` el `ReviewedBy` es `_tenant.CurrentUserId?.ToString()` (string) — la entidad lo declara como string, no Guid. (5) `AccessRequestStatus` es un **string** en BD (igual que `SaleStatus`/`CreditStatus`) para no romper el snapshot de EF al agregar valores.
+
+## iOS Push (FCM) — wiring completado
+El wiring de push para iOS está completo en el repo **excepto** el `GoogleService-Info.plist`, que es un **secreto de Firebase** y no puede vivir en git (ni generarse sin credenciales del proyecto).
+
+### Estado actual (repositorio)
+- **`ios/Runner/Runner.entitlements`** → se agregó `<key>aps-environment</key><string>development</string>` (declarado junto a `com.apple.security.application-groups` ya existente). NOTA: para builds de **release** el valor debe ser `production` — se cambia vía la capability "Push Notifications" en Xcode (que gestiona el entitlements por configuración) o vía fastlane sobrescribiendo el entitlements en el build de firma.
+- **`ios/Runner/Info.plist`** → se agregó `<key>UIBackgroundModes</key><array><string>remote-notification</string><string>fetch</string></array>` (necesario para que `firebase_messaging` despierte la app en background/data).
+- **`ios/Runner/AppDelegate.swift`** → sin cambios. Es el `FlutterAppDelegate` estándar con `GeneratedPluginRegistrant.register`; el plugin `firebase_messaging` (^16.2.2) registra su propio manejador nativo y el token se resuelve en Dart con `FirebaseMessaging.instance.getToken()`. No se requiere código Objective-C/Swift manual.
+- **Dart (`lib/main.dart`)** → ya inicializa `firebase_core` + configura `FirebaseMessaging.onMessage` / `onBackgroundMessage` / `onMessageOpenedApp`, todo envuelto en try/catch. Verificado presente.
+- **Backend** → `FCMNotificationService.cs` (Infrastructure) ya existe y lo usa `DeliveryTrackingService` para enviar notificaciones push.
+
+### Estado actual (lo que FALTA — requiere credenciales)
+- **`ios/Runner/GoogleService-Info.plist`** → NO está en el repo (ni en git). Debe ser **descargado del Firebase console** (project settings → iOS app `com.zorvian.erp` en proyecto `zorvian-erp` → "Download GoogleService-Info.plist") y colocado en `ios/Runner/` antes de compilar.
+- **`firebase_options.dart`** con campos iOS (`iosClientId`, `iosBundleId`) → el script `scripts/generate_firebase_config.dart` y la plantilla `firebase_options.template.dart` son **solo web/Android** (variables env `FIREBASE_*`). iOS no la necesita para push (el plist lo cubre), pero sí para Auth si se resuelve el defer. NO se regeneró: decisión del usuario.
+- **CI/CD → iOS**: el workflow `.github/workflows/ci-cd.yml` **solo buildea web** (no hay job de iOS). Si se agrega un build de iOS, se debe inyectar el plist como secret (`FIREBASE_IOS_PLIST`) → escribir a `ios/Runner/GoogleService-Info.plist` en el job (el `generate_firebase_config.dart` no lo cubre).
+
+### Comandos para completar (acción del usuario / mac con Xcode + Apple ID)
+1. **Descarga el plist** (recomendado, un click): Firebase console → Project Settings → "Your apps" → app iOS (`com.zorvian.erp`) → *Download GoogleService-Info.plist* → péguelo en `frontend/ios/Runner/`.
+2. **O con FlutterFire CLI** (genera el plist + opcionalmente `firebase_options.dart` con iOS):
+   ```bash
+   firebase login                 # abre el browser (requiere cuenta con acceso al proyecto zorvian-erp)
+   dart pub global activate flutterfire_cli
+   cd frontend
+   dart pub global run flutterfire_cli:flutterfire configure \
+       --project zorvian-erp --platforms ios
+   ```
+3. En Xcode (`Runner.xcodeproj` / `.xcworkspace`) habilitar las capabilities **Push Notifications** y **Background Modes → Remote notifications** (esto gestiona `aps-environment` dev vs prod por configuración y evita el warning "Provisioning profile doesn't include push").
+4. Verificar en un device físico (el simulador no recibe FCM en background):
+   ```dart
+   final token = await FirebaseMessaging.instance.getToken();
+   print('FCM token: $token');
+   ```
+   Si `token` es nulo → el plist/entitlements o la capability no están aplicados.
+
+### Notas de scope
+- FCM en iOS NO requiere `firebase_options.dart` (la inicialización de iOS lee el plist vía el SDK nativo). El deep-link (`zorvian://` + Universal Links) y el reset-password ya funcionan sin Auth client → el defer de `firebase_options.dart` no bloquea push.
+- El `aps-environment` hardcodeado a `development` es correcto para `flutter run`/`debug`; **flipar a `production` antes del build de release** (o dejar que Xcode lo haga vía la capability).
+- El repo verifica `has-pending-model-changes` límpio y `flutter analyze` 0 issues — los cambios a `.entitlements`/`.plist` no afectan el build de Flutter (solo el de Xcode).
+
+## Deep links de la app móvil (2026-10-21) — `zorvian://` + Universal Links
+Cierra el circuito de los enlaces que el backend manda por correo: el usuario toca "Restablecer contraseña" o "Registrarse en la app" y la app móvil abre la pantalla correcta con el token/código ya puesto.
+- **Backend** (`AppLinks` / `IAppLinks`): `BuildResetPasswordAppUrl(token)` → `zorvian://reset-password?token=…` y `BuildInvitationAppUrl(code)` → `zorvian://register?code=…`. El esquema es configurable con `App:MobileAppScheme` (default `zorvian`). Los correos de recuperación (`PasswordResetService`) y de aprobación de acceso (`AccessRequestService`) incluyen el botón de la app junto al enlace web.
+- **Frontend** (`frontend/lib/core/services/deep_link_service.dart`): `DeepLinkResolver` traduce el enlace externo a la ruta interna (`zorvian://reset-password?token=…` → `/reset-password?token=…`; el host del esquema propio ES el primer segmento, por eso `zorvian://reset-password` y `zorvian:///reset-password` resuelven igual). `DeepLinkService` (provider `deepLinkServiceProvider`) escucha `AppLinks().getInitialLink()` (arranque en frío) + `AppLinks().uriLinkStream` (en caliente) y navega con `routerProvider.go(...)`.
+- **Lista blanca**: `kDeepLinkAllowedRoutes` = {`/reset-password`, `/register`} y `kDeepLinkAllowedQuery` = {`token` para reset-password, `code` para register}. Todo lo que no esté en la lista se descarta (un enlace externo NO puede navegar a una pantalla interna arbitrada).
+- **Ruta pendiente**: si el enlace llega mientras `authProvider.status == AuthStatus.unknown`, el guard del router lo rebotaría a `/splash` y se perdería. Por eso el servicio guarda la ruta en `DeepLinkState.pendingLocation` y `app.dart` la consume (`takePendingLocation()`) en su listener de auth, con PRIORIDAD sobre el rebote a `/login`/`/dashboard`.
+- **Dedupe**: el plugin entrega el enlace de arranque DOS veces (`getInitialLink()` + stream) → el servicio recuerda el último enlace manejado y lo ignora.
+- **Configuración nativa**: Android `AndroidManifest.xml` (intent-filter `zorvian://` + App Links https con `autoVerify` sobre `zorvian-erp.web.app`); iOS `Info.plist` (`CFBundleURLTypes` con el esquema `zorvian`, `UIBackgroundModes`, `FlutterDeepLinkingEnabled=false` porque el manejo es propio) + `Runner.entitlements` (`aps-environment`, `com.apple.developer.associated-domains` para Universal Links). `applicationId`/`PRODUCT_BUNDLE_IDENTIFIER` pasaron de `com.nexora.nexora` a `com.zorvian.erp` (Android: paquete Kotlin `com/zorvian/erp/MainActivity.kt`).
+- **Gotchas**: (1) `ios/Runner/SceneDelegate.swift` debe quedar **VACÍA** (como la plantilla): el plugin `app_links` se registra a sí mismo como `FlutterSceneLifeCycleDelegate` y recibe los eventos de escena solo. Sobrescribir `scene(_:willConnectTo:options:)` sin llamar a `super` rompe el ciclo de vida de la escena, y reenviar el enlace a mano (`AppLinks.shared.handleLink(url:)`) lo entrega DOS veces (una por el delegate del plugin y otra manual). (2) El plugin entrega el enlace de arranque por `getInitialLink()` Y por el stream → dedupe obligatorio. (3) `AppLinks` es un singleton de Dart: instanciarlo temprano (`main.dart` → `AppLinksDeepLinkSource(AppLinks())` inyectado por `deepLinkSourceProvider`) para no perder el enlace de arranque. (4) `DeepLinkSource` abstrae el plugin para poder testearlo sin plataforma nativa. (5) En web el plugin solo da el enlace inicial y `FlutterDeepLinkingEnabled` no aplica: la lista blanca evita que la URL de la web navegue a algo raro. (6) El AASA (`/.well-known/apple-app-site-association`) y el `assetlinks.json` NO están en el repo: son artefactos de despliegue con el TeamID real.
+- **Tests**: `frontend/test/deep_link_test.dart` (14: 9 de resolución + 5 de servicio con un `DeepLinkSource` falso y el router real montado).

@@ -1,4 +1,4 @@
-package com.nexora.nexora
+package com.zorvian.erp
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 

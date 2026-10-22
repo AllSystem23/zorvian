@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:app_links/app_links.dart';
 import 'app/app.dart';
 import 'core/firebase_options.template.dart' as config;
+import 'core/services/deep_link_service.dart';
 import 'core/services/local_notification_service.dart';
 import 'core/theme/theme_provider.dart';
 import 'features/biometrics/providers/biometric_provider.dart';
@@ -36,6 +38,11 @@ void main() async {
     await notifService.initialize();
   } catch (_) {}
 
+  // El plugin de deep links debe instanciarse temprano: el enlace con el que
+  // arrancó la app (zorvian://reset-password?token=…) se captura en el
+  // arranque y se entrega en cuanto Dart empieza a escuchar.
+  final deepLinkSource = AppLinksDeepLinkSource(AppLinks());
+
   if (!kIsWeb) {
     try {
       FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
@@ -57,6 +64,7 @@ void main() async {
 
   runApp(ProviderScope(overrides: [
     localNotificationServiceProvider.overrideWithValue(notifService),
+    deepLinkSourceProvider.overrideWithValue(deepLinkSource),
   ], child: const _AppLoader()));
 }
 
@@ -129,6 +137,12 @@ class _AppLoaderState extends ConsumerState<_AppLoader> {
       } catch (_) {}
       try {
         ref.read(authProvider.notifier).checkAuth();
+      } catch (_) {}
+      try {
+        // Escucha los deep links (zorvian://… y Universal Links) y los enruta
+        // al router. Arranca junto al chequeo de sesión para no perder el
+        // enlace con el que se abrió la app.
+        ref.read(deepLinkServiceProvider.notifier).start();
       } catch (_) {}
     });
   }

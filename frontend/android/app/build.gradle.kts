@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.nexora.nexora"
+    namespace = "com.zorvian.erp"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -17,7 +17,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.nexora.nexora"
+        applicationId = "com.zorvian.erp"
         // You can update the following values to match your application needs.
         // For more information, see: https://developer.android.com/studio/review-gradle-config.
         minSdk = flutter.minSdkVersion

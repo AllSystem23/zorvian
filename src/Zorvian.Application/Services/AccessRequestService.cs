@@ -22,6 +22,7 @@ public sealed class AccessRequestService
     private readonly IInvitationRepository _invitations;
     private readonly ICompanyRepository _companies;
     private readonly IEmailService _email;
+    private readonly IAppLinks _links;
     private readonly ITenantContext _tenant;
     private readonly ILogger<AccessRequestService> _logger;
 
@@ -30,6 +31,7 @@ public sealed class AccessRequestService
         IInvitationRepository invitations,
         ICompanyRepository companies,
         IEmailService email,
+        IAppLinks links,
         ITenantContext tenant,
         ILogger<AccessRequestService> logger)
     {
@@ -37,6 +39,7 @@ public sealed class AccessRequestService
         _invitations = invitations;
         _companies = companies;
         _email = email;
+        _links = links;
         _tenant = tenant;
         _logger = logger;
     }
@@ -135,7 +138,7 @@ public sealed class AccessRequestService
             await _email.SendEmailAsync(
                 entity.Email,
                 "Acceso aprobado — Zorvian ERP",
-                BuildApprovalHtml(entity.FullName, invitation.Code, company.Name));
+                BuildApprovalHtml(entity.FullName, invitation.Code, company.Name, _links.BuildInvitationAppUrl(invitation.Code)));
         }
         catch (Exception ex)
         {
@@ -181,7 +184,7 @@ public sealed class AccessRequestService
         </div>
         """;
 
-    private static string BuildApprovalHtml(string fullName, string code, string companyName) =>
+    private static string BuildApprovalHtml(string fullName, string code, string companyName, string appLink) =>
         $"""
         <div style="font-family: 'Inter', sans-serif; max-width: 480px; margin: 0 auto;">
             <div style="background: linear-gradient(135deg, #1A0A3E, #7C4DFF); padding: 32px; border-radius: 16px 16px 0 0; text-align: center;">
@@ -194,7 +197,10 @@ public sealed class AccessRequestService
                 <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; text-align: center; font-size: 28px; font-weight: bold; letter-spacing: 6px; color: #1A0A3E;">
                     {code}
                 </div>
-                <p style="margin-top: 16px; color: #666;">Ingresa con este código en la pantalla de registro de Zorvian ERP.</p>
+                <p style="margin-top: 16px;">
+                    <a href="{appLink}" style="background: #7C4DFF; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; display: inline-block;">Registrarse en la app de Zorvian</a>
+                </p>
+                <p style="margin-top: 16px; color: #666;">O ingresa con este código en la pantalla de registro de Zorvian ERP.</p>
                 <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
                 <p style="color: #aaa; font-size: 12px; text-align: center;">© 2026 Zorvian ERP — Todos los derechos reservados.</p>
             </div>

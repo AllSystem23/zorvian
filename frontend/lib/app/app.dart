@@ -5,6 +5,7 @@ import '../l10n/app_localizations.dart';
 import '../auth/auth_provider.dart';
 import '../core/theme/theme_provider.dart';
 import '../core/widgets/error_handler_widget.dart';
+import '../core/services/deep_link_service.dart';
 import '../core/services/keyboard_shortcut_service.dart';
 import '../features/biometrics/pages/biometric_unlock_page.dart';
 import 'router.dart';
@@ -26,6 +27,15 @@ class _ZorvianAppState extends ConsumerState<ZorvianApp> {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           final router = ref.read(routerProvider);
           router.refresh();
+          // Un deep link pendiente (zorvian://reset-password?token=…) tiene
+          // prioridad: si no, el rebote a /login o /dashboard lo descartaría y
+          // el usuario nunca vería la pantalla de destino del enlace.
+          final pending =
+              ref.read(deepLinkServiceProvider.notifier).takePendingLocation();
+          if (pending != null) {
+            router.go(pending);
+            return;
+          }
           // Force a re-evaluation of the initial route based on new status
           if (next.status == AuthStatus.unauthenticated) {
             router.go('/login');

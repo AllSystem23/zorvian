@@ -74,13 +74,14 @@ public sealed class PasswordResetService
         await _tokens.SaveChangesAsync();
 
         var link = _links.BuildResetPasswordUrl(rawToken);
+        var appLink = _links.BuildResetPasswordAppUrl(rawToken);
 
         try
         {
             await _email.SendEmailAsync(
                 user.Email,
                 "Recuperación de Contraseña — Zorvian ERP",
-                BuildEmailHtml(link, _links.PasswordResetTokenMinutes));
+                BuildEmailHtml(link, appLink, _links.PasswordResetTokenMinutes));
         }
         catch (Exception ex)
         {
@@ -157,7 +158,7 @@ public sealed class PasswordResetService
         return Convert.ToHexString(hash);
     }
 
-    private static string BuildEmailHtml(string link, int minutes) =>
+    private static string BuildEmailHtml(string link, string appLink, int minutes) =>
         $"""
         <div style="font-family: 'Inter', sans-serif; max-width: 480px; margin: 0 auto;">
             <div style="background: linear-gradient(135deg, #1A0A3E, #7C4DFF); padding: 32px; border-radius: 16px 16px 0 0; text-align: center;">
@@ -168,6 +169,9 @@ public sealed class PasswordResetService
                 <p>Pulsa el botón para elegir una contraseña nueva:</p>
                 <p style="margin: 24px 0;">
                     <a href="{link}" style="background: #7C4DFF; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; display: inline-block;">Restablecer contraseña</a>
+                </p>
+                <p style="margin: 16px 0;">
+                    <a href="{appLink}" style="background: #1A0A3E; color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; display: inline-block;">Abrir en la app de Zorvian</a>
                 </p>
                 <p style="color: #666; font-size: 13px;">Este enlace vence en {minutes} minutos y solo puede usarse una vez.</p>
                 <p style="color: #999; font-size: 12px; word-break: break-all;">Si el botón no funciona, copia esta dirección:<br />{link}</p>

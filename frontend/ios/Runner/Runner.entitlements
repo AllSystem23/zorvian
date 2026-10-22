@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Associated Domains (Universal Links): requiere el AASA en
+	     https://zorvian-erp.web.app/.well-known/apple-app-site-association
+	     (TeamID + bundle id + paths). Fuera del commit de código: hay que
+	     generar el AASA con el TeamID real y servirlo vía Firebase Hosting. -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:zorvian-erp.web.app</string>
+	</array>
+	<!-- iOS 14+ requiere que la app declare los esquemas que quiere manejar
+	     de forma privada (para evitar que apps de terceros intercepten URLs
+	     de otras apps). `zorvian` es nuestro esquema propio. -->
+	<!-- Push (FCM): `aps-environment` permite recibir notificaciones push.
+	     `development` para builds de debug; los builds de release usan
+	     `production` (Xcode lo cambia si habilitas la capability de Push
+	     Notifications en Xcode → o fastlane con `--export-options` que
+	     sobrescribe el entitlements). No es lo mismo que Universal Links. -->
+	<key>aps-environment</key>
+	<string>development</string>
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.zorvian.erp</string>
+	</array>
+</dict>
+</plist>
