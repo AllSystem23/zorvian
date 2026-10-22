@@ -20,6 +20,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.0" />
+    <PackageReference Include="AngleSharp" Version="1.3.0" />
     <PackageReference Include="Microsoft.ML" Version="4.0.0" />
     <PackageReference Include="Microsoft.ML.FastTree" Version="4.0.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.0" />
@@ -28,15 +29,15 @@
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.0.1" />
   </ItemGroup>
 
-  <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <RootNamespace>Zorvian.Infrastructure</RootNamespace>
-    <AssemblyName>Zorvian.Infrastructure</AssemblyName>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);1591</NoWarn>
-  </PropertyGroup>
+    <PropertyGroup>
+      <TargetFramework>net9.0</TargetFramework>
+      <ImplicitUsings>enable</ImplicitUsings>
+      <Nullable>enable</Nullable>
+      <RootNamespace>Zorvian.Infrastructure</RootNamespace>
+      <AssemblyName>Zorvian.Infrastructure</AssemblyName>
+      <GenerateDocumentationFile>true</GenerateDocumentationFile>
+      <NoWarn>$(NoWarn);1591;NU1902</NoWarn>
+    </PropertyGroup>
 
   <!-- Seed data (Tienda Brizuela Romero) embebida para funcionar en cualquier entorno (local, Docker, Render) -->
   <ItemGroup>

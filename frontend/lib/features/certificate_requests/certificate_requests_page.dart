@@ -66,10 +66,13 @@ class CertificateRequestsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authProvider);
-    final isHr = auth.role == 'Rrhh' || auth.role == 'CompanyAdmin' || auth.role == 'SuperAdmin';
+    // Access is controlled via employee.read permission (route removed from _routeRoles
+    // to avoid conflict with _routePermissions). The page checks hasPermission
+    // to allow employees with the permission but without HR roles.
+    final hasPermission = auth.hasPermission('employee.read');
     final requestsAsync = ref.watch(pendingCertificateRequestsProvider);
 
-    if (!isHr) {
+    if (!hasPermission) {
       return const Scaffold(
         body: Center(child: Text('No tiene permisos para ver esta página.')),
       );

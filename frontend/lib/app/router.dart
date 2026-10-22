@@ -362,7 +362,9 @@ final _routePermissions = <String, String>{
   '/attendance': 'employee.read',
   '/vacations': 'employee.read',
   '/permissions': 'employee.read',
-  '/certificate-requests': 'employee.read',
+  /// Certificate requests: employee.read permission (removed from _routeRoles to avoid
+/// conflict with _routePermissions; access is controlled via permissions only.
+/// The CertificateRequestsPage checks auth.hasPermission('employee.read') internally.
   '/providers': 'provider.read',
   '/payroll': 'payroll.read',
   '/service-payments': 'payroll.read',

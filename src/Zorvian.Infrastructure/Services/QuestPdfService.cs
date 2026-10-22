@@ -22,10 +22,8 @@ public sealed class QuestPdfService
     }
 
     /// <summary>
-    /// Renderiza HTML a PDF. Antes se intentaba DinkToPdf (wkhtmltopdf) con fallback a
-    /// QuestPDF, pero DinkToPdf necesita libwkhtmltox.so, que el contenedor de Render no
-    /// instala: el camino siempre lanzaba y caía al fallback. Además arrastra
-    /// NETStandard.Library 1.6.0 y rompe el restore con --runtime linux-x64 (NU1605).
+    /// Renderiza HTML a PDF profesional usando el conversor HTML→QuestPDF.
+    /// Respetando negritas, cursivas, títulos, tablas, listas, alineaciones y saltos de sección.
     /// </summary>
     public byte[] RenderHtmlToPdf(string htmlContent)
     {
@@ -47,8 +45,8 @@ public sealed class QuestPdfService
                 {
                     row.RelativeItem().Column(col =>
                     {
-                        var logoPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "assets", "logo.png");
-                        if (File.Exists(logoPath))
+                        var logoPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", "assets", "logo.png");
+                        if (System.IO.File.Exists(logoPath))
                         {
                             col.Item().Height(40).Image(logoPath);
                         }
@@ -61,7 +59,7 @@ public sealed class QuestPdfService
 
                     row.RelativeItem().AlignRight().Column(col =>
                     {
-                        col.Item().Text(DateTime.Now.ToString("dd MMMM yyyy")).FontSize(10);
+                        col.Item().Text(System.DateTime.Now.ToString("dd MMMM yyyy")).FontSize(10);
                         col.Item().Text("Documento Certificado").FontSize(8).Italic().FontColor(Colors.Blue.Medium);
                     });
                 });
@@ -69,7 +67,10 @@ public sealed class QuestPdfService
                 page.Content().PaddingVertical(1, QUnit.Centimetre).Column(col =>
                 {
                     col.Item().PaddingBottom(5).BorderBottom(1).BorderColor(Colors.Grey.Lighten2);
-                    col.Item().PaddingTop(1, QUnit.Centimetre).Text(StripHtml(htmlContent)).LineHeight(1.5f);
+                    col.Item().PaddingTop(1, QUnit.Centimetre).Element(el =>
+                    {
+                        HtmlToQuestPdfConverter.RenderDocument(el, htmlContent);
+                    });
                     col.Item().AlignCenter().PaddingTop(2, QUnit.Centimetre).Text("CONFIDENCIAL - ZORVIAN ERP")
                         .FontSize(30).Bold().FontColor(Colors.Grey.Lighten4);
                 });
@@ -100,18 +101,4 @@ public sealed class QuestPdfService
         document.GeneratePdf(stream);
         return stream.ToArray();
     }
-
-    private static string StripHtml(string html)
-    {
-        var doc = new System.Text.StringBuilder();
-        var inTag = false;
-        foreach (var c in html)
-        {
-            if (c == '<') inTag = true;
-            else if (c == '>') inTag = false;
-            else if (!inTag) doc.Append(c);
-        }
-        return System.Net.WebUtility.HtmlDecode(doc.ToString()).Trim();
-    }
 }
-
