@@ -744,7 +744,7 @@ public static class DocumentTemplateSeeder
       <small>{{{{ Country.IdDocument }}}}: {{{{ employee_id | default: '____________' }}}}</small>
     </div>
   </div>
-  <div class='footer'>Generado por Zorvian ERP · Motor Documental Inteligente · {{{{ Country.Name }}}} · {{{{ Company.Date }}}}</div>
+   <div class='footer'>Generado por Zorvian ERP · Document Engine · {{{{ Country.Name }}}} · {{{{ Company.Date }}}}</div>
 </body></html>";
 
     private static string BuildOfferLetterHtml() => $@"<!DOCTYPE html>
