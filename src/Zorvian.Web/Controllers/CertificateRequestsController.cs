@@ -13,7 +13,7 @@ namespace Zorvian.Web.Controllers;
 
 [ApiController]
 [Authorize]
-[Route("zorvian/v1/[controller]")]
+[Route("zorvian/v1/certificate-requests")]
 public sealed class CertificateRequestsController : ControllerBase
 {
     private readonly CertificateRequestService _service;
