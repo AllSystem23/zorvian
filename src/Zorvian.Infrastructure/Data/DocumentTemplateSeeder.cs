@@ -599,7 +599,8 @@ public static class DocumentTemplateSeeder
     // ═══════════════════════════════════════════════
 
     private static string SharedStyles() => @"
-  <style>
+   <style>
+    @page { margin: 2cm; @bottom-center { content: 'Página ' counter(page) ' de ' counter(pages) '  ·  Confidencial'; font-size: 9px; color: #888; } }
     body { font-family: 'Segoe UI', Arial, sans-serif; margin: 40px; color: #1a1a2e; line-height: 1.7; text-align: justify; }
     .header { text-align: center; border-bottom: 3px solid #1A0A3E; padding-bottom: 20px; margin-bottom: 30px; }
     .company-name { font-size: 28px; font-weight: 700; color: #1A0A3E; letter-spacing: 1px; }
@@ -611,6 +612,8 @@ public static class DocumentTemplateSeeder
     .sig-block { text-align: center; width: 40%; }
     .sig-line { border-top: 1px solid #333; margin-top: 80px; padding-top: 10px; min-height: 110px; }
     .footer { margin-top: 40px; text-align: center; font-size: 11px; color: #888; }
+    .audit-block { margin-top: 30px; padding: 12px; border: 1px dashed #ccc; border-radius: 6px; font-size: 10px; color: #666; background: #fafafa; }
+    .qr-verify { float: right; width: 80px; height: 80px; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #999; }
     body::before { content: 'CONFIDENCIAL - ZORVIAN ERP'; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 60px; color: rgba(26,10,62,0.07); font-weight: 700; letter-spacing: 6px; pointer-events: none; z-index: 0; white-space: nowrap; }
     table.items { width: 100%; border-collapse: collapse; margin: 20px 0; }
     table.items th { background: #1A0A3E; color: white; padding: 10px 12px; text-align: left; font-size: 13px; }
@@ -620,9 +623,10 @@ public static class DocumentTemplateSeeder
     private static string BuildContractHtml() => $@"<!DOCTYPE html>
 <html><head><meta charset='UTF-8'>{SharedStyles()}</head>
 <body>
-  <div class='header'>
-    <div class='company-name'>{{{{ Company.LegalName }}}}</div>
-    <div class='doc-title'>CONTRATO INDIVIDUAL DE TRABAJO A TÉRMINO INDEFINIDO</div>
+   <div class='header'>
+     {{% if Company.Logo != blank %}}<img src='{{{{ Company.Logo }}}}' alt='Logo' style='height:60px;margin-bottom:10px;' />{{% endif %}}
+     <div class='company-name'>{{{{ Company.LegalName }}}}</div>
+     <div class='doc-title'>CONTRATO INDIVIDUAL DE TRABAJO A TÉRMINO INDEFINIDO</div>
     <div style='font-size:13px;color:#555;margin-top:6px;'>{{{{ Country.Name }}}} &middot; {{{{ Branch.Name | default: 'Sede principal' }}}}</div>
   </div>
 
@@ -744,6 +748,11 @@ public static class DocumentTemplateSeeder
       <small>{{{{ Country.IdDocument }}}}: {{{{ employee_id | default: '____________' }}}}</small>
     </div>
   </div>
+   <div class='audit-block'>
+     <strong>Bloque de auditoría:</strong> Documento generado el {{{{ Company.Date }}}} · Versión 2.1 ·
+     País: {{{{ Country.Name }}}} · Empresa: {{{{ Company.LegalName }}}} ({{{{ Company.TaxId }}}}) ·
+     Generado por Zorvian ERP · Document Engine · Hash de verificación: {{{{ Company.Date | replace: '/', '' }}}}-{{{{ employee_id | default: 'NA' }}}}
+   </div>
    <div class='footer'>Generado por Zorvian ERP · Document Engine · {{{{ Country.Name }}}} · {{{{ Company.Date }}}}</div>
 </body></html>";
 
