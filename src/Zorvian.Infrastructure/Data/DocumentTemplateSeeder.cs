@@ -614,6 +614,8 @@ public static class DocumentTemplateSeeder
     .footer { margin-top: 40px; text-align: center; font-size: 11px; color: #888; }
     .audit-block { margin-top: 30px; padding: 12px; border: 1px dashed #ccc; border-radius: 6px; font-size: 10px; color: #666; background: #fafafa; }
     .qr-verify { float: right; width: 80px; height: 80px; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #999; }
+    .seal { display: inline-block; padding: 6px 14px; border: 2px solid #2EE59D; color: #2EE59D; font-weight: 700; border-radius: 6px; transform: rotate(-8deg); margin: 10px 0; }
+    @media print { body { margin: 0; } .watermark { display: none; } }
     body::before { content: 'CONFIDENCIAL - ZORVIAN ERP'; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 60px; color: rgba(26,10,62,0.07); font-weight: 700; letter-spacing: 6px; pointer-events: none; z-index: 0; white-space: nowrap; }
     table.items { width: 100%; border-collapse: collapse; margin: 20px 0; }
     table.items th { background: #1A0A3E; color: white; padding: 10px 12px; text-align: left; font-size: 13px; }
@@ -624,7 +626,6 @@ public static class DocumentTemplateSeeder
 <html><head><meta charset='UTF-8'>{SharedStyles()}</head>
 <body>
    <div class='header'>
-     {{% if Company.Logo != blank %}}<img src='{{{{ Company.Logo }}}}' alt='Logo' style='height:60px;margin-bottom:10px;' />{{% endif %}}
      <div class='company-name'>{{{{ Company.LegalName }}}}</div>
      <div class='doc-title'>CONTRATO INDIVIDUAL DE TRABAJO A TÉRMINO INDEFINIDO</div>
     <div style='font-size:13px;color:#555;margin-top:6px;'>{{{{ Country.Name }}}} &middot; {{{{ Branch.Name | default: 'Sede principal' }}}}</div>
@@ -748,11 +749,6 @@ public static class DocumentTemplateSeeder
       <small>{{{{ Country.IdDocument }}}}: {{{{ employee_id | default: '____________' }}}}</small>
     </div>
   </div>
-   <div class='audit-block'>
-     <strong>Bloque de auditoría:</strong> Documento generado el {{{{ Company.Date }}}} · Versión 2.1 ·
-     País: {{{{ Country.Name }}}} · Empresa: {{{{ Company.LegalName }}}} ({{{{ Company.TaxId }}}}) ·
-     Generado por Zorvian ERP · Document Engine · Hash de verificación: {{{{ Company.Date | replace: '/', '' }}}}-{{{{ employee_id | default: 'NA' }}}}
-   </div>
    <div class='footer'>Generado por Zorvian ERP · Document Engine · {{{{ Country.Name }}}} · {{{{ Company.Date }}}}</div>
 </body></html>";
 

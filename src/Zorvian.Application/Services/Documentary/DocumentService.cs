@@ -175,6 +175,19 @@ public sealed class DocumentService : IDocumentService
 
     private async Task<string> RenderLiquidTemplate(string source, object model)
     {
+        // Inyección universal (no toca las plantillas): logo en el encabezado y
+        // bloque de auditoría al final, aplicables a todos los documentos generados.
+        // Se inyecta en el source ANTES de renderizar para que los placeholders Liquid se resuelvan.
+        source = source.Replace(
+            "<div class='header'>",
+            "<div class='header'>\n{{% if Company.Logo != blank %}}<img src='{{{{ Company.Logo }}}}' alt='Logo' style='height:60px;margin-bottom:10px;' />{{% endif %}}",
+            StringComparison.Ordinal);
+        if (source.Contains("</body>", StringComparison.OrdinalIgnoreCase))
+        {
+            var audit = "<div class='audit-block'><strong>Bloque de auditoría:</strong> Documento generado el {{{{ Company.Date }}}} · Versión 2.1 · País: {{{{ Country.Name }}}} · Empresa: {{{{ Company.LegalName }}}} ({{{{ Company.TaxId }}}}) · Generado por Zorvian ERP · Document Engine<br/><img src='https://api.qrserver.com/v1/create-qr-code/?size=80x80&data={{{{ Company.TaxId }}}}-{{{{ Company.Date }}}}' style='width:80px;height:80px;border:1px solid #ddd;' alt='QR de verificación' /><br/><em>Términos y condiciones: documento válido únicamente con firma y sello de la empresa. Ley aplicable: {{{{ Country.LaborLaw }}}}.</em></div>";
+            source = source.Replace("</body>", audit + "\n</body>", StringComparison.OrdinalIgnoreCase);
+        }
+
         if (!_parser.TryParse(source, out var template, out var error))
         {
             throw new Exception($"Liquid syntax error: {error}");
@@ -185,7 +198,8 @@ public sealed class DocumentService : IDocumentService
         var normalized = LiquidModelNormalizer.Normalize(model);
         var context = new TemplateContext(normalized);
         context.Options.MemberAccessStrategy.Register(normalized.GetType());
-        
-        return await template.RenderAsync(context);
+
+        var rendered = await template.RenderAsync(context);
+        return rendered;
     }
 }

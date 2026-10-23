@@ -228,6 +228,20 @@ public sealed class DocumentsController : ControllerBase
         return File(pdfBytes, "application/pdf", fileName);
     }
 
+    [AllowAnonymous]
+    [HttpGet("verify/{id:guid}")]
+    public async Task<IActionResult> Verify(Guid id)
+    {
+        var doc = await _docRepo.GetByIdAsync(id);
+        if (doc == null) return NotFound(new { detail = "Documento no encontrado" });
+
+        var versions = await _docRepo.GetVersionsAsync(id);
+        var latest = versions.MaxBy(v => v.VersionNumber);
+        if (latest == null || string.IsNullOrEmpty(latest.Content))
+            return NotFound(new { detail = "Sin contenido renderizado" });
+
+        return Content(latest.Content, "text/html; charset=utf-8");
+    }
     private static Dictionary<string, string> GetDefaultSampleData()
     {
         return new Dictionary<string, string>
