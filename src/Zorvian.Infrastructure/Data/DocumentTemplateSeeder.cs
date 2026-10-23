@@ -600,17 +600,18 @@ public static class DocumentTemplateSeeder
 
     private static string SharedStyles() => @"
   <style>
-    body { font-family: 'Segoe UI', Arial, sans-serif; margin: 40px; color: #1a1a2e; line-height: 1.7; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; margin: 40px; color: #1a1a2e; line-height: 1.7; text-align: justify; }
     .header { text-align: center; border-bottom: 3px solid #1A0A3E; padding-bottom: 20px; margin-bottom: 30px; }
     .company-name { font-size: 28px; font-weight: 700; color: #1A0A3E; letter-spacing: 1px; }
     .doc-title { font-size: 20px; color: #7C4DFF; margin-top: 10px; font-weight: 600; }
     .field { font-weight: 600; color: #1A0A3E; }
     .section { margin: 20px 0; }
     .article { margin: 12px 0; padding-left: 10px; border-left: 3px solid #00E5FF; }
-    .signature-area { margin-top: 80px; display: flex; justify-content: space-between; }
+    .signature-area { margin-top: 110px; display: flex; justify-content: space-between; }
     .sig-block { text-align: center; width: 40%; }
-    .sig-line { border-top: 1px solid #333; margin-top: 60px; padding-top: 8px; }
+    .sig-line { border-top: 1px solid #333; margin-top: 80px; padding-top: 10px; min-height: 110px; }
     .footer { margin-top: 40px; text-align: center; font-size: 11px; color: #888; }
+    body::before { content: 'CONFIDENCIAL - ZORVIAN ERP'; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-45deg); font-size: 60px; color: rgba(26,10,62,0.07); font-weight: 700; letter-spacing: 6px; pointer-events: none; z-index: 0; white-space: nowrap; }
     table.items { width: 100%; border-collapse: collapse; margin: 20px 0; }
     table.items th { background: #1A0A3E; color: white; padding: 10px 12px; text-align: left; font-size: 13px; }
     table.items td { padding: 10px 12px; border-bottom: 1px solid #eee; font-size: 13px; }
@@ -678,10 +679,12 @@ public static class DocumentTemplateSeeder
 
     <div class='article'>
       <strong>CLÁUSULA SEXTA — OBLIGACIONES DEL EMPLEADOR:</strong> Pagar puntualmente la remuneración pactada;
-      afiliar y reportar a EL TRABAJADOR ante el {{{{ Country.SocialSecurity }}}}; proporcionar condiciones de
+      afiliar y reportar a EL TRABAJADOR ante el {{{{ Country.SocialSecurity }}}} cuando corresponda;
+      proporcionar condiciones de
       trabajo seguras y saludables; respetar la dignidad y derechos del trabajador; reconocer los beneficios
-      sociales de ley, incluyendo {{{{ Country.ThirteenthMonth }}}} y vacaciones de
-      <span class='field'>{{{{ Country.VacationDays }}}} días</span> anuales remuneradas; y cumplir el
+      sociales de ley, incluyendo {{{{ Country.ThirteenthMonth }}}} y vacaciones anuales remuneradas de
+      <span class='field'>{{{{ Country.VacationDays }}}} días</span>, disfrutables una vez cumplido el período de
+      servicio que exige la ley (en Nicaragua: 6 meses de labor continuada); y cumplir el
       {{{{ Country.LaborLaw }}}}.
     </div>
 
@@ -706,13 +709,22 @@ public static class DocumentTemplateSeeder
     </div>
 
     <div class='article'>
-      <strong>CLÁUSULA DÉCIMA — TERMINACIÓN:</strong> El contrato podrá terminar por mutuo acuerdo, renuncia,
+      <strong>CLÁUSULA DÉCIMA — VACACIONES ANUALES ACUMULADAS:</strong> Las vacaciones anuales remuneradas son de
+      <span class='field'>{{{{ Country.VacationDays }}}} días</span> (en Nicaragua: 15 días), disfrutables una vez
+      cumplidos 6 meses de labor continuada (en Nicaragua) o el período que exija la legislación vigente del país.
+      El trabajador podrá fraccionarlas con acuerdo previo del empleador, respetando en todo caso el goce íntegro
+      del período acumulado conforme al {{{{ Country.LaborLaw }}}}. Las vacaciones no tomadas al finalizar el
+      contrato serán liquidadas proporcionalmente en la finiquito.
+    </div>
+
+    <div class='article'>
+      <strong>CLÁUSULA DÉCIMA PRIMERA — TERMINACIÓN:</strong> El contrato podrá terminar por mutuo acuerdo, renuncia,
       despido con o sin causa justa, muerte del trabajador u otras causas previstas en el {{{{ Country.LaborLaw }}}},
       respetando los preavisos, indemnizaciones y derechos adquiridos que la ley establezca.
     </div>
 
     <div class='article'>
-      <strong>CLÁUSULA DÉCIMA PRIMERA — LEY APLICABLE Y JURISDICCIÓN:</strong> El presente contrato se rige por
+      <strong>CLÁUSULA DÉCIMA SEGUNDA — LEY APLICABLE Y JURISDICCIÓN:</strong> El presente contrato se rige por
       el {{{{ Country.LaborLaw }}}}. Para cualquier controversia derivada del mismo, las partes se someten a los
       tribunales competentes de {{{{ Contract.City | default: '____________' }}}}, {{{{ Country.Name }}}}.
     </div>

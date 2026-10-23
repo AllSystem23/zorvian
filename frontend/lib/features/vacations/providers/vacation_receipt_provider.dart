@@ -173,8 +173,8 @@ class VacationReceiptListState {
     pageSize: pageSize ?? this.pageSize,
     year: yearFilter == true ? year : this.year,
     loading: loading ?? this.loading,
-    error: error ?? this.error,
-  );
+     error: error,
+   );
 }
 
 class VacationReceiptNotifier extends Notifier<VacationReceiptListState> {
@@ -200,18 +200,28 @@ class VacationReceiptNotifier extends Notifier<VacationReceiptListState> {
         if (employeeId case final e?) 'employeeId': e,
         if (year case final y?) 'year': y,
       };
-      final r = await dio.get('vacations/receipts', params: params);
-      final data = r.data;
-      state = VacationReceiptListState(
-        items: (data['items'] as List).map((e) => VacationReceiptItem.fromJson(e)).toList(),
-        total: data['total'] as int? ?? 0,
-        page: page,
-        pageSize: pageSize,
-        year: year,
-      );
-    } catch (e) {
-      state = state.copyWith(error: 'Error al cargar recibos', loading: false);
-    }
+       final r = await dio.get('vacations/receipts', params: params);
+       final data = r.data;
+       final List rawItems;
+       int total;
+       if (data is List) {
+         rawItems = data;
+         total = rawItems.length;
+       } else {
+         final m = data as Map<String, dynamic>;
+         rawItems = (m['items'] ?? m['Items'] ?? []) as List;
+         total = (m['total'] ?? m['Total'] ?? m['totalCount'] ?? m['TotalCount']) as int? ?? rawItems.length;
+       }
+       state = VacationReceiptListState(
+         items: rawItems.map((e) => VacationReceiptItem.fromJson(e as Map<String, dynamic>)).toList(),
+         total: total,
+         page: page,
+         pageSize: pageSize,
+         year: year,
+       );
+     } catch (e) {
+       state = state.copyWith(error: 'Error al cargar recibos: $e', loading: false);
+     }
   }
 
   Future<void> nextPage() async {
