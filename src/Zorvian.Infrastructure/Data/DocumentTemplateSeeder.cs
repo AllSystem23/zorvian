@@ -601,16 +601,17 @@ public static class DocumentTemplateSeeder
     private static string SharedStyles() => @"
    <style>
     @page { margin: 2cm; @bottom-center { content: 'Página ' counter(page) ' de ' counter(pages) '  ·  Confidencial'; font-size: 9px; color: #888; } }
-    body { font-family: 'Segoe UI', Arial, sans-serif; margin: 40px; color: #1a1a2e; line-height: 1.7; text-align: justify; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; margin: 40px; color: #1a1a2e; line-height: 1.7; text-align: justify; text-justify: inter-word; }
+    p { text-align: justify; text-justify: inter-word; margin: 12px 0; }
+    .article { margin: 12px 0; padding-left: 10px; border-left: 3px solid #00E5FF; }
+    .section { margin: 20px 0; text-align: justify; text-justify: inter-word; }
     .header { text-align: center; border-bottom: 3px solid #1A0A3E; padding-bottom: 20px; margin-bottom: 30px; }
     .company-name { font-size: 28px; font-weight: 700; color: #1A0A3E; letter-spacing: 1px; }
     .doc-title { font-size: 20px; color: #7C4DFF; margin-top: 10px; font-weight: 600; }
     .field { font-weight: 600; color: #1A0A3E; }
-    .section { margin: 20px 0; }
-    .article { margin: 12px 0; padding-left: 10px; border-left: 3px solid #00E5FF; }
-    .signature-area { margin-top: 110px; display: flex; justify-content: space-between; }
+    .signature-area { margin-top: 90px; display: flex; justify-content: space-between; }
     .sig-block { text-align: center; width: 40%; }
-    .sig-line { border-top: 1px solid #333; margin-top: 80px; padding-top: 10px; min-height: 110px; }
+    .sig-line { border-top: 1px solid #333; margin-top: 60px; padding-top: 40px; min-height: 50px; font-weight: 600; }
     .footer { margin-top: 40px; text-align: center; font-size: 11px; color: #888; }
     .audit-block { margin-top: 30px; padding: 12px; border: 1px dashed #ccc; border-radius: 6px; font-size: 10px; color: #666; background: #fafafa; }
     .qr-verify { float: right; width: 80px; height: 80px; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; font-size: 9px; color: #999; }
@@ -685,12 +686,10 @@ public static class DocumentTemplateSeeder
     <div class='article'>
       <strong>CLÁUSULA SEXTA — OBLIGACIONES DEL EMPLEADOR:</strong> Pagar puntualmente la remuneración pactada;
       afiliar y reportar a EL TRABAJADOR ante el {{{{ Country.SocialSecurity }}}} cuando corresponda;
-      proporcionar condiciones de
-      trabajo seguras y saludables; respetar la dignidad y derechos del trabajador; reconocer los beneficios
-      sociales de ley, incluyendo {{{{ Country.ThirteenthMonth }}}} y vacaciones anuales remuneradas de
-      <span class='field'>{{{{ Country.VacationDays }}}} días</span>, disfrutables una vez cumplido el período de
-      servicio que exige la ley (en Nicaragua: 6 meses de labor continuada); y cumplir el
-      {{{{ Country.LaborLaw }}}}.
+      proporcionar condiciones de trabajo seguras y saludables; respetar la dignidad y derechos del trabajador;
+      reconocer los beneficios sociales de ley, incluyendo {{{{ Country.ThirteenthMonth }}}} y vacaciones anuales
+      remuneradas de <span class='field'>{{{{ Country.VacationDays }}}} días cada seis meses</span>, disfrutables una vez
+      cumplido el período de servicio que exige la ley; y cumplir el {{{{ Country.LaborLaw }}}}.
     </div>
 
     <div class='article'>
@@ -714,12 +713,7 @@ public static class DocumentTemplateSeeder
     </div>
 
     <div class='article'>
-      <strong>CLÁUSULA DÉCIMA — VACACIONES ANUALES ACUMULADAS:</strong> Las vacaciones anuales remuneradas son de
-      <span class='field'>{{{{ Country.VacationDays }}}} días</span> (en Nicaragua: 15 días), disfrutables una vez
-      cumplidos 6 meses de labor continuada (en Nicaragua) o el período que exija la legislación vigente del país.
-      El trabajador podrá fraccionarlas con acuerdo previo del empleador, respetando en todo caso el goce íntegro
-      del período acumulado conforme al {{{{ Country.LaborLaw }}}}. Las vacaciones no tomadas al finalizar el
-      contrato serán liquidadas proporcionalmente en la finiquito.
+      <strong>CLÁUSULA DÉCIMA — VACACIONES ANUALES ACUMULADAS:</strong> EL TRABAJADOR acumula 30 días de vacaciones remuneradas por cada año laborado, es decir, 15 días cada seis meses de servicio continuado, disfrutables una vez cumplidos 6 meses de labor (en Nicaragua) o el período que exija la legislación vigente del país. El trabajador podrá fraccionarlas con acuerdo previo del empleador, respetando en todo caso el goce íntegro del período acumulado conforme al {{{{ Country.LaborLaw }}}}. Las vacaciones no tomadas al finalizar el contrato serán liquidadas proporcionalmente en el finiquito.
     </div>
 
     <div class='article'>

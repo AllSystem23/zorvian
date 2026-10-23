@@ -138,7 +138,7 @@ public sealed class HtmlToQuestPdfConverter
                 text.AlignRight();
                 break;
             case TextAlignment.Justify:
-                text.AlignLeft();
+                text.Justify();
                 break;
             default:
                 text.AlignLeft();
