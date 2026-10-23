@@ -180,11 +180,11 @@ public sealed class DocumentService : IDocumentService
         // Se inyecta en el source ANTES de renderizar para que los placeholders Liquid se resuelvan.
         source = source.Replace(
             "<div class='header'>",
-            "<div class='header'>\n{{% if Company.Logo != blank %}}<img src='{{{{ Company.Logo }}}}' alt='Logo' style='height:60px;margin-bottom:10px;' />{{% endif %}}",
+            $"<div class='header'>\n{{% if Company.Logo != blank %}}<img src='{{{{ Company.Logo }}}}' alt='Logo' style='height:60px;margin-bottom:10px;' />{{% endif %}}",
             StringComparison.Ordinal);
         if (source.Contains("</body>", StringComparison.OrdinalIgnoreCase))
         {
-            var audit = "<div class='audit-block'><strong>Bloque de auditoría:</strong> Documento generado el {{{{ Company.Date }}}} · Versión 2.1 · País: {{{{ Country.Name }}}} · Empresa: {{{{ Company.LegalName }}}} ({{{{ Company.TaxId }}}}) · Generado por Zorvian ERP · Document Engine<br/><img src='https://api.qrserver.com/v1/create-qr-code/?size=80x80&data={{{{ Company.TaxId }}}}-{{{{ Company.Date }}}}' style='width:80px;height:80px;border:1px solid #ddd;' alt='QR de verificación' /><br/><em>Términos y condiciones: documento válido únicamente con firma y sello de la empresa. Ley aplicable: {{{{ Country.LaborLaw }}}}.</em></div>";
+            var audit = $@"<div class='audit-block'><strong>Bloque de auditoría:</strong> Documento generado el {{{{ Company.Date }}}} · Versión 2.1 · País: {{{{ Country.Name }}}} · Empresa: {{{{ Company.LegalName }}}} ({{{{ Company.TaxId }}}}) · Generado por Zorvian ERP · Document Engine<br/><img src='https://api.qrserver.com/v1/create-qr-code/?size=80x80&data={{{{ Company.TaxId }}}}-{{{{ Company.Date }}}}' style='width:80px;height:80px;border:1px solid #ddd;' alt='QR de verificación' /><br/><em>Términos y condiciones: documento válido únicamente con firma y sello de la empresa. Ley aplicable: {{{{ Country.LaborLaw }}}}.</em></div>";
             source = source.Replace("</body>", audit + "\n</body>", StringComparison.OrdinalIgnoreCase);
         }
 
