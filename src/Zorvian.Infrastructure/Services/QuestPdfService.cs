@@ -2,13 +2,29 @@ using Microsoft.Extensions.Logging;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
-using Zorvian.Application.Interfaces;
 using QUnit = QuestPDF.Infrastructure.Unit;
 
 namespace Zorvian.Infrastructure.Services;
 
+/// <summary>
+/// Renderiza el HTML del motor documental a un PDF con presentación corporativa:
+/// cabecera con identidad, marca de agua de confidencialidad, pie paginado y
+/// tipografía única (Lato, incluida en QuestPDF) disponible también en contenedores
+/// sin fuentes del sistema.
+/// </summary>
 public sealed class QuestPdfService
 {
+    private static readonly Color BrandNavy = Color.FromHex("#1A0A3E");
+    private static readonly Color BrandViolet = Color.FromHex("#7C4DFF");
+    private static readonly Color Divider = Color.FromHex("#E4E0EF");
+    private static readonly Color Muted = Color.FromHex("#6B6785");
+    private static readonly Color Watermark = Color.FromARGB(14, 0, 0, 0);
+    private static readonly string[] SpanishMonths =
+    {
+        "enero", "febrero", "marzo", "abril", "mayo", "junio",
+        "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+    };
+
     private readonly ILogger<QuestPdfService> _logger;
 
     static QuestPdfService()
@@ -23,14 +39,24 @@ public sealed class QuestPdfService
 
     /// <summary>
     /// Renderiza HTML a PDF profesional usando el conversor HTML→QuestPDF.
-    /// Respetando negritas, cursivas, títulos, tablas, listas, alineaciones y saltos de sección.
+    /// Respetando negritas, cursivas, titulos, tablas, listas, alineaciones y saltos de seccion.
     /// </summary>
     public byte[] RenderHtmlToPdf(string htmlContent)
     {
-        return RenderWithQuestPdf(htmlContent);
+        if (string.IsNullOrWhiteSpace(htmlContent))
+        {
+            _logger.LogWarning(
+                "RenderHtmlToPdf recibió contenido HTML vacío; se generará el documento de respaldo.");
+        }
+
+        var pdf = RenderWithQuestPdf(htmlContent);
+
+        _logger.LogDebug("PDF generado correctamente ({SizeKb} KB).", pdf.Length / 1024d);
+
+        return pdf;
     }
 
-    private byte[] RenderWithQuestPdf(string htmlContent)
+    private static byte[] RenderWithQuestPdf(string htmlContent)
     {
         var document = Document.Create(container =>
         {
@@ -39,60 +65,83 @@ public sealed class QuestPdfService
                 page.Size(PageSizes.A4);
                 page.Margin(1.5f, QUnit.Centimetre);
                 page.PageColor(Colors.White);
-                page.DefaultTextStyle(x => x.FontSize(11).FontFamily(Fonts.Verdana));
+                page.DefaultTextStyle(x => x
+                    .FontSize(10.5f)
+                    .FontFamily(Fonts.Lato)
+                    .FontColor("#1A1A2E")
+                    .LineHeight(1.5f));
 
-                page.Header().Row(row =>
+                page.Background()
+                    .AlignCenter().AlignMiddle()
+                    .Rotate(-30)
+                    .Text("CONFIDENCIAL")
+                    .FontSize(72).Bold().LetterSpacing(8).FontColor(Watermark);
+
+                page.Header().Element(header =>
                 {
-                    row.RelativeItem().Column(col =>
-                    {
-                        var logoPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", "assets", "logo.png");
-                        if (System.IO.File.Exists(logoPath))
+                    header
+                        .BorderBottom(0.8f).BorderColor(Divider)
+                        .PaddingBottom(8)
+                        .Row(row =>
                         {
-                            col.Item().Height(40).Image(logoPath);
-                        }
-                        else
-                        {
-                            col.Item().Text("ZORVIAN").FontSize(24).Bold().FontColor("#1e3a8a");
-                        }
-                        col.Item().Text("DOCENGINE / ENTERPRISE").LetterSpacing(0.2f).FontSize(9).FontColor(Colors.Grey.Medium);
-                    });
+                            row.RelativeItem().Column(col =>
+                            {
+                                var logoPath = System.IO.Path.Combine(
+                                    System.IO.Directory.GetCurrentDirectory(),
+                                    "wwwroot", "assets", "logo.png");
 
-                    row.RelativeItem().AlignRight().Column(col =>
-                    {
-                        col.Item().Text(System.DateTime.Now.ToString("dd MMMM yyyy")).FontSize(10);
-                        col.Item().Text("Documento Certificado").FontSize(8).Italic().FontColor(Colors.Blue.Medium);
-                    });
+                                if (System.IO.File.Exists(logoPath))
+                                    col.Item().Height(38).Image(logoPath);
+                                else
+                                    col.Item().Text("ZORVIAN").FontSize(22).Bold().FontColor(BrandNavy);
+
+                                col.Item()
+                                    .PaddingTop(2)
+                                    .Text("SISTEMA DE GESTIÓN DOCUMENTAL EMPRESARIAL")
+                                    .LetterSpacing(1.1f).FontSize(7).FontColor(Muted);
+                            });
+
+                            row.ConstantItem(180).AlignRight().Column(col =>
+                            {
+                                col.Item()
+                                    .Text(FormatSpanishDate(System.DateTime.Now))
+                                    .FontSize(9).FontColor(Muted);
+
+                                col.Item()
+                                    .PaddingTop(2)
+                                    .Text("DOCUMENTO CONFIDENCIAL")
+                                    .Bold().LetterSpacing(0.6f).FontSize(7).FontColor(BrandViolet);
+                            });
+                        });
                 });
 
-                page.Content().PaddingVertical(1, QUnit.Centimetre).Column(col =>
+                page.Content().PaddingVertical(0.9f, QUnit.Centimetre).Element(content =>
                 {
-                    col.Item().PaddingBottom(5).BorderBottom(1).BorderColor(Colors.Grey.Lighten2);
-                    col.Item().PaddingTop(1, QUnit.Centimetre).Element(el =>
-                    {
-                        HtmlToQuestPdfConverter.RenderDocument(el, htmlContent);
-                    });
-                    col.Item().AlignCenter().PaddingTop(2, QUnit.Centimetre).Text("CONFIDENCIAL - ZORVIAN ERP")
-                        .FontSize(30).Bold().FontColor(Colors.Grey.Lighten4);
+                    HtmlToQuestPdfConverter.RenderDocument(content, htmlContent);
                 });
 
-                page.Footer().Column(col =>
+                page.Footer().Element(footer =>
                 {
-                    col.Item().BorderTop(0.5f).BorderColor(Colors.Grey.Lighten2).PaddingTop(5).Row(row =>
-                    {
-                        row.RelativeItem().Text(x =>
+                    footer
+                        .BorderTop(0.5f).BorderColor(Divider)
+                        .PaddingTop(6)
+                        .Row(row =>
                         {
-                            x.Span("Generado por ").FontSize(8);
-                            x.Span("Zorvian Documentary Engine").FontSize(8).Bold();
-                        });
+                            row.RelativeItem().Text(text =>
+                            {
+                                text.Span("Generado por ").FontSize(7.5f).FontColor(Muted);
+                                text.Span("Zorvian ERP · Motor Documental")
+                                    .FontSize(7.5f).SemiBold().FontColor(BrandNavy);
+                            });
 
-                        row.RelativeItem().AlignRight().Text(x =>
-                        {
-                            x.Span("Página ").FontSize(8);
-                            x.CurrentPageNumber().FontSize(8);
-                            x.Span(" de ").FontSize(8);
-                            x.TotalPages().FontSize(8);
+                            row.ConstantItem(120).AlignRight().Text(text =>
+                            {
+                                text.Span("Página ").FontSize(7.5f).FontColor(Muted);
+                                text.CurrentPageNumber().FontSize(7.5f).SemiBold().FontColor(BrandNavy);
+                                text.Span(" de ").FontSize(7.5f).FontColor(Muted);
+                                text.TotalPages().FontSize(7.5f).SemiBold().FontColor(BrandNavy);
+                            });
                         });
-                    });
                 });
             });
         });
@@ -101,4 +150,7 @@ public sealed class QuestPdfService
         document.GeneratePdf(stream);
         return stream.ToArray();
     }
+
+    private static string FormatSpanishDate(System.DateTime date) =>
+        $"{date.Day} de {SpanishMonths[date.Month - 1]} de {date.Year}";
 }
