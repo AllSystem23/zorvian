@@ -16,12 +16,12 @@ using Zorvian.Web.Controllers;
 
 namespace Zorvian.Tests.Integration;
 
-public class CommissionEventsControllerTests : IClassFixture<WebApplicationFactory<Program>>
+public class CommissionEventsControllerTests : IClassFixture<GuardedWebApplicationFactory>
 {
     private readonly WebApplicationFactory<Program> _factory;
     private readonly Mock<ICommissionService> _mockCommissionService;
 
-    public CommissionEventsControllerTests(WebApplicationFactory<Program> factory)
+    public CommissionEventsControllerTests(GuardedWebApplicationFactory factory)
     {
         _mockCommissionService = new Mock<ICommissionService>(MockBehavior.Loose);
         _factory = factory.WithWebHostBuilder(builder =>

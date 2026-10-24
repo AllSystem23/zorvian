@@ -13,7 +13,7 @@ using Zorvian.Infrastructure.Data;
 
 namespace Zorvian.Tests.Integration;
 
-public class CustomWebApplicationFactory : WebApplicationFactory<Program>
+public class CustomWebApplicationFactory : GuardedWebApplicationFactory
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {

@@ -5,15 +5,21 @@ namespace Zorvian.Tests.Middleware;
 
 public sealed class RateLimitingMiddlewareTests
 {
-    private static RateLimitingMiddleware CreateMiddleware(int maxRequests = 5, int windowSeconds = 60, int authLimit = 5, int authWindowSeconds = 900, int authOtherLimit = 30, int authOtherWindowSeconds = 300)
+    // Frozen wall clock. The middleware's fixed window is aligned to absolute time, so a
+    // test driving the REAL clock can see the window boundary fall between two back-to-back
+    // calls (the 1s-window test failed ~1/18 CI-style runs that way). With a manual clock the
+    // window rollover happens exactly when the test says so.
+    private readonly ManualTimeProvider _clock = new(new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero));
+
+    private RateLimitingMiddleware CreateMiddleware(int maxRequests = 5, int windowSeconds = 60, int authLimit = 5, int authWindowSeconds = 900, int authOtherLimit = 30, int authOtherWindowSeconds = 300)
     {
         return new RateLimitingMiddleware(async ctx =>
         {
             await Task.CompletedTask;
-        }, maxRequests, windowSeconds, authLimit, authWindowSeconds, authOtherLimit, authOtherWindowSeconds);
+        }, maxRequests, windowSeconds, authLimit, authWindowSeconds, authOtherLimit, authOtherWindowSeconds, _clock);
     }
 
-    private static (RateLimitingMiddleware, DefaultHttpContext) CreatePair(int maxRequests = 5, int windowSeconds = 60)
+    private (RateLimitingMiddleware, DefaultHttpContext) CreatePair(int maxRequests = 5, int windowSeconds = 60)
     {
         return (CreateMiddleware(maxRequests, windowSeconds), NewContext("192.168.1.1", "/"));
     }
@@ -137,7 +143,8 @@ public sealed class RateLimitingMiddlewareTests
         await middleware.InvokeAsync(blockedCtx);
         Assert.Equal(429, blockedCtx.Response.StatusCode);
 
-        await Task.Delay(1100);
+        // Window elapses — advance the clock instead of sleeping against the real one.
+        _clock.Advance(TimeSpan.FromSeconds(shortWindow));
 
         var resetCtx = new DefaultHttpContext();
         resetCtx.Connection.RemoteIpAddress = System.Net.IPAddress.Parse("10.0.0.50");
@@ -227,5 +234,16 @@ public sealed class RateLimitingMiddlewareTests
         var blocked = NewContext(ip, "/zorvian/v1/auth/mfa/verify");
         await middleware.InvokeAsync(blocked);
         Assert.Equal(429, blocked.Response.StatusCode);
+    }
+
+    private sealed class ManualTimeProvider : TimeProvider
+    {
+        private DateTimeOffset _now;
+
+        public ManualTimeProvider(DateTimeOffset start) => _now = start;
+
+        public override DateTimeOffset GetUtcNow() => _now;
+
+        public void Advance(TimeSpan delta) => _now += delta;
     }
 }

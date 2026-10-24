@@ -13,10 +13,12 @@ public static class RateLimitingExtensions
         int authLimit = 5,
         int authWindowSeconds = 900,
         int authOtherLimit = 30,
-        int authOtherWindowSeconds = 300)
+        int authOtherWindowSeconds = 300,
+        TimeProvider? timeProvider = null)
     {
         return builder.UseMiddleware<RateLimitingMiddleware>(
-            maxRequests, windowSeconds, authLimit, authWindowSeconds, authOtherLimit, authOtherWindowSeconds);
+            maxRequests, windowSeconds, authLimit, authWindowSeconds, authOtherLimit, authOtherWindowSeconds,
+            timeProvider ?? TimeProvider.System);
     }
 }
 
@@ -31,6 +33,7 @@ public sealed class RateLimitingMiddleware
     private readonly int _authWindowSeconds;
     private readonly int _authOtherLimit;
     private readonly int _authOtherWindowSeconds;
+    private readonly TimeProvider _timeProvider;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -62,9 +65,11 @@ public sealed class RateLimitingMiddleware
         int authLimit = 5,
         int authWindowSeconds = 900,
         int authOtherLimit = 30,
-        int authOtherWindowSeconds = 300)
+        int authOtherWindowSeconds = 300,
+        TimeProvider? timeProvider = null)
     {
         _next = next;
+        _timeProvider = timeProvider ?? TimeProvider.System;
         _maxRequests = maxRequests;
         _windowSeconds = windowSeconds;
         _authLimit = authLimit;
@@ -155,7 +160,9 @@ public sealed class RateLimitingMiddleware
 
     private bool TryRequest(string key, int maxRequests, int windowSeconds)
     {
-        var now = DateTime.UtcNow;
+        // TimeProvider (not DateTime.UtcNow) so tests can drive the window deterministically
+        // instead of racing the real clock.
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
         var windowSlot = now.Ticks / (windowSeconds * TimeSpan.TicksPerSecond);
 
         var counter = _clients.GetOrAdd(key, _ => new FixedWindowCounter());
@@ -180,7 +187,7 @@ public sealed class RateLimitingMiddleware
 
     private void CleanupStaleEntries(object? state)
     {
-        var now = DateTime.UtcNow;
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
         var cutoff = now.AddMinutes(-30);
         var staleKeys = _clients
             .Where(kvp => kvp.Value.LastAccess < cutoff)
@@ -193,7 +200,7 @@ public sealed class RateLimitingMiddleware
         }
     }
 
-    private static async Task WriteRateLimitResponse(HttpContext context, int statusCode, string message, int retryAfterSeconds)
+    private async Task WriteRateLimitResponse(HttpContext context, int statusCode, string message, int retryAfterSeconds)
     {
         context.Response.StatusCode = statusCode;
         context.Response.Headers.RetryAfter = retryAfterSeconds.ToString();
@@ -206,7 +213,7 @@ public sealed class RateLimitingMiddleware
                 message,
                 statusCode,
                 retryAfterSeconds,
-                timestamp = DateTime.UtcNow,
+                timestamp = _timeProvider.GetUtcNow().UtcDateTime,
             }
         };
 

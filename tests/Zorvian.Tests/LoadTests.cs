@@ -4,15 +4,16 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Zorvian.Core.Interfaces;
+using Zorvian.Tests.Integration;
 using Zorvian.Web;
 
 namespace Zorvian.Tests;
 
-public class LoadTests : IClassFixture<WebApplicationFactory<Program>>
+public class LoadTests : IClassFixture<GuardedWebApplicationFactory>
 {
     private readonly WebApplicationFactory<Program> _factory;
 
-    public LoadTests(WebApplicationFactory<Program> factory)
+    public LoadTests(GuardedWebApplicationFactory factory)
     {
         _factory = factory.WithWebHostBuilder(builder =>
         {

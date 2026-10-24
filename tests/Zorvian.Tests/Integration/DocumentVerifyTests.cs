@@ -9,11 +9,11 @@ using Zorvian.Web;
 
 namespace Zorvian.Tests.Integration;
 
-public class DocumentVerifyTests : IClassFixture<WebApplicationFactory<Program>>
+public class DocumentVerifyTests : IClassFixture<GuardedWebApplicationFactory>
 {
     private readonly WebApplicationFactory<Program> _factory;
 
-    public DocumentVerifyTests(WebApplicationFactory<Program> factory)
+    public DocumentVerifyTests(GuardedWebApplicationFactory factory)
     {
         _factory = factory.WithWebHostBuilder(b =>
         {
