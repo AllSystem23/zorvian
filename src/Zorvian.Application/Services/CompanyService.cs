@@ -322,7 +322,15 @@ public sealed class CompanyService
 
         var path = $"companies/{company.Id}/logo{ext}";
 
-        await _storage.UploadFileAsync(fileStream, path, contentType);
+        try
+        {
+            await _storage.UploadFileAsync(fileStream, path, contentType);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Error uploading logo for company {CompanyId}", companyId);
+            return null;
+        }
 
         // Delete old logo if exists
         if (!string.IsNullOrEmpty(company.LogoUrl))
