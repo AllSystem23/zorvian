@@ -1,0 +1,439 @@
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../auth/auth_provider.dart';
+import '../../../shared/ds/ds.dart';
+import '../../../shared/printing/print_utils.dart';
+import '../models/document_models.dart';
+
+class DocumentDetailPage extends ConsumerStatefulWidget {
+  final String documentId;
+  const DocumentDetailPage({super.key, required this.documentId});
+
+  @override
+  ConsumerState<DocumentDetailPage> createState() => _DocumentDetailPageState();
+}
+
+class _DocumentDetailPageState extends ConsumerState<DocumentDetailPage> {
+  DocumentDetail? _detail;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      final r = await dio.get('documents/${widget.documentId}');
+      setState(() {
+        _detail = DocumentDetail.fromJson(r.data as Map<String, dynamic>);
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() { _error = 'Error al cargar el documento'; _loading = false; });
+    }
+  }
+
+  /// Firma digital: fija la huella SHA-256 de la última versión en el backend
+  /// y deja el documento en `signed`. Es lo que hace verificable el QR del
+  /// bloque de auditoría.
+  Future<void> _sign() async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      await dio.post('documents/${widget.documentId}/sign', data: {'notes': null});
+      if (!mounted) return;
+      ZToast.success(context, 'Documento firmado. Huella SHA-256 registrada.');
+      await _load();
+    } catch (e) {
+      if (!mounted) return;
+      final data = e is DioException ? e.response?.data : null;
+      final detail = data is Map ? data['detail'] : null;
+      ZToast.error(context, detail?.toString() ?? 'No se pudo firmar el documento');
+    }
+  }
+
+  /// Elimina permanentemente el documento y todas sus versiones/firmas.
+  /// Muestra un diálogo de confirmación antes de proceder.
+  Future<void> _deleteHard() async {
+    if (!await _confirmDeleteHard()) return;
+    try {
+      final dio = ref.read(dioClientProvider);
+      await dio.delete('documents/${widget.documentId}');
+      if (!mounted) return;
+      ZToast.success(context, 'Documento eliminado permanentemente.');
+      if (context.mounted) Navigator.of(context).maybePop();
+    } catch (e) {
+      if (!mounted) return;
+      final data = e is DioException ? e.response?.data : null;
+      final detail = data is Map ? data['detail'] : null;
+      ZToast.error(context, detail?.toString() ?? 'No se pudo eliminar el documento');
+    }
+  }
+
+  /// Muestra un diálogo de confirmación para eliminación física.
+  Future<bool> _confirmDeleteHard() async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        title: const Text('Confirmar eliminación física'),
+        content: const Text('¿Está seguro de que desea eliminar permanentemente este documento?\nEsta acción no se puede deshacer y eliminará el documento y todas sus versiones.'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(foregroundColor: ZColors.danger),
+            child: const Text('Eliminar'),
+          ),
+        ],
+        actionsAlignment: MainAxisAlignment.end,
+      ),
+    ) ?? false;
+  }
+
+  /// Marca el documento como eliminado (soft-delete). Queda oculto en la lista
+  /// normal pero el QR sigue siendo válido para verificación.
+  /// Muestra un diálogo de confirmación antes de proceder.
+  Future<void> _deleteSoft() async {
+    if (!await _confirmDeleteSoft()) return;
+    try {
+      final dio = ref.read(dioClientProvider);
+      await dio.put('documents/${widget.documentId}/soft-delete', data: {});
+      if (!mounted) return;
+      ZToast.success(context, 'Documento marcado como eliminado.');
+      await _load();
+    } catch (e) {
+      if (!mounted) return;
+      final data = e is DioException ? e.response?.data : null;
+      final detail = data is Map ? data['detail'] : null;
+      ZToast.error(context, detail?.toString() ?? 'No se pudo marcar el documento como eliminado');
+    }
+  }
+
+  /// Muestra un diálogo de confirmación para soft-delete.
+  Future<bool> _confirmDeleteSoft() async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        title: const Text('Confirmar eliminación lógica'),
+        content: const Text('¿Está seguro de que desea marcar este documento como eliminado?\nEl documento quedará oculto en la lista normal pero el QR seguirá siendo válido para verificación.'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(foregroundColor: ZColors.warning),
+            child: const Text('Marcar'),
+          ),
+        ],
+        actionsAlignment: MainAxisAlignment.end,
+      ),
+    ) ?? false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    if (_loading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_error != null) {
+      return Scaffold(
+        body: Center(child: Text(_error!)),
+      );
+    }
+
+    final d = _detail!;
+    final stColor = switch (d.status) {
+      'signed' => ZColors.success,
+      'pending_signature' => ZColors.warning,
+      _ => ZColors.neutral500,
+    };
+
+    return Scaffold(
+      backgroundColor: theme.brightness == Brightness.dark ? ZColors.darkBackground : ZColors.neutral50,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(child: Text(d.name, style: ZTypography.titleMedium)),
+                if (d.status == 'pending_signature') ...[
+                  FilledButton.icon(
+                    icon: const Icon(Icons.draw_outlined, size: 18),
+                    label: const Text('Firmar documento'),
+                    onPressed: _sign,
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                IconButton(
+                  icon: const Icon(Icons.download_outlined),
+                  tooltip: 'Descargar PDF',
+                  onPressed: () => _downloadPdf(context),
+                ),
+                // Botones de eliminación siempre visibles (aunque el documento esté firmado)
+                ZButton(
+                  text: 'Eliminar físicamente',
+                  type: ZButtonType.danger,
+                  onPressed: _deleteHard,
+                  fullWidth: false,
+                ),
+                const SizedBox(width: 8),
+                ZButton(
+                  text: 'Marcar como eliminado',
+                  type: ZButtonType.primary,
+                  onPressed: _deleteSoft,
+                  fullWidth: false,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildHeader(context, d, stColor),
+            const SizedBox(height: 24),
+            if (d.summary != null && d.summary!.isNotEmpty)
+              _buildSummaryCard(context, d.summary!),
+            if (d.summary != null && d.summary!.isNotEmpty)
+              const SizedBox(height: 16),
+            _buildVersionsCard(context, d.versions),
+            const SizedBox(height: 16),
+            _buildSignaturesCard(context, d.signatures),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, DocumentDetail d, Color stColor) {
+    return ZCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: stColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.description_outlined, color: stColor),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(d.name, style: ZTypography.titleMedium),
+                    const SizedBox(height: 4),
+                    // `Wrap`: los dos chips (entidad + estado) no caben en
+                    // una fila a 360 px en documentos con entidad larga.
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        ZBadge(text: d.entityType.toUpperCase(), type: ZBadgeType.info),
+                        ZBadge(text: d.status.statusLabel, type: _badgeType(d.status)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1),
+          const SizedBox(height: 16),
+          _infoRow('Plantilla', d.templateName ?? '—'),
+          _infoRow('Creado', '${d.createdAt.day}/${d.createdAt.month}/${d.createdAt.year}'),
+          // Ids reales son GUID (36 caracteres); el `substring(0, 8)` lanzaba
+          // `RangeError` con ids cortos (fixtures, datos importados).
+          _infoRow('ID', (d.id.length > 8 ? d.id.substring(0, 8) : d.id).toUpperCase()),
+        ],
+      ),
+    );
+  }
+
+  Widget _infoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(label, style: ZTypography.labelSmall.copyWith(color: ZColors.neutral500)),
+          ),
+          Expanded(child: Text(value, style: ZTypography.bodySmall)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard(BuildContext context, String summary) {
+    return ZCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.auto_awesome, size: 18, color: ZColors.warning),
+              const SizedBox(width: 8),
+              Text('Resumen IA', style: ZTypography.labelMedium),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(summary, style: ZTypography.bodySmall.copyWith(height: 1.6)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVersionsCard(BuildContext context, List<DocumentVersionItem> versions) {
+    return ZCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.history, size: 18, color: ZColors.brandAccent),
+              const SizedBox(width: 8),
+              Text('Versiones (${versions.length})', style: ZTypography.labelMedium),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (versions.isEmpty)
+            Text('Sin versiones', style: ZTypography.labelSmall)
+          else
+            ...versions.map((v) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: ZColors.brandAccent.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Center(
+                      child: Text('v${v.versionNumber}',
+                        style: ZTypography.labelSmall.copyWith(fontWeight: FontWeight.w700, color: ZColors.brandAccent)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(v.changesSummary ?? 'Sin descripción',
+                          style: ZTypography.bodySmall),
+                        Text('${v.createdAt.day}/${v.createdAt.month}/${v.createdAt.year}',
+                          style: ZTypography.labelSmall),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSignaturesCard(BuildContext context, List<DocumentSignatureItem> signatures) {
+    return ZCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.draw_outlined, size: 18, color: ZColors.brandAccent),
+              const SizedBox(width: 8),
+              Text('Firmas (${signatures.length})', style: ZTypography.labelMedium),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (signatures.isEmpty)
+            Text('Sin solicitudes de firma', style: ZTypography.labelSmall)
+          else
+            ...signatures.map((s) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Row(
+                children: [
+                  Icon(
+                    s.status == 'signed' ? Icons.verified : Icons.schedule,
+                    size: 20,
+                    color: s.status == 'signed' ? ZColors.success : ZColors.warning,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(s.signerRole, style: ZTypography.bodySmall.copyWith(fontWeight: FontWeight.w600)),
+                        Text(s.status.statusLabel, style: ZTypography.labelSmall),
+                      ],
+                    ),
+                  ),
+                  if (s.signedAt != null)
+                    Text('${s.signedAt!.day}/${s.signedAt!.month}/${s.signedAt!.year}',
+                      style: ZTypography.labelSmall),
+                ],
+              ),
+            )),
+        ],
+      ),
+    );
+  }
+
+  ZBadgeType _badgeType(String status) => switch (status) {
+    'signed' => ZBadgeType.success,
+    'pending_signature' => ZBadgeType.warning,
+    _ => ZBadgeType.neutral,
+  };
+
+  Future<void> _downloadPdf(BuildContext context) async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      final response = await dio.get(
+        'documents/${widget.documentId}/pdf',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final bytes = Uint8List.fromList(response.data as List<int>);
+      final filename = _detail?.name ?? 'documento';
+      downloadPdf(bytes, filename);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('PDF descargado (${bytes.length ~/ 1024} KB)'),
+            backgroundColor: ZColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al descargar PDF: $e')),
+        );
+      }
+    }
+  }
+}

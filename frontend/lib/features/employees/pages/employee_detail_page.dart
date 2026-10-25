@@ -15,6 +15,34 @@ class EmployeeDetailPage extends ConsumerStatefulWidget {
   ConsumerState<EmployeeDetailPage> createState() => _EmployeeDetailPageState();
 }
 
+/// Esqueleto de carga del detalle del trabajador.
+///
+/// Antes el estado de carga devolvía un `Scaffold` vacío con un spinner
+/// centrado: la zona de contenido se quedaba en blanco hasta que respondía
+/// la API. Se pinta la forma real de la página (encabezado + tarjetas) para
+/// que la carga se lea como carga y no como pantalla rota.
+class _EmployeeDetailSkeleton extends StatelessWidget {
+  const _EmployeeDetailSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ZSkeleton.header(),
+          ZSkeleton.card(height: 220),
+          const SizedBox(height: 16),
+          ZSkeleton.card(height: 150),
+          const SizedBox(height: 16),
+          ZSkeleton.card(height: 170),
+        ],
+      ),
+    );
+  }
+}
+
 class _EmployeeDetailPageState extends ConsumerState<EmployeeDetailPage> {
   Map<String, dynamic>? _employee;
   List<dynamic> _periods = const [];
@@ -137,7 +165,7 @@ class _EmployeeDetailPageState extends ConsumerState<EmployeeDetailPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_loading) return const Scaffold(body: _EmployeeDetailSkeleton());
     if (_error != null) return Scaffold(body: Center(child: Text(_error!)));
     final e = _employee!;
 

@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Zorvian.Application.DTOs.Common;
 using Zorvian.Application.DTOs.Document;
+using Zorvian.Application.Helpers;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
+using Zorvian.Core.Interfaces;
 using Zorvian.Infrastructure.Services;
 using Zorvian.Web.Authorization;
 
@@ -18,6 +21,8 @@ public sealed class DocumentsController : ControllerBase
     private readonly IDocumentGenerationService _generationService;
     private readonly IDocumentTemplateRepository _templateRepo;
     private readonly IGeneratedDocumentRepository _docRepo;
+    private readonly ISignatureService _signatureService;
+    private readonly ITenantContext _tenant;
     private readonly QuestPdfService _pdfService;
 
     public DocumentsController(
@@ -25,12 +30,16 @@ public sealed class DocumentsController : ControllerBase
         IDocumentGenerationService generationService,
         IDocumentTemplateRepository templateRepo,
         IGeneratedDocumentRepository docRepo,
+        ISignatureService signatureService,
+        ITenantContext tenant,
         QuestPdfService pdfService)
     {
         _documentService = documentService;
         _generationService = generationService;
         _templateRepo = templateRepo;
         _docRepo = docRepo;
+        _signatureService = signatureService;
+        _tenant = tenant;
         _pdfService = pdfService;
     }
 
@@ -162,7 +171,7 @@ public sealed class DocumentsController : ControllerBase
         try
         {
             var result = await _generationService.QuickGenerateAsync(
-                request.EntityType, request.EntityId, request.TemplateId);
+                request.EntityType, request.EntityId, request.TemplateId, request.Variables);
             return Ok(result);
         }
         catch (KeyNotFoundException ex)
@@ -180,7 +189,7 @@ public sealed class DocumentsController : ControllerBase
         return Ok(result);
     }
 
-    [RequirePermission(Permissions.DocumentRead)]
+    [RequirePermission(Permissions.DocumentWrite)]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetDetails(Guid id)
     {
@@ -204,11 +213,87 @@ public sealed class DocumentsController : ControllerBase
     }
 
     [RequirePermission(Permissions.DocumentWrite)]
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteDocumentHard(Guid id)
+    {
+        var doc = await _docRepo.GetByIdAsync(id);
+        if (doc == null) return NotFound(new { detail = "Documento no encontrado" });
+
+        // Eliminar firmas asociadas
+        var signatures = await _docRepo.GetSignaturesAsync(id);
+        foreach (var signature in signatures)
+        {
+            _db.DocumentSignatures.Remove(signature);
+        }
+        
+        // Also remove all versions
+        var versions = await _docRepo.GetVersionsAsync(id);
+        foreach (var version in versions)
+        {
+            _db.DocumentVersions.Remove(version);
+        }
+        
+        // Remove the document itself
+        _db.GeneratedDocuments.Remove(doc);
+        
+        await _docRepo.SaveChangesAsync();
+        return Ok(new { message = "Documento eliminado permanentemente" });
+    }
+
+    [RequirePermission(Permissions.DocumentWrite)]
+    [HttpPut("{id}/soft-delete")]
+    public async Task<IActionResult> DeleteDocumentSoft(Guid id)
+    {
+        var doc = await _docRepo.GetByIdAsync(id);
+        if (doc == null) return NotFound(new { detail = "Documento no encontrado" });
+
+        doc.IsDeleted = true;
+        doc.DeletedAt = DateTime.UtcNow;
+        await _docRepo.UpdateAsync(doc);
+        await _docRepo.SaveChangesAsync();
+        return Ok(new { message = "Documento marcado como eliminado" });
+    }
+
+    [RequirePermission(Permissions.DocumentWrite)]
     [HttpPost("{id}/finalize")]
     public async Task<IActionResult> Finalize(Guid id, [FromBody] FinalizeRequest request)
     {
         await _documentService.FinalizeAndRequestSignatureAsync(id, request.Role, request.SignerId);
         return NoContent();
+    }
+
+    /// <summary>
+    /// Firma digital del documento: fija la huella SHA-256 del HTML de la
+    /// última versión en <c>SignatureData</c> y marca firma + documento como
+    /// firmados. La misma huella la recalcula el endpoint público de
+    /// verificación que codifica el QR del bloque de auditoría.
+    /// </summary>
+    [RequirePermission(Permissions.DocumentWrite)]
+    [HttpPost("{id}/sign")]
+    public async Task<IActionResult> Sign(
+        Guid id,
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] SignDocumentRequest? request)
+    {
+        try
+        {
+            var signature = await _signatureService.SignDocumentAsync(
+                id,
+                request?.Role ?? string.Empty,
+                request?.Notes,
+                _tenant.CurrentUserId?.ToString(),
+                HttpContext.Connection.RemoteIpAddress?.ToString());
+
+            return Ok(new DocumentSignatureItem(
+                signature.Id, signature.SignerRole, signature.Status, signature.SignedAt));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { detail = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { detail = ex.Message });
+        }
     }
 
     [RequirePermission(Permissions.DocumentRead)]
@@ -228,20 +313,87 @@ public sealed class DocumentsController : ControllerBase
         return File(pdfBytes, "application/pdf", fileName);
     }
 
+    /// <summary>
+    /// Verificación PÚBLICA (anónima) del documento que codifica el QR del
+    /// bloque de auditoría: recalcula el SHA-256 de la última versión y lo
+    /// compara con la huella que se fijó al firmar.
+    ///
+    /// Devuelve una PÁGINA DE VERIFICACIÓN, no el contenido del documento: el
+    /// QR viaja impreso en papel y exponer el cuerpo (salarios, montos de
+    /// liquidación) a cualquiera con la URL sería una fuga. Por eso también
+    /// IGNORA el query filter de compañía (una petición anónima no tiene
+    /// tenant y el filtro normal devolvería 404 → QR roto).
+    /// </summary>
     [AllowAnonymous]
     [HttpGet("verify/{id:guid}")]
     public async Task<IActionResult> Verify(Guid id)
     {
-        var doc = await _docRepo.GetByIdAsync(id);
+        var doc = await _docRepo.GetByIdForPublicVerificationAsync(id);
         if (doc == null) return NotFound(new { detail = "Documento no encontrado" });
 
-        var versions = await _docRepo.GetVersionsAsync(id);
-        var latest = versions.MaxBy(v => v.VersionNumber);
+        var latest = doc.Versions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
         if (latest == null || string.IsNullOrEmpty(latest.Content))
             return NotFound(new { detail = "Sin contenido renderizado" });
 
-        return Content(latest.Content, "text/html; charset=utf-8");
+        var actualHash = DocumentContentHasher.Sha256Hex(latest.Content);
+        var signed = doc.Signatures
+            .Where(s => s.Status == "signed" && !string.IsNullOrEmpty(s.SignatureData))
+            .ToList();
+        var intact = signed.Any(s =>
+            string.Equals(s.SignatureData, actualHash, StringComparison.OrdinalIgnoreCase));
+
+        return Content(
+            BuildVerificationHtml(doc, signed, actualHash, intact),
+            "text/html; charset=utf-8");
     }
+
+    /// <summary>
+    /// Página de verificación autocontena (sin assets externos ni JS): la
+    /// escanea el cliente del documento desde el QR.
+    /// </summary>
+    private static string BuildVerificationHtml(
+        GeneratedDocument doc,
+        IReadOnlyCollection<DocumentSignature> signed,
+        string actualHash,
+        bool intact)
+    {
+        static string Enc(string? value) => System.Net.WebUtility.HtmlEncode(value ?? string.Empty);
+
+        var (_, banner, color) = signed.Count == 0
+            ? ("sin-firma", "Este documento NO está firmado", "#b26a00")
+            : intact
+                ? ("ok", "Verificación superada: la huella coincide", "#0a7d33")
+                : ("bad", "ALERTA: la huella NO coincide. El contenido fue alterado después de la firma.", "#c62828");
+
+        var rows = signed.Count == 0
+            ? "<p>No hay firmas registradas para este documento.</p>"
+            : "<ul>" + string.Join("", signed.Select(s =>
+                $"<li><strong>{Enc(s.SignerRole)}</strong> · firmado el " +
+                $"{(s.SignedAt?.ToString("dd/MM/yyyy HH:mm") ?? "—")} UTC · " +
+                $"huella <code>{Enc(s.SignatureData)}</code></li>")) + "</ul>";
+
+        return
+            "<!doctype html><html lang='es'><head><meta charset='utf-8'>" +
+            "<meta name='viewport' content='width=device-width, initial-scale=1'>" +
+            "<title>Verificación de documento · Zorvian ERP</title></head>" +
+            "<body style='font-family:Arial,Helvetica,sans-serif;background:#f5f6fa;color:#1a1a2e;margin:0;padding:24px;'>" +
+            "<div style='max-width:640px;margin:0 auto;background:#fff;border:1px solid #e2e4ea;border-radius:12px;padding:24px;'>" +
+            "<div style='font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#7c4dff;'>Zorvian ERP · Document Engine</div>" +
+            "<h1 style='font-size:20px;margin:8px 0 12px;'>Verificación de documento</h1>" +
+            $"<div style='border-left:4px solid {color};background:{color}14;padding:12px 14px;border-radius:6px;font-weight:700;margin-bottom:18px;'>{Enc(banner)}</div>" +
+            "<table style='border-collapse:collapse;width:100%;font-size:14px;'>" +
+            $"<tr><td style='color:#6b6f80;padding:6px 0;'>Documento</td><td style='padding:6px 0;text-align:right;'><strong>{Enc(doc.Name)}</strong></td></tr>" +
+            $"<tr><td style='color:#6b6f80;padding:6px 0;'>Tipo</td><td style='padding:6px 0;text-align:right;'>{Enc(doc.EntityType)}</td></tr>" +
+            $"<tr><td style='color:#6b6f80;padding:6px 0;'>Generado el</td><td style='padding:6px 0;text-align:right;'>{doc.CreatedAt:dd/MM/yyyy HH:mm} UTC</td></tr>" +
+            $"<tr><td style='color:#6b6f80;padding:6px 0;'>Estado</td><td style='padding:6px 0;text-align:right;'>{Enc(doc.Status)}</td></tr>" +
+            "</table>" +
+            "<h2 style='font-size:14px;margin:20px 0 6px;'>Firmas</h2>" + rows +
+            "<h2 style='font-size:14px;margin:20px 0 6px;'>Huella SHA-256 del contenido</h2>" +
+            $"<code style='display:block;word-break:break-all;font-size:12px;background:#f1f2f7;padding:8px;border-radius:6px;'>{Enc(actualHash)}</code>" +
+            $"<p style='color:#6b6f80;font-size:12px;margin-top:18px;'>Verificado el {DateTime.UtcNow:dd/MM/yyyy HH:mm} UTC · Zorvian ERP</p>" +
+            "</div></body></html>";
+    }
+
     private static Dictionary<string, string> GetDefaultSampleData()
     {
         return new Dictionary<string, string>
@@ -289,6 +441,7 @@ public sealed class DocumentsController : ControllerBase
 
 public record QuickGenerateLegacyRequest(Guid EntityId, Guid TemplateId);
 public record FinalizeRequest(string Role, Guid SignerId);
+public record SignDocumentRequest(string? Role, string? Notes);
 public record DocumentTemplateDto(string Name, string Category, string Content, string CountryCode, string? Module, string? Variables);
 public record GenerateDocumentRequest(Guid TemplateId, Guid EntityId, Dictionary<string, string> Variables);
 public record PreviewRequest(Guid? TemplateId, string? Content, Dictionary<string, string>? Variables);

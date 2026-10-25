@@ -76,9 +76,29 @@ class EmployeeNotifier extends AsyncNotifier<EmployeeListState> {
     return _fetch(page: 1);
   }
 
+  /// Recarga la lista (búsqueda, filtro, paginación o pull-to-refresh)
+  /// CONSERVANDO las filas que ya están en pantalla. Antes se hacía
+  /// `state = const AsyncLoading()` a ciegas: cada tecla del buscador
+  /// vaciaba la lista y la cambiaba por el esqueleto de carga.
+  ///
+  /// El cambio de SUCURSAL/COMPAÑÍA no pasa por aquí: va por `build()`
+  /// (`ref.watch(branchScopeProvider)`), que arranca sin datos previos →
+  /// pinta el esqueleto y refetchea con el nuevo `X-Branch-Id`. Los datos de
+  /// la sucursal anterior no aplican en la nueva.
   Future<void> load({String? search, String? status, String? departmentId, int page = 1}) async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(() => _fetch(search: search, status: status, departmentId: departmentId, page: page));
+    final scope = ref.read(branchScopeProvider);
+    final previous = state.asData?.value;
+    state = previous != null
+        ? AsyncData(previous.copyWith(loading: true))
+        : const AsyncLoading();
+    final next = await AsyncValue.guard(
+      () => _fetch(search: search, status: status, departmentId: departmentId, page: page),
+    );
+    // Si el alcance cambió en plena recarga, el resultado ya no corresponde
+    // a la sucursal activa: se descarta y se deja que `build()` publique los
+    // datos nuevos (si no, esta respuesta vieja pisaría ese refetch).
+    if (scope != ref.read(branchScopeProvider)) return;
+    state = next;
   }
 
   Future<EmployeeListState> _fetch({String? search, String? status, String? departmentId, int page = 1}) async {

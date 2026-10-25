@@ -97,6 +97,8 @@ class _EmployeeListPageState extends ConsumerState<EmployeeListPage> {
           Expanded(
             child: ZAsyncRenderer<EmployeeListState>(
               value: state,
+              loadingWidget: const _EmployeeListSkeleton(),
+              onRetry: () => ref.read(employeeProvider.notifier).load(),
               builder: (state) {
                 return state.items.isEmpty
                     ? ZEmptyState.list(
@@ -129,6 +131,30 @@ class _EmployeeListPageState extends ConsumerState<EmployeeListPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Esqueleto de la lista de trabajadores.
+///
+/// El `loadingWidget` por defecto de `ZAsyncRenderer` es una única barra gris
+/// de 100 px sobre un Scaffold casi blanco: la pantalla se quedaba "gris o
+/// en blanco" mientras cargaba. Aquí se pinta la forma real de la lista
+/// (filas con avatar + dos líneas + divisor) para que el estado de carga
+/// tenga contexto.
+class _EmployeeListSkeleton extends StatelessWidget {
+  const _EmployeeListSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: 8,
+      separatorBuilder: (_, _) => const Divider(height: 1),
+      itemBuilder: (_, _) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: ZSkeleton.listTile(),
       ),
     );
   }

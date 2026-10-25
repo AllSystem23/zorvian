@@ -58,6 +58,8 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
   bool _loading = false;
   String? _error;
   bool _isEditing = false;
+  /// true mientras se carga el empleado en modo edición (estado de carga del form)
+  bool _loadingData = false;
   bool _hasChanges = false;
   
   // Payroll deduction fields
@@ -87,6 +89,7 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
   void initState() {
     super.initState();
     _isEditing = widget.employeeId != null;
+    _loadingData = _isEditing;
     Future.microtask(() => ref.read(departmentProvider.notifier).load());
     if (_isEditing) {
       _loadEmployee();
@@ -171,9 +174,13 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
           try { _terminationDate = DateTime.parse(data['terminationDate'] as String); } catch (_) {}
         }
         _hasChanges = false;
+        _loadingData = false;
       });
     } catch (_) {
-      setState(() => _error = 'Error al cargar trabajador');
+      setState(() {
+        _error = 'Error al cargar trabajador';
+        _loadingData = false;
+      });
     }
   }
 
@@ -321,7 +328,7 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 800),
-                  child: Form(
+                  child: _loadingData ? const _EmployeeFormSkeleton() : Form(
                     key: _formKey,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -769,6 +776,30 @@ class _EmployeeFormPageState extends ConsumerState<EmployeeFormPage> {
       subtitle: Text(subtitle, style: ZTypography.bodySmall.copyWith(color: ZColors.neutral500)),
       controlAffinity: ListTileControlAffinity.trailing,
       dense: true,
+    );
+  }
+}
+
+/// Esqueleto del formulario mientras se carga el empleado en modo edición.
+///
+/// Sin él, el stepper se pintaba con todos los campos vacíos y sin ningún
+/// indicador: parecía un formulario roto en lugar de una carga. El esqueleto
+/// vive dentro del `Form`, así que mientras carga tampoco se ofrecen los
+/// botones "Continuar"/"Actualizar" (pulsarlos validaría un form vacío).
+class _EmployeeFormSkeleton extends StatelessWidget {
+  const _EmployeeFormSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ZSkeleton.header(),
+        const SizedBox(height: 24),
+        ZSkeleton.card(height: 260),
+        const SizedBox(height: 16),
+        ZSkeleton.card(height: 160),
+      ],
     );
   }
 }

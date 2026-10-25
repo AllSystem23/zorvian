@@ -5,6 +5,13 @@ namespace Zorvian.Application.Interfaces;
 public interface IGeneratedDocumentRepository
 {
     Task<GeneratedDocument?> GetByIdAsync(Guid id);
+    /// <summary>
+    /// Lectura SIN query filter de compañía, solo para el endpoint público de
+    /// verificación (<c>[AllowAnonymous]</c>): sin tenant resuelto el filtro
+    /// normal devolvería null y el QR daría 404. Sigue excluyendo los borrados
+    /// lógicos. Solo expone nombre/estado/huellas, no el contenido.
+    /// </summary>
+    Task<GeneratedDocument?> GetByIdForPublicVerificationAsync(Guid id);
     Task<List<GeneratedDocument>> GetByEntityAsync(Guid entityId, string entityType);
     Task<List<GeneratedDocument>> GetPendingApprovalAsync();
     Task<(List<GeneratedDocument> Items, int Total)> GetAllPagedAsync(int page, int pageSize);

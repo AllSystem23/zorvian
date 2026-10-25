@@ -3,7 +3,8 @@ namespace Zorvian.Application.DTOs.Document;
 public sealed record QuickGenerateRequest(
     string EntityType,
     Guid EntityId,
-    Guid TemplateId
+    Guid TemplateId,
+    Dictionary<string, string>? Variables = null
 );
 
 public sealed record QuickGenerateResult(

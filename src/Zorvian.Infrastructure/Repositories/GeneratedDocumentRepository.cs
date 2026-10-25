@@ -21,6 +21,17 @@ public sealed class GeneratedDocumentRepository : IGeneratedDocumentRepository
             .Include(d => d.Signatures)
             .FirstOrDefaultAsync(d => d.Id == id);
 
+    public async Task<GeneratedDocument?> GetByIdForPublicVerificationAsync(Guid id) =>
+        await _db.GeneratedDocuments
+            .IgnoreQueryFilters()
+            .Include(d => d.Template)
+            .Include(d => d.Versions)
+            .Include(d => d.Signatures)
+            // El query filter de compañía exige tenant resuelto; una petición
+            // anónima (QR escaneado) no lo tiene. El borrado lógico se
+            // re-aplica a mano: un documento borrado no debe verificar.
+            .FirstOrDefaultAsync(d => d.Id == id && !d.IsDeleted);
+
     public async Task<List<GeneratedDocument>> GetByEntityAsync(Guid entityId, string entityType) =>
         await _db.GeneratedDocuments
             .Where(d => d.EntityId == entityId && d.EntityType == entityType)

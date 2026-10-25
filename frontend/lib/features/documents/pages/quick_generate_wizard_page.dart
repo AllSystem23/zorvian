@@ -10,6 +10,7 @@ import '../../../shared/ds/ds.dart';
 import '../models/document_models.dart';
 import '../providers/document_provider.dart';
 import '../widgets/entity_picker_dialog.dart';
+import '../widgets/template_variable_fields.dart';
 
 class QuickGenerateWizardPage extends ConsumerStatefulWidget {
   final String? entityType;
@@ -34,6 +35,11 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
   String _selectedEntityType = 'employee';
   List<DocumentTemplate> _filteredTemplates = [];
   bool _templatesLoaded = false;
+  /// Ediciones hechas por el usuario a las `Variables` de la plantilla.
+  /// Vive aquí (no en un GlobalKey del formulario) porque el `AnimatedSwitcher`
+  /// del wizard mantiene al hijo viejo en el árbol durante la transición y un
+  /// GlobalKey duplicado revienta en debug.
+  final _varValues = <String, String>{};
 
   static final _uuidRegex = RegExp(
     r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
@@ -122,6 +128,7 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
 
   Future<void> _selectEntity(String entityId, String? displayName) async {
     final wiz = ref.read(wizardProvider.notifier);
+    _varValues.clear();
     await wiz.selectEntity(
       entityType: _selectedEntityType,
       entityId: entityId,
@@ -140,6 +147,7 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
   Future<void> _selectTemplate(DocumentTemplate template) async {
     final wizard = ref.read(wizardProvider);
     final wiz = ref.read(wizardProvider.notifier);
+    _varValues.clear();
     if (wizard.entityContext == null) {
       await wiz.loadEntityContext();
       if (!mounted) return;
@@ -623,6 +631,12 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
             const SizedBox(height: 16),
             if (wizard.entityContext != null)
               _buildDataPreviewCard(context, wizard.entityContext!),
+            if (wizard.entityContext != null &&
+                wizard.selectedTemplate != null &&
+                wizard.selectedTemplate!.variables.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _buildVariablesCard(context, wizard),
+            ],
             const SizedBox(height: 16),
             if (wizard.selectedTemplate != null)
               _buildTemplateSummaryCard(context, wizard.selectedTemplate!),
@@ -647,7 +661,7 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
                       ? ZButton(
                           text: wizard.error != null ? ' Reintentar →' : ' Generar Documento →',
                           isLoading: wizard.loading,
-                          onPressed: () => ref.read(wizardProvider.notifier).executeQuickGenerate(),
+                          onPressed: _generate,
                         )
                       : ZButton(
                           text: ' Cargando datos...',
@@ -759,6 +773,95 @@ class _QuickGenerateWizardPageState extends ConsumerState<QuickGenerateWizardPag
         ),
       ),
     );
+  }
+
+  /// Formulario editable con las `Variables` de la plantilla, precargadas con
+  /// el contexto de la entidad. Sin esto el "Paso 2: Confirma los datos" solo
+  /// mostraba 12 claves de solo lectura y no había nada que validar ni editar.
+  Widget _buildVariablesCard(BuildContext context, WizardState wizard) {
+    final template = wizard.selectedTemplate!;
+    final ctx = wizard.entityContext!;
+    return ZCard(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.edit_note, size: 18, color: ZColors.brandAccent),
+                const SizedBox(width: 8),
+                Text('Datos del documento (${template.variables.length})',
+                  style: ZTypography.labelMedium),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text('Valida o corrige los valores antes de generar. Los marcados con * son obligatorios.',
+              style: ZTypography.labelSmall.copyWith(color: ZColors.neutral500)),
+            const SizedBox(height: 16),
+            TemplateVariablesForm(
+              variables: template.variables,
+              initialData: ctx.data,
+              onEdited: (key, value) => _varValues[key] = value,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Ediciones del usuario > contexto de la entidad > default de la plantilla.
+  /// Debe reflejar el mismo orden de prioridad que pinta el formulario.
+  Map<String, String> _resolveVariables(
+    List<TemplateVariable> vars,
+    Map<String, String> ctx,
+  ) {
+    final out = <String, String>{};
+    for (final v in vars) {
+      final edited = _varValues[v.key];
+      if (edited != null) {
+        out[v.key] = edited;
+        continue;
+      }
+      final fromCtx = ctx[v.key];
+      if (fromCtx != null && fromCtx.isNotEmpty) {
+        out[v.key] = fromCtx;
+        continue;
+      }
+      final def = v.defaultValue ?? '';
+      if (def.isNotEmpty) {
+        out[v.key] = def;
+        continue;
+      }
+      if (v.type == 'select' && (v.options?.isNotEmpty ?? false)) {
+        out[v.key] = v.options!.first;
+        continue;
+      }
+      out[v.key] = v.type == 'checkbox' ? 'false' : '';
+    }
+    return out;
+  }
+
+  Future<void> _generate() async {
+    final wizard = ref.read(wizardProvider);
+    final template = wizard.selectedTemplate;
+    final ctx = wizard.entityContext;
+    if (template == null || ctx == null) return;
+
+    final variables = _resolveVariables(template.variables, ctx.data);
+    final missing = [
+      for (final v in template.variables)
+        if (v.required && (variables[v.key] ?? '').isEmpty) v.label,
+    ];
+    if (missing.isNotEmpty) {
+      ZToast.error(context,
+        'Completa los campos obligatorios: ${missing.join(', ')}');
+      return;
+    }
+
+    await ref
+        .read(wizardProvider.notifier)
+        .executeQuickGenerate(variables: variables);
   }
 
   Widget _buildStep3(BuildContext context, WizardState wizard) {

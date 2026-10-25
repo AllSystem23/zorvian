@@ -47,6 +47,29 @@ public sealed class AppLinks : IAppLinks
     }
 
     /// <summary>
+    /// Base pública de la API (incluye <c>/zorvian/v1</c>), configurable con
+    /// <c>App:PublicApiBaseUrl</c>. Vacío si no está configurada.
+    /// </summary>
+    public string PublicApiBaseUrl
+    {
+        get
+        {
+            var configured = _config["App:PublicApiBaseUrl"];
+            return string.IsNullOrWhiteSpace(configured) ? string.Empty : configured.Trim().TrimEnd('/');
+        }
+    }
+
+    /// <summary>
+    /// URL absoluta de verificación de un documento (<c>GET /documents/verify/{id}</c>),
+    /// la que codifica el QR del bloque de auditoría. Vacío sin base pública.
+    /// </summary>
+    public string BuildDocumentVerifyUrl(Guid documentId)
+    {
+        var baseUrl = PublicApiBaseUrl;
+        return baseUrl.Length == 0 ? string.Empty : $"{baseUrl}/documents/verify/{documentId}";
+    }
+
+    /// <summary>
     /// Esquema de los deep links de la app móvil. Configurable con
     /// <c>App:MobileAppScheme</c> (por defecto <c>zorvian</c>).
     /// </summary>

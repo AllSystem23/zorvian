@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../auth/auth_provider.dart';
 import '../../../shared/ds/ds.dart';
 import '../../../core/widgets/responsive_layout.dart';
 import '../models/document_models.dart';
@@ -252,13 +253,100 @@ class _TemplateTile extends ConsumerWidget {
       }
     }
 
+    // Persiste entre rebuilds del StatefulBuilder (el flag vive fuera del builder).
+    var loadingData = false;
+    // El contexto de entidad exige un entityType; se infiere del módulo de la
+    // plantilla. Employee es el default porque abarca la mayoría (Liquidación
+    // Final, contratos, constancias).
+    const entityTypesByModule = {
+      'Sale': 'sale',
+      'Purchase': 'purchase',
+      'Warranty': 'warranty',
+      'Employee': 'employee',
+    };
+
     ZModal.show(context, title: 'Generar Documento',
       cancelText: 'Cancelar',
       child: StatefulBuilder(
-        builder: (ctx, setModalState) => Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ZTextField(controller: entityCtrl, label: 'ID Entidad'),
+        builder: (ctx, setModalState) {
+          /// Rellena los campos VACÍOS con el mismo contexto que usa el wizard
+          /// (`GET documents/entity-context`). Antes el modal pedía un UUID a
+          /// mano y dejaba las ~50 variables de la Liquidación Final en blanco.
+          Future<void> loadEntityData() async {
+            final id = entityCtrl.text.trim();
+            if (id.isEmpty) {
+              if (ctx.mounted) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                    const SnackBar(content: Text('Ingresa el ID de entidad primero')));
+              }
+              return;
+            }
+            loadingData = true;
+            setModalState(() {});
+            try {
+              final dio = ref.read(dioClientProvider);
+              final response = await dio.get('documents/entity-context', params: {
+                'entityType': entityTypesByModule[template.module] ?? 'employee',
+                'entityId': id,
+              });
+              final data = (response.data['data'] as Map<String, dynamic>? ?? {})
+                  .map((k, v) => MapEntry(k, v?.toString() ?? ''));
+              var filled = 0;
+              setModalState(() {
+                for (final v in template.variables) {
+                  final incoming = data[v.key];
+                  if (incoming == null || incoming.isEmpty) continue;
+                  if (v.type == 'checkbox') {
+                    boolValues[v.key] = incoming.toLowerCase() == 'true';
+                  } else if (v.type == 'select') {
+                    selectedValues[v.key] = incoming;
+                  } else {
+                    final c = controllers[v.key];
+                    // Nunca pisa lo que el usuario ya escribió a mano.
+                    if (c != null && c.text.isEmpty) {
+                      c.text = incoming;
+                      filled++;
+                    }
+                  }
+                }
+              });
+              if (ctx.mounted) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                    SnackBar(content: Text('Datos de la entidad cargados ($filled campos)')));
+              }
+            } catch (e) {
+              if (ctx.mounted) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                    SnackBar(content: Text('No se pudo cargar la entidad: $e'),
+                        backgroundColor: ZColors.danger));
+              }
+            } finally {
+              loadingData = false;
+              if (ctx.mounted) setModalState(() {});
+            }
+          }
+
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                      child: ZTextField(controller: entityCtrl, label: 'ID Entidad')),
+                  if (template.variables.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      height: 40,
+                      child: ZButton(
+                        text: loadingData ? 'Cargando…' : 'Cargar datos',
+                        type: ZButtonType.secondary,
+                        fullWidth: false,
+                        onPressed: loadingData ? () {} : loadEntityData,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             if (template.variables.isNotEmpty) ...[
               const SizedBox(height: 16),
               Align(
@@ -316,8 +404,9 @@ class _TemplateTile extends ConsumerWidget {
                   const SnackBar(content: Text('Documento generado exitosamente'), backgroundColor: ZColors.success));
               }
             }),
-          ],
-        ),
+            ],
+          );
+        },
       ),
     );
   }

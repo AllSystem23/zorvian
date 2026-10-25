@@ -14,6 +14,7 @@ public sealed class DocumentService : IDocumentService
     private readonly IGeneratedDocumentRepository _docRepo;
     private readonly IAiDocumentService _aiService;
     private readonly ICompanyRepository _companyRepo;
+    private readonly IAppLinks _appLinks;
     private readonly ITenantContext _tenant;
     private readonly ILogger<DocumentService> _logger;
 
@@ -22,6 +23,7 @@ public sealed class DocumentService : IDocumentService
         IGeneratedDocumentRepository docRepo,
         IAiDocumentService aiService,
         ICompanyRepository companyRepo,
+        IAppLinks appLinks,
         ITenantContext tenant,
         ILogger<DocumentService> logger)
     {
@@ -29,6 +31,7 @@ public sealed class DocumentService : IDocumentService
         _docRepo = docRepo;
         _aiService = aiService;
         _companyRepo = companyRepo;
+        _appLinks = appLinks;
         _tenant = tenant;
         _logger = logger;
     }
@@ -78,11 +81,18 @@ public sealed class DocumentService : IDocumentService
 
         _logger.LogInformation("Generating professional document from template {TemplateName} for entity {EntityId}", template.Name, entityId);
 
+        // El Id se genera ANTES de renderizar: el QR del bloque de auditoría
+        // debe codificar la URL de verificación de ESTE documento, y el render
+        // corre antes de persistir la entidad. Si el render falla no se crea
+        // ningún documento (el Id simplemente se descarta).
+        var documentId = Guid.NewGuid();
+        var verifyUrl = _appLinks.BuildDocumentVerifyUrl(documentId);
+
         string renderedContent;
         try
         {
             var model = await WithCompanyContextAsync(variableData);
-            renderedContent = await RenderLiquidTemplate(template.Content, model);
+            renderedContent = await RenderLiquidTemplate(template.Content, model, verifyUrl);
         }
         catch (Exception ex)
         {
@@ -92,11 +102,14 @@ public sealed class DocumentService : IDocumentService
 
         var doc = new GeneratedDocument
         {
+            Id = documentId,
             TemplateId = templateId,
             EntityId = entityId,
             EntityType = !string.IsNullOrWhiteSpace(entityType) ? entityType : template.Module ?? "General",
             Name = $"{template.Name} - {DateTime.UtcNow:yyyyMMdd_HHmm}",
             Status = "draft",
+            TenantId = _tenant.TenantId ?? string.Empty,
+            CompanyId = _tenant.CompanyId != Guid.Empty ? _tenant.CompanyId : Guid.Empty,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -170,10 +183,11 @@ public sealed class DocumentService : IDocumentService
     public async Task<string> RenderLiquidPreviewAsync(string templateContent, object variableData)
     {
         var model = await WithCompanyContextAsync(variableData);
-        return await RenderLiquidTemplate(templateContent, model);
+        // Sin documento todavía no hay nada que verificar → sin QR.
+        return await RenderLiquidTemplate(templateContent, model, string.Empty);
     }
 
-    private async Task<string> RenderLiquidTemplate(string source, object model)
+    private async Task<string> RenderLiquidTemplate(string source, object model, string verifyUrl)
     {
         // Inyección universal (no toca las plantillas): logo en el encabezado y
         // bloque de auditoría al final, aplicables a todos los documentos generados.
@@ -184,7 +198,16 @@ public sealed class DocumentService : IDocumentService
             StringComparison.Ordinal);
         if (source.Contains("</body>", StringComparison.OrdinalIgnoreCase))
         {
-            var audit = $@"<div class='audit-block'><strong>Bloque de auditoría:</strong> Documento generado el {{{{ Company.Date }}}} · Versión 2.1 · País: {{{{ Country.Name }}}} · Empresa: {{{{ Company.LegalName }}}} ({{{{ Company.TaxId }}}}) · Generado por Zorvian ERP · Document Engine<br/><img src='https://api.qrserver.com/v1/create-qr-code/?size=80x80&data={{{{ Company.TaxId }}}}-{{{{ Company.Date }}}}' style='width:80px;height:80px;border:1px solid #ddd;' alt='QR de verificación' /><br/><em>Términos y condiciones: documento válido únicamente con firma y sello de la empresa. Ley aplicable: {{{{ Country.LaborLaw }}}}.</em></div>";
+            // QR local (data URI, sin api.qrserver.com) + enlace para quien
+            // reciba el documento en digital. Sin URL de verificación no se
+            // pinta: un QR que no apunta a nada es peor que no tenerlo.
+            var qrImage = DocumentQrImage.TryGetDataUri(verifyUrl);
+            var qrHtml = qrImage.Length == 0
+                ? string.Empty
+                : $"<img src='{qrImage}' width='80' height='80' style='border:1px solid #ddd;' alt='QR de verificación' />"
+                  + $"<br/><a href='{verifyUrl}'>Verificar este documento en línea</a>";
+
+            var audit = $@"<div class='audit-block'><strong>Bloque de auditoría:</strong> Documento generado el {{{{ Company.Date }}}} · Versión 2.1 · País: {{{{ Country.Name }}}} · Empresa: {{{{ Company.LegalName }}}} ({{{{ Company.TaxId }}}}) · Generado por Zorvian ERP · Document Engine<br/>{qrHtml}<br/><em>Términos y condiciones: documento válido únicamente con firma y sello de la empresa. Ley aplicable: {{{{ Country.LaborLaw }}}}.</em></div>";
             source = source.Replace("</body>", audit + "\n</body>", StringComparison.OrdinalIgnoreCase);
         }
 

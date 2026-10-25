@@ -17,6 +17,19 @@ public interface IAppLinks
     string BuildResetPasswordUrl(string token);
 
     /// <summary>
+    /// Base pública de la API (incluye <c>/zorvian/v1</c>), sin barra final.
+    /// Configurable con <c>App:PublicApiBaseUrl</c>; vacío si no está configurada.
+    /// </summary>
+    string PublicApiBaseUrl { get; }
+
+    /// <summary>
+    /// URL absoluta de verificación pública de un documento — la que codifica el
+    /// QR del bloque de auditoría. Vacío si la API no tiene base pública
+    /// configurada (entonces el QR cae al payload legacy).
+    /// </summary>
+    string BuildDocumentVerifyUrl(Guid documentId);
+
+    /// <summary>
     /// Esquema de los deep links de la app móvil (p. ej. <c>zorvian</c>).
     /// Configurable con <c>App:MobileAppScheme</c>.
     /// </summary>

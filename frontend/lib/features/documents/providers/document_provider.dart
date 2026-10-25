@@ -268,7 +268,9 @@ class WizardNotifier extends Notifier<WizardState> {
     }
   }
 
-  Future<void> executeQuickGenerate() async {
+  /// [variables] = lo que el usuario validó/editó en el paso 2. El backend lo
+  /// mergea SOBRE el contexto calculado, así el formulario previo manda.
+  Future<void> executeQuickGenerate({Map<String, String>? variables}) async {
     if (state.selectedTemplate == null || state.entityType == null || state.entityId == null) return;
     state = state.copyWith(loading: true, error: null);
     try {
@@ -277,6 +279,7 @@ class WizardNotifier extends Notifier<WizardState> {
         'entityType': state.entityType,
         'entityId': state.entityId,
         'templateId': state.selectedTemplate!.id,
+        if (variables != null && variables.isNotEmpty) 'variables': variables,
       });
       final result = QuickGenerateResult.fromJson(response.data as Map<String, dynamic>);
       state = state.copyWith(result: result, step: 3, loading: false);

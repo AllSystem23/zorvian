@@ -41,9 +41,18 @@ public sealed class DocumentGenerationServiceContractContextTests
     private readonly Mock<IPayrollRepository> _payrollRepo = new();
     private readonly Mock<IServiceProviderPaymentRepository> _servicePaymentRepo = new();
 
-    private DocumentGenerationService CreateSut()
+    private DocumentGenerationService CreateSut(Dictionary<string, string>? liquidationVars = null)
     {
         _tenant.Setup(t => t.TenantId).Returns("tenant-1");
+        // GetEntityContextAsync enriquece el contexto de TODO empleado con la
+        // liquidación (Centro Documental), así que todos los tests de contexto
+        // pasan por este stub. Vacío por defecto: los tests de país/sucursal no
+        // lo necesitan; los que sí lo usan lo inyectan con liquidationVars.
+        _certificateCalc
+            .Setup(c => c.CalculateLiquidationVariablesAsync(
+                It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<DateOnly>(),
+                It.IsAny<DateOnly?>(), It.IsAny<string?>(), It.IsAny<string?>()))
+            .ReturnsAsync(() => liquidationVars ?? new Dictionary<string, string>());
         var builder = new EntityDocumentContextBuilder(
             _employeeRepo.Object,
             _saleRepo.Object,
@@ -1413,5 +1422,120 @@ public sealed class DocumentGenerationServiceContractContextTests
         _servicePaymentRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync((ServiceProviderPayment?)null);
 
         (await CreateSut().GetEntityContextAsync("servicepayment", id)).Should().BeNull();
+    }
+
+    // ── Liquidación Final desde el Centro Documental ────────────────────────
+    // Antes estas variables SOLO se calculaban en el path de certificados
+    // (GetCertificateContextAsync): el wizard preveía y generaba el PDF con las
+    // ~15 claves básicas del empleado y la plantilla salía con las casillas
+    // vacías (neto, indemnización, tasas, letras...).
+
+    private static Dictionary<string, string> LiquidationVars() => new()
+    {
+        ["neto_a_recibir"] = "12,345.00",
+        ["neto_en_letras"] = "Doce mil trescientos cuarenta y cinco córdobas con 00/100",
+        ["indemnizacion_dias"] = "60",
+        ["indemnizacion_monto"] = "17,000.00",
+        ["inss_tasa"] = "7.00%",
+        ["seniority"] = "3 años, 0 meses, 0 días",
+    };
+
+    [Fact]
+    public async Task Employee_EntityContext_IncludesLiquidationVariables()
+    {
+        var employee = MakeEmployee(branch: null);
+        SetupEmployee(employee);
+        SetupCompany(MakeCompany("Nicaragua"));
+
+        var data = (await CreateSut(LiquidationVars()).GetEntityContextAsync("employee", employee.Id))!.Data;
+
+        // Claves de la plantilla "Liquidación Final" en el contexto que consume
+        // TANTO el preview del wizard (GET entity-context) como el PDF (quick-generate).
+        Str(data["neto_a_recibir"]).Should().Be("12,345.00");
+        Str(data["neto_en_letras"]).Should().Contain("córdobas");
+        Str(data["indemnizacion_dias"]).Should().Be("60");
+        Str(data["indemnizacion_monto"]).Should().Be("17,000.00");
+        Str(data["inss_tasa"]).Should().Be("7.00%");
+        Str(data["seniority"]).Should().Be("3 años, 0 meses, 0 días");
+        Str(data["autorizado_por"]).Should().Be("Comercial Zorvian");
+
+        // Las claves básicas del empleado siguen intactas.
+        Str(data["employee_name"]).Should().Be("María López");
+        Str(data["salary"]).Should().Be(8500m.ToString("N2"));
+    }
+
+    [Fact]
+    public async Task NonEmployeeEntityContext_DoesNotRunTheLiquidationCalculator()
+    {
+        var id = Guid.NewGuid();
+        var sut = CreateSut(LiquidationVars());
+
+        await sut.GetEntityContextAsync("sale", id);
+
+        _certificateCalc.Verify(c => c.CalculateLiquidationVariablesAsync(
+            It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<DateOnly>(),
+            It.IsAny<DateOnly?>(), It.IsAny<string?>(), It.IsAny<string?>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task CertificateContext_Liquidacion_StillExposesCalculatedVariables_WithoutDoubleCalc()
+    {
+        var employee = MakeEmployee(branch: null);
+        SetupEmployee(employee);
+        SetupCompany(MakeCompany("Nicaragua"));
+        var sut = CreateSut(LiquidationVars());
+
+        var data = await sut.GetCertificateContextAsync("liquidacion", employee.Id);
+
+        // El path de certificados ahora hereda el contexto de entidad: mismas
+        // variables y UN solo cálculo (antes calculaba aquí y ahora también allá).
+        data["neto_a_recibir"].Should().Be("12,345.00");
+        data["neto_en_letras"].Should().Contain("córdobas");
+        data["autorizado_por"].Should().Be("Comercial Zorvian");
+        _certificateCalc.Verify(c => c.CalculateLiquidationVariablesAsync(
+            It.IsAny<Guid>(), It.IsAny<decimal>(), It.IsAny<DateOnly>(),
+            It.IsAny<DateOnly?>(), It.IsAny<string?>(), It.IsAny<string?>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task QuickGenerate_MergesEditedVariables_OverTheCalculatedContext()
+    {
+        var employee = MakeEmployee(branch: null);
+        SetupEmployee(employee);
+        SetupCompany(MakeCompany("Nicaragua"));
+
+        Dictionary<string, object>? sent = null;
+        _documentService
+            .Setup(d => d.GenerateProfessionalDocumentAsync(
+                It.IsAny<Guid>(), It.IsAny<Guid>(), It.IsAny<object>(), It.IsAny<string?>()))
+            .Callback<Guid, Guid, object, string?>((_, _, vars, _) =>
+                sent = vars as Dictionary<string, object>)
+            .ReturnsAsync(new GeneratedDocument
+            {
+                Id = Guid.NewGuid(),
+                Name = "Liquidación Final - María López",
+                Status = "draft",
+            });
+        _documentService
+            .Setup(d => d.FinalizeAndRequestSignatureAsync(It.IsAny<Guid>(), It.IsAny<string>(), It.IsAny<Guid>()))
+            .Returns(Task.CompletedTask);
+        _documentService
+            .Setup(d => d.GetDocumentDetailsAsync(It.IsAny<Guid>()))
+            .Returns(Task.FromResult<GeneratedDocument?>(null));
+
+        var sut = CreateSut(LiquidationVars());
+        await sut.QuickGenerateAsync("employee", employee.Id, Guid.NewGuid(), new Dictionary<string, string>
+        {
+            ["neto_a_recibir"] = "25,000.00",
+            ["elaborado_por"] = "Gerencia",
+        });
+
+        sent.Should().NotBeNull();
+        // Lo editado en el formulario previo manda sobre el cálculo...
+        sent!["neto_a_recibir"].Should().Be("25,000.00");
+        sent["elaborado_por"].Should().Be("Gerencia");
+        // ...y lo que no se tocó sigue viniendo calculado del contexto.
+        sent["inss_tasa"].Should().Be("7.00%");
+        Str(sent["employee_name"]).Should().Be("María López");
     }
 }

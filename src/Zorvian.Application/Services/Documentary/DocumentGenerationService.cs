@@ -38,8 +38,26 @@ public sealed class DocumentGenerationService : IDocumentGenerationService
         _tenant = tenant;
     }
 
-    public Task<EntityContextResponse?> GetEntityContextAsync(string entityType, Guid entityId)
-        => _contextBuilder.BuildAsync(entityType, entityId);
+    public async Task<EntityContextResponse?> GetEntityContextAsync(string entityType, Guid entityId)
+    {
+        var context = await _contextBuilder.BuildAsync(entityType, entityId);
+        if (context == null) return null;
+
+        // La "Liquidación Final" es una plantilla del MOTOR DOCUMENTAL, no solo
+        // un certificado: el builder de entidades solo expone las ~15 claves
+        // básicas del empleado. Sin este paso, el wizard del Centro Documental
+        // preveía (GET entity-context) y generaba (POST quick-generate) el PDF
+        // con las ~50 variables de liquidación vacías.
+        if (string.Equals(entityType, "employee", StringComparison.OrdinalIgnoreCase))
+        {
+            var employee = await _employeeRepo.GetByIdWithBranchAsync(entityId);
+            var company = await _companyRepo.GetByTenantIdAsync(_tenant.TenantId);
+            if (employee != null && company != null)
+                await EnrichLiquidacionContextAsync(context, employee, company);
+        }
+
+        return context;
+    }
 
     /// <summary>
     /// Obtiene el contexto completo para un certificado específico, calculando
@@ -72,7 +90,9 @@ public sealed class DocumentGenerationService : IDocumentGenerationService
                 EnrichContratoContext(data, employee, company);
                 break;
             case "liquidacion":
-                await EnrichLiquidacionContextAsync(data, employee, company);
+                // Las variables de liquidación ya vienen calculadas del contexto
+                // de entidad: GetEntityContextAsync las enriquece para todo
+                // empleado (evita calcularlas dos veces).
                 break;
             case "poder":
                 EnrichPoderContext(data, employee, company);
@@ -102,7 +122,7 @@ public sealed class DocumentGenerationService : IDocumentGenerationService
     }
 
     private async Task EnrichLiquidacionContextAsync(
-        Dictionary<string, string> data, Employee employee, Company company)
+        EntityContextResponse context, Employee employee, Company company)
     {
         var liquidationVars = await _certificateCalc.CalculateLiquidationVariablesAsync(
             employee.Id,
@@ -113,9 +133,11 @@ public sealed class DocumentGenerationService : IDocumentGenerationService
             FiscalYearHelper.MapCountryToCode(company.Country));
 
         foreach (var (key, value) in liquidationVars)
-            data[key] = value;
+            context.Data[key] = value;
 
-        data["autorizado_por"] = company.LegalName ?? company.Name ?? "";
+        // LegalName es string.Empty por defecto (no null) → el ?? no bastaba.
+        context.Data["autorizado_por"] =
+            string.IsNullOrWhiteSpace(company.LegalName) ? company.Name ?? "" : company.LegalName;
     }
 
     private void EnrichPoderContext(
@@ -131,13 +153,21 @@ public sealed class DocumentGenerationService : IDocumentGenerationService
             data[key] = value;
     }
 
-    public async Task<QuickGenerateResult> QuickGenerateAsync(string entityType, Guid entityId, Guid templateId)
+    public async Task<QuickGenerateResult> QuickGenerateAsync(
+        string entityType, Guid entityId, Guid templateId, Dictionary<string, string>? variables = null)
     {
         var context = await GetEntityContextAsync(entityType, entityId);
         if (context == null)
             throw new KeyNotFoundException($"Entidad {entityType} con ID {entityId} no encontrada");
 
         var flatVars = context.Data;
+        if (variables != null)
+        {
+            // Lo editado en el formulario previo (paso 2 del wizard) manda sobre
+            // el contexto calculado — mismo merge que hace POST /documents/generate.
+            foreach (var kv in variables)
+                flatVars[kv.Key] = kv.Value;
+        }
         var doc = await _documentService.GenerateProfessionalDocumentAsync(templateId, entityId, flatVars, entityType);
 
         var signerRole = entityType.ToLowerInvariant() switch
