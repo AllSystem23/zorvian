@@ -40,6 +40,107 @@ class _DocumentDetailPageState extends ConsumerState<DocumentDetailPage> {
     }
   }
 
+  /// Firma digital: fija la huella SHA-256 de la última versión en el backend
+  /// y deja el documento en `signed`. Es lo que hace verificable el QR del
+  /// bloque de auditoría.
+  Future<void> _sign() async {
+    try {
+      final dio = ref.read(dioClientProvider);
+      await dio.post('documents/${widget.documentId}/sign', data: {'notes': null});
+      if (!mounted) return;
+      ZToast.success(context, 'Documento firmado. Huella SHA-256 registrada.');
+      await _load();
+    } catch (e) {
+      if (!mounted) return;
+      final data = e is DioException ? e.response?.data : null;
+      final detail = data is Map ? data['detail'] : null;
+      ZToast.error(context, detail?.toString() ?? 'No se pudo firmar el documento');
+    }
+  }
+
+  /// Elimina permanentemente el documento y todas sus versiones/firmas.
+  /// Muestra un diálogo de confirmación antes de proceder.
+  Future<void> _deleteHard() async {
+    if (!await _confirmDeleteHard()) return;
+    try {
+      final dio = ref.read(dioClientProvider);
+      await dio.delete('documents/${widget.documentId}');
+      if (!mounted) return;
+      ZToast.success(context, 'Documento eliminado permanentemente.');
+      if (context.mounted) Navigator.of(context).maybePop();
+    } catch (e) {
+      if (!mounted) return;
+      final data = e is DioException ? e.response?.data : null;
+      final detail = data is Map ? data['detail'] : null;
+      ZToast.error(context, detail?.toString() ?? 'No se pudo eliminar el documento');
+    }
+  }
+
+  /// Muestra un diálogo de confirmación para eliminación física.
+  Future<bool> _confirmDeleteHard() async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        title: const Text('Confirmar eliminación física'),
+        content: const Text('¿Está seguro de que desea eliminar permanentemente este documento?\nEsta acción no se puede deshacer y eliminará el documento y todas sus versiones.'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(foregroundColor: ZColors.danger),
+            child: const Text('Eliminar'),
+          ),
+        ],
+        actionsAlignment: MainAxisAlignment.end,
+      ),
+    ) ?? false;
+  }
+
+  /// Marca el documento como eliminado (soft-delete). Queda oculto en la lista
+  /// normal pero el QR sigue siendo válido para verificación.
+  /// Muestra un diálogo de confirmación antes de proceder.
+  Future<void> _deleteSoft() async {
+    if (!await _confirmDeleteSoft()) return;
+    try {
+      final dio = ref.read(dioClientProvider);
+      await dio.put('documents/${widget.documentId}/soft-delete', data: {});
+      if (!mounted) return;
+      ZToast.success(context, 'Documento marcado como eliminado.');
+      await _load();
+    } catch (e) {
+      if (!mounted) return;
+      final data = e is DioException ? e.response?.data : null;
+      final detail = data is Map ? data['detail'] : null;
+      ZToast.error(context, detail?.toString() ?? 'No se pudo marcar el documento como eliminado');
+    }
+  }
+
+  /// Muestra un diálogo de confirmación para soft-delete.
+  Future<bool> _confirmDeleteSoft() async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        title: const Text('Confirmar eliminación lógica'),
+        content: const Text('¿Está seguro de que desea marcar este documento como eliminado?\nEl documento quedará oculto en la lista normal pero el QR seguirá siendo válido para verificación.'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(foregroundColor: ZColors.warning),
+            child: const Text('Marcar'),
+          ),
+        ],
+        actionsAlignment: MainAxisAlignment.end,
+      ),
+    ) ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -71,10 +172,40 @@ class _DocumentDetailPageState extends ConsumerState<DocumentDetailPage> {
             Row(
               children: [
                 Expanded(child: Text(d.name, style: ZTypography.titleMedium)),
+                if (d.status == 'pending_signature') ...[
+                  FilledButton.icon(
+                    icon: const Icon(Icons.draw_outlined, size: 18),
+                    label: const Text('Firmar documento'),
+                    onPressed: _sign,
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 IconButton(
                   icon: const Icon(Icons.download_outlined),
                   tooltip: 'Descargar PDF',
                   onPressed: () => _downloadPdf(context),
+                ),
+                // Botones de eliminación visibles (respetan estado firmado)
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    if (d.status != 'signed') ...[
+                      ZButton(
+                        text: 'Eliminar físicamente',
+                        type: ZButtonType.danger,
+                        onPressed: _deleteHard,
+                        fullWidth: false,
+                      ),
+                      const SizedBox(width: 8),
+                      ZButton(
+                        text: 'Marcar como eliminado',
+                        type: ZButtonType.primary,
+                        onPressed: _deleteSoft,
+                        fullWidth: false,
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),
