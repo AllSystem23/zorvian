@@ -109,7 +109,7 @@ public sealed class DocumentService : IDocumentService
             Name = $"{template.Name} - {DateTime.UtcNow:yyyyMMdd_HHmm}",
             Status = "draft",
             TenantId = _tenant.TenantId ?? string.Empty,
-            CompanyId = _tenant.CompanyId != Guid.Empty ? _tenant.CompanyId : Guid.Empty,
+            CompanyId = _tenant.EffectiveCompanyId ?? Guid.Empty,
             CreatedAt = DateTime.UtcNow
         };
 

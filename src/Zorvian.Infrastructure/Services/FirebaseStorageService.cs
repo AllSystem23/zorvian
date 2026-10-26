@@ -70,4 +70,24 @@ public sealed class FirebaseStorageService : IDocumentStorageService
             return Task.FromResult<string?>($"https://storage.googleapis.com/{_bucketName}/{path}");
         }
     }
+
+    public async Task<IReadOnlyList<StorageObjectInfo>> ListFilesAsync(string prefix)
+    {
+        var results = new List<StorageObjectInfo>();
+
+        await foreach (var obj in GetStorage().ListObjectsAsync(_bucketName, prefix))
+        {
+            if (string.IsNullOrEmpty(obj.Name)) continue;
+
+            // Si el SDK no informa la fecha se asume "recién subido": el barrido
+            // prefiere no borrar antes que borrar un archivo en uso.
+            var modified = obj.UpdatedDateTimeOffset
+                           ?? obj.TimeCreatedDateTimeOffset
+                           ?? DateTimeOffset.UtcNow;
+
+            results.Add(new StorageObjectInfo(obj.Name, modified));
+        }
+
+        return results;
+    }
 }

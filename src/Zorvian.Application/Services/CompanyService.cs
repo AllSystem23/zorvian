@@ -4,6 +4,7 @@ using Zorvian.Application.Helpers;
 using Zorvian.Application.Interfaces;
 using Zorvian.Core.Entities;
 using Zorvian.Core.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace Zorvian.Application.Services;
 
@@ -17,8 +18,9 @@ public sealed class CompanyService
     private readonly ICountryTaxConfigRepository _taxConfigRepo;
     private readonly ISeedService _seedService;
     private readonly ISubscriptionPlanRepository _plans;
+    private readonly ILogger<CompanyService>? _logger;
 
-    public CompanyService(ICompanyRepository repo, ITenantContext tenant, IFiscalService fiscalService, IDocumentStorageService storage, IRegionalTaxConfigurationRepository regionalTaxRepo, ICountryTaxConfigRepository taxConfigRepo, ISeedService seedService, ISubscriptionPlanRepository plans)
+    public CompanyService(ICompanyRepository repo, ITenantContext tenant, IFiscalService fiscalService, IDocumentStorageService storage, IRegionalTaxConfigurationRepository regionalTaxRepo, ICountryTaxConfigRepository taxConfigRepo, ISeedService seedService, ISubscriptionPlanRepository plans, ILogger<CompanyService>? logger = null)
     {
         _repo = repo;
         _tenant = tenant;
@@ -28,6 +30,7 @@ public sealed class CompanyService
         _taxConfigRepo = taxConfigRepo;
         _seedService = seedService;
         _plans = plans;
+        _logger = logger;
     }
 
     public async Task<List<CompanyListItemResponse>> GetAllAsync()
@@ -212,6 +215,10 @@ public sealed class CompanyService
         var company = await _repo.GetByTenantIdAsync(_tenant.TenantId);
         if (company is null) return null;
 
+        // Se captura antes de mutar: si el logo cambia (o se limpia con ""),
+        // el objeto anterior hay que borrarlo para no dejarlo huérfano.
+        var previousLogo = company.LogoUrl;
+
         if (request.Name is not null) company.Name = request.Name;
         if (request.LegalName is not null) company.LegalName = request.LegalName;
         if (request.TaxId is not null) company.TaxId = request.TaxId;
@@ -227,6 +234,7 @@ public sealed class CompanyService
 
         await _repo.UpdateAsync(company);
         await _repo.SaveChangesAsync();
+        await DeleteReplacedLogoAsync(company.Id, previousLogo, company.LogoUrl);
 
         return new CompanyResponse(
             company.Id,
@@ -248,6 +256,8 @@ public sealed class CompanyService
     {
         var company = await _repo.GetByIdAsync(id);
         if (company is null) return null;
+
+        var previousLogo = company.LogoUrl;
 
         if (request.Name is not null) company.Name = request.Name;
         if (request.LegalName is not null) company.LegalName = request.LegalName;
@@ -287,6 +297,7 @@ public sealed class CompanyService
 
         await _repo.UpdateAsync(company);
         await _repo.SaveChangesAsync();
+        await DeleteReplacedLogoAsync(company.Id, previousLogo, company.LogoUrl);
 
         return new CompanyResponse(
             company.Id,
@@ -302,6 +313,77 @@ public sealed class CompanyService
             company.Timezone,
             company.MaxEmployees
         );
+    }
+
+    /// <summary>
+    /// Logo de la compañía en contexto (tenant del caller), con la URL firmada.
+    /// No exige `company.manage` a propósito: lo consume la pantalla de
+    /// configuración de una CompanyAdmin para su propia empresa.
+    /// Devuelve <c>null</c> cuando la compañía no existe.
+    /// </summary>
+    public async Task<CompanyLogoResponse?> GetLogoAsync()
+    {
+        var company = await _repo.GetByTenantIdAsync(_tenant.TenantId);
+        if (company is null) return null;
+
+        return new CompanyLogoResponse(company.Id, await _storage.GetSignedUrlAsync(company.LogoUrl));
+    }
+
+    /// <summary>
+    /// Quita el logo de la compañía: limpia la referencia en BD y después borra
+    /// el objeto del almacenamiento (si se borrara antes y la BD fallara, la
+    /// compañía quedaría apuntando a un archivo inexistente).
+    /// </summary>
+    public async Task<bool> RemoveLogoAsync(Guid companyId)
+    {
+        var company = _tenant.IsSuperAdmin
+            ? await _repo.GetByIdAsync(companyId)
+            : await _repo.GetByTenantIdAsync(_tenant.TenantId);
+
+        if (company is null) return false;
+
+        var previousPath = Helpers.StoragePathHelper.ExtractStoragePath(company.LogoUrl);
+        company.LogoUrl = null;
+        await _repo.UpdateAsync(company);
+        await _repo.SaveChangesAsync();
+
+        if (!string.IsNullOrEmpty(previousPath))
+        {
+            try
+            {
+                await _storage.DeleteFileAsync(previousPath);
+            }
+            catch (Exception ex)
+            {
+                // El logo ya no está referenciado: si el borrado falla queda un
+                // huérfano que recoge el barrido de archivos sin dueño.
+                _logger?.LogWarning(ex, "No se pudo borrar el archivo del logo de la empresa {CompanyId}", companyId);
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Borra del almacenamiento el logo anterior cuando la referencia cambió.
+    /// Best-effort: un fallo aquí no debe romper el guardado de la compañía.
+    /// </summary>
+    private async Task DeleteReplacedLogoAsync(Guid companyId, string? previousLogo, string? currentLogo)
+    {
+        var previousPath = Helpers.StoragePathHelper.ExtractStoragePath(previousLogo);
+        if (string.IsNullOrEmpty(previousPath)) return;
+
+        var currentPath = Helpers.StoragePathHelper.ExtractStoragePath(currentLogo);
+        if (string.Equals(previousPath, currentPath, StringComparison.Ordinal)) return;
+
+        try
+        {
+            await _storage.DeleteFileAsync(previousPath);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "No se pudo borrar el logo anterior de la empresa {CompanyId}", companyId);
+        }
     }
 
     public async Task<string?> UploadLogoAsync(Guid companyId, Stream fileStream, string contentType)
@@ -321,6 +403,8 @@ public sealed class CompanyService
         };
 
         var path = $"companies/{company.Id}/logo{ext}";
+        var previousLogo = company.LogoUrl;
+        var previousPath = Helpers.StoragePathHelper.ExtractStoragePath(previousLogo);
 
         try
         {
@@ -329,27 +413,49 @@ public sealed class CompanyService
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Error uploading logo for company {CompanyId}", companyId);
-            return null;
-        }
-
-        // Delete old logo if exists
-        if (!string.IsNullOrEmpty(company.LogoUrl))
-        {
-            try
-            {
-                var oldPath = Helpers.StoragePathHelper.ExtractStoragePath(company.LogoUrl);
-                if (!string.IsNullOrEmpty(oldPath))
-                    await _storage.DeleteFileAsync(oldPath);
-            }
-            catch
-            {
-                // Best effort: old logo deletion failure should not block the new upload
-            }
+            // No devolver `null`: en el controller eso significaba "empresa no
+            // encontrada" y el usuario veía un 404 engañoso sin saber que el
+            // fallo era del almacenamiento.
+            throw new InvalidOperationException(
+                "No se pudo guardar el logo en el almacenamiento. Verifique la configuración de Firebase Storage del servidor.",
+                ex);
         }
 
         company.LogoUrl = path;
-        await _repo.UpdateAsync(company);
-        await _repo.SaveChangesAsync();
+        try
+        {
+            await _repo.UpdateAsync(company);
+            await _repo.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            // El objeto ya está en el bucket pero la BD no lo referencia: se
+            // descarta para no dejar un huérfano. Si la ruta es la misma del
+            // logo anterior el objeto es el mismo archivo, así que no se borra.
+            company.LogoUrl = previousLogo;
+            _logger?.LogError(ex,
+                "No se pudo persistir el logo de la empresa {CompanyId}; se descarta el archivo subido", companyId);
+
+            if (!string.Equals(previousPath, path, StringComparison.Ordinal))
+            {
+                try
+                {
+                    await _storage.DeleteFileAsync(path);
+                }
+                catch (Exception cleanupEx)
+                {
+                    _logger?.LogWarning(cleanupEx,
+                        "No se pudo borrar el logo recién subido de la empresa {CompanyId}", companyId);
+                }
+            }
+
+            throw;
+        }
+
+        // Ya persistido: el objeto anterior (otra extensión o una URL legacy)
+        // queda sin dueño y se borra. Al reemplazar con la misma extensión la
+        // ruta es idéntica (el objeto se sobrescribió), así que no se borra.
+        await DeleteReplacedLogoAsync(company.Id, previousLogo, path);
 
         // Response returns a signed URL; the entity keeps the bare path.
         return await _storage.GetSignedUrlAsync(path);

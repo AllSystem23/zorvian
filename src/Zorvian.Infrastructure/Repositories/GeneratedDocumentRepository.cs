@@ -68,6 +68,21 @@ public sealed class GeneratedDocumentRepository : IGeneratedDocumentRepository
         return Task.CompletedTask;
     }
 
+    public async Task DeleteAsync(GeneratedDocument document)
+    {
+        var signatures = await _db.DocumentSignatures
+            .Where(s => s.DocumentId == document.Id)
+            .ToListAsync();
+        _db.DocumentSignatures.RemoveRange(signatures);
+
+        var versions = await _db.DocumentVersions
+            .Where(v => v.DocumentId == document.Id)
+            .ToListAsync();
+        _db.DocumentVersions.RemoveRange(versions);
+
+        _db.GeneratedDocuments.Remove(document);
+    }
+
     public async Task SaveChangesAsync() => await _db.SaveChangesAsync();
 
     // Versioning

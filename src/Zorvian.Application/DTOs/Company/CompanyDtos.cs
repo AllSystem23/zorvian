@@ -86,6 +86,12 @@ public sealed record UpdateCompanySettingsRequest(
     string? RetentionBase
 );
 
+/// <summary>
+/// Logo de la compañía en contexto. <paramref name="LogoUrl"/> ya viene firmada
+/// (TTL corto): no debe cachearse, se vuelve a pedir al abrir la pantalla.
+/// </summary>
+public sealed record CompanyLogoResponse(Guid Id, string? LogoUrl);
+
 public sealed record CompanyListItemResponse(
     Guid Id,
     string TenantId,

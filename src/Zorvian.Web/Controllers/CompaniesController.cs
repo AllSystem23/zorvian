@@ -67,12 +67,51 @@ public sealed class CompaniesController : ControllerBase
             return BadRequest(new { error = "Solo se permiten archivos PNG, JPG o WebP" });
 
         await using var stream = file.OpenReadStream();
-        var url = await _companyService.UploadLogoAsync(id, stream, file.ContentType);
+
+        string? url;
+        try
+        {
+            url = await _companyService.UploadLogoAsync(id, stream, file.ContentType);
+        }
+        catch (InvalidOperationException ex)
+        {
+            // El almacenamiento falló (credenciales/permanentes de Firebase Storage).
+            return StatusCode(StatusCodes.Status502BadGateway, new { error = ex.Message });
+        }
 
         if (url is null)
             return NotFound(new { error = "Empresa no encontrada" });
 
         return Ok(new { logoUrl = url });
+    }
+
+    /// <summary>
+    /// Obtiene el logo de la empresa actual (id + URL firmada). Disponible para
+    /// CompanyAdmin, que no tiene `company.manage` pero sí administra el logo de
+    /// su propia empresa.
+    /// </summary>
+    [HttpGet("logo")]
+    [Authorize(Roles = "SuperAdmin,CompanyAdmin")]
+    public async Task<IActionResult> GetLogo()
+    {
+        var logo = await _companyService.GetLogoAsync();
+        if (logo is null)
+            return NotFound(new { error = "Empresa no encontrada" });
+        return Ok(logo);
+    }
+
+    /// <summary>
+    /// Quita el logo de una empresa (limpia la referencia y borra el archivo).
+    /// </summary>
+    [Audit("Company", "RemoveLogo")]
+    [HttpDelete("{id:guid}/logo")]
+    [Authorize(Roles = "SuperAdmin,CompanyAdmin")]
+    public async Task<IActionResult> RemoveLogo(Guid id)
+    {
+        var removed = await _companyService.RemoveLogoAsync(id);
+        if (!removed)
+            return NotFound(new { error = "Empresa no encontrada" });
+        return NoContent();
     }
 
     /// <summary>
@@ -159,7 +198,7 @@ public sealed class CompaniesController : ControllerBase
     /// Obtiene la configuración general de la empresa.
     /// </summary>
     [HttpGet("settings")]
-    [RequirePermission(Permissions.CompanyManage)]
+    [RequirePermission(Permissions.SettingsRead)]
     public async Task<IActionResult> GetSettings()
     {
         var settings = await _companyService.GetSettingsAsync();
@@ -173,7 +212,7 @@ public sealed class CompaniesController : ControllerBase
     /// </summary>
     [Audit("Company", "UpdateSettings")]
     [HttpPut("settings")]
-    [RequirePermission(Permissions.CompanyManage)]
+    [RequirePermission(Permissions.SettingsWrite)]
     public async Task<IActionResult> UpdateSettings([FromBody] UpdateCompanySettingsRequest request)
     {
         var result = await _companyService.UpdateSettingsAsync(request);

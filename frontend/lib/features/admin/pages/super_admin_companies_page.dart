@@ -3,12 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
-import 'package:http_parser/http_parser.dart';
-import 'package:file_picker/file_picker.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../core/providers/company_branch_provider.dart';
 import '../../../shared/ds/ds.dart';
 import '../config/subscription_plans_config.dart';
+import '../widgets/company_logo_picker.dart';
 
 /// SuperAdmin-only page to list, edit, create, deactivate, and switch between companies.
 /// Uses ZDataTable for table rendering with search and column toggle.
@@ -655,6 +654,10 @@ class _CompanyCreateDialogState extends ConsumerState<CompanyCreateDialog> {
   bool _loading = false;
   String? _error;
 
+  // Logo (se sube DESPUÉS de crear la empresa: el endpoint necesita el Id).
+  Uint8List? _logoBytes;
+  String? _logoFileName;
+
   static const _countries = ['Nicaragua', 'Costa Rica', 'Guatemala', 'Honduras', 'El Salvador', 'Panamá'];
 
   String _countryToCurrency(String country) => switch (country) {
@@ -689,6 +692,25 @@ class _CompanyCreateDialogState extends ConsumerState<CompanyCreateDialog> {
     super.dispose();
   }
 
+  Future<void> _pickLogo() async {
+    try {
+      final picked = await ref.read(logoPickerProvider)();
+      if (picked == null || !mounted) return;
+      setState(() {
+        _logoBytes = picked.bytes;
+        _logoFileName = picked.fileName;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(companyLogoErrorMessage(e)),
+          backgroundColor: ZColors.danger,
+        ),
+      );
+    }
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() {
@@ -696,9 +718,11 @@ class _CompanyCreateDialogState extends ConsumerState<CompanyCreateDialog> {
       _error = null;
     });
 
+    final messenger = ScaffoldMessenger.of(context);
+
     try {
       final dio = ref.read(dioClientProvider);
-      await dio.post('companies', data: {
+      final response = await dio.post('companies', data: {
         'name': _nameCtrl.text.trim(),
         'legalName': _legalNameCtrl.text.trim(),
         'taxId': _taxIdCtrl.text.trim().isNotEmpty ? _taxIdCtrl.text.trim() : null,
@@ -710,10 +734,38 @@ class _CompanyCreateDialogState extends ConsumerState<CompanyCreateDialog> {
         'timezone': _countryToTimezone(_selectedCountry),
         'maxEmployees': int.tryParse(_maxEmployeesCtrl.text) ?? 50,
       });
-      widget.onCreated();
-      if (mounted) {
-        Navigator.of(context).pop();
+
+      // El logo viaja en su propio endpoint (multipart) y necesita el Id que
+      // acaba de devolver el POST. Si falla, la empresa queda creada igual.
+      String? logoError;
+      final created = response.data;
+      final companyId = created is Map ? created['id']?.toString() : null;
+      if (_logoBytes != null && _logoFileName != null && companyId != null && companyId.isNotEmpty) {
+        try {
+          await uploadCompanyLogo(
+            dio,
+            companyId,
+            bytes: _logoBytes!,
+            fileName: _logoFileName!,
+          );
+        } catch (e) {
+          logoError = companyLogoErrorMessage(e);
+        }
       }
+
+      widget.onCreated();
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            logoError == null
+                ? 'Empresa creada correctamente'
+                : 'Empresa creada, pero el logo no se pudo subir: $logoError',
+          ),
+          backgroundColor: logoError == null ? null : ZColors.warning,
+        ),
+      );
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -737,6 +789,21 @@ class _CompanyCreateDialogState extends ConsumerState<CompanyCreateDialog> {
           children: [
               if (_error != null)
                 ZAlertCard(message: _error!, severity: 'high'),
+              CompanyLogoField(
+                pendingBytes: _logoBytes,
+                fileName: _logoFileName,
+                uploading: _loading,
+                onPick: _pickLogo,
+                // Antes de crear la empresa el logo solo vive en memoria: se
+                // descarta la selección sin llamar al API.
+                onRemove: _logoBytes == null
+                    ? null
+                    : () => setState(() {
+                          _logoBytes = null;
+                          _logoFileName = null;
+                        }),
+              ),
+              const SizedBox(height: ZSpacing.lg),
               ZTextField(
                 controller: _nameCtrl,
                 label: 'Nombre comercial',
@@ -841,6 +908,9 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
   String? _currentLogoUrl;
   bool _logoUploading = false;
 
+  /// El usuario pidió quitar el logo guardado: se aplica en el API al guardar.
+  bool _logoRemoved = false;
+
   static const _countries = ['Nicaragua', 'Costa Rica', 'Guatemala', 'Honduras', 'El Salvador', 'Panamá'];
   static const _currencies = ['NIO', 'CRC', 'GTQ', 'HNL', 'USD'];
   static const _timezones = [
@@ -885,23 +955,34 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
   }
 
   Future<void> _pickLogo() async {
-    final result = await FilePicker.pickFiles(type: FileType.image);
-    if (!mounted) return;
-    if (result != null && result.files.isNotEmpty) {
-      final file = result.files.first;
-      if (file.size > 5 * 1024 * 1024) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('El logo no puede superar 5 MB'), backgroundColor: ZColors.danger),
-        );
-        return;
-      }
-      final bytes = await file.readAsBytes();
-      if (!mounted) return;
+    try {
+      final picked = await ref.read(logoPickerProvider)();
+      if (picked == null || !mounted) return;
       setState(() {
-        _logoBytes = bytes;
-        _logoFileName = file.name;
+        _logoBytes = picked.bytes;
+        _logoFileName = picked.fileName;
+        _logoRemoved = false;
       });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(companyLogoErrorMessage(e)),
+          backgroundColor: ZColors.danger,
+        ),
+      );
     }
+  }
+
+  /// Quita el logo de la vista. Si ya estaba guardado, el borrado real se hace
+  /// al guardar (así cancelar el diálogo no deja la empresa sin logo).
+  void _removeLogo() {
+    setState(() {
+      _logoRemoved = _currentLogoUrl != null && _currentLogoUrl!.isNotEmpty;
+      _logoBytes = null;
+      _logoFileName = null;
+      _currentLogoUrl = null;
+    });
   }
 
   Future<bool> _uploadLogo(String companyId) async {
@@ -909,30 +990,43 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
 
     setState(() => _logoUploading = true);
     try {
-      final dio = ref.read(dioClientProvider);
-      final fileName = _logoFileName!;
-      final ext = fileName.split('.').last.toLowerCase();
-      final contentType = switch (ext) {
-        'png' => 'image/png',
-        'jpg' || 'jpeg' => 'image/jpeg',
-        'webp' => 'image/webp',
-        _ => 'image/png',
-      };
-
-      final formData = FormData.fromMap({
-        'file': MultipartFile.fromBytes(
-          _logoBytes!,
-          filename: fileName,
-          contentType: MediaType.parse(contentType),
-        ),
-      });
-
-      await dio.post('companies/$companyId/logo', data: formData);
+      final url = await uploadCompanyLogo(
+        ref.read(dioClientProvider),
+        companyId,
+        bytes: _logoBytes!,
+        fileName: _logoFileName!,
+      );
+      if (url != null) _currentLogoUrl = url;
       return true;
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al subir logo: $e'), backgroundColor: ZColors.danger),
+          SnackBar(
+            content: Text('No se pudo guardar el logo: ${companyLogoErrorMessage(e)}'),
+            backgroundColor: ZColors.danger,
+          ),
+        );
+      }
+      return false;
+    } finally {
+      if (mounted) setState(() => _logoUploading = false);
+    }
+  }
+
+  /// Borra el logo guardado en el API. Devuelve `false` (y avisa) si falla,
+  /// para no guardar el resto del formulario con un estado de logo inconsistente.
+  Future<bool> _removeLogoOnServer(String companyId) async {
+    setState(() => _logoUploading = true);
+    try {
+      await removeCompanyLogo(ref.read(dioClientProvider), companyId);
+      return true;
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('No se pudo quitar el logo: ${companyLogoErrorMessage(e)}'),
+            backgroundColor: ZColors.danger,
+          ),
         );
       }
       return false;
@@ -959,8 +1053,18 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
       // Upload logo first if changed
       if (_logoBytes != null) {
         final logoOk = await _uploadLogo(companyId);
-        if (!logoOk || !mounted) {
-          if (mounted) setState(() {});
+        if (!mounted) return;
+        // No dejar el botón girando para siempre si la subida falló: el
+        // usuario debe poder reintentar o guardar sin el logo.
+        if (!logoOk) {
+          setState(() => _loading = false);
+          return;
+        }
+      } else if (_logoRemoved) {
+        final removed = await _removeLogoOnServer(companyId);
+        if (!mounted) return;
+        if (!removed) {
+          setState(() => _loading = false);
           return;
         }
       }
@@ -1007,7 +1111,14 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
               ZAlertCard(message: _error!, severity: 'high'),
 
             // ── Logo Upload Section ──
-            _buildLogoSection(),
+            CompanyLogoField(
+              pendingBytes: _logoBytes,
+              fileName: _logoFileName,
+              currentLogoUrl: _currentLogoUrl,
+              uploading: _logoUploading,
+              onPick: _pickLogo,
+              onRemove: _removeLogo,
+            ),
             const SizedBox(height: ZSpacing.lg),
 
             ZTextField(controller: _nameCtrl, label: 'Nombre comercial', prefix: const Icon(Icons.business)),
@@ -1091,76 +1202,6 @@ class _CompanyEditDialogState extends ConsumerState<_CompanyEditDialog> {
               : const Text('Guardar Cambios'),
         ),
       ],
-    );
-  }
-
-  Widget _buildLogoSection() {
-    final hasPreview = _logoBytes != null;
-    final hasCurrent = _currentLogoUrl != null;
-
-    return Center(
-      child: Column(
-        children: [
-          // Logo preview
-          GestureDetector(
-            onTap: _pickLogo,
-            child: Container(
-              width: 96,
-              height: 96,
-              decoration: BoxDecoration(
-                color: ZColors.brandPrimary.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: hasPreview ? ZColors.brandAccent : ZColors.neutral400,
-                  width: hasPreview ? 2 : 1,
-                ),
-              ),
-              child: hasPreview
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(14),
-                      child: Image.memory(_logoBytes!, fit: BoxFit.cover),
-                    )
-                  : hasCurrent
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(14),
-                          child: Image.network(
-                            _currentLogoUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stack) => _buildLogoPlaceholder(),
-                          ),
-                        )
-                      : _buildLogoPlaceholder(),
-            ),
-          ),
-          const SizedBox(height: 8),
-          // Upload button
-          FilledButton.tonalIcon(
-            onPressed: _logoUploading ? null : _pickLogo,
-            icon: _logoUploading
-                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                : Icon(Icons.camera_alt_outlined, size: 16, color: _logoBytes != null ? ZColors.brandAccent : null),
-            label: Text(
-              _logoBytes != null ? 'Cambiar logo' : 'Subir logo',
-              style: TextStyle(color: _logoBytes != null ? ZColors.brandAccent : null),
-            ),
-          ),
-          if (_logoFileName != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(_logoFileName!, style: ZTypography.labelSmall.copyWith(color: ZColors.neutral500)),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLogoPlaceholder() {
-    return Center(
-      child: Icon(
-        Icons.add_a_photo_outlined,
-        size: 32,
-        color: ZColors.neutral400,
-      ),
     );
   }
 

@@ -14,6 +14,39 @@ final companySettingsProvider = FutureProvider.autoDispose<Map<String, dynamic>>
   }
 });
 
+/// Datos mínimos para editar el logo de la compañía en contexto.
+class CompanyLogoInfo {
+  /// Id de la compañía (el endpoint de subida/borrado es por id).
+  final String id;
+
+  /// URL firmada (caduca ~15 min) o `null` si la compañía no tiene logo.
+  final String? logoUrl;
+
+  const CompanyLogoInfo({required this.id, this.logoUrl});
+}
+
+/// `GET companies/logo`.
+///
+/// Endpoint propio (no `companies/current`) porque este último exige
+/// `company.manage` — permiso de plataforma — y la pantalla de configuración la
+/// usa una CompanyAdmin para el logo de SU empresa. La URL viene firmada: se
+/// vuelve a pedir al abrir la pantalla, nunca se cachea.
+final companyLogoProvider = FutureProvider.autoDispose<CompanyLogoInfo>((ref) async {
+  final dio = ref.read(dioClientProvider);
+  // Cambiar de compañía en el cabecero recarga el logo.
+  ref.watch(branchScopeProvider);
+
+  final response = await dio.get('companies/logo').timeout(const Duration(seconds: 10));
+  final raw = response.data;
+  if (raw is! Map) throw Exception('Formato de datos inválido');
+
+  final logo = (raw['logoUrl'] as String?)?.trim();
+  return CompanyLogoInfo(
+    id: raw['id']?.toString() ?? '',
+    logoUrl: (logo == null || logo.isEmpty) ? null : logo,
+  );
+});
+
 final companyInfoProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
   final dio = ref.read(dioClientProvider);
   final auth = ref.watch(authProvider);

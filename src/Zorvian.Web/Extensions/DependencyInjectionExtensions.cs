@@ -560,6 +560,7 @@ public static class DependencyInjectionExtensions
         services.AddScoped<OcrProcessingJob>();
         services.AddScoped<Zorvian.Web.Jobs.FleetAlertJob>();
         services.AddScoped<Zorvian.Web.Jobs.FleetExpenseNotificationJob>();
+        services.AddScoped<Zorvian.Web.Jobs.CompanyLogoOrphanSweepJob>();
         return services;
     }
 }

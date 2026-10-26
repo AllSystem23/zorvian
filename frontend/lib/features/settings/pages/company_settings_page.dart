@@ -1,8 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/auth_provider.dart';
 import '../../../shared/ds/ds.dart';
+import '../../admin/widgets/company_logo_picker.dart';
 import '../providers/company_settings_provider.dart';
 
 class CompanySettingsPage extends ConsumerStatefulWidget {
@@ -25,6 +28,92 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
   final _taxRateCtrl = TextEditingController();
   bool _taxEnabled = true;
   String _retentionBase = 'taxable_gross';
+
+  /// Logo elegido y pendiente de subir (se sube al instante en esta pantalla).
+  Uint8List? _logoBytes;
+  String? _logoFileName;
+  bool _logoBusy = false;
+
+  void _toast(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? ZColors.danger : null,
+      ),
+    );
+  }
+
+  /// Abre el selector y sube el logo de inmediato (no hay formulario que guardar).
+  Future<void> _pickLogo() async {
+    final PickedLogo? picked;
+    try {
+      picked = await ref.read(logoPickerProvider)();
+    } catch (e) {
+      _toast(companyLogoErrorMessage(e), isError: true);
+      return;
+    }
+    if (picked == null || !mounted) return;
+    final logo = picked;
+
+    setState(() {
+      _logoBusy = true;
+      _logoBytes = logo.bytes;
+      _logoFileName = logo.fileName;
+    });
+
+    try {
+      final info = await ref.read(companyLogoProvider.future);
+      await uploadCompanyLogo(
+        ref.read(dioClientProvider),
+        info.id,
+        bytes: logo.bytes,
+        fileName: logo.fileName,
+      );
+      ref.invalidate(companyLogoProvider);
+      _toast('Logo actualizado');
+    } catch (e) {
+      _toast('No se pudo guardar el logo: ${companyLogoErrorMessage(e)}',
+          isError: true);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _logoBusy = false;
+          _logoBytes = null;
+          _logoFileName = null;
+        });
+      }
+    }
+  }
+
+  /// Quita el logo (con confirmación): el API limpia la referencia y borra el
+  /// archivo, así no quedan imágenes huérfanas en el bucket.
+  Future<void> _removeLogo(CompanyLogoInfo info) async {
+    if (info.logoUrl == null) return;
+
+    final confirmed = await ZConfirmDialog.show(
+      context,
+      title: 'Quitar logo',
+      message: 'El logo se borrará de la empresa y del almacenamiento. '
+          'Podrá subir otro cuando quiera.',
+      confirmLabel: 'Quitar',
+      icon: Icons.delete_outline,
+      isDestructive: true,
+    );
+    if (!confirmed || !mounted) return;
+
+    setState(() => _logoBusy = true);
+    try {
+      await removeCompanyLogo(ref.read(dioClientProvider), info.id);
+      ref.invalidate(companyLogoProvider);
+      _toast('Logo eliminado');
+    } catch (e) {
+      _toast('No se pudo quitar el logo: ${companyLogoErrorMessage(e)}',
+          isError: true);
+    } finally {
+      if (mounted) setState(() => _logoBusy = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -79,6 +168,8 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          _buildLogoCard(context),
+          const SizedBox(height: 16),
           ZCard(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -115,6 +206,63 @@ class _CompanySettingsPageState extends ConsumerState<CompanySettingsPage> {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push('/leave-types'),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLogoCard(BuildContext context) {
+    final logoAsync = ref.watch(companyLogoProvider);
+
+    return ZCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Logo de la Empresa',
+              style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 4),
+          const Text(
+            'Se muestra en el encabezado, en los documentos y en los PDF generados. '
+            'Formatos: PNG, JPG o WebP (máx. 5 MB).',
+            style: TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+          const SizedBox(height: 12),
+          logoAsync.when(
+            loading: () => const Center(
+              child: Padding(
+                padding: EdgeInsets.all(12),
+                child: CircularProgressIndicator(),
+              ),
+            ),
+            error: (e, stack) => Text(
+              'No se pudo cargar el logo: $e',
+              style: const TextStyle(color: ZColors.danger),
+            ),
+            data: (info) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CompanyLogoField(
+                  pendingBytes: _logoBytes,
+                  fileName: _logoFileName,
+                  currentLogoUrl: info.logoUrl,
+                  uploading: _logoBusy,
+                  onPick: _pickLogo,
+                  onRemove: (info.logoUrl == null)
+                      ? null
+                      : () => _removeLogo(info),
+                ),
+                if (info.id.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 8),
+                    child: Text(
+                      'No se encontró la empresa para asociar el logo.',
+                      style: TextStyle(fontSize: 12, color: ZColors.danger),
+                    ),
+                  ),
+              ],
             ),
           ),
         ],

@@ -219,23 +219,8 @@ public sealed class DocumentsController : ControllerBase
         var doc = await _docRepo.GetByIdAsync(id);
         if (doc == null) return NotFound(new { detail = "Documento no encontrado" });
 
-        // Eliminar firmas asociadas
-        var signatures = await _docRepo.GetSignaturesAsync(id);
-        foreach (var signature in signatures)
-        {
-            _db.DocumentSignatures.Remove(signature);
-        }
-        
-        // Also remove all versions
-        var versions = await _docRepo.GetVersionsAsync(id);
-        foreach (var version in versions)
-        {
-            _db.DocumentVersions.Remove(version);
-        }
-        
-        // Remove the document itself
-        _db.GeneratedDocuments.Remove(doc);
-        
+        // Borrado físico: el repositorio elimina también versiones y firmas.
+        await _docRepo.DeleteAsync(doc);
         await _docRepo.SaveChangesAsync();
         return Ok(new { message = "Documento eliminado permanentemente" });
     }

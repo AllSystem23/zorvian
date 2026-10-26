@@ -364,6 +364,10 @@ if (!mockExternal)
     recurringJobManager.AddOrUpdate<Zorvian.Web.Jobs.HealthCheckJob>("health-check", j => j.RunAsync(), "0 * * * *");
     recurringJobManager.AddOrUpdate<Zorvian.Application.Jobs.WarrantySlaMonitorJob>("warranty-sla-monitor", j => j.RunAsync(), "0 */4 * * *");
     recurringJobManager.AddOrUpdate<Zorvian.Web.Jobs.InvitationCleanupJob>("invitation-cleanup", j => j.RunAsync(), "0 4 * * *");
+    // Red de seguridad de logos: borra objetos bajo `companies/` que ninguna
+    // compañía referencia (con 24 h de gracia). Los borrados normales ocurren
+    // en línea al reemplazar o quitar el logo.
+    recurringJobManager.AddOrUpdate<Zorvian.Web.Jobs.CompanyLogoOrphanSweepJob>("company-logo-orphan-sweep", j => j.RunAsync(), "0 5 * * 0");
 }
 
 app.Run();

@@ -17,6 +17,12 @@ public interface IGeneratedDocumentRepository
     Task<(List<GeneratedDocument> Items, int Total)> GetAllPagedAsync(int page, int pageSize);
     Task AddAsync(GeneratedDocument document);
     Task UpdateAsync(GeneratedDocument document);
+    /// <summary>
+    /// Borrado FÍSICO del documento junto con sus versiones y firmas. Lo usa el
+    /// endpoint de eliminación permanente; el borrado lógico normal es
+    /// <see cref="UpdateAsync"/> con <c>IsDeleted = true</c>.
+    /// </summary>
+    Task DeleteAsync(GeneratedDocument document);
     Task SaveChangesAsync();
 
     // Versioning

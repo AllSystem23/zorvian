@@ -1,5 +1,11 @@
 namespace Zorvian.Application.Interfaces;
 
+/// <summary>
+/// Objeto almacenado (solo metadatos): ruta interna y última modificación.
+/// Lo usa el barrido de huérfanos para no borrar subidas en curso.
+/// </summary>
+public sealed record StorageObjectInfo(string Path, DateTimeOffset LastModifiedUtc);
+
 public interface IDocumentStorageService
 {
     /// <summary>
@@ -18,4 +24,11 @@ public interface IDocumentStorageService
     /// unchanged. Returns null when the input is null/empty.
     /// </summary>
     Task<string?> GetSignedUrlAsync(string? storedPathOrUrl, TimeSpan? ttl = null);
+
+    /// <summary>
+    /// Lists every stored object under <paramref name="prefix"/> (e.g.
+    /// "companies/"). Used by <c>CompanyLogoOrphanSweepJob</c> to find files no
+    /// row references. Returns an empty list when the prefix has no objects.
+    /// </summary>
+    Task<IReadOnlyList<StorageObjectInfo>> ListFilesAsync(string prefix);
 }

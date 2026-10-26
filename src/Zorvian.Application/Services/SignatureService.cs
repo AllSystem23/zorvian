@@ -33,7 +33,7 @@ public sealed class SignatureService : ISignatureService
             try
             {
                 var certBytes = Convert.FromBase64String(b64Cert);
-                return new X509Certificate2(certBytes, certPassword);
+                return X509CertificateLoader.LoadPkcs12(certBytes, certPassword);
             }
             catch { }
         }
@@ -41,7 +41,7 @@ public sealed class SignatureService : ISignatureService
         var certPath = _configuration["Certificate:PfxPath"];
         if (!string.IsNullOrEmpty(certPath) && System.IO.File.Exists(certPath))
         {
-            return new X509Certificate2(certPath, certPassword);
+            return X509CertificateLoader.LoadPkcs12FromFile(certPath, certPassword);
         }
 
         throw new InvalidOperationException(
@@ -49,14 +49,16 @@ public sealed class SignatureService : ISignatureService
             "or Certificate:PfxPath pointing to a .pfx file, or ensure the secret is injected in production.");
     }
 
-    public async Task<DocumentSignature> SignDocumentAsync(
+    public Task<DocumentSignature> SignDocumentAsync(
         Guid documentId,
         string signerRole,
         string? notes,
         string? signerId = null,
         string? ipAddress = null)
     {
-        return new DocumentSignature
+        // Construcción en memoria (sin I/O): Task.FromResult evita el warning
+        // CS1998 de un método async sin await.
+        return Task.FromResult(new DocumentSignature
         {
             DocumentId = documentId,
             SignerRole = signerRole,
@@ -68,11 +70,11 @@ public sealed class SignatureService : ISignatureService
             Status = "pending",
             SignedAt = null,
             Notes = notes
-        };
+        });
     }
 
-    public async Task<List<DocumentSignature>> GetSignaturesByDocumentAsync(Guid documentId)
+    public Task<List<DocumentSignature>> GetSignaturesByDocumentAsync(Guid documentId)
     {
-        return new List<DocumentSignature>();
+        return Task.FromResult(new List<DocumentSignature>());
     }
 }

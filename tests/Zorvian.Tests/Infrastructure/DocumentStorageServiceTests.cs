@@ -64,6 +64,28 @@ public sealed class LocalFileStorageServiceTests : IDisposable
         Assert.False(File.Exists(Path.Combine(_basePath, "permissions", "abc.pdf")));
     }
 
+    [Fact]
+    public async Task ListFilesAsync_ReturnsOnlyObjectsUnderThePrefix_AsRelativePaths()
+    {
+        var sut = Sut();
+        await using (var a = new MemoryStream(new byte[] { 1 }))
+            await sut.UploadFileAsync(a, "companies/a/logo.png", "image/png");
+        await using (var b = new MemoryStream(new byte[] { 2 }))
+            await sut.UploadFileAsync(b, "attendance/photos/x/in.jpg", "image/jpeg");
+
+        var objects = await sut.ListFilesAsync("companies/");
+
+        Assert.Single(objects);
+        Assert.Equal("companies/a/logo.png", objects[0].Path);
+        Assert.True(objects[0].LastModifiedUtc > DateTimeOffset.UtcNow.AddMinutes(-5));
+    }
+
+    [Fact]
+    public async Task ListFilesAsync_MissingPrefix_ReturnsEmpty()
+    {
+        Assert.Empty(await Sut().ListFilesAsync("companies/"));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_basePath))

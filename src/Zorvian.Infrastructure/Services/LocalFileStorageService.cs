@@ -47,4 +47,27 @@ public sealed class LocalFileStorageService : IDocumentStorageService
         // Local storage has no signing: serve as a rooted relative URL.
         return Task.FromResult<string?>($"/{path}");
     }
+
+    public Task<IReadOnlyList<StorageObjectInfo>> ListFilesAsync(string prefix)
+    {
+        var results = new List<StorageObjectInfo>();
+
+        var relativePrefix = (prefix ?? string.Empty)
+            .Replace('\\', '/')
+            .TrimStart('/');
+        var directory = Path.Combine(_basePath,
+            relativePrefix.Replace('/', Path.DirectorySeparatorChar));
+
+        if (Directory.Exists(directory))
+        {
+            foreach (var file in Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories))
+            {
+                var relative = Path.GetRelativePath(_basePath, file)
+                    .Replace(Path.DirectorySeparatorChar, '/');
+                results.Add(new StorageObjectInfo(relative, File.GetLastWriteTimeUtc(file)));
+            }
+        }
+
+        return Task.FromResult<IReadOnlyList<StorageObjectInfo>>(results);
+    }
 }
