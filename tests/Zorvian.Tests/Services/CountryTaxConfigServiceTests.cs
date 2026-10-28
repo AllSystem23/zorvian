@@ -240,6 +240,37 @@ public sealed class CountryTaxConfigServiceTests
     }
 
     [Theory]
+    [InlineData(0, 1)]     // lo que dejaba en cero el formulario viejo
+    [InlineData(13, 1)]
+    [InlineData(12, 0)]
+    [InlineData(12, 32)]
+    public async Task CreateAsync_RejectsInvalidAguinaldoPeriod(int month, int day)
+    {
+        var act = () => _sut.CreateAsync(CreateRequest(
+            aguinaldoPeriodStartMonth: month, aguinaldoPeriodStartDay: day));
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*período de aguinaldo*");
+
+        _repo.Verify(r => r.AddAsync(It.IsAny<CountryTaxConfig>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_InvalidAguinaldoPeriod_ThrowsAndDoesNotMutate()
+    {
+        var entity = SeedEntity();
+
+        var act = () => _sut.UpdateAsync(entity.Id, UpdateRequest(aguinaldoPeriodStartMonth: 0));
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*período de aguinaldo*");
+
+        entity.AguinaldoPeriodStartMonth.Should().Be(12); // intacto: se valida antes de mutar
+        _repo.Verify(r => r.UpdateAsync(It.IsAny<CountryTaxConfig>()), Times.Never);
+        _repo.Verify(r => r.SaveChangesAsync(), Times.Never);
+    }
+
+    [Theory]
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]

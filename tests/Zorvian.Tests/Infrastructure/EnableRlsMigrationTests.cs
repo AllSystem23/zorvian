@@ -317,6 +317,33 @@ public sealed class EnableRlsMigrationTests
         }
     }
 
+    [Fact]
+    public void RepairCountryTaxConfigAguinaldoPeriod_RepairsInvalidValues_WithoutSchemaChange()
+    {
+        // Regresión del error "Year, Month, and Day parameters describe an
+        // un-representable DateTime." que tumbaba GET documents/entity-context (paso 1
+        // del wizard) y el finiquito: el formulario viejo del catálogo dejó en 0 el
+        // período de aguinaldo y esa fila sigue viva en BD (la escritura ya se valida,
+        // pero los datos no estaban reparados).
+        // Los strings viajan como literales verbatim (comillas duplicadas) → se desescalan.
+        var sql = ReadMigrationSourceFile(
+            "20261028210535_RepairCountryTaxConfigAguinaldoPeriod.cs").Replace("\"\"", "\"");
+
+        Assert.Contains("UPDATE \"CountryTaxConfigs\"", sql);
+        Assert.Contains("\"AguinaldoPeriodStartMonth\" = 12", sql);
+        Assert.Contains("\"AguinaldoPeriodStartDay\" = 1", sql);
+        // Fuera de rango → default del cálculo (12/1).
+        Assert.Contains("\"AguinaldoPeriodStartMonth\" < 1 OR \"AguinaldoPeriodStartMonth\" > 12", sql);
+        Assert.Contains("\"AguinaldoPeriodStartDay\" < 1 OR \"AguinaldoPeriodStartDay\" > 31", sql);
+        // Día inexistente en el mes (31/abril, 30/feb) → se conserva el mes y baja a 1.
+        Assert.Contains("IN (4, 6, 9, 11)", sql);
+        Assert.Contains("= 2 AND \"AguinaldoPeriodStartDay\" > 29", sql);
+
+        // Es solo reparación de datos: no toca el esquema (nada que revertir en Down).
+        Assert.DoesNotContain("CreateTable", sql);
+        Assert.DoesNotContain("AddColumn", sql);
+    }
+
     private static string ReadMigrationSourceFile(string fileName)
     {
         // Los tests corren desde bin/Debug/net9.0: se sube hasta encontrar la raíz del repo.

@@ -199,4 +199,27 @@ public sealed class CertificateCalculatorTests : IDisposable
         Assert.Equal("01/03/2026 - 01/10/2026", vars["periodo_aguinaldo"]);
         Assert.Equal("8,835.62", vars["aguinaldo_monto"]);   // 215/365 × 15,000
     }
+
+    [Theory]
+    // mes/día inválidos → default 12/1; mes válido con día inexistente → se corrige el día
+    [InlineData(0, 1, "01/12/2025 - 01/10/2026")]     // lo que dejaba en cero el formulario viejo
+    [InlineData(12, 0, "01/12/2025 - 01/10/2026")]
+    [InlineData(13, 1, "01/12/2025 - 01/10/2026")]    // mes inexistente
+    [InlineData(4, 31, "01/04/2025 - 01/10/2026")]    // 31 no existe en abril
+    public async Task AguinaldoPeriodWithInvalidMonthOrDay_FallsBackInsteadOfThrowing(
+        int month, int day, string expectedPeriod)
+    {
+        // Regresión del error "Year, Month, and Day parameters describe an
+        // un-representable DateTime." que tumbaba GET documents/entity-context
+        // (paso 1 del wizard) y el cálculo del finiquito.
+        var config = Nicaragua();
+        config.AguinaldoPeriodStartMonth = month;
+        config.AguinaldoPeriodStartDay = day;
+        var sut = CreateSut(config);
+
+        var vars = await sut.CalculateLiquidationVariablesAsync(
+            EmployeeId, 15000m, HireDate, TermDate, null, "NIC");
+
+        Assert.Equal(expectedPeriod, vars["periodo_aguinaldo"]);
+    }
 }

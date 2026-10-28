@@ -70,6 +70,7 @@ public sealed class CountryTaxConfigService : ICountryTaxConfigService
             ("INSS IVM patronal (empresa pequeña)", request.InssIvmEmployerRateSmall));
         ValidateIrTable(request.IrTableJson);
         ValidateIndemnityTiers(request.IndemnityTiersJson);
+        ValidateAguinaldoPeriod(request.AguinaldoPeriodStartMonth, request.AguinaldoPeriodStartDay);
 
         var entity = new CountryTaxConfig
         {
@@ -158,6 +159,7 @@ public sealed class CountryTaxConfigService : ICountryTaxConfigService
             ("INSS IVM patronal (empresa pequeña)", request.InssIvmEmployerRateSmall));
         if (request.IrTableJson is not null) ValidateIrTable(request.IrTableJson);
         if (request.IndemnityTiersJson is not null) ValidateIndemnityTiers(request.IndemnityTiersJson);
+        ValidateAguinaldoPeriod(request.AguinaldoPeriodStartMonth, request.AguinaldoPeriodStartDay);
     }
 
     /// <summary>Aplica los campos enviados (null = conservar). No valida: el caller valida antes.</summary>
@@ -385,6 +387,24 @@ public sealed class CountryTaxConfigService : ICountryTaxConfigService
                 throw new InvalidOperationException(
                     $"La tasa de un tramo de la tabla de IR debe estar entre 0 y 1 (0.15 = 15 %). Valor recibido: {rate}.");
         }
+    }
+
+    /// <summary>
+    /// El período de aguinaldo es un mes/día reales del calendario. Un 0 (como el que
+    /// guardaba el formulario viejo del catálogo) llegaba a
+    /// `new DateOnly(año, 0, 0)` → "Year, Month, and Day parameters describe an
+    /// un-representable DateTime." al calcular la liquidación y al previsualizar el
+    /// contexto en el motor documental. null = no enviado (update).
+    /// </summary>
+    private static void ValidateAguinaldoPeriod(int? month, int? day)
+    {
+        if (month is { } m && (m < 1 || m > 12))
+            throw new InvalidOperationException(
+                $"El mes del período de aguinaldo debe estar entre 1 y 12. Valor recibido: {m}.");
+
+        if (day is { } d && (d < 1 || d > 31))
+            throw new InvalidOperationException(
+                $"El día del período de aguinaldo debe estar entre 1 y 31. Valor recibido: {d}.");
     }
 
     /// <summary>

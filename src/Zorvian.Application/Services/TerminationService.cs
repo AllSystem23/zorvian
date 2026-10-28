@@ -597,10 +597,19 @@ public sealed class TerminationService
         if (hireDate.Year >= terminationDate.Year)
             return hireDate;
 
-        return new DateOnly(
-            terminationDate.Year - 1,
-            taxConfig?.AguinaldoPeriodStartMonth ?? 12,
-            taxConfig?.AguinaldoPeriodStartDay ?? 1);
+        var year = terminationDate.Year - 1;
+        var month = taxConfig?.AguinaldoPeriodStartMonth ?? 12;
+        var day = taxConfig?.AguinaldoPeriodStartDay ?? 1;
+
+        // Datos inválidos (el formulario viejo del catálogo fiscal guardaba 0):
+        // sin esta guarda `new DateOnly` lanza "Year, Month, and Day parameters
+        // describe an un-representable DateTime." y tumba el contexto del motor
+        // documental (GET entity-context) y el cálculo del finiquito. Mes fuera de
+        // 1..12 → default 12; día fuera del mes → default 1.
+        if (month < 1 || month > 12) month = 12;
+        if (day < 1 || day > DateTime.DaysInMonth(year, month)) day = 1;
+
+        return new DateOnly(year, month, day);
     }
 
     /// <summary>
