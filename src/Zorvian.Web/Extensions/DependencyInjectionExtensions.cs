@@ -470,6 +470,8 @@ public static class DependencyInjectionExtensions
         services.AddScoped<IDocumentService, Zorvian.Application.Services.Documentary.DocumentService>();
         services.AddScoped<Zorvian.Application.Services.Documentary.IEntityDocumentContextBuilder, Zorvian.Application.Services.Documentary.EntityDocumentContextBuilder>();
         services.AddScoped<IDocumentGenerationService, Zorvian.Application.Services.Documentary.DocumentGenerationService>();
+        services.AddScoped<IDocumentVersionContentService, Zorvian.Application.Services.Documentary.DocumentVersionContentService>();
+        services.AddScoped<IDatabaseMaintenanceService, Zorvian.Infrastructure.Services.DatabaseMaintenanceService>();
         services.AddScoped<CertificateRequestService>();
 
         // API Keys
@@ -561,6 +563,8 @@ public static class DependencyInjectionExtensions
         services.AddScoped<Zorvian.Web.Jobs.FleetAlertJob>();
         services.AddScoped<Zorvian.Web.Jobs.FleetExpenseNotificationJob>();
         services.AddScoped<Zorvian.Web.Jobs.CompanyLogoOrphanSweepJob>();
+        services.AddScoped<Zorvian.Web.Jobs.DocumentVersionContentSweepJob>();
+        services.AddScoped<Zorvian.Web.Jobs.DataRetentionJob>();
         return services;
     }
 }

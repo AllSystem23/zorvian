@@ -23,6 +23,7 @@ public sealed class DocumentsController : ControllerBase
     private readonly IGeneratedDocumentRepository _docRepo;
     private readonly ISignatureService _signatureService;
     private readonly ITenantContext _tenant;
+    private readonly IDocumentVersionContentService _versionContent;
     private readonly QuestPdfService _pdfService;
 
     public DocumentsController(
@@ -32,6 +33,7 @@ public sealed class DocumentsController : ControllerBase
         IGeneratedDocumentRepository docRepo,
         ISignatureService signatureService,
         ITenantContext tenant,
+        IDocumentVersionContentService versionContent,
         QuestPdfService pdfService)
     {
         _documentService = documentService;
@@ -40,6 +42,7 @@ public sealed class DocumentsController : ControllerBase
         _docRepo = docRepo;
         _signatureService = signatureService;
         _tenant = tenant;
+        _versionContent = versionContent;
         _pdfService = pdfService;
     }
 
@@ -290,10 +293,15 @@ public sealed class DocumentsController : ControllerBase
 
         var versions = await _docRepo.GetVersionsAsync(id);
         var latest = versions.MaxBy(v => v.VersionNumber);
-        if (latest == null || string.IsNullOrEmpty(latest.Content))
+        if (latest == null)
             return NotFound(new { detail = "No hay contenido renderizado para este documento" });
 
-        var pdfBytes = _pdfService.RenderHtmlToPdf(latest.Content);
+        // El HTML vive en Storage (Content solo como fallback de filas antiguas).
+        var content = await _versionContent.GetContentAsync(latest);
+        if (string.IsNullOrEmpty(content))
+            return NotFound(new { detail = "No hay contenido renderizado para este documento" });
+
+        var pdfBytes = _pdfService.RenderHtmlToPdf(content);
         var fileName = $"{doc.Name}.pdf".Replace(" ", "_").Replace("/", "-");
         return File(pdfBytes, "application/pdf", fileName);
     }
@@ -317,10 +325,15 @@ public sealed class DocumentsController : ControllerBase
         if (doc == null) return NotFound(new { detail = "Documento no encontrado" });
 
         var latest = doc.Versions.OrderByDescending(v => v.VersionNumber).FirstOrDefault();
-        if (latest == null || string.IsNullOrEmpty(latest.Content))
+        if (latest == null)
             return NotFound(new { detail = "Sin contenido renderizado" });
 
-        var actualHash = DocumentContentHasher.Sha256Hex(latest.Content);
+        // Misma resolución que el PDF: de Storage salvo para filas antiguas/fallback.
+        var content = await _versionContent.GetContentAsync(latest);
+        if (string.IsNullOrEmpty(content))
+            return NotFound(new { detail = "Sin contenido renderizado" });
+
+        var actualHash = DocumentContentHasher.Sha256Hex(content);
         var signed = doc.Signatures
             .Where(s => s.Status == "signed" && !string.IsNullOrEmpty(s.SignatureData))
             .ToList();

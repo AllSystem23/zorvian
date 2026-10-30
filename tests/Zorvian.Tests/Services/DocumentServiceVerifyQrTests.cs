@@ -27,6 +27,8 @@ public sealed class DocumentServiceVerifyQrTests
     private readonly Mock<ICompanyRepository> _companyRepo = new();
     private readonly Mock<IAppLinks> _appLinks = new();
     private readonly Mock<ITenantContext> _tenant = new();
+    private readonly Mock<IDocumentStorageService> _storage = new();
+    private readonly Mock<IDocumentVersionContentService> _versionContent = new();
     private readonly Mock<ILogger<DocumentService>> _logger = new();
 
     private const string ApiBase = "https://api.example.com/zorvian/v1";
@@ -76,6 +78,8 @@ public sealed class DocumentServiceVerifyQrTests
             _companyRepo.Object,
             _appLinks.Object,
             _tenant.Object,
+            _storage.Object,
+            _versionContent.Object,
             _logger.Object);
         return _sut;
     }

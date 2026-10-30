@@ -287,6 +287,7 @@ final class NavConfig {
         NavItem(id: 'invitar', label: 'Invitar Usuario', icon: Icons.person_add_outlined, route: '/admin/invite', roles: ['SuperAdmin']),
         NavItem(id: 'invitaciones-historial', label: 'Historial Invitaciones', icon: Icons.history_outlined, route: '/admin/invitations-history', roles: ['SuperAdmin']),
         NavItem(id: 'solicitudes-acceso', label: 'Solicitudes de Acceso', icon: Icons.how_to_reg_outlined, route: '/admin/access-requests', roles: ['SuperAdmin']),
+        NavItem(id: 'db-storage', label: 'Almacenamiento BD', icon: Icons.storage_outlined, route: '/admin/db-storage', roles: ['SuperAdmin']),
         NavItem(id: 'sucursales', label: 'Sucursales', icon: Icons.store_outlined, route: '/branches'),
         NavItem(id: 'documental', label: 'Motor Documental', icon: Icons.auto_stories_outlined, route: '/documents'),
         NavItem(id: 'aprobaciones', label: 'Flujos de Aprobación', icon: Icons.fact_check_outlined, route: '/approval-pending'),
@@ -396,6 +397,7 @@ final class NavConfig {
     'invitaciones-historial': 'user.write',
     'documental': 'document.read',
     'auditoria': 'audit.read',
+    'db-storage': 'company.manage',
     // Fiscal
     'country-tax': 'accounting.read',
     'regional-tax': 'accounting.read',

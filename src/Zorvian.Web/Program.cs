@@ -292,23 +292,62 @@ if (!mockExternal)
         logger.LogError(fleetEx, "Failed to apply Fleet SQL script");
     }
 
-    // 3. Seed catalog data if tables are empty
-    await Zorvian.Infrastructure.Data.DocumentTemplateSeeder.SeedAsync(db, logger);
-    await Zorvian.Infrastructure.Data.FleetCatalogSeeder.SeedAsync(db, logger);
-    await Zorvian.Infrastructure.Data.CountryTaxConfigSeeder.SeedAsync(db, logger);
-    await Zorvian.Infrastructure.Data.SubscriptionPlanSeeder.SeedAsync(db, logger);
+    // 3. Seed catalog data if tables are empty. Un fallo (p. ej. Neon con su
+    //    límite de 1024 MB excedido: cualquier escritura devuelve 53100) NO debe
+    //    tumbar el arranque — los seeders son idempotentes y se reintentan en el
+    //    próximo deploy; sin este guard el servicio entraba en crash-loop.
+    //    Con la base llena se omiten los seeders restantes (fallarían igual).
+    var storageFull = false;
+
+    async Task SeedSafelyAsync(string seeder, Func<Task> run)
+    {
+        if (storageFull)
+            return;
+
+        try
+        {
+            await run();
+        }
+        catch (Exception seedEx) when (Zorvian.Infrastructure.Data.PostgresStorageErrors.IsStorageFull(seedEx))
+        {
+            storageFull = true;
+            logger.LogCritical(seedEx,
+                "{Seeder} failed: la base de datos alcanzó su límite de almacenamiento (Neon 53100). " +
+                "Se omiten los seeders restantes de este arranque; libere espacio con " +
+                "POST /zorvian/v1/system/db-storage/purge o siguiendo docs/DB_STORAGE_RECOVERY.md",
+                seeder);
+        }
+        catch (Exception seedEx)
+        {
+            logger.LogError(seedEx,
+                "{Seeder} failed — app continues without refreshing seed data", seeder);
+        }
+    }
+
+    await SeedSafelyAsync(nameof(Zorvian.Infrastructure.Data.DocumentTemplateSeeder),
+        () => Zorvian.Infrastructure.Data.DocumentTemplateSeeder.SeedAsync(db, logger));
+    await SeedSafelyAsync(nameof(Zorvian.Infrastructure.Data.FleetCatalogSeeder),
+        () => Zorvian.Infrastructure.Data.FleetCatalogSeeder.SeedAsync(db, logger));
+    await SeedSafelyAsync(nameof(Zorvian.Infrastructure.Data.CountryTaxConfigSeeder),
+        () => Zorvian.Infrastructure.Data.CountryTaxConfigSeeder.SeedAsync(db, logger));
+    await SeedSafelyAsync(nameof(Zorvian.Infrastructure.Data.SubscriptionPlanSeeder),
+        () => Zorvian.Infrastructure.Data.SubscriptionPlanSeeder.SeedAsync(db, logger));
 
     // 4. Upgrade automático del plan contable + enlaces de cuentas (ensure-missing) para
     //    TODAS las compañías: los asientos de Nómina y Pago a Prestadores quedan operativos
     //    sin configuración manual del contador. Idempotente; un fallo no detiene el arranque.
-    try
+    //    Se omite si la base ya se quedó sin espacio (el intento solo repetiría el 53100).
+    if (!storageFull)
     {
-        var seedService = scope.ServiceProvider.GetRequiredService<Zorvian.Infrastructure.Services.SeedService>();
-        await seedService.EnsureAccountsAndLinksAsync();
-    }
-    catch (Exception seedEx)
-    {
-        logger.LogError(seedEx, "Account chart/link auto-upgrade failed — app continues");
+        try
+        {
+            var seedService = scope.ServiceProvider.GetRequiredService<Zorvian.Infrastructure.Services.SeedService>();
+            await seedService.EnsureAccountsAndLinksAsync();
+        }
+        catch (Exception seedEx)
+        {
+            logger.LogError(seedEx, "Account chart/link auto-upgrade failed — app continues");
+        }
     }
 }
 
@@ -368,6 +407,14 @@ if (!mockExternal)
     // compañía referencia (con 24 h de gracia). Los borrados normales ocurren
     // en línea al reemplazar o quitar el logo.
     recurringJobManager.AddOrUpdate<Zorvian.Web.Jobs.CompanyLogoOrphanSweepJob>("company-logo-orphan-sweep", j => j.RunAsync(), "0 5 * * 0");
+    // Backfill del HTML de DocumentVersions a Storage (libera la BD sin borrar nada).
+    // Lotes de 50 cada 10 min; si un lote sale completo se encadena solo hasta drenar.
+    recurringJobManager.AddOrUpdate<Zorvian.Web.Jobs.DocumentVersionContentSweepJob>("document-version-content-sweep", j => j.RunAsync(), "*/10 * * * *");
+    // Retención de las tablas de alto volumen (telemetría GPS, logs de webhooks,
+    // historial de entidades, journal de sync, tokens vencidos) + VACUUM ANALYZE.
+    // Neon corta las escrituras al llegar a 1024 MB: sin esta purga esas tablas
+    // crecen para siempre. Los AuditLogs los purga audit-log-cleanup (6 meses).
+    recurringJobManager.AddOrUpdate<Zorvian.Web.Jobs.DataRetentionJob>("data-retention", j => j.RunAsync(), "30 1 * * *");
 }
 
 app.Run();

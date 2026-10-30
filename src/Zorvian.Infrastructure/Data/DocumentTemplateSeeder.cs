@@ -558,6 +558,19 @@ public static class DocumentTemplateSeeder
             if (!freshByKey.TryGetValue(NormalizeTemplateName(row.Name), out var fresh))
                 continue;
 
+            // Nada que cambiar → no tocar la fila. El filtro incluye la versión
+            // vigente (2.0), así que sin esta guarda TODOS los arranques reescriben
+            // las ~27 plantillas (~1 MB de HTML) y el SaveChanges falla en cuanto la
+            // BD se queda sin espacio (Neon 53100: "project size limit exceeded").
+            if (row.Name == fresh.Name &&
+                row.Category == fresh.Category &&
+                row.Module == fresh.Module &&
+                row.CountryCode == fresh.CountryCode &&
+                row.Version == fresh.Version &&
+                row.Variables == fresh.Variables &&
+                row.Content == fresh.Content)
+                continue;
+
             row.Name = fresh.Name;
             row.Category = fresh.Category;
             row.Module = fresh.Module;

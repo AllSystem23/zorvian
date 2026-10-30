@@ -19,6 +19,13 @@ public interface IDocumentStorageService
     Task DeleteFileAsync(string path);
 
     /// <summary>
+    /// Reads a stored text object (UTF-8) and returns its content, or null when the
+    /// object does not exist. Used to resolve <c>DocumentVersion.Content</c> after the
+    /// HTML moved out of the database into storage.
+    /// </summary>
+    Task<string?> ReadTextFileAsync(string path);
+
+    /// <summary>
     /// Resolves a stored value (object path, legacy public URL or external URL)
     /// into a time-limited signed URL. Non-storage external URLs are returned
     /// unchanged. Returns null when the input is null/empty.

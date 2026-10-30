@@ -1,3 +1,4 @@
+using System.Text;
 using Fluid;
 using Microsoft.Extensions.Logging;
 using Zorvian.Application.Helpers;
@@ -16,6 +17,8 @@ public sealed class DocumentService : IDocumentService
     private readonly ICompanyRepository _companyRepo;
     private readonly IAppLinks _appLinks;
     private readonly ITenantContext _tenant;
+    private readonly IDocumentStorageService _storage;
+    private readonly IDocumentVersionContentService _versionContent;
     private readonly ILogger<DocumentService> _logger;
 
     public DocumentService(
@@ -25,6 +28,8 @@ public sealed class DocumentService : IDocumentService
         ICompanyRepository companyRepo,
         IAppLinks appLinks,
         ITenantContext tenant,
+        IDocumentStorageService storage,
+        IDocumentVersionContentService versionContent,
         ILogger<DocumentService> logger)
     {
         _templateRepo = templateRepo;
@@ -33,6 +38,8 @@ public sealed class DocumentService : IDocumentService
         _companyRepo = companyRepo;
         _appLinks = appLinks;
         _tenant = tenant;
+        _storage = storage;
+        _versionContent = versionContent;
         _logger = logger;
     }
 
@@ -114,13 +121,45 @@ public sealed class DocumentService : IDocumentService
         };
 
         await _docRepo.AddAsync(doc);
-        
+
+        // El HTML renderizado (~40-80 KB por versión) vive en Storage: la BD solo
+        // guarda la referencia. Si la subida falla el contenido SE CONSERVA en
+        // Content (fallback) para que PDF/verificación/constancia sigan funcionando;
+        // el job document-version-content-sweep lo migrará cuando Storage vuelva.
+        var filePath = $"documents/{doc.Id}/v1.html";
+        var storedContent = renderedContent;
+        try
+        {
+            var bytes = Encoding.UTF8.GetBytes(renderedContent);
+            await using var stream = new MemoryStream(bytes);
+            var storedPath = await _storage.UploadFileAsync(stream, filePath, "text/html; charset=utf-8");
+
+            if (string.IsNullOrEmpty(storedPath))
+            {
+                // Sin ruta no hay dónde leerlo después: se trata como subida fallida.
+                _logger.LogWarning(
+                    "El almacenamiento no devolvió la ruta de {Path}; se conserva el HTML en la base de datos", filePath);
+            }
+            else
+            {
+                filePath = storedPath;
+                storedContent = string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex,
+                "No se pudo subir el HTML de {Path} a Storage; se conserva en la base de datos", filePath);
+        }
+
         var version = new DocumentVersion
         {
             DocumentId = doc.Id,
             VersionNumber = 1,
-            Content = renderedContent,
-            FilePath = $"documents/{doc.Id}/v1.html",
+            Content = storedContent,
+            FilePath = filePath,
+            FileSizeBytes = Encoding.UTF8.GetByteCount(renderedContent),
+            FileHash = DocumentContentHasher.Sha256Hex(renderedContent),
             CreatedAt = DateTime.UtcNow,
             ChangesSummary = "Initial professional generation"
         };
@@ -140,11 +179,14 @@ public sealed class DocumentService : IDocumentService
 
         var versions = await _docRepo.GetVersionsAsync(documentId);
         var latestVersion = versions.MaxBy(v => v.VersionNumber);
-        if (latestVersion != null)
+        var latestContent = latestVersion == null
+            ? null
+            : await _versionContent.GetContentAsync(latestVersion);
+        if (!string.IsNullOrEmpty(latestContent))
         {
             try
             {
-                var summary = await _aiService.SummarizeDocumentAsync(latestVersion.Content);
+                var summary = await _aiService.SummarizeDocumentAsync(latestContent!);
                 if (!string.IsNullOrEmpty(summary))
                 {
                     doc.Summary = summary;

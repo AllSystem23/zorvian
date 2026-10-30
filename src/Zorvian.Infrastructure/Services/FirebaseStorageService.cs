@@ -1,4 +1,5 @@
 using System.Net.Http;
+using System.Text;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using Google.Cloud.Storage.V1;
@@ -47,6 +48,23 @@ public sealed class FirebaseStorageService : IDocumentStorageService
         catch (Google.GoogleApiException ex) when (ex.Error.Code == 404)
         {
             // Object already deleted or never existed
+        }
+    }
+
+    public async Task<string?> ReadTextFileAsync(string path)
+    {
+        var objectPath = StoragePathHelper.ExtractStoragePath(path);
+        if (string.IsNullOrEmpty(objectPath)) return null;
+
+        try
+        {
+            using var buffer = new MemoryStream();
+            await GetStorage().DownloadObjectAsync(_bucketName, objectPath, buffer);
+            return Encoding.UTF8.GetString(buffer.ToArray());
+        }
+        catch (Google.GoogleApiException ex) when (ex.Error.Code == 404)
+        {
+            return null;
         }
     }
 

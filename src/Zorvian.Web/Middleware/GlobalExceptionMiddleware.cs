@@ -3,6 +3,7 @@ using System.Text.Json;
 using FluentValidation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Zorvian.Infrastructure.Data;
 
 namespace Zorvian.Web.Middleware;
 
@@ -81,6 +82,24 @@ public sealed class GlobalExceptionMiddleware
             context.Response.StatusCode = (int)HttpStatusCode.GatewayTimeout;
             await WriteResponse(context, new { message = "Operación cancelada." });
         }
+        catch (Exception ex) when (PostgresStorageErrors.IsStorageFull(ex))
+        {
+            // Npgsql/Neon: 53100 "could not extend file because project size limit
+            // (1024 MB) has been exceeded". Sin este caso el cliente solo veía un 500
+            // genérico y el equipo no sabía que era falta de espacio en la base.
+            _logger.LogCritical(ex,
+                "Base de datos sin espacio al procesar {Method} {Path}. " +
+                "Libere espacio (POST /zorvian/v1/system/db-storage/purge o docs/DB_STORAGE_RECOVERY.md)",
+                context.Request.Method, context.Request.Path);
+
+            context.Response.StatusCode = (int)HttpStatusCode.ServiceUnavailable;
+            context.Response.Headers.RetryAfter = "120";
+            await WriteResponse(context, new
+            {
+                message = "La base de datos alcanzó su límite de almacenamiento y no puede guardar cambios. " +
+                          "Un administrador debe liberar espacio (mantenimiento de almacenamiento) y reintentar.",
+            });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unhandled exception processing {Method} {Path}. TraceId: {TraceId}",
@@ -130,6 +149,7 @@ public sealed class GlobalExceptionMiddleware
         409 => "Conflict",
         422 => "Unprocessable Entity",
         500 => "Internal Server Error",
+        503 => "Service Unavailable",
         _ => "An error occurred"
     };
 }

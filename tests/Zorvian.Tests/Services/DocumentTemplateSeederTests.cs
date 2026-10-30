@@ -287,4 +287,24 @@ public sealed class DocumentTemplateSeederTests : IDisposable
         Assert.Equal(afterFirst.UpdatedAt, afterSecond.UpdatedAt);
         Assert.Equal(afterFirst.Content, afterSecond.Content);
     }
+
+    [Fact]
+    public async Task SeedAsync_SecondRun_MakesNoWrites_WhenTemplatesAreCurrent()
+    {
+        // Regresión del crash de arranque (Neon 53100 "project size limit exceeded"): el
+        // filtro de upgrade incluye la versión vigente (2.0/1.0), así que sin comparar el
+        // contenido el seeder reescribía las 28 plantillas (~1 MB de HTML) en CADA
+        // arranque y ese batch de UPDATEs era justo el comando que revienta cuando la BD
+        // está llena.
+        await DocumentTemplateSeeder.SeedAsync(_db, _logger);
+
+        await DocumentTemplateSeeder.SeedAsync(_db, _logger);
+
+        var modified = _db.ChangeTracker.Entries<DocumentTemplate>()
+            .Where(e => e.State == EntityState.Modified)
+            .ToList();
+
+        Assert.Empty(modified);
+        Assert.Equal(28, (await AllTemplates()).Count);
+    }
 }

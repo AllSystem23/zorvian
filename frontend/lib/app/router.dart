@@ -26,6 +26,7 @@ import '../features/admin/pages/access_requests_page.dart';
 import '../features/admin/pages/invitation_history_page.dart';
 import '../features/admin/pages/super_admin_companies_page.dart';
 import '../features/admin/pages/subscription_plans_page.dart';
+import '../features/admin/pages/db_storage_page.dart';
 import '../features/branches/pages/branch_list_page.dart';
 import '../features/branches/pages/branch_form_page.dart';
 import '../features/departments/pages/department_form_page.dart';
@@ -241,6 +242,7 @@ final _routeRoles = <String, List<String>>{
   '/admin/companies': ['SuperAdmin'],
   '/admin/subscription-plans': ['SuperAdmin'],
   '/admin/access-requests': ['SuperAdmin'],
+  '/admin/db-storage': ['SuperAdmin'],
   '/admin/roles': ['SuperAdmin', 'CompanyAdmin'],
   '/settings': ['SuperAdmin', 'CompanyAdmin'],
   '/payroll': ['SuperAdmin', 'CompanyAdmin', 'Rrhh'],
@@ -381,6 +383,8 @@ final _routePermissions = <String, String>{
   '/admin/invitations-history': 'user.write',
   // Cola de solicitudes de acceso (plataforma): permiso de plataforma.
   '/admin/access-requests': 'company.manage',
+  // Diagnóstico/purga de almacenamiento de la BD: plataforma (SuperAdmin).
+  '/admin/db-storage': 'company.manage',
   // Administración de sucursales: el prefijo entero exige `settings.write`
   // porque la edición vive en `/branches/:id` (sin sufijo `/edit`) y el
   // BranchesController exige ese permiso para crear/editar/borrar. La LECTURA
@@ -730,6 +734,11 @@ GoRouter buildGoRouter(AuthState authState) {
             path: '/admin/access-requests',
             name: 'admin-access-requests',
             builder: (_, _) => const AccessRequestsPage(),
+          ),
+          GoRoute(
+            path: '/admin/db-storage',
+            name: 'admin-db-storage',
+            builder: (_, _) => const DbStoragePage(),
           ),
           GoRoute(
             path: '/admin/companies',

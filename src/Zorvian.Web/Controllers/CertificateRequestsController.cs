@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Zorvian.Application.DTOs.Employee;
+using Zorvian.Application.Interfaces;
 using Zorvian.Application.Services;
 using Zorvian.Core.Interfaces;
 using Zorvian.Infrastructure.Data;
@@ -19,17 +20,20 @@ public sealed class CertificateRequestsController : ControllerBase
     private readonly CertificateRequestService _service;
     private readonly ITenantContext _tenant;
     private readonly ZorvianDbContext _db;
+    private readonly IDocumentVersionContentService _versionContent;
     private readonly QuestPdfService _pdfService;
 
     public CertificateRequestsController(
         CertificateRequestService service,
         ITenantContext tenant,
         ZorvianDbContext db,
+        IDocumentVersionContentService versionContent,
         QuestPdfService pdfService)
     {
         _service = service;
         _tenant = tenant;
         _db = db;
+        _versionContent = versionContent;
         _pdfService = pdfService;
     }
 
@@ -91,7 +95,13 @@ public sealed class CertificateRequestsController : ControllerBase
             return NotFound(new { error = "Documento no encontrado" });
 
         var latestVersion = doc.Versions.OrderByDescending(v => v.VersionNumber).First();
-        var pdfBytes = _pdfService.RenderHtmlToPdf(latestVersion.Content);
+
+        // El HTML vive en Storage; Content es fallback de filas antiguas.
+        var content = await _versionContent.GetContentAsync(latestVersion);
+        if (string.IsNullOrEmpty(content))
+            return NotFound(new { error = "Sin contenido renderizado" });
+
+        var pdfBytes = _pdfService.RenderHtmlToPdf(content);
 
         var fileName = $"constancia_{request.CertificateType}_{request.Employee.FirstName}_{request.Employee.LastName}.pdf"
             .Replace(" ", "_");

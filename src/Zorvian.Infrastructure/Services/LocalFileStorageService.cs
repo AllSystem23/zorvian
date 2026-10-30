@@ -1,3 +1,4 @@
+using System.Text;
 using Zorvian.Application.Helpers;
 using Zorvian.Application.Interfaces;
 
@@ -36,6 +37,23 @@ public sealed class LocalFileStorageService : IDocumentStorageService
         }
 
         return Task.CompletedTask;
+    }
+
+    public async Task<string?> ReadTextFileAsync(string path)
+    {
+        // Mismo modo relativo que UploadFileAsync (sin normalizar: el path lo
+        // guardamos nosotros al subir).
+        var relative = (path ?? string.Empty).Replace('\\', '/').TrimStart('/');
+        if (relative.Length == 0) return null;
+
+        var fullPath = Path.Combine(_basePath,
+            relative.Replace('/', Path.DirectorySeparatorChar));
+
+        if (!File.Exists(fullPath)) return null;
+
+        await using var stream = File.OpenRead(fullPath);
+        using var reader = new StreamReader(stream, Encoding.UTF8);
+        return await reader.ReadToEndAsync();
     }
 
     public Task<string?> GetSignedUrlAsync(string? storedPathOrUrl, TimeSpan? ttl = null)
