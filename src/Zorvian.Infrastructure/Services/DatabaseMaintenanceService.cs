@@ -257,7 +257,13 @@ public sealed class DatabaseMaintenanceService : IDatabaseMaintenanceService
         var results = new List<RetentionPurgeResult>();
         var notes = new List<string>();
 
-        foreach (var rule in DataRetentionRules.All)
+        // Los AuditLogs vencidos (6 meses) también se purgan aquí, no solo en el job
+        // `audit-log-cleanup`: si el operador lanza la purga desde el API espera que la
+        // tabla más grande de logs entre en el barrido. Necesita el scope de retención
+        // porque el interceptor AUD-004 bloquea el borrado de auditoría por diseño.
+        var rules = DataRetentionRules.All.Append(DataRetentionRules.AuditLogs).ToList();
+
+        foreach (var rule in rules)
         {
             var retentionDays = ResolveRetentionDays(rule);
             var cutoff = now.AddDays(-retentionDays);
@@ -267,9 +273,15 @@ public sealed class DatabaseMaintenanceService : IDatabaseMaintenanceService
             long deleted;
             try
             {
-                deleted = isPostgres
-                    ? await PurgePostgresAsync(rule, cutoff, size, cancellationToken)
-                    : await PurgeWithEntityFrameworkAsync(rule, cutoff, size, cancellationToken);
+                IDisposable? retentionScope =
+                    rule.EntityType == typeof(Core.Entities.AuditLog) ? AuditRetentionScope.Begin() : null;
+
+                using (retentionScope)
+                {
+                    deleted = isPostgres
+                        ? await PurgePostgresAsync(rule, cutoff, size, cancellationToken)
+                        : await PurgeWithEntityFrameworkAsync(rule, cutoff, size, cancellationToken);
+                }
             }
             catch (Exception ex)
             {
@@ -327,6 +339,183 @@ public sealed class DatabaseMaintenanceService : IDatabaseMaintenanceService
     {
         var raw = _configuration[$"{RetentionConfigPrefix}:{rule.Table}"];
         return int.TryParse(raw, out var days) && days > 0 ? days : rule.RetentionDays;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Purga de emergencia (TRUNCATE)
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    public async Task<DataRetentionTruncateSummary> TruncateRetentionTablesAsync(
+        IReadOnlyCollection<string>? tables = null,
+        bool includeAuditLogs = false,
+        CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+        var isPostgres = IsPostgres();
+        var results = new List<RetentionTruncateResult>();
+        var notes = new List<string>();
+
+        var (targets, unknown) = ResolveTruncateTargets(tables, includeAuditLogs);
+
+        foreach (var name in unknown)
+        {
+            notes.Add(
+                $"Tabla ignorada: «{name}». Solo se permite TRUNCATE sobre tablas de retención " +
+                "(telemetría, logs y tokens); los datos de negocio nunca se vacían.");
+        }
+
+        if (!includeAuditLogs &&
+            tables is { Count: > 0 } &&
+            tables.Any(t => string.Equals(t?.Trim(), DataRetentionRules.AuditLogs.Table, StringComparison.OrdinalIgnoreCase)))
+        {
+            notes.Add(
+                "AuditLogs no se vació: envíe includeAuditLogs=true para confirmar el borrado de " +
+                "TODO el log de auditoría (no solo lo vencido).");
+        }
+
+        if (targets.Count == 0)
+        {
+            notes.Add("No había tablas válidas que vaciar.");
+            return new DataRetentionTruncateSummary(
+                ExecutedAtUtc: now,
+                TotalSizeBeforeBytes: 0,
+                TotalSizeAfterBytes: 0,
+                Results: results,
+                Notes: notes);
+        }
+
+        foreach (var rule in targets)
+        {
+            var before = isPostgres ? await TryGetTableSizeAsync(rule.Table, cancellationToken) : 0;
+
+            try
+            {
+                // El borrado de AuditLogs solo es posible dentro del scope de retención;
+                // fuera de él, el interceptor AUD-004 lo rechaza (y debe seguir así).
+                IDisposable? retentionScope =
+                    rule.EntityType == typeof(Core.Entities.AuditLog) ? AuditRetentionScope.Begin() : null;
+
+                using (retentionScope)
+                {
+                    if (isPostgres)
+                    {
+                        // Identificador desde DataRetentionRules (constante del código,
+                        // nunca de la petición); TRUNCATE no admite parámetros.
+                        var sql = "TRUNCATE TABLE \"" + rule.Table + "\"";
+                        await _db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+                    }
+                    else
+                    {
+                        await TruncateWithEntityFrameworkAsync(rule, cancellationToken);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Purga de emergencia: no se pudo vaciar {Table}", rule.Table);
+                notes.Add($"No se pudo vaciar {rule.Table}: {ex.Message}");
+                continue;
+            }
+
+            if (isPostgres)
+                await TryVacuumAsync(rule.Table, cancellationToken);
+
+            var after = isPostgres ? await TryGetTableSizeAsync(rule.Table, cancellationToken) : 0;
+
+            _logger.LogWarning(
+                "Purga de emergencia: {Table} vaciada por completo ({Before} → {After} bytes)",
+                rule.Table, before, after);
+
+            results.Add(new RetentionTruncateResult(
+                TableName: rule.Table,
+                Label: rule.Label,
+                SizeBeforeBytes: before,
+                SizeAfterBytes: after));
+        }
+
+        if (isPostgres)
+        {
+            notes.Add(
+                "TRUNCATE crea un archivo vacío para cada tabla, así que libera espacio de inmediato: " +
+                "es la única purga que funciona cuando la base ya está en el límite del plan (53100).");
+        }
+        else
+        {
+            notes.Add("Proveedor sin PostgreSQL: el vaciado se ejecutó vía EF (solo válido para tests).");
+        }
+
+        return new DataRetentionTruncateSummary(
+            ExecutedAtUtc: now,
+            TotalSizeBeforeBytes: results.Sum(r => r.SizeBeforeBytes),
+            TotalSizeAfterBytes: results.Sum(r => r.SizeAfterBytes),
+            Results: results,
+            Notes: notes);
+    }
+
+    /// <summary>
+    /// Resuelve qué reglas se pueden vaciar. <c>AuditLogs</c> queda fuera del catálogo
+    /// salvo que el operador lo pida explícitamente (<paramref name="includeAuditLogs"/>):
+    /// se conserva 6 meses por diseño (AUD-004) y solo se descarta completo en una
+    /// emergencia de almacenamiento.
+    /// </summary>
+    public static (IReadOnlyList<RetentionRule> Targets, IReadOnlyList<string> Unknown) ResolveTruncateTargets(
+        IReadOnlyCollection<string>? tables,
+        bool includeAuditLogs)
+    {
+        IReadOnlyList<RetentionRule> allowed = includeAuditLogs
+            ? DataRetentionRules.All.Append(DataRetentionRules.AuditLogs).ToList()
+            : DataRetentionRules.All;
+
+        if (tables is null || tables.Count == 0)
+            return (allowed, Array.Empty<string>());
+
+        var targets = new List<RetentionRule>();
+        var unknown = new List<string>();
+
+        foreach (var name in tables)
+        {
+            var rule = allowed.FirstOrDefault(r =>
+                string.Equals(r.Table, name?.Trim(), StringComparison.OrdinalIgnoreCase));
+
+            if (rule is null)
+                unknown.Add(name ?? string.Empty);
+            else if (!targets.Contains(rule))
+                targets.Add(rule);
+        }
+
+        return (targets, unknown);
+    }
+
+    private async Task<long> TruncateWithEntityFrameworkAsync(
+        RetentionRule rule,
+        CancellationToken cancellationToken)
+    {
+        var method = typeof(DatabaseMaintenanceService)
+            .GetMethod(nameof(TruncateWithEntityFrameworkCoreAsync), BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new InvalidOperationException("No se encontró el método genérico de vaciado");
+
+        var generic = method.MakeGenericMethod(rule.EntityType);
+        var task = (Task<long>)generic.Invoke(null, new object?[] { _db, cancellationToken })!;
+        return await task;
+    }
+
+    private static async Task<long> TruncateWithEntityFrameworkCoreAsync<TEntity>(
+        ZorvianDbContext db,
+        CancellationToken cancellationToken)
+        where TEntity : class
+    {
+        var rows = await db.Set<TEntity>()
+            .IgnoreQueryFilters()
+            .ToListAsync(cancellationToken);
+
+        if (rows.Count == 0)
+            return 0;
+
+        db.Set<TEntity>().RemoveRange(rows);
+        await db.SaveChangesAsync(cancellationToken);
+        db.ChangeTracker.Clear();
+
+        return rows.Count;
     }
 
     private async Task<long> PurgePostgresAsync(

@@ -191,13 +191,47 @@ if (!mockExternal)
     var db = scope.ServiceProvider.GetRequiredService<Zorvian.Infrastructure.Data.ZorvianDbContext>();
     var logger = app.Services.GetRequiredService<ILogger<Program>>();
 
+    // 0. Preflight de almacenamiento. Con la base en el límite del plan (Neon devuelve
+    //    `53100` en CUALQUIER escritura) migrar o sembrar solo repite el error; en Render
+    //    eso terminaba en `Exited with status 139` + reinicio, es decir un crash-loop.
+    //    Se detecta ANTES de tocar la base y se arranca en modo degradado hasta que el
+    //    operador libere espacio (POST system/db-storage/truncate o .../purge).
+    var storageFull = false;
+    try
+    {
+        var maintenance = scope.ServiceProvider
+            .GetRequiredService<Zorvian.Application.Interfaces.IDatabaseMaintenanceService>();
+        var storage = await maintenance.GetStorageReportAsync(5);
+        if (storage.IsStorageFull)
+        {
+            storageFull = true;
+            logger.LogCritical(
+                "La base de datos alcanzó el límite de su plan ({SizeMb:0.##} MB de {LimitMb:0.##} MB). " +
+                "Se omiten migraciones y seeders de este arranque. Libere espacio con " +
+                "POST /zorvian/v1/system/db-storage/truncate?includeAuditLogs=true (o .../purge) " +
+                "y siga docs/DB_STORAGE_RECOVERY.md.",
+                storage.DatabaseSizeBytes / 1024d / 1024d,
+                (storage.LimitBytes ?? 0) / 1024d / 1024d);
+        }
+    }
+    catch (Exception preflightEx)
+    {
+        logger.LogWarning(preflightEx,
+            "No se pudo verificar el almacenamiento de la base de datos; el arranque continúa");
+    }
+
     // 1. Apply pending EF Core migrations so tables exist before seeding
     //    Lock asesor de Postgres: si Render corre >1 instancia, evita que dos
     //    procesos apliquen la misma migración a la vez.
     try
     {
         var applyMigrations = builder.Configuration.GetValue("Database:ApplyMigrationsOnStartup", true);
-        if (!applyMigrations)
+        if (storageFull)
+        {
+            logger.LogWarning(
+                "Migraciones omitidas: la base alcanzó el límite de almacenamiento (Neon 53100)");
+        }
+        else if (!applyMigrations)
         {
             logger.LogInformation("Database:ApplyMigrationsOnStartup=false — skipping startup migration");
         }
@@ -269,27 +303,35 @@ if (!mockExternal)
     }
 
     // 2. Ensure Fleet tables exist via embedded SQL
-    try
+    if (storageFull)
     {
-        var assembly = typeof(Program).Assembly;
-        var stream = assembly.GetManifestResourceStream("FleetScripts.create_fleet_tables.sql");
-
-        if (stream != null)
-        {
-            using var reader = new StreamReader(stream);
-            var fleetSql = await reader.ReadToEndAsync();
-            await db.Database.ExecuteSqlRawAsync(fleetSql);
-            logger.LogInformation("Fleet tables ensured via embedded SQL script");
-        }
-        else
-        {
-            logger.LogWarning("Fleet SQL embedded resource not found. Available resources: {Resources}",
-                string.Join(", ", assembly.GetManifestResourceNames()));
-        }
+        // El script hace CREATE TABLE/INDEX: con la base llena fallaría igual (53100).
+        logger.LogWarning("Fleet SQL omitido: la base alcanzó el límite de almacenamiento (Neon 53100)");
     }
-    catch (Exception fleetEx)
+    else
     {
-        logger.LogError(fleetEx, "Failed to apply Fleet SQL script");
+        try
+        {
+            var assembly = typeof(Program).Assembly;
+            var stream = assembly.GetManifestResourceStream("FleetScripts.create_fleet_tables.sql");
+
+            if (stream != null)
+            {
+                using var reader = new StreamReader(stream);
+                var fleetSql = await reader.ReadToEndAsync();
+                await db.Database.ExecuteSqlRawAsync(fleetSql);
+                logger.LogInformation("Fleet tables ensured via embedded SQL script");
+            }
+            else
+            {
+                logger.LogWarning("Fleet SQL embedded resource not found. Available resources: {Resources}",
+                    string.Join(", ", assembly.GetManifestResourceNames()));
+            }
+        }
+        catch (Exception fleetEx)
+        {
+            logger.LogError(fleetEx, "Failed to apply Fleet SQL script");
+        }
     }
 
     // 3. Seed catalog data if tables are empty. Un fallo (p. ej. Neon con su
@@ -297,7 +339,8 @@ if (!mockExternal)
     //    tumbar el arranque — los seeders son idempotentes y se reintentan en el
     //    próximo deploy; sin este guard el servicio entraba en crash-loop.
     //    Con la base llena se omiten los seeders restantes (fallarían igual).
-    var storageFull = false;
+    //    `storageFull` se resuelve en el preflight (paso 0) y también se activa si
+    //    cualquiera de los seeders choca con el 53100.
 
     async Task SeedSafelyAsync(string seeder, Func<Task> run)
     {

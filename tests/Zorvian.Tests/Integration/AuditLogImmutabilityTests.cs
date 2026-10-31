@@ -159,6 +159,83 @@ public class AuditLogImmutabilityTests : IClassFixture<CustomWebApplicationFacto
     }
 
     [Fact]
+    public async Task DeleteAuditLog_InsideRetentionScope_IsAllowed()
+    {
+        // La retención de datos es la ÚNICA excepción a AUD-004: sin ella,
+        // AuditLogCleanupJob y la purga de mantenimiento no podían borrar una sola
+        // fila y la tabla crecía hasta llenar la base (Neon, 1024 MB).
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ZorvianDbContext>();
+
+        var auditLog = new AuditLog
+        {
+            Id = Guid.NewGuid(),
+            TenantId = "test-tenant",
+            EntityName = "RetentionTest",
+            EntityId = Guid.NewGuid().ToString(),
+            Action = "Create",
+            CreatedAt = DateTime.UtcNow.AddYears(-1),
+            CreatedBy = "test-user",
+            IsDeleted = false
+        };
+
+        dbContext.AuditLogs.Add(auditLog);
+        await dbContext.SaveChangesAsync();
+        dbContext.ChangeTracker.Clear();
+
+        var tracked = dbContext.AuditLogs
+            .IgnoreQueryFilters()
+            .First(a => a.Id == auditLog.Id);
+
+        using (AuditRetentionScope.Begin())
+        {
+            Assert.True(AuditRetentionScope.IsActive);
+
+            dbContext.AuditLogs.Remove(tracked);
+            await dbContext.SaveChangesAsync();
+        }
+
+        Assert.False(AuditRetentionScope.IsActive);
+        Assert.Null(dbContext.AuditLogs.IgnoreQueryFilters().FirstOrDefault(a => a.Id == auditLog.Id));
+    }
+
+    [Fact]
+    public async Task ModifyAuditLog_InsideRetentionScope_IsStillBlocked()
+    {
+        // El scope solo habilita el borrado FÍSICO: alterar el contenido (o el
+        // soft-delete) sigue prohibido, así la auditoría conserva su integridad.
+        using var scope = _factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ZorvianDbContext>();
+
+        var auditLog = new AuditLog
+        {
+            Id = Guid.NewGuid(),
+            TenantId = "test-tenant",
+            EntityName = "RetentionTest",
+            EntityId = Guid.NewGuid().ToString(),
+            Action = "Create",
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = "test-user",
+            IsDeleted = false
+        };
+
+        dbContext.AuditLogs.Add(auditLog);
+        await dbContext.SaveChangesAsync();
+        dbContext.ChangeTracker.Clear();
+
+        using var retentionScope = AuditRetentionScope.Begin();
+        var tracked = dbContext.AuditLogs
+            .IgnoreQueryFilters()
+            .First(a => a.Id == auditLog.Id);
+        tracked.Action = "Tampered";
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => dbContext.SaveChangesAsync());
+
+        Assert.Contains("AUD-004", ex.Message);
+    }
+
+    [Fact]
     public async Task AuditInterceptor_DoesNotBlockNormalEntityInserts()
     {
         // Arrange — verificar que el interceptor no afecta a entidades NO AuditLog

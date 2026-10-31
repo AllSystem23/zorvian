@@ -50,8 +50,9 @@ public sealed class SystemController : ControllerBase
 
     /// <summary>
     /// Ejecuta AHORA la purga de retención (telemetría GPS, logs de webhooks, historial de
-    /// entidades, journal de sync y tokens vencidos) y hace <c>VACUUM ANALYZE</c> en las
-    /// tablas afectadas. Idempotente: solo borra filas que superaron su retención.
+    /// entidades, journal de sync, tokens vencidos y logs de auditoría con más de 6 meses)
+    /// y hace <c>VACUUM ANALYZE</c> en las tablas afectadas. Idempotente: solo borra filas
+    /// que superaron su retención.
     /// </summary>
     [HttpPost("db-storage/purge")]
     [RequirePermission(Permissions.CompanyManage)]
@@ -60,6 +61,42 @@ public sealed class SystemController : ControllerBase
         // Tope defensivo: un lote gigante haría una sentencia que puede tardar minutos.
         var safeBatchSize = batchSize is < 100 or > 50_000 ? 0 : batchSize;
         var summary = await _maintenance.PurgeExpiredDataAsync(safeBatchSize, cancellationToken);
+
+        return Ok(summary);
+    }
+
+    /// <summary>
+    /// Purga de EMERGENCIA: vacía (<c>TRUNCATE</c>) tablas de telemetría/logs cuando la
+    /// base ya está en el límite del plan y ni un <c>DELETE</c> pasa (Neon responde
+    /// <c>53100</c> también al borrar). <c>TRUNCATE</c> no necesita espacio libre, así que
+    /// es la única operación que desbloquea las escrituras desde el API.
+    ///
+    /// <para>
+    /// Descarta TODO el contenido de las tablas afectadas, no solo lo vencido. Solo se
+    /// permite sobre las tablas de <c>DataRetentionRules</c>; los nombres desconocidos
+    /// (incluidas tablas de negocio) se ignoran y se reportan en <c>notes</c>.
+    /// <c>AuditLogs</c> requiere <c>includeAuditLogs=true</c> porque se conserva 6 meses
+    /// por diseño (AUD-004).
+    /// </para>
+    /// </summary>
+    /// <param name="tables">Lista separada por comas (p. ej. <c>AuditLogs,GpsPositions</c>). Vacío = todas las permitidas.</param>
+    /// <param name="includeAuditLogs">Habilita <c>AuditLogs</c> como destino del vaciado.</param>
+    /// <param name="cancellationToken">Cancelación de la operación.</param>
+    [HttpPost("db-storage/truncate")]
+    [RequirePermission(Permissions.CompanyManage)]
+    public async Task<IActionResult> Truncate(
+        [FromQuery] string? tables = null,
+        [FromQuery] bool includeAuditLogs = false,
+        CancellationToken cancellationToken = default)
+    {
+        var requested = string.IsNullOrWhiteSpace(tables)
+            ? null
+            : tables
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .ToArray();
+
+        var summary = await _maintenance.TruncateRetentionTablesAsync(
+            requested, includeAuditLogs, cancellationToken);
 
         return Ok(summary);
     }

@@ -28,4 +28,26 @@ public interface IDatabaseMaintenanceService
     /// adicional, VACUUM FULL sí y por eso vive en el runbook, no en el API).
     /// </summary>
     Task<DataRetentionPurgeSummary> PurgeExpiredDataAsync(int batchSize = 0, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Purga de EMERGENCIA: vacía (<c>TRUNCATE</c>) tablas de telemetría/logs cuando la
+    /// base ya está en el límite del plan y ni siquiera un <c>DELETE</c> puede pasar
+    /// (Neon responde <c>53100</c> también al borrar). <c>TRUNCATE</c> no necesita
+    /// espacio libre, así que es la única forma de desbloquear las escrituras desde el API.
+    ///
+    /// <para>
+    /// A diferencia de <see cref="PurgeExpiredDataAsync"/> esto descarta TODO el contenido
+    /// de las tablas afectadas (no solo lo vencido). Solo se permite sobre
+    /// <c>DataRetentionRules</c> (+ <c>AuditLogs</c> con <paramref name="includeAuditLogs"/>)
+    /// y nunca sobre tablas de negocio: un nombre desconocido se ignora y se reporta en
+    /// <c>Notes</c>.
+    /// </para>
+    /// </summary>
+    /// <param name="tables">Tablas concretas (nombres de <c>DataRetentionRules</c>); vacío o <c>null</c> = todas.</param>
+    /// <param name="includeAuditLogs">Incluye <c>AuditLogs</c> en el catálogo permitido (se conserva 6 meses por diseño).</param>
+    /// <param name="cancellationToken">Cancelación de la operación.</param>
+    Task<DataRetentionTruncateSummary> TruncateRetentionTablesAsync(
+        IReadOnlyCollection<string>? tables = null,
+        bool includeAuditLogs = false,
+        CancellationToken cancellationToken = default);
 }

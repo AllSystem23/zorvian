@@ -9,6 +9,17 @@ namespace Zorvian.Infrastructure.Data;
 
 public sealed class AuditInterceptor : ISaveChangesInterceptor
 {
+    /// <summary>
+    /// Tope por valor serializado. El snapshot de una entidad guarda sus propiedades tal
+    /// cual, y entidades como <c>DocumentVersion</c>/<c>DocumentTemplate</c> llevan el HTML
+    /// completo (40-80 KB): un solo "Create" inflaba el log y contribuyó a llenar la base
+    /// (incidente de Neon, 1024 MB). Se recorta el VALOR, no el JSON, para que la fila
+    /// siga siendo parseable.
+    /// </summary>
+    public const int MaxSerializedValueLength = 1_000;
+
+    private const string TruncatedSuffix = "...[truncado]";
+
     private readonly ITenantContext _tenantContext;
 
     public AuditInterceptor(ITenantContext tenantContext)
@@ -66,8 +77,8 @@ public sealed class AuditInterceptor : ISaveChangesInterceptor
                     {
                         if (prop.IsModified && prop.Metadata.Name is not ("UpdatedAt" or "UpdatedBy"))
                         {
-                            oldDict[prop.Metadata.Name] = prop.OriginalValue;
-                            newDict[prop.Metadata.Name] = prop.CurrentValue;
+                            oldDict[prop.Metadata.Name] = ClampValue(prop.OriginalValue);
+                            newDict[prop.Metadata.Name] = ClampValue(prop.CurrentValue);
                             changedList.Add(prop.Metadata.Name);
                         }
                     }
@@ -132,8 +143,23 @@ public sealed class AuditInterceptor : ISaveChangesInterceptor
         {
             if (prop.Metadata.Name is "CreatedAt" or "CreatedBy" or "UpdatedAt" or "UpdatedBy" or "IsDeleted" or "DeletedAt")
                 continue;
-            dict[prop.Metadata.Name] = prop.CurrentValue;
+            dict[prop.Metadata.Name] = ClampValue(prop.CurrentValue);
         }
         return JsonSerializer.Serialize(dict, JsonOptions);
+    }
+
+    /// <summary>
+    /// Recorta valores gigantes (HTML de plantillas/documentos, payloads de webhooks) para
+    /// que una sola fila de auditoría no pese decenas de KB. Los valores normales pasan
+    /// intactos.
+    /// </summary>
+    private static object? ClampValue(object? value)
+    {
+        if (value is not string text || text.Length <= MaxSerializedValueLength)
+            return value;
+
+        return string.Concat(
+            text.AsSpan(0, MaxSerializedValueLength),
+            TruncatedSuffix);
     }
 }

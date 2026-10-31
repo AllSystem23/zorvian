@@ -13,6 +13,14 @@ namespace Zorvian.Web.Jobs;
 /// puede tumbar el proceso justo cuando la base está llena. Ahora borra en lotes de
 /// <see cref="BatchSize"/> filas, con tope de lotes por corrida.
 /// </para>
+///
+/// <para>
+/// Corre dentro de <see cref="AuditRetentionScope"/>: sin él,
+/// <see cref="AuditImmutabilityInterceptor"/> (AUD-004) rechazaba el
+/// <c>SaveChanges</c> y el job <b>nunca borraba nada</b> — la tabla de auditoría crecía
+/// sin techo hasta llenar la base (incidente de Neon). El scope solo habilita el
+/// borrado físico de logs vencidos; modificar un log sigue prohibido.
+/// </para>
 /// </summary>
 public sealed class AuditLogCleanupJob
 {
@@ -39,6 +47,10 @@ public sealed class AuditLogCleanupJob
         _logger.LogInformation(
             "Starting audit log cleanup. Removing logs older than {Cutoff} in batches of {BatchSize}",
             cutoff, BatchSize);
+
+        // Sin este scope el AuditImmutabilityInterceptor (AUD-004) rechaza el borrado y
+        // el job falla siempre, sin purgar una sola fila.
+        using var retentionScope = AuditRetentionScope.Begin();
 
         long total = 0;
 

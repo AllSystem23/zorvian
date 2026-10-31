@@ -171,9 +171,74 @@ class DataRetentionPurgeSummary {
       );
 }
 
+/// Resultado de vaciar (`TRUNCATE`) una tabla en una purga de emergencia.
+///
+/// Espejo de `RetentionTruncateResult`: no hay "filas vencidas", se descarta
+/// todo el contenido de una tabla de telemetría/logs.
+class RetentionTruncateResult {
+  final String tableName;
+  final String label;
+  final int sizeBeforeBytes;
+  final int sizeAfterBytes;
+
+  const RetentionTruncateResult({
+    required this.tableName,
+    required this.label,
+    required this.sizeBeforeBytes,
+    required this.sizeAfterBytes,
+  });
+
+  factory RetentionTruncateResult.fromJson(Map<String, dynamic> json) =>
+      RetentionTruncateResult(
+        tableName: json['tableName'] as String? ?? '',
+        label: json['label'] as String? ?? '',
+        sizeBeforeBytes: (json['sizeBeforeBytes'] as num?)?.toInt() ?? 0,
+        sizeAfterBytes: (json['sizeAfterBytes'] as num?)?.toInt() ?? 0,
+      );
+}
+
+/// Resumen de una purga de EMERGENCIA (`POST system/db-storage/truncate`).
+///
+/// Se usa cuando la base ya está en el límite del plan y ni un `DELETE` pasa
+/// (Neon responde `53100` también al borrar). `TRUNCATE` vacía el archivo sin
+/// pedir espacio, así que es la única operación que desbloquea las escrituras.
+class DataRetentionTruncateSummary {
+  final DateTime? executedAtUtc;
+  final int totalSizeBeforeBytes;
+  final int totalSizeAfterBytes;
+  final List<RetentionTruncateResult> results;
+  final List<String> notes;
+
+  const DataRetentionTruncateSummary({
+    required this.executedAtUtc,
+    required this.totalSizeBeforeBytes,
+    required this.totalSizeAfterBytes,
+    required this.results,
+    required this.notes,
+  });
+
+  /// Tablas que efectivamente quedaron vacías.
+  int get tablesEmptied => results.length;
+
+  factory DataRetentionTruncateSummary.fromJson(Map<String, dynamic> json) =>
+      DataRetentionTruncateSummary(
+        executedAtUtc: DateTime.tryParse(json['executedAtUtc'] as String? ?? ''),
+        totalSizeBeforeBytes:
+            (json['totalSizeBeforeBytes'] as num?)?.toInt() ?? 0,
+        totalSizeAfterBytes:
+            (json['totalSizeAfterBytes'] as num?)?.toInt() ?? 0,
+        results: (json['results'] as List?)
+                ?.map((e) => RetentionTruncateResult.fromJson(
+                    Map<String, dynamic>.from(e as Map)))
+                .toList() ??
+            const [],
+        notes: (json['notes'] as List?)?.map((e) => e.toString()).toList() ??
+            const [],
+      );
+}
+
 /// Reporte de almacenamiento de la base de datos (endpoint plataforma
 /// `GET system/db-storage`, permiso `company.manage`).
-///
 /// No observa `branchScopeProvider`: el reporte es de toda la base (tamaño de
 /// la BD no tiene dimensión de sucursal).
 class DbStorageNotifier extends AsyncNotifier<DatabaseStorageReport> {
@@ -206,6 +271,32 @@ class DbStorageNotifier extends AsyncNotifier<DatabaseStorageReport> {
       Map<String, dynamic>.from(response.data as Map),
     );
     // La purga cambia tamaños y filas: el reporte se refresca solo.
+    state = await AsyncValue.guard(_fetch);
+    return summary;
+  }
+
+  /// Purga de EMERGENCIA (`POST system/db-storage/truncate`): vacía tablas de
+  /// telemetría/logs cuando la base ya está en el límite del plan y ni un
+  /// `DELETE` pasa. Descarta TODO el contenido de las tablas afectadas.
+  ///
+  /// [tables] vacío = todas las tablas de retención permitidas. [includeAuditLogs]
+  /// habilita `AuditLogs` (se conserva 6 meses por diseño, AUD-004).
+  Future<DataRetentionTruncateSummary> truncate({
+    List<String> tables = const [],
+    bool includeAuditLogs = false,
+  }) async {
+    final dio = ref.read(dioClientProvider);
+    final response = await dio.post(
+      'system/db-storage/truncate',
+      queryParameters: {
+        if (tables.isNotEmpty) 'tables': tables.join(','),
+        'includeAuditLogs': includeAuditLogs,
+      },
+    );
+    final summary = DataRetentionTruncateSummary.fromJson(
+      Map<String, dynamic>.from(response.data as Map),
+    );
+    // El vaciado cambia tamaños y filas: el reporte se refresca solo.
     state = await AsyncValue.guard(_fetch);
     return summary;
   }

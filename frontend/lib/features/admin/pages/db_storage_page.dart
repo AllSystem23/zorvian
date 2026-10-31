@@ -24,6 +24,7 @@ class DbStoragePage extends ConsumerStatefulWidget {
 
 class _DbStoragePageState extends ConsumerState<DbStoragePage> {
   bool _purging = false;
+  bool _truncating = false;
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +59,15 @@ class _DbStoragePageState extends ConsumerState<DbStoragePage> {
                   type: ZButtonType.danger,
                   isLoading: _purging,
                   // ZButton.onPressed no es nullable: se deshabilita con un no-op.
-                  onPressed: _purging ? () {} : _confirmPurge,
+                  onPressed: _purging || _truncating ? () {} : _confirmPurge,
+                ),
+                ZButton(
+                  text: 'Purga de emergencia (TRUNCATE)',
+                  icon: Icons.warning_amber_rounded,
+                  fullWidth: false,
+                  type: ZButtonType.danger,
+                  isLoading: _truncating,
+                  onPressed: _purging || _truncating ? () {} : _confirmTruncate,
                 ),
               ],
             ),
@@ -374,6 +383,138 @@ class _DbStoragePageState extends ConsumerState<DbStoragePage> {
       }
     } finally {
       if (mounted) setState(() => _purging = false);
+    }
+  }
+
+  /// Purga de EMERGENCIA: `TRUNCATE` de las tablas de retención.
+  ///
+  /// Solo tiene sentido cuando la base ya está en el límite del plan: en ese
+  /// momento Neon responde `53100` incluso a un `DELETE`, y `TRUNCATE` (que
+  /// crea el archivo vacío sin pedir espacio) es la única operación que
+  /// desbloquea las escrituras desde el API.
+  Future<void> _confirmTruncate() async {
+    var includeAuditLogs = false;
+    var acknowledged = false;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (builderContext, setDialogState) {
+          return AlertDialog(
+            title: const Text('Purga de emergencia (TRUNCATE)'),
+            content: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'VACÍA POR COMPLETO las tablas de telemetría, logs y '
+                      'tokens, no solo las filas vencidas. Úselo solo si la base '
+                      'ya está en el límite del plan y PostgreSQL rechaza las '
+                      'escrituras (53100): TRUNCATE no necesita espacio libre, '
+                      'así que es la única purga que desbloquea las escrituras.',
+                      style: TextStyle(fontSize: 13),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Los datos de negocio (ventas, compras, nómina, asientos, '
+                      'documentos) NUNCA se vacían: solo se permite sobre las '
+                      'tablas de retención.',
+                      style: TextStyle(fontSize: 12, color: ZColors.neutral500),
+                    ),
+                    const SizedBox(height: 8),
+                    CheckboxListTile(
+                      value: includeAuditLogs,
+                      onChanged: (value) => setDialogState(
+                          () => includeAuditLogs = value ?? false),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: const Text(
+                        'Incluir AuditLogs (borra TODO el log de auditoría)',
+                        style: TextStyle(fontSize: 13),
+                      ),
+                      subtitle: const Text(
+                        'Por diseño se conservan 6 meses (AUD-004).',
+                        style: TextStyle(fontSize: 11),
+                      ),
+                    ),
+                    CheckboxListTile(
+                      value: acknowledged,
+                      onChanged: (value) =>
+                          setDialogState(() => acknowledged = value ?? false),
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: const Text(
+                        'Entiendo que este vaciado es irreversible',
+                        style: TextStyle(fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Cancelar'),
+              ),
+              ZButton(
+                text: 'VACIAR',
+                fullWidth: false,
+                type: ZButtonType.danger,
+                onPressed:
+                    acknowledged ? () => Navigator.of(dialogContext).pop(true) : () {},
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _truncating = true);
+    try {
+      final summary = await ref
+          .read(dbStorageProvider.notifier)
+          .truncate(includeAuditLogs: includeAuditLogs);
+      if (!mounted) return;
+
+      final message = StringBuffer();
+      if (summary.tablesEmptied == 0) {
+        message.write('No se vació ninguna tabla.');
+      } else {
+        message.write(
+            '${summary.tablesEmptied} tabla(s) vaciada(s): '
+            '${summary.results.map((r) => r.tableName).join(', ')}.');
+      }
+
+      // Las notas del backend (incluida la de "TRUNCATE libera espacio de
+      // inmediato") van en el MISMO toast: `ZToast.show` oculta el anterior.
+      final actionable = summary.notes
+          .where((n) =>
+              n.toLowerCase().contains('liber') ||
+              n.toLowerCase().contains('vacuum'))
+          .toList();
+      if (actionable.isNotEmpty) message.write(' ${actionable.first}');
+
+      ZToast.show(
+        context,
+        message.toString(),
+        type: summary.tablesEmptied == 0
+            ? ZToastType.info
+            : ZToastType.success,
+      );
+    } catch (e) {
+      if (mounted) {
+        ZToast.error(context, 'No se pudo ejecutar la purga de emergencia: $e');
+      }
+    } finally {
+      if (mounted) setState(() => _truncating = false);
     }
   }
 

@@ -23,9 +23,18 @@ namespace Zorvian.Infrastructure.Data;
 ///      SQL crudo o un cliente externo), el trigger de inmutabilidad
 ///      rechaza la operación.
 ///
-/// La única operación permitida sobre los <c>AuditLog</c> es
+/// La única operación permitida sobre los <c>AuditLog</c> fuera de la retención es
 /// <c>EntityState.Added</c> (inserción). No se permite modificar ni
 /// eliminar ningún registro, ni siquiera como soft-delete.
+///
+/// <para>
+/// EXCEPCIÓN ACOTADA (retención/purga): cuando el proceso declara
+/// <see cref="AuditRetentionScope"/>, se permite el borrado FÍSICO
+/// (<c>EntityState.Deleted</c>) de logs vencidos. Sin ese scope este interceptor
+/// bloqueaba también a <c>AuditLogCleanupJob</c>, de modo que la tabla de auditoría
+/// nunca se purgaba y crecía hasta llenar la base (incidente de Neon, 1024 MB).
+/// <c>Modified</c> sigue prohibido siempre, con o sin scope.
+/// </para>
 /// </summary>
 public sealed class AuditImmutabilityInterceptor : ISaveChangesInterceptor
 {
@@ -53,7 +62,15 @@ public sealed class AuditImmutabilityInterceptor : ISaveChangesInterceptor
         foreach (EntityEntry entry in dbContext.ChangeTracker.Entries<AuditLog>())
         {
             // Los AuditLog solo pueden ser creados (Added). Cualquier intento
-            // de modificar o eliminar (incluyendo soft-delete) es rechazado.
+            // de modificar o eliminar (incluyendo soft-delete) es rechazado…
+            //
+            // …salvo el borrado físico dentro de un AuditRetentionScope: es el
+            // único camino legítimo para que la retención (AuditLogCleanupJob y la
+            // purga de mantenimiento) pueda liberar espacio. Modificar el
+            // contenido o hacer soft-delete sigue prohibido incluso ahí.
+            if (entry.State == EntityState.Deleted && AuditRetentionScope.IsActive)
+                continue;
+
             if (entry.State == EntityState.Modified ||
                 entry.State == EntityState.Deleted)
             {
@@ -64,7 +81,8 @@ public sealed class AuditImmutabilityInterceptor : ISaveChangesInterceptor
                     $"{{ Id = {auditLog.Id}, EntityName = {auditLog.EntityName}, " +
                     $"EntityId = {auditLog.EntityId}, Action = {auditLog.Action} }}. " +
                     "Esta restricción aplica tanto a nivel de aplicación (EF Core) como " +
-                    "a nivel de base de datos (PostgreSQL trigger).");
+                    "a nivel de base de datos (PostgreSQL trigger). El único camino " +
+                    "permitido para purgar es AuditRetentionScope (retención de datos).");
             }
         }
     }

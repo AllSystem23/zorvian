@@ -80,6 +80,30 @@ Map<String, dynamic> _purgeSummary({int rows = 1234}) => {
       ],
     };
 
+Map<String, dynamic> _truncateSummary() => {
+      'executedAtUtc': '2026-10-28T10:07:00Z',
+      'totalSizeBeforeBytes': 800 * _mb,
+      'totalSizeAfterBytes': 0,
+      'results': [
+        {
+          'tableName': 'AuditLogs',
+          'label': 'Log de auditoría',
+          'sizeBeforeBytes': 700 * _mb,
+          'sizeAfterBytes': 0,
+        },
+        {
+          'tableName': 'GpsPositions',
+          'label': 'Posiciones GPS',
+          'sizeBeforeBytes': 100 * _mb,
+          'sizeAfterBytes': 0,
+        },
+      ],
+      'notes': [
+        'TRUNCATE crea un archivo vacío para cada tabla, así que libera espacio de inmediato: '
+            'es la única purga que funciona cuando la base ya está en el límite del plan (53100).',
+      ],
+    };
+
 ResponseBody _json(Object? data, [int status = 200]) => ResponseBody.fromString(
       jsonEncode(data),
       status,
@@ -119,16 +143,25 @@ class _FakeAdapter implements HttpClientAdapter {
 }
 
 class _FakeApi {
-  _FakeApi({required this.report, this.purgeSummary});
+  _FakeApi({required this.report, this.purgeSummary, this.truncateSummary});
 
   final Map<String, dynamic> report;
   final Map<String, dynamic>? purgeSummary;
+  final Map<String, dynamic>? truncateSummary;
   late final _FakeAdapter adapter = _FakeAdapter(_handle);
 
   int getCalls = 0;
   int postCalls = 0;
+  int truncateCalls = 0;
+  Map<String, dynamic>? lastTruncateQuery;
 
   Future<ResponseBody> _handle(RequestOptions options) async {
+    if (options.method == 'POST' &&
+        options.path == 'system/db-storage/truncate') {
+      truncateCalls++;
+      lastTruncateQuery = Map<String, dynamic>.from(options.queryParameters);
+      return _json(truncateSummary ?? _truncateSummary());
+    }
     if (options.method == 'POST' && options.path == 'system/db-storage/purge') {
       postCalls++;
       return _json(purgeSummary ?? _purgeSummary());
@@ -145,6 +178,7 @@ Future<_FakeApi> _pumpPage(
   WidgetTester tester, {
   Map<String, dynamic>? report,
   Map<String, dynamic>? purgeSummary,
+  Map<String, dynamic>? truncateSummary,
 }) async {
   tester.view.physicalSize = const Size(1400, 2000);
   tester.view.devicePixelRatio = 1.0;
@@ -153,6 +187,7 @@ Future<_FakeApi> _pumpPage(
   final api = _FakeApi(
     report: report ?? _report(),
     purgeSummary: purgeSummary,
+    truncateSummary: truncateSummary,
   );
   final client = DioClient(_TestStorage(), adapter: api.adapter);
 
@@ -201,6 +236,18 @@ void main() {
       expect(summary.purgedTables.first.tableName, 'GpsPositions');
       expect(summary.purgedTables.first.retentionDays, 90);
       expect(summary.notes.single, contains('VACUUM FULL'));
+    });
+
+    test('DataRetentionTruncateSummary mapea el resumen del TRUNCATE', () {
+      final summary = DataRetentionTruncateSummary.fromJson(_truncateSummary());
+
+      expect(summary.tablesEmptied, 2);
+      expect(summary.results.map((r) => r.tableName),
+          ['AuditLogs', 'GpsPositions']);
+      expect(summary.totalSizeBeforeBytes, 800 * _mb);
+      expect(summary.totalSizeAfterBytes, 0);
+      expect(summary.notes.single, contains('libera espacio de inmediato'));
+      expect(summary.executedAtUtc, isNotNull);
     });
   });
 
@@ -288,6 +335,72 @@ void main() {
       expect(api.postCalls, 1);
       expect(find.textContaining('No había datos vencidos'), findsOneWidget);
       await tester.pump(const Duration(seconds: 6));
+    });
+
+    testWidgets('purga de emergencia: exige reconocer que es irreversible', (tester) async {
+      final api = await _pumpPage(tester);
+
+      await tester.tap(
+          find.widgetWithText(ZButton, 'Purga de emergencia (TRUNCATE)'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Purga de emergencia (TRUNCATE)'), findsWidgets);
+      expect(find.textContaining('VACÍA POR COMPLETO'), findsOneWidget);
+      expect(find.textContaining('NUNCA se vacían'), findsOneWidget);
+
+      // Sin marcar "Entiendo que este vaciado es irreversible" el botón es un no-op.
+      await tester.tap(find.widgetWithText(ZButton, 'VACIAR'));
+      await tester.pumpAndSettle();
+      expect(api.truncateCalls, 0);
+
+      await tester.tap(find.text('Entiendo que este vaciado es irreversible'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ZButton, 'VACIAR'));
+      await tester.pumpAndSettle();
+
+      expect(api.truncateCalls, 1);
+      // Sin AuditLogs opt-in: el flag viaja explícito en false.
+      expect(api.lastTruncateQuery?['includeAuditLogs'], isFalse);
+      expect(api.lastTruncateQuery?.containsKey('tables'), isFalse);
+      // POST + recarga del reporte.
+      expect(api.getCalls, 2);
+      expect(find.textContaining('2 tabla(s) vaciada(s)'), findsOneWidget);
+      expect(find.textContaining('AuditLogs, GpsPositions'), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: 6));
+    });
+
+    testWidgets('purga de emergencia: incluir AuditLogs viaja en el query', (tester) async {
+      final api = await _pumpPage(tester);
+
+      await tester.tap(
+          find.widgetWithText(ZButton, 'Purga de emergencia (TRUNCATE)'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(
+          'Incluir AuditLogs (borra TODO el log de auditoría)'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Entiendo que este vaciado es irreversible'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ZButton, 'VACIAR'));
+      await tester.pumpAndSettle();
+
+      expect(api.truncateCalls, 1);
+      expect(api.lastTruncateQuery?['includeAuditLogs'], isTrue);
+      await tester.pump(const Duration(seconds: 6));
+    });
+
+    testWidgets('cancelar la purga de emergencia no vacía nada', (tester) async {
+      final api = await _pumpPage(tester);
+
+      await tester.tap(
+          find.widgetWithText(ZButton, 'Purga de emergencia (TRUNCATE)'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cancelar'));
+      await tester.pumpAndSettle();
+
+      expect(api.truncateCalls, 0);
+      expect(api.getCalls, 1);
     });
   });
 }

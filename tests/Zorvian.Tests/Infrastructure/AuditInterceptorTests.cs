@@ -265,4 +265,55 @@ public sealed class AuditInterceptorTests
 
         Assert.Equal(userId.ToString(), dept.UpdatedBy);
     }
+
+    [Fact]
+    public async Task SaveChanges_HugeStringValues_AreTruncatedToKeepAuditRowsSmall()
+    {
+        // El snapshot guardaba el HTML completo de DocumentVersion/DocumentTemplate
+        // (40-80 KB por fila): con eso la tabla de auditoría crecía hasta llenar la base
+        // (incidente de Neon). Se recorta el VALOR para que el JSON siga siendo válido.
+        using var db = CreateDb(Guid.NewGuid().ToString());
+        var hugeAddress = new string('x', 20_000);
+
+        db.Companies.Add(new Company
+        {
+            Id = Guid.NewGuid(),
+            TenantId = "tenant-1",
+            Name = "Big Co",
+            LegalName = "Big Co S.A.",
+            Country = "NI",
+            Currency = "NIO",
+            Timezone = "America/Managua",
+            Address = hugeAddress,
+        });
+        await db.SaveChangesAsync();
+
+        var log = Assert.Single(await db.AuditLogs.IgnoreQueryFilters().ToListAsync());
+        Assert.NotNull(log.NewValues);
+        Assert.True(
+            log.NewValues!.Length < 5_000,
+            $"NewValues quedó en {log.NewValues.Length} caracteres");
+        Assert.Contains("[truncado]", log.NewValues);
+        Assert.DoesNotContain(hugeAddress, log.NewValues);
+    }
+
+    [Fact]
+    public async Task SaveChanges_ShortStringValues_AreNotTruncated()
+    {
+        using var db = CreateDb(Guid.NewGuid().ToString());
+
+        db.Departments.Add(new Department
+        {
+            Id = Guid.NewGuid(),
+            Name = "Operaciones",
+            Code = "OPS",
+            TenantId = "tenant-1",
+        });
+        await db.SaveChangesAsync();
+
+        var log = Assert.Single(await db.AuditLogs.IgnoreQueryFilters().ToListAsync());
+        Assert.NotNull(log.NewValues);
+        Assert.Contains("Operaciones", log.NewValues);
+        Assert.DoesNotContain("[truncado]", log.NewValues);
+    }
 }

@@ -22,6 +22,21 @@ public sealed class AuditLogCleanupJobTests
         return new ZorvianDbContext(options, _tenant.Object);
     }
 
+    /// <summary>
+    /// Contexto con el interceptor AUD-004 registrado: es el que reproduce el escenario
+    /// real. En los demás tests los interceptores no se registran, así que el borrado
+    /// parecía funcionar aunque en producción el job nunca borraba una sola fila.
+    /// </summary>
+    private ZorvianDbContext CreateDbWithImmutabilityGuard(string dbName)
+    {
+        var options = new DbContextOptionsBuilder<ZorvianDbContext>()
+            .UseInMemoryDatabase(databaseName: dbName)
+            .AddInterceptors(new AuditImmutabilityInterceptor())
+            .Options;
+        _tenant.Setup(t => t.TenantId).Returns(Guid.NewGuid().ToString());
+        return new ZorvianDbContext(options, _tenant.Object);
+    }
+
     [Fact]
     public async Task RunAsync_DeletesLogsOlderThanSixMonths()
     {
@@ -143,5 +158,62 @@ public sealed class AuditLogCleanupJobTests
         var employees = await db.Employees.IgnoreQueryFilters().ToListAsync();
         Assert.NotEmpty(employees);
         Assert.Single(employees);
+    }
+
+    [Fact]
+    public async Task RunAsync_WithImmutabilityInterceptor_StillDeletesOldLogs()
+    {
+        // Regresión del bug "el log de auditoría no se deja borrar": sin el
+        // AuditRetentionScope el interceptor AUD-004 rechazaba el SaveChanges del job y
+        // la tabla crecía sin techo hasta llenar la base (Neon, 1024 MB).
+        using var db = CreateDbWithImmutabilityGuard(Guid.NewGuid().ToString());
+
+        db.AuditLogs.Add(new AuditLog
+        {
+            EntityName = "Old",
+            EntityId = "1",
+            Action = "Create",
+            CreatedAt = DateTime.UtcNow.AddMonths(-7),
+            TenantId = "tenant-1",
+        });
+        db.AuditLogs.Add(new AuditLog
+        {
+            EntityName = "Recent",
+            EntityId = "2",
+            Action = "Update",
+            CreatedAt = DateTime.UtcNow.AddDays(-1),
+            TenantId = "tenant-1",
+        });
+        await db.SaveChangesAsync();
+
+        await new AuditLogCleanupJob(db, _logger.Object).RunAsync();
+
+        var remaining = await db.AuditLogs.IgnoreQueryFilters().ToListAsync();
+        Assert.Equal("Recent", Assert.Single(remaining).EntityName);
+        Assert.False(AuditRetentionScope.IsActive);
+    }
+
+    [Fact]
+    public async Task OutsideRetentionScope_AuditLogDeletion_IsStillBlocked()
+    {
+        // La excepción es SOLO para la retención: el resto de la aplicación sigue sin
+        // poder borrar auditoría (AUD-004 intacto).
+        using var db = CreateDbWithImmutabilityGuard(Guid.NewGuid().ToString());
+
+        var log = new AuditLog
+        {
+            EntityName = "Kept",
+            EntityId = "1",
+            Action = "Create",
+            CreatedAt = DateTime.UtcNow,
+            TenantId = "tenant-1",
+        };
+        db.AuditLogs.Add(log);
+        await db.SaveChangesAsync();
+
+        db.AuditLogs.Remove(log);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => db.SaveChangesAsync());
+        Assert.Contains("AUD-004", ex.Message);
     }
 }

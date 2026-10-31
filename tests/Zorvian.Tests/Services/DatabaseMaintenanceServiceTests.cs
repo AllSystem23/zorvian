@@ -122,9 +122,10 @@ public sealed class DatabaseMaintenanceServiceTests
 
         var summary = await CreateSut(db).PurgeExpiredDataAsync();
 
-        // Una fila vencida por tabla (7 reglas) y ninguna vigente.
-        Assert.Equal(DataRetentionRules.All.Count, summary.Results.Count);
-        Assert.Equal(DataRetentionRules.All.Count, summary.TotalRowsDeleted);
+        // Una fila vencida por tabla (7 reglas) + el AuditLog de 400 días (la purga del
+        // API incluye la tabla de auditoría, además del job `audit-log-cleanup`).
+        Assert.Equal(DataRetentionRules.All.Count + 1, summary.Results.Count);
+        Assert.Equal(DataRetentionRules.All.Count + 1, summary.TotalRowsDeleted);
         Assert.All(summary.Results, r => Assert.Equal(1, r.RowsDeleted));
 
         Assert.Single(db.WebhookDeliveryLogs.IgnoreQueryFilters());
@@ -134,6 +135,7 @@ public sealed class DatabaseMaintenanceServiceTests
         Assert.Single(db.SyncJournals.IgnoreQueryFilters());
         Assert.Single(db.RefreshTokens.IgnoreQueryFilters());
         Assert.Single(db.PasswordResetTokens);
+        Assert.Empty(db.AuditLogs.IgnoreQueryFilters());
 
         // La fila que queda es la vigente, no la vencida.
         Assert.True(db.WebhookDeliveryLogs.IgnoreQueryFilters().Single().ExecutedAt > DateTime.UtcNow.AddDays(-2));
@@ -144,18 +146,20 @@ public sealed class DatabaseMaintenanceServiceTests
     }
 
     [Fact]
-    public async Task PurgeExpiredDataAsync_DoesNotTouchAuditLogs()
+    public async Task PurgeExpiredDataAsync_PurgesExpiredAuditLogs()
     {
         using var db = CreateDb(Guid.NewGuid().ToString());
         SeedOneExpiredAndOneFresh(db, DateTime.UtcNow);
 
         await CreateSut(db).PurgeExpiredDataAsync();
 
-        // AuditLogs queda fuera de DataRetentionRules.All a propósito: lo purga
-        // AuditLogCleanupJob (6 meses). Duplicar la ventana aquí sería un borrado extra.
-        var audit = Assert.Single(db.AuditLogs.IgnoreQueryFilters());
-        Assert.True(audit.CreatedAt < DateTime.UtcNow.AddDays(-300));
+        // AuditLogs NO está en DataRetentionRules.All (lo purga también su propio job),
+        // pero la purga del API lo incluye: si no, el operador lanzaba la purga para
+        // liberar espacio y la tabla más grande de logs seguía intacta. El borrado solo
+        // es posible dentro del scope de retención (AUD-004).
         Assert.DoesNotContain(DataRetentionRules.All, r => r.Table == "AuditLogs");
+        Assert.Empty(db.AuditLogs.IgnoreQueryFilters());
+        Assert.False(AuditRetentionScope.IsActive);
     }
 
     [Fact]
@@ -240,5 +244,116 @@ public sealed class DatabaseMaintenanceServiceTests
 
         foreach (var table in forbidden)
             Assert.Null(DataRetentionRules.Find(table));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Purga de emergencia (TRUNCATE)
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task TruncateRetentionTablesAsync_EmptiesOnlyRequestedTables()
+    {
+        using var db = CreateDb(Guid.NewGuid().ToString());
+        var now = DateTime.UtcNow;
+
+        db.GpsPositions.AddRange(
+            new GpsPosition { Id = Guid.NewGuid(), GpsTimestamp = now },
+            new GpsPosition { Id = Guid.NewGuid(), GpsTimestamp = now.AddDays(-1) });
+        db.WebhookDeliveryLogs.Add(new WebhookDeliveryLog { Id = Guid.NewGuid(), ExecutedAt = now });
+        db.SaveChanges();
+
+        var summary = await CreateSut(db).TruncateRetentionTablesAsync(new[] { "GpsPositions" });
+
+        var result = Assert.Single(summary.Results);
+        Assert.Equal("GpsPositions", result.TableName);
+        Assert.Equal(0, await db.GpsPositions.IgnoreQueryFilters().CountAsync());
+        // Un TRUNCATE de una tabla no toca las demás.
+        Assert.Equal(1, await db.WebhookDeliveryLogs.IgnoreQueryFilters().CountAsync());
+        Assert.Contains(summary.Notes, n => n.Contains("vía EF"));
+    }
+
+    [Fact]
+    public async Task TruncateRetentionTablesAsync_IgnoresBusinessTables()
+    {
+        using var db = CreateDb(Guid.NewGuid().ToString());
+        db.Departments.Add(new Department
+        {
+            Id = Guid.NewGuid(),
+            Name = "Ventas",
+            Code = "VTA",
+            TenantId = "tenant-1",
+        });
+        db.SaveChanges();
+
+        var summary = await CreateSut(db)
+            .TruncateRetentionTablesAsync(new[] { "Departments", "Sales" });
+
+        Assert.Empty(summary.Results);
+        Assert.Contains(summary.Notes, n => n.Contains("Departments"));
+        Assert.Contains(summary.Notes, n => n.Contains("datos de negocio"));
+        Assert.Equal(1, await db.Departments.IgnoreQueryFilters().CountAsync());
+    }
+
+    [Fact]
+    public async Task TruncateRetentionTablesAsync_AuditLogsRequiresExplicitOptIn()
+    {
+        using var db = CreateDb(Guid.NewGuid().ToString());
+        db.AuditLogs.Add(new AuditLog
+        {
+            Id = Guid.NewGuid(),
+            EntityName = "Sale",
+            EntityId = "1",
+            Action = "Create",
+            CreatedAt = DateTime.UtcNow,
+        });
+        db.SaveChanges();
+
+        // Sin includeAuditLogs no se vacía (se conserva 6 meses por AUD-004).
+        var withoutOptIn = await CreateSut(db).TruncateRetentionTablesAsync(new[] { "AuditLogs" });
+
+        Assert.Empty(withoutOptIn.Results);
+        Assert.Single(db.AuditLogs.IgnoreQueryFilters());
+        Assert.Contains(withoutOptIn.Notes, n => n.Contains("includeAuditLogs=true"));
+
+        var withOptIn = await CreateSut(db)
+            .TruncateRetentionTablesAsync(new[] { "AuditLogs" }, includeAuditLogs: true);
+
+        Assert.Single(withOptIn.Results);
+        Assert.Empty(db.AuditLogs.IgnoreQueryFilters());
+        // El scope de retención se cierra al salir: el resto del proceso sigue bloqueado.
+        Assert.False(AuditRetentionScope.IsActive);
+    }
+
+    [Fact]
+    public async Task TruncateRetentionTablesAsync_WithoutTables_EmptiesEveryRetentionTable()
+    {
+        using var db = CreateDb(Guid.NewGuid().ToString());
+        SeedOneExpiredAndOneFresh(db, DateTime.UtcNow);
+
+        var summary = await CreateSut(db).TruncateRetentionTablesAsync();
+
+        Assert.Equal(DataRetentionRules.All.Count, summary.Results.Count);
+        Assert.Equal(0, await db.GpsPositions.IgnoreQueryFilters().CountAsync());
+        Assert.Equal(0, await db.WebhookDeliveryLogs.IgnoreQueryFilters().CountAsync());
+        Assert.Equal(0, await db.RefreshTokens.IgnoreQueryFilters().CountAsync());
+        // AuditLogs sigue fuera del barrido por defecto.
+        Assert.Single(db.AuditLogs.IgnoreQueryFilters());
+    }
+
+    [Fact]
+    public void ResolveTruncateTargets_OnlyAllowsRetentionRules()
+    {
+        var (targets, unknown) = DatabaseMaintenanceService.ResolveTruncateTargets(
+            new[] { "gpspositions", "Sales", "AuditLogs", " " }, includeAuditLogs: false);
+
+        Assert.Equal(new[] { "GpsPositions" }, targets.Select(t => t.Table));
+        Assert.Contains("Sales", unknown);
+        Assert.Contains("AuditLogs", unknown);
+
+        var (withAudit, unknownWithAudit) = DatabaseMaintenanceService.ResolveTruncateTargets(
+            new[] { "AuditLogs" }, includeAuditLogs: true);
+
+        Assert.Equal("AuditLogs", Assert.Single(withAudit).Table);
+        Assert.Empty(unknownWithAudit);
     }
 }

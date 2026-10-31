@@ -78,3 +78,42 @@ public sealed record DataRetentionPurgeSummary(
 {
     public long TotalSizeDeltaBytes => TotalSizeAfterBytes - TotalSizeBeforeBytes;
 }
+
+/// <summary>
+/// Resultado de vaciar (<c>TRUNCATE</c>) una tabla de retención en modo emergencia.
+/// A diferencia de <see cref="RetentionPurgeResult"/> no hay "filas vencidas": se
+/// descarta todo el contenido de una tabla de telemetría/logs.
+/// </summary>
+public sealed record RetentionTruncateResult(
+    string TableName,
+    string Label,
+    long SizeBeforeBytes,
+    long SizeAfterBytes)
+{
+    public long SizeDeltaBytes => SizeAfterBytes - SizeBeforeBytes;
+}
+
+/// <summary>
+/// Resumen de una purga de EMERGENCIA (<c>POST .../db-storage/truncate</c>).
+///
+/// <para>
+/// Se usa cuando la base ya está en el límite del plan y ni un <c>DELETE</c> pasa
+/// (Neon devuelve <c>53100</c> también al borrar, porque necesita páginas nuevas para
+/// las versiones muertas). <c>TRUNCATE</c> vacía el archivo sin pedir espacio: es la
+/// única operación que desbloquea las escrituras desde el API. Solo se permite sobre
+/// las tablas de <c>DataRetentionRules</c> (+ <c>AuditLogs</c> si se pide explícito):
+/// nunca sobre datos de negocio.
+/// </para>
+/// </summary>
+public sealed record DataRetentionTruncateSummary(
+    DateTime ExecutedAtUtc,
+    long TotalSizeBeforeBytes,
+    long TotalSizeAfterBytes,
+    IReadOnlyList<RetentionTruncateResult> Results,
+    IReadOnlyList<string> Notes)
+{
+    public long TotalSizeDeltaBytes => TotalSizeAfterBytes - TotalSizeBeforeBytes;
+
+    /// <summary>Tablas que efectivamente quedaron vacías.</summary>
+    public int TablesEmptied => Results.Count;
+}

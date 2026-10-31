@@ -65,7 +65,14 @@ Esto borra **solo datos vencidos** según `DataRetentionRules`
 | `SyncJournals` | 90 días | Journal de sincronización offline |
 | `RefreshTokens` | 30 días tras `ExpiresAt` | Tokens vencidos |
 | `PasswordResetTokens` | 30 días | Tokens usados/vencidos |
-| `AuditLogs` | 180 días | Job aparte: `audit-log-cleanup` |
+| `AuditLogs` | 180 días | También su job propio: `audit-log-cleanup` |
+
+> Los `AuditLogs` entran en la purga del API **además** de su job. Durante mucho tiempo
+> no se borraba ni una fila: `AuditImmutabilityInterceptor` (AUD-004) rechaza cualquier
+> `EntityState.Deleted` sobre `AuditLog` y el `SaveChanges` del job explotaba siempre. Ahora
+> el borrado se permite solo dentro de `AuditRetentionScope` (`AsyncLocal`), que únicamente
+> abren `AuditLogCleanupJob` y la purga de mantenimiento. `Modified`/soft-delete sigue
+> prohibido incluso dentro del scope, así que la inmutabilidad de la auditoría se mantiene.
 
 ```bash
 # Ejecutar ahora (idempotente; batchSize opcional, default 5000)
@@ -101,7 +108,26 @@ el mismo `53100`. Estrategias, de la más barata a la más agresiva:
 ### 2.1 `TRUNCATE` de tablas desechables (instantáneo, no necesita espacio extra)
 
 `TRUNCATE` crea un archivo nuevo vacío y suelta el viejo: libera el 100% del espacio de esa
-tabla en segundos y sin headroom. Úsalo solo con datos que se puedan perder:
+tabla en segundos y sin headroom. Úsalo solo con datos que se puedan perder.
+
+Dos caminos equivalentes (mismo whitelist de `DataRetentionRules`; nunca tablas de negocio):
+
+```bash
+# A) Desde el API. `includeAuditLogs=true` habilita el log de auditoría;
+#    `tables=` vacío = todas las tablas de retención permitidas.
+curl -X POST -H "Authorization: Bearer <token-superadmin>" \
+     "https://<host>/zorvian/v1/system/db-storage/truncate?includeAuditLogs=true"
+
+# Solo unas tablas concretas (los nombres desconocidos se ignoran y se reportan):
+curl -X POST -H "Authorization: Bearer <token-superadmin>" \
+     "https://<host>/zorvian/v1/system/db-storage/truncate?tables=AuditLogs,GpsPositions&includeAuditLogs=true"
+```
+
+```bash
+# B) SQL directo (si la API no responde): pegar en la consola SQL de Neon.
+#    La sección 1 (TRUNCATE) y la sección 2 (VACUUM) van en ejecuciones separadas.
+psql "<connection-string>" -f scripts/db_storage_emergency_purge.sql
+```
 
 ```sql
 -- Logs y telemetría (el sistema las vuelve a llenar desde cero)
@@ -176,8 +202,11 @@ límite) para poder correr `VACUUM FULL`, y volver al plan anterior después.
 | Un fallo de seeder no tumba el arranque, y si es por falta de espacio se omiten los restantes | `Program.cs` → `SeedSafelyAsync` |
 | Purga diaria de tablas de alto volumen + `VACUUM ANALYZE` | `DataRetentionJob` (`data-retention`) |
 | Purga de auditoría en lotes acotados (antes cargaba todo lo vencido en memoria) | `AuditLogCleanupJob` |
+| El borrado de auditoría ya no lo bloquea el interceptor AUD-004 fuera del scope de retención | `AuditRetentionScope` |
+| El snapshot de auditoría recorta valores > 1 000 caracteres (el HTML de plantillas/documentos inflaba el log) | `AuditInterceptor.ClampValue` |
+| Con la base llena el arranque **no** migra ni siembra (evita el crash-loop `Exited with status 139`) | `Program.cs` (preflight de almacenamiento) |
 | `53100` se traduce a **503 con mensaje accionable** en vez de 500 genérico | `GlobalExceptionMiddleware` |
-| Reporte y purga bajo demanda desde el API | `GET/POST /zorvian/v1/system/db-storage[/purge]` |
+| Reporte, purga y purga de emergencia (`TRUNCATE`) bajo demanda desde el API | `GET/POST /zorvian/v1/system/db-storage[/purge\|/truncate]` |
 
 ---
 
