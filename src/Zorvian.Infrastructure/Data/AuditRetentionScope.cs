@@ -23,9 +23,38 @@ namespace Zorvian.Infrastructure.Data;
 /// El scope usa <see cref="AsyncLocal{T}"/> (igual que el contexto de tenant) porque los
 /// interceptores son singletons de DI y el borrado ocurre en jobs/procesos distintos.
 /// </para>
+///
+/// <para>
+/// <b>Segunda capa: el trigger de la base.</b> AUD-004 también vive en PostgreSQL
+/// (<c>trg_audit_logs_immutable</c> → <c>audit_logs_block_mutation()</c>, definido en
+/// <c>Migrations/20261031120000_AddAuditLogRetentionBypass</c>), y ese trigger rechaza
+/// <c>UPDATE</c>/<c>DELETE</c>/<c>TRUNCATE</c> con <c>SQLSTATE P0001</c>. Abrir solo el
+/// interceptor de EF no basta: la sentencia muere en el servidor. El trigger consulta el
+/// GUC <see cref="DatabaseSetting"/> y, dentro de la MISMA transacción del borrado, se
+/// habilita con <see cref="EnableDatabaseSettingSql"/>.
+/// </para>
 /// </summary>
 public static class AuditRetentionScope
 {
+    /// <summary>
+    /// GUC de sesión/transacción que el trigger <c>audit_logs_block_mutation()</c>
+    /// consulta para permitir el borrado físico de auditoría durante la retención.
+    /// </summary>
+    public const string DatabaseSetting = "zorvian.audit_retention";
+
+    /// <summary>Valor que habilita el bypass en el trigger.</summary>
+    public const string DatabaseSettingValue = "on";
+
+    /// <summary>
+    /// Sentencia que habilita el bypass <b>solo para la transacción actual</b>
+    /// (<c>set_config(..., is_local = true)</c>). Debe ejecutarse dentro de la misma
+    /// transacción que el <c>DELETE</c>/<c>TRUNCATE</c>: al terminar, la GUC vuelve sola
+    /// a su valor anterior y nunca queda pegada en la conexión del pool (el contexto de
+    /// EF y la conexión se reutilizan entre requests).
+    /// </summary>
+    public const string EnableDatabaseSettingSql =
+        "SELECT set_config('" + DatabaseSetting + "', '" + DatabaseSettingValue + "', true)";
+
     private static readonly AsyncLocal<int> Depth = new();
 
     /// <summary>

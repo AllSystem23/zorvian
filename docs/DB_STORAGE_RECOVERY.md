@@ -73,6 +73,35 @@ Esto borra **solo datos vencidos** según `DataRetentionRules`
 > el borrado se permite solo dentro de `AuditRetentionScope` (`AsyncLocal`), que únicamente
 > abren `AuditLogCleanupJob` y la purga de mantenimiento. `Modified`/soft-delete sigue
 > prohibido incluso dentro del scope, así que la inmutabilidad de la auditoría se mantiene.
+>
+> **Segunda capa (base de datos).** AUD-004 también vive en PostgreSQL: el trigger
+> `trg_audit_logs_immutable` → `audit_logs_block_mutation()` rechaza
+> `UPDATE`/`DELETE`/`TRUNCATE` sobre `AuditLogs` con `SQLSTATE P0001`
+> (`AUD-004: AuditLogs es inmutable…`). Abrir el interceptor de EF **no basta**: la
+> sentencia ni se ejecuta. La migración `AddAuditLogRetentionBypass` hace que el trigger
+> acepte `DELETE`/`TRUNCATE` cuando la **misma transacción** habilita el GUC
+> `zorvian.audit_retention` (`set_config(..., true)`, transacción-local: no queda pegada en
+> la conexión del pool). `UPDATE` sigue bloqueado siempre. Ese `set_config` lo hace el
+> código en `PurgePostgresAsync` (un lote = una transacción), en `TruncateRetentionTablesAsync`
+> y en `AuditLogCleanupJob`; a mano es:
+>
+> ```sql
+> BEGIN;
+> SELECT set_config('zorvian.audit_retention', 'on', true);
+> TRUNCATE TABLE "AuditLogs";
+> COMMIT;
+> ```
+>
+> Si la migración todavía no está aplicada (build viejo en producción), el escape manual es
+> deshabilitar el trigger dentro de la transacción:
+>
+> ```sql
+> BEGIN;
+> ALTER TABLE "AuditLogs" DISABLE TRIGGER trg_audit_logs_immutable;
+> TRUNCATE TABLE "AuditLogs";
+> ALTER TABLE "AuditLogs" ENABLE TRIGGER trg_audit_logs_immutable;
+> COMMIT;   -- si el TRUNCATE falla, el rollback deja el trigger habilitado
+> ```
 
 ```bash
 # Ejecutar ahora (idempotente; batchSize opcional, default 5000)
@@ -139,8 +168,20 @@ TRUNCATE TABLE "EntityHistories";     -- historial de cambios (solo auditoría f
 TRUNCATE TABLE "RefreshTokens";       -- cierra todas las sesiones: los usuarios re-loguean
 TRUNCATE TABLE "PasswordResetTokens";
 
--- Bajo decisión del negocio (auditoría legal): perder esto NO es reversible
+-- Bajo decisión del negocio (auditoría legal): perder esto NO es reversible.
+-- Con la migración AddAuditLogRetentionBypass aplicada, el trigger AUD-004 necesita
+-- el GUC habilitado en la misma transacción (bloque 1.b del script).
+-- BEGIN;
+-- SELECT set_config('zorvian.audit_retention', 'on', true);
 -- TRUNCATE TABLE "AuditLogs";
+-- COMMIT;
+--
+-- Sin la migración (build viejo), deshabilita el trigger a mano:
+-- BEGIN;
+-- ALTER TABLE "AuditLogs" DISABLE TRIGGER trg_audit_logs_immutable;
+-- TRUNCATE TABLE "AuditLogs";
+-- ALTER TABLE "AuditLogs" ENABLE TRIGGER trg_audit_logs_immutable;
+-- COMMIT;
 ```
 
 `DocumentVersions` **no** se trunca: los PDF/constancias y la verificación por QR leen el

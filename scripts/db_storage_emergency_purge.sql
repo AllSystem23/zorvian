@@ -20,6 +20,16 @@
 --  Mismo efecto que POST /zorvian/v1/system/db-storage/truncate?includeAuditLogs=true
 --  desde el API (permiso company.manage), útil si la API no responde.
 --
+--  ⚠️  "AuditLogs" tiene DOS guardias de inmutabilidad (AUD-004) y hay que abrir las dos:
+--      1) el interceptor de EF (solo aplica al API: ya está abierto dentro del scope de
+--         retención) y
+--      2) el trigger PostgreSQL trg_audit_logs_immutable, que rechaza
+--         UPDATE/DELETE/TRUNCATE con "SQLSTATE P0001: AUD-004: AuditLogs es inmutable…".
+--      El trigger acepta el borrado si la MISMA transacción habilita el GUC
+--      zorvian.audit_retention (bloque 1.b). Si la migración
+--      AddAuditLogRetentionBypass todavía NO está aplicada en la base, usa el bloque
+--      1.a (deshabilitar el trigger a mano y volver a habilitarlo).
+--
 --  Uso:
 --    • Neon: pegar la SECCIÓN 1 en la consola SQL y ejecutar; después, en una
 --      ejecución APARTE, la SECCIÓN 2 (VACUUM no puede correr dentro de un
@@ -50,7 +60,22 @@ TRUNCATE TABLE "PasswordResetTokens";     -- 30 d
 -- Log de auditoría: se conserva 6 meses por diseño (AUD-004).
 -- Descomenta SOLO si la tabla es la que está llenando el proyecto; pierde
 -- trazabilidad legal/operativa de forma IRREVERSIBLE.
+--
+-- 1.a  SIN la migración AddAuditLogRetentionBypass (build viejo en producción).
+--      Deshabilita el trigger dentro de la transacción: si el TRUNCATE fallara,
+--      el rollback vuelve a dejar el trigger habilitado.
+-- BEGIN;
+-- ALTER TABLE "AuditLogs" DISABLE TRIGGER trg_audit_logs_immutable;
 -- TRUNCATE TABLE "AuditLogs";
+-- ALTER TABLE "AuditLogs" ENABLE TRIGGER trg_audit_logs_immutable;
+-- COMMIT;
+--
+-- 1.b  CON la migración aplicada (recomendado): el trigger permite DELETE/TRUNCATE
+--      cuando la MISMA transacción habilita el GUC. UPDATE sigue bloqueado siempre.
+-- BEGIN;
+-- SELECT set_config('zorvian.audit_retention', 'on', true);
+-- TRUNCATE TABLE "AuditLogs";
+-- COMMIT;
 
 -- NO truncar (se necesitan para operar):
 --   "DocumentVersions"   -> el HTML ya se migra a Storage con el sweep job

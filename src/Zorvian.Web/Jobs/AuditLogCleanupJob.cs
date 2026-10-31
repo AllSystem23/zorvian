@@ -21,6 +21,15 @@ namespace Zorvian.Web.Jobs;
 /// sin techo hasta llenar la base (incidente de Neon). El scope solo habilita el
 /// borrado físico de logs vencidos; modificar un log sigue prohibido.
 /// </para>
+///
+/// <para>
+/// Hay una SEGUNDA capa en la base de datos: el trigger
+/// <c>trg_audit_logs_immutable</c> rechaza <c>DELETE</c>/<c>TRUNCATE</c> con
+/// <c>SQLSTATE P0001</c> ("AUD-004: AuditLogs es inmutable..."). Abrir solo el
+/// interceptor no bastaba. En PostgreSQL cada lote de borrado corre en una transacción
+/// con <see cref="AuditRetentionScope.EnableDatabaseSettingSql"/> (GUC transacción-local
+/// que la migración <c>AddAuditLogRetentionBypass</c> hace consultar al trigger).
+/// </para>
 /// </summary>
 public sealed class AuditLogCleanupJob
 {
@@ -52,6 +61,12 @@ public sealed class AuditLogCleanupJob
         // el job falla siempre, sin purgar una sola fila.
         using var retentionScope = AuditRetentionScope.Begin();
 
+        // Segunda capa: el trigger PostgreSQL trg_audit_logs_immutable también bloquea
+        // DELETE/TRUNCATE sobre AuditLogs (SQLSTATE P0001). En PostgreSQL el SaveChanges
+        // de cada lote va dentro de una transacción que habilita el GUC de bypass; en
+        // proveedores no relacionales (tests con InMemory) no hay trigger ni GUC.
+        var requiresDatabaseBypass = IsPostgres();
+
         long total = 0;
 
         for (var batch = 0; batch < MaxBatches; batch++)
@@ -67,8 +82,24 @@ public sealed class AuditLogCleanupJob
             if (rows.Count == 0)
                 break;
 
-            _db.AuditLogs.RemoveRange(rows);
-            await _db.SaveChangesAsync();
+            if (requiresDatabaseBypass)
+            {
+                await using var transaction = await _db.Database.BeginTransactionAsync();
+
+                await _db.Database.ExecuteSqlRawAsync(
+                    AuditRetentionScope.EnableDatabaseSettingSql, CancellationToken.None);
+
+                _db.AuditLogs.RemoveRange(rows);
+                await _db.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+            }
+            else
+            {
+                _db.AuditLogs.RemoveRange(rows);
+                await _db.SaveChangesAsync();
+            }
+
             _db.ChangeTracker.Clear();
 
             total += rows.Count;
@@ -85,4 +116,11 @@ public sealed class AuditLogCleanupJob
 
         _logger.LogInformation("Deleted {Count} old audit log entries", total);
     }
+
+    /// <summary>
+    /// Mismo criterio que <c>DatabaseMaintenanceService.IsPostgres</c>: solo en PostgreSQL
+    /// existe el trigger AUD-004 que exige el GUC de bypass.
+    /// </summary>
+    private bool IsPostgres() =>
+        _db.Database.ProviderName?.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) == true;
 }

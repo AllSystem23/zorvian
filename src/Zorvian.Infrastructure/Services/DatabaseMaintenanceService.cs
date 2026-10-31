@@ -274,7 +274,7 @@ public sealed class DatabaseMaintenanceService : IDatabaseMaintenanceService
             try
             {
                 IDisposable? retentionScope =
-                    rule.EntityType == typeof(Core.Entities.AuditLog) ? AuditRetentionScope.Begin() : null;
+                    RequiresAuditRetentionBypass(rule) ? AuditRetentionScope.Begin() : null;
 
                 using (retentionScope)
                 {
@@ -393,7 +393,7 @@ public sealed class DatabaseMaintenanceService : IDatabaseMaintenanceService
                 // El borrado de AuditLogs solo es posible dentro del scope de retención;
                 // fuera de él, el interceptor AUD-004 lo rechaza (y debe seguir así).
                 IDisposable? retentionScope =
-                    rule.EntityType == typeof(Core.Entities.AuditLog) ? AuditRetentionScope.Begin() : null;
+                    RequiresAuditRetentionBypass(rule) ? AuditRetentionScope.Begin() : null;
 
                 using (retentionScope)
                 {
@@ -402,7 +402,19 @@ public sealed class DatabaseMaintenanceService : IDatabaseMaintenanceService
                         // Identificador desde DataRetentionRules (constante del código,
                         // nunca de la petición); TRUNCATE no admite parámetros.
                         var sql = "TRUNCATE TABLE \"" + rule.Table + "\"";
-                        await _db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+
+                        // El trigger de la base bloquea también TRUNCATE (AUD-004): el
+                        // bypass es una GUC de transacción, así que va en la misma.
+                        if (RequiresAuditRetentionBypass(rule))
+                        {
+                            await ExecuteInAuditRetentionTransactionAsync(
+                                () => _db.Database.ExecuteSqlRawAsync(sql, cancellationToken),
+                                cancellationToken);
+                        }
+                        else
+                        {
+                            await _db.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+                        }
                     }
                     else
                     {
@@ -537,10 +549,21 @@ public sealed class DatabaseMaintenanceService : IDatabaseMaintenanceService
             Value = cutoffUtc,
         };
 
+        // Un DELETE sobre AuditLogs muere en el trigger de la base (AUD-004) aunque el
+        // interceptor de EF ya esté abierto: cada lote va en su propia transacción con el
+        // GUC de bypass habilitado (transacción por lote para no retener locks/WAL de
+        // cientos de lotes a la vez).
+        var requiresBypass = RequiresAuditRetentionBypass(rule);
+
         for (var batch = 0; batch < MaxBatchesPerTable; batch++)
         {
-            var deleted = await _db.Database.ExecuteSqlRawAsync(
-                sql, new object[] { cutoffParameter }, cancellationToken);
+            var deleted = requiresBypass
+                ? await ExecuteInAuditRetentionTransactionAsync(
+                    () => _db.Database.ExecuteSqlRawAsync(
+                        sql, new object[] { cutoffParameter }, cancellationToken),
+                    cancellationToken)
+                : await _db.Database.ExecuteSqlRawAsync(
+                    sql, new object[] { cutoffParameter }, cancellationToken);
 
             total += deleted;
             if (deleted < batchSize)
@@ -611,6 +634,63 @@ public sealed class DatabaseMaintenanceService : IDatabaseMaintenanceService
         }
 
         return total;
+    }
+
+    /// <summary>
+    /// <c>true</c> si la regla apunta a la tabla con inmutabilidad AUD-004
+    /// (<c>AuditLogs</c>): ese borrado necesita el scope de EF y —en PostgreSQL— el
+    /// bypass por GUC del trigger <c>trg_audit_logs_immutable</c>.
+    /// </summary>
+    private static bool RequiresAuditRetentionBypass(RetentionRule rule) =>
+        rule.EntityType == typeof(Core.Entities.AuditLog);
+
+    /// <summary>
+    /// Ejecuta <paramref name="action"/> dentro de una transacción que primero habilita
+    /// el GUC <see cref="AuditRetentionScope.DatabaseSetting"/> para la duración de esa
+    /// transacción (<c>set_config(..., is_local = true)</c>).
+    ///
+    /// <para>
+    /// Necesario porque el trigger <c>audit_logs_block_mutation()</c> (AUD-004, capa de
+    /// base) rechaza <c>DELETE</c>/<c>TRUNCATE</c> sobre <c>AuditLogs</c> con
+    /// <c>P0001</c>: sin esto el borrado ni siquiera llega a ejecutarse. La GUC es
+    /// transacción-local, así que al hacer commit/rollback desaparece sola de la conexión
+    /// del pool.
+    /// </para>
+    /// </summary>
+    private async Task<T> ExecuteInAuditRetentionTransactionAsync<T>(
+        Func<Task<T>> action,
+        CancellationToken cancellationToken)
+    {
+        // ExecutionStrategy: mantiene la compatibilidad con el reintento de EF (y evita
+        // el "The configured execution strategy does not support user-initiated
+        // transactions" si algún proveedor lo exige).
+        var strategy = _db.Database.CreateExecutionStrategy();
+
+        return await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+
+            await _db.Database.ExecuteSqlRawAsync(
+                AuditRetentionScope.EnableDatabaseSettingSql, cancellationToken);
+
+            var result = await action();
+
+            await transaction.CommitAsync(cancellationToken);
+            return result;
+        });
+    }
+
+    private async Task ExecuteInAuditRetentionTransactionAsync(
+        Func<Task> action,
+        CancellationToken cancellationToken)
+    {
+        await ExecuteInAuditRetentionTransactionAsync<bool>(
+            async () =>
+            {
+                await action();
+                return true;
+            },
+            cancellationToken);
     }
 
     private async Task<long> TryGetTableSizeAsync(string table, CancellationToken cancellationToken)
